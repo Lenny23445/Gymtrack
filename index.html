@@ -525,6 +525,12 @@ body{
   border-color:var(--acc);
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.16);
 }
+.set-in.is-sug{
+  color:var(--acc);
+  font-weight:600;
+  background:rgba(var(--acc-rgb),.08);
+  border-color:rgba(var(--acc-rgb),.25);
+}
 .set-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;width:28px}
 .add-set-btn{margin-top:10px;background:none;border:none;color:var(--acc);font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
 
@@ -1188,7 +1194,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231756';
+const APP_VERSION = 'gymtrack-v202605231801';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1973,7 +1979,8 @@ function startActive() {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
     const defaultW = sw != null ? String(sw) : '';
-    return { exerciseId:exId, sets: Array.from({length:ex.targetSets}, ()=>({w:defaultW, r:String(ex.targetReps)})) };
+    const defaultR = String(ex.targetReps);
+    return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, ()=>({w:defaultW, r:defaultR})) };
   });
   timerTs = Date.now();
   timerInt = setInterval(()=>{
@@ -1999,10 +2006,10 @@ function renderLogCards() {
         ${log.sets.map((s,si)=>`
         <div class="set-row">
           <div class="set-n">${si+1}</div>
-          <input class="set-in" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
-            onchange="setVal(${li},${si},'w',this.value)">
-          <input class="set-in" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
-            onchange="setVal(${li},${si},'r',this.value)">
+          <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
+            oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
+          <input class="set-in${s.r && s.r===log.sugR?' is-sug':''}" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
+            oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'r',this.value)">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
         </div>`).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
