@@ -339,14 +339,14 @@ body{
 .f-field{margin-bottom:16px}
 
 /* ── EMOJI GRID ── */
-.emo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 20px 12px}
+.emo-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 20px 12px}
 .emo-btn{
   width:100%;aspect-ratio:1;border-radius:14px;
   border:1.5px solid transparent;
   background:var(--gl-bg-t);
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
-  font-size:24px;cursor:pointer;
+  font-size:22px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .15s;
 }
@@ -355,6 +355,35 @@ body{
   background:var(--soft);
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.22);
 }
+
+/* ── ICON-PICKER KATEGORIEN ── */
+.icon-cat-scroll{
+  display:flex;gap:8px;overflow-x:auto;
+  padding:0 20px 14px;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.icon-cat-scroll::-webkit-scrollbar{display:none}
+.icat{
+  flex-shrink:0;
+  background:var(--gl-bg-t);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;padding:6px 14px;
+  font-size:13px;font-weight:600;color:var(--text2);
+  cursor:pointer;white-space:nowrap;font-family:inherit;
+  transition:all .18s;
+}
+.icat.on{
+  background:var(--acc);color:#fff;
+  border-color:var(--acc);
+  box-shadow:0 2px 8px rgba(var(--acc-rgb),.32);
+}
+.icon-full-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  gap:6px;padding:0 20px 24px;
+  overflow-y:auto;
+}
+.icon-full-grid .emo-btn{font-size:26px}
 
 /* ── WORKOUT LOG CARDS ── */
 .ex-card{
@@ -818,7 +847,10 @@ body{
         <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
       </div>
     </div>
-    <div style="padding:0 20px 8px"><label class="f-label">Icon</label></div>
+    <div style="padding:0 20px 8px;display:flex;align-items:center;justify-content:space-between">
+      <label class="f-label" style="margin:0">Icon</label>
+      <button class="icat on" onclick="openIconPicker()" style="font-size:12px;padding:5px 13px">Alle Icons &nbsp;→</button>
+    </div>
     <div class="emo-grid" id="emo-grid"></div>
     <div class="px">
       <div class="f-field">
@@ -842,6 +874,21 @@ body{
       <div class="gap" style="height:10px"></div>
       <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
     </div>
+  </div>
+</div>
+
+<!-- SHEET: ICON PICKER -->
+<div class="ov" id="ov-icons">
+  <div class="sheet" style="max-height:88vh;padding-bottom:0">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Icon wählen</h2>
+      <button class="x-btn" onclick="closeOv('ov-icons')">✕</button>
+    </div>
+    <!-- Kategorien -->
+    <div class="icon-cat-scroll" id="icon-cats"></div>
+    <!-- Grid -->
+    <div class="icon-full-grid" id="icon-full-grid" style="max-height:58vh"></div>
   </div>
 </div>
 
@@ -916,7 +963,54 @@ body{
 
 <script>
 // ── DATA ──────────────────────────────────────────────
-const EMOJIS = ['🏋️','💪','🦵','🔵','🧘','🏃','🚴','🤸','⚡','🔥','🥊','🎯','🦾','💥','🏊','🧗','⛹️','🏅','⭐','💎','🫀','🦴','🤼','🥋','🎽','🩺','🔴','🟡','🟢','🟣'];
+/* ── ICON-BIBLIOTHEK ── */
+const ICON_CATS = [
+  { label:'⭐ Zuletzt',   icons:['🏋️','💪','🦵','🧘','🏃','🚴','🤸','⚡','🔥','🥊','🎯','🏅'] },
+  { label:'🏋️ Fitness',  icons:['🏋️','💪','🦵','🤸','🧘','🤼','🥊','🎽','🥋','🤺','🦾','🦿','🏃','🚶','🧎','🤾','🤽','🚵','🧗','🏇','🏊','🚣','🏄','⛹️','🤿','🪂','🎣','🛶'] },
+  { label:'⚽ Sport',     icons:['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🥏','🏒','🏓','🏸','🏑','🏏','🪃','🥌','🛹','🛷','🎳','🏹','🎿','⛷️','🏂','🪁','🤺','🎯','🎱','🏆','🥇','🥈','🥉','🎖️','🏅'] },
+  { label:'🫀 Körper',   icons:['🫀','🫁','🦴','🦷','🧠','👁️','🦶','🦵','💪','🦾','🦿','🩺','🩹','🩻','💊','🩸','🧬','🌡️','🏥','💆','🛁','🚿','🧖','🫶','🤲','👐','🙌','🤝','👊','✊'] },
+  { label:'🏆 Erfolg',   icons:['🏆','🥇','🥈','🥉','🎖️','🏅','⭐','🌟','✨','💫','🎯','👑','🔱','⚜️','🌈','🌠','🦋','🦅','🦁','🐯','🦊','🐺','🦄','🐉','🦈','🦏','🏔️','🌋','🗻','🌅'] },
+  { label:'⚡ Power',     icons:['⚡','🔥','💥','🚀','💢','🌪️','⚔️','🛡️','🗡️','🔮','💠','❇️','✴️','🌀','☄️','🌩️','💡','🔋','⚙️','🔩','🧲','🔧','🔨','⛏️','🪛','🪚','💣','🎆','🎇','🧨'] },
+  { label:'🥩 Nutrition', icons:['🥩','🍗','🥚','🥛','🧃','💧','🫗','🥑','🥦','🥕','🍌','🍎','🍊','🥝','🍇','🫐','🍓','🥜','🫘','🌾','🍚','🥗','🫙','🧈','🫒','🍳','🥞','🍱','🥣','🧇','🫕','🧆'] },
+  { label:'🎨 Symbole',  icons:['🔴','🟡','🟢','🟣','🔵','🟠','⚫','⚪','🔶','🔷','🔸','🔹','💎','♾️','📊','📈','📉','⏱️','⏰','🕐','🎮','🎲','🃏','🎪','🎨','✏️','📌','🔑','🗝️','🪬','🧿','☯️','☮️','✡️','🔯'] },
+  { label:'🐾 Tiere',    icons:['🦁','🐯','🐻','🦊','🐺','🦅','🦆','🐧','🦋','🐝','🦎','🐬','🦈','🐙','🦑','🦞','🦀','🐊','🦏','🦛','🦒','🐘','🦓','🏇','🐎','🦌','🦬','🐂','🦣','🫏'] },
+];
+
+/* Quick-Pick (erste 14 Icons aus den Top-Kategorien) */
+const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
+
+let _iconCatIdx = 0;
+
+function openIconPicker() {
+  _iconCatIdx = 0;
+  renderIconCatBar();
+  renderIconFullGrid();
+  openOv('ov-icons');
+}
+
+function renderIconCatBar() {
+  document.getElementById('icon-cats').innerHTML = ICON_CATS.map((c,i) =>
+    `<button class="icat${i===_iconCatIdx?' on':''}" onclick="selectIconCat(${i})">${c.label}</button>`
+  ).join('');
+}
+
+function selectIconCat(i) {
+  _iconCatIdx = i;
+  renderIconCatBar();
+  renderIconFullGrid();
+}
+
+function renderIconFullGrid() {
+  const icons = ICON_CATS[_iconCatIdx].icons;
+  document.getElementById('icon-full-grid').innerHTML = icons.map(e =>
+    `<button class="emo-btn${e===selEmoji?' on':''}" onclick="pickIconFromPicker('${e}')">${e}</button>`
+  ).join('');
+}
+
+function pickIconFromPicker(e) {
+  pickEmo(e);
+  closeOv('ov-icons');
+}
 
 let S = (() => {
   try { return JSON.parse(localStorage.getItem('ft4') || '{}'); } catch(e) { return {}; }
