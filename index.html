@@ -86,6 +86,28 @@
   --inp-bg:rgba(255,255,255,.07); --inp-focus:rgba(255,255,255,.13);
   --g5:rgba(255,255,255,.12); --g6:rgba(255,255,255,.05);
 }
+[data-theme="blau"] {
+  --acc:#0055CC; --acc2:#4D9FFF; --acc-rgb:0,85,204;
+  --text:#001233; --text2:rgba(0,18,51,.52);
+  --green:#00875A; --orange:#E68900; --red:#D93025;
+  --soft:rgba(0,85,204,.12);
+  --mesh:
+    radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,100,255,.30) 0%,transparent 52%),
+    radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,180,255,.22) 0%,transparent 52%),
+    radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,60,200,.18) 0%,transparent 48%),
+    radial-gradient(ellipse 65% 80% at 18% 88%,rgba(100,200,255,.16) 0%,transparent 48%),
+    #d6eaff;
+  --gl-bg:rgba(230,242,255,.72); --gl-bg-h:rgba(220,238,255,.88);
+  --gl-bg-t:rgba(220,238,255,.42);
+  --gl-bdr:rgba(0,100,220,.18); --gl-bdr2:rgba(0,60,180,.08);
+  --gl-shad:0 4px 24px rgba(0,60,180,.10),0 1px 4px rgba(0,60,180,.07);
+  --gl-shad-lg:0 14px 48px rgba(0,60,180,.18),0 4px 16px rgba(0,60,180,.10);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.90);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.28) 0%,transparent 100%);
+  --sep:rgba(0,80,200,.12);
+  --inp-bg:rgba(220,238,255,.58); --inp-focus:rgba(210,232,255,.92);
+  --g5:rgba(0,80,200,.10); --g6:rgba(210,232,255,.46);
+}
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -632,6 +654,11 @@ body{
   border:1px solid rgba(255,255,255,0.12);
   box-shadow:0 4px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.10);
 }
+[data-theme="blau"] #tab-indicator{
+  background:rgba(210,232,255,0.96);
+  border:1px solid rgba(120,180,255,0.80);
+  box-shadow:0 4px 20px rgba(0,80,200,.14),inset 0 1px 0 rgba(255,255,255,.90);
+}
 #tab-indicator::after{
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
   background:var(--sheen);border-radius:46px;pointer-events:none;
@@ -788,6 +815,11 @@ body{
           <div class="theme-dot" style="background:linear-gradient(135deg,#1c1c2e 50%,#060609 50%);border:2px solid #333"></div>
           <span class="theme-name">Dunkel 🌙</span>
           <span class="theme-chk" id="chk-dark" style="visibility:hidden">✓</span>
+        </div>
+        <div class="theme-row" onclick="setTheme('blau')">
+          <div class="theme-dot" style="background:linear-gradient(135deg,#4D9FFF 50%,#0055CC 50%);border:2px solid #3380dd"></div>
+          <span class="theme-name">Blau 🌊</span>
+          <span class="theme-chk" id="chk-blau" style="visibility:hidden">✓</span>
         </div>
       </div>
     </div>
@@ -1101,7 +1133,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231709';
+const APP_VERSION = 'gymtrack-v202605231714';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1258,7 +1290,7 @@ function setTheme(t) {
   S.theme = t;
   persist();
   document.documentElement.setAttribute('data-theme', t);
-  ['light','rosa','dark'].forEach(n =>
+  ['light','rosa','dark','blau'].forEach(n =>
     document.getElementById('chk-'+n).style.visibility = n===t ? 'visible' : 'hidden'
   );
 }
