@@ -1827,7 +1827,7 @@ initSheetSwipe();
 
   /* ── Register Service Worker ── */
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(reg => {
         swReg = reg;
         console.log('[GymTrack] SW registered', reg.scope);
@@ -1864,33 +1864,47 @@ function checkForUpdate() {
   const title = document.getElementById('update-title');
   const sub   = document.getElementById('update-sub');
   if (!title) return;
+  if (!swReg) { title.textContent = '❌ Nicht verfügbar (kein HTTPS?)'; return; }
 
-  if (!swReg) {
-    title.textContent = '❌ Nicht verfügbar (kein HTTPS?)';
-    return;
-  }
+  /* Schon ein fertiges Update in der Warteschlange? Sofort anwenden. */
+  if (swReg.waiting) { _applyUpdate(title, sub); return; }
 
   title.textContent = '⏳ Suche nach Updates…';
   sub.textContent   = '';
 
+  let handled = false;
+
+  /* updatefound VOR update() registrieren – sonst verpassen wir das Event
+     wenn der Browser sehr schnell ist.                                      */
+  swReg.addEventListener('updatefound', () => {
+    handled = true;
+    const nw = swReg.installing;
+    if (!nw) return;
+    title.textContent = '⬇️ Wird heruntergeladen…';
+    sub.textContent   = 'Bitte kurz warten…';
+    nw.addEventListener('statechange', () => {
+      if (nw.state === 'installed') _applyUpdate(title, sub);
+    });
+  }, { once: true });
+
+  /* updateViaCache:'none' (in der Registrierung gesetzt) sorgt dafür, dass
+     iOS sw.js wirklich neu vom Server holt statt den HTTP-Cache zu nutzen.  */
   swReg.update()
     .then(() => {
-      if (swReg.waiting) {
-        _applyUpdate(title, sub);
-      } else if (swReg.installing) {
-        title.textContent = '⬇️ Wird heruntergeladen…';
-        sub.textContent   = 'Bitte kurz warten';
-        swReg.installing.addEventListener('statechange', ev => {
-          if (ev.target.state === 'installed') _applyUpdate(title, sub);
-        });
-      } else {
-        title.textContent = '✓ Bereits auf dem neuesten Stand';
+      /* 1,5 Sekunden Gnadenfrist: Browser kann etwas Zeit brauchen,
+         bevor installing/waiting befüllt wird.                       */
+      setTimeout(() => {
+        if (handled) return;             // updatefound hat es schon
+        if (swReg.waiting) { _applyUpdate(title, sub); return; }
+        if (swReg.installing) return;    // statechange-Handler übernimmt
+        /* Kein neues Update gefunden */
+        title.textContent = '✓ Bereits aktuell';
         sub.textContent   = '';
         setTimeout(() => {
           title.textContent = 'Auf Updates prüfen';
           sub.textContent   = 'Neueste Version installieren';
         }, 3000);
-      }
+      }, 1500);
     })
     .catch(() => {
       title.textContent = '❌ Keine Verbindung';
