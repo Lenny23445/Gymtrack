@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -15,11 +15,11 @@
 <link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   iOS 26 LIQUID GLASS â€” FitTrack
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════════════
+   iOS 26 LIQUID GLASS — FitTrack
+   ═══════════════════════════════════════════════════ */
 
-/* â”€â”€ THEMES â”€â”€ */
+/* ── THEMES ── */
 [data-theme="light"] {
   --acc:#007AFF; --acc2:#5AC8FA; --acc-rgb:0,122,255;
   --text:#1c1c1e; --text2:rgba(60,60,67,.55);
@@ -87,7 +87,7 @@
   --g5:rgba(255,255,255,.12); --g6:rgba(255,255,255,.05);
 }
 
-/* â”€â”€ RESET â”€â”€ */
+/* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
@@ -105,17 +105,17 @@ body{
   transition:background .4s cubic-bezier(.4,0,.2,1);
 }
 
-/* â”€â”€ iOS PWA SAFE AREAS â”€â”€ */
+/* ── iOS PWA SAFE AREAS ── */
 :root{
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
-/* â”€â”€ PAGES â”€â”€ */
+/* ── PAGES ── */
 .pg{display:none;padding-bottom:calc(114px + var(--sab));min-height:100vh}
 .pg.on{display:block}
 
-/* â”€â”€ GLASS HEADER â”€â”€ */
+/* ── GLASS HEADER ── */
 .hdr{
   background:var(--gl-bg);
   backdrop-filter:blur(64px) saturate(220%);
@@ -149,7 +149,7 @@ body{
 }
 .hdr-plus:active{transform:scale(.90);opacity:.80}
 
-/* â”€â”€ TABBAR â€” FLOATING LIQUID GLASS PILL â”€â”€ */
+/* ── TABBAR — FLOATING LIQUID GLASS PILL ── */
 .tabbar{
   position:fixed;bottom:calc(18px + var(--sab));
   left:50%;transform:translateX(-50%);
@@ -182,7 +182,7 @@ body{
 .tab svg{width:22px;height:22px}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
 
-/* â”€â”€ GLASS CARD â”€â”€ */
+/* ── GLASS CARD ── */
 .card{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -199,14 +199,14 @@ body{
   background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
 }
 
-/* â”€â”€ SECTION TITLE â”€â”€ */
+/* ── SECTION TITLE ── */
 .s-title{
   font-size:12px;font-weight:700;color:var(--text2);
   text-transform:uppercase;letter-spacing:.85px;
   margin-bottom:10px;padding-left:2px;
 }
 
-/* â”€â”€ ROWS â”€â”€ */
+/* ── ROWS ── */
 .row{
   display:flex;align-items:center;
   padding:14px 16px;gap:13px;
@@ -229,7 +229,7 @@ body{
 .row-sub{font-size:13px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chev{color:var(--text2);font-size:18px;opacity:.5}
 
-/* â”€â”€ BUTTONS â”€â”€ */
+/* ── BUTTONS ── */
 .btn{
   border:none;border-radius:16px;padding:16px;
   font-size:17px;font-weight:700;
@@ -266,7 +266,7 @@ body{
 }
 .btn-sm{padding:10px 16px;font-size:14px;border-radius:13px}
 
-/* â”€â”€ OVERLAY / BOTTOM SHEET â”€â”€ */
+/* ── OVERLAY / BOTTOM SHEET ── */
 .ov{
   position:fixed;inset:0;
   background:rgba(0,0,0,.32);
@@ -284,7 +284,7 @@ body{
   border-bottom:none;
   width:100%;max-height:92vh;
   overflow-y:auto;overflow-x:hidden;
-  padding-bottom:calc(100px + var(--sab)); /* Platz fÃ¼r die schwebende Leiste */
+  padding-bottom:calc(100px + var(--sab)); /* Platz für die schwebende Leiste */
   animation:up .28s cubic-bezier(.32,1,.32,1);
   box-shadow:0 -8px 48px rgba(0,0,0,.18),var(--gl-hi);
   transition:background .4s;
@@ -328,7 +328,7 @@ body{
 }
 .x-btn:active{opacity:.6}
 
-/* â”€â”€ FORM â”€â”€ */
+/* ── FORM ── */
 .f-label{
   font-size:12px;font-weight:700;color:var(--text2);
   text-transform:uppercase;letter-spacing:.5px;
@@ -353,7 +353,7 @@ body{
 .f-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .f-field{margin-bottom:16px}
 
-/* â”€â”€ EMOJI GRID â”€â”€ */
+/* ── EMOJI GRID ── */
 .emo-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 20px 12px}
 .emo-btn{
   width:100%;aspect-ratio:1;border-radius:14px;
@@ -371,7 +371,7 @@ body{
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.22);
 }
 
-/* â”€â”€ ICON-PICKER KATEGORIEN â”€â”€ */
+/* ── ICON-PICKER KATEGORIEN ── */
 .icon-cat-scroll{
   display:flex;gap:8px;overflow-x:auto;
   padding:0 20px 14px;
@@ -400,7 +400,7 @@ body{
 }
 .icon-full-grid .emo-btn{font-size:26px}
 
-/* â”€â”€ BEGLEITER-PICKER â”€â”€ */
+/* ── BEGLEITER-PICKER ── */
 .companion-grid{
   display:grid;grid-template-columns:1fr 1fr;
   gap:12px;padding:4px 20px 24px;
@@ -461,7 +461,7 @@ body{
 }
 .tgl input:checked + .tgl-track::after{transform:translateX(22px)}
 
-/* â”€â”€ WORKOUT LOG CARDS â”€â”€ */
+/* ── WORKOUT LOG CARDS ── */
 .ex-card{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -506,7 +506,7 @@ body{
 .set-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;width:28px}
 .add-set-btn{margin-top:10px;background:none;border:none;color:var(--acc);font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
 
-/* â”€â”€ TIMER BAR â”€â”€ */
+/* ── TIMER BAR ── */
 .timer-bar{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -525,7 +525,7 @@ body{
 .timer-v{font-size:28px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;position:relative;z-index:1}
 .timer-l{font-size:11px;color:var(--text2);margin-bottom:2px;position:relative;z-index:1}
 
-/* â”€â”€ SUGGESTIONS â”€â”€ */
+/* ── SUGGESTIONS ── */
 .sug{
   border-radius:18px;padding:15px 16px;margin-bottom:10px;
   display:flex;gap:12px;align-items:flex-start;
@@ -549,13 +549,13 @@ body{
 .sug-title{font-size:15px;font-weight:700;position:relative;z-index:1}
 .sug-sub{font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4;position:relative;z-index:1}
 
-/* â”€â”€ BADGE â”€â”€ */
+/* ── BADGE ── */
 .badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
 .b-acc{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
 .b-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(52,199,89,.3)}
 .b-orange{background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(255,149,0,.3)}
 
-/* â”€â”€ CHART BOX â”€â”€ */
+/* ── CHART BOX ── */
 .chart-box{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -570,11 +570,11 @@ body{
   background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
 }
 
-/* â”€â”€ PROGRESS BAR â”€â”€ */
+/* ── PROGRESS BAR ── */
 .pbar{background:var(--g5);border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
 .pbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .6s cubic-bezier(.34,1.56,.64,1)}
 
-/* â”€â”€ THEME ROWS â”€â”€ */
+/* ── THEME ROWS ── */
 .theme-row{
   display:flex;align-items:center;padding:14px 16px;gap:12px;
   border-bottom:1px solid var(--sep);cursor:pointer;
@@ -586,13 +586,13 @@ body{
 .theme-name{flex:1;font-size:16px;font-weight:600}
 .theme-chk{color:var(--acc);font-size:18px;font-weight:700}
 
-/* â”€â”€ EMPTY STATE â”€â”€ */
+/* ── EMPTY STATE ── */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;text-align:center}
 .empty-i{font-size:60px;margin-bottom:16px}
 .empty h3{font-size:20px;font-weight:700;margin-bottom:8px}
 .empty p{font-size:15px;color:var(--text2);line-height:1.5}
 
-/* â”€â”€ WORKOUT CHECKBOX â”€â”€ */
+/* ── WORKOUT CHECKBOX ── */
 .wk-chk{
   width:26px;height:26px;border-radius:50%;
   border:2px solid var(--sep);
@@ -601,12 +601,12 @@ body{
 }
 .wk-chk.on{background:var(--acc);border-color:var(--acc);color:#fff;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(var(--acc-rgb),.38)}
 
-/* â”€â”€ UTILS â”€â”€ */
+/* ── UTILS ── */
 .gap{height:14px}
 .pad{padding:16px 20px}
 .px{padding:0 20px}
 
-/* â”€â”€ TAB INDICATOR (sliding liquid glass pill) â”€â”€ */
+/* ── TAB INDICATOR (sliding liquid glass pill) ── */
 #tab-indicator{
   position:absolute;
   top:5px;left:5px;
@@ -637,17 +637,17 @@ body{
   background:var(--sheen);border-radius:46px;pointer-events:none;
 }
 
-/* â”€â”€ PAGE TRANSITION (liquid glass bloom) â”€â”€ */
+/* ── PAGE TRANSITION (liquid glass bloom) ── */
 @keyframes pg-in{
   from{opacity:0;transform:translateY(12px) scale(.97);filter:blur(5px)}
   to  {opacity:1;transform:translateY(0)    scale(1)  ;filter:blur(0)}
 }
 .pg.on{animation:pg-in .38s cubic-bezier(.32,1,.32,1) both}
 
-/* â”€â”€ DACHSHUND â”€â”€ */
+/* ── DACHSHUND ── */
 #dackel-lane{
   position:fixed;
-  bottom:calc(80px + var(--sab)); /* FÃ¼ÃŸe auf der Leiste, auch mit iOS Safe Area */
+  bottom:calc(80px + var(--sab)); /* Füße auf der Leiste, auch mit iOS Safe Area */
   left:50%;
   transform:translateX(-50%);
   width:calc(100% - 52px);
@@ -676,7 +676,7 @@ body{
   display:block;
 }
 
-/* Horizontal walk: 0â†’rightâ†’0 */
+/* Horizontal walk: 0→right→0 */
 @keyframes dackel-walk{
   0%   {left:6px}
   47%  {left:calc(100% - 71px)}
@@ -731,13 +731,13 @@ body{
 <!-- PAGE: HEUTE -->
 <div class="pg on" id="pg-heute">
   <div class="hdr">
-    <h1 id="greet-h">Heute ðŸ’ª</h1>
+    <h1 id="greet-h">Heute 💪</h1>
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <button class="btn btn-acc" onclick="openWorkout()">â–¶&nbsp; Training starten</button>
+    <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
-      <div class="s-title">VorschlÃ¤ge diese Woche</div>
+      <div class="s-title">Vorschläge diese Woche</div>
       <div id="sug-list"></div>
     </div>
     <div>
@@ -747,12 +747,12 @@ body{
   </div>
 </div>
 
-<!-- PAGE: ÃœBUNGEN -->
+<!-- PAGE: ÜBUNGEN -->
 <div class="pg" id="pg-uebungen">
   <div class="hdr">
     <div class="hdr-row">
       <div>
-        <h1>Meine Ãœbungen</h1>
+        <h1>Meine Übungen</h1>
         <div class="sub" id="ex-sub"></div>
       </div>
       <button class="hdr-plus" onclick="openNewEx(null)">+</button>
@@ -763,7 +763,7 @@ body{
   <div class="pad">
     <div id="ex-list"></div>
     <div class="gap"></div>
-    <button class="btn btn-gray" onclick="openNewEx(null)">+ Ãœbung hinzufÃ¼gen</button>
+    <button class="btn btn-gray" onclick="openNewEx(null)">+ Übung hinzufügen</button>
   </div>
 </div>
 
@@ -777,17 +777,17 @@ body{
         <div class="theme-row" onclick="setTheme('light')">
           <div class="theme-dot" style="background:linear-gradient(135deg,#fff 50%,#f4f4f9 50%);border:2px solid #e5e5ea"></div>
           <span class="theme-name">Hell</span>
-          <span class="theme-chk" id="chk-light">âœ“</span>
+          <span class="theme-chk" id="chk-light">✓</span>
         </div>
         <div class="theme-row" onclick="setTheme('rosa')">
           <div class="theme-dot" style="background:linear-gradient(135deg,#fff0f8 50%,#ffd6ec 50%);border:2px solid #f8c0d8"></div>
-          <span class="theme-name">Rosa ðŸŒ¸</span>
-          <span class="theme-chk" id="chk-rosa" style="visibility:hidden">âœ“</span>
+          <span class="theme-name">Rosa 🌸</span>
+          <span class="theme-chk" id="chk-rosa" style="visibility:hidden">✓</span>
         </div>
         <div class="theme-row" onclick="setTheme('dark')">
           <div class="theme-dot" style="background:linear-gradient(135deg,#1c1c2e 50%,#060609 50%);border:2px solid #333"></div>
-          <span class="theme-name">Dunkel ðŸŒ™</span>
-          <span class="theme-chk" id="chk-dark" style="visibility:hidden">âœ“</span>
+          <span class="theme-name">Dunkel 🌙</span>
+          <span class="theme-chk" id="chk-dark" style="visibility:hidden">✓</span>
         </div>
       </div>
     </div>
@@ -795,7 +795,7 @@ body{
       <div class="s-title">Begleiter</div>
       <div class="card">
         <div class="row tap" onclick="openCompanionPicker()">
-          <div class="ico" id="companion-settings-ico">ðŸ•</div>
+          <div class="ico" id="companion-settings-ico">🐕</div>
           <div class="row-body">
             <div class="row-title" id="companion-settings-name">Dackel</div>
             <div class="row-sub">Dein Trainings-Begleiter auf der Leiste</div>
@@ -816,15 +816,15 @@ body{
       </div>
     </div>
     <div>
-      <div class="s-title">Progression â€“ so funktioniert's</div>
+      <div class="s-title">Progression – so funktioniert's</div>
       <div class="card">
         <div class="row"><div class="row-body">
-          <div class="row-title">Gewicht erhÃ¶hen</div>
-          <div class="row-sub">Wenn du 2Ã— alle Ziel-Wdh schaffst â†’ +2,5 kg (leicht) / +5 kg (schwer)</div>
+          <div class="row-title">Gewicht erhöhen</div>
+          <div class="row-sub">Wenn du 2× alle Ziel-Wdh schaffst → +2,5 kg (leicht) / +5 kg (schwer)</div>
         </div></div>
         <div class="row"><div class="row-body">
           <div class="row-title">Wdh-Fokus</div>
-          <div class="row-sub">Wenn noch nicht alle SÃ¤tze vollstÃ¤ndig â†’ Gewicht halten, Wdh optimieren</div>
+          <div class="row-sub">Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren</div>
         </div></div>
       </div>
     </div>
@@ -832,8 +832,8 @@ body{
       <div class="s-title">Daten</div>
       <div class="card">
         <div class="row"><div class="row-body">
-          <div class="row-title" id="data-info">â€“</div>
-          <div class="row-sub">Alles gespeichert auf deinem GerÃ¤t</div>
+          <div class="row-title" id="data-info">–</div>
+          <div class="row-sub">Alles gespeichert auf deinem Gerät</div>
         </div></div>
       </div>
     </div>
@@ -841,18 +841,18 @@ body{
       <div class="s-title">App</div>
       <div class="card">
         <div class="row tap" onclick="checkForUpdate()">
-          <div class="ico">ðŸ”„</div>
+          <div class="ico">🔄</div>
           <div class="row-body">
-            <div class="row-title" id="update-title">Auf Updates prÃ¼fen</div>
+            <div class="row-title" id="update-title">Auf Updates prüfen</div>
             <div class="row-sub"  id="update-sub">Neueste Version installieren</div>
           </div>
-          <div class="chev" id="update-chev">â€º</div>
+          <div class="chev" id="update-chev">›</div>
         </div>
         <div class="row">
-          <div class="ico">â„¹ï¸</div>
+          <div class="ico">ℹ️</div>
           <div class="row-body">
             <div class="row-title">Version</div>
-            <div class="row-sub">v1.1 â€“ Test-Update âœ…</div>
+            <div class="row-sub">v1.1 – Test-Update ✅</div>
           </div>
         </div>
       </div>
@@ -861,20 +861,20 @@ body{
       <div class="s-title">Backup</div>
       <div class="card">
         <div class="row tap" onclick="exportData()">
-          <div class="ico">ðŸ“¤</div>
+          <div class="ico">📤</div>
           <div class="row-body">
             <div class="row-title">Daten exportieren</div>
             <div class="row-sub">Sicherheitskopie als Datei speichern</div>
           </div>
-          <div class="chev">â€º</div>
+          <div class="chev">›</div>
         </div>
         <div class="row tap" onclick="importData()">
-          <div class="ico">ðŸ“¥</div>
+          <div class="ico">📥</div>
           <div class="row-body">
             <div class="row-title">Daten importieren</div>
             <div class="row-sub">Backup wiederherstellen</div>
           </div>
-          <div class="chev">â€º</div>
+          <div class="chev">›</div>
         </div>
       </div>
     </div>
@@ -890,7 +890,7 @@ body{
   </button>
   <button class="tab" onclick="goTab('uebungen',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
-    <span>Ãœbungen</span>
+    <span>Übungen</span>
   </button>
   <button class="tab" onclick="goTab('settings',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
@@ -935,18 +935,18 @@ body{
   </div>
 </div>
 
-<!-- SHEET: NEUE / BEARBEITE ÃœBUNG -->
+<!-- SHEET: NEUE / BEARBEITE ÜBUNG -->
 <div class="ov" id="ov-ex">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2 id="ex-sheet-title">Ãœbung hinzufÃ¼gen</h2>
-      <button class="x-btn" onclick="closeOv('ov-ex')">âœ•</button>
+      <h2 id="ex-sheet-title">Übung hinzufügen</h2>
+      <button class="x-btn" onclick="closeOv('ov-ex')">✕</button>
     </div>
     <div class="px">
       <div class="f-field">
         <label class="f-label">Name</label>
-        <input class="f-in" type="text" id="in-name" placeholder="z. B. BankdrÃ¼cken" maxlength="32">
+        <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
       </div>
     </div>
     <!-- Muskelgruppe -->
@@ -956,7 +956,7 @@ body{
     <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
     <div style="padding:0 20px 8px;display:flex;align-items:center;justify-content:space-between">
       <label class="f-label" style="margin:0">Icon</label>
-      <button class="icat on" onclick="openIconPicker()" style="font-size:12px;padding:5px 13px">Alle Icons &nbsp;â†’</button>
+      <button class="icat on" onclick="openIconPicker()" style="font-size:12px;padding:5px 13px">Alle Icons &nbsp;→</button>
     </div>
     <div class="emo-grid" id="emo-grid"></div>
     <div class="px">
@@ -964,7 +964,7 @@ body{
         <label class="f-label">Ziel pro Einheit</label>
         <div class="f-row3">
           <div>
-            <label class="f-label" style="font-size:10px">SÃ¤tze</label>
+            <label class="f-label" style="font-size:10px">Sätze</label>
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
           </div>
           <div>
@@ -979,7 +979,7 @@ body{
       </div>
       <button class="btn btn-acc" onclick="saveEx()">Speichern</button>
       <div class="gap" style="height:10px"></div>
-      <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Ãœbung lÃ¶schen</button>
+      <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
     </div>
   </div>
 </div>
@@ -989,8 +989,8 @@ body{
   <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>Icon wÃ¤hlen</h2>
-      <button class="x-btn" onclick="closeIconPicker()">âœ•</button>
+      <h2>Icon wählen</h2>
+      <button class="x-btn" onclick="closeIconPicker()">✕</button>
     </div>
     <!-- Kategorien -->
     <div class="icon-cat-scroll" id="icon-cats"></div>
@@ -1005,17 +1005,17 @@ body{
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="wk-title">Training</h2>
-      <button class="x-btn" onclick="closeOv('ov-wk')">âœ•</button>
+      <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
-      <!-- KÃ¶rperpartien-Filter -->
+      <!-- Körperpartien-Filter -->
       <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
-        <div class="s-title" id="wk-step1-title">Welche Ãœbungen heute?</div>
+        <div class="s-title" id="wk-step1-title">Welche Übungen heute?</div>
         <div class="card" id="wk-picker"></div>
         <div class="gap"></div>
-        <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten â–¶</button>
+        <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten ▶</button>
       </div>
     </div>
     <!-- step 2: log -->
@@ -1026,7 +1026,7 @@ body{
             <div class="timer-l">Trainingszeit</div>
             <div class="timer-v" id="timer-v">00:00</div>
           </div>
-          <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig âœ“</button>
+          <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
         </div>
         <div id="log-cards"></div>
       </div>
@@ -1034,13 +1034,13 @@ body{
   </div>
 </div>
 
-<!-- SHEET: ÃœBUNG DETAIL -->
+<!-- SHEET: ÜBUNG DETAIL -->
 <div class="ov" id="ov-det">
   <div class="sheet" style="max-height:95vh">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="det-title">Detail</h2>
-      <button class="x-btn" onclick="closeOv('ov-det')">âœ•</button>
+      <button class="x-btn" onclick="closeOv('ov-det')">✕</button>
     </div>
     <div class="px">
       <div id="det-sug" style="margin-bottom:10px"></div>
@@ -1049,7 +1049,7 @@ body{
       <div class="s-title">Letzte Einheiten</div>
       <div class="card" id="det-hist"></div>
       <div class="gap" style="height:12px"></div>
-      <button class="btn btn-gray btn-sm" style="width:auto;display:inline-block;padding:10px 20px" onclick="editDet()">âœï¸ Bearbeiten</button>
+      <button class="btn btn-gray btn-sm" style="width:auto;display:inline-block;padding:10px 20px" onclick="editDet()">✏️ Bearbeiten</button>
     </div>
   </div>
 </div>
@@ -1059,8 +1059,8 @@ body{
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>Training beendet ðŸŽ‰</h2>
-      <button class="x-btn" onclick="closeOv('ov-done')">âœ•</button>
+      <h2>Training beendet 🎉</h2>
+      <button class="x-btn" onclick="closeOv('ov-done')">✕</button>
     </div>
     <div class="px">
       <div id="done-body"></div>
@@ -1070,59 +1070,59 @@ body{
   </div>
 </div>
 
-<!-- SHEET: BEGLEITER WÃ„HLEN -->
+<!-- SHEET: BEGLEITER WÄHLEN -->
 <div class="ov" id="ov-companion" onclick="if(event.target===this)closeOv('ov-companion')">
   <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>Begleiter wÃ¤hlen</h2>
-      <button class="x-btn" onclick="closeOv('ov-companion')">âœ•</button>
+      <h2>Begleiter wählen</h2>
+      <button class="x-btn" onclick="closeOv('ov-companion')">✕</button>
     </div>
     <div class="companion-grid" id="companion-grid"></div>
   </div>
 </div>
 
 <script>
-// â”€â”€ DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/* â”€â”€ ICON-BIBLIOTHEK â”€â”€ */
+// ── DATA ──────────────────────────────────────────────
+/* ── ICON-BIBLIOTHEK ── */
 const ICON_CATS = [
-  { label:'â­ Zuletzt',   icons:['ðŸ‹ï¸','ðŸ’ª','ðŸ¦µ','ðŸ§˜','ðŸƒ','ðŸš´','ðŸ¤¸','âš¡','ðŸ”¥','ðŸ¥Š','ðŸŽ¯','ðŸ…'] },
-  { label:'ðŸ‹ï¸ Fitness',  icons:['ðŸ‹ï¸','ðŸ’ª','ðŸ¦µ','ðŸ¤¸','ðŸ§˜','ðŸ¤¼','ðŸ¥Š','ðŸŽ½','ðŸ¥‹','ðŸ¤º','ðŸ¦¾','ðŸ¦¿','ðŸƒ','ðŸš¶','ðŸ§Ž','ðŸ¤¾','ðŸ¤½','ðŸšµ','ðŸ§—','ðŸ‡','ðŸŠ','ðŸš£','ðŸ„','â›¹ï¸','ðŸ¤¿','ðŸª‚','ðŸŽ£','ðŸ›¶'] },
-  { label:'âš½ Sport',     icons:['âš½','ðŸ€','ðŸˆ','âš¾','ðŸŽ¾','ðŸ','ðŸ‰','ðŸ¥','ðŸ’','ðŸ“','ðŸ¸','ðŸ‘','ðŸ','ðŸªƒ','ðŸ¥Œ','ðŸ›¹','ðŸ›·','ðŸŽ³','ðŸ¹','ðŸŽ¿','â›·ï¸','ðŸ‚','ðŸª','ðŸ¤º','ðŸŽ¯','ðŸŽ±','ðŸ†','ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰','ðŸŽ–ï¸','ðŸ…'] },
-  { label:'ðŸ«€ KÃ¶rper',   icons:['ðŸ«€','ðŸ«','ðŸ¦´','ðŸ¦·','ðŸ§ ','ðŸ‘ï¸','ðŸ¦¶','ðŸ¦µ','ðŸ’ª','ðŸ¦¾','ðŸ¦¿','ðŸ©º','ðŸ©¹','ðŸ©»','ðŸ’Š','ðŸ©¸','ðŸ§¬','ðŸŒ¡ï¸','ðŸ¥','ðŸ’†','ðŸ›','ðŸš¿','ðŸ§–','ðŸ«¶','ðŸ¤²','ðŸ‘','ðŸ™Œ','ðŸ¤','ðŸ‘Š','âœŠ'] },
-  { label:'ðŸ† Erfolg',   icons:['ðŸ†','ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰','ðŸŽ–ï¸','ðŸ…','â­','ðŸŒŸ','âœ¨','ðŸ’«','ðŸŽ¯','ðŸ‘‘','ðŸ”±','âšœï¸','ðŸŒˆ','ðŸŒ ','ðŸ¦‹','ðŸ¦…','ðŸ¦','ðŸ¯','ðŸ¦Š','ðŸº','ðŸ¦„','ðŸ‰','ðŸ¦ˆ','ðŸ¦','ðŸ”ï¸','ðŸŒ‹','ðŸ—»','ðŸŒ…'] },
-  { label:'âš¡ Power',     icons:['âš¡','ðŸ”¥','ðŸ’¥','ðŸš€','ðŸ’¢','ðŸŒªï¸','âš”ï¸','ðŸ›¡ï¸','ðŸ—¡ï¸','ðŸ”®','ðŸ’ ','â‡ï¸','âœ´ï¸','ðŸŒ€','â˜„ï¸','ðŸŒ©ï¸','ðŸ’¡','ðŸ”‹','âš™ï¸','ðŸ”©','ðŸ§²','ðŸ”§','ðŸ”¨','â›ï¸','ðŸª›','ðŸªš','ðŸ’£','ðŸŽ†','ðŸŽ‡','ðŸ§¨'] },
-  { label:'ðŸ¥© Nutrition', icons:['ðŸ¥©','ðŸ—','ðŸ¥š','ðŸ¥›','ðŸ§ƒ','ðŸ’§','ðŸ«—','ðŸ¥‘','ðŸ¥¦','ðŸ¥•','ðŸŒ','ðŸŽ','ðŸŠ','ðŸ¥','ðŸ‡','ðŸ«','ðŸ“','ðŸ¥œ','ðŸ«˜','ðŸŒ¾','ðŸš','ðŸ¥—','ðŸ«™','ðŸ§ˆ','ðŸ«’','ðŸ³','ðŸ¥ž','ðŸ±','ðŸ¥£','ðŸ§‡','ðŸ«•','ðŸ§†'] },
-  { label:'ðŸŽ¨ Symbole',  icons:['ðŸ”´','ðŸŸ¡','ðŸŸ¢','ðŸŸ£','ðŸ”µ','ðŸŸ ','âš«','âšª','ðŸ”¶','ðŸ”·','ðŸ”¸','ðŸ”¹','ðŸ’Ž','â™¾ï¸','ðŸ“Š','ðŸ“ˆ','ðŸ“‰','â±ï¸','â°','ðŸ•','ðŸŽ®','ðŸŽ²','ðŸƒ','ðŸŽª','ðŸŽ¨','âœï¸','ðŸ“Œ','ðŸ”‘','ðŸ—ï¸','ðŸª¬','ðŸ§¿','â˜¯ï¸','â˜®ï¸','âœ¡ï¸','ðŸ”¯'] },
-  { label:'ðŸ¾ Tiere',    icons:['ðŸ¦','ðŸ¯','ðŸ»','ðŸ¦Š','ðŸº','ðŸ¦…','ðŸ¦†','ðŸ§','ðŸ¦‹','ðŸ','ðŸ¦Ž','ðŸ¬','ðŸ¦ˆ','ðŸ™','ðŸ¦‘','ðŸ¦ž','ðŸ¦€','ðŸŠ','ðŸ¦','ðŸ¦›','ðŸ¦’','ðŸ˜','ðŸ¦“','ðŸ‡','ðŸŽ','ðŸ¦Œ','ðŸ¦¬','ðŸ‚','ðŸ¦£','ðŸ«'] },
+  { label:'⭐ Zuletzt',   icons:['🏋️','💪','🦵','🧘','🏃','🚴','🤸','⚡','🔥','🥊','🎯','🏅'] },
+  { label:'🏋️ Fitness',  icons:['🏋️','💪','🦵','🤸','🧘','🤼','🥊','🎽','🥋','🤺','🦾','🦿','🏃','🚶','🧎','🤾','🤽','🚵','🧗','🏇','🏊','🚣','🏄','⛹️','🤿','🪂','🎣','🛶'] },
+  { label:'⚽ Sport',     icons:['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🥏','🏒','🏓','🏸','🏑','🏏','🪃','🥌','🛹','🛷','🎳','🏹','🎿','⛷️','🏂','🪁','🤺','🎯','🎱','🏆','🥇','🥈','🥉','🎖️','🏅'] },
+  { label:'🫀 Körper',   icons:['🫀','🫁','🦴','🦷','🧠','👁️','🦶','🦵','💪','🦾','🦿','🩺','🩹','🩻','💊','🩸','🧬','🌡️','🏥','💆','🛁','🚿','🧖','🫶','🤲','👐','🙌','🤝','👊','✊'] },
+  { label:'🏆 Erfolg',   icons:['🏆','🥇','🥈','🥉','🎖️','🏅','⭐','🌟','✨','💫','🎯','👑','🔱','⚜️','🌈','🌠','🦋','🦅','🦁','🐯','🦊','🐺','🦄','🐉','🦈','🦏','🏔️','🌋','🗻','🌅'] },
+  { label:'⚡ Power',     icons:['⚡','🔥','💥','🚀','💢','🌪️','⚔️','🛡️','🗡️','🔮','💠','❇️','✴️','🌀','☄️','🌩️','💡','🔋','⚙️','🔩','🧲','🔧','🔨','⛏️','🪛','🪚','💣','🎆','🎇','🧨'] },
+  { label:'🥩 Nutrition', icons:['🥩','🍗','🥚','🥛','🧃','💧','🫗','🥑','🥦','🥕','🍌','🍎','🍊','🥝','🍇','🫐','🍓','🥜','🫘','🌾','🍚','🥗','🫙','🧈','🫒','🍳','🥞','🍱','🥣','🧇','🫕','🧆'] },
+  { label:'🎨 Symbole',  icons:['🔴','🟡','🟢','🟣','🔵','🟠','⚫','⚪','🔶','🔷','🔸','🔹','💎','♾️','📊','📈','📉','⏱️','⏰','🕐','🎮','🎲','🃏','🎪','🎨','✏️','📌','🔑','🗝️','🪬','🧿','☯️','☮️','✡️','🔯'] },
+  { label:'🐾 Tiere',    icons:['🦁','🐯','🐻','🦊','🐺','🦅','🦆','🐧','🦋','🐝','🦎','🐬','🦈','🐙','🦑','🦞','🦀','🐊','🦏','🦛','🦒','🐘','🦓','🏇','🐎','🦌','🦬','🐂','🦣','🫏'] },
 ];
 
 /* Quick-Pick (erste 14 Icons aus den Top-Kategorien) */
-const EMOJIS = ICON_CATS[0].icons.concat(['ðŸ¦µ','ðŸ”¥','ðŸ’¥','ðŸŠ','ðŸ§—','ðŸ«€','ðŸ¦´','ðŸŸ¢','ðŸŸ£','ðŸ”µ','ðŸŸ¡','ðŸ”´','â­','ðŸ’Ž','âš¡','ðŸŽ¯','ðŸ†','ðŸ¥Š']);
+const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
-/* â”€â”€ APP VERSION (muss mit sw.js CACHE Ã¼bereinstimmen â€“ Deploy-Script hÃ¤lt beides sync) â”€â”€ */
-const APP_VERSION = 'gymtrack-v202605231702';
+/* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
+const APP_VERSION = 'gymtrack-v202605231709';
 
-/* â”€â”€ MUSKELGRUPPEN â”€â”€ */
+/* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
-  { id:'brust',     label:'ðŸ«€ Brust'      },
-  { id:'ruecken',   label:'ðŸ”™ RÃ¼cken'     },
-  { id:'beine',     label:'ðŸ¦µ Beine'      },
-  { id:'arme',      label:'ðŸ’ª Arme'       },
-  { id:'schultern', label:'ðŸ‹ï¸ Schultern'  },
-  { id:'core',      label:'ðŸ”¥ Core'       },
+  { id:'brust',     label:'🫀 Brust'      },
+  { id:'ruecken',   label:'🔙 Rücken'     },
+  { id:'beine',     label:'🦵 Beine'      },
+  { id:'arme',      label:'💪 Arme'       },
+  { id:'schultern', label:'🏋️ Schultern'  },
+  { id:'core',      label:'🔥 Core'       },
 ];
-const MUSCLE_FILTER = [{id:'alle', label:'â­ Alle'}, ...MUSCLE_GROUPS];
+const MUSCLE_FILTER = [{id:'alle', label:'⭐ Alle'}, ...MUSCLE_GROUPS];
 function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
 
-/* â”€â”€ BEGLEITER â”€â”€ */
+/* ── BEGLEITER ── */
 const COMPANIONS = [
-  { id:'dackel', name:'Dackel',   emoji:'ðŸ•', desc:'Der treue Klassiker',   available:true  },
-  { id:'katze',  name:'Katze',    emoji:'ðŸ±', desc:'Bald verfÃ¼gbar',        available:false },
-  { id:'hase',   name:'Hase',     emoji:'ðŸ°', desc:'Bald verfÃ¼gbar',        available:false },
-  { id:'fuchs',  name:'Fuchs',    emoji:'ðŸ¦Š', desc:'Bald verfÃ¼gbar',        available:false },
-  { id:'baer',   name:'BÃ¤r',      emoji:'ðŸ»', desc:'Bald verfÃ¼gbar',        available:false },
-  { id:'pinguin',name:'Pinguin',  emoji:'ðŸ§', desc:'Bald verfÃ¼gbar',        available:false },
+  { id:'dackel', name:'Dackel',   emoji:'🐕', desc:'Der treue Klassiker',   available:true  },
+  { id:'katze',  name:'Katze',    emoji:'🐱', desc:'Bald verfügbar',        available:false },
+  { id:'hase',   name:'Hase',     emoji:'🐰', desc:'Bald verfügbar',        available:false },
+  { id:'fuchs',  name:'Fuchs',    emoji:'🦊', desc:'Bald verfügbar',        available:false },
+  { id:'baer',   name:'Bär',      emoji:'🐻', desc:'Bald verfügbar',        available:false },
+  { id:'pinguin',name:'Pinguin',  emoji:'🐧', desc:'Bald verfügbar',        available:false },
 ];
 
 let _iconCatIdx = 0;
@@ -1176,16 +1176,16 @@ let S = (() => {
 S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
-S.companion    = S.companion    || 'dackel';
-S.companionOn  = S.companionOn  !== undefined ? S.companionOn : true;
+S.companion   = S.companion   || 'dackel';
+S.companionOn = S.companionOn !== undefined ? S.companionOn : true;
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
 // working state
 let editId = null;
-let selEmoji = 'ðŸ‹ï¸';
-let selMuscle   = '';      // aktuell ausgewÃ¤hlt im Formular
-let exCatFilter = 'alle';  // Filter im Ãœbungen-Tab
+let selEmoji = '🏋️';
+let selMuscle   = '';      // aktuell ausgewählt im Formular
+let exCatFilter = 'alle';  // Filter im Übungen-Tab
 let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
@@ -1193,7 +1193,7 @@ let timerInt = null, timerTs = null;
 let detId = null;
 let detChart = null;
 
-// â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── HELPERS ───────────────────────────────────────────
 const uid  = () => '_' + Math.random().toString(36).slice(2);
 const exById = id => S.exercises.find(e => e.id === id);
 
@@ -1209,7 +1209,7 @@ function maxW(sets) {
   return vals.length ? Math.max(...vals) : 0;
 }
 
-// â”€â”€ NAVIGATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── NAVIGATION ────────────────────────────────────────
 function goTab(id, btn) {
   // Remove active page (force reflow so animation re-triggers)
   document.querySelectorAll('.pg').forEach(p => {
@@ -1253,7 +1253,7 @@ function openOv(id)  { document.getElementById(id).classList.add('on'); }
 function closeOv(id) { document.getElementById(id).classList.remove('on'); }
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('on'); }));
 
-// â”€â”€ THEME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── THEME ─────────────────────────────────────────────
 function setTheme(t) {
   S.theme = t;
   persist();
@@ -1263,10 +1263,10 @@ function setTheme(t) {
   );
 }
 
-// â”€â”€ HOME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── HOME ──────────────────────────────────────────────
 function renderHome() {
   const h = new Date().getHours();
-  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen ðŸŒ…' : h<17 ? 'Guten Tag â˜€ï¸' : 'Guten Abend ðŸŒ™';
+  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen 🌅' : h<17 ? 'Guten Tag ☀️' : 'Guten Abend 🌙';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   renderSuggestions();
   renderLastSession();
@@ -1275,13 +1275,13 @@ function renderHome() {
 function renderSuggestions() {
   const el = document.getElementById('sug-list');
   if (!S.exercises.length) {
-    el.innerHTML = html_sug('wait','ðŸ’¡','Los geht\'s!','FÃ¼ge deine erste Ãœbung hinzu und starte deinen eigenen Trainingsplan.');
+    el.innerHTML = html_sug('wait','💡','Los geht\'s!','Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.');
     return;
   }
   const cards = S.exercises.map(getSuggestion).filter(Boolean);
   el.innerHTML = cards.length
     ? cards.map(s => html_sug(s.type, s.icon, s.title, s.text)).join('')
-    : html_sug('wait','ðŸ“Š','Noch kein Training','Absolviere dein erstes Training, um VorschlÃ¤ge zu erhalten.');
+    : html_sug('wait','📊','Noch kein Training','Absolviere dein erstes Training, um Vorschläge zu erhalten.');
 }
 
 function html_sug(type, icon, title, text) {
@@ -1290,7 +1290,7 @@ function html_sug(type, icon, title, text) {
 
 function getSuggestion(ex) {
   const hist = exHistory(ex.id);
-  if (!hist.length) return { type:'wait', icon:'ðŸ†•', title: ex.emoji+' '+ex.name, text:'Noch kein Training. Starte heute!' };
+  if (!hist.length) return { type:'wait', icon:'🆕', title: ex.emoji+' '+ex.name, text:'Noch kein Training. Starte heute!' };
 
   const last = hist[hist.length-1];
   const validSets = last.sets.filter(s => s.w && s.r);
@@ -1307,13 +1307,13 @@ function getSuggestion(ex) {
     const prevMax = maxW(pValid);
     if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
       const inc = lMaxW >= 60 ? 5 : 2.5;
-      return { type:'up', icon:'â¬†ï¸', title:`${ex.emoji} ${ex.name}: Gewicht erhÃ¶hen!`, text:`2Ã— alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nÃ¤chstes Mal!` };
+      return { type:'up', icon:'⬆️', title:`${ex.emoji} ${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nächstes Mal!` };
     }
   }
   if (allReps && allSets) {
-    return { type:'up', icon:'ðŸ’ª', title:`${ex.emoji} ${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. NÃ¤chstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
+    return { type:'up', icon:'💪', title:`${ex.emoji} ${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
   }
-  return { type:'hold', icon:'ðŸŽ¯', title:`${ex.emoji} ${ex.name}: Wdh-Fokus`, text:`Ziel: ${ex.targetSets}Ã—${ex.targetReps} Wdh bei ${lMaxW} kg. Halte das Gewicht.` };
+  return { type:'hold', icon:'🎯', title:`${ex.emoji} ${ex.name}: Wdh-Fokus`, text:`Ziel: ${ex.targetSets}×${ex.targetReps} Wdh bei ${lMaxW} kg. Halte das Gewicht.` };
 }
 
 function renderLastSession() {
@@ -1325,13 +1325,13 @@ function renderLastSession() {
   el.innerHTML = `<div class="row">
     <div class="row-body">
       <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
-      <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' Â· ')}</div>
+      <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' · ')}</div>
     </div>
-    <span class="badge b-green">${sets} SÃ¤tze</span>
+    <span class="badge b-green">${sets} Sätze</span>
   </div>`;
 }
 
-// â”€â”€ EXERCISE LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── EXERCISE LIST ─────────────────────────────────────
 function renderExList() {
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
@@ -1344,19 +1344,19 @@ function renderExList() {
     ).join('');
   }
 
-  // Ãœbungen filtern
+  // Übungen filtern
   const filtered = exCatFilter === 'alle'
     ? S.exercises
     : S.exercises.filter(ex => ex.muscleGroup === exCatFilter);
 
-  sub.textContent = filtered.length ? filtered.length+' Ãœbung'+(filtered.length!==1?'en':'') : '';
+  sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
 
   if (!S.exercises.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">ðŸ’ª</div><h3>Noch keine Ãœbungen</h3><p>Erstelle deine eigenen Ãœbungen und baue deinen Trainingsplan auf.</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-i">💪</div><h3>Noch keine Übungen</h3><p>Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.</p></div>`;
     return;
   }
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">ðŸ‹ï¸</div><h3>Keine Ãœbungen hier</h3><p>FÃ¼ge Ãœbungen fÃ¼r ${muscleLabel(exCatFilter)} hinzu oder wÃ¤hle eine andere Gruppe.</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${muscleLabel(exCatFilter)} hinzu oder wähle eine andere Gruppe.</p></div>`;
     return;
   }
 
@@ -1365,11 +1365,11 @@ function renderExList() {
     const last = hist.length ? hist[hist.length-1] : null;
     const lw = last ? maxW(last.sets) : null;
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
-    const rowSub = `${mgLabel ? mgLabel+' Â· ' : ''}Ziel: ${ex.targetSets}Ã—${ex.targetReps} Wdh${lw ? ' Â· '+lw+' kg' : ''}`;
+    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
       <div class="ico">${ex.emoji}</div>
       <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
-      <div class="chev">â€º</div>
+      <div class="chev">›</div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -1379,17 +1379,17 @@ function setExCat(id) {
   renderExList();
 }
 
-// â”€â”€ NEW / EDIT EXERCISE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── NEW / EDIT EXERCISE ───────────────────────────────
 function openNewEx(exId) {
   editId = exId;
-  selEmoji  = 'ðŸ‹ï¸';
+  selEmoji  = '🏋️';
   selMuscle = '';
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps').value = '10';
   document.getElementById('in-kg').value = '';
   document.getElementById('del-ex-btn').style.display = 'none';
-  document.getElementById('ex-sheet-title').textContent = 'Ãœbung hinzufÃ¼gen';
+  document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
 
   if (exId) {
     const ex = exById(exId);
@@ -1401,7 +1401,7 @@ function openNewEx(exId) {
       document.getElementById('in-reps').value = ex.targetReps;
       document.getElementById('in-kg').value = ex.targetWeight || '';
       document.getElementById('del-ex-btn').style.display = '';
-      document.getElementById('ex-sheet-title').textContent = 'Ãœbung bearbeiten';
+      document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
     }
   }
   renderEmoGrid();
@@ -1424,7 +1424,7 @@ function renderMusclePicker() {
   ).join('');
 }
 function pickMuscle(id) {
-  selMuscle = selMuscle === id ? '' : id; // zweites Antippen = abwÃ¤hlen
+  selMuscle = selMuscle === id ? '' : id; // zweites Antippen = abwählen
   renderMusclePicker();
 }
 
@@ -1448,7 +1448,7 @@ function saveEx() {
 }
 
 function deleteEx() {
-  if (!editId || !confirm('Ãœbung wirklich lÃ¶schen?')) return;
+  if (!editId || !confirm('Übung wirklich löschen?')) return;
   S.exercises = S.exercises.filter(e => e.id !== editId);
   S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== editId); });
   S.sessions = S.sessions.filter(s => s.logs.length > 0);
@@ -1459,7 +1459,7 @@ function deleteEx() {
   renderHome();
 }
 
-// â”€â”€ EXERCISE DETAIL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── EXERCISE DETAIL ───────────────────────────────────
 function openDet(exId) {
   detId = exId;
   const ex = exById(exId);
@@ -1485,7 +1485,7 @@ function openDet(exId) {
       return `<div class="row">
         <div class="row-body">
           <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})}</div>
-          <div class="row-sub">${h.sets.length} SÃ¤tze Â· Max ${w} kg Â· ${totalR} Wdh</div>
+          <div class="row-sub">${h.sets.length} Sätze · Max ${w} kg · ${totalR} Wdh</div>
         </div>
         <span class="badge b-acc">${w} kg</span>
       </div>`;
@@ -1525,10 +1525,10 @@ function renderDetChart(hist) {
 
 function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
 
-// â”€â”€ WORKOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── WORKOUT ───────────────────────────────────────────
 function openWorkout() {
   if (!S.exercises.length) {
-    alert('FÃ¼ge zuerst eine Ãœbung hinzu!');
+    alert('Füge zuerst eine Übung hinzu!');
     goTab('uebungen', document.querySelectorAll('.tab')[1]);
     return;
   }
@@ -1553,11 +1553,11 @@ function renderWkFilterBar() {
 
 function setWkCat(id) {
   wkCatFilter = id;
-  // KÃ¶rperteil antippen â†’ alle Ãœbungen dieser Gruppe automatisch auswÃ¤hlen
+  // Körperteil antippen → alle Übungen dieser Gruppe automatisch auswählen
   if (id !== 'alle') {
     wkExIds = S.exercises.filter(ex => ex.muscleGroup === id).map(ex => ex.id);
   } else {
-    wkExIds = []; // ZurÃ¼ck auf "Alle" â†’ Auswahl zurÃ¼cksetzen
+    wkExIds = []; // Zurück auf "Alle" → Auswahl zurücksetzen
   }
   renderWkFilterBar();
   renderWkPicker();
@@ -1570,19 +1570,19 @@ function renderWkPicker() {
 
   const title = document.getElementById('wk-step1-title');
   if (title) title.textContent = wkCatFilter === 'alle'
-    ? 'Welche Ãœbungen heute?'
-    : muscleLabel(wkCatFilter) + ' â€“ Ãœbungen auswÃ¤hlen';
+    ? 'Welche Übungen heute?'
+    : muscleLabel(wkCatFilter) + ' – Übungen auswählen';
 
   const btn = document.getElementById('wk-start-btn');
   if (btn) btn.textContent = wkExIds.length
-    ? 'â–¶  ' + wkExIds.length + ' Ãœbung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
-    : 'Training starten â–¶';
+    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
+    : 'Training starten ▶';
 
   if (!filtered.length) {
     document.getElementById('wk-picker').innerHTML =
       `<div style="padding:18px;text-align:center;color:var(--text2);font-size:15px;position:relative;z-index:1">
-        Keine Ãœbungen fÃ¼r ${muscleLabel(wkCatFilter)}.<br>
-        <span style="font-size:13px">Erstelle Ãœbungen im Tab â€žÃœbungen".</span>
+        Keine Übungen für ${muscleLabel(wkCatFilter)}.<br>
+        <span style="font-size:13px">Erstelle Übungen im Tab „Übungen".</span>
       </div>`;
     return;
   }
@@ -1593,9 +1593,9 @@ function renderWkPicker() {
       <div class="ico">${ex.emoji}</div>
       <div class="row-body">
         <div class="row-title">${ex.name}</div>
-        <div class="row-sub">Ziel: ${ex.targetSets}Ã—${ex.targetReps} Wdh</div>
+        <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetReps} Wdh</div>
       </div>
-      <div class="wk-chk${sel?' on':''}" id="wchk-${ex.id}">${sel?'âœ“':''}</div>
+      <div class="wk-chk${sel?' on':''}" id="wchk-${ex.id}">${sel?'✓':''}</div>
     </div>`;
   }).join('');
 }
@@ -1608,17 +1608,17 @@ function toggleEx(id) {
     if (chk) { chk.classList.remove('on'); chk.textContent = ''; }
   } else {
     wkExIds.push(id);
-    if (chk) { chk.classList.add('on'); chk.textContent = 'âœ“'; }
+    if (chk) { chk.classList.add('on'); chk.textContent = '✓'; }
   }
   // Start-Button-Text aktualisieren
   const btn = document.getElementById('wk-start-btn');
   if (btn) btn.textContent = wkExIds.length
-    ? 'â–¶  ' + wkExIds.length + ' Ãœbung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
-    : 'Training starten â–¶';
+    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
+    : 'Training starten ▶';
 }
 
 function startActive() {
-  if (!wkExIds.length) { alert('WÃ¤hle mindestens eine Ãœbung!'); return; }
+  if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const hist = exHistory(exId);
@@ -1643,18 +1643,18 @@ function renderLogCards() {
     return `<div class="ex-card">
       <div class="ex-head">
         <span class="ex-title">${ex.emoji} ${ex.name}</span>
-        <span style="font-size:13px;color:var(--text2)">Ziel: ${ex.targetSets}Ã—${ex.targetReps}</span>
+        <span style="font-size:13px;color:var(--text2)">Ziel: ${ex.targetSets}×${ex.targetReps}</span>
       </div>
       <div class="ex-body">
         <div class="set-hdr"><span></span><span>KG</span><span>WDH</span><span></span></div>
         ${log.sets.map((s,si)=>`
         <div class="set-row">
           <div class="set-n">${si+1}</div>
-          <input class="set-in" type="number" inputmode="decimal" placeholder="â€“" value="${s.w}"
+          <input class="set-in" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
             onchange="setVal(${li},${si},'w',this.value)">
-          <input class="set-in" type="number" inputmode="numeric" placeholder="â€“" value="${s.r}"
+          <input class="set-in" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
             onchange="setVal(${li},${si},'r',this.value)">
-          <button class="set-del" onclick="delSet(${li},${si})">âˆ’</button>
+          <button class="set-del" onclick="delSet(${li},${si})">−</button>
         </div>`).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
       </div>
@@ -1693,26 +1693,26 @@ function showDone(ses) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
         <div style="font-size:26px;font-weight:700">${ses.logs.length}</div>
-        <div style="font-size:12px;color:var(--text2)">Ãœbungen</div>
+        <div style="font-size:12px;color:var(--text2)">Übungen</div>
       </div>
       <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
         <div style="font-size:26px;font-weight:700">${sets}</div>
-        <div style="font-size:12px;color:var(--text2)">SÃ¤tze</div>
+        <div style="font-size:12px;color:var(--text2)">Sätze</div>
       </div>
     </div>
     <div class="card">${ses.logs.map(l=>{
       const ex=exById(l.exerciseId);
       const w=maxW(l.sets);
-      return `<div class="row"><div class="ico">${ex?.emoji||'ðŸ‹ï¸'}</div>
+      return `<div class="row"><div class="ico">${ex?.emoji||'🏋️'}</div>
         <div class="row-body">
           <div class="row-title">${ex?.name||l.exerciseId}</div>
-          <div class="row-sub">${l.sets.length} SÃ¤tze Â· Max ${w||'â€“'} kg</div>
+          <div class="row-sub">${l.sets.length} Sätze · Max ${w||'–'} kg</div>
         </div></div>`;
     }).join('')}</div>`;
   openOv('ov-done');
 }
 
-// â”€â”€ BEGLEITER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── BEGLEITER ─────────────────────────────────────────
 function openCompanionPicker() {
   renderCompanionGrid();
   openOv('ov-companion');
@@ -1724,8 +1724,8 @@ function renderCompanionGrid() {
     const locked  = !c.available;
     return `<div class="companion-card${active?' on':''}${locked?' locked':''}"
                  onclick="${locked ? '' : `selectCompanion('${c.id}')`}">
-      ${active ? '<div class="cc-chk">âœ“</div>' : ''}
-      ${locked ? '<div class="cc-lock">ðŸ”’</div>' : ''}
+      ${active ? '<div class="cc-chk">✓</div>' : ''}
+      ${locked ? '<div class="cc-lock">🔒</div>' : ''}
       <span class="cc-ico">${c.emoji}</span>
       <div class="cc-name">${c.name}</div>
       <div class="cc-sub">${c.desc}</div>
@@ -1767,14 +1767,14 @@ function updateCompanionSettingsRow(c) {
   if (name) name.textContent = c.name;
 }
 
-// â”€â”€ SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SETTINGS ──────────────────────────────────────────
 function renderSettings() {
   document.getElementById('data-info').textContent =
-    S.exercises.length+' Ãœbungen Â· '+S.sessions.length+' Trainings gespeichert';
+    S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
   updateCompanionSettingsRow();
 }
 
-// â”€â”€ BACKUP: EXPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── BACKUP: EXPORT ────────────────────────────────────
 function exportData() {
   const data     = localStorage.getItem('ft4') || '{}';
   const filename = 'gymtrack-backup-' + new Date().toISOString().slice(0,10) + '.json';
@@ -1793,7 +1793,7 @@ function exportData() {
   setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
 }
 
-// â”€â”€ BACKUP: IMPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── BACKUP: IMPORT ────────────────────────────────────
 function importData() {
   const input = document.createElement('input');
   input.type  = 'file';
@@ -1807,10 +1807,10 @@ function importData() {
         const parsed = JSON.parse(ev.target.result);
         if (parsed.exercises !== undefined || parsed.sessions !== undefined) {
           localStorage.setItem('ft4', ev.target.result);
-          alert('âœ… Daten wiederhergestellt! App wird neu geladen.');
+          alert('✅ Daten wiederhergestellt! App wird neu geladen.');
           location.reload();
-        } else { alert('âŒ UngÃ¼ltige Backup-Datei!'); }
-      } catch { alert('âŒ Datei konnte nicht gelesen werden!'); }
+        } else { alert('❌ Ungültige Backup-Datei!'); }
+      } catch { alert('❌ Datei konnte nicht gelesen werden!'); }
     };
     reader.readAsText(file);
   };
@@ -1819,7 +1819,7 @@ function importData() {
   setTimeout(()=>document.body.removeChild(input), 1000);
 }
 
-// â”€â”€ SHEET SWIPE-TO-DISMISS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SHEET SWIPE-TO-DISMISS ────────────────────────────
 function initSheetSwipe() {
   document.querySelectorAll('.ov').forEach(ov => {
     const sheet  = ov.querySelector('.sheet');
@@ -1850,7 +1850,7 @@ function initSheetSwipe() {
       sheet.style.opacity   = String(Math.max(0.3, 1 - dy / 460));
     }, { passive: false });
 
-    /* SchlieÃŸ-Animation */
+    /* Schließ-Animation */
     const dismiss = () => {
       ov.style.transition    = 'background .22s';
       ov.style.background    = 'rgba(0,0,0,0)';
@@ -1858,8 +1858,8 @@ function initSheetSwipe() {
       sheet.style.transform  = 'translateY(110%)';
       sheet.style.opacity    = '0';
       setTimeout(() => {
-        /* Erst schlieÃŸen (display:none) â€“ DANN Styles zurÃ¼cksetzen,
-           sonst ist der RÃ¼cksprung kurz sichtbar (der "klappt nicht"-Bug) */
+        /* Erst schließen (display:none) – DANN Styles zurücksetzen,
+           sonst ist der Rücksprung kurz sichtbar (der "klappt nicht"-Bug) */
         if (ov.id === 'ov-icons') closeIconPicker();
         else closeOv(ov.id);
         ov.style.transition    = ov.style.background    = '';
@@ -1875,7 +1875,7 @@ function initSheetSwipe() {
       if (hasMoved && dy > 70) {
         dismiss();
       } else {
-        /* Zu wenig gezogen â†’ Feder-RÃ¼cksprung */
+        /* Zu wenig gezogen → Feder-Rücksprung */
         sheet.style.transition = 'transform .38s cubic-bezier(.32,1.1,.32,1), opacity .26s';
         sheet.style.transform  = '';
         sheet.style.opacity    = '';
@@ -1888,7 +1888,7 @@ function initSheetSwipe() {
   });
 }
 
-// â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 applyCompanion();
 renderHome();
@@ -1896,9 +1896,9 @@ renderExList();
 initTabIndicator();
 initSheetSwipe();
 
-// â”€â”€ PWA ICON + MANIFEST + SERVICE WORKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
 (function pwaSetup(){
-  /* â”€â”€ Canvas Icon Generator â”€â”€ */
+  /* ── Canvas Icon Generator ── */
   function makeIcon(sz){
     const c=document.createElement('canvas');
     c.width=c.height=sz;
@@ -1916,7 +1916,7 @@ initSheetSwipe();
       ctx.closePath();
     }
 
-    // â€” Background gradient â€”
+    // — Background gradient —
     const bg=ctx.createLinearGradient(0,0,sz,sz);
     bg.addColorStop(0,'#5B3FFD');
     bg.addColorStop(.45,'#007AFF');
@@ -1925,7 +1925,7 @@ initSheetSwipe();
     ctx.fillStyle=bg;
     ctx.fill();
 
-    // â€” Inner glow ring â€”
+    // — Inner glow ring —
     rr(0,0,sz,sz,r);
     ctx.clip();
     const glow=ctx.createRadialGradient(sz*.5,sz*.15,sz*.05,sz*.5,sz*.35,sz*.65);
@@ -1934,14 +1934,14 @@ initSheetSwipe();
     ctx.fillStyle=glow;
     ctx.fillRect(0,0,sz,sz);
 
-    // â€” Top sheen â€”
+    // — Top sheen —
     const sheen=ctx.createLinearGradient(0,0,0,sz*.55);
     sheen.addColorStop(0,'rgba(255,255,255,.40)');
     sheen.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=sheen;
     ctx.fillRect(0,0,sz,sz*.55);
 
-    // â€” Dumbbell icon â€”
+    // — Dumbbell icon —
     ctx.fillStyle='rgba(255,255,255,.96)';
     const cx=sz/2, cy=sz/2;
     const bw=sz*.36, bh=sz*.058;
@@ -1954,7 +1954,7 @@ initSheetSwipe();
     // Right plate
     rr(cx+bw/2,cy-ph/2,pw,ph,pr); ctx.fill();
 
-    // â€” Border highlight â€”
+    // — Border highlight —
     ctx.save();
     rr(1,1,sz-2,sz-2,r-.5);
     ctx.strokeStyle='rgba(255,255,255,.28)';
@@ -1968,16 +1968,16 @@ initSheetSwipe();
   const icon512 = makeIcon(512);
   const icon192 = makeIcon(192);
 
-  /* â”€â”€ Set apple-touch-icon â”€â”€ */
+  /* ── Set apple-touch-icon ── */
   const ati=document.getElementById('pwa-icon');
   if(ati) ati.href=icon512;
 
-  /* â”€â”€ Inject dynamic manifest with inline icons â”€â”€ */
+  /* ── Inject dynamic manifest with inline icons ── */
   try{
     const manifest={
       name:'GymTrack',
       short_name:'GymTrack',
-      description:'Dein persÃ¶nlicher Fitness-Tracker',
+      description:'Dein persönlicher Fitness-Tracker',
       start_url:'./index.html',
       scope:'./',
       display:'standalone',
@@ -1994,23 +1994,22 @@ initSheetSwipe();
     if(ml) ml.href=URL.createObjectURL(blob);
   }catch(e){}
 
-  /* â”€â”€ Register Service Worker â”€â”€ */
+  /* ── Register Service Worker ── */
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(reg => {
         swReg = reg;
         console.log('[GymTrack] SW registered', reg.scope);
-        /* Im Hintergrund prÃ¼fen ob eine neue Version bereit liegt */
         setTimeout(_silentUpdateCheck, 3000);
       })
       .catch(e => console.warn('[GymTrack] SW skip:', e.message));
   }
 })();
 
-// â”€â”€ APP UPDATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Strategie: KEIN Verlass auf SW-Update-API (auf iOS unzuverlÃ¤ssig).
-// Stattdessen: sw.js direkt vom Server holen (cache-gebustet), Version
-// vergleichen â†’ bei Unterschied alles zurÃ¼cksetzen und neu laden.
+// ── APP UPDATE ────────────────────────────────────────
+// Kein Verlass auf SW-Update-API (auf iOS unzuverlässig).
+// sw.js direkt vom Server holen, Version vergleichen → bei Unterschied
+// alles zurücksetzen und neu laden. 100% zuverlässig.
 let swReg = null;
 
 async function checkForUpdate() {
@@ -2018,81 +2017,71 @@ async function checkForUpdate() {
   const sub   = document.getElementById('update-sub');
   if (!title) return;
 
-  title.textContent = 'â³ Suche nach Updatesâ€¦';
+  title.textContent = '⏳ Suche nach Updates…';
   title.style.color = '';
   if (sub) sub.textContent = '';
 
   try {
-    /* sw.js direkt vom Netz holen â€“ kein Cache, kein SW-Intercept-Cache */
     const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
     const m    = text.match(/gymtrack-v\d+/);
     const serverV = m ? m[0] : null;
 
-    if (!serverV) {
-      title.textContent = 'âŒ PrÃ¼fung fehlgeschlagen';
-      return;
-    }
+    if (!serverV) { title.textContent = '❌ Prüfung fehlgeschlagen'; return; }
 
     if (serverV !== APP_VERSION) {
-      /* Neue Version â†’ hart zurÃ¼cksetzen */
-      title.textContent = 'ðŸŽ‰ Update wird installiertâ€¦';
-      if (sub) sub.textContent = 'App startet gleich neuâ€¦';
+      title.textContent = '🎉 Update wird installiert…';
+      if (sub) sub.textContent = 'App startet gleich neu…';
       await _doForceUpdate();
     } else {
-      /* Bereits aktuell */
-      title.textContent = 'âœ“ Bereits aktuell';
+      title.textContent = '✓ Bereits aktuell';
       if (sub) sub.textContent = '';
       setTimeout(() => {
-        title.textContent = 'Auf Updates prÃ¼fen';
+        title.textContent = 'Auf Updates prüfen';
         title.style.color = '';
         if (sub) sub.textContent = 'Neueste Version installieren';
       }, 3000);
     }
   } catch (err) {
     console.warn('[GymTrack] Update-Check fehlgeschlagen:', err);
-    title.textContent = 'âŒ Kein Netz â€“ bitte verbinden';
+    title.textContent = '❌ Kein Netz – bitte verbinden';
     if (sub) sub.textContent = '';
     setTimeout(() => {
-      title.textContent = 'Auf Updates prÃ¼fen';
+      title.textContent = 'Auf Updates prüfen';
       if (sub) sub.textContent = 'Neueste Version installieren';
     }, 3000);
   }
 }
 
 async function _doForceUpdate() {
-  /* 1. Alle Service Worker abmelden */
   if ('serviceWorker' in navigator) {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(regs.map(r => r.unregister()));
   }
-  /* 2. Alle Caches leeren */
   if ('caches' in window) {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   }
-  /* 3. Seite neu laden â€“ ?_=Timestamp verhindert HTTP-Cache */
   window.location.replace(location.pathname + '?_=' + Date.now());
 }
 
 function _markUpdateReady() {
   const title = document.getElementById('update-title');
   const sub   = document.getElementById('update-sub');
-  if (title) { title.textContent = 'ðŸŸ¢ Update verfÃ¼gbar!'; title.style.color = 'var(--green)'; }
+  if (title) { title.textContent = '🟢 Update verfügbar!'; title.style.color = 'var(--green)'; }
   if (sub)   sub.textContent = 'Antippen zum Installieren';
 }
 
 async function _silentUpdateCheck() {
-  /* Leise im Hintergrund prÃ¼fen â€“ nur UI-Markierung wenn Update vorhanden */
   try {
     const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
     const m    = text.match(/gymtrack-v\d+/);
     if (m && m[0] !== APP_VERSION) _markUpdateReady();
-  } catch (e) { /* offline â†’ ignorieren */ }
+  } catch (e) { /* offline → ignorieren */ }
 }
 
-// â”€â”€ ZOOM DEAKTIVIEREN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── ZOOM DEAKTIVIEREN ──────────────────────────────────
 document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});
 document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
 document.addEventListener('gestureend',    e => e.preventDefault(), {passive:false});
@@ -2102,5 +2091,3 @@ document.addEventListener('touchmove', e => {
 </script>
 </body>
 </html>
-
-
