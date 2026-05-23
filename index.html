@@ -297,9 +297,24 @@ body{
 @keyframes up{from{transform:translateY(100%)}}
 
 .sh-handle{
-  width:40px;height:4px;background:var(--sep);border-radius:2px;
-  margin:12px auto 4px;position:relative;z-index:1;
+  /* breites, unsichtbares Touch-Ziel */
+  width:100%;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0;padding:0;
+  position:relative;z-index:1;
+  cursor:grab;
+  touch-action:none;           /* Browser soll hier kein Scroll starten */
+  -webkit-tap-highlight-color:transparent;
 }
+.sh-handle::after{
+  /* sichtbarer Strich */
+  content:'';
+  width:40px;height:5px;
+  background:var(--sep);
+  border-radius:2.5px;
+  pointer-events:none;
+}
+.sh-handle:active{cursor:grabbing}
 .sh-head{
   display:flex;justify-content:space-between;align-items:center;
   padding:6px 20px 16px;position:relative;z-index:1;
@@ -1636,11 +1651,71 @@ function importData() {
   setTimeout(()=>document.body.removeChild(input), 1000);
 }
 
+// ── SHEET SWIPE-TO-DISMISS ────────────────────────────
+function initSheetSwipe() {
+  document.querySelectorAll('.ov').forEach(ov => {
+    const sheet  = ov.querySelector('.sheet');
+    const handle = sheet && sheet.querySelector('.sh-handle');
+    if (!sheet || !handle) return;
+
+    let sy = 0, ly = 0, dragging = false;
+
+    handle.addEventListener('touchstart', e => {
+      dragging = true;
+      sy = ly = e.touches[0].clientY;
+      sheet.style.transition = 'none';
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      ly = e.touches[0].clientY;
+      const dy = ly - sy;
+      if (dy <= 0) return;          // nur nach unten
+      e.preventDefault();
+      // Gummizug-Gefühl: leichter Widerstand
+      sheet.style.transform = `translateY(${(dy * 0.62).toFixed(1)}px)`;
+      sheet.style.opacity   = String(Math.max(0.3, 1 - dy / 460));
+    }, { passive: false });
+
+    const onEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      const dy = ly - sy;
+
+      if (dy > 88) {
+        /* ── DISMISS: Sheet nach unten gleiten lassen ── */
+        ov.style.transition = 'background .24s';
+        ov.style.background = 'rgba(0,0,0,0)';
+        sheet.style.transition = 'transform .24s cubic-bezier(.55,0,1,.55), opacity .2s';
+        sheet.style.transform  = 'translateY(110%)';
+        sheet.style.opacity    = '0';
+        setTimeout(() => {
+          // Inline-Styles zurücksetzen, dann Overlay schließen
+          ov.style.transition = ov.style.background = '';
+          sheet.style.transition = sheet.style.transform = sheet.style.opacity = '';
+          if (ov.id === 'ov-icons') closeIconPicker();
+          else closeOv(ov.id);
+        }, 260);
+      } else {
+        /* ── SNAP BACK: Mit Feder zurückschnappen ── */
+        sheet.style.transition = 'transform .38s cubic-bezier(.32,1.1,.32,1), opacity .26s';
+        sheet.style.transform  = '';
+        sheet.style.opacity    = '';
+        setTimeout(() => { sheet.style.transition = ''; }, 420);
+      }
+    };
+
+    handle.addEventListener('touchend',    onEnd, { passive: true });
+    handle.addEventListener('touchcancel', onEnd, { passive: true });
+  });
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 renderHome();
 renderExList();
 initTabIndicator();
+initSheetSwipe();
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
 (function pwaSetup(){
