@@ -1,19 +1,19 @@
-/* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v1';
+﻿/* GymTrack â€” Service Worker */
+const CACHE = 'gymtrack-v202605231313';
 const SHELL = [
   './index.html',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-/* ── Install: cache app shell ── */
+/* â”€â”€ Install: cache app shell â”€â”€ */
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
   );
 });
 
-/* ── Activate: clean old caches ── */
+/* â”€â”€ Activate: clean old caches â”€â”€ */
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -22,7 +22,7 @@ self.addEventListener('activate', e => {
   );
 });
 
-/* ── Fetch: Cache-first for app shell, network-first for rest ── */
+/* â”€â”€ Fetch: Cache-first for app shell, network-first for rest â”€â”€ */
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
@@ -46,3 +46,4 @@ self.addEventListener('fetch', e => {
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
+

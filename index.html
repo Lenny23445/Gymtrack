@@ -706,6 +706,27 @@ body{
         </div></div>
       </div>
     </div>
+    <div>
+      <div class="s-title">Backup</div>
+      <div class="card">
+        <div class="row tap" onclick="exportData()">
+          <div class="ico">📤</div>
+          <div class="row-body">
+            <div class="row-title">Daten exportieren</div>
+            <div class="row-sub">Sicherheitskopie als Datei speichern</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+        <div class="row tap" onclick="importData()">
+          <div class="ico">📥</div>
+          <div class="row-body">
+            <div class="row-title">Daten importieren</div>
+            <div class="row-sub">Backup wiederherstellen</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1322,6 +1343,51 @@ function showDone(ses) {
 function renderSettings() {
   document.getElementById('data-info').textContent =
     S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
+}
+
+// ── BACKUP: EXPORT ────────────────────────────────────
+function exportData() {
+  const data     = localStorage.getItem('ft4') || '{}';
+  const filename = 'gymtrack-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  // iOS: Web Share API mit Datei
+  if (navigator.share && navigator.canShare) {
+    const file = new File([data], filename, {type:'application/json'});
+    if (navigator.canShare({files:[file]})) {
+      navigator.share({files:[file], title:'GymTrack Backup'}).catch(()=>{});
+      return;
+    }
+  }
+  // Fallback: Download-Link
+  const url = URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  const a   = Object.assign(document.createElement('a'),{href:url, download:filename});
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+
+// ── BACKUP: IMPORT ────────────────────────────────────
+function importData() {
+  const input = document.createElement('input');
+  input.type  = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (parsed.exercises !== undefined || parsed.sessions !== undefined) {
+          localStorage.setItem('ft4', ev.target.result);
+          alert('✅ Daten wiederhergestellt! App wird neu geladen.');
+          location.reload();
+        } else { alert('❌ Ungültige Backup-Datei!'); }
+      } catch { alert('❌ Datei konnte nicht gelesen werden!'); }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(()=>document.body.removeChild(input), 1000);
 }
 
 // ── INIT ──────────────────────────────────────────────
