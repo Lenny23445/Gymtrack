@@ -878,12 +878,12 @@ body{
 </div>
 
 <!-- SHEET: ICON PICKER -->
-<div class="ov" id="ov-icons" style="z-index:1001">
+<div class="ov" id="ov-icons" style="z-index:1001" onclick="if(event.target===this)closeIconPicker()">
   <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Icon wählen</h2>
-      <button class="x-btn" onclick="closeOv('ov-icons')">✕</button>
+      <button class="x-btn" onclick="closeIconPicker()">✕</button>
     </div>
     <!-- Kategorien -->
     <div class="icon-cat-scroll" id="icon-cats"></div>
@@ -982,10 +982,22 @@ const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','�
 let _iconCatIdx = 0;
 
 function openIconPicker() {
+  /* Leiste + Dackel ausblenden damit das Sheet vollen Platz hat */
+  document.querySelector('.tabbar').style.opacity   = '0';
+  document.querySelector('.tabbar').style.pointerEvents = 'none';
+  document.getElementById('dackel-lane').style.opacity = '0';
   _iconCatIdx = 0;
   renderIconCatBar();
   renderIconFullGrid();
   openOv('ov-icons');
+}
+
+function closeIconPicker() {
+  /* Leiste + Dackel wiederherstellen */
+  document.querySelector('.tabbar').style.opacity   = '';
+  document.querySelector('.tabbar').style.pointerEvents = '';
+  document.getElementById('dackel-lane').style.opacity = '';
+  closeOv('ov-icons');
 }
 
 function renderIconCatBar() {
@@ -1009,7 +1021,7 @@ function renderIconFullGrid() {
 
 function pickIconFromPicker(e) {
   pickEmo(e);
-  closeOv('ov-icons');
+  closeIconPicker();
 }
 
 let S = (() => {
