@@ -507,18 +507,20 @@ body{
   top:5px;left:5px;
   height:calc(100% - 10px);
   width:80px; /* updated by JS */
-  background:var(--gl-bg);
-  backdrop-filter:blur(36px) saturate(200%);
-  -webkit-backdrop-filter:blur(36px) saturate(200%);
+  background:var(--gl-bg-h);
   border-radius:46px;
   border:1px solid var(--gl-bdr);
   box-shadow:0 3px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,255,255,.82);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1),
              width .42s cubic-bezier(.34,1.56,.64,1);
   pointer-events:none;
-  z-index:0;
+  z-index:1; /* oben über dem Sheen-Overlay der Leiste, Tabs darüber per DOM-Reihenfolge */
   will-change:transform,width;
   overflow:hidden;
+}
+[data-theme="dark"] #tab-indicator{
+  background:rgba(45,45,68,.92);
+  box-shadow:0 3px 18px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.10);
 }
 #tab-indicator::after{
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
@@ -535,7 +537,7 @@ body{
 /* ── DACHSHUND ── */
 #dackel-lane{
   position:fixed;
-  bottom:80px;           /* feet land on top of the pill */
+  bottom:calc(80px + var(--sab)); /* Füße auf der Leiste, auch mit iOS Safe Area */
   left:50%;
   transform:translateX(-50%);
   width:calc(100% - 52px);
@@ -1405,7 +1407,7 @@ initTabIndicator();
       name:'GymTrack',
       short_name:'GymTrack',
       description:'Dein persönlicher Fitness-Tracker',
-      start_url:'./GymTrack.html',
+      start_url:'./index.html',
       scope:'./',
       display:'standalone',
       orientation:'portrait-primary',
