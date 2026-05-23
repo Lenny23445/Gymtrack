@@ -1,5 +1,5 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605232213';
+const CACHE = 'gymtrack-v202605232215';
 const SHELL = [
   './index.html',
   './manifest.json',
@@ -24,7 +24,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('message', e => {
   if (!e.data) return;
   if (e.data.type === 'SKIP_WAITING') self.skipWaiting();
-
   if (e.data.type === 'CARDIO_DONE') {
     self.registration.showNotification('Cardio geschafft!', {
       body: 'Dein Timer ist abgelaufen. Super Leistung! 💪',
@@ -32,27 +31,6 @@ self.addEventListener('message', e => {
       requireInteraction: false
     });
   }
-
-  if (e.data.type === 'NOTIFY_UPDATE') {
-    self.registration.showNotification('🆕 GymTrack Update verfügbar', {
-      body: 'Tippe hier, um die App neu zu starten und das Update zu installieren.',
-      tag: 'gymtrack-update',
-      requireInteraction: true
-    });
-  }
-});
-
-/* ── Notification click ── */
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  if (e.notification.tag !== 'gymtrack-update') return;
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
-      const c = cls.find(w => 'focus' in w);
-      if (c) { c.focus(); c.postMessage({ type: 'DO_UPDATE' }); }
-      else    { clients.openWindow('./?update=1'); }
-    })
-  );
 });
 
 /* ── Fetch: Cache-first for app shell, network-first for rest ── */
