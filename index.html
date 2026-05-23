@@ -682,6 +682,8 @@ body{
       <button class="hdr-plus" onclick="openNewEx(null)">+</button>
     </div>
   </div>
+  <!-- Muskelgruppen-Filter -->
+  <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:12px 20px 4px"></div>
   <div class="pad">
     <div id="ex-list"></div>
     <div class="gap"></div>
@@ -847,6 +849,11 @@ body{
         <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
       </div>
     </div>
+    <!-- Muskelgruppe -->
+    <div class="px" style="padding-bottom:4px">
+      <label class="f-label">Muskelgruppe</label>
+    </div>
+    <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
     <div style="padding:0 20px 8px;display:flex;align-items:center;justify-content:space-between">
       <label class="f-label" style="margin:0">Icon</label>
       <button class="icat on" onclick="openIconPicker()" style="font-size:12px;padding:5px 13px">Alle Icons &nbsp;→</button>
@@ -902,11 +909,13 @@ body{
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
+      <!-- Körperpartien-Filter -->
+      <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
-        <div class="s-title">Welche Übungen heute?</div>
+        <div class="s-title" id="wk-step1-title">Welche Übungen heute?</div>
         <div class="card" id="wk-picker"></div>
         <div class="gap"></div>
-        <button class="btn btn-acc" onclick="startActive()">Training starten ▶</button>
+        <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten ▶</button>
       </div>
     </div>
     <!-- step 2: log -->
@@ -979,6 +988,18 @@ const ICON_CATS = [
 /* Quick-Pick (erste 14 Icons aus den Top-Kategorien) */
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
+/* ── MUSKELGRUPPEN ── */
+const MUSCLE_GROUPS = [
+  { id:'brust',     label:'🫀 Brust'      },
+  { id:'ruecken',   label:'🔙 Rücken'     },
+  { id:'beine',     label:'🦵 Beine'      },
+  { id:'arme',      label:'💪 Arme'       },
+  { id:'schultern', label:'🏋️ Schultern'  },
+  { id:'core',      label:'🔥 Core'       },
+];
+const MUSCLE_FILTER = [{id:'alle', label:'⭐ Alle'}, ...MUSCLE_GROUPS];
+function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
+
 let _iconCatIdx = 0;
 
 function openIconPicker() {
@@ -1036,6 +1057,9 @@ const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 // working state
 let editId = null;
 let selEmoji = '🏋️';
+let selMuscle   = '';      // aktuell ausgewählt im Formular
+let exCatFilter = 'alle';  // Filter im Übungen-Tab
+let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
 let timerInt = null, timerTs = null;
@@ -1184,28 +1208,55 @@ function renderLastSession() {
 function renderExList() {
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
-  sub.textContent = S.exercises.length ? S.exercises.length+' Übung'+(S.exercises.length!==1?'en':'') : '';
+
+  // Filter-Pills rendern
+  const filterBar = document.getElementById('ex-filter-bar');
+  if (filterBar) {
+    filterBar.innerHTML = MUSCLE_FILTER.map(g =>
+      `<button class="icat${exCatFilter===g.id?' on':''}" onclick="setExCat('${g.id}')">${g.label}</button>`
+    ).join('');
+  }
+
+  // Übungen filtern
+  const filtered = exCatFilter === 'alle'
+    ? S.exercises
+    : S.exercises.filter(ex => ex.muscleGroup === exCatFilter);
+
+  sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
+
   if (!S.exercises.length) {
     el.innerHTML = `<div class="empty"><div class="empty-i">💪</div><h3>Noch keine Übungen</h3><p>Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="card">${S.exercises.map(ex => {
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${muscleLabel(exCatFilter)} hinzu oder wähle eine andere Gruppe.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="card">${filtered.map(ex => {
     const hist = exHistory(ex.id);
     const last = hist.length ? hist[hist.length-1] : null;
     const lw = last ? maxW(last.sets) : null;
-    const sub = `Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · Aktuell: '+lw+' kg' : ''}`;
+    const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
+    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
       <div class="ico">${ex.emoji}</div>
-      <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${sub}</div></div>
+      <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
       <div class="chev">›</div>
     </div>`;
   }).join('')}</div>`;
 }
 
+function setExCat(id) {
+  exCatFilter = id;
+  renderExList();
+}
+
 // ── NEW / EDIT EXERCISE ───────────────────────────────
 function openNewEx(exId) {
   editId = exId;
-  selEmoji = '🏋️';
+  selEmoji  = '🏋️';
+  selMuscle = '';
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps').value = '10';
@@ -1216,7 +1267,8 @@ function openNewEx(exId) {
   if (exId) {
     const ex = exById(exId);
     if (ex) {
-      selEmoji = ex.emoji;
+      selEmoji  = ex.emoji;
+      selMuscle = ex.muscleGroup || '';
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       document.getElementById('in-reps').value = ex.targetReps;
@@ -1226,6 +1278,7 @@ function openNewEx(exId) {
     }
   }
   renderEmoGrid();
+  renderMusclePicker();
   openOv('ov-ex');
 }
 
@@ -1236,6 +1289,18 @@ function renderEmoGrid() {
 }
 function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
 
+function renderMusclePicker() {
+  const el = document.getElementById('muscle-picker');
+  if (!el) return;
+  el.innerHTML = MUSCLE_GROUPS.map(g =>
+    `<button class="icat${selMuscle===g.id?' on':''}" onclick="pickMuscle('${g.id}')">${g.label}</button>`
+  ).join('');
+}
+function pickMuscle(id) {
+  selMuscle = selMuscle === id ? '' : id; // zweites Antippen = abwählen
+  renderMusclePicker();
+}
+
 function saveEx() {
   const name = document.getElementById('in-name').value.trim();
   if (!name) { alert('Bitte Namen eingeben!'); return; }
@@ -1245,9 +1310,9 @@ function saveEx() {
 
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, {name, emoji:selEmoji, targetSets:sets, targetReps:reps, targetWeight:kg});
+    if (ex) Object.assign(ex, {name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
   } else {
-    S.exercises.push({id:uid(), name, emoji:selEmoji, targetSets:sets, targetReps:reps, targetWeight:kg});
+    S.exercises.push({id:uid(), name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
   }
   persist();
   closeOv('ov-ex');
@@ -1342,20 +1407,70 @@ function openWorkout() {
   }
   wkExIds = [];
   wkLogs  = [];
+  wkCatFilter = 'alle';
   document.getElementById('wk-step1').style.display = '';
   document.getElementById('wk-step2').style.display = 'none';
   document.getElementById('wk-title').textContent = 'Training';
+  renderWkFilterBar();
+  renderWkPicker();
+  openOv('ov-wk');
+}
 
-  document.getElementById('wk-picker').innerHTML = S.exercises.map(ex => `
-    <div class="row tap" onclick="toggleEx('${ex.id}',this)">
+function renderWkFilterBar() {
+  const bar = document.getElementById('wk-filter-bar');
+  if (!bar) return;
+  bar.innerHTML = MUSCLE_FILTER.map(g =>
+    `<button class="icat${wkCatFilter===g.id?' on':''}" onclick="setWkCat('${g.id}')">${g.label}</button>`
+  ).join('');
+}
+
+function setWkCat(id) {
+  wkCatFilter = id;
+  // Körperteil antippen → alle Übungen dieser Gruppe automatisch auswählen
+  if (id !== 'alle') {
+    wkExIds = S.exercises.filter(ex => ex.muscleGroup === id).map(ex => ex.id);
+  } else {
+    wkExIds = []; // Zurück auf "Alle" → Auswahl zurücksetzen
+  }
+  renderWkFilterBar();
+  renderWkPicker();
+}
+
+function renderWkPicker() {
+  const filtered = wkCatFilter === 'alle'
+    ? S.exercises
+    : S.exercises.filter(ex => ex.muscleGroup === wkCatFilter);
+
+  const title = document.getElementById('wk-step1-title');
+  if (title) title.textContent = wkCatFilter === 'alle'
+    ? 'Welche Übungen heute?'
+    : muscleLabel(wkCatFilter) + ' – Übungen auswählen';
+
+  const btn = document.getElementById('wk-start-btn');
+  if (btn) btn.textContent = wkExIds.length
+    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
+    : 'Training starten ▶';
+
+  if (!filtered.length) {
+    document.getElementById('wk-picker').innerHTML =
+      `<div style="padding:18px;text-align:center;color:var(--text2);font-size:15px;position:relative;z-index:1">
+        Keine Übungen für ${muscleLabel(wkCatFilter)}.<br>
+        <span style="font-size:13px">Erstelle Übungen im Tab „Übungen".</span>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('wk-picker').innerHTML = filtered.map(ex => {
+    const sel = wkExIds.includes(ex.id);
+    return `<div class="row tap" onclick="toggleEx('${ex.id}')">
       <div class="ico">${ex.emoji}</div>
       <div class="row-body">
         <div class="row-title">${ex.name}</div>
         <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetReps} Wdh</div>
       </div>
-      <div class="wk-chk" id="wchk-${ex.id}"></div>
-    </div>`).join('');
-  openOv('ov-wk');
+      <div class="wk-chk${sel?' on':''}" id="wchk-${ex.id}">${sel?'✓':''}</div>
+    </div>`;
+  }).join('');
 }
 
 function toggleEx(id) {
@@ -1363,11 +1478,16 @@ function toggleEx(id) {
   const chk = document.getElementById('wchk-'+id);
   if (idx >= 0) {
     wkExIds.splice(idx,1);
-    chk.classList.remove('on'); chk.textContent = '';
+    if (chk) { chk.classList.remove('on'); chk.textContent = ''; }
   } else {
     wkExIds.push(id);
-    chk.classList.add('on'); chk.textContent = '✓';
+    if (chk) { chk.classList.add('on'); chk.textContent = '✓'; }
   }
+  // Start-Button-Text aktualisieren
+  const btn = document.getElementById('wk-start-btn');
+  if (btn) btn.textContent = wkExIds.length
+    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
+    : 'Training starten ▶';
 }
 
 function startActive() {
