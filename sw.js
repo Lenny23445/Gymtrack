@@ -1,5 +1,5 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605232218';
+const CACHE = 'gymtrack-v202605232221';
 const SHELL = [
   './index.html',
   './manifest.json',
@@ -20,12 +20,38 @@ self.addEventListener('activate', e => {
   );
 });
 
+/* ── Cardio-Timer im SW (läuft kurz weiter wenn App im Hintergrund) ── */
+let _cardioTimer = null;
+
 /* ── Message ── */
 self.addEventListener('message', e => {
   if (!e.data) return;
+
   if (e.data.type === 'SKIP_WAITING') self.skipWaiting();
+
+  /* Cardio-Timer planen: SW zeigt Notification wenn Zeit abläuft */
+  if (e.data.type === 'SCHEDULE_CARDIO') {
+    if (_cardioTimer) clearTimeout(_cardioTimer);
+    const delay = Math.max(0, e.data.endTime - Date.now());
+    _cardioTimer = setTimeout(() => {
+      _cardioTimer = null;
+      self.registration.showNotification('Cardio geschafft! 🎉', {
+        body: 'Dein Timer ist abgelaufen. Super Leistung! 💪',
+        tag: 'cardio-done',
+        requireInteraction: false
+      });
+    }, delay);
+  }
+
+  /* Cardio-Timer abbrechen (Pause / Reset) */
+  if (e.data.type === 'CANCEL_CARDIO') {
+    if (_cardioTimer) { clearTimeout(_cardioTimer); _cardioTimer = null; }
+  }
+
+  /* Cardio fertig aus dem Foreground heraus */
   if (e.data.type === 'CARDIO_DONE') {
-    self.registration.showNotification('Cardio geschafft!', {
+    if (_cardioTimer) { clearTimeout(_cardioTimer); _cardioTimer = null; }
+    self.registration.showNotification('Cardio geschafft! 🎉', {
       body: 'Dein Timer ist abgelaufen. Super Leistung! 💪',
       tag: 'cardio-done',
       requireInteraction: false
