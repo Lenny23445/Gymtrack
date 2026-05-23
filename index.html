@@ -1188,18 +1188,18 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231745';
+const APP_VERSION = 'gymtrack-v202605231752';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
-  { id:'brust',     label:'🫀 Brust'      },
-  { id:'ruecken',   label:'🔙 Rücken'     },
-  { id:'beine',     label:'🦵 Beine'      },
-  { id:'arme',      label:'💪 Arme'       },
-  { id:'schultern', label:'🏋️ Schultern'  },
-  { id:'core',      label:'🔥 Core'       },
+  { id:'brust',     label:'Brust'      },
+  { id:'ruecken',   label:'Rücken'     },
+  { id:'beine',     label:'Beine'      },
+  { id:'arme',      label:'Arme'       },
+  { id:'schultern', label:'Schultern'  },
+  { id:'core',      label:'Core'       },
 ];
-const MUSCLE_FILTER = [{id:'alle', label:'⭐ Alle'}, ...MUSCLE_GROUPS];
+const MUSCLE_FILTER = [{id:'alle', label:'Alle'}, ...MUSCLE_GROUPS];
 function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
 
 /* ── BEGLEITER ── */
@@ -1377,6 +1377,28 @@ function renderSuggestions() {
 
 function html_sug(type, icon, title, text) {
   return `<div class="sug ${type}"><div class="sug-ic">${icon}</div><div><div class="sug-title">${title}</div><div class="sug-sub">${text}</div></div></div>`;
+}
+
+function getSuggestedWeight(ex) {
+  const hist = exHistory(ex.id);
+  if (!hist.length) return ex.targetWeight ? Number(ex.targetWeight) : null;
+  const last = hist[hist.length-1];
+  const validSets = last.sets.filter(s => s.w && s.r);
+  if (!validSets.length) return null;
+  const lMaxW = maxW(validSets);
+  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
+  const allSets = validSets.length >= ex.targetSets;
+  if (hist.length >= 2) {
+    const prev = hist[hist.length-2];
+    const pValid = prev.sets.filter(s=>s.w&&s.r);
+    const prevAllReps = pValid.every(s => parseInt(s.r) >= ex.targetReps);
+    const prevMax = maxW(pValid);
+    if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
+      return lMaxW + (lMaxW >= 60 ? 5 : 2.5);
+    }
+  }
+  if (allReps && allSets) return lMaxW + 2.5;
+  return lMaxW;
 }
 
 function getSuggestion(ex) {
@@ -1949,9 +1971,8 @@ function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
-    const hist = exHistory(exId);
-    const last = hist.length ? hist[hist.length-1].sets : [];
-    const defaultW = last.length ? last[0].w : (ex.targetWeight ? String(ex.targetWeight) : '');
+    const sw = getSuggestedWeight(ex);
+    const defaultW = sw != null ? String(sw) : '';
     return { exerciseId:exId, sets: Array.from({length:ex.targetSets}, ()=>({w:defaultW, r:String(ex.targetReps)})) };
   });
   timerTs = Date.now();
