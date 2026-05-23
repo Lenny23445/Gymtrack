@@ -1279,7 +1279,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605232202';
+const APP_VERSION = 'gymtrack-v202605232208';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2484,6 +2484,8 @@ function krdToggle() {
 
 function krdStart() {
   krdRunning = true;
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  localStorage.setItem('krdEnd', String(Date.now() + krdRemain * 1000));
   document.getElementById('krd-start-btn').innerHTML = '⏸&nbsp; Pause';
   document.getElementById('krd-reset-btn').style.display = '';
   const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
@@ -2500,6 +2502,7 @@ function krdStart() {
 function krdPause() {
   krdRunning = false;
   clearInterval(krdTick);
+  localStorage.removeItem('krdEnd');
   document.getElementById('krd-start-btn').innerHTML = '▶&nbsp; Weiter';
   document.getElementById('krd-lbl').textContent = 'pausiert';
 }
@@ -2507,6 +2510,7 @@ function krdPause() {
 function krdReset() {
   krdRunning = false;
   clearInterval(krdTick);
+  localStorage.removeItem('krdEnd');
   krdTotal = krdRemain = 20 * 60;
   const sb = document.getElementById('krd-start-btn');
   const rb = document.getElementById('krd-reset-btn');
@@ -2525,6 +2529,7 @@ function krdReset() {
 }
 
 function krdDone() {
+  localStorage.removeItem('krdEnd');
   const disp = document.getElementById('krd-display');
   const lbl  = document.getElementById('krd-lbl');
   const sb   = document.getElementById('krd-start-btn');
@@ -2537,6 +2542,11 @@ function krdDone() {
   if (p) { p.style.opacity = ''; p.style.pointerEvents = ''; }
   if (a) { a.style.opacity = ''; a.style.pointerEvents = ''; }
   if (navigator.vibrate) navigator.vibrate([200, 100, 300]);
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'CARDIO_DONE' });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Cardio geschafft!', { body: 'Dein Timer ist abgelaufen. Super Leistung! 💪', tag: 'cardio-done' });
+  }
 }
 
 function krdRender() {
@@ -2548,6 +2558,31 @@ function krdRender() {
   }
   if (ring) ring.style.strokeDashoffset = KRD_CIRC * (1 - (krdTotal > 0 ? krdRemain / krdTotal : 1));
 }
+
+/* Wenn App aus Hintergrund zurückkommt: Timer anhand gespeicherter Endzeit nachkorrigieren */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const endStr = localStorage.getItem('krdEnd');
+  if (!endStr) return;
+  const remaining = Math.round((parseInt(endStr) - Date.now()) / 1000);
+  if (remaining <= 0) {
+    clearInterval(krdTick);
+    krdRunning = false;
+    krdRemain = 0;
+    krdRender();
+    krdDone();
+  } else if (krdRunning) {
+    clearInterval(krdTick);
+    krdRemain = remaining;
+    localStorage.setItem('krdEnd', String(Date.now() + remaining * 1000));
+    krdRender();
+    krdTick = setInterval(() => {
+      krdRemain = Math.max(0, krdRemain - 1);
+      krdRender();
+      if (krdRemain === 0) { clearInterval(krdTick); krdRunning = false; krdDone(); }
+    }, 1000);
+  }
+});
 
 // ── APP UPDATE ────────────────────────────────────────
 // Kein Verlass auf SW-Update-API (auf iOS unzuverlässig).

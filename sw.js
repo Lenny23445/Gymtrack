@@ -1,20 +1,20 @@
-/* GymTrack â€” Service Worker */
-const CACHE = 'gymtrack-v202605232202';
+/* GymTrack — Service Worker */
+const CACHE = 'gymtrack-v202605232208';
 const SHELL = [
   './index.html',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-/* â”€â”€ Install: cache app shell, dann WARTEN (kein sofortiges skipWaiting) â”€â”€ */
+/* ── Install: cache app shell, dann WARTEN (kein sofortiges skipWaiting) ── */
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(SHELL))
-    /* Kein self.skipWaiting() â†’ Update wird erst auf Knopfdruck installiert */
+    /* Kein self.skipWaiting() → Update wird erst auf Knopfdruck installiert */
   );
 });
 
-/* â”€â”€ Activate: clean old caches â”€â”€ */
+/* ── Activate: clean old caches ── */
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -23,12 +23,20 @@ self.addEventListener('activate', e => {
   );
 });
 
-/* â”€â”€ Message: Update auf Knopfdruck â”€â”€ */
+/* ── Message ── */
 self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (!e.data) return;
+  if (e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (e.data.type === 'CARDIO_DONE') {
+    self.registration.showNotification('Cardio geschafft!', {
+      body: 'Dein Timer ist abgelaufen. Super Leistung! 💪',
+      tag: 'cardio-done',
+      requireInteraction: false
+    });
+  }
 });
 
-/* â”€â”€ Fetch: Cache-first for app shell, network-first for rest â”€â”€ */
+/* ── Fetch: Cache-first for app shell, network-first for rest ── */
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
@@ -49,15 +57,3 @@ self.addEventListener('fetch', e => {
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
-
-
-
-
-
-
-
-
-
-
-
-
