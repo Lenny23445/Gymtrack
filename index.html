@@ -754,9 +754,24 @@ body{
   transform-origin:50% 100%;
   animation:dackel-wag .68s ease-in-out infinite;
 }
+/* ── AUTO-UPDATE TOAST ── */
+#update-toast{
+  position:fixed;top:20px;left:50%;
+  transform:translateX(-50%) translateY(-80px);
+  background:var(--acc);color:#fff;
+  padding:12px 22px;border-radius:14px;
+  font-size:14px;font-weight:600;
+  z-index:9999;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+#update-toast.show{transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
+
+<div id="update-toast"></div>
 
 <!-- Fixed Mesh Gradient Background -->
 <div id="bg"></div>
@@ -911,7 +926,7 @@ body{
           <div class="ico">🔄</div>
           <div class="row-body">
             <div class="row-title" id="update-title">Auf Updates prüfen</div>
-            <div class="row-sub"  id="update-sub">Neueste Version installieren</div>
+            <div class="row-sub"  id="update-sub">Wird beim App-Start automatisch geprüft</div>
           </div>
           <div class="chev" id="update-chev">›</div>
         </div>
@@ -1194,7 +1209,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231801';
+const APP_VERSION = 'gymtrack-v202605232153';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2421,11 +2436,11 @@ async function _doForceUpdate() {
   window.location.replace(location.pathname + '?_=' + Date.now());
 }
 
-function _markUpdateReady() {
-  const title = document.getElementById('update-title');
-  const sub   = document.getElementById('update-sub');
-  if (title) { title.textContent = '🟢 Update verfügbar!'; title.style.color = 'var(--green)'; }
-  if (sub)   sub.textContent = 'Antippen zum Installieren';
+function showUpdateToast(msg) {
+  const t = document.getElementById('update-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
 }
 
 async function _silentUpdateCheck() {
@@ -2433,7 +2448,11 @@ async function _silentUpdateCheck() {
     const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
     const m    = text.match(/gymtrack-v\d+/);
-    if (m && m[0] !== APP_VERSION) _markUpdateReady();
+    if (m && m[0] !== APP_VERSION) {
+      showUpdateToast('🔄 Update gefunden – wird installiert…');
+      await new Promise(r => setTimeout(r, 1800));
+      await _doForceUpdate();
+    }
   } catch (e) { /* offline → ignorieren */ }
 }
 
