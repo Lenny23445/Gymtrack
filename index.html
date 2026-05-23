@@ -139,18 +139,18 @@ body{
 
 /* ── GLASS HEADER ── */
 .hdr{
-  background:var(--gl-bg);
-  backdrop-filter:blur(64px) saturate(220%);
-  -webkit-backdrop-filter:blur(64px) saturate(220%);
-  padding:calc(var(--sat) + 16px) 20px 28px;
+  background:var(--gl-bg-t);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  padding:calc(var(--sat) + 16px) 20px 56px;
   position:sticky;top:0;z-index:100;
   transition:background .4s;
   overflow:hidden;
-  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 74%,transparent 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 74%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 55%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 55%,transparent 100%);
 }
 .hdr::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:55%;
+  content:'';position:absolute;top:0;left:0;right:0;height:45%;
   background:var(--sheen);pointer-events:none;
 }
 .hdr-row{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
@@ -1188,7 +1188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231734';
+const APP_VERSION = 'gymtrack-v202605231741';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
