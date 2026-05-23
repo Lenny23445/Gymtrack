@@ -1188,7 +1188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231752';
+const APP_VERSION = 'gymtrack-v202605231756';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1264,7 +1264,7 @@ S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
 S.companion   = S.companion   || 'dackel';
-S.companionOn = S.companionOn !== undefined ? S.companionOn : true;
+S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
