@@ -1,0 +1,11 @@
+{
+  "name": "GymTrack",
+  "short_name": "GymTrack",
+  "description": "Dein persönlicher Fitness-Tracker",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f4f9",
+  "theme_color": "#007AFF"
+}

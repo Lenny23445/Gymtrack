@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>GymTrack</title>
+<!-- PWA / iOS Homescreen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GymTrack">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#007AFF">
+<meta name="application-name" content="GymTrack">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   iOS 26 LIQUID GLASS — FitTrack
+   ═══════════════════════════════════════════════════ */
+
+/* ── THEMES ── */
+[data-theme="light"] {
+  --acc:#007AFF; --acc2:#5AC8FA; --acc-rgb:0,122,255;
+  --text:#1c1c1e; --text2:rgba(60,60,67,.55);
+  --green:#34C759; --orange:#FF9500; --red:#FF3B30;
+  --soft:rgba(0,122,255,.12);
+  --mesh:
+    radial-gradient(ellipse 110% 90% at -5% -5%,rgba(110,60,255,.22) 0%,transparent 52%),
+    radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,190,255,.18) 0%,transparent 52%),
+    radial-gradient(ellipse 75% 65% at 62% 2%,rgba(255,55,140,.13) 0%,transparent 48%),
+    radial-gradient(ellipse 65% 80% at 18% 88%,rgba(50,210,120,.1) 0%,transparent 48%),
+    #f4f4f9;
+  --gl-bg:rgba(255,255,255,.70); --gl-bg-h:rgba(255,255,255,.84);
+  --gl-bg-t:rgba(255,255,255,.42);
+  --gl-bdr:rgba(255,255,255,.80); --gl-bdr2:rgba(60,60,67,.10);
+  --gl-shad:0 4px 24px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);
+  --gl-shad-lg:0 14px 48px rgba(0,0,0,.13),0 4px 16px rgba(0,0,0,.07);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.96);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.48) 0%,transparent 100%);
+  --sep:rgba(60,60,67,.12);
+  --inp-bg:rgba(255,255,255,.56); --inp-focus:rgba(255,255,255,.90);
+  --g5:rgba(120,120,128,.12); --g6:rgba(255,255,255,.46);
+}
+[data-theme="rosa"] {
+  --acc:#E91E8C; --acc2:#F48FB1; --acc-rgb:233,30,140;
+  --text:#1a0818; --text2:rgba(100,20,60,.55);
+  --green:#2DB562; --orange:#F57C00; --red:#E53935;
+  --soft:rgba(233,30,140,.10);
+  --mesh:
+    radial-gradient(ellipse 110% 90% at -5% -5%,rgba(255,55,150,.26) 0%,transparent 52%),
+    radial-gradient(ellipse 90% 80% at 105% 105%,rgba(255,130,195,.20) 0%,transparent 52%),
+    radial-gradient(ellipse 75% 65% at 62% 2%,rgba(200,0,100,.16) 0%,transparent 48%),
+    radial-gradient(ellipse 65% 80% at 18% 88%,rgba(255,180,220,.14) 0%,transparent 48%),
+    #fff0f8;
+  --gl-bg:rgba(255,245,252,.70); --gl-bg-h:rgba(255,240,250,.86);
+  --gl-bg-t:rgba(255,230,246,.42);
+  --gl-bdr:rgba(255,200,230,.76); --gl-bdr2:rgba(200,30,100,.08);
+  --gl-shad:0 4px 24px rgba(180,0,100,.06),0 1px 4px rgba(180,0,100,.04);
+  --gl-shad-lg:0 14px 48px rgba(180,0,100,.13),0 4px 16px rgba(180,0,100,.06);
+  --gl-hi:inset 0 1px 0 rgba(255,240,250,.96);
+  --sheen:linear-gradient(180deg,rgba(255,240,250,.48) 0%,transparent 100%);
+  --sep:rgba(200,30,100,.10);
+  --inp-bg:rgba(255,245,252,.56); --inp-focus:rgba(255,240,250,.92);
+  --g5:rgba(200,80,140,.10); --g6:rgba(255,240,250,.46);
+}
+[data-theme="dark"] {
+  --acc:#0A84FF; --acc2:#64D2FF; --acc-rgb:10,132,255;
+  --text:#fff; --text2:rgba(235,235,245,.55);
+  --green:#30D158; --orange:#FF9F0A; --red:#FF453A;
+  --soft:rgba(10,132,255,.18);
+  --mesh:
+    radial-gradient(ellipse 110% 90% at -5% -5%,rgba(80,40,225,.55) 0%,transparent 52%),
+    radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,148,255,.42) 0%,transparent 52%),
+    radial-gradient(ellipse 75% 65% at 62% 2%,rgba(180,38,118,.38) 0%,transparent 48%),
+    radial-gradient(ellipse 65% 80% at 18% 88%,rgba(0,185,130,.24) 0%,transparent 48%),
+    #060609;
+  --gl-bg:rgba(28,28,40,.54); --gl-bg-h:rgba(20,20,32,.74);
+  --gl-bg-t:rgba(28,28,40,.34);
+  --gl-bdr:rgba(255,255,255,.10); --gl-bdr2:rgba(255,255,255,.06);
+  --gl-shad:0 4px 24px rgba(0,0,0,.38),0 1px 4px rgba(0,0,0,.28);
+  --gl-shad-lg:0 14px 48px rgba(0,0,0,.58),0 4px 16px rgba(0,0,0,.38);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.10);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.07) 0%,transparent 100%);
+  --sep:rgba(255,255,255,.08);
+  --inp-bg:rgba(255,255,255,.07); --inp-focus:rgba(255,255,255,.13);
+  --g5:rgba(255,255,255,.12); --g6:rgba(255,255,255,.05);
+}
+
+/* ── RESET ── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
+  color:var(--text);
+  max-width:430px;margin:0 auto;min-height:100%;
+  position:relative;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Fixed gradient background */
+#bg{
+  position:fixed;inset:0;z-index:-1;
+  background:var(--mesh);
+  transition:background .4s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── iOS PWA SAFE AREAS ── */
+:root{
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── PAGES ── */
+.pg{display:none;padding-bottom:calc(114px + var(--sab));min-height:100vh}
+.pg.on{display:block}
+
+/* ── GLASS HEADER ── */
+.hdr{
+  background:var(--gl-bg);
+  backdrop-filter:blur(64px) saturate(220%);
+  -webkit-backdrop-filter:blur(64px) saturate(220%);
+  padding:calc(var(--sat) + 16px) 20px 16px;
+  position:sticky;top:0;z-index:100;
+  border-bottom:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  transition:background .4s;
+  overflow:hidden;
+}
+.hdr::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:65%;
+  background:var(--sheen);pointer-events:none;
+}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
+.hdr h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.hdr .sub{font-size:13px;color:var(--text2);margin-top:2px}
+.hdr-plus{
+  background:var(--acc);border:none;border-radius:50%;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;font-size:20px;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.45),0 1px 4px rgba(var(--acc-rgb),.3);
+  transition:transform .15s,opacity .12s;
+  position:relative;
+}
+.hdr-plus::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:linear-gradient(160deg,rgba(255,255,255,.35) 0%,transparent 60%);
+  pointer-events:none;
+}
+.hdr-plus:active{transform:scale(.90);opacity:.80}
+
+/* ── TABBAR — FLOATING LIQUID GLASS PILL ── */
+.tabbar{
+  position:fixed;bottom:calc(18px + var(--sab));
+  left:50%;transform:translateX(-50%);
+  width:calc(100% - 40px);max-width:390px;
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(80px) saturate(240%);
+  -webkit-backdrop-filter:blur(80px) saturate(240%);
+  border:1px solid var(--gl-bdr);
+  border-radius:52px;
+  box-shadow:var(--gl-shad-lg),var(--gl-hi);
+  display:flex;z-index:1000;padding:5px;
+  transition:background .4s;
+  overflow:hidden;
+}
+.tabbar::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:52%;
+  background:var(--sheen);pointer-events:none;border-radius:52px;
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:9px 4px 10px;gap:3px;cursor:pointer;border:none;
+  background:none;color:var(--text2);
+  transition:color .22s,background .22s;
+  font-family:inherit;border-radius:46px;
+  position:relative;z-index:1;
+}
+.tab.on{
+  color:var(--acc);
+}
+.tab svg{width:22px;height:22px}
+.tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
+
+/* ── GLASS CARD ── */
+.card{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border-radius:20px;
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  overflow:hidden;
+  transition:background .4s;
+  position:relative;
+}
+.card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:46%;
+  background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
+}
+
+/* ── SECTION TITLE ── */
+.s-title{
+  font-size:12px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.85px;
+  margin-bottom:10px;padding-left:2px;
+}
+
+/* ── ROWS ── */
+.row{
+  display:flex;align-items:center;
+  padding:14px 16px;gap:13px;
+  border-bottom:1px solid var(--sep);
+  transition:background .12s;
+  position:relative;z-index:1;
+}
+.row:last-child{border-bottom:none}
+.row.tap{cursor:pointer}
+.row.tap:active{background:rgba(120,120,128,.08)}
+.ico{
+  width:46px;height:46px;border-radius:14px;font-size:26px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--gl-bg-t);
+  border:1px solid var(--gl-bdr);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.row-body{flex:1;min-width:0}
+.row-title{font-size:16px;font-weight:600}
+.row-sub{font-size:13px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--text2);font-size:18px;opacity:.5}
+
+/* ── BUTTONS ── */
+.btn{
+  border:none;border-radius:16px;padding:16px;
+  font-size:17px;font-weight:700;
+  width:100%;cursor:pointer;font-family:inherit;
+  transition:transform .13s,opacity .15s;display:block;
+  position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.24) 0%,transparent 100%);
+  pointer-events:none;
+}
+.btn:active{transform:scale(.97);opacity:.84}
+
+.btn-acc{
+  background:linear-gradient(148deg,var(--acc) 0%,var(--acc2) 100%);
+  color:#fff;
+  box-shadow:0 6px 22px rgba(var(--acc-rgb),.38),0 2px 6px rgba(var(--acc-rgb),.22);
+}
+.btn-gray{
+  background:var(--gl-bg);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--gl-bdr);
+  color:var(--text);
+  box-shadow:var(--gl-shad),var(--gl-hi);
+}
+.btn-danger{
+  background:rgba(255,59,48,.11);
+  border:1px solid rgba(255,59,48,.22);
+  color:var(--red);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+}
+.btn-sm{padding:10px 16px;font-size:14px;border-radius:13px}
+
+/* ── OVERLAY / BOTTOM SHEET ── */
+.ov{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.32);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  z-index:900;display:none;align-items:flex-end;
+}
+.ov.on{display:flex}
+.sheet{
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(90px) saturate(240%);
+  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  border-radius:28px 28px 0 0;
+  border:1px solid var(--gl-bdr);
+  border-bottom:none;
+  width:100%;max-height:92vh;
+  overflow-y:auto;overflow-x:hidden;
+  padding-bottom:28px;
+  animation:up .28s cubic-bezier(.32,1,.32,1);
+  box-shadow:0 -8px 48px rgba(0,0,0,.18),var(--gl-hi);
+  transition:background .4s;
+  position:relative;
+}
+.sheet::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:80px;
+  background:var(--sheen);pointer-events:none;border-radius:28px 28px 0 0;
+}
+@keyframes up{from{transform:translateY(100%)}}
+
+.sh-handle{
+  width:40px;height:4px;background:var(--sep);border-radius:2px;
+  margin:12px auto 4px;position:relative;z-index:1;
+}
+.sh-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 20px 16px;position:relative;z-index:1;
+}
+.sh-head h2{font-size:20px;font-weight:700}
+.x-btn{
+  background:var(--g5);border:none;border-radius:50%;
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text2);font-size:13px;font-weight:600;
+  transition:opacity .15s;
+}
+.x-btn:active{opacity:.6}
+
+/* ── FORM ── */
+.f-label{
+  font-size:12px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.5px;
+  display:block;margin-bottom:7px;
+}
+.f-in{
+  background:var(--inp-bg);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--gl-bdr);
+  border-radius:14px;padding:14px 16px;
+  font-size:17px;font-family:inherit;width:100%;
+  outline:none;color:var(--text);
+  transition:background .2s,border-color .2s,box-shadow .2s;
+}
+.f-in:focus{
+  background:var(--inp-focus);
+  border-color:var(--acc);
+  box-shadow:0 0 0 3px rgba(var(--acc-rgb),.15);
+}
+.f-in::placeholder{color:var(--text2)}
+.f-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.f-field{margin-bottom:16px}
+
+/* ── EMOJI GRID ── */
+.emo-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:0 20px 12px}
+.emo-btn{
+  width:100%;aspect-ratio:1;border-radius:14px;
+  border:1.5px solid transparent;
+  background:var(--gl-bg-t);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  font-size:24px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.emo-btn.on{
+  border-color:var(--acc);
+  background:var(--soft);
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.22);
+}
+
+/* ── WORKOUT LOG CARDS ── */
+.ex-card{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;overflow:hidden;
+  margin-bottom:12px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  transition:background .4s;
+  position:relative;
+}
+.ex-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:42%;
+  background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
+}
+.ex-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;border-bottom:1px solid var(--sep);
+  position:relative;z-index:1;
+}
+.ex-title{font-size:17px;font-weight:700}
+.ex-body{padding:10px 16px 16px;position:relative;z-index:1}
+.set-hdr{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:8px;padding:2px 0 8px}
+.set-hdr span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;letter-spacing:.4px}
+.set-row{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:8px;align-items:center;padding:4px 0}
+.set-n{font-size:14px;font-weight:600;color:var(--text2);text-align:center}
+.set-in{
+  background:var(--inp-bg);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--gl-bdr);
+  border-radius:12px;padding:10px 4px;
+  font-size:16px;font-family:inherit;text-align:center;
+  outline:none;color:var(--text);width:100%;
+  transition:background .15s,border-color .15s,box-shadow .15s;
+}
+.set-in:focus{
+  background:var(--inp-focus);
+  border-color:var(--acc);
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.16);
+}
+.set-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;width:28px}
+.add-set-btn{margin-top:10px;background:none;border:none;color:var(--acc);font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
+
+/* ── TIMER BAR ── */
+.timer-bar{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;padding:16px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  position:relative;overflow:hidden;
+}
+.timer-bar::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:var(--sheen);pointer-events:none;
+}
+.timer-v{font-size:28px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.timer-l{font-size:11px;color:var(--text2);margin-bottom:2px;position:relative;z-index:1}
+
+/* ── SUGGESTIONS ── */
+.sug{
+  border-radius:18px;padding:15px 16px;margin-bottom:10px;
+  display:flex;gap:12px;align-items:flex-start;
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid;
+  box-shadow:var(--gl-shad);
+  position:relative;overflow:hidden;
+}
+.sug::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.24) 0%,transparent 100%);
+  pointer-events:none;
+}
+[data-theme="dark"] .sug::after{background:linear-gradient(180deg,rgba(255,255,255,.07) 0%,transparent 100%);}
+.sug.up{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.30)}
+.sug.hold{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.26)}
+.sug.wait{background:rgba(0,122,255,.10);border-color:rgba(0,122,255,.20)}
+[data-theme="dark"] .sug.wait{background:rgba(10,132,255,.14);border-color:rgba(10,132,255,.24)}
+.sug-ic{font-size:22px;flex-shrink:0;margin-top:1px;position:relative;z-index:1}
+.sug-title{font-size:15px;font-weight:700;position:relative;z-index:1}
+.sug-sub{font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4;position:relative;z-index:1}
+
+/* ── BADGE ── */
+.badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
+.b-acc{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
+.b-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(52,199,89,.3)}
+.b-orange{background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(255,149,0,.3)}
+
+/* ── CHART BOX ── */
+.chart-box{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;padding:16px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  position:relative;overflow:hidden;
+}
+.chart-box::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:40%;
+  background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
+}
+
+/* ── PROGRESS BAR ── */
+.pbar{background:var(--g5);border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
+.pbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+
+/* ── THEME ROWS ── */
+.theme-row{
+  display:flex;align-items:center;padding:14px 16px;gap:12px;
+  border-bottom:1px solid var(--sep);cursor:pointer;
+  transition:background .12s;position:relative;z-index:1;
+}
+.theme-row:active{background:rgba(120,120,128,.07)}
+.theme-row:last-child{border-bottom:none}
+.theme-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.theme-name{flex:1;font-size:16px;font-weight:600}
+.theme-chk{color:var(--acc);font-size:18px;font-weight:700}
+
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;text-align:center}
+.empty-i{font-size:60px;margin-bottom:16px}
+.empty h3{font-size:20px;font-weight:700;margin-bottom:8px}
+.empty p{font-size:15px;color:var(--text2);line-height:1.5}
+
+/* ── WORKOUT CHECKBOX ── */
+.wk-chk{
+  width:26px;height:26px;border-radius:50%;
+  border:2px solid var(--sep);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .18s;
+}
+.wk-chk.on{background:var(--acc);border-color:var(--acc);color:#fff;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(var(--acc-rgb),.38)}
+
+/* ── UTILS ── */
+.gap{height:14px}
+.pad{padding:16px 20px}
+.px{padding:0 20px}
+
+/* ── TAB INDICATOR (sliding liquid glass pill) ── */
+#tab-indicator{
+  position:absolute;
+  top:5px;left:5px;
+  height:calc(100% - 10px);
+  width:80px; /* updated by JS */
+  background:var(--gl-bg);
+  backdrop-filter:blur(36px) saturate(200%);
+  -webkit-backdrop-filter:blur(36px) saturate(200%);
+  border-radius:46px;
+  border:1px solid var(--gl-bdr);
+  box-shadow:0 3px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,255,255,.82);
+  transition:transform .42s cubic-bezier(.34,1.56,.64,1),
+             width .42s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+  z-index:0;
+  will-change:transform,width;
+  overflow:hidden;
+}
+#tab-indicator::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:55%;
+  background:var(--sheen);border-radius:46px;pointer-events:none;
+}
+
+/* ── PAGE TRANSITION (liquid glass bloom) ── */
+@keyframes pg-in{
+  from{opacity:0;transform:translateY(12px) scale(.97);filter:blur(5px)}
+  to  {opacity:1;transform:translateY(0)    scale(1)  ;filter:blur(0)}
+}
+.pg.on{animation:pg-in .38s cubic-bezier(.32,1,.32,1) both}
+
+/* ── DACHSHUND ── */
+#dackel-lane{
+  position:fixed;
+  bottom:80px;           /* feet land on top of the pill */
+  left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 52px);
+  max-width:378px;
+  height:44px;
+  pointer-events:none;
+  z-index:1002;
+  overflow:visible;
+}
+#dackel{
+  position:absolute;
+  bottom:0;left:6px;
+  width:65px;
+  animation:dackel-walk 11s linear infinite;
+}
+#dackel-inner{
+  animation:dackel-dir 11s linear infinite;
+  display:inline-block;
+}
+#dackel-body{
+  animation:dackel-bob 0.36s ease-in-out infinite;
+  display:inline-block;
+}
+#dackel-svg{
+  filter:drop-shadow(0 3px 5px rgba(0,0,0,.28));
+  display:block;
+}
+
+/* Horizontal walk: 0→right→0 */
+@keyframes dackel-walk{
+  0%   {left:6px}
+  47%  {left:calc(100% - 71px)}
+  53%  {left:calc(100% - 71px)}
+  100% {left:6px}
+}
+/* Instant flip when turning around */
+@keyframes dackel-dir{
+  0%,46.99%  {transform:scaleX(1)}
+  47%,100%   {transform:scaleX(-1)}
+}
+/* Cute body bob (like walking gait) */
+@keyframes dackel-bob{
+  0%,100%{transform:translateY(0)}
+  50%    {transform:translateY(-2.5px)}
+}
+/* Leg swing animations (diagonal pairs) */
+@keyframes dackel-step-a{
+  0%,100%{transform:rotate(-16deg)}
+  50%    {transform:rotate(16deg)}
+}
+@keyframes dackel-step-b{
+  0%,100%{transform:rotate(16deg)}
+  50%    {transform:rotate(-16deg)}
+}
+/* Tail wag */
+@keyframes dackel-wag{
+  0%,100%{transform:rotate(0deg)}
+  50%    {transform:rotate(-22deg)}
+}
+
+/* Leg pivot from top (hip) */
+.dackel-la,.dackel-lb,.dackel-lc,.dackel-ld{
+  transform-box:fill-box;
+  transform-origin:50% 0%;
+}
+.dackel-la,.dackel-lc{animation:dackel-step-a .33s ease-in-out infinite}
+.dackel-lb,.dackel-ld{animation:dackel-step-b .33s ease-in-out infinite}
+/* Tail pivot from base */
+.dackel-tail{
+  transform-box:fill-box;
+  transform-origin:50% 100%;
+  animation:dackel-wag .68s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Fixed Mesh Gradient Background -->
+<div id="bg"></div>
+
+<!-- PAGE: HEUTE -->
+<div class="pg on" id="pg-heute">
+  <div class="hdr">
+    <h1 id="greet-h">Heute 💪</h1>
+    <div class="sub" id="greet-d"></div>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
+    <div>
+      <div class="s-title">Vorschläge diese Woche</div>
+      <div id="sug-list"></div>
+    </div>
+    <div>
+      <div class="s-title">Letztes Training</div>
+      <div class="card" id="last-card"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: ÜBUNGEN -->
+<div class="pg" id="pg-uebungen">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div>
+        <h1>Meine Übungen</h1>
+        <div class="sub" id="ex-sub"></div>
+      </div>
+      <button class="hdr-plus" onclick="openNewEx(null)">+</button>
+    </div>
+  </div>
+  <div class="pad">
+    <div id="ex-list"></div>
+    <div class="gap"></div>
+    <button class="btn btn-gray" onclick="openNewEx(null)">+ Übung hinzufügen</button>
+  </div>
+</div>
+
+<!-- PAGE: EINSTELLUNGEN -->
+<div class="pg" id="pg-settings">
+  <div class="hdr"><h1>Einstellungen</h1></div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div>
+      <div class="s-title">Design</div>
+      <div class="card">
+        <div class="theme-row" onclick="setTheme('light')">
+          <div class="theme-dot" style="background:linear-gradient(135deg,#fff 50%,#f4f4f9 50%);border:2px solid #e5e5ea"></div>
+          <span class="theme-name">Hell</span>
+          <span class="theme-chk" id="chk-light">✓</span>
+        </div>
+        <div class="theme-row" onclick="setTheme('rosa')">
+          <div class="theme-dot" style="background:linear-gradient(135deg,#fff0f8 50%,#ffd6ec 50%);border:2px solid #f8c0d8"></div>
+          <span class="theme-name">Rosa 🌸</span>
+          <span class="theme-chk" id="chk-rosa" style="visibility:hidden">✓</span>
+        </div>
+        <div class="theme-row" onclick="setTheme('dark')">
+          <div class="theme-dot" style="background:linear-gradient(135deg,#1c1c2e 50%,#060609 50%);border:2px solid #333"></div>
+          <span class="theme-name">Dunkel 🌙</span>
+          <span class="theme-chk" id="chk-dark" style="visibility:hidden">✓</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Progression – so funktioniert's</div>
+      <div class="card">
+        <div class="row"><div class="row-body">
+          <div class="row-title">Gewicht erhöhen</div>
+          <div class="row-sub">Wenn du 2× alle Ziel-Wdh schaffst → +2,5 kg (leicht) / +5 kg (schwer)</div>
+        </div></div>
+        <div class="row"><div class="row-body">
+          <div class="row-title">Wdh-Fokus</div>
+          <div class="row-sub">Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren</div>
+        </div></div>
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Daten</div>
+      <div class="card">
+        <div class="row"><div class="row-body">
+          <div class="row-title" id="data-info">–</div>
+          <div class="row-sub">Alles gespeichert auf deinem Gerät</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABBAR -->
+<div class="tabbar">
+  <div id="tab-indicator"></div>
+  <button class="tab on" onclick="goTab('heute',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>Heute</span>
+  </button>
+  <button class="tab" onclick="goTab('uebungen',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    <span>Übungen</span>
+  </button>
+  <button class="tab" onclick="goTab('settings',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    <span>Einstellungen</span>
+  </button>
+</div>
+
+<!-- DACHSHUND ON THE TAB BAR -->
+<div id="dackel-lane">
+  <div id="dackel">
+    <div id="dackel-inner">
+      <div id="dackel-body">
+        <svg id="dackel-svg" width="65" height="44" viewBox="0 0 65 44" fill="none">
+          <!-- Tail (wags from base) -->
+          <path class="dackel-tail"
+            d="M10 23 C7 19 5 14 8 10 C10 7 14 9 12 14"
+            stroke="#5C2906" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Body -->
+          <ellipse cx="31" cy="26" rx="19" ry="9" fill="#7B3B18"/>
+          <!-- Belly (golden) -->
+          <ellipse cx="30" cy="31" rx="14" ry="4.5" fill="#C4871A"/>
+          <!-- Head -->
+          <ellipse cx="51" cy="19" rx="10" ry="9.5" fill="#7B3B18"/>
+          <!-- Snout -->
+          <ellipse cx="60" cy="23" rx="4.5" ry="3.2" fill="#9B5A20"/>
+          <!-- Ear (floppy dark) -->
+          <ellipse cx="46" cy="12" rx="5" ry="8" fill="#4A2008" transform="rotate(18 46 12)"/>
+          <!-- Eye (with cute highlight) -->
+          <circle cx="55" cy="15" r="3" fill="#1A0800"/>
+          <circle cx="56.1" cy="14" r="1.1" fill="rgba(255,255,255,.62)"/>
+          <!-- Nose -->
+          <ellipse cx="63.5" cy="23" rx="1.9" ry="1.6" fill="#1A0800"/>
+          <!-- Front legs (near head) -->
+          <rect class="dackel-la" x="44" y="33" width="5.5" height="10" rx="2.7" fill="#7B3B18"/>
+          <rect class="dackel-lb" x="50.5" y="33" width="5.5" height="10" rx="2.7" fill="#6B3310"/>
+          <!-- Back legs -->
+          <rect class="dackel-lc" x="17" y="33" width="5.5" height="10" rx="2.7" fill="#7B3B18"/>
+          <rect class="dackel-ld" x="23.5" y="33" width="5.5" height="10" rx="2.7" fill="#6B3310"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: NEUE / BEARBEITE ÜBUNG -->
+<div class="ov" id="ov-ex">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="ex-sheet-title">Übung hinzufügen</h2>
+      <button class="x-btn" onclick="closeOv('ov-ex')">✕</button>
+    </div>
+    <div class="px">
+      <div class="f-field">
+        <label class="f-label">Name</label>
+        <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
+      </div>
+    </div>
+    <div style="padding:0 20px 8px"><label class="f-label">Icon</label></div>
+    <div class="emo-grid" id="emo-grid"></div>
+    <div class="px">
+      <div class="f-field">
+        <label class="f-label">Ziel pro Einheit</label>
+        <div class="f-row3">
+          <div>
+            <label class="f-label" style="font-size:10px">Sätze</label>
+            <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
+          </div>
+          <div>
+            <label class="f-label" style="font-size:10px">Wdh</label>
+            <input class="f-in" type="number" id="in-reps" value="10" min="1" max="100">
+          </div>
+          <div>
+            <label class="f-label" style="font-size:10px">Start-kg</label>
+            <input class="f-in" type="number" id="in-kg" placeholder="0" min="0" step="2.5">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-acc" onclick="saveEx()">Speichern</button>
+      <div class="gap" style="height:10px"></div>
+      <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: WORKOUT -->
+<div class="ov" id="ov-wk">
+  <div class="sheet" style="max-height:95vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="wk-title">Training</h2>
+      <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
+    </div>
+    <!-- step 1: select -->
+    <div id="wk-step1">
+      <div class="px">
+        <div class="s-title">Welche Übungen heute?</div>
+        <div class="card" id="wk-picker"></div>
+        <div class="gap"></div>
+        <button class="btn btn-acc" onclick="startActive()">Training starten ▶</button>
+      </div>
+    </div>
+    <!-- step 2: log -->
+    <div id="wk-step2" style="display:none">
+      <div class="px">
+        <div class="timer-bar">
+          <div>
+            <div class="timer-l">Trainingszeit</div>
+            <div class="timer-v" id="timer-v">00:00</div>
+          </div>
+          <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
+        </div>
+        <div id="log-cards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: ÜBUNG DETAIL -->
+<div class="ov" id="ov-det">
+  <div class="sheet" style="max-height:95vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="det-title">Detail</h2>
+      <button class="x-btn" onclick="closeOv('ov-det')">✕</button>
+    </div>
+    <div class="px">
+      <div id="det-sug" style="margin-bottom:10px"></div>
+      <div class="s-title">Gewichtsverlauf</div>
+      <div class="chart-box" style="margin-bottom:14px"><canvas id="det-chart" height="160"></canvas></div>
+      <div class="s-title">Letzte Einheiten</div>
+      <div class="card" id="det-hist"></div>
+      <div class="gap" style="height:12px"></div>
+      <button class="btn btn-gray btn-sm" style="width:auto;display:inline-block;padding:10px 20px" onclick="editDet()">✏️ Bearbeiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: DONE -->
+<div class="ov" id="ov-done">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Training beendet 🎉</h2>
+      <button class="x-btn" onclick="closeOv('ov-done')">✕</button>
+    </div>
+    <div class="px">
+      <div id="done-body"></div>
+      <div class="gap"></div>
+      <button class="btn btn-acc" onclick="closeOv('ov-done')">Perfekt!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const EMOJIS = ['🏋️','💪','🦵','🔵','🧘','🏃','🚴','🤸','⚡','🔥','🥊','🎯','🦾','💥','🏊','🧗','⛹️','🏅','⭐','💎','🫀','🦴','🤼','🥋','🎽','🩺','🔴','🟡','🟢','🟣'];
+
+let S = (() => {
+  try { return JSON.parse(localStorage.getItem('ft4') || '{}'); } catch(e) { return {}; }
+})();
+S.exercises = S.exercises || [];
+S.sessions  = S.sessions  || [];
+S.theme     = S.theme     || 'light';
+
+const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
+
+// working state
+let editId = null;
+let selEmoji = '🏋️';
+let wkExIds = [];
+let wkLogs  = [];
+let timerInt = null, timerTs = null;
+let detId = null;
+let detChart = null;
+
+// ── HELPERS ───────────────────────────────────────────
+const uid  = () => '_' + Math.random().toString(36).slice(2);
+const exById = id => S.exercises.find(e => e.id === id);
+
+function exHistory(exId) {
+  return S.sessions
+    .map(s => { const l = s.logs.find(l => l.exerciseId === exId); return l ? {date:s.date,sets:l.sets} : null; })
+    .filter(Boolean)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+}
+
+function maxW(sets) {
+  const vals = sets.map(s => parseFloat(s.w)||0).filter(v=>v>0);
+  return vals.length ? Math.max(...vals) : 0;
+}
+
+// ── NAVIGATION ────────────────────────────────────────
+function goTab(id, btn) {
+  // Remove active page (force reflow so animation re-triggers)
+  document.querySelectorAll('.pg').forEach(p => {
+    p.classList.remove('on');
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+
+  // Trigger animation: remove then re-add .on so keyframe restarts
+  const pg = document.getElementById('pg-' + id);
+  pg.style.animation = 'none';
+  pg.offsetHeight; // reflow
+  pg.style.animation = '';
+  pg.classList.add('on');
+
+  btn.classList.add('on');
+  moveTabIndicator(btn);
+
+  if (id === 'heute')     renderHome();
+  if (id === 'uebungen')  renderExList();
+  if (id === 'settings')  renderSettings();
+}
+
+function moveTabIndicator(activeTab) {
+  const bar = document.querySelector('.tabbar');
+  const ind = document.getElementById('tab-indicator');
+  if (!ind || !bar || !activeTab) return;
+  const barRect = bar.getBoundingClientRect();
+  const tabRect = activeTab.getBoundingClientRect();
+  const offsetX = tabRect.left - barRect.left - 5; // 5px = tabbar padding
+  ind.style.width  = tabRect.width + 'px';
+  ind.style.transform = 'translateX(' + offsetX + 'px)';
+}
+
+function initTabIndicator() {
+  requestAnimationFrame(() => {
+    const active = document.querySelector('.tab.on');
+    if (active) moveTabIndicator(active);
+  });
+}
+function openOv(id)  { document.getElementById(id).classList.add('on'); }
+function closeOv(id) { document.getElementById(id).classList.remove('on'); }
+document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('on'); }));
+
+// ── THEME ─────────────────────────────────────────────
+function setTheme(t) {
+  S.theme = t;
+  persist();
+  document.documentElement.setAttribute('data-theme', t);
+  ['light','rosa','dark'].forEach(n =>
+    document.getElementById('chk-'+n).style.visibility = n===t ? 'visible' : 'hidden'
+  );
+}
+
+// ── HOME ──────────────────────────────────────────────
+function renderHome() {
+  const h = new Date().getHours();
+  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen 🌅' : h<17 ? 'Guten Tag ☀️' : 'Guten Abend 🌙';
+  document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  renderSuggestions();
+  renderLastSession();
+}
+
+function renderSuggestions() {
+  const el = document.getElementById('sug-list');
+  if (!S.exercises.length) {
+    el.innerHTML = html_sug('wait','💡','Los geht\'s!','Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.');
+    return;
+  }
+  const cards = S.exercises.map(getSuggestion).filter(Boolean);
+  el.innerHTML = cards.length
+    ? cards.map(s => html_sug(s.type, s.icon, s.title, s.text)).join('')
+    : html_sug('wait','📊','Noch kein Training','Absolviere dein erstes Training, um Vorschläge zu erhalten.');
+}
+
+function html_sug(type, icon, title, text) {
+  return `<div class="sug ${type}"><div class="sug-ic">${icon}</div><div><div class="sug-title">${title}</div><div class="sug-sub">${text}</div></div></div>`;
+}
+
+function getSuggestion(ex) {
+  const hist = exHistory(ex.id);
+  if (!hist.length) return { type:'wait', icon:'🆕', title: ex.emoji+' '+ex.name, text:'Noch kein Training. Starte heute!' };
+
+  const last = hist[hist.length-1];
+  const validSets = last.sets.filter(s => s.w && s.r);
+  if (!validSets.length) return null;
+
+  const lMaxW = maxW(validSets);
+  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
+  const allSets = validSets.length >= ex.targetSets;
+
+  if (hist.length >= 2) {
+    const prev = hist[hist.length-2];
+    const pValid = prev.sets.filter(s=>s.w&&s.r);
+    const prevAllReps = pValid.every(s => parseInt(s.r) >= ex.targetReps);
+    const prevMax = maxW(pValid);
+    if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
+      const inc = lMaxW >= 60 ? 5 : 2.5;
+      return { type:'up', icon:'⬆️', title:`${ex.emoji} ${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nächstes Mal!` };
+    }
+  }
+  if (allReps && allSets) {
+    return { type:'up', icon:'💪', title:`${ex.emoji} ${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
+  }
+  return { type:'hold', icon:'🎯', title:`${ex.emoji} ${ex.name}: Wdh-Fokus`, text:`Ziel: ${ex.targetSets}×${ex.targetReps} Wdh bei ${lMaxW} kg. Halte das Gewicht.` };
+}
+
+function renderLastSession() {
+  const el = document.getElementById('last-card');
+  if (!S.sessions.length) { el.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:15px;position:relative;z-index:1">Noch kein Training</div>`; return; }
+  const last = S.sessions[S.sessions.length-1];
+  const d = new Date(last.date);
+  const sets = last.logs.reduce((s,l) => s+l.sets.length, 0);
+  el.innerHTML = `<div class="row">
+    <div class="row-body">
+      <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
+      <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' · ')}</div>
+    </div>
+    <span class="badge b-green">${sets} Sätze</span>
+  </div>`;
+}
+
+// ── EXERCISE LIST ─────────────────────────────────────
+function renderExList() {
+  const sub = document.getElementById('ex-sub');
+  const el  = document.getElementById('ex-list');
+  sub.textContent = S.exercises.length ? S.exercises.length+' Übung'+(S.exercises.length!==1?'en':'') : '';
+  if (!S.exercises.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-i">💪</div><h3>Noch keine Übungen</h3><p>Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card">${S.exercises.map(ex => {
+    const hist = exHistory(ex.id);
+    const last = hist.length ? hist[hist.length-1] : null;
+    const lw = last ? maxW(last.sets) : null;
+    const sub = `Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · Aktuell: '+lw+' kg' : ''}`;
+    return `<div class="row tap" onclick="openDet('${ex.id}')">
+      <div class="ico">${ex.emoji}</div>
+      <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${sub}</div></div>
+      <div class="chev">›</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── NEW / EDIT EXERCISE ───────────────────────────────
+function openNewEx(exId) {
+  editId = exId;
+  selEmoji = '🏋️';
+  document.getElementById('in-name').value = '';
+  document.getElementById('in-sets').value = '3';
+  document.getElementById('in-reps').value = '10';
+  document.getElementById('in-kg').value = '';
+  document.getElementById('del-ex-btn').style.display = 'none';
+  document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
+
+  if (exId) {
+    const ex = exById(exId);
+    if (ex) {
+      selEmoji = ex.emoji;
+      document.getElementById('in-name').value = ex.name;
+      document.getElementById('in-sets').value = ex.targetSets;
+      document.getElementById('in-reps').value = ex.targetReps;
+      document.getElementById('in-kg').value = ex.targetWeight || '';
+      document.getElementById('del-ex-btn').style.display = '';
+      document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
+    }
+  }
+  renderEmoGrid();
+  openOv('ov-ex');
+}
+
+function renderEmoGrid() {
+  document.getElementById('emo-grid').innerHTML = EMOJIS.map(e =>
+    `<button class="emo-btn${e===selEmoji?' on':''}" onclick="pickEmo('${e}')">${e}</button>`
+  ).join('');
+}
+function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
+
+function saveEx() {
+  const name = document.getElementById('in-name').value.trim();
+  if (!name) { alert('Bitte Namen eingeben!'); return; }
+  const sets = parseInt(document.getElementById('in-sets').value)||3;
+  const reps = parseInt(document.getElementById('in-reps').value)||10;
+  const kg   = parseFloat(document.getElementById('in-kg').value)||0;
+
+  if (editId) {
+    const ex = exById(editId);
+    if (ex) Object.assign(ex, {name, emoji:selEmoji, targetSets:sets, targetReps:reps, targetWeight:kg});
+  } else {
+    S.exercises.push({id:uid(), name, emoji:selEmoji, targetSets:sets, targetReps:reps, targetWeight:kg});
+  }
+  persist();
+  closeOv('ov-ex');
+  renderExList();
+  renderHome();
+}
+
+function deleteEx() {
+  if (!editId || !confirm('Übung wirklich löschen?')) return;
+  S.exercises = S.exercises.filter(e => e.id !== editId);
+  S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== editId); });
+  S.sessions = S.sessions.filter(s => s.logs.length > 0);
+  persist();
+  closeOv('ov-ex');
+  closeOv('ov-det');
+  renderExList();
+  renderHome();
+}
+
+// ── EXERCISE DETAIL ───────────────────────────────────
+function openDet(exId) {
+  detId = exId;
+  const ex = exById(exId);
+  if (!ex) return;
+  document.getElementById('det-title').textContent = ex.emoji+' '+ex.name;
+
+  const sug = getSuggestion(ex);
+  document.getElementById('det-sug').innerHTML = sug
+    ? html_sug(sug.type, sug.icon, sug.title, sug.text)
+    : '';
+
+  const hist = exHistory(exId);
+  renderDetChart(hist);
+
+  const histEl = document.getElementById('det-hist');
+  if (!hist.length) {
+    histEl.innerHTML = `<div style="padding:14px;color:var(--text2);position:relative;z-index:1">Noch keine Einheiten</div>`;
+  } else {
+    histEl.innerHTML = [...hist].reverse().slice(0,8).map(h => {
+      const d = new Date(h.date);
+      const w = maxW(h.sets);
+      const totalR = h.sets.reduce((s,set)=>s+(parseInt(set.r)||0),0);
+      return `<div class="row">
+        <div class="row-body">
+          <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})}</div>
+          <div class="row-sub">${h.sets.length} Sätze · Max ${w} kg · ${totalR} Wdh</div>
+        </div>
+        <span class="badge b-acc">${w} kg</span>
+      </div>`;
+    }).join('');
+  }
+  openOv('ov-det');
+}
+
+function renderDetChart(hist) {
+  const pts = hist
+    .map(h => ({x: new Date(h.date).toLocaleDateString('de-DE',{day:'numeric',month:'short'}), y: maxW(h.sets)}))
+    .filter(p => p.y > 0);
+  if (detChart) { detChart.destroy(); detChart = null; }
+  if (!pts.length) return;
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+  detChart = new Chart(document.getElementById('det-chart').getContext('2d'), {
+    type:'line',
+    data:{
+      labels: pts.map(p=>p.x),
+      datasets:[{
+        data: pts.map(p=>p.y),
+        borderColor: acc, backgroundColor: acc+'22',
+        fill:true, tension:.4, pointBackgroundColor:acc,
+        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>v+' kg'}}
+      }
+    }
+  });
+}
+
+function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
+
+// ── WORKOUT ───────────────────────────────────────────
+function openWorkout() {
+  if (!S.exercises.length) {
+    alert('Füge zuerst eine Übung hinzu!');
+    goTab('uebungen', document.querySelectorAll('.tab')[1]);
+    return;
+  }
+  wkExIds = [];
+  wkLogs  = [];
+  document.getElementById('wk-step1').style.display = '';
+  document.getElementById('wk-step2').style.display = 'none';
+  document.getElementById('wk-title').textContent = 'Training';
+
+  document.getElementById('wk-picker').innerHTML = S.exercises.map(ex => `
+    <div class="row tap" onclick="toggleEx('${ex.id}',this)">
+      <div class="ico">${ex.emoji}</div>
+      <div class="row-body">
+        <div class="row-title">${ex.name}</div>
+        <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetReps} Wdh</div>
+      </div>
+      <div class="wk-chk" id="wchk-${ex.id}"></div>
+    </div>`).join('');
+  openOv('ov-wk');
+}
+
+function toggleEx(id) {
+  const idx = wkExIds.indexOf(id);
+  const chk = document.getElementById('wchk-'+id);
+  if (idx >= 0) {
+    wkExIds.splice(idx,1);
+    chk.classList.remove('on'); chk.textContent = '';
+  } else {
+    wkExIds.push(id);
+    chk.classList.add('on'); chk.textContent = '✓';
+  }
+}
+
+function startActive() {
+  if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
+  wkLogs = wkExIds.map(exId => {
+    const ex = exById(exId);
+    const hist = exHistory(exId);
+    const last = hist.length ? hist[hist.length-1].sets : [];
+    const defaultW = last.length ? last[0].w : (ex.targetWeight ? String(ex.targetWeight) : '');
+    return { exerciseId:exId, sets: Array.from({length:ex.targetSets}, ()=>({w:defaultW, r:String(ex.targetReps)})) };
+  });
+  timerTs = Date.now();
+  timerInt = setInterval(()=>{
+    const e = Math.floor((Date.now()-timerTs)/1000);
+    document.getElementById('timer-v').textContent = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+  },1000);
+  document.getElementById('wk-step1').style.display = 'none';
+  document.getElementById('wk-step2').style.display = '';
+  document.getElementById('wk-title').textContent = 'Aktives Training';
+  renderLogCards();
+}
+
+function renderLogCards() {
+  document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
+    const ex = exById(log.exerciseId);
+    return `<div class="ex-card">
+      <div class="ex-head">
+        <span class="ex-title">${ex.emoji} ${ex.name}</span>
+        <span style="font-size:13px;color:var(--text2)">Ziel: ${ex.targetSets}×${ex.targetReps}</span>
+      </div>
+      <div class="ex-body">
+        <div class="set-hdr"><span></span><span>KG</span><span>WDH</span><span></span></div>
+        ${log.sets.map((s,si)=>`
+        <div class="set-row">
+          <div class="set-n">${si+1}</div>
+          <input class="set-in" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
+            onchange="setVal(${li},${si},'w',this.value)">
+          <input class="set-in" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
+            onchange="setVal(${li},${si},'r',this.value)">
+          <button class="set-del" onclick="delSet(${li},${si})">−</button>
+        </div>`).join('')}
+        <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
+function addSet(li) {
+  const p = wkLogs[li].sets.slice(-1)[0];
+  wkLogs[li].sets.push({w:p?.w||'',r:p?.r||''});
+  renderLogCards();
+}
+function delSet(li,si) {
+  if (wkLogs[li].sets.length<=1) return;
+  wkLogs[li].sets.splice(si,1);
+  renderLogCards();
+}
+
+function finishWk() {
+  clearInterval(timerInt);
+  const dur = Math.floor((Date.now()-timerTs)/1000);
+  const valid = wkLogs.filter(l=>l.sets.some(s=>s.w||s.r));
+  if (!valid.length) { alert('Trag mindestens einen Satz ein!'); return; }
+
+  S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, logs:valid});
+  persist();
+  closeOv('ov-wk');
+  showDone(S.sessions[S.sessions.length-1]);
+  renderHome();
+}
+
+function showDone(ses) {
+  const sets = ses.logs.reduce((s,l)=>s+l.sets.length,0);
+  document.getElementById('done-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
+        <div style="font-size:26px;font-weight:700">${ses.logs.length}</div>
+        <div style="font-size:12px;color:var(--text2)">Übungen</div>
+      </div>
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
+        <div style="font-size:26px;font-weight:700">${sets}</div>
+        <div style="font-size:12px;color:var(--text2)">Sätze</div>
+      </div>
+    </div>
+    <div class="card">${ses.logs.map(l=>{
+      const ex=exById(l.exerciseId);
+      const w=maxW(l.sets);
+      return `<div class="row"><div class="ico">${ex?.emoji||'🏋️'}</div>
+        <div class="row-body">
+          <div class="row-title">${ex?.name||l.exerciseId}</div>
+          <div class="row-sub">${l.sets.length} Sätze · Max ${w||'–'} kg</div>
+        </div></div>`;
+    }).join('')}</div>`;
+  openOv('ov-done');
+}
+
+// ── SETTINGS ──────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('data-info').textContent =
+    S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
+}
+
+// ── INIT ──────────────────────────────────────────────
+setTheme(S.theme);
+renderHome();
+renderExList();
+initTabIndicator();
+
+// ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
+(function pwaSetup(){
+  /* ── Canvas Icon Generator ── */
+  function makeIcon(sz){
+    const c=document.createElement('canvas');
+    c.width=c.height=sz;
+    const ctx=c.getContext('2d');
+    const r=sz*.225;
+
+    // rounded-rect path helper
+    function rr(x,y,w,h,cr){
+      ctx.beginPath();
+      ctx.moveTo(x+cr,y);
+      ctx.arcTo(x+w,y,x+w,y+h,cr);
+      ctx.arcTo(x+w,y+h,x,y+h,cr);
+      ctx.arcTo(x,y+h,x,y,cr);
+      ctx.arcTo(x,y,x+w,y,cr);
+      ctx.closePath();
+    }
+
+    // — Background gradient —
+    const bg=ctx.createLinearGradient(0,0,sz,sz);
+    bg.addColorStop(0,'#5B3FFD');
+    bg.addColorStop(.45,'#007AFF');
+    bg.addColorStop(1,'#30C8FA');
+    rr(0,0,sz,sz,r);
+    ctx.fillStyle=bg;
+    ctx.fill();
+
+    // — Inner glow ring —
+    rr(0,0,sz,sz,r);
+    ctx.clip();
+    const glow=ctx.createRadialGradient(sz*.5,sz*.15,sz*.05,sz*.5,sz*.35,sz*.65);
+    glow.addColorStop(0,'rgba(255,255,255,.22)');
+    glow.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,sz,sz);
+
+    // — Top sheen —
+    const sheen=ctx.createLinearGradient(0,0,0,sz*.55);
+    sheen.addColorStop(0,'rgba(255,255,255,.40)');
+    sheen.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=sheen;
+    ctx.fillRect(0,0,sz,sz*.55);
+
+    // — Dumbbell icon —
+    ctx.fillStyle='rgba(255,255,255,.96)';
+    const cx=sz/2, cy=sz/2;
+    const bw=sz*.36, bh=sz*.058;
+    const pw=sz*.082, ph=sz*.29, pr=sz*.024;
+
+    // Bar
+    ctx.fillRect(cx-bw/2,cy-bh/2,bw,bh);
+    // Left plate
+    rr(cx-bw/2-pw,cy-ph/2,pw,ph,pr); ctx.fill();
+    // Right plate
+    rr(cx+bw/2,cy-ph/2,pw,ph,pr); ctx.fill();
+
+    // — Border highlight —
+    ctx.save();
+    rr(1,1,sz-2,sz-2,r-.5);
+    ctx.strokeStyle='rgba(255,255,255,.28)';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.restore();
+
+    return c.toDataURL('image/png');
+  }
+
+  const icon512 = makeIcon(512);
+  const icon192 = makeIcon(192);
+
+  /* ── Set apple-touch-icon ── */
+  const ati=document.getElementById('pwa-icon');
+  if(ati) ati.href=icon512;
+
+  /* ── Inject dynamic manifest with inline icons ── */
+  try{
+    const manifest={
+      name:'GymTrack',
+      short_name:'GymTrack',
+      description:'Dein persönlicher Fitness-Tracker',
+      start_url:'./GymTrack.html',
+      scope:'./',
+      display:'standalone',
+      orientation:'portrait-primary',
+      background_color:'#f4f4f9',
+      theme_color:'#007AFF',
+      icons:[
+        {src:icon192,sizes:'192x192',type:'image/png'},
+        {src:icon512,sizes:'512x512',type:'image/png',purpose:'any maskable'}
+      ]
+    };
+    const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+    const ml=document.querySelector('link[rel="manifest"]');
+    if(ml) ml.href=URL.createObjectURL(blob);
+  }catch(e){}
+
+  /* ── Register Service Worker ── */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js')
+      .then(r=>console.log('[GymTrack] SW registered',r.scope))
+      .catch(e=>console.warn('[GymTrack] SW skip:',e.message));
+  }
+})();
+</script>
+</body>
+</html>
