@@ -1705,9 +1705,12 @@ function _markUpdateReady() {
 }
 
 function _applyUpdate(title, sub) {
-  title.textContent = '🎉 Update gefunden – wird installiert…';
-  sub.textContent   = 'App startet gleich neu';
-  if (swReg.waiting) swReg.waiting.postMessage({type:'SKIP_WAITING'});
+  title.textContent = '🎉 Update wird installiert…';
+  sub.textContent   = 'App startet in 2 Sekunden neu';
+  if (swReg && swReg.waiting) swReg.waiting.postMessage({type:'SKIP_WAITING'});
+  /* iOS feuert controllerchange nicht zuverlässig → direkt selbst neu laden */
+  _swReloading = true;
+  setTimeout(() => window.location.reload(), 2000);
 }
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
