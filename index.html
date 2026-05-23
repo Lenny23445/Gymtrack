@@ -707,6 +707,19 @@ body{
       </div>
     </div>
     <div>
+      <div class="s-title">App</div>
+      <div class="card">
+        <div class="row tap" onclick="checkForUpdate()">
+          <div class="ico">🔄</div>
+          <div class="row-body">
+            <div class="row-title" id="update-title">Auf Updates prüfen</div>
+            <div class="row-sub"  id="update-sub">Neueste Version installieren</div>
+          </div>
+          <div class="chev" id="update-chev">›</div>
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="s-title">Backup</div>
       <div class="card">
         <div class="row tap" onclick="exportData()">
@@ -1497,10 +1510,92 @@ initTabIndicator();
   /* ── Register Service Worker ── */
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js')
-      .then(r=>console.log('[GymTrack] SW registered',r.scope))
-      .catch(e=>console.warn('[GymTrack] SW skip:',e.message));
+      .then(reg => {
+        swReg = reg;
+        console.log('[GymTrack] SW registered', reg.scope);
+
+        /* Wenn im Hintergrund schon ein Update wartet → Button rot markieren */
+        if (reg.waiting) _markUpdateReady();
+
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              _markUpdateReady();
+            }
+          });
+        });
+      })
+      .catch(e => console.warn('[GymTrack] SW skip:', e.message));
+
+    /* Wenn SW übernimmt → Seite neu laden (Daten bleiben erhalten) */
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_swReloading) return;
+      _swReloading = true;
+      window.location.reload();
+    });
   }
 })();
+
+// ── APP UPDATE ────────────────────────────────────────
+let swReg        = null;
+let _swReloading = false;
+
+function checkForUpdate() {
+  const title = document.getElementById('update-title');
+  const sub   = document.getElementById('update-sub');
+  if (!title) return;
+
+  if (!swReg) {
+    title.textContent = '❌ Nicht verfügbar (kein HTTPS?)';
+    return;
+  }
+
+  title.textContent = '⏳ Suche nach Updates…';
+  sub.textContent   = '';
+
+  swReg.update()
+    .then(() => {
+      if (swReg.waiting) {
+        _applyUpdate(title, sub);
+      } else if (swReg.installing) {
+        title.textContent = '⬇️ Wird heruntergeladen…';
+        sub.textContent   = 'Bitte kurz warten';
+        swReg.installing.addEventListener('statechange', ev => {
+          if (ev.target.state === 'installed') _applyUpdate(title, sub);
+        });
+      } else {
+        title.textContent = '✓ Bereits auf dem neuesten Stand';
+        sub.textContent   = '';
+        setTimeout(() => {
+          title.textContent = 'Auf Updates prüfen';
+          sub.textContent   = 'Neueste Version installieren';
+        }, 3000);
+      }
+    })
+    .catch(() => {
+      title.textContent = '❌ Keine Verbindung';
+      sub.textContent   = 'Bitte Internet prüfen';
+      setTimeout(() => {
+        title.textContent = 'Auf Updates prüfen';
+        sub.textContent   = 'Neueste Version installieren';
+      }, 3000);
+    });
+}
+
+function _markUpdateReady() {
+  const title = document.getElementById('update-title');
+  const sub   = document.getElementById('update-sub');
+  if (title) { title.textContent = '🟢 Update verfügbar!'; title.style.color = 'var(--green)'; }
+  if (sub)   sub.textContent = 'Antippen zum Installieren';
+}
+
+function _applyUpdate(title, sub) {
+  title.textContent = '🎉 Update gefunden – wird installiert…';
+  sub.textContent   = 'App startet gleich neu';
+  if (swReg.waiting) swReg.waiting.postMessage({type:'SKIP_WAITING'});
+}
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
 document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});
