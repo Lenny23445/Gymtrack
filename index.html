@@ -2,7 +2,7 @@
 <html lang="de" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
 <title>GymTrack</title>
 <!-- PWA / iOS Homescreen -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -507,20 +507,25 @@ body{
   top:5px;left:5px;
   height:calc(100% - 10px);
   width:80px; /* updated by JS */
-  background:var(--gl-bg-h);
+  background:rgba(255,255,255,0.96);
   border-radius:46px;
-  border:1px solid var(--gl-bdr);
-  box-shadow:0 3px 18px rgba(0,0,0,.13),inset 0 1px 0 rgba(255,255,255,.82);
+  border:1px solid rgba(255,255,255,0.95);
+  box-shadow:0 4px 20px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,1);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1),
              width .42s cubic-bezier(.34,1.56,.64,1);
   pointer-events:none;
-  z-index:1; /* oben über dem Sheen-Overlay der Leiste, Tabs darüber per DOM-Reihenfolge */
+  z-index:1;
   will-change:transform,width;
   overflow:hidden;
 }
+[data-theme="rosa"] #tab-indicator{
+  background:rgba(255,240,250,0.96);
+  border:1px solid rgba(255,200,235,0.90);
+}
 [data-theme="dark"] #tab-indicator{
-  background:rgba(45,45,68,.92);
-  box-shadow:0 3px 18px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.10);
+  background:rgba(55,55,80,0.95);
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 4px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.10);
 }
 #tab-indicator::after{
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
@@ -1430,6 +1435,14 @@ initTabIndicator();
       .catch(e=>console.warn('[GymTrack] SW skip:',e.message));
   }
 })();
+
+// ── ZOOM DEAKTIVIEREN ──────────────────────────────────
+document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});
+document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
+document.addEventListener('gestureend',    e => e.preventDefault(), {passive:false});
+document.addEventListener('touchmove', e => {
+  if (e.scale && e.scale !== 1) e.preventDefault();
+}, {passive:false});
 </script>
 </body>
 </html>
