@@ -1279,7 +1279,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605232208';
+const APP_VERSION = 'gymtrack-v202605232213';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2444,7 +2444,20 @@ initSheetSwipe();
         setTimeout(_silentUpdateCheck, 3000);
       })
       .catch(e => console.warn('[GymTrack] SW skip:', e.message));
+
+    /* DO_UPDATE: kommt vom SW nach Notification-Tap */
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'DO_UPDATE') _doForceUpdate();
+    });
+
+    /* Benachrichtigungs-Erlaubnis für Update-Hinweise vorab anfragen */
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }
+
+  /* Via Update-Notification geöffnet (App war geschlossen) */
+  if (location.search.includes('update=1')) setTimeout(_doForceUpdate, 400);
 })();
 
 // ── KARDIO TIMER ──────────────────────────────────────
@@ -2650,15 +2663,25 @@ function showUpdateToast(msg) {
   t.classList.add('show');
 }
 
+function _markUpdateReady() {
+  const title = document.getElementById('update-title');
+  const sub   = document.getElementById('update-sub');
+  if (title) { title.textContent = '🟢 Update verfügbar!'; title.style.color = 'var(--green)'; }
+  if (sub)   sub.textContent = 'Antippen zum Installieren';
+}
+
 async function _silentUpdateCheck() {
   try {
     const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
     const m    = text.match(/gymtrack-v\d+/);
     if (m && m[0] !== APP_VERSION) {
-      showUpdateToast('🔄 Update gefunden – wird installiert…');
-      await new Promise(r => setTimeout(r, 1800));
-      await _doForceUpdate();
+      if (navigator.serviceWorker && navigator.serviceWorker.controller &&
+          'Notification' in window && Notification.permission === 'granted') {
+        navigator.serviceWorker.controller.postMessage({ type: 'NOTIFY_UPDATE' });
+      } else {
+        _markUpdateReady();
+      }
     }
   } catch (e) { /* offline → ignorieren */ }
 }
