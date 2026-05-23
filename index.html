@@ -1658,46 +1658,56 @@ function initSheetSwipe() {
     const handle = sheet && sheet.querySelector('.sh-handle');
     if (!sheet || !handle) return;
 
-    let sy = 0, ly = 0, dragging = false;
+    let sy = 0, ly = 0, dragging = false, hasMoved = false;
 
     handle.addEventListener('touchstart', e => {
-      dragging = true;
-      sy = ly = e.touches[0].clientY;
+      dragging  = true;
+      hasMoved  = false;
+      sy = ly   = e.touches[0].clientY;
       sheet.style.transition = 'none';
-    }, { passive: true });
+      /* WICHTIG: non-passive + preventDefault verhindert, dass der Browser
+         sofort einen Scroll startet und unsere touchmove-Events ignoriert */
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });   // muss non-passive sein!
 
     handle.addEventListener('touchmove', e => {
       if (!dragging) return;
       ly = e.touches[0].clientY;
       const dy = ly - sy;
-      if (dy <= 0) return;          // nur nach unten
+      if (dy <= 0) return;
+      hasMoved = true;
       e.preventDefault();
-      // Gummizug-Gefühl: leichter Widerstand
       sheet.style.transform = `translateY(${(dy * 0.62).toFixed(1)}px)`;
       sheet.style.opacity   = String(Math.max(0.3, 1 - dy / 460));
     }, { passive: false });
+
+    /* Schließ-Animation */
+    const dismiss = () => {
+      ov.style.transition    = 'background .22s';
+      ov.style.background    = 'rgba(0,0,0,0)';
+      sheet.style.transition = 'transform .22s cubic-bezier(.55,0,1,.55), opacity .2s';
+      sheet.style.transform  = 'translateY(110%)';
+      sheet.style.opacity    = '0';
+      setTimeout(() => {
+        /* Erst schließen (display:none) – DANN Styles zurücksetzen,
+           sonst ist der Rücksprung kurz sichtbar (der "klappt nicht"-Bug) */
+        if (ov.id === 'ov-icons') closeIconPicker();
+        else closeOv(ov.id);
+        ov.style.transition    = ov.style.background    = '';
+        sheet.style.transition = sheet.style.transform  = sheet.style.opacity = '';
+      }, 240);
+    };
 
     const onEnd = () => {
       if (!dragging) return;
       dragging = false;
       const dy = ly - sy;
 
-      if (dy > 88) {
-        /* ── DISMISS: Sheet nach unten gleiten lassen ── */
-        ov.style.transition = 'background .24s';
-        ov.style.background = 'rgba(0,0,0,0)';
-        sheet.style.transition = 'transform .24s cubic-bezier(.55,0,1,.55), opacity .2s';
-        sheet.style.transform  = 'translateY(110%)';
-        sheet.style.opacity    = '0';
-        setTimeout(() => {
-          // Inline-Styles zurücksetzen, dann Overlay schließen
-          ov.style.transition = ov.style.background = '';
-          sheet.style.transition = sheet.style.transform = sheet.style.opacity = '';
-          if (ov.id === 'ov-icons') closeIconPicker();
-          else closeOv(ov.id);
-        }, 260);
+      if (hasMoved && dy > 70) {
+        dismiss();
       } else {
-        /* ── SNAP BACK: Mit Feder zurückschnappen ── */
+        /* Zu wenig gezogen → Feder-Rücksprung */
         sheet.style.transition = 'transform .38s cubic-bezier(.32,1.1,.32,1), opacity .26s';
         sheet.style.transform  = '';
         sheet.style.opacity    = '';
