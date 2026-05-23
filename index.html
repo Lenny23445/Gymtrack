@@ -754,6 +754,36 @@ body{
   transform-origin:50% 100%;
   animation:dackel-wag .68s ease-in-out infinite;
 }
+/* ── KARDIO TIMER ── */
+.krd-body{display:flex;flex-direction:column;align-items:center;gap:18px;padding:0 20px 28px}
+.krd-ring-wrap{position:relative;width:210px;height:210px}
+.krd-ring-wrap svg{transform:rotate(-90deg)}
+.krd-ring-bg{fill:none;stroke:var(--gl-bg);stroke-width:14}
+.krd-ring-fg{fill:none;stroke:var(--acc);stroke-width:14;stroke-linecap:round;
+  stroke-dasharray:534.07;stroke-dashoffset:0;
+  transition:stroke-dashoffset .95s linear}
+.krd-time{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px}
+.krd-digits{font-size:48px;font-weight:700;letter-spacing:3px;
+  font-variant-numeric:tabular-nums;line-height:1}
+.krd-lbl{font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:1px;opacity:.45}
+.krd-presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.krd-chip{background:var(--gl-bg);border:1.5px solid var(--gl-bdr2);
+  color:var(--text);border-radius:20px;padding:7px 16px;
+  font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s}
+.krd-chip.on{background:rgba(var(--acc-rgb),.15);border-color:var(--acc);color:var(--acc)}
+.krd-chip:active{opacity:.7}
+.krd-adj{display:flex;align-items:center;gap:20px}
+.krd-adj-btn{width:44px;height:44px;border-radius:50%;background:var(--gl-bg);
+  border:1.5px solid var(--gl-bdr2);color:var(--acc);
+  font-size:24px;font-weight:300;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:opacity .15s}
+.krd-adj-btn:active{opacity:.5}
+.krd-adj-val{font-size:17px;font-weight:700;min-width:72px;text-align:center}
+.krd-btns{display:flex;gap:10px;width:100%}
+.krd-btns .btn{flex:1;min-height:52px}
 /* ── AUTO-UPDATE TOAST ── */
 #update-toast{
   position:fixed;top:20px;left:50%;
@@ -783,6 +813,7 @@ body{
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <button class="btn btn-acc" onclick="openKardio()">🏃&nbsp; Kardio starten</button>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
       <div class="s-title">Vorschläge diese Woche</div>
@@ -1190,6 +1221,45 @@ body{
   </div>
 </div>
 
+<!-- OVERLAY: KARDIO TIMER -->
+<div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>🏃 Kardio Timer</h2>
+      <button class="x-btn" onclick="closeKardio()">✕</button>
+    </div>
+    <div class="krd-body">
+      <div class="krd-ring-wrap">
+        <svg width="210" height="210" viewBox="0 0 210 210">
+          <circle class="krd-ring-bg" cx="105" cy="105" r="85"/>
+          <circle class="krd-ring-fg" id="krd-ring" cx="105" cy="105" r="85"/>
+        </svg>
+        <div class="krd-time">
+          <div class="krd-digits" id="krd-display">20:00</div>
+          <div class="krd-lbl" id="krd-lbl">Dauer wählen</div>
+        </div>
+      </div>
+      <div class="krd-presets" id="krd-presets">
+        <button class="krd-chip" onclick="krdPickMins(10)">10 min</button>
+        <button class="krd-chip on" onclick="krdPickMins(20)">20 min</button>
+        <button class="krd-chip" onclick="krdPickMins(30)">30 min</button>
+        <button class="krd-chip" onclick="krdPickMins(45)">45 min</button>
+        <button class="krd-chip" onclick="krdPickMins(60)">60 min</button>
+      </div>
+      <div class="krd-adj" id="krd-adj">
+        <button class="krd-adj-btn" onclick="krdAdjust(-1)">−</button>
+        <div class="krd-adj-val" id="krd-adj-val">20 min</div>
+        <button class="krd-adj-btn" onclick="krdAdjust(+1)">+</button>
+      </div>
+      <div class="krd-btns">
+        <button class="btn btn-acc" id="krd-start-btn" onclick="krdToggle()">▶&nbsp; Starten</button>
+        <button class="btn btn-gray" id="krd-reset-btn" onclick="krdReset()" style="display:none;flex:0;padding:14px 20px">↺</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────
 /* ── ICON-BIBLIOTHEK ── */
@@ -1209,7 +1279,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605232153';
+const APP_VERSION = 'gymtrack-v202605232159';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2376,6 +2446,108 @@ initSheetSwipe();
       .catch(e => console.warn('[GymTrack] SW skip:', e.message));
   }
 })();
+
+// ── KARDIO TIMER ──────────────────────────────────────
+const KRD_CIRC = 2 * Math.PI * 85; // ≈ 534.07
+let krdTotal   = 20 * 60;
+let krdRemain  = 20 * 60;
+let krdRunning = false;
+let krdTick    = null;
+
+function openKardio() { krdReset(); openOv('ov-kardio'); }
+
+function closeKardio() { if (krdRunning) krdPause(); closeOv('ov-kardio'); }
+
+function krdPickMins(m) {
+  if (krdRunning) return;
+  krdTotal = krdRemain = m * 60;
+  document.querySelectorAll('.krd-chip').forEach(b =>
+    b.classList.toggle('on', parseInt(b.textContent) === m));
+  document.getElementById('krd-adj-val').textContent = m + ' min';
+  krdRender();
+}
+
+function krdAdjust(d) {
+  if (krdRunning) return;
+  const m = Math.min(120, Math.max(1, Math.round(krdRemain / 60) + d));
+  krdTotal = krdRemain = m * 60;
+  document.querySelectorAll('.krd-chip').forEach(b =>
+    b.classList.toggle('on', parseInt(b.textContent) === m));
+  document.getElementById('krd-adj-val').textContent = m + ' min';
+  krdRender();
+}
+
+function krdToggle() {
+  if (krdRemain <= 0) { krdReset(); return; }
+  krdRunning ? krdPause() : krdStart();
+}
+
+function krdStart() {
+  krdRunning = true;
+  document.getElementById('krd-start-btn').innerHTML = '⏸&nbsp; Pause';
+  document.getElementById('krd-reset-btn').style.display = '';
+  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
+  p.style.opacity = '.35'; p.style.pointerEvents = 'none';
+  a.style.opacity = '.35'; a.style.pointerEvents = 'none';
+  document.getElementById('krd-lbl').textContent = 'noch';
+  krdTick = setInterval(() => {
+    krdRemain = Math.max(0, krdRemain - 1);
+    krdRender();
+    if (krdRemain === 0) { clearInterval(krdTick); krdRunning = false; krdDone(); }
+  }, 1000);
+}
+
+function krdPause() {
+  krdRunning = false;
+  clearInterval(krdTick);
+  document.getElementById('krd-start-btn').innerHTML = '▶&nbsp; Weiter';
+  document.getElementById('krd-lbl').textContent = 'pausiert';
+}
+
+function krdReset() {
+  krdRunning = false;
+  clearInterval(krdTick);
+  krdTotal = krdRemain = 20 * 60;
+  const sb = document.getElementById('krd-start-btn');
+  const rb = document.getElementById('krd-reset-btn');
+  if (sb) sb.innerHTML = '▶&nbsp; Starten';
+  if (rb) rb.style.display = 'none';
+  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
+  if (p) { p.style.opacity = ''; p.style.pointerEvents = ''; }
+  if (a) { a.style.opacity = ''; a.style.pointerEvents = ''; }
+  const lbl = document.getElementById('krd-lbl');
+  if (lbl) lbl.textContent = 'Dauer wählen';
+  const av = document.getElementById('krd-adj-val');
+  if (av) av.textContent = '20 min';
+  document.querySelectorAll('.krd-chip').forEach(b =>
+    b.classList.toggle('on', parseInt(b.textContent) === 20));
+  krdRender();
+}
+
+function krdDone() {
+  const disp = document.getElementById('krd-display');
+  const lbl  = document.getElementById('krd-lbl');
+  const sb   = document.getElementById('krd-start-btn');
+  const rb   = document.getElementById('krd-reset-btn');
+  if (disp) disp.textContent = '🎉';
+  if (lbl)  lbl.textContent  = 'Geschafft!';
+  if (sb)   sb.innerHTML     = '↺&nbsp; Nochmal';
+  if (rb)   rb.style.display = 'none';
+  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
+  if (p) { p.style.opacity = ''; p.style.pointerEvents = ''; }
+  if (a) { a.style.opacity = ''; a.style.pointerEvents = ''; }
+  if (navigator.vibrate) navigator.vibrate([200, 100, 300]);
+}
+
+function krdRender() {
+  const disp = document.getElementById('krd-display');
+  const ring = document.getElementById('krd-ring');
+  if (disp) {
+    const m = Math.floor(krdRemain / 60), s = krdRemain % 60;
+    disp.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+  if (ring) ring.style.strokeDashoffset = KRD_CIRC * (1 - (krdTotal > 0 ? krdRemain / krdTotal : 1));
+}
 
 // ── APP UPDATE ────────────────────────────────────────
 // Kein Verlass auf SW-Update-API (auf iOS unzuverlässig).
