@@ -400,6 +400,49 @@ body{
 }
 .icon-full-grid .emo-btn{font-size:26px}
 
+/* ── BEGLEITER-PICKER ── */
+.companion-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;padding:4px 20px 24px;
+}
+.companion-card{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1.5px solid var(--gl-bdr);
+  border-radius:20px;padding:18px 12px 14px;
+  text-align:center;cursor:pointer;
+  position:relative;overflow:hidden;
+  transition:all .2s;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+}
+.companion-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:46%;
+  background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
+}
+.companion-card.on{
+  border-color:var(--acc);
+  background:var(--soft);
+  box-shadow:0 0 0 2.5px rgba(var(--acc-rgb),.25),var(--gl-shad);
+}
+.companion-card.locked{opacity:.52;cursor:default}
+.companion-card:active:not(.locked){transform:scale(.96);opacity:.85}
+.cc-ico{font-size:44px;margin-bottom:8px;display:block;line-height:1}
+.cc-name{font-size:15px;font-weight:700;position:relative;z-index:1}
+.cc-sub{font-size:12px;color:var(--text2);margin-top:3px;position:relative;z-index:1}
+.cc-chk{
+  position:absolute;top:10px;right:10px;
+  background:var(--acc);color:#fff;
+  width:22px;height:22px;border-radius:50%;
+  font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  z-index:2;box-shadow:0 2px 6px rgba(var(--acc-rgb),.4);
+}
+.cc-lock{
+  position:absolute;top:10px;right:10px;
+  font-size:15px;opacity:.55;z-index:2;
+}
+
 /* ── WORKOUT LOG CARDS ── */
 .ex-card{
   background:var(--gl-bg);
@@ -731,6 +774,19 @@ body{
       </div>
     </div>
     <div>
+      <div class="s-title">Begleiter</div>
+      <div class="card">
+        <div class="row tap" onclick="openCompanionPicker()">
+          <div class="ico" id="companion-settings-ico">🐕</div>
+          <div class="row-body">
+            <div class="row-title" id="companion-settings-name">Dackel</div>
+            <div class="row-sub">Dein Trainings-Begleiter auf der Leiste</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="s-title">Progression – so funktioniert's</div>
       <div class="card">
         <div class="row"><div class="row-body">
@@ -985,6 +1041,18 @@ body{
   </div>
 </div>
 
+<!-- SHEET: BEGLEITER WÄHLEN -->
+<div class="ov" id="ov-companion" onclick="if(event.target===this)closeOv('ov-companion')">
+  <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Begleiter wählen</h2>
+      <button class="x-btn" onclick="closeOv('ov-companion')">✕</button>
+    </div>
+    <div class="companion-grid" id="companion-grid"></div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────
 /* ── ICON-BIBLIOTHEK ── */
@@ -1014,6 +1082,16 @@ const MUSCLE_GROUPS = [
 ];
 const MUSCLE_FILTER = [{id:'alle', label:'⭐ Alle'}, ...MUSCLE_GROUPS];
 function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
+
+/* ── BEGLEITER ── */
+const COMPANIONS = [
+  { id:'dackel', name:'Dackel',   emoji:'🐕', desc:'Der treue Klassiker',   available:true  },
+  { id:'katze',  name:'Katze',    emoji:'🐱', desc:'Bald verfügbar',        available:false },
+  { id:'hase',   name:'Hase',     emoji:'🐰', desc:'Bald verfügbar',        available:false },
+  { id:'fuchs',  name:'Fuchs',    emoji:'🦊', desc:'Bald verfügbar',        available:false },
+  { id:'baer',   name:'Bär',      emoji:'🐻', desc:'Bald verfügbar',        available:false },
+  { id:'pinguin',name:'Pinguin',  emoji:'🐧', desc:'Bald verfügbar',        available:false },
+];
 
 let _iconCatIdx = 0;
 
@@ -1063,9 +1141,10 @@ function pickIconFromPicker(e) {
 let S = (() => {
   try { return JSON.parse(localStorage.getItem('ft4') || '{}'); } catch(e) { return {}; }
 })();
-S.exercises = S.exercises || [];
-S.sessions  = S.sessions  || [];
-S.theme     = S.theme     || 'light';
+S.exercises  = S.exercises  || [];
+S.sessions   = S.sessions   || [];
+S.theme      = S.theme      || 'light';
+S.companion  = S.companion  || 'dackel';
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -1600,10 +1679,57 @@ function showDone(ses) {
   openOv('ov-done');
 }
 
+// ── BEGLEITER ─────────────────────────────────────────
+function openCompanionPicker() {
+  renderCompanionGrid();
+  openOv('ov-companion');
+}
+
+function renderCompanionGrid() {
+  document.getElementById('companion-grid').innerHTML = COMPANIONS.map(c => {
+    const active  = S.companion === c.id;
+    const locked  = !c.available;
+    return `<div class="companion-card${active?' on':''}${locked?' locked':''}"
+                 onclick="${locked ? '' : `selectCompanion('${c.id}')`}">
+      ${active ? '<div class="cc-chk">✓</div>' : ''}
+      ${locked ? '<div class="cc-lock">🔒</div>' : ''}
+      <span class="cc-ico">${c.emoji}</span>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-sub">${c.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectCompanion(id) {
+  const c = COMPANIONS.find(c => c.id === id);
+  if (!c || !c.available) return;
+  S.companion = id;
+  persist();
+  applyCompanion();
+  renderCompanionGrid();           // Auswahl optisch aktualisieren
+  updateCompanionSettingsRow();    // Einstellungs-Zeile aktualisieren
+}
+
+function applyCompanion() {
+  /* Hier später: Dackel-SVG gegen anderen Begleiter austauschen.
+     Für jetzt: Dackel ist der einzige verfügbare Begleiter. */
+  const c = COMPANIONS.find(c => c.id === S.companion) || COMPANIONS[0];
+  updateCompanionSettingsRow(c);
+}
+
+function updateCompanionSettingsRow(c) {
+  c = c || COMPANIONS.find(c => c.id === S.companion) || COMPANIONS[0];
+  const ico  = document.getElementById('companion-settings-ico');
+  const name = document.getElementById('companion-settings-name');
+  if (ico)  ico.textContent  = c.emoji;
+  if (name) name.textContent = c.name;
+}
+
 // ── SETTINGS ──────────────────────────────────────────
 function renderSettings() {
   document.getElementById('data-info').textContent =
     S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
+  updateCompanionSettingsRow();
 }
 
 // ── BACKUP: EXPORT ────────────────────────────────────
@@ -1722,6 +1848,7 @@ function initSheetSwipe() {
 
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
+applyCompanion();
 renderHome();
 renderExList();
 initTabIndicator();
