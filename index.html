@@ -794,6 +794,35 @@ body{
   </div>
 </div>
 
+<!-- PAGE: STATISTIK -->
+<div class="pg" id="pg-stats">
+  <div class="hdr">
+    <h1>Statistik 📊</h1>
+    <div class="sub" id="stats-sub"></div>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div>
+      <div class="s-title">Überblick</div>
+      <div id="stats-summary"></div>
+    </div>
+    <div>
+      <div class="s-title">Gesamtverlauf · Trainingsvolumen</div>
+      <div class="chart-box"><canvas id="stats-overall-chart" height="170"></canvas></div>
+      <div id="stats-overall-empty" style="display:none;padding:18px;color:var(--text2);font-size:14px;text-align:center">
+        Noch keine Trainings – starte dein erstes, um deinen Verlauf zu sehen.
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Muskelgruppen</div>
+      <div class="card" id="stats-mg-list"></div>
+    </div>
+    <div>
+      <div class="s-title">Übungen</div>
+      <div class="card" id="stats-ex-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- PAGE: EINSTELLUNGEN -->
 <div class="pg" id="pg-settings">
   <div class="hdr"><h1>Einstellungen</h1></div>
@@ -923,6 +952,10 @@ body{
   <button class="tab" onclick="goTab('uebungen',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
     <span>Übungen</span>
+  </button>
+  <button class="tab" onclick="goTab('stats',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5V9.2zm5.6-5h2.8V19h-2.8V4.2zm5.6 8H19V19h-2.8v-6.8z"/></svg>
+    <span>Statistik</span>
   </button>
   <button class="tab" onclick="goTab('settings',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
@@ -1086,6 +1119,28 @@ body{
   </div>
 </div>
 
+<!-- SHEET: MUSKELGRUPPEN-STATISTIK -->
+<div class="ov" id="ov-mg-stat">
+  <div class="sheet" style="max-height:95vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="mg-stat-title">Muskelgruppe</h2>
+      <button class="x-btn" onclick="closeOv('ov-mg-stat')">✕</button>
+    </div>
+    <div class="px">
+      <div id="mg-stat-summary" style="margin-bottom:10px"></div>
+      <div class="s-title">Volumen-Verlauf</div>
+      <div class="chart-box" style="margin-bottom:14px"><canvas id="mg-stat-chart" height="160"></canvas></div>
+      <div id="mg-stat-empty" style="display:none;padding:14px;color:var(--text2);font-size:14px;text-align:center">
+        Noch kein Training für diese Muskelgruppe.
+      </div>
+      <div class="s-title">Übungen</div>
+      <div class="card" id="mg-stat-ex"></div>
+      <div class="gap"></div>
+    </div>
+  </div>
+</div>
+
 <!-- SHEET: DONE -->
 <div class="ov" id="ov-done">
   <div class="sheet">
@@ -1133,7 +1188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605231714';
+const APP_VERSION = 'gymtrack-v202605232100';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1224,6 +1279,9 @@ let wkLogs  = [];
 let timerInt = null, timerTs = null;
 let detId = null;
 let detChart = null;
+let statsOverallChart = null;
+let mgStatChart = null;
+let mgStatId = null;
 
 // ── HELPERS ───────────────────────────────────────────
 const uid  = () => '_' + Math.random().toString(36).slice(2);
@@ -1261,6 +1319,7 @@ function goTab(id, btn) {
 
   if (id === 'heute')     renderHome();
   if (id === 'uebungen')  renderExList();
+  if (id === 'stats')     renderStats();
   if (id === 'settings')  renderSettings();
 }
 
@@ -1556,6 +1615,243 @@ function renderDetChart(hist) {
 }
 
 function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
+
+// ── STATISTIK ─────────────────────────────────────────
+function setsVolume(sets) {
+  return sets.reduce((sum, s) => sum + (parseFloat(s.w)||0) * (parseInt(s.r)||0), 0);
+}
+
+function sessionVolume(session, exFilterIds) {
+  return session.logs.reduce((sum, l) => {
+    if (exFilterIds && !exFilterIds.includes(l.exerciseId)) return sum;
+    return sum + setsVolume(l.sets);
+  }, 0);
+}
+
+function fmtKg(v) {
+  if (v >= 1000) return (v/1000).toFixed(1).replace('.', ',') + ' t';
+  return Math.round(v) + ' kg';
+}
+
+function dateShort(d) {
+  return new Date(d).toLocaleDateString('de-DE', {day:'numeric', month:'short'});
+}
+
+function renderStats() {
+  renderStatsSummary();
+  renderStatsOverallChart();
+  renderStatsMuscleGroups();
+  renderStatsExerciseList();
+}
+
+function renderStatsSummary() {
+  const sub = document.getElementById('stats-sub');
+  const el  = document.getElementById('stats-summary');
+  const totalSessions = S.sessions.length;
+  const totalSets = S.sessions.reduce((s, ses) => s + ses.logs.reduce((a,l)=>a+l.sets.length,0), 0);
+  const totalVol  = S.sessions.reduce((s, ses) => s + sessionVolume(ses), 0);
+  if (sub) sub.textContent = totalSessions ? totalSessions+' Training'+(totalSessions!==1?'s':'') : 'Noch keine Daten';
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
+      <div style="font-size:22px;font-weight:700">${totalSessions}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Trainings</div>
+    </div>
+    <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
+      <div style="font-size:22px;font-weight:700">${totalSets}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Sätze</div>
+    </div>
+    <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
+      <div style="font-size:22px;font-weight:700">${fmtKg(totalVol)}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Volumen</div>
+    </div>
+  </div>`;
+}
+
+function renderStatsOverallChart() {
+  const empty = document.getElementById('stats-overall-empty');
+  const canvas = document.getElementById('stats-overall-chart');
+  if (statsOverallChart) { statsOverallChart.destroy(); statsOverallChart = null; }
+
+  const sessions = [...S.sessions].sort((a,b) => new Date(a.date) - new Date(b.date));
+  const pts = sessions.map(s => ({x: dateShort(s.date), y: sessionVolume(s)})).filter(p => p.y > 0);
+
+  if (!pts.length) {
+    if (empty) empty.style.display = '';
+    if (canvas) canvas.style.display = 'none';
+    return;
+  }
+  if (empty)  empty.style.display = 'none';
+  if (canvas) canvas.style.display = '';
+
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+  statsOverallChart = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{
+      labels: pts.map(p=>p.x),
+      datasets:[{
+        data: pts.map(p=>p.y),
+        borderColor: acc, backgroundColor: acc+'22',
+        fill:true, tension:.4, pointBackgroundColor:acc,
+        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>fmtKg(v)}}
+      }
+    }
+  });
+}
+
+function renderStatsMuscleGroups() {
+  const el = document.getElementById('stats-mg-list');
+  const rows = MUSCLE_GROUPS.map(g => {
+    const exIds = S.exercises.filter(e => e.muscleGroup === g.id).map(e => e.id);
+    const vol = S.sessions.reduce((sum, ses) => sum + sessionVolume(ses, exIds), 0);
+    return { g, exCount: exIds.length, vol };
+  }).filter(r => r.exCount > 0);
+
+  if (!rows.length) {
+    el.innerHTML = `<div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
+      Lege Übungen mit Muskelgruppen an, um hier eine Übersicht zu sehen.
+    </div>`;
+    return;
+  }
+  el.innerHTML = rows.map(r => `
+    <div class="row tap" onclick="openMuscleStat('${r.g.id}')">
+      <div class="ico">${r.g.label.split(' ')[0]}</div>
+      <div class="row-body">
+        <div class="row-title">${r.g.label.split(' ').slice(1).join(' ')}</div>
+        <div class="row-sub">${r.exCount} Übung${r.exCount!==1?'en':''} · ${fmtKg(r.vol)} Volumen</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+  `).join('');
+}
+
+function renderStatsExerciseList() {
+  const el = document.getElementById('stats-ex-list');
+  if (!S.exercises.length) {
+    el.innerHTML = `<div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
+      Noch keine Übungen angelegt.
+    </div>`;
+    return;
+  }
+  // Nach Muskelgruppe sortieren, dann nach Namen
+  const sorted = [...S.exercises].sort((a,b) => {
+    const ma = a.muscleGroup || 'zzz', mb = b.muscleGroup || 'zzz';
+    if (ma !== mb) return ma.localeCompare(mb);
+    return a.name.localeCompare(b.name);
+  });
+  el.innerHTML = sorted.map(ex => {
+    const hist = exHistory(ex.id);
+    const last = hist.length ? hist[hist.length-1] : null;
+    const lw   = last ? maxW(last.sets) : 0;
+    const ses  = hist.length;
+    const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '–';
+    const sub  = `${mgLabel} · ${ses} Einheit${ses!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}`;
+    return `<div class="row tap" onclick="openDet('${ex.id}')">
+      <div class="ico">${ex.emoji}</div>
+      <div class="row-body">
+        <div class="row-title">${ex.name}</div>
+        <div class="row-sub">${sub}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`;
+  }).join('');
+}
+
+// ── MUSKELGRUPPEN-DETAIL ──────────────────────────────
+function openMuscleStat(mgId) {
+  mgStatId = mgId;
+  const g = MUSCLE_GROUPS.find(g => g.id === mgId);
+  if (!g) return;
+  document.getElementById('mg-stat-title').textContent = g.label;
+
+  const exIds = S.exercises.filter(e => e.muscleGroup === mgId).map(e => e.id);
+  const sessions = [...S.sessions]
+    .map(s => ({date: s.date, vol: sessionVolume(s, exIds)}))
+    .filter(s => s.vol > 0)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  // Summary
+  const totalVol = sessions.reduce((a,s) => a + s.vol, 0);
+  const sesCount = sessions.length;
+  document.getElementById('mg-stat-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
+        <div style="font-size:22px;font-weight:700">${sesCount}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Einheiten</div>
+      </div>
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
+        <div style="font-size:22px;font-weight:700">${fmtKg(totalVol)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Volumen</div>
+      </div>
+    </div>`;
+
+  // Chart
+  renderMgStatChart(sessions);
+
+  // Übungen dieser Muskelgruppe
+  const exEl = document.getElementById('mg-stat-ex');
+  const exs  = S.exercises.filter(e => e.muscleGroup === mgId);
+  if (!exs.length) {
+    exEl.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:14px">Keine Übungen in dieser Gruppe.</div>`;
+  } else {
+    exEl.innerHTML = exs.map(ex => {
+      const hist = exHistory(ex.id);
+      const last = hist.length ? hist[hist.length-1] : null;
+      const lw = last ? maxW(last.sets) : 0;
+      return `<div class="row tap" onclick="closeOv('ov-mg-stat');setTimeout(()=>openDet('${ex.id}'),120)">
+        <div class="ico">${ex.emoji}</div>
+        <div class="row-body">
+          <div class="row-title">${ex.name}</div>
+          <div class="row-sub">${hist.length} Einheit${hist.length!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+    }).join('');
+  }
+
+  openOv('ov-mg-stat');
+}
+
+function renderMgStatChart(sessions) {
+  const empty = document.getElementById('mg-stat-empty');
+  const canvas = document.getElementById('mg-stat-chart');
+  if (mgStatChart) { mgStatChart.destroy(); mgStatChart = null; }
+  if (!sessions.length) {
+    if (empty) empty.style.display = '';
+    if (canvas) canvas.style.display = 'none';
+    return;
+  }
+  if (empty)  empty.style.display = 'none';
+  if (canvas) canvas.style.display = '';
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+  mgStatChart = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{
+      labels: sessions.map(s => dateShort(s.date)),
+      datasets:[{
+        data: sessions.map(s => s.vol),
+        borderColor: acc, backgroundColor: acc+'22',
+        fill:true, tension:.4, pointBackgroundColor:acc,
+        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>fmtKg(v)}}
+      }
+    }
+  });
+}
 
 // ── WORKOUT ───────────────────────────────────────────
 function openWorkout() {
