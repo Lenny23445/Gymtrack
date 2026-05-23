@@ -443,6 +443,24 @@ body{
   font-size:15px;opacity:.55;z-index:2;
 }
 
+/* ── TOGGLE SWITCH ── */
+.tgl-wrap{display:flex;align-items:center;justify-content:space-between;width:100%}
+.tgl{position:relative;width:50px;height:28px;flex-shrink:0;}
+.tgl input{opacity:0;width:0;height:0;position:absolute}
+.tgl-track{
+  position:absolute;inset:0;border-radius:14px;
+  background:var(--sep);transition:background .22s;cursor:pointer;
+}
+.tgl input:checked + .tgl-track{background:var(--acc)}
+.tgl-track::after{
+  content:'';position:absolute;
+  top:3px;left:3px;width:22px;height:22px;
+  border-radius:50%;background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.tgl input:checked + .tgl-track::after{transform:translateX(22px)}
+
 /* â”€â”€ WORKOUT LOG CARDS â”€â”€ */
 .ex-card{
   background:var(--gl-bg);
@@ -782,7 +800,18 @@ body{
             <div class="row-title" id="companion-settings-name">Dackel</div>
             <div class="row-sub">Dein Trainings-Begleiter auf der Leiste</div>
           </div>
-          <div class="chev">â€º</div>
+          <div class="chev">›</div>
+        </div>
+        <div class="row">
+          <div class="ico">👁️</div>
+          <div class="row-body">
+            <div class="row-title">Begleiter anzeigen</div>
+            <div class="row-sub">Auf der Tab-Leiste ein- oder ausblenden</div>
+          </div>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="companion-toggle" onchange="toggleCompanion(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
         </div>
       </div>
     </div>
@@ -1072,7 +1101,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['ðŸ¦µ','ðŸ”¥','ðŸ’¥','ðŸŠ','ðŸ§—','ðŸ«€','ðŸ¦´','ðŸŸ¢','ðŸŸ£','ðŸ”µ','ðŸŸ¡','ðŸ”´','â­','ðŸ’Ž','âš¡','ðŸŽ¯','ðŸ†','ðŸ¥Š']);
 
 /* â”€â”€ APP VERSION (muss mit sw.js CACHE Ã¼bereinstimmen â€“ Deploy-Script hÃ¤lt beides sync) â”€â”€ */
-const APP_VERSION = 'gymtrack-v202605231658';
+const APP_VERSION = 'gymtrack-v202605231702';
 
 /* â”€â”€ MUSKELGRUPPEN â”€â”€ */
 const MUSCLE_GROUPS = [
@@ -1147,7 +1176,8 @@ let S = (() => {
 S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
-S.companion  = S.companion  || 'dackel';
+S.companion    = S.companion    || 'dackel';
+S.companionOn  = S.companionOn  !== undefined ? S.companionOn : true;
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -1714,10 +1744,19 @@ function selectCompanion(id) {
 }
 
 function applyCompanion() {
-  /* Hier spÃ¤ter: Dackel-SVG gegen anderen Begleiter austauschen.
-     FÃ¼r jetzt: Dackel ist der einzige verfÃ¼gbare Begleiter. */
-  const c = COMPANIONS.find(c => c.id === S.companion) || COMPANIONS[0];
+  const c    = COMPANIONS.find(c => c.id === S.companion) || COMPANIONS[0];
+  const lane = document.getElementById('dackel-lane');
+  if (lane) lane.style.display = S.companionOn ? '' : 'none';
+  const chk  = document.getElementById('companion-toggle');
+  if (chk)  chk.checked = S.companionOn;
   updateCompanionSettingsRow(c);
+}
+
+function toggleCompanion(on) {
+  S.companionOn = on;
+  persist();
+  const lane = document.getElementById('dackel-lane');
+  if (lane) lane.style.display = on ? '' : 'none';
 }
 
 function updateCompanionSettingsRow(c) {
@@ -2063,4 +2102,5 @@ document.addEventListener('touchmove', e => {
 </script>
 </body>
 </html>
+
 
