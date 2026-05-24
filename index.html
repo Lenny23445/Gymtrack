@@ -14,10 +14,12 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- ── Google Identity Services (für iOS-PWA-fähigen Login) ── -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
@@ -34,6 +36,9 @@
 
   const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'REPLACE_ME';
 
+  // OAuth-Client-ID (für Google Identity Services — iOS-PWA-fähiger Login)
+  window.GOOGLE_CLIENT_ID = '404501862861-7rlijlf519td70il5pb6bfoplafi0nfr.apps.googleusercontent.com';
+
   window.FB = { configured: CONFIGURED };
 
   if (CONFIGURED) {
@@ -47,6 +52,8 @@
     window.FB.provider = provider;
     window.FB.signInWithPopup    = () => signInWithPopup(auth, provider);
     window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
+    window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
+    window.FB.googleCredential   = (idToken) => GoogleAuthProvider.credential(idToken);
     window.FB.getRedirectResult  = () => getRedirectResult(auth);
     window.FB.signOut            = () => signOut(auth);
     window.FB.onAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
@@ -1453,7 +1460,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241700';
+const APP_VERSION = 'gymtrack-v202605241800';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -3166,37 +3173,90 @@ function _onLogout() {
   updateAccountUI();
 }
 
-async function doGoogleSignIn() {
-  if (!window.FB || !window.FB.configured) {
-    alert('⚙️ Firebase ist noch nicht konfiguriert.\n\nÖffne CLAUDE.md für die Einrichtung.');
+// ── Google Identity Services (GIS) — funktioniert auch in iOS-PWA ──
+let _gisReady = false;
+
+function _initGoogleIdentity() {
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    // GIS-Script noch nicht da → später erneut versuchen
+    setTimeout(_initGoogleIdentity, 200);
     return;
   }
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                    || window.navigator.standalone === true;
-  console.log('[GymTrack] Login-Versuch, standalone:', isStandalone);
   try {
-    if (isStandalone) {
-      // iOS PWA: signInWithPopup geht oft nicht — daher direkt Redirect
-      console.log('[GymTrack] → signInWithRedirect');
-      await window.FB.signInWithRedirect();
-    } else {
-      console.log('[GymTrack] → signInWithPopup');
-      const res = await window.FB.signInWithPopup();
-      console.log('[GymTrack] Popup-Login ok:', res?.user?.email);
+    window.google.accounts.id.initialize({
+      client_id: window.GOOGLE_CLIENT_ID,
+      callback: _handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      ux_mode: 'popup',
+      itp_support: true
+    });
+    _gisReady = true;
+    console.log('[GymTrack] 🔑 Google Identity Services bereit');
+    // Wenn Sheet offen ist → Button jetzt rendern
+    if (document.getElementById('ov-account')?.classList.contains('on')) {
+      _renderGisButton();
     }
   } catch (e) {
-    console.error('[GymTrack] ❌ Login fehlgeschlagen:', e);
-    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) {
-      return; // User hat selbst abgebrochen
-    }
-    // Popup blockiert → automatischer Fallback auf Redirect
-    if (e && e.code === 'auth/popup-blocked') {
-      console.log('[GymTrack] Popup blockiert → Fallback Redirect');
-      try { await window.FB.signInWithRedirect(); return; }
-      catch (e2) { e = e2; }
-    }
-    alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e) +
-          '\n\nMögliche Ursachen:\n• Authorized Domain fehlt in Firebase Console\n• Google-Login nicht aktiviert\n• Internet-Verbindung');
+    console.error('[GymTrack] ❌ GIS-Init fehlgeschlagen:', e);
+  }
+}
+
+function _renderGisButton() {
+  const host = document.getElementById('gsi-btn-host');
+  if (!host || !_gisReady || !window.google) return;
+  host.innerHTML = ''; // Reset
+  try {
+    window.google.accounts.id.renderButton(host, {
+      type: 'standard',
+      theme: 'filled_blue',
+      size: 'large',
+      text: 'signin_with',
+      shape: 'pill',
+      logo_alignment: 'left',
+      locale: 'de',
+      width: 280
+    });
+  } catch (e) {
+    console.error('[GymTrack] ❌ GIS renderButton fehlgeschlagen:', e);
+    host.innerHTML = '<button class="btn btn-acc" onclick="doGoogleSignIn()">Mit Google anmelden (Fallback)</button>';
+  }
+}
+
+async function _handleGoogleCredential(response) {
+  console.log('[GymTrack] 🔑 Google-Credential erhalten');
+  if (!response || !response.credential) {
+    console.warn('[GymTrack] Kein ID-Token in Response:', response);
+    return;
+  }
+  if (!window.FB || !window.FB.configured) {
+    alert('⚙️ Firebase nicht konfiguriert.');
+    return;
+  }
+  try {
+    const cred   = window.FB.googleCredential(response.credential);
+    const result = await window.FB.signInWithCredential(cred);
+    console.log('[GymTrack] ✅ Firebase-Login via GIS ok:', result?.user?.email);
+  } catch (e) {
+    console.error('[GymTrack] ❌ signInWithCredential fehlgeschlagen:', e);
+    alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
+  }
+}
+
+// Legacy-Fallback (z.B. falls GIS blockiert wird)
+async function doGoogleSignIn() {
+  if (!window.FB || !window.FB.configured) {
+    alert('⚙️ Firebase ist noch nicht konfiguriert.');
+    return;
+  }
+  console.log('[GymTrack] Fallback → signInWithPopup');
+  try {
+    const res = await window.FB.signInWithPopup();
+    console.log('[GymTrack] Popup-Login ok:', res?.user?.email);
+  } catch (e) {
+    console.error('[GymTrack] ❌ Popup-Login fehlgeschlagen:', e);
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    alert('❌ Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
   }
 }
 
@@ -3269,11 +3329,14 @@ function renderAccountSheet() {
       <div style="background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
         💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
       </div>
-      <button class="btn btn-acc" onclick="doGoogleSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px">
-        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2c-.4.4 6.6-4.8 6.6-14.8 0-1.3-.1-2.4-.4-3.5z"/></svg>
-        Mit Google anmelden
-      </button>
+      <div id="gsi-btn-host" style="display:flex;justify-content:center;min-height:44px"></div>
+      <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text2)">
+        Falls der Button nicht erscheint:
+        <button onclick="doGoogleSignIn()" style="background:none;border:none;color:var(--acc);text-decoration:underline;font-size:12px;padding:0;cursor:pointer">Alternative Methode</button>
+      </div>
     `;
+    // GIS-Button rendern (nach DOM-Update)
+    setTimeout(_renderGisButton, 0);
   }
 }
 
@@ -3334,6 +3397,9 @@ if (window.FB !== undefined) {
 } else {
   window.addEventListener('fb-ready', _initFirebaseListeners, { once: true });
 }
+
+// Google Identity Services initialisieren (sobald geladen)
+_initGoogleIdentity();
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
 document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});
