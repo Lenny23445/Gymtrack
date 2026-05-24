@@ -22,14 +22,14 @@
   import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
-  // ⚠️ HIER DEINE FIREBASE-CONFIG EINFÜGEN (siehe CLAUDE.md)
   const FIREBASE_CONFIG = {
-    apiKey:            "REPLACE_ME",
-    authDomain:        "REPLACE_ME.firebaseapp.com",
-    projectId:         "REPLACE_ME",
-    storageBucket:     "REPLACE_ME.appspot.com",
-    messagingSenderId: "REPLACE_ME",
-    appId:             "REPLACE_ME"
+    apiKey:            "AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA",
+    authDomain:        "gymtrack-25d39.firebaseapp.com",
+    projectId:         "gymtrack-25d39",
+    storageBucket:     "gymtrack-25d39.firebasestorage.app",
+    messagingSenderId: "404501862861",
+    appId:             "1:404501862861:web:07e975faa3923a1dc44c84",
+    measurementId:     "G-XFTNX737CS"
   };
 
   const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'REPLACE_ME';
@@ -1453,7 +1453,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241500';
+const APP_VERSION = 'gymtrack-v202605241600';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
