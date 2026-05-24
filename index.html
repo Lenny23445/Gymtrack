@@ -1503,7 +1503,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605242100';
+const APP_VERSION = 'gymtrack-v202605242230';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1515,7 +1515,15 @@ const MUSCLE_GROUPS = [
   { id:'core',      label:'Core'       },
 ];
 const MUSCLE_FILTER = [{id:'alle', label:'Alle'}, ...MUSCLE_GROUPS];
-function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
+function muscleLabel(id) {
+  const g = MUSCLE_GROUPS.find(g => g.id === id);
+  if (g) return g.label;
+  for (const mode of GROUP_MODES) {
+    const grp = mode.groups.find(g => g.id === id);
+    if (grp) return grp.label;
+  }
+  return '';
+}
 
 /* ── FILTER-MODI im Übungen-Tab ──
    Jede Gruppe enthält 'muscles': null = alle Übungen, sonst Array von MUSCLE_GROUPS.id */
@@ -1536,9 +1544,9 @@ const GROUP_MODES = [
     id:'ppl', label:'Push · Pull · Legs',
     groups:[
       { id:'alle', label:'Alle',  muscles:null },
-      { id:'push', label:'Push',  muscles:['brust','schultern','arme'] },
-      { id:'pull', label:'Pull',  muscles:['ruecken','arme'] },
-      { id:'legs', label:'Beine', muscles:['beine'] },
+      { id:'push', label:'Push',  muscles:['brust','schultern','arme','push'] },
+      { id:'pull', label:'Pull',  muscles:['ruecken','arme','pull'] },
+      { id:'legs', label:'Legs',  muscles:['beine','legs'] },
       { id:'core', label:'Core',  muscles:['core'] },
     ]
   },
@@ -1546,8 +1554,8 @@ const GROUP_MODES = [
     id:'oberunter', label:'Ober · Unter',
     groups:[
       { id:'alle',  label:'Alle',        muscles:null },
-      { id:'ober',  label:'Oberkörper',  muscles:['brust','ruecken','arme','schultern','core'] },
-      { id:'unter', label:'Unterkörper', muscles:['beine'] },
+      { id:'ober',  label:'Oberkörper',  muscles:['brust','ruecken','arme','schultern','core','ober'] },
+      { id:'unter', label:'Unterkörper', muscles:['beine','unter'] },
     ]
   },
 ];
@@ -1913,7 +1921,11 @@ function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
 function renderMusclePicker() {
   const el = document.getElementById('muscle-picker');
   if (!el) return;
-  el.innerHTML = MUSCLE_GROUPS.map(g =>
+  const mode = currentMode();
+  const options = mode.id === 'muskel'
+    ? MUSCLE_GROUPS
+    : mode.groups.filter(g => g.id !== 'alle');
+  el.innerHTML = options.map(g =>
     `<button class="icat${selMuscle===g.id?' on':''}" onclick="pickMuscle('${g.id}')">${g.label}</button>`
   ).join('');
 }
