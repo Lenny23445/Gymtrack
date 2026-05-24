@@ -14,6 +14,52 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+
+  // ⚠️ HIER DEINE FIREBASE-CONFIG EINFÜGEN (siehe CLAUDE.md)
+  const FIREBASE_CONFIG = {
+    apiKey:            "REPLACE_ME",
+    authDomain:        "REPLACE_ME.firebaseapp.com",
+    projectId:         "REPLACE_ME",
+    storageBucket:     "REPLACE_ME.appspot.com",
+    messagingSenderId: "REPLACE_ME",
+    appId:             "REPLACE_ME"
+  };
+
+  const CONFIGURED = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'REPLACE_ME';
+
+  window.FB = { configured: CONFIGURED };
+
+  if (CONFIGURED) {
+    const app  = initializeApp(FIREBASE_CONFIG);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    window.FB.auth = auth;
+    window.FB.db   = db;
+    window.FB.provider = provider;
+    window.FB.signInWithPopup    = () => signInWithPopup(auth, provider);
+    window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
+    window.FB.getRedirectResult  = () => getRedirectResult(auth);
+    window.FB.signOut            = () => signOut(auth);
+    window.FB.onAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
+    window.FB.userDocRef         = (uid) => doc(db, 'users', uid);
+    window.FB.getDoc             = getDoc;
+    window.FB.setDoc             = setDoc;
+    window.FB.onSnapshot         = onSnapshot;
+    window.FB.serverTimestamp    = serverTimestamp;
+  }
+
+  // Signal an Haupt-Script: Firebase fertig geladen
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
 <style>
 /* ═══════════════════════════════════════════════════
    iOS 26 LIQUID GLASS — FitTrack
@@ -1001,11 +1047,24 @@ body{
       </div>
     </div>
     <div>
+      <div class="s-title">Konto</div>
+      <div class="card">
+        <div class="row tap" id="account-row" onclick="openAccountSheet()">
+          <div class="ico" id="account-ico">☁️</div>
+          <div class="row-body">
+            <div class="row-title" id="account-title">Mit Google anmelden</div>
+            <div class="row-sub"  id="account-sub">Sichere deine Daten in der Cloud</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="s-title">Daten</div>
       <div class="card">
         <div class="row"><div class="row-body">
           <div class="row-title" id="data-info">–</div>
-          <div class="row-sub">Alles gespeichert auf deinem Gerät</div>
+          <div class="row-sub" id="data-sub">Alles gespeichert auf deinem Gerät</div>
         </div></div>
       </div>
     </div>
@@ -1322,6 +1381,20 @@ body{
   </div>
 </div>
 
+<!-- SHEET: KONTO / GOOGLE LOGIN -->
+<div class="ov" id="ov-account" onclick="if(event.target===this)closeOv('ov-account')">
+  <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Konto</h2>
+      <button class="x-btn" onclick="closeOv('ov-account')">✕</button>
+    </div>
+    <div class="px" id="account-body">
+      <!-- Wird per JS gefüllt: entweder Login-Form oder Profil -->
+    </div>
+  </div>
+</div>
+
 <!-- OVERLAY: KARDIO TIMER -->
 <div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
   <div class="sheet">
@@ -1380,7 +1453,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241400';
+const APP_VERSION = 'gymtrack-v202605241500';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2947,6 +3020,286 @@ async function _silentUpdateCheck() {
       await _doForceUpdate();
     }
   } catch (e) { /* offline → ignorieren */ }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── KONTO / GOOGLE LOGIN + CLOUD SYNC ──────────────────
+// ═══════════════════════════════════════════════════════
+
+let _fbUser     = null;     // aktuell eingeloggter User (oder null)
+let _fbUnsub    = null;     // Unsubscribe-Fn für Firestore-Snapshot
+let _syncing    = false;    // Lock, damit Cloud-Update keinen erneuten Push triggert
+let _pushTimer  = null;     // Debounce-Timer für persist→cloud
+let _initialMergeDone = false;
+
+// Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
+const _origPersist = persist;
+window.persist = function() {
+  S.updatedAt = Date.now();
+  _origPersist();
+  if (_fbUser && !_syncing && _initialMergeDone) {
+    if (_pushTimer) clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(_pushToCloud, 800);
+  }
+};
+
+async function _pushToCloud() {
+  if (!_fbUser || !window.FB || !window.FB.configured) return;
+  try {
+    const ref = window.FB.userDocRef(_fbUser.uid);
+    const payload = {
+      exercises: S.exercises || [],
+      sessions:  S.sessions  || [],
+      theme:     S.theme,
+      companion: S.companion,
+      companionOn: S.companionOn,
+      exFilterMode: S.exFilterMode,
+      wkFilterMode: S.wkFilterMode,
+      welcomeShown: S.welcomeShown,
+      updatedAt: S.updatedAt || Date.now(),
+      _serverTime: window.FB.serverTimestamp()
+    };
+    await window.FB.setDoc(ref, payload, { merge: false });
+  } catch (e) {
+    console.warn('[GymTrack] Cloud-Push fehlgeschlagen:', e);
+  }
+}
+
+// Merge: kombiniere local + cloud verlustfrei
+function _mergeData(local, cloud) {
+  const exMap = new Map();
+  [...(cloud.exercises || []), ...(local.exercises || [])].forEach(ex => {
+    if (!ex || !ex.id) return;
+    const existing = exMap.get(ex.id);
+    if (!existing || (ex.updatedAt || 0) > (existing.updatedAt || 0)) {
+      exMap.set(ex.id, ex);
+    }
+  });
+  const sesMap = new Map();
+  [...(cloud.sessions || []), ...(local.sessions || [])].forEach(s => {
+    if (!s) return;
+    const exIds = (s.logs || []).map(l => l.exerciseId).sort().join(',');
+    const key = (s.date || '') + '|' + exIds;
+    if (!sesMap.has(key)) sesMap.set(key, s);
+  });
+  return {
+    exercises: [...exMap.values()],
+    sessions:  [...sesMap.values()].sort((a,b) => new Date(a.date) - new Date(b.date)),
+    theme:        cloud.theme        ?? local.theme,
+    companion:    cloud.companion    ?? local.companion,
+    companionOn:  cloud.companionOn  ?? local.companionOn,
+    exFilterMode: cloud.exFilterMode ?? local.exFilterMode,
+    wkFilterMode: cloud.wkFilterMode ?? local.wkFilterMode,
+    welcomeShown: cloud.welcomeShown ?? local.welcomeShown,
+    updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
+  };
+}
+
+async function _onLogin(user) {
+  _fbUser = user;
+  updateAccountUI();
+  if (!window.FB || !window.FB.configured) return;
+
+  _syncing = true;
+  try {
+    const ref  = window.FB.userDocRef(user.uid);
+    const snap = await window.FB.getDoc(ref);
+    if (snap.exists()) {
+      // Cloud-Daten vorhanden → mergen
+      const cloud  = snap.data();
+      const merged = _mergeData(S, cloud);
+      Object.assign(S, merged);
+      _origPersist();
+      // Geänderte Daten zurückschreiben
+      await _pushToCloud();
+    } else {
+      // Cloud leer → lokale Daten hochladen
+      await _pushToCloud();
+    }
+    // UI neu rendern
+    setTheme(S.theme || 'light');
+    applyCompanion();
+    renderHome();
+    renderExList();
+    renderSettings();
+
+    // Live-Sync von anderen Geräten
+    if (_fbUnsub) _fbUnsub();
+    _fbUnsub = window.FB.onSnapshot(ref, (snap2) => {
+      if (!snap2.exists() || _syncing) return;
+      const cloud = snap2.data();
+      if ((cloud.updatedAt || 0) <= (S.updatedAt || 0)) return;
+      _syncing = true;
+      const merged = _mergeData(S, cloud);
+      Object.assign(S, merged);
+      _origPersist();
+      setTheme(S.theme || 'light');
+      applyCompanion();
+      renderHome();
+      renderExList();
+      renderSettings();
+      _syncing = false;
+    });
+  } catch (e) {
+    console.warn('[GymTrack] Login-Sync fehlgeschlagen:', e);
+  } finally {
+    _syncing = false;
+    _initialMergeDone = true;
+  }
+}
+
+function _onLogout() {
+  _fbUser = null;
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+  _initialMergeDone = false;
+  updateAccountUI();
+}
+
+async function doGoogleSignIn() {
+  if (!window.FB || !window.FB.configured) {
+    alert('⚙️ Firebase ist noch nicht konfiguriert.\n\nÖffne CLAUDE.md für die Einrichtung.');
+    return;
+  }
+  try {
+    // PWA / Standalone → Redirect (Popup wird oft blockiert)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
+    if (isStandalone) {
+      await window.FB.signInWithRedirect();
+    } else {
+      await window.FB.signInWithPopup();
+    }
+  } catch (e) {
+    console.warn('[GymTrack] Login fehlgeschlagen:', e);
+    if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      alert('❌ Login fehlgeschlagen: ' + (e.message || e));
+    }
+  }
+}
+
+async function doSignOut() {
+  if (!window.FB || !window.FB.configured || !_fbUser) return;
+  if (!confirm('Wirklich abmelden? Deine lokalen Daten bleiben erhalten.')) return;
+  try { await window.FB.signOut(); } catch(e) { console.warn(e); }
+}
+
+function openAccountSheet() {
+  renderAccountSheet();
+  openOv('ov-account');
+}
+
+function renderAccountSheet() {
+  const body = document.getElementById('account-body');
+  if (!body) return;
+  if (!window.FB || !window.FB.configured) {
+    body.innerHTML = `
+      <div class="gap"></div>
+      <div style="text-align:center;padding:20px 8px">
+        <div style="font-size:48px;margin-bottom:12px">⚙️</div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:6px">Noch nicht eingerichtet</div>
+        <div style="color:var(--text2);font-size:14px;line-height:1.5">
+          Damit du dich mit deinem Google-Konto anmelden kannst, muss zuerst<br>
+          ein Firebase-Projekt eingerichtet werden.<br><br>
+          Schau in die <b>CLAUDE.md</b> im Projektordner für die Anleitung.
+        </div>
+      </div>
+    `;
+    return;
+  }
+  if (_fbUser) {
+    const u = _fbUser;
+    const initials = (u.displayName || u.email || '?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+    const photo = u.photoURL
+      ? `<img src="${u.photoURL}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--acc)" alt="">`
+      : `<div style="width:72px;height:72px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600">${initials}</div>`;
+    body.innerHTML = `
+      <div class="gap"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0 20px">
+        ${photo}
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:600">${u.displayName || 'Angemeldet'}</div>
+          <div style="color:var(--text2);font-size:14px;margin-top:2px">${u.email || ''}</div>
+        </div>
+        <div style="background:var(--soft);color:var(--acc);padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600">
+          ☁️ Cloud-Sync aktiv
+        </div>
+      </div>
+      <div style="color:var(--text2);font-size:13px;text-align:center;padding:0 16px 16px;line-height:1.5">
+        Deine Daten werden automatisch in deinem Google-Konto gesichert.<br>
+        Wenn du die App löschst, kannst du dich einfach wieder anmelden und alles ist da.
+      </div>
+      <button class="btn btn-gray" onclick="doSignOut()" style="margin-top:8px">Abmelden</button>
+    `;
+  } else {
+    const cnt = (S.exercises||[]).length + ' Übungen · ' + (S.sessions||[]).length + ' Trainings';
+    body.innerHTML = `
+      <div class="gap"></div>
+      <div style="text-align:center;padding:8px 0 20px">
+        <div style="font-size:48px;margin-bottom:10px">☁️</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:6px">Daten in der Cloud sichern</div>
+        <div style="color:var(--text2);font-size:14px;line-height:1.5;padding:0 12px">
+          Melde dich mit deinem Google-Konto an, damit deine Trainings automatisch<br>
+          in der Cloud gespeichert werden. So gehen sie nie verloren — auch wenn<br>
+          du die App löschst oder das Handy wechselst.
+        </div>
+      </div>
+      <div style="background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
+        💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
+      </div>
+      <button class="btn btn-acc" onclick="doGoogleSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2c-.4.4 6.6-4.8 6.6-14.8 0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Mit Google anmelden
+      </button>
+    `;
+  }
+}
+
+function updateAccountUI() {
+  const ico   = document.getElementById('account-ico');
+  const title = document.getElementById('account-title');
+  const sub   = document.getElementById('account-sub');
+  const dataSub = document.getElementById('data-sub');
+  if (!title) return;
+  if (!window.FB || !window.FB.configured) {
+    if (ico) ico.textContent = '☁️';
+    title.textContent = 'Cloud-Sync (noch nicht eingerichtet)';
+    if (sub) sub.textContent = 'Anleitung in CLAUDE.md';
+    if (dataSub) dataSub.textContent = 'Alles gespeichert auf deinem Gerät';
+  } else if (_fbUser) {
+    if (ico) ico.textContent = '✅';
+    title.textContent = _fbUser.displayName || _fbUser.email || 'Angemeldet';
+    if (sub) sub.textContent = 'Cloud-Sync aktiv – tippe für Details';
+    if (dataSub) dataSub.textContent = 'Gespeichert auf deinem Gerät + in der Cloud';
+  } else {
+    if (ico) ico.textContent = '☁️';
+    title.textContent = 'Mit Google anmelden';
+    if (sub) sub.textContent = 'Sichere deine Daten in der Cloud';
+    if (dataSub) dataSub.textContent = 'Alles gespeichert auf deinem Gerät';
+  }
+  // Wenn Sheet offen ist, auch dort neu rendern
+  if (document.getElementById('ov-account')?.classList.contains('on')) {
+    renderAccountSheet();
+  }
+}
+
+// Firebase initialisieren sobald geladen
+function _initFirebaseListeners() {
+  if (!window.FB || !window.FB.configured) {
+    updateAccountUI();
+    return;
+  }
+  // Redirect-Result abholen (für PWA-Login via Redirect)
+  window.FB.getRedirectResult().catch(e => console.warn('[GymTrack] Redirect-Result:', e));
+  // Auth-State beobachten
+  window.FB.onAuthStateChanged((user) => {
+    if (user) _onLogin(user);
+    else      _onLogout();
+  });
+}
+if (window.FB !== undefined) {
+  _initFirebaseListeners();
+} else {
+  window.addEventListener('fb-ready', _initFirebaseListeners, { once: true });
 }
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
