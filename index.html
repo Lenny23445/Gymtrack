@@ -1159,6 +1159,8 @@ body{
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
+      <!-- Filter-Modus (Muskeln / Push-Pull-Legs / Ober-Unter) -->
+      <div class="fmode-wrap" id="wk-mode-switch" style="margin-top:4px"></div>
       <!-- Körperpartien-Filter -->
       <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
@@ -1312,7 +1314,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241300';
+const APP_VERSION = 'gymtrack-v202605241320';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1427,6 +1429,7 @@ S.theme      = S.theme      || 'light';
 S.companion   = S.companion   || 'dackel';
 S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 S.exFilterMode = S.exFilterMode || 'muskel';
+S.wkFilterMode = S.wkFilterMode || 'muskel';
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -2081,35 +2084,61 @@ function openWorkout() {
   openOv('ov-wk');
 }
 
+function wkMode()  { return GROUP_MODES.find(m => m.id === S.wkFilterMode) || GROUP_MODES[0]; }
+function wkGroup() { const m = wkMode(); return m.groups.find(g => g.id === wkCatFilter) || m.groups[0]; }
+
 function renderWkFilterBar() {
+  // Mode-Switcher
+  const modeBar = document.getElementById('wk-mode-switch');
+  if (modeBar) {
+    modeBar.innerHTML = GROUP_MODES.map(m =>
+      `<button class="fmode-btn${S.wkFilterMode===m.id?' on':''}" onclick="setWkFilterMode('${m.id}')">${m.label}</button>`
+    ).join('');
+  }
+  // Falls aktiver Filter nicht im neuen Modus existiert → 'alle'
+  const mode = wkMode();
+  if (!mode.groups.some(g => g.id === wkCatFilter)) wkCatFilter = 'alle';
+
   const bar = document.getElementById('wk-filter-bar');
   if (!bar) return;
-  bar.innerHTML = MUSCLE_FILTER.map(g =>
+  bar.innerHTML = mode.groups.map(g =>
     `<button class="icat${wkCatFilter===g.id?' on':''}" onclick="setWkCat('${g.id}')">${g.label}</button>`
   ).join('');
 }
 
 function setWkCat(id) {
   wkCatFilter = id;
-  // Körperteil antippen → alle Übungen dieser Gruppe automatisch auswählen
-  if (id !== 'alle') {
-    wkExIds = S.exercises.filter(ex => ex.muscleGroup === id).map(ex => ex.id);
+  const grp = wkGroup();
+  // Gruppe antippen → alle Übungen dieser Gruppe automatisch auswählen
+  if (grp.muscles) {
+    wkExIds = S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup)).map(ex => ex.id);
   } else {
-    wkExIds = []; // Zurück auf "Alle" → Auswahl zurücksetzen
+    wkExIds = []; // "Alle" → Auswahl zurücksetzen
   }
   renderWkFilterBar();
   renderWkPicker();
 }
 
+function setWkFilterMode(mode) {
+  if (S.wkFilterMode === mode) return;
+  S.wkFilterMode = mode;
+  wkCatFilter = 'alle';
+  wkExIds = [];
+  persist();
+  renderWkFilterBar();
+  renderWkPicker();
+}
+
 function renderWkPicker() {
-  const filtered = wkCatFilter === 'alle'
+  const grp = wkGroup();
+  const filtered = !grp.muscles
     ? S.exercises
-    : S.exercises.filter(ex => ex.muscleGroup === wkCatFilter);
+    : S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup));
 
   const title = document.getElementById('wk-step1-title');
   if (title) title.textContent = wkCatFilter === 'alle'
     ? 'Welche Übungen heute?'
-    : muscleLabel(wkCatFilter) + ' – Übungen auswählen';
+    : grp.label + ' – Übungen auswählen';
 
   const btn = document.getElementById('wk-start-btn');
   if (btn) btn.textContent = wkExIds.length
@@ -2119,7 +2148,7 @@ function renderWkPicker() {
   if (!filtered.length) {
     document.getElementById('wk-picker').innerHTML =
       `<div style="padding:18px;text-align:center;color:var(--text2);font-size:15px;position:relative;z-index:1">
-        Keine Übungen für ${muscleLabel(wkCatFilter)}.<br>
+        Keine Übungen für ${grp.label}.<br>
         <span style="font-size:13px">Erstelle Übungen im Tab „Übungen".</span>
       </div>`;
     return;
