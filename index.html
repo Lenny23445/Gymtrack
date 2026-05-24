@@ -817,8 +817,8 @@ body{
 .krd-btns .btn{flex:1;min-height:52px}
 /* ── AUTO-UPDATE TOAST ── */
 #update-toast{
-  position:fixed;top:20px;left:50%;
-  transform:translateX(-50%) translateY(-80px);
+  position:fixed;top:calc(var(--sat) + 12px);left:50%;
+  transform:translateX(-50%) translateY(-120px);
   background:var(--acc);color:#fff;
   padding:12px 22px;border-radius:14px;
   font-size:14px;font-weight:600;
@@ -1314,7 +1314,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241320';
+const APP_VERSION = 'gymtrack-v202605241340';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
