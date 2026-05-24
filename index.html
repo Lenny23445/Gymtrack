@@ -415,6 +415,37 @@ body{
   border-color:var(--acc);
   box-shadow:0 2px 8px rgba(var(--acc-rgb),.32);
 }
+
+/* ── FILTER-MODUS SWITCHER (iOS Segmented Control) ── */
+.fmode-wrap{
+  display:flex;
+  background:var(--g5);
+  border-radius:14px;
+  padding:3px;
+  margin:14px 20px 6px;
+  gap:2px;
+  position:relative;
+}
+.fmode-btn{
+  flex:1;
+  background:transparent;
+  border:none;
+  padding:8px 6px;
+  font-size:12px;font-weight:600;
+  color:var(--text2);
+  border-radius:11px;
+  cursor:pointer;
+  font-family:inherit;
+  letter-spacing:.1px;
+  transition:color .18s, background .22s, box-shadow .22s, transform .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.fmode-btn:active{transform:scale(.96)}
+.fmode-btn.on{
+  background:var(--gl-bg);
+  color:var(--text);
+  box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04);
+}
 .icon-full-grid{
   display:grid;grid-template-columns:repeat(7,1fr);
   gap:6px;padding:0 20px 24px;
@@ -837,8 +868,10 @@ body{
       <button class="hdr-plus" onclick="openNewEx(null)">+</button>
     </div>
   </div>
-  <!-- Muskelgruppen-Filter -->
-  <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:12px 20px 4px"></div>
+  <!-- Filter-Modus (Muskeln / Push-Pull-Legs / Ober-Unter) -->
+  <div class="fmode-wrap" id="ex-mode-switch"></div>
+  <!-- Gruppen-Filter-Pills (passt sich dem Modus an) -->
+  <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:8px 20px 4px"></div>
   <div class="pad">
     <div id="ex-list"></div>
     <div class="gap"></div>
@@ -1279,7 +1312,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241240';
+const APP_VERSION = 'gymtrack-v202605241300';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1292,6 +1325,43 @@ const MUSCLE_GROUPS = [
 ];
 const MUSCLE_FILTER = [{id:'alle', label:'Alle'}, ...MUSCLE_GROUPS];
 function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
+
+/* ── FILTER-MODI im Übungen-Tab ──
+   Jede Gruppe enthält 'muscles': null = alle Übungen, sonst Array von MUSCLE_GROUPS.id */
+const GROUP_MODES = [
+  {
+    id:'muskel', label:'Muskeln',
+    groups:[
+      { id:'alle',      label:'Alle',      muscles:null },
+      { id:'brust',     label:'Brust',     muscles:['brust'] },
+      { id:'ruecken',   label:'Rücken',    muscles:['ruecken'] },
+      { id:'beine',     label:'Beine',     muscles:['beine'] },
+      { id:'arme',      label:'Arme',      muscles:['arme'] },
+      { id:'schultern', label:'Schultern', muscles:['schultern'] },
+      { id:'core',      label:'Core',      muscles:['core'] },
+    ]
+  },
+  {
+    id:'ppl', label:'Push · Pull · Legs',
+    groups:[
+      { id:'alle', label:'Alle',  muscles:null },
+      { id:'push', label:'Push',  muscles:['brust','schultern','arme'] },
+      { id:'pull', label:'Pull',  muscles:['ruecken','arme'] },
+      { id:'legs', label:'Beine', muscles:['beine'] },
+      { id:'core', label:'Core',  muscles:['core'] },
+    ]
+  },
+  {
+    id:'oberunter', label:'Ober · Unter',
+    groups:[
+      { id:'alle',  label:'Alle',        muscles:null },
+      { id:'ober',  label:'Oberkörper',  muscles:['brust','ruecken','arme','schultern','core'] },
+      { id:'unter', label:'Unterkörper', muscles:['beine'] },
+    ]
+  },
+];
+function currentMode()  { return GROUP_MODES.find(m => m.id === S.exFilterMode) || GROUP_MODES[0]; }
+function currentGroup() { const m = currentMode(); return m.groups.find(g => g.id === exCatFilter) || m.groups[0]; }
 
 /* ── BEGLEITER ── */
 const COMPANIONS = [
@@ -1356,6 +1426,7 @@ S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
 S.companion   = S.companion   || 'dackel';
 S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
+S.exFilterMode = S.exFilterMode || 'muskel';
 
 const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -1546,18 +1617,31 @@ function renderExList() {
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
 
-  // Filter-Pills rendern
+  // Mode-Switcher (Muskeln / Push-Pull-Legs / Ober-Unter)
+  const modeBar = document.getElementById('ex-mode-switch');
+  if (modeBar) {
+    modeBar.innerHTML = GROUP_MODES.map(m =>
+      `<button class="fmode-btn${S.exFilterMode===m.id?' on':''}" onclick="setExFilterMode('${m.id}')">${m.label}</button>`
+    ).join('');
+  }
+
+  // Gruppen-Pills für aktuellen Modus
+  const mode = currentMode();
+  // Falls der aktive Filter nicht mehr im neuen Modus existiert → auf 'alle' zurück
+  if (!mode.groups.some(g => g.id === exCatFilter)) exCatFilter = 'alle';
+
   const filterBar = document.getElementById('ex-filter-bar');
   if (filterBar) {
-    filterBar.innerHTML = MUSCLE_FILTER.map(g =>
+    filterBar.innerHTML = mode.groups.map(g =>
       `<button class="icat${exCatFilter===g.id?' on':''}" onclick="setExCat('${g.id}')">${g.label}</button>`
     ).join('');
   }
 
-  // Übungen filtern
-  const filtered = exCatFilter === 'alle'
+  // Übungen filtern: aktive Gruppe → muscles=null = alle, sonst Übungen mit muscleGroup in Liste
+  const grp = currentGroup();
+  const filtered = !grp.muscles
     ? S.exercises
-    : S.exercises.filter(ex => ex.muscleGroup === exCatFilter);
+    : S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup));
 
   sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
 
@@ -1566,7 +1650,7 @@ function renderExList() {
     return;
   }
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${muscleLabel(exCatFilter)} hinzu oder wähle eine andere Gruppe.</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${grp.label} hinzu oder wähle eine andere Gruppe.</p></div>`;
     return;
   }
 
@@ -1586,6 +1670,14 @@ function renderExList() {
 
 function setExCat(id) {
   exCatFilter = id;
+  renderExList();
+}
+
+function setExFilterMode(mode) {
+  if (S.exFilterMode === mode) return;
+  S.exFilterMode = mode;
+  exCatFilter = 'alle'; // beim Modus-Wechsel zurücksetzen
+  persist();
   renderExList();
 }
 
