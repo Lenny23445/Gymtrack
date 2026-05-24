@@ -257,6 +257,8 @@ body{
   box-shadow:0 4px 14px rgba(var(--acc-rgb),.45),0 1px 4px rgba(var(--acc-rgb),.3);
   transition:transform .15s,opacity .12s;
   position:relative;
+  padding:0;line-height:1;
+  -webkit-appearance:none;appearance:none;
 }
 .hdr-plus::after{
   content:'';position:absolute;inset:0;border-radius:50%;
@@ -1501,7 +1503,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241800';
+const APP_VERSION = 'gymtrack-v202605241900';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
