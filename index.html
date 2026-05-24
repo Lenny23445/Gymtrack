@@ -815,6 +815,32 @@ body{
 .krd-adj-val{font-size:17px;font-weight:700;min-width:72px;text-align:center}
 .krd-btns{display:flex;gap:10px;width:100%}
 .krd-btns .btn{flex:1;min-height:52px}
+/* ── WELCOME / ONBOARDING ── */
+.welcome-hero{
+  display:flex;flex-direction:column;align-items:center;
+  padding:4px 20px 18px;text-align:center;
+}
+.welcome-emoji{
+  font-size:68px;line-height:1;
+  filter:drop-shadow(0 6px 18px rgba(var(--acc-rgb),.32));
+  margin-bottom:10px;
+  animation:welcome-pop .6s cubic-bezier(.34,1.56,.64,1);
+}
+.welcome-title{
+  font-size:28px;font-weight:700;letter-spacing:-.5px;
+  margin-bottom:6px;color:var(--text);
+}
+.welcome-sub{
+  font-size:15px;color:var(--text2);line-height:1.45;
+  max-width:300px;
+}
+@keyframes welcome-pop{
+  0%{transform:scale(.4) rotate(-12deg);opacity:0}
+  60%{transform:scale(1.1) rotate(6deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+.welcome-list .row{align-items:flex-start;padding-top:14px;padding-bottom:14px}
+.welcome-list .row-sub{white-space:normal;line-height:1.4;margin-top:3px}
 /* ── AUTO-UPDATE TOAST ── */
 #update-toast{
   position:fixed;top:calc(var(--sat) + 12px);left:50%;
@@ -1134,6 +1160,46 @@ body{
   </div>
 </div>
 
+<!-- SHEET: WELCOME / ONBOARDING -->
+<div class="ov" id="ov-welcome" style="z-index:1002">
+  <div class="sheet" style="max-height:92vh;padding-bottom:calc(24px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="welcome-hero">
+      <div class="welcome-emoji">💪</div>
+      <h2 class="welcome-title">Willkommen!</h2>
+      <p class="welcome-sub">Schön, dass du GymTrack testest 💙</p>
+    </div>
+    <div class="px">
+      <div class="card welcome-list">
+        <div class="row">
+          <div class="ico">🚧</div>
+          <div class="row-body">
+            <div class="row-title">Noch im Bau</div>
+            <div class="row-sub">Die App entwickelt sich noch – neue Features und Verbesserungen kommen regelmäßig dazu.</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ico">🔄</div>
+          <div class="row-body">
+            <div class="row-title">Automatische Updates</div>
+            <div class="row-sub">Bei jedem App-Neustart werden Updates ganz von selbst aufgespielt.</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ico">🙏</div>
+          <div class="row-body">
+            <div class="row-title">Danke fürs Testen</div>
+            <div class="row-sub">Dein Feedback hilft, GymTrack besser zu machen. Viel Spaß beim Training!</div>
+          </div>
+        </div>
+      </div>
+      <div class="gap"></div>
+      <button class="btn btn-acc" onclick="dismissWelcome()">Los geht's 🚀</button>
+      <div class="gap" style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- SHEET: ICON PICKER -->
 <div class="ov" id="ov-icons" style="z-index:1001" onclick="if(event.target===this)closeIconPicker()">
   <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
@@ -1314,7 +1380,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241340';
+const APP_VERSION = 'gymtrack-v202605241400';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2521,6 +2587,13 @@ function initTabDrag() {
   }, true);
 }
 
+// ── WELCOME / ONBOARDING ───────────────────────────────
+function dismissWelcome() {
+  S.welcomeShown = true;
+  persist();
+  closeOv('ov-welcome');
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 applyCompanion();
@@ -2529,6 +2602,11 @@ renderExList();
 initTabIndicator();
 initSheetSwipe();
 initTabDrag();
+
+// Beim allerersten App-Start Begrüßungssheet zeigen
+if (!S.welcomeShown) {
+  setTimeout(() => openOv('ov-welcome'), 350);
+}
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
 (function pwaSetup(){
