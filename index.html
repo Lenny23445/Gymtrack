@@ -1453,7 +1453,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241601';
+const APP_VERSION = 'gymtrack-v202605241700';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -1570,7 +1570,7 @@ S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 S.exFilterMode = S.exFilterMode || 'muskel';
 S.wkFilterMode = S.wkFilterMode || 'muskel';
 
-const persist = () => localStorage.setItem('ft4', JSON.stringify(S));
+let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
 // working state
 let editId = null;
@@ -3034,7 +3034,7 @@ let _initialMergeDone = false;
 
 // Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
 const _origPersist = persist;
-window.persist = function() {
+persist = function() {
   S.updatedAt = Date.now();
   _origPersist();
   if (_fbUser && !_syncing && _initialMergeDone) {
@@ -3042,6 +3042,7 @@ window.persist = function() {
     _pushTimer = setTimeout(_pushToCloud, 800);
   }
 };
+window.persist = persist;
 
 async function _pushToCloud() {
   if (!_fbUser || !window.FB || !window.FB.configured) return;
@@ -3096,6 +3097,7 @@ function _mergeData(local, cloud) {
 }
 
 async function _onLogin(user) {
+  console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid);
   _fbUser = user;
   updateAccountUI();
   if (!window.FB || !window.FB.configured) return;
@@ -3103,18 +3105,23 @@ async function _onLogin(user) {
   _syncing = true;
   try {
     const ref  = window.FB.userDocRef(user.uid);
+    console.log('[GymTrack] ☁️ Lade Cloud-Daten…');
     const snap = await window.FB.getDoc(ref);
     if (snap.exists()) {
       // Cloud-Daten vorhanden → mergen
       const cloud  = snap.data();
+      console.log('[GymTrack] ☁️ Cloud-Daten gefunden — merge mit lokal');
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
       _origPersist();
       // Geänderte Daten zurückschreiben
       await _pushToCloud();
+      console.log('[GymTrack] ☁️ Cloud-Push (nach Merge) ok');
     } else {
       // Cloud leer → lokale Daten hochladen
+      console.log('[GymTrack] ☁️ Cloud leer — pushe lokale Daten');
       await _pushToCloud();
+      console.log('[GymTrack] ☁️ Initial-Push ok');
     }
     // UI neu rendern
     setTheme(S.theme || 'light');
@@ -3122,6 +3129,7 @@ async function _onLogin(user) {
     renderHome();
     renderExList();
     renderSettings();
+    updateAccountUI();
 
     // Live-Sync von anderen Geräten
     if (_fbUnsub) _fbUnsub();
@@ -3141,10 +3149,13 @@ async function _onLogin(user) {
       _syncing = false;
     });
   } catch (e) {
-    console.warn('[GymTrack] Login-Sync fehlgeschlagen:', e);
+    console.error('[GymTrack] ❌ Login-Sync fehlgeschlagen:', e);
+    alert('❌ Cloud-Sync fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e) +
+          '\n\nPrüfe in der Firebase Console:\n• Firestore Database wurde angelegt\n• Firestore-Regeln erlauben dem User Schreibzugriff');
   } finally {
     _syncing = false;
     _initialMergeDone = true;
+    updateAccountUI();
   }
 }
 
@@ -3160,20 +3171,32 @@ async function doGoogleSignIn() {
     alert('⚙️ Firebase ist noch nicht konfiguriert.\n\nÖffne CLAUDE.md für die Einrichtung.');
     return;
   }
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true;
+  console.log('[GymTrack] Login-Versuch, standalone:', isStandalone);
   try {
-    // PWA / Standalone → Redirect (Popup wird oft blockiert)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                      || window.navigator.standalone === true;
     if (isStandalone) {
+      // iOS PWA: signInWithPopup geht oft nicht — daher direkt Redirect
+      console.log('[GymTrack] → signInWithRedirect');
       await window.FB.signInWithRedirect();
     } else {
-      await window.FB.signInWithPopup();
+      console.log('[GymTrack] → signInWithPopup');
+      const res = await window.FB.signInWithPopup();
+      console.log('[GymTrack] Popup-Login ok:', res?.user?.email);
     }
   } catch (e) {
-    console.warn('[GymTrack] Login fehlgeschlagen:', e);
-    if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
-      alert('❌ Login fehlgeschlagen: ' + (e.message || e));
+    console.error('[GymTrack] ❌ Login fehlgeschlagen:', e);
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) {
+      return; // User hat selbst abgebrochen
     }
+    // Popup blockiert → automatischer Fallback auf Redirect
+    if (e && e.code === 'auth/popup-blocked') {
+      console.log('[GymTrack] Popup blockiert → Fallback Redirect');
+      try { await window.FB.signInWithRedirect(); return; }
+      catch (e2) { e = e2; }
+    }
+    alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e) +
+          '\n\nMögliche Ursachen:\n• Authorized Domain fehlt in Firebase Console\n• Google-Login nicht aktiviert\n• Internet-Verbindung');
   }
 }
 
@@ -3285,13 +3308,23 @@ function updateAccountUI() {
 // Firebase initialisieren sobald geladen
 function _initFirebaseListeners() {
   if (!window.FB || !window.FB.configured) {
+    console.warn('[GymTrack] Firebase nicht konfiguriert');
     updateAccountUI();
     return;
   }
+  console.log('[GymTrack] 🔥 Firebase init — warte auf Auth-State…');
   // Redirect-Result abholen (für PWA-Login via Redirect)
-  window.FB.getRedirectResult().catch(e => console.warn('[GymTrack] Redirect-Result:', e));
+  window.FB.getRedirectResult()
+    .then(res => {
+      if (res && res.user) console.log('[GymTrack] ✅ Redirect-Login erfolgreich:', res.user.email);
+    })
+    .catch(e => {
+      console.error('[GymTrack] ❌ Redirect-Result-Error:', e);
+      alert('❌ Login (Redirect) fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+    });
   // Auth-State beobachten
   window.FB.onAuthStateChanged((user) => {
+    console.log('[GymTrack] Auth-State changed:', user ? user.email : '(abgemeldet)');
     if (user) _onLogin(user);
     else      _onLogout();
   });
