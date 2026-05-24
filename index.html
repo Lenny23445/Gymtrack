@@ -204,6 +204,35 @@ body{
 .tab svg{width:22px;height:22px}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
 
+/* ── LONG-PRESS TAB BUBBLE (iOS 26 Liquid Glass) ── */
+.tab-bubble-scrim{position:fixed;inset:0;z-index:8999;pointer-events:none}
+.tab-bubble-scrim.on{pointer-events:all}
+.tab-bubble{
+  position:fixed;bottom:calc(90px + var(--sab));left:50%;
+  transform:translateX(-50%) scale(0.82);opacity:0;pointer-events:none;
+  z-index:9000;
+  background:var(--gl-bg);
+  backdrop-filter:blur(48px) saturate(220%);
+  -webkit-backdrop-filter:blur(48px) saturate(220%);
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-shad-lg),var(--gl-hi);
+  border-radius:32px;padding:8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  min-width:220px;
+  transition:opacity .22s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.tab-bubble.on{opacity:1;transform:translateX(-50%) scale(1);pointer-events:all}
+.tb-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;padding:14px 10px;border:none;background:transparent;
+  border-radius:24px;cursor:pointer;color:var(--text);
+  font-size:11px;font-weight:600;letter-spacing:.1px;
+  transition:background .12s;min-width:90px;-webkit-tap-highlight-color:transparent;
+}
+.tb-btn svg{width:24px;height:24px}
+.tb-btn.on{background:rgba(var(--acc-rgb),.12);color:var(--acc)}
+.tb-btn:active{background:rgba(120,120,128,.12)}
+
 /* ── GLASS CARD ── */
 .card{
   background:var(--gl-bg);
@@ -994,6 +1023,27 @@ body{
   </div>
 </div>
 
+<!-- LONG-PRESS TAB BUBBLE -->
+<div id="tab-bubble-scrim" class="tab-bubble-scrim" onclick="hideTabBubble()"></div>
+<div id="tab-bubble" class="tab-bubble">
+  <button class="tb-btn" data-tab="heute" onclick="bubbleGoTab('heute')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    Heute
+  </button>
+  <button class="tb-btn" data-tab="uebungen" onclick="bubbleGoTab('uebungen')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    Übungen
+  </button>
+  <button class="tb-btn" data-tab="stats" onclick="bubbleGoTab('stats')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5V9.2zm5.6-5h2.8V19h-2.8V4.2zm5.6 8H19V19h-2.8v-6.8z"/></svg>
+    Statistik
+  </button>
+  <button class="tb-btn" data-tab="settings" onclick="bubbleGoTab('settings')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    Einstellungen
+  </button>
+</div>
+
 <!-- TABBAR -->
 <div class="tabbar">
   <div id="tab-indicator"></div>
@@ -1279,7 +1329,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241220';
+const APP_VERSION = 'gymtrack-v202605241230';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2334,6 +2384,56 @@ function initSheetSwipe() {
   });
 }
 
+// ── LONG-PRESS TAB BUBBLE ─────────────────────────────
+let _lpTimer = null;
+let _lpFired  = false;
+
+function initTabBubble() {
+  const bar = document.querySelector('.tabbar');
+
+  bar.addEventListener('touchstart', () => {
+    _lpFired = false;
+    _lpTimer = setTimeout(() => {
+      _lpFired = true;
+      if (navigator.vibrate) navigator.vibrate(8);
+      showTabBubble();
+    }, 430);
+  }, { passive: true });
+
+  const cancelLp = () => { clearTimeout(_lpTimer); _lpTimer = null; };
+  bar.addEventListener('touchend',    cancelLp, { passive: true });
+  bar.addEventListener('touchmove',   cancelLp, { passive: true });
+  bar.addEventListener('touchcancel', cancelLp, { passive: true });
+
+  // Eat the click that fires right after a long-press touchend
+  bar.addEventListener('click', e => {
+    if (_lpFired) { e.stopPropagation(); _lpFired = false; }
+  }, true);
+}
+
+function showTabBubble() {
+  const bubble = document.getElementById('tab-bubble');
+  const scrim  = document.getElementById('tab-bubble-scrim');
+  const active = document.querySelector('.pg.on');
+  const activeId = active ? active.id.replace('pg-', '') : 'heute';
+  bubble.querySelectorAll('.tb-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.tab === activeId)
+  );
+  scrim.classList.add('on');
+  bubble.classList.add('on');
+}
+
+function hideTabBubble() {
+  document.getElementById('tab-bubble').classList.remove('on');
+  document.getElementById('tab-bubble-scrim').classList.remove('on');
+}
+
+function bubbleGoTab(id) {
+  hideTabBubble();
+  const tabMap = { heute: 0, uebungen: 1, stats: 2, settings: 3 };
+  goTab(id, document.querySelectorAll('.tab')[tabMap[id]]);
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 applyCompanion();
@@ -2341,6 +2441,7 @@ renderHome();
 renderExList();
 initTabIndicator();
 initSheetSwipe();
+initTabBubble();
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
 (function pwaSetup(){
