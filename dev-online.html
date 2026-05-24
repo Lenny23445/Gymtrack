@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>GymTrack · Dev Online</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0; padding: 24px;
+    background: #0d1117; color: #e6edf3;
+    min-height: 100vh;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; color: #7d8590; letter-spacing: .02em; }
+  .count {
+    font-size: 96px; font-weight: 700; line-height: 1;
+    background: linear-gradient(135deg, #34d399, #22c55e);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin: 12px 0 6px;
+  }
+  .sub { color: #7d8590; font-size: 13px; margin-bottom: 32px; }
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot.on  { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,.6); }
+  .dot.off { background: #4b5563; }
+  .row .name { font-weight: 500; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .time { color: #7d8590; font-size: 12px; flex-shrink: 0; }
+  .login {
+    margin-top: 40px; padding: 20px; background: #161b22;
+    border: 1px solid #30363d; border-radius: 12px; max-width: 420px;
+  }
+  .login button {
+    display: block; width: 100%;
+    padding: 12px 16px; border-radius: 8px;
+    background: #1f6feb; color: white; border: none;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    margin-top: 12px;
+  }
+  .login button:hover { background: #388bfd; }
+  .err { color: #f85149; font-size: 13px; margin-top: 12px; word-wrap: break-word; }
+  .signout {
+    position: absolute; top: 24px; right: 24px;
+    background: transparent; color: #7d8590; border: 1px solid #30363d;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .signout:hover { color: #e6edf3; border-color: #484f58; }
+  h2 { font-size: 14px; color: #7d8590; font-weight: 500; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .empty { color: #7d8590; font-size: 14px; padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="login-view" class="login" style="display:none">
+  <h1>GymTrack · Dev Online</h1>
+  <p style="color:#7d8590; font-size:13px; margin:8px 0 0">Login erforderlich. Nur dein Account hat Lesezugriff (per RTDB-Rules).</p>
+  <button id="login-btn">Mit Google anmelden</button>
+  <div id="err" class="err"></div>
+</div>
+
+<div id="main" style="display:none">
+  <button id="signout-btn" class="signout">Logout</button>
+  <h1>Aktuell online</h1>
+  <div class="count" id="count">0</div>
+  <div class="sub" id="sub">User mit offener App-Verbindung</div>
+
+  <h2>Online</h2>
+  <div id="online-list"></div>
+
+  <h2>Zuletzt online</h2>
+  <div id="offline-list"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+  import { getDatabase, ref, onValue }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
+
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA",
+    authDomain:        "gymtrack-25d39.firebaseapp.com",
+    projectId:         "gymtrack-25d39",
+    storageBucket:     "gymtrack-25d39.firebasestorage.app",
+    messagingSenderId: "404501862861",
+    appId:             "1:404501862861:web:07e975faa3923a1dc44c84",
+    measurementId:     "G-XFTNX737CS"
+  };
+
+  const app  = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const rtdb = getDatabase(app);
+  const provider = new GoogleAuthProvider();
+
+  const loginView   = document.getElementById('login-view');
+  const main        = document.getElementById('main');
+  const countEl     = document.getElementById('count');
+  const subEl       = document.getElementById('sub');
+  const onlineList  = document.getElementById('online-list');
+  const offlineList = document.getElementById('offline-list');
+  const errEl       = document.getElementById('err');
+
+  document.getElementById('login-btn').onclick = async () => {
+    errEl.textContent = '';
+    try { await signInWithPopup(auth, provider); }
+    catch (e) { errEl.textContent = e.code + ': ' + e.message; }
+  };
+
+  document.getElementById('signout-btn').onclick = () => signOut(auth);
+
+  function fmtAgo(ts) {
+    if (!ts) return '—';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60)    return 'vor ' + s + 's';
+    if (s < 3600)  return 'vor ' + Math.floor(s/60) + ' min';
+    if (s < 86400) return 'vor ' + Math.floor(s/3600) + ' h';
+    return 'vor ' + Math.floor(s/86400) + ' Tagen';
+  }
+
+  function renderPresence(data) {
+    const arr = Object.entries(data || {}).map(([uid, v]) => ({ uid, ...v }));
+    const online  = arr.filter(u => u.online);
+    const offline = arr.filter(u => !u.online).sort((a,b) => (b.lastChanged||0) - (a.lastChanged||0));
+
+    countEl.textContent = online.length;
+    subEl.textContent   = online.length === 1
+      ? '1 User mit offener App-Verbindung'
+      : online.length + ' User mit offener App-Verbindung';
+
+    onlineList.innerHTML = online.length
+      ? online.map(u => `
+          <div class="row">
+            <div class="dot on"></div>
+            <div class="name">${escapeHtml(u.name || u.email || u.uid)}</div>
+            <div class="time">${fmtAgo(u.lastChanged)}</div>
+          </div>`).join('')
+      : '<div class="empty">Niemand online.</div>';
+
+    offlineList.innerHTML = offline.length
+      ? offline.slice(0, 50).map(u => `
+          <div class="row">
+            <div class="dot off"></div>
+            <div class="name">${escapeHtml(u.name || u.email || u.uid)}</div>
+            <div class="time">${fmtAgo(u.lastChanged)}</div>
+          </div>`).join('')
+      : '<div class="empty">Noch keine Daten.</div>';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  let unsub = null;
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loginView.style.display = 'none';
+      main.style.display = 'block';
+      const presenceRef = ref(rtdb, 'presence');
+      if (unsub) unsub();
+      unsub = onValue(presenceRef, (snap) => {
+        renderPresence(snap.val() || {});
+      }, (err) => {
+        errEl.textContent = 'Fehler beim Lesen: ' + err.message + ' — RTDB-Rules pruefen.';
+        loginView.style.display = 'block';
+        main.style.display = 'none';
+      });
+    } else {
+      if (unsub) { unsub(); unsub = null; }
+      loginView.style.display = 'block';
+      main.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>

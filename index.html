@@ -23,6 +23,8 @@
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+  import { getDatabase, ref as dbRef, onValue, onDisconnect, set as dbSet, serverTimestamp as rtdbServerTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
 
   const FIREBASE_CONFIG = {
     apiKey:            "AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA",
@@ -45,10 +47,12 @@
     const app  = initializeApp(FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db   = getFirestore(app);
+    const rtdb = getDatabase(app);
     const provider = new GoogleAuthProvider();
 
     window.FB.auth = auth;
     window.FB.db   = db;
+    window.FB.rtdb = rtdb;
     window.FB.provider = provider;
     window.FB.signInWithPopup    = () => signInWithPopup(auth, provider);
     window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
@@ -62,6 +66,43 @@
     window.FB.setDoc             = setDoc;
     window.FB.onSnapshot         = onSnapshot;
     window.FB.serverTimestamp    = serverTimestamp;
+
+    // ── Presence (Realtime DB onDisconnect — kein Heartbeat) ──
+    window.FB.startPresence = (user) => {
+      try {
+        const connectedRef = dbRef(rtdb, '.info/connected');
+        const userRef      = dbRef(rtdb, 'presence/' + user.uid);
+        onValue(connectedRef, (snap) => {
+          if (snap.val() !== true) return;
+          // Wenn die Verbindung abbricht → Server schreibt "offline"
+          onDisconnect(userRef).set({
+            online: false,
+            email: user.email || null,
+            name:  user.displayName || null,
+            lastChanged: rtdbServerTimestamp()
+          }).then(() => {
+            // Jetzt online setzen
+            dbSet(userRef, {
+              online: true,
+              email: user.email || null,
+              name:  user.displayName || null,
+              lastChanged: rtdbServerTimestamp()
+            });
+          });
+        });
+      } catch (e) {
+        console.warn('[GymTrack] Presence-Setup fehlgeschlagen:', e);
+      }
+    };
+    window.FB.stopPresence = (uid) => {
+      try {
+        const userRef = dbRef(rtdb, 'presence/' + uid);
+        dbSet(userRef, {
+          online: false,
+          lastChanged: rtdbServerTimestamp()
+        });
+      } catch (e) { /* silent */ }
+    };
   }
 
   // Signal an Haupt-Script: Firebase fertig geladen
@@ -3109,6 +3150,9 @@ async function _onLogin(user) {
   updateAccountUI();
   if (!window.FB || !window.FB.configured) return;
 
+  // Presence aktivieren (Realtime DB onDisconnect → kein Heartbeat)
+  if (window.FB.startPresence) window.FB.startPresence(user);
+
   _syncing = true;
   try {
     const ref  = window.FB.userDocRef(user.uid);
@@ -3167,6 +3211,7 @@ async function _onLogin(user) {
 }
 
 function _onLogout() {
+  if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   _initialMergeDone = false;
