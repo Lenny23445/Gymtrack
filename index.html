@@ -1279,16 +1279,16 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605241210';
+const APP_VERSION = 'gymtrack-v202605241220';
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
-  { id:'brust',     label:'Brust',     emoji:'🫁' },
-  { id:'ruecken',   label:'Rücken',    emoji:'🏋️' },
-  { id:'beine',     label:'Beine',     emoji:'🦵' },
-  { id:'arme',      label:'Arme',      emoji:'💪' },
-  { id:'schultern', label:'Schultern', emoji:'🙌' },
-  { id:'core',      label:'Core',      emoji:'🔥' },
+  { id:'brust',     label:'Brust'      },
+  { id:'ruecken',   label:'Rücken'     },
+  { id:'beine',     label:'Beine'      },
+  { id:'arme',      label:'Arme'       },
+  { id:'schultern', label:'Schultern'  },
+  { id:'core',      label:'Core'       },
 ];
 const MUSCLE_FILTER = [{id:'alle', label:'Alle'}, ...MUSCLE_GROUPS];
 function muscleLabel(id) { const g = MUSCLE_GROUPS.find(g => g.id === id); return g ? g.label : ''; }
@@ -1841,7 +1841,6 @@ function renderStatsMuscleGroups() {
   }
   el.innerHTML = rows.map(r => `
     <div class="row tap" onclick="openMuscleStat('${r.g.id}')">
-      <div class="ico">${r.g.emoji}</div>
       <div class="row-body">
         <div class="row-title">${r.g.label}</div>
         <div class="row-sub">${r.exCount} Übung${r.exCount!==1?'en':''} · ${fmtKg(r.vol)} Volumen</div>
