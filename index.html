@@ -386,8 +386,15 @@ body{
 .tab.on{
   color:var(--acc);
 }
-.tab svg{width:22px;height:22px}
+.tab svg{width:22px;height:22px;will-change:transform}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
+@keyframes tab-ic-pop{
+  0%  {transform:scale(1)    translateY(0)}
+  35% {transform:scale(.80)  translateY(2px)}
+  68% {transform:scale(1.13) translateY(-2px)}
+  100%{transform:scale(1)    translateY(0)}
+}
+.tab.on svg{animation:tab-ic-pop .36s cubic-bezier(.34,1.56,.64,1) both}
 
 /* ── GLASS CARD ── */
 .card{
@@ -1821,7 +1828,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251700';
+const APP_VERSION = 'gymtrack-v202605251800';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -2055,11 +2062,39 @@ function moveTabIndicator(activeTab) {
   const bar = document.querySelector('.tabbar');
   const ind = document.getElementById('tab-indicator');
   if (!ind || !bar || !activeTab) return;
+
   const barRect = bar.getBoundingClientRect();
   const tabRect = activeTab.getBoundingClientRect();
-  const offsetX = tabRect.left - barRect.left - 5; // 5px = tabbar padding
-  ind.style.width  = tabRect.width + 'px';
-  ind.style.transform = 'translateX(' + offsetX + 'px)';
+  const newX    = tabRect.left - barRect.left - 5;
+  const newW    = tabRect.width;
+
+  // Read current *rendered* position (works even mid-transition)
+  const curRect = ind.getBoundingClientRect();
+  const curX    = curRect.left - barRect.left - 5;
+  const curW    = curRect.width;
+
+  if (Math.abs(newX - curX) < 4) {
+    ind.style.width     = newW + 'px';
+    ind.style.transform = `translateX(${newX}px)`;
+    return;
+  }
+
+  // Stretch geometry: blob bridges from current edge to target edge
+  const goRight  = newX > curX;
+  const stretchX = goRight ? curX  : newX;
+  const stretchW = goRight ? (newX + newW - curX) : (curX + curW - newX);
+
+  // Phase 1: instantly snap to stretched shape (liquid blob elongates)
+  ind.style.transition = 'none';
+  ind.style.transform  = `translateX(${stretchX}px) scaleY(.96)`;
+  ind.style.width      = `${stretchW}px`;
+
+  // Phase 2: spring-snap to final position (two rAFs = browser commits layout first)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ind.style.transition = 'transform .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+    ind.style.width      = `${newW}px`;
+    ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
+  }));
 }
 
 function initTabIndicator() {
