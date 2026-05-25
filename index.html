@@ -1090,6 +1090,99 @@ body{
 }
 .welcome-list .row{align-items:flex-start;padding-top:14px;padding-bottom:14px}
 .welcome-list .row-sub{white-space:normal;line-height:1.4;margin-top:3px}
+/* ── TUTORIAL ── */
+.tut-sheet{padding-top:8px}
+.tut-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 20px 10px;min-height:32px;
+}
+.tut-step-label{
+  font-size:13px;font-weight:600;color:var(--text2);
+  letter-spacing:.2px;
+}
+.tut-skip{
+  background:transparent;border:none;
+  color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;
+  cursor:pointer;padding:6px 4px;
+}
+.tut-skip:active{opacity:.55}
+.tut-dots{
+  display:flex;justify-content:center;gap:7px;
+  padding:2px 20px 14px;
+}
+.tut-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--gl-bdr2);
+  transition:background .25s,width .25s,transform .25s;
+}
+.tut-dot.on{
+  background:var(--acc);
+  width:22px;border-radius:4px;
+}
+.tut-slide{
+  padding:0 0 14px;
+  animation:tut-in .32s cubic-bezier(.34,1.2,.64,1) both;
+}
+.tut-slide.back{animation:tut-in-back .32s cubic-bezier(.34,1.2,.64,1) both}
+@keyframes tut-in{
+  from{opacity:0;transform:translateX(28px)}
+  to  {opacity:1;transform:translateX(0)}
+}
+@keyframes tut-in-back{
+  from{opacity:0;transform:translateX(-28px)}
+  to  {opacity:1;transform:translateX(0)}
+}
+.tut-hero{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 20px 16px;text-align:center;
+}
+.tut-emoji{
+  font-size:62px;line-height:1;
+  filter:drop-shadow(0 6px 20px rgba(var(--acc-rgb),.34));
+  margin-bottom:10px;
+  animation:welcome-pop .55s cubic-bezier(.34,1.56,.64,1);
+}
+.tut-title{
+  font-size:25px;font-weight:700;letter-spacing:-.4px;
+  margin-bottom:6px;color:var(--text);
+}
+.tut-sub{
+  font-size:14px;color:var(--text2);line-height:1.45;
+  max-width:300px;
+}
+.tut-feats{
+  margin:0 20px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.tut-feat{
+  display:flex;align-items:flex-start;gap:13px;
+  padding:13px 14px;border-radius:16px;
+  background:var(--gl-bg);
+  border:1px solid var(--gl-bdr);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.tut-feat-ico{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  background:rgba(var(--acc-rgb),.10);
+  border:1px solid rgba(var(--acc-rgb),.20);
+}
+.tut-feat-body{flex:1;min-width:0}
+.tut-feat-title{
+  font-size:15px;font-weight:600;color:var(--text);
+  margin-bottom:2px;line-height:1.3;
+}
+.tut-feat-sub{
+  font-size:13px;color:var(--text2);
+  line-height:1.4;
+}
+.tut-nav{
+  display:flex;gap:10px;padding:18px 20px 8px;
+}
+.tut-nav .btn{flex:1;width:auto;min-height:50px;padding:14px;font-size:16px}
+.tut-nav .btn-gray{flex:0 1 auto;min-width:108px}
 /* ── AUTO-UPDATE TOAST ── */
 #update-toast{
   position:fixed;top:calc(var(--sat) + 12px);left:50%;
@@ -1477,6 +1570,14 @@ body{
           </div>
           <div class="chev" id="update-chev">›</div>
         </div>
+        <div class="row tap" onclick="openTutorial()">
+          <div class="ico">🎓</div>
+          <div class="row-body">
+            <div class="row-title">Tour neu starten</div>
+            <div class="row-sub">Alle Funktionen in 6 Schritten erklärt</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
         <div class="row">
           <div class="ico">ℹ️</div>
           <div class="row-body">
@@ -1683,42 +1784,19 @@ body{
   </div>
 </div>
 
-<!-- SHEET: WELCOME / ONBOARDING -->
+<!-- SHEET: TUTORIAL / ONBOARDING -->
 <div class="ov" id="ov-welcome" style="z-index:1002">
-  <div class="sheet" style="max-height:92vh;padding-bottom:calc(24px + var(--sab))">
+  <div class="sheet tut-sheet" style="max-height:92vh;padding-bottom:calc(8px + var(--sab))">
     <div class="sh-handle"></div>
-    <div class="welcome-hero">
-      <div class="welcome-emoji">💪</div>
-      <h2 class="welcome-title">Willkommen!</h2>
-      <p class="welcome-sub">Schön, dass du GymTrack testest 💙</p>
+    <div class="tut-topbar">
+      <div class="tut-step-label" id="tut-step-label">Schritt 1 / 6</div>
+      <button class="tut-skip" onclick="tutSkip()">Überspringen</button>
     </div>
-    <div class="px">
-      <div class="card welcome-list">
-        <div class="row">
-          <div class="ico">🚧</div>
-          <div class="row-body">
-            <div class="row-title">Noch im Bau</div>
-            <div class="row-sub">Die App entwickelt sich noch – neue Features und Verbesserungen kommen regelmäßig dazu.</div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="ico">🔄</div>
-          <div class="row-body">
-            <div class="row-title">Automatische Updates</div>
-            <div class="row-sub">Bei jedem App-Neustart werden Updates ganz von selbst aufgespielt.</div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="ico">🙏</div>
-          <div class="row-body">
-            <div class="row-title">Danke fürs Testen</div>
-            <div class="row-sub">Dein Feedback hilft, GymTrack besser zu machen. Viel Spaß beim Training!</div>
-          </div>
-        </div>
-      </div>
-      <div class="gap"></div>
-      <button class="btn btn-acc" onclick="dismissWelcome()">Los geht's 🚀</button>
-      <div class="gap" style="height:8px"></div>
+    <div class="tut-dots" id="tut-dots"></div>
+    <div class="tut-slide" id="tut-slide"></div>
+    <div class="tut-nav">
+      <button class="btn btn-gray" id="tut-back-btn" onclick="tutPrev()" style="display:none">Zurück</button>
+      <button class="btn btn-acc" id="tut-next-btn" onclick="tutNext()">Weiter</button>
     </div>
   </div>
 </div>
@@ -1937,10 +2015,14 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251740';
+const APP_VERSION = 'gymtrack-v202605252000';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605252000': [
+    '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
+    '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
+  ],
   'gymtrack-v202605251740': [
     '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
   ],
@@ -3989,7 +4071,141 @@ function dismissChangelog() {
   closeOv('ov-changelog');
 }
 
-// ── WELCOME / ONBOARDING ───────────────────────────────
+// ── WELCOME / ONBOARDING (TUTORIAL) ────────────────────
+const TUTORIAL_STEPS = [
+  {
+    emoji:'💪',
+    title:'Willkommen bei GymTrack!',
+    sub:'Lass uns die App in 6 kurzen Schritten kennenlernen.',
+    features:[
+      { ico:'⏱️', title:'Nur eine Minute', sub:'Du kannst die Tour jederzeit überspringen.' },
+      { ico:'🎯', title:'Alle Funktionen', sub:'Damit du sofort loslegen kannst.' }
+    ]
+  },
+  {
+    emoji:'🏠',
+    title:'Heute',
+    sub:'Hier startest du dein Training.',
+    features:[
+      { ico:'▶️', title:'Training starten', sub:'Wähle Übungen aus und logge deine Sätze.' },
+      { ico:'🏃', title:'Cardio-Timer', sub:'Mit Benachrichtigung — läuft auch im Hintergrund.' },
+      { ico:'📋', title:'Vorschläge & letztes Training', sub:'Dein Überblick auf einen Blick.' }
+    ]
+  },
+  {
+    emoji:'💪',
+    title:'Übungen',
+    sub:'Deine persönliche Übungs-Bibliothek.',
+    features:[
+      { ico:'➕', title:'Eigene Übungen anlegen', sub:'Mit Muskelgruppe, Icon und Notizen.' },
+      { ico:'📅', title:'Wochenplan', sub:'Kalender oben rechts — Übungen per Drag & Drop auf Tage ziehen.' },
+      { ico:'🔍', title:'Smarte Filter', sub:'Muskeln · Push-Pull-Legs · Ober-Unter.' }
+    ]
+  },
+  {
+    emoji:'📊',
+    title:'Statistik',
+    sub:'Sieh deinen Fortschritt schwarz auf weiß.',
+    features:[
+      { ico:'📈', title:'Volumen-Verlauf', sub:'Wie viel Gewicht hast du insgesamt bewegt?' },
+      { ico:'🏆', title:'1RM-Berechnung', sub:'Dein geschätztes Maximalgewicht via Epley-Formel.' },
+      { ico:'🎯', title:'Pro Muskelgruppe', sub:'Schwachstellen erkennen — gezielt trainieren.' }
+    ]
+  },
+  {
+    emoji:'⚙️',
+    title:'Einstellungen',
+    sub:'Mach die App zu deiner.',
+    features:[
+      { ico:'🎨', title:'5 Themes', sub:'Hell, Rosa, Dunkel, Blau und Grün.' },
+      { ico:'🐕', title:'Trainings-Begleiter', sub:'Wähle deinen Lieblings-Begleiter für die Tab-Leiste.' },
+      { ico:'☁️', title:'Cloud-Sync', sub:'Mit Google anmelden — Daten auf allen Geräten.' },
+      { ico:'🔔', title:'Erinnerungen', sub:'Tägliche Trainings-Reminder zur Wunsch-Uhrzeit.' }
+    ]
+  },
+  {
+    emoji:'🚀',
+    title:'Du bist startklar!',
+    sub:'Ein paar kleine Tipps zum Schluss.',
+    features:[
+      { ico:'👇', title:'Sheets per Swipe schließen', sub:'Den Griff oben einfach nach unten ziehen.' },
+      { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen werden ganz von selbst aufgespielt.' },
+      { ico:'💡', title:'Tour erneut ansehen', sub:'Jederzeit in Einstellungen → App verfügbar.' }
+    ]
+  }
+];
+let _tutStep = 0;
+
+function escTut(s){return String(s).replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c])}
+
+function renderTutorial(direction){
+  const total = TUTORIAL_STEPS.length;
+  const step = TUTORIAL_STEPS[_tutStep];
+  const slide = document.getElementById('tut-slide');
+  if (!slide) return;
+
+  // Dots
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = TUTORIAL_STEPS.map((_,i) =>
+    `<div class="tut-dot${i===_tutStep?' on':''}"></div>`
+  ).join('');
+
+  // Step label
+  document.getElementById('tut-step-label').textContent =
+    'Schritt ' + (_tutStep+1) + ' / ' + total;
+
+  // Slide content
+  slide.classList.remove('back');
+  // Force re-trigger animation
+  void slide.offsetWidth;
+  if (direction === 'back') slide.classList.add('back');
+  slide.innerHTML = `
+    <div class="tut-hero">
+      <div class="tut-emoji">${step.emoji}</div>
+      <h2 class="tut-title">${escTut(step.title)}</h2>
+      <p class="tut-sub">${escTut(step.sub)}</p>
+    </div>
+    <div class="tut-feats">
+      ${step.features.map(f => `
+        <div class="tut-feat">
+          <div class="tut-feat-ico">${f.ico}</div>
+          <div class="tut-feat-body">
+            <div class="tut-feat-title">${escTut(f.title)}</div>
+            <div class="tut-feat-sub">${escTut(f.sub)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  // Reset animation by re-adding the slide class
+  slide.style.animation = 'none';
+  void slide.offsetWidth;
+  slide.style.animation = '';
+
+  // Buttons
+  document.getElementById('tut-back-btn').style.display = _tutStep === 0 ? 'none' : 'block';
+  document.getElementById('tut-next-btn').textContent =
+    _tutStep === total - 1 ? "Los geht's 🚀" : 'Weiter';
+}
+
+function tutNext(){
+  if (_tutStep >= TUTORIAL_STEPS.length - 1) { dismissWelcome(); return; }
+  _tutStep++;
+  renderTutorial('next');
+}
+function tutPrev(){
+  if (_tutStep <= 0) return;
+  _tutStep--;
+  renderTutorial('back');
+}
+function tutSkip(){ dismissWelcome(); }
+
+function openTutorial(){
+  _tutStep = 0;
+  renderTutorial('next');
+  openOv('ov-welcome');
+}
+
 function dismissWelcome() {
   S.welcomeShown = true;
   persist();
@@ -4005,9 +4221,9 @@ initTabIndicator();
 initSheetSwipe();
 initTabDrag();
 
-// Beim allerersten App-Start Begrüßungssheet zeigen
+// Beim allerersten App-Start Tutorial zeigen
 if (!S.welcomeShown) {
-  setTimeout(() => openOv('ov-welcome'), 350);
+  setTimeout(() => openTutorial(), 350);
 }
 
 // Nach einem oder mehreren Updates: aggregierten Changelog anzeigen (nur wenn Onboarding bereits erledigt)
