@@ -950,6 +950,58 @@ body{
   pointer-events:none;
 }
 #update-toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── CHANGELOG POPUP (Was ist neu) ── */
+.changelog-card{
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(90px) saturate(240%);
+  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  border:1px solid var(--gl-bdr);
+  border-radius:28px;
+  width:100%;max-width:380px;
+  box-shadow:var(--gl-shad-lg),var(--gl-hi);
+  overflow:hidden;
+  animation:changelog-pop .42s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+.changelog-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:90px;
+  background:var(--sheen);pointer-events:none;border-radius:28px 28px 0 0;
+}
+@keyframes changelog-pop{
+  from{opacity:0;transform:scale(.82) translateY(20px)}
+  to  {opacity:1;transform:scale(1)   translateY(0)}
+}
+.changelog-hero{
+  text-align:center;padding:30px 20px 14px;position:relative;z-index:1;
+}
+.changelog-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#fff;border-radius:20px;
+  padding:6px 16px;font-size:13px;font-weight:700;
+  letter-spacing:.2px;margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.38);
+}
+.changelog-title{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
+.changelog-version{font-size:13px;color:var(--text2);margin-top:2px}
+.changelog-list{
+  margin:0;padding:0 20px 4px;list-style:none;
+  position:relative;z-index:1;
+}
+.changelog-list li{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:11px 0;border-bottom:1px solid var(--sep);
+  font-size:15px;line-height:1.4;
+}
+.changelog-list li:last-child{border-bottom:none}
+.changelog-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  flex-shrink:0;margin-top:5px;
+  box-shadow:0 1px 4px rgba(var(--acc-rgb),.4);
+}
+.changelog-footer{padding:16px 20px calc(18px + var(--sab));position:relative;z-index:1}
 </style>
 </head>
 <body>
@@ -1445,6 +1497,21 @@ body{
   </div>
 </div>
 
+<!-- POPUP: CHANGELOG / WAS IST NEU -->
+<div class="ov" id="ov-changelog" onclick="if(event.target===this)dismissChangelog()" style="align-items:center;justify-content:center;padding:24px;z-index:2000">
+  <div class="changelog-card">
+    <div class="changelog-hero">
+      <div class="changelog-badge">✨ Was ist neu</div>
+      <div class="changelog-title">GymTrack Update</div>
+      <div class="changelog-version" id="changelog-version"></div>
+    </div>
+    <ul class="changelog-list" id="changelog-list"></ul>
+    <div class="changelog-footer">
+      <button class="btn btn-acc" onclick="dismissChangelog()">Alles klar! 👍</button>
+    </div>
+  </div>
+</div>
+
 <!-- OVERLAY: KARDIO TIMER -->
 <div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
   <div class="sheet">
@@ -1504,6 +1571,18 @@ const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','�
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
 const APP_VERSION = 'gymtrack-v202605242230';
+
+/* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
+const CHANGELOG = {
+  'gymtrack-v202605242230': [
+    '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
+    '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
+    '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
+    '📊 Muskelgruppen-Statistik mit Verlaufsdiagramm',
+    '🎨 4 Themes: Hell, Rosa, Dunkel & Blau',
+    '🏃 Cardio-Timer mit Benachrichtigung im Hintergrund',
+  ]
+};
 
 /* ── MUSKELGRUPPEN ── */
 const MUSCLE_GROUPS = [
@@ -2722,6 +2801,27 @@ function initTabDrag() {
   }, true);
 }
 
+// ── CHANGELOG POPUP ─────────────────────────────────────
+function showChangelog(version) {
+  const changes = CHANGELOG[version] || [];
+  if (!changes.length) return;
+  const list = document.getElementById('changelog-list');
+  const ver  = document.getElementById('changelog-version');
+  if (ver) ver.textContent = version.replace('gymtrack-v', 'Version ');
+  if (list) {
+    list.innerHTML = changes.map(c =>
+      `<li><span class="changelog-dot"></span><span>${c}</span></li>`
+    ).join('');
+  }
+  openOv('ov-changelog');
+}
+
+function dismissChangelog() {
+  S.lastSeenVersion = APP_VERSION;
+  persist();
+  closeOv('ov-changelog');
+}
+
 // ── WELCOME / ONBOARDING ───────────────────────────────
 function dismissWelcome() {
   S.welcomeShown = true;
@@ -2741,6 +2841,11 @@ initTabDrag();
 // Beim allerersten App-Start Begrüßungssheet zeigen
 if (!S.welcomeShown) {
   setTimeout(() => openOv('ov-welcome'), 350);
+}
+
+// Nach einem Update: Changelog anzeigen (nur wenn Onboarding bereits erledigt)
+if (S.welcomeShown && S.lastSeenVersion !== APP_VERSION && CHANGELOG[APP_VERSION]) {
+  setTimeout(() => showChangelog(APP_VERSION), 500);
 }
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
