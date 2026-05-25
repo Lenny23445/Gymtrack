@@ -1166,6 +1166,10 @@ body{
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div onclick="goTab('settings',document.querySelector('.tab:last-of-type'))" style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:12px;background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.14);cursor:pointer;transition:opacity .15s" onpointerdown="this.style.opacity='.7'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
+      <span style="font-size:14px">💙</span>
+      <span style="font-size:12px;color:var(--text2);line-height:1.4">Gefällt dir GymTrack? Schau mal kurz in die <span style="color:var(--acc);font-weight:600">Einstellungen</span> ›</span>
+    </div>
     <button class="btn btn-acc" onclick="openKardio()">🏃&nbsp; Cardio starten</button>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
