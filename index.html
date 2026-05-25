@@ -1183,6 +1183,223 @@ body{
 }
 .tut-nav .btn{flex:1;width:auto;min-height:50px;padding:14px;font-size:16px}
 .tut-nav .btn-gray{flex:0 1 auto;min-width:108px}
+
+/* ── STREAK CARD (Heute) ── */
+.streak-card{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(255,149,0,.16),rgba(255,59,48,.10));
+  border:1px solid rgba(255,149,0,.28);
+  box-shadow:0 2px 14px rgba(255,149,0,.10);
+}
+.streak-fire{
+  font-size:32px;line-height:1;flex-shrink:0;
+  filter:drop-shadow(0 4px 12px rgba(255,149,0,.45));
+  animation:streak-pulse 2.4s ease-in-out infinite;
+}
+@keyframes streak-pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.08) rotate(-3deg)}
+}
+.streak-body{flex:1;min-width:0}
+.streak-title{font-size:16px;font-weight:700;color:var(--text);line-height:1.2}
+.streak-sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.35}
+.streak-card.cold{
+  background:linear-gradient(135deg,rgba(120,140,170,.10),rgba(120,140,170,.05));
+  border-color:rgba(120,140,170,.20);
+  box-shadow:none;
+}
+.streak-card.cold .streak-fire{
+  filter:grayscale(.7) opacity(.6);
+  animation:none;
+}
+
+/* ── ÜBUNGS-SUCHE ── */
+.ex-search-wrap{
+  padding:0 20px 10px;position:relative;
+}
+.ex-search{
+  width:100%;background:var(--inp-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--gl-bdr);border-radius:14px;
+  padding:11px 14px 11px 38px;font-size:15px;font-family:inherit;
+  outline:none;color:var(--text);
+  transition:background .15s,border-color .15s,box-shadow .15s;
+}
+.ex-search:focus{
+  background:var(--inp-focus);border-color:var(--acc);
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.16);
+}
+.ex-search::placeholder{color:var(--text2);opacity:.7}
+.ex-search-ico{
+  position:absolute;left:32px;top:50%;transform:translateY(-50%);
+  font-size:15px;opacity:.55;pointer-events:none;
+}
+.ex-search-clr{
+  position:absolute;right:30px;top:50%;transform:translateY(-50%);
+  background:none;border:none;font-size:18px;color:var(--text2);
+  cursor:pointer;padding:6px;line-height:1;display:none;
+}
+.ex-search-clr.on{display:block}
+
+/* ── HEATMAP (Statistik) ── */
+.heatmap-wrap{
+  padding:14px;border-radius:18px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  overflow:hidden;position:relative;
+}
+.heatmap-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+.heatmap-scroll::-webkit-scrollbar{display:none}
+.heatmap-grid{
+  display:grid;grid-auto-flow:column;grid-template-rows:repeat(7, 1fr);
+  gap:3px;width:max-content;
+}
+.hm-cell{
+  width:11px;height:11px;border-radius:2.5px;
+  background:rgba(128,128,128,.10);
+  transition:transform .12s;
+}
+.hm-cell.l1{background:rgba(var(--acc-rgb),.30)}
+.hm-cell.l2{background:rgba(var(--acc-rgb),.55)}
+.hm-cell.l3{background:rgba(var(--acc-rgb),.80)}
+.hm-cell.l4{background:var(--acc)}
+.hm-cell.today{outline:1.5px solid var(--text);outline-offset:1px}
+.hm-cell:active{transform:scale(1.4)}
+.heatmap-legend{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:6px;margin-top:8px;font-size:11px;color:var(--text2);
+}
+.heatmap-legend .hm-cell{cursor:default}
+
+/* ── SET-TYPE BADGE (Drop / Warmup / Failure) ── */
+.set-row{grid-template-columns:24px 26px 1fr 1fr 30px 26px !important}
+.set-hdr{grid-template-columns:24px 26px 1fr 1fr 30px 26px !important}
+.set-type{
+  width:24px;height:26px;border-radius:8px;
+  border:1px solid var(--gl-bdr);background:var(--inp-bg);
+  font-size:11px;font-weight:800;color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;font-family:inherit;
+  transition:all .15s;letter-spacing:-.3px;
+}
+.set-type.normal{}
+.set-type.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
+.set-type.drop{background:rgba(0,122,255,.18);border-color:rgba(var(--acc-rgb),.45);color:var(--acc)}
+.set-type.fail{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.45);color:var(--red)}
+.set-type:active{transform:scale(.86)}
+
+/* ── LAST-TIME HINT (Live-Vergleich) ── */
+.set-prev-hint{
+  grid-column:3 / span 2;
+  font-size:10.5px;color:var(--text2);
+  text-align:center;letter-spacing:.2px;
+  margin:-2px 0 6px;opacity:.78;
+  font-variant-numeric:tabular-nums;
+}
+.set-prev-hint b{color:var(--text);font-weight:600}
+
+/* ── EXERCISE LIBRARY PICKER ── */
+.lib-trigger{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.10),rgba(var(--acc-rgb),.04));
+  border:1px solid rgba(var(--acc-rgb),.22);
+  cursor:pointer;width:100%;font-family:inherit;
+  text-align:left;transition:opacity .15s;
+}
+.lib-trigger:active{opacity:.7}
+.lib-trigger-ico{font-size:22px;flex-shrink:0}
+.lib-trigger-body{flex:1;min-width:0}
+.lib-trigger-title{font-size:14px;font-weight:700;color:var(--acc)}
+.lib-trigger-sub{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3}
+.lib-trigger-chev{color:var(--acc);font-size:18px;opacity:.6}
+.lib-cat-row{
+  display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:6px 20px 10px;scrollbar-width:none;
+}
+.lib-cat-row::-webkit-scrollbar{display:none}
+.lib-cat{
+  flex-shrink:0;background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  border-radius:18px;padding:7px 14px;font-size:13px;font-weight:600;
+  color:var(--text);cursor:pointer;font-family:inherit;
+  transition:all .15s;
+}
+.lib-cat.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.lib-list{padding:0 20px 20px;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.lib-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 12px;border-radius:14px;cursor:pointer;
+  transition:background .12s;
+  border-bottom:1px solid var(--sep);
+}
+.lib-item:active{background:rgba(var(--acc-rgb),.08)}
+.lib-item:last-child{border-bottom:none}
+.lib-ico{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.lib-name{font-size:15px;font-weight:600;color:var(--text);line-height:1.25}
+.lib-mg{font-size:12px;color:var(--text2);margin-top:2px}
+.lib-already{font-size:11px;color:var(--green);font-weight:700;margin-left:auto;flex-shrink:0}
+
+/* ── TRAININGSPLAN-TEMPLATES ── */
+.tpl-trigger{
+  display:flex;align-items:center;gap:12px;margin:0 20px 12px;
+  padding:13px 14px;border-radius:16px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.12),rgba(var(--acc-rgb),.05));
+  border:1px solid rgba(var(--acc-rgb),.25);
+  cursor:pointer;font-family:inherit;
+  transition:opacity .15s;
+}
+.tpl-trigger:active{opacity:.7}
+.tpl-trigger-ico{font-size:24px;flex-shrink:0}
+.tpl-trigger-body{flex:1;min-width:0}
+.tpl-trigger-title{font-size:15px;font-weight:700;color:var(--acc)}
+.tpl-trigger-sub{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.35}
+.tpl-trigger-chev{color:var(--acc);font-size:20px;opacity:.6}
+.tpl-list{padding:6px 20px 20px;display:flex;flex-direction:column;gap:10px}
+.tpl-card{
+  padding:14px 16px;border-radius:16px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  cursor:pointer;font-family:inherit;text-align:left;
+  transition:transform .12s,border-color .15s;
+}
+.tpl-card:active{transform:scale(.98)}
+.tpl-card-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:6px;
+}
+.tpl-card-emoji{font-size:22px}
+.tpl-card-title{font-size:16px;font-weight:700;color:var(--text);flex:1}
+.tpl-card-freq{
+  font-size:11px;font-weight:700;color:var(--acc);
+  background:rgba(var(--acc-rgb),.12);
+  padding:3px 9px;border-radius:10px;
+}
+.tpl-card-desc{font-size:13px;color:var(--text2);line-height:1.4}
+.tpl-card-days{
+  display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;
+}
+.tpl-day-chip{
+  font-size:11px;font-weight:600;color:var(--text2);
+  background:rgba(128,128,128,.10);border-radius:8px;
+  padding:3px 8px;
+}
+.tpl-warn{
+  padding:11px 13px;border-radius:12px;margin:0 20px 14px;
+  background:rgba(255,149,0,.10);border:1px solid rgba(255,149,0,.25);
+  font-size:12.5px;color:var(--text2);line-height:1.4;
+}
+.tpl-warn b{color:var(--orange)}
 /* ── AUTO-UPDATE TOAST ── */
 #update-toast{
   position:fixed;top:calc(var(--sat) + 12px);left:50%;
@@ -1327,6 +1544,7 @@ body{
       <span style="font-size:14px">💙</span>
       <span style="font-size:12px;color:var(--text2);line-height:1.4">Gefällt dir GymTrack? Schau mal kurz in die <span style="color:var(--acc);font-weight:600">Einstellungen</span> ›</span>
     </div>
+    <div id="streak-host"></div>
     <button class="btn btn-acc" onclick="openKardio()">🏃&nbsp; Cardio starten</button>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
@@ -1365,6 +1583,12 @@ body{
   <div class="fmode-wrap" id="ex-mode-switch"></div>
   <!-- Gruppen-Filter-Pills (passt sich dem Modus an) -->
   <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:8px 20px 4px"></div>
+  <!-- Suche -->
+  <div class="ex-search-wrap">
+    <span class="ex-search-ico">🔍</span>
+    <input class="ex-search" id="ex-search" type="search" placeholder="Übung suchen…" oninput="setExSearch(this.value)" autocomplete="off">
+    <button class="ex-search-clr" id="ex-search-clr" onclick="setExSearch('',true)" aria-label="Suche leeren">✕</button>
+  </div>
   <div class="pad">
     <div id="ex-list"></div>
     <div class="gap"></div>
@@ -1388,6 +1612,21 @@ body{
       <div class="chart-box"><canvas id="stats-overall-chart" height="170"></canvas></div>
       <div id="stats-overall-empty" style="display:none;padding:18px;color:var(--text2);font-size:14px;text-align:center">
         Noch keine Trainings – starte dein erstes, um deinen Verlauf zu sehen.
+      </div>
+    </div>
+    <div>
+      <div class="s-title" id="heatmap-title">Aktivität · letzte 12 Monate</div>
+      <div class="heatmap-wrap">
+        <div class="heatmap-scroll"><div class="heatmap-grid" id="heatmap-grid"></div></div>
+        <div class="heatmap-legend">
+          <span>weniger</span>
+          <div class="hm-cell"></div>
+          <div class="hm-cell l1"></div>
+          <div class="hm-cell l2"></div>
+          <div class="hm-cell l3"></div>
+          <div class="hm-cell l4"></div>
+          <span>mehr</span>
+        </div>
       </div>
     </div>
     <div>
@@ -1677,6 +1916,16 @@ body{
       <h2 id="ex-sheet-title">Übung hinzufügen</h2>
       <button class="x-btn" onclick="closeOv('ov-ex')">✕</button>
     </div>
+    <div class="px" style="padding-bottom:6px">
+      <button type="button" class="lib-trigger" id="lib-trigger-btn" onclick="openExLibrary()">
+        <span class="lib-trigger-ico">📚</span>
+        <span class="lib-trigger-body">
+          <span class="lib-trigger-title">Aus Bibliothek wählen</span>
+          <span class="lib-trigger-sub">Über 70 fertige Standard-Übungen mit Muskelgruppe</span>
+        </span>
+        <span class="lib-trigger-chev">›</span>
+      </button>
+    </div>
     <div class="px">
       <div class="f-field">
         <label class="f-label">Name</label>
@@ -1748,7 +1997,47 @@ body{
         Plane pro Wochentag eine Trainingsgruppe oder einzelne Übungen. Wiederholt sich jede Woche.
       </div>
     </div>
+    <button type="button" class="tpl-trigger" onclick="openTemplatePicker()">
+      <span class="tpl-trigger-ico">🗂️</span>
+      <span class="tpl-trigger-body">
+        <span class="tpl-trigger-title">Vorlage laden</span>
+        <span class="tpl-trigger-sub">PPL, Upper-Lower, Full Body … mit einem Tap übernehmen</span>
+      </span>
+      <span class="tpl-trigger-chev">›</span>
+    </button>
     <div id="plan-list" class="card" style="margin:8px 20px 20px"></div>
+  </div>
+</div>
+
+<!-- SHEET: ÜBUNGS-BIBLIOTHEK -->
+<div class="ov" id="ov-ex-lib" style="z-index:1003">
+  <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>📚 Übungs-Bibliothek</h2>
+      <button class="x-btn" onclick="closeOv('ov-ex-lib')">✕</button>
+    </div>
+    <div class="ex-search-wrap" style="padding-top:4px">
+      <span class="ex-search-ico">🔍</span>
+      <input class="ex-search" id="lib-search" type="search" placeholder="Suchen…" oninput="renderExLibrary()" autocomplete="off">
+    </div>
+    <div class="lib-cat-row" id="lib-cat-row"></div>
+    <div class="lib-list" id="lib-list"></div>
+  </div>
+</div>
+
+<!-- SHEET: PLAN-VORLAGEN -->
+<div class="ov" id="ov-plan-tpl" style="z-index:1003">
+  <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>🗂️ Trainingsplan-Vorlagen</h2>
+      <button class="x-btn" onclick="closeOv('ov-plan-tpl')">✕</button>
+    </div>
+    <div class="tpl-warn">
+      <b>Hinweis:</b> Beim Übernehmen wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch in deine Bibliothek angelegt.
+    </div>
+    <div class="tpl-list" id="tpl-list"></div>
   </div>
 </div>
 
@@ -2015,10 +2304,20 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252000';
+const APP_VERSION = 'gymtrack-v202605252100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605252100': [
+    '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
+    '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
+    '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
+    '📊 Aktivitäts-Heatmap in der Statistik (letzte 12 Monate, GitHub-Style)',
+    '👀 Live-Vergleich beim Training: „letztes Mal: X kg × Y" unter jedem Satz',
+    '🔍 Suchleiste im Übungen-Tab',
+    '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
+    '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
+  ],
   'gymtrack-v202605252000': [
     '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
     '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
@@ -2333,6 +2632,7 @@ function maxW(sets) {
 
 // ── NAVIGATION ────────────────────────────────────────
 function goTab(id, btn) {
+  haptic(6);
   // Close all open overlays before switching tabs
   document.querySelectorAll('.ov.on').forEach(ov => {
     if (ov.id === 'ov-icons') closeIconPicker();
@@ -2425,6 +2725,7 @@ function renderHome() {
   const h = new Date().getHours();
   document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen 🌅' : h<17 ? 'Guten Tag ☀️' : 'Guten Abend 🌙';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  renderStreak();
   renderSuggestions();
   renderLastSession();
 }
@@ -2538,9 +2839,15 @@ function renderExList() {
 
   // Übungen filtern: aktive Gruppe → muscles=null = alle, sonst Übungen mit muscleGroup in Liste
   const grp = currentGroup();
-  const filtered = !grp.muscles
+  let filtered = !grp.muscles
     ? S.exercises
     : S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup));
+
+  // Such-Filter
+  if (exSearchText) {
+    const q = exSearchText.toLowerCase();
+    filtered = filtered.filter(ex => (ex.name||'').toLowerCase().includes(q));
+  }
 
   sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
 
@@ -2549,7 +2856,11 @@ function renderExList() {
     return;
   }
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${grp.label} hinzu oder wähle eine andere Gruppe.</p></div>`;
+    if (exSearchText) {
+      el.innerHTML = `<div class="empty"><div class="empty-i">🔍</div><h3>Nichts gefunden</h3><p>Für „${exSearchText}" gibt es keine passende Übung in dieser Gruppe.</p></div>`;
+    } else {
+      el.innerHTML = `<div class="empty"><div class="empty-i">🏋️</div><h3>Keine Übungen hier</h3><p>Füge Übungen für ${grp.label} hinzu oder wähle eine andere Gruppe.</p></div>`;
+    }
     return;
   }
 
@@ -3243,6 +3554,7 @@ function dateShort(d) {
 function renderStats() {
   renderStatsSummary();
   renderStatsOverallChart();
+  renderHeatmap();
   renderStatsMuscleGroups();
   renderStatsExerciseList();
 }
@@ -3662,21 +3974,36 @@ function renderLogCards() {
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${ex.targetReps}`;
+    const prevSets = lastSessionSetsFor(log.exerciseId);
     return `<div class="ex-card">
       <div class="ex-head">
         <span class="ex-title">${ex.emoji} ${ex.name}</span>
         <span style="font-size:13px;color:var(--text2)">Ziel: ${goalLabel}</span>
       </div>
       <div class="ex-body">
-        <div class="set-hdr"><span></span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span><span></span></div>
+        <div class="set-hdr"><span></span><span>TYP</span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
           const remaining = Math.max(0, (ex.targetReps||0) - elapsed);
           const timerCls = s.done ? 'done-t' : (s.tRunning ? 'running' : '');
           const timerIcon = s.tRunning ? '⏸' : (s.tElapsed > 0 ? '↺' : '▶');
+          const type = s.type || 'normal';
+          const typeLabel = SET_TYPE_LABEL[type] || '';
+          // Letztes Mal Hint
+          let prevHint = '';
+          if (prevSets && prevSets[si]) {
+            const p = prevSets[si];
+            if (isTime) {
+              const t = parseInt(p.r||p.tElapsed||0);
+              if (t > 0) prevHint = `<div class="set-prev-hint">letztes Mal: <b>${fmtSec(t)}</b>${p.w?` @ <b>${p.w} kg</b>`:''}</div>`;
+            } else if (p.w || p.r) {
+              prevHint = `<div class="set-prev-hint">letztes Mal: <b>${p.w||'–'} kg</b> × <b>${p.r||'–'}</b></div>`;
+            }
+          }
           return `
         <div class="set-row${s.done?' done':''}">
           <div class="set-n">${si+1}</div>
+          <button class="set-type ${type}" onclick="cycleSetType(${li},${si})" title="${SET_TYPE_TITLE[type]} (tippen für Wechsel)">${typeLabel||'•'}</button>
           <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
             oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
           ${isTime
@@ -3691,7 +4018,7 @@ function renderLogCards() {
             <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
           </button>
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
-        </div>`;}).join('')}
+        </div>${prevHint}`;}).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
       </div>
     </div>`;
@@ -3700,7 +4027,9 @@ function renderLogCards() {
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
 function toggleSetDone(li,si) {
-  wkLogs[li].sets[si].done = !wkLogs[li].sets[si].done;
+  const next = !wkLogs[li].sets[si].done;
+  wkLogs[li].sets[si].done = next;
+  haptic(next ? 18 : 8);
   renderLogCards();
 }
 function addSet(li) {
@@ -3735,6 +4064,7 @@ function finishWk() {
 
   S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, logs:valid});
   persist();
+  haptic([20,40,20]);
   closeOv('ov-wk');
   showDone(S.sessions[S.sessions.length-1]);
   renderHome();
@@ -4189,11 +4519,13 @@ function renderTutorial(direction){
 }
 
 function tutNext(){
+  haptic(6);
   if (_tutStep >= TUTORIAL_STEPS.length - 1) { dismissWelcome(); return; }
   _tutStep++;
   renderTutorial('next');
 }
 function tutPrev(){
+  haptic(6);
   if (_tutStep <= 0) return;
   _tutStep--;
   renderTutorial('back');
@@ -4210,6 +4542,419 @@ function dismissWelcome() {
   S.welcomeShown = true;
   persist();
   closeOv('ov-welcome');
+}
+
+// ── HAPTIC FEEDBACK ────────────────────────────────────
+function haptic(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms||10); }catch{} }
+
+// ── STREAK (Wochen in Folge mit mind. einem Training) ──
+function calcStreak(){
+  if (!S.sessions || !S.sessions.length) return { weeks:0, weeksThis:0, lastDate:null };
+  // Hilfsfunktion: Montag-Datum (00:00) für ein Datum
+  const mondayOf = (d) => {
+    const x = new Date(d);
+    x.setHours(0,0,0,0);
+    const dow = (x.getDay() + 6) % 7; // Mo=0..So=6
+    x.setDate(x.getDate() - dow);
+    return x.getTime();
+  };
+  // Set aller Trainings-Wochen-Anker
+  const weeks = new Set(S.sessions.map(s => mondayOf(s.date)));
+  const thisMon = mondayOf(new Date());
+  let count = 0;
+  let cursor = thisMon;
+  // Lücke darf nur letzte Woche sein, wenn diese Woche noch nicht trainiert
+  if (!weeks.has(cursor)) cursor = cursor - 7*86400000;
+  while (weeks.has(cursor)) {
+    count++;
+    cursor -= 7*86400000;
+  }
+  return {
+    weeks: count,
+    weeksThis: weeks.has(thisMon),
+    lastDate: S.sessions.slice().sort((a,b)=> new Date(b.date)-new Date(a.date))[0]?.date
+  };
+}
+function renderStreak(){
+  const host = document.getElementById('streak-host');
+  if (!host) return;
+  const st = calcStreak();
+  if (st.weeks <= 0) {
+    if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
+    host.innerHTML = `<div class="streak-card cold">
+      <div class="streak-fire">🌱</div>
+      <div class="streak-body">
+        <div class="streak-title">Neue Streak starten</div>
+        <div class="streak-sub">Trainiere diese Woche, um deine Serie zu beginnen.</div>
+      </div>
+    </div>`;
+    return;
+  }
+  const wkLabel = st.weeks === 1 ? '1 Woche' : st.weeks + ' Wochen';
+  const sub = st.weeksThis
+    ? 'Diese Woche schon trainiert — weiter so! 💪'
+    : 'Trainiere diese Woche, damit die Serie nicht reißt.';
+  host.innerHTML = `<div class="streak-card${st.weeksThis?'':' cold'}">
+    <div class="streak-fire">${st.weeksThis?'🔥':'⏳'}</div>
+    <div class="streak-body">
+      <div class="streak-title">${wkLabel} in Folge trainiert</div>
+      <div class="streak-sub">${sub}</div>
+    </div>
+  </div>`;
+}
+
+// ── SUCHE im Übungen-Tab ──────────────────────────────
+let exSearchText = '';
+function setExSearch(v, clearInput){
+  exSearchText = (v||'').trim();
+  const clr = document.getElementById('ex-search-clr');
+  if (clr) clr.classList.toggle('on', !!exSearchText);
+  if (clearInput) {
+    const inp = document.getElementById('ex-search');
+    if (inp) inp.value = '';
+  }
+  renderExList();
+}
+
+// ── HEATMAP (letzte 12 Monate, Wochen × Tage) ─────────
+function renderHeatmap(){
+  const grid = document.getElementById('heatmap-grid');
+  if (!grid) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Map: YYYY-MM-DD → summed volume (kg)
+  const map = {};
+  S.sessions.forEach(s => {
+    const d = new Date(s.date); d.setHours(0,0,0,0);
+    const k = d.toISOString().slice(0,10);
+    const v = sessionVolume(s) || 1; // mindestens 1 = trainiert
+    map[k] = (map[k]||0) + v;
+  });
+  // Quartile für Stufen 1..4 aus aktiven Tagen
+  const active = Object.values(map).filter(v=>v>0).sort((a,b)=>a-b);
+  const q = (p) => active.length ? active[Math.min(active.length-1, Math.floor(active.length*p))] : 0;
+  const q1=q(.25), q2=q(.50), q3=q(.75);
+
+  // Start: 52 Wochen rückwärts vom letzten Sonntag
+  const dayOfWeekMon0 = (d) => (d.getDay()+6)%7; // Mo=0
+  const end = new Date(today);
+  end.setDate(today.getDate() + (6 - dayOfWeekMon0(today))); // bis Sonntag der laufenden Woche
+  const start = new Date(end);
+  start.setDate(end.getDate() - (52*7 - 1));
+
+  let html = '';
+  const cur = new Date(start);
+  while (cur <= end) {
+    const k = cur.toISOString().slice(0,10);
+    const v = map[k] || 0;
+    let cls = '';
+    if (v > 0) {
+      if (v > q3) cls = 'l4';
+      else if (v > q2) cls = 'l3';
+      else if (v > q1) cls = 'l2';
+      else cls = 'l1';
+    }
+    const isFuture = cur > today;
+    const isToday = cur.getTime() === today.getTime();
+    const title = isFuture ? '' : (cur.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}) + (v>0?(' · '+fmtKg(v)):' · kein Training'));
+    html += `<div class="hm-cell ${cls}${isToday?' today':''}"${isFuture?' style="visibility:hidden"':''} title="${title}"></div>`;
+    cur.setDate(cur.getDate()+1);
+  }
+  grid.innerHTML = html;
+  // Scroll ans Ende
+  const sc = grid.parentElement;
+  if (sc) sc.scrollLeft = sc.scrollWidth;
+}
+
+// ── ÜBUNGS-BIBLIOTHEK (Standard-Übungen) ──────────────
+const EX_LIBRARY = [
+  // Brust
+  {n:'Bankdrücken',          e:'🏋️', mg:'brust',     s:3, r:8 },
+  {n:'Schrägbankdrücken',    e:'📈', mg:'brust',     s:3, r:10},
+  {n:'Kurzhantel-Bankdrücken',e:'💪', mg:'brust',    s:3, r:10},
+  {n:'Fliegende',            e:'🦋', mg:'brust',     s:3, r:12},
+  {n:'Liegestütze',          e:'🤸', mg:'brust',     s:3, r:15},
+  {n:'Dips',                 e:'⬇️', mg:'brust',     s:3, r:8 },
+  {n:'Butterfly (Maschine)', e:'🦋', mg:'brust',     s:3, r:12},
+  {n:'Kabelzug Brust',       e:'🪢', mg:'brust',     s:3, r:12},
+
+  // Rücken
+  {n:'Klimmzüge',            e:'🆙', mg:'ruecken',   s:3, r:8 },
+  {n:'Latzug',               e:'⬇️', mg:'ruecken',   s:3, r:10},
+  {n:'Rudern (Langhantel)',  e:'🚣', mg:'ruecken',   s:3, r:8 },
+  {n:'Kurzhantel-Rudern',    e:'🚣', mg:'ruecken',   s:3, r:10},
+  {n:'T-Bar Rudern',         e:'🅻', mg:'ruecken',   s:3, r:10},
+  {n:'Kreuzheben',           e:'🏋️', mg:'ruecken',   s:3, r:5 },
+  {n:'Rumänisches Kreuzheben',e:'🦵', mg:'ruecken',  s:3, r:8 },
+  {n:'Hyperextensions',      e:'🦴', mg:'ruecken',   s:3, r:15},
+  {n:'Face Pulls',           e:'😤', mg:'ruecken',   s:3, r:15},
+  {n:'Pullover',             e:'🛏️', mg:'ruecken',   s:3, r:12},
+
+  // Beine
+  {n:'Kniebeugen',           e:'🦵', mg:'beine',     s:3, r:8 },
+  {n:'Front-Kniebeuge',      e:'🦵', mg:'beine',     s:3, r:8 },
+  {n:'Beinpresse',           e:'🦵', mg:'beine',     s:3, r:10},
+  {n:'Ausfallschritte',      e:'🚶', mg:'beine',     s:3, r:12},
+  {n:'Bulgarian Split Squats',e:'🇧🇬', mg:'beine',  s:3, r:10},
+  {n:'Beinstrecker',         e:'🦿', mg:'beine',     s:3, r:12},
+  {n:'Beinbeuger',           e:'🦿', mg:'beine',     s:3, r:12},
+  {n:'Wadenheben',           e:'🦶', mg:'beine',     s:3, r:15},
+  {n:'Hip Thrust',           e:'🍑', mg:'beine',     s:3, r:10},
+  {n:'Goblet Squat',         e:'🥤', mg:'beine',     s:3, r:12},
+
+  // Schultern
+  {n:'Schulterdrücken',      e:'🏋️', mg:'schultern', s:3, r:8 },
+  {n:'KH-Schulterdrücken',   e:'💪', mg:'schultern', s:3, r:10},
+  {n:'Seitheben',            e:'🤷', mg:'schultern', s:3, r:12},
+  {n:'Frontheben',           e:'🙆', mg:'schultern', s:3, r:12},
+  {n:'Reverse Flys',         e:'🦋', mg:'schultern', s:3, r:12},
+  {n:'Aufrechtes Rudern',    e:'🆙', mg:'schultern', s:3, r:10},
+  {n:'Arnold Press',         e:'💪', mg:'schultern', s:3, r:10},
+  {n:'Shrugs',               e:'🤷', mg:'schultern', s:3, r:12},
+
+  // Arme
+  {n:'Bizeps-Curls (KH)',    e:'💪', mg:'arme',      s:3, r:10},
+  {n:'Bizeps-Curls (LH)',    e:'💪', mg:'arme',      s:3, r:10},
+  {n:'Hammer-Curls',         e:'🔨', mg:'arme',      s:3, r:10},
+  {n:'Konzentrations-Curls', e:'🎯', mg:'arme',      s:3, r:12},
+  {n:'Trizeps-Dips',         e:'⬇️', mg:'arme',      s:3, r:10},
+  {n:'Trizepsdrücken (Kabel)',e:'🪢', mg:'arme',     s:3, r:12},
+  {n:'French Press',         e:'🇫🇷', mg:'arme',     s:3, r:10},
+  {n:'Engers Bankdrücken',   e:'🤏', mg:'arme',      s:3, r:8 },
+  {n:'Preacher Curls',       e:'🙏', mg:'arme',      s:3, r:10},
+  {n:'Unterarm-Curls',       e:'✊', mg:'arme',      s:3, r:15},
+
+  // Core
+  {n:'Plank',                e:'🪵', mg:'core',      s:3, r:60, t:'time'},
+  {n:'Seitlicher Plank',     e:'🪵', mg:'core',      s:3, r:45, t:'time'},
+  {n:'Crunches',             e:'😬', mg:'core',      s:3, r:20},
+  {n:'Beinheben',            e:'🦵', mg:'core',      s:3, r:12},
+  {n:'Russian Twists',       e:'🌀', mg:'core',      s:3, r:20},
+  {n:'Mountain Climbers',    e:'⛰️', mg:'core',      s:3, r:30, t:'time'},
+  {n:'Hollow Hold',          e:'🌑', mg:'core',      s:3, r:30, t:'time'},
+  {n:'Cable Crunches',       e:'🪢', mg:'core',      s:3, r:15},
+  {n:'Käfer',                e:'🪲', mg:'core',      s:3, r:20},
+  {n:'Hängendes Beinheben',  e:'🦵', mg:'core',      s:3, r:10},
+
+  // Cardio (als Zeit-Übungen unter Core gruppiert? Eher als "ohne MG")
+  {n:'Laufband',             e:'🏃', mg:'',          s:1, r:1200, t:'time'},
+  {n:'Rad fahren',           e:'🚴', mg:'beine',     s:1, r:1500, t:'time'},
+  {n:'Rudern (Cardio)',      e:'🚣', mg:'ruecken',   s:1, r:1200, t:'time'},
+  {n:'Seilspringen',         e:'🪢', mg:'',          s:3, r:60,  t:'time'},
+];
+let _libCat = 'alle';
+function openExLibrary(){
+  haptic(8);
+  _libCat = 'alle';
+  const s = document.getElementById('lib-search'); if (s) s.value = '';
+  renderExLibrary();
+  openOv('ov-ex-lib');
+}
+function setLibCat(id){ _libCat = id; renderExLibrary(); }
+function renderExLibrary(){
+  const cats = [{id:'alle',label:'Alle'}, ...MUSCLE_GROUPS];
+  const catBar = document.getElementById('lib-cat-row');
+  if (catBar) {
+    catBar.innerHTML = cats.map(c =>
+      `<button class="lib-cat${_libCat===c.id?' on':''}" onclick="setLibCat('${c.id}')">${c.label}</button>`
+    ).join('');
+  }
+  const q = (document.getElementById('lib-search')?.value || '').trim().toLowerCase();
+  const list = document.getElementById('lib-list');
+  const existingNames = new Set(S.exercises.map(e => e.name.toLowerCase()));
+  const items = EX_LIBRARY.filter(it => {
+    if (_libCat !== 'alle' && it.mg !== _libCat) return false;
+    if (q && !it.n.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--text2);font-size:14px">Keine Übungen gefunden.</div>`;
+    return;
+  }
+  list.innerHTML = items.map((it,i) => {
+    const has = existingNames.has(it.n.toLowerCase());
+    return `<div class="lib-item" onclick="pickExFromLibrary(${i},'${_libCat}','${(q||'').replace(/'/g,"\\'")}')">
+      <div style="flex:1;min-width:0">
+        <div class="lib-name">${it.n}</div>
+        <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : '—'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
+      </div>
+      ${has ? '<span class="lib-already">✓ vorhanden</span>' : ''}
+    </div>`;
+  }).join('');
+}
+function pickExFromLibrary(filteredIdx, cat, q){
+  // Re-filter to find the actual item (matching renderExLibrary order)
+  const items = EX_LIBRARY.filter(it => {
+    if (cat !== 'alle' && it.mg !== cat) return false;
+    if (q && !it.n.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
+  const it = items[filteredIdx];
+  if (!it) return;
+  haptic(15);
+  // Werte ins Formular übernehmen
+  document.getElementById('in-name').value = it.n;
+  document.getElementById('in-sets').value = it.s;
+  document.getElementById('in-reps').value = it.r;
+  selEmoji  = it.e;
+  selMuscle = it.mg || '';
+  setExType(it.t === 'time' ? 'time' : 'reps');
+  renderEmoGrid();
+  renderMusclePicker();
+  closeOv('ov-ex-lib');
+}
+
+// ── TRAININGSPLAN-VORLAGEN ────────────────────────────
+const PLAN_TEMPLATES = [
+  {
+    id:'ppl6', emoji:'🔄', title:'Push · Pull · Legs (6×/Woche)', freq:'6 Tage',
+    desc:'Klassisches Bodybuilding-Schema. Push (Brust/Schulter/Trizeps), Pull (Rücken/Bizeps), Legs zweimal die Woche.',
+    days:{
+      mon:{type:'group',group:'push'},
+      tue:{type:'group',group:'pull'},
+      wed:{type:'group',group:'legs'},
+      thu:{type:'group',group:'push'},
+      fri:{type:'group',group:'pull'},
+      sat:{type:'group',group:'legs'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'ppl3', emoji:'🏋️', title:'Push · Pull · Legs (3×/Woche)', freq:'3 Tage',
+    desc:'Einsteiger-Variante: Eine PPL-Runde pro Woche mit 1–2 Tagen Pause zwischen Einheiten.',
+    days:{
+      mon:{type:'group',group:'push'},
+      tue:{type:'none'},
+      wed:{type:'group',group:'pull'},
+      thu:{type:'none'},
+      fri:{type:'group',group:'legs'},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'upperlower', emoji:'⬆️', title:'Upper · Lower (4×/Woche)', freq:'4 Tage',
+    desc:'Oberkörper- und Unterkörper-Splits jeweils zweimal. Solide Mischung aus Volumen und Erholung.',
+    days:{
+      mon:{type:'group',group:'ober'},
+      tue:{type:'group',group:'unter'},
+      wed:{type:'none'},
+      thu:{type:'group',group:'ober'},
+      fri:{type:'group',group:'unter'},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'fullbody3', emoji:'💪', title:'Full Body (3×/Woche)', freq:'3 Tage',
+    desc:'Ganzkörper jeweils Mo/Mi/Fr. Ideal für Einsteiger oder bei wenig Zeit.',
+    days:{
+      mon:{type:'exercises', libNames:['Kniebeugen','Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Plank']},
+      tue:{type:'none'},
+      wed:{type:'exercises', libNames:['Kreuzheben','Klimmzüge','KH-Schulterdrücken','Beinpresse','Crunches']},
+      thu:{type:'none'},
+      fri:{type:'exercises', libNames:['Kniebeugen','Schrägbankdrücken','Latzug','Seitheben','Beinheben']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'arnold', emoji:'🏆', title:'Arnold Split (6×/Woche)', freq:'6 Tage',
+    desc:'Brust+Rücken, Schultern+Arme, Beine — zweimal pro Woche. Hohes Volumen, fortgeschritten.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Klimmzüge','Rudern (Langhantel)']},
+      tue:{type:'exercises', libNames:['Schulterdrücken','Seitheben','Bizeps-Curls (LH)','Trizepsdrücken (Kabel)']},
+      wed:{type:'group', group:'legs'},
+      thu:{type:'exercises', libNames:['KH-Bankdrücken','Fliegende','Latzug','T-Bar Rudern']},
+      fri:{type:'exercises', libNames:['Arnold Press','Reverse Flys','Hammer-Curls','French Press']},
+      sat:{type:'group', group:'legs'},
+      sun:{type:'none'}
+    }
+  }
+];
+function openTemplatePicker(){
+  haptic(8);
+  renderTemplatePicker();
+  openOv('ov-plan-tpl');
+}
+function renderTemplatePicker(){
+  const el = document.getElementById('tpl-list');
+  if (!el) return;
+  el.innerHTML = PLAN_TEMPLATES.map(t => {
+    const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
+    return `<button class="tpl-card" onclick="applyTemplate('${t.id}')">
+      <div class="tpl-card-head">
+        <span class="tpl-card-title">${t.title}</span>
+        <span class="tpl-card-freq">${t.freq}</span>
+      </div>
+      <div class="tpl-card-desc">${t.desc}</div>
+      <div class="tpl-card-days">${days.map(d => `<span class="tpl-day-chip">${d}</span>`).join('')}</div>
+    </button>`;
+  }).join('');
+}
+function applyTemplate(id){
+  const tpl = PLAN_TEMPLATES.find(t => t.id === id);
+  if (!tpl) return;
+  if (!confirm('Aktuellen Wochenplan überschreiben mit „'+tpl.title+'"?')) return;
+  haptic(20);
+  // Neuer Plan: Library-Übungen ggf. anlegen, IDs auflösen
+  const newPlan = {};
+  Object.entries(tpl.days).forEach(([dayKey, def]) => {
+    if (def.type === 'group') {
+      newPlan[dayKey] = { type:'group', group: def.group };
+    } else if (def.type === 'exercises' && Array.isArray(def.libNames)) {
+      const ids = [];
+      def.libNames.forEach(name => {
+        let ex = S.exercises.find(e => e.name.toLowerCase() === name.toLowerCase());
+        if (!ex) {
+          const libItem = EX_LIBRARY.find(it => it.n === name);
+          if (libItem) {
+            const newEx = {
+              id: uid(), name: libItem.n, emoji: libItem.e, muscleGroup: libItem.mg || '',
+              targetSets: libItem.s, targetReps: libItem.r, targetWeight: 0,
+              targetType: libItem.t === 'time' ? 'time' : 'reps'
+            };
+            S.exercises.push(newEx);
+            ex = newEx;
+          }
+        }
+        if (ex) ids.push(ex.id);
+      });
+      newPlan[dayKey] = ids.length ? { type:'exercises', exIds: ids } : { type:'none' };
+    } else {
+      newPlan[dayKey] = { type:'none' };
+    }
+  });
+  ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!newPlan[k]) newPlan[k] = {type:'none'}; });
+  S.weekPlan = newPlan;
+  persist();
+  scheduleWorkoutNotifications();
+  closeOv('ov-plan-tpl');
+  renderPlanList();
+  renderExList();
+  renderHome();
+  // Toast
+  const t = document.getElementById('update-toast');
+  if (t) { t.textContent = '✓ Plan übernommen: ' + tpl.title; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
+}
+
+// ── SET-TYPEN (normal / warmup / drop / fail) ─────────
+const SET_TYPES = ['normal','warmup','drop','fail'];
+const SET_TYPE_LABEL = { normal:'', warmup:'W', drop:'D', fail:'F' };
+const SET_TYPE_TITLE = { normal:'Normal', warmup:'Aufwärmen', drop:'Drop-Satz', fail:'Bis zum Versagen' };
+function cycleSetType(li, si){
+  const s = wkLogs[li].sets[si];
+  const cur = s.type || 'normal';
+  const idx = SET_TYPES.indexOf(cur);
+  s.type = SET_TYPES[(idx + 1) % SET_TYPES.length];
+  haptic(8);
+  renderLogCards();
+}
+
+// ── LIVE-VERGLEICH: letztes Mal pro Satz ──────────────
+function lastSessionSetsFor(exId){
+  const hist = exHistory(exId);
+  if (!hist.length) return null;
+  return hist[hist.length-1].sets || null;
 }
 
 // ── INIT ──────────────────────────────────────────────
