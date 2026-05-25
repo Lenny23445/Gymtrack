@@ -1568,6 +1568,7 @@ body{
       <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
         <div class="s-title" id="wk-step1-title">Welche Übungen heute?</div>
+        <div id="wk-plan-hint" style="display:none;margin-bottom:10px;padding:10px 12px;background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20);border-radius:12px;font-size:13px;color:var(--acc);font-weight:600"></div>
         <div class="card" id="wk-picker"></div>
         <div class="gap"></div>
         <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten ▶</button>
@@ -2903,6 +2904,27 @@ function openWorkout() {
   wkExIds = [];
   wkLogs  = [];
   wkCatFilter = 'alle';
+
+  // Heutige Übungen aus dem Wochenplan vorauswählen
+  let planHintText = '';
+  const todayPlan = planFor(todayKey());
+  if (todayPlan.type === 'exercises' && Array.isArray(todayPlan.exIds) && todayPlan.exIds.length) {
+    wkExIds = todayPlan.exIds.filter(id => S.exercises.some(ex => ex.id === id));
+    if (wkExIds.length) planHintText = '📅 ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
+  } else if (todayPlan.type === 'group' && todayPlan.group) {
+    for (const m of GROUP_MODES) {
+      const g = m.groups.find(g => g.id === todayPlan.group);
+      if (g && g.muscles) {
+        wkExIds = S.exercises.filter(ex => g.muscles.includes(ex.muscleGroup)).map(ex => ex.id);
+        if (wkExIds.length) planHintText = '📅 ' + g.label + ' aus deinem Wochenplan vorausgewählt';
+        break;
+      }
+    }
+  }
+
+  const hint = document.getElementById('wk-plan-hint');
+  if (hint) { hint.style.display = planHintText ? '' : 'none'; hint.textContent = planHintText; }
+
   document.getElementById('wk-step1').style.display = '';
   document.getElementById('wk-step2').style.display = 'none';
   document.getElementById('wk-title').textContent = 'Training';
