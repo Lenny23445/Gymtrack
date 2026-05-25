@@ -1072,7 +1072,8 @@ body{
       </div>
     </div>
     <div>
-      <div class="s-title">Muskelgruppen</div>
+      <div class="s-title" id="stats-mg-title">Muskelgruppen</div>
+      <div class="fmode-wrap" id="stats-mode-switch" style="margin:0 0 10px"></div>
       <div class="card" id="stats-mg-list"></div>
     </div>
     <div>
@@ -1423,8 +1424,11 @@ body{
     </div>
     <div class="px">
       <div id="det-sug" style="margin-bottom:10px"></div>
+      <div id="det-1rm" style="margin-bottom:14px"></div>
       <div class="s-title">Gewichtsverlauf</div>
       <div class="chart-box" style="margin-bottom:14px"><canvas id="det-chart" height="160"></canvas></div>
+      <div class="s-title">1RM-Verlauf <span style="font-weight:500;text-transform:none;letter-spacing:0">(geschätzt · Epley)</span></div>
+      <div class="chart-box" style="margin-bottom:14px"><canvas id="det-1rm-chart" height="160"></canvas></div>
       <div class="s-title">Letzte Einheiten</div>
       <div class="card" id="det-hist"></div>
       <div class="gap" style="height:12px"></div>
@@ -1570,10 +1574,16 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605242230';
+const APP_VERSION = 'gymtrack-v202605250100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605250100': [
+    '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
+    '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
+    '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
+    '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
+  ],
   'gymtrack-v202605242230': [
     '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
     '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
@@ -1706,6 +1716,7 @@ S.companion   = S.companion   || 'dackel';
 S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 S.exFilterMode = S.exFilterMode || 'muskel';
 S.wkFilterMode = S.wkFilterMode || 'muskel';
+S.statsFilterMode = S.statsFilterMode || 'muskel';
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -1720,6 +1731,7 @@ let wkLogs  = [];
 let timerInt = null, timerTs = null;
 let detId = null;
 let detChart = null;
+let det1rmChart = null;
 let statsOverallChart = null;
 let mgStatChart = null;
 let mgStatId = null;
@@ -2058,6 +2070,8 @@ function openDet(exId) {
 
   const hist = exHistory(exId);
   renderDetChart(hist);
+  renderDet1rmChart(hist);
+  render1rmCard(hist);
 
   const histEl = document.getElementById('det-hist');
   if (!hist.length) {
@@ -2067,16 +2081,80 @@ function openDet(exId) {
       const d = new Date(h.date);
       const w = maxW(h.sets);
       const totalR = h.sets.reduce((s,set)=>s+(parseInt(set.r)||0),0);
+      const e1rm = setsBest1RM(h.sets);
       return `<div class="row">
         <div class="row-body">
           <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})}</div>
-          <div class="row-sub">${h.sets.length} Sätze · Max ${w} kg · ${totalR} Wdh</div>
+          <div class="row-sub">${h.sets.length} Sätze · Max ${w} kg · ${totalR} Wdh · 1RM ${fmt1RM(e1rm)}</div>
         </div>
         <span class="badge b-acc">${w} kg</span>
       </div>`;
     }).join('');
   }
   openOv('ov-det');
+}
+
+function render1rmCard(hist) {
+  const el = document.getElementById('det-1rm');
+  if (!el) return;
+  if (!hist.length) { el.innerHTML = ''; return; }
+  let best = 0, bestSet = null;
+  hist.forEach(h => (h.sets || []).forEach(s => {
+    const e = epley1RM(s.w, s.r);
+    if (e > best) { best = e; bestSet = { w: s.w, r: s.r, date: h.date }; }
+  }));
+  const last = hist[hist.length - 1];
+  const last1rm = last ? setsBest1RM(last.sets) : 0;
+  const delta = best && last1rm ? ((last1rm - best) / best) * 100 : 0;
+  const bestSub = bestSet
+    ? `aus ${bestSet.r}×${bestSet.w} kg · ${new Date(bestSet.date).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'2-digit'})}`
+    : '–';
+  el.innerHTML = `
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Geschätztes 1RM</div>
+          <div style="font-size:28px;font-weight:700;color:var(--acc);line-height:1.1">${fmt1RM(best)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${bestSub}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Letzte</div>
+          <div style="font-size:18px;font-weight:700">${fmt1RM(last1rm)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDet1rmChart(hist) {
+  const canvas = document.getElementById('det-1rm-chart');
+  if (det1rmChart) { det1rmChart.destroy(); det1rmChart = null; }
+  if (!canvas) return;
+  const pts = hist
+    .map(h => ({x: new Date(h.date).toLocaleDateString('de-DE',{day:'numeric',month:'short'}), y: setsBest1RM(h.sets)}))
+    .filter(p => p.y > 0);
+  if (!pts.length) { canvas.style.display = 'none'; return; }
+  canvas.style.display = '';
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+  det1rmChart = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{
+      labels: pts.map(p=>p.x),
+      datasets:[{
+        data: pts.map(p=>p.y),
+        borderColor: acc, backgroundColor: acc+'22',
+        fill:true, tension:.4, pointBackgroundColor:acc,
+        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt1RM(c.parsed.y)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>v.toFixed(0)+' kg'}}
+      }
+    }
+  });
 }
 
 function renderDetChart(hist) {
@@ -2113,6 +2191,28 @@ function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
 // ── STATISTIK ─────────────────────────────────────────
 function setsVolume(sets) {
   return sets.reduce((sum, s) => sum + (parseFloat(s.w)||0) * (parseInt(s.r)||0), 0);
+}
+
+// ── 1RM (Epley-Formel: w × (1 + r/30)) ────────────────
+function epley1RM(weight, reps) {
+  const w = parseFloat(weight) || 0;
+  const r = parseInt(reps) || 0;
+  if (w <= 0 || r <= 0) return 0;
+  return w * (1 + r / 30);
+}
+function setsBest1RM(sets) {
+  let best = 0;
+  (sets || []).forEach(s => { const e = epley1RM(s.w, s.r); if (e > best) best = e; });
+  return best;
+}
+function exBest1RM(exId) {
+  let best = 0;
+  exHistory(exId).forEach(h => { const e = setsBest1RM(h.sets); if (e > best) best = e; });
+  return best;
+}
+function fmt1RM(v) {
+  if (!v) return '–';
+  return v.toFixed(1).replace('.', ',') + ' kg';
 }
 
 function sessionVolume(session, exFilterIds) {
@@ -2200,12 +2300,40 @@ function renderStatsOverallChart() {
   });
 }
 
+function statsMode()  { return GROUP_MODES.find(m => m.id === S.statsFilterMode) || GROUP_MODES[0]; }
+
+function setStatsFilterMode(mode) {
+  if (S.statsFilterMode === mode) return;
+  S.statsFilterMode = mode;
+  persist();
+  renderStatsMuscleGroups();
+}
+
 function renderStatsMuscleGroups() {
+  // Mode-Switcher (Muskeln / Push·Pull·Legs / Ober·Unter)
+  const modeBar = document.getElementById('stats-mode-switch');
+  if (modeBar) {
+    modeBar.innerHTML = GROUP_MODES.map(m =>
+      `<button class="fmode-btn${S.statsFilterMode===m.id?' on':''}" onclick="setStatsFilterMode('${m.id}')">${m.label}</button>`
+    ).join('');
+  }
+  // Titel an Modus anpassen
+  const title = document.getElementById('stats-mg-title');
+  if (title) {
+    const m = statsMode();
+    title.textContent = m.id === 'muskel' ? 'Muskelgruppen' : (m.id === 'ppl' ? 'Push · Pull · Legs' : 'Ober- · Unterkörper');
+  }
+
   const el = document.getElementById('stats-mg-list');
-  const rows = MUSCLE_GROUPS.map(g => {
-    const exIds = S.exercises.filter(e => e.muscleGroup === g.id).map(e => e.id);
+  const mode = statsMode();
+  const groups = mode.groups.filter(g => g.muscles && g.muscles.length);
+
+  const rows = groups.map(g => {
+    const exIds = S.exercises.filter(e => g.muscles.includes(e.muscleGroup)).map(e => e.id);
     const vol = S.sessions.reduce((sum, ses) => sum + sessionVolume(ses, exIds), 0);
-    return { g, exCount: exIds.length, vol };
+    let best1rm = 0;
+    exIds.forEach(id => { const e = exBest1RM(id); if (e > best1rm) best1rm = e; });
+    return { g, exCount: exIds.length, vol, best1rm };
   }).filter(r => r.exCount > 0);
 
   if (!rows.length) {
@@ -2215,10 +2343,10 @@ function renderStatsMuscleGroups() {
     return;
   }
   el.innerHTML = rows.map(r => `
-    <div class="row tap" onclick="openMuscleStat('${r.g.id}')">
+    <div class="row tap" onclick="openGroupStat('${r.g.id}')">
       <div class="row-body">
         <div class="row-title">${r.g.label}</div>
-        <div class="row-sub">${r.exCount} Übung${r.exCount!==1?'en':''} · ${fmtKg(r.vol)} Volumen</div>
+        <div class="row-sub">${r.exCount} Übung${r.exCount!==1?'en':''} · ${fmtKg(r.vol)} Volumen${r.best1rm ? ' · 1RM '+fmt1RM(r.best1rm) : ''}</div>
       </div>
       <div class="chev">›</div>
     </div>
@@ -2245,7 +2373,8 @@ function renderStatsExerciseList() {
     const lw   = last ? maxW(last.sets) : 0;
     const ses  = hist.length;
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '–';
-    const sub  = `${mgLabel} · ${ses} Einheit${ses!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}`;
+    const e1rm = exBest1RM(ex.id);
+    const sub  = `${mgLabel} · ${ses} Einheit${ses!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}${e1rm ? ' · 1RM '+fmt1RM(e1rm) : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
       <div class="ico">${ex.emoji}</div>
       <div class="row-body">
@@ -2257,40 +2386,47 @@ function renderStatsExerciseList() {
   }).join('');
 }
 
-// ── MUSKELGRUPPEN-DETAIL ──────────────────────────────
-function openMuscleStat(mgId) {
-  mgStatId = mgId;
-  const g = MUSCLE_GROUPS.find(g => g.id === mgId);
-  if (!g) return;
+// ── GRUPPEN-DETAIL (Muskel / PPL / Ober-Unter) ────────
+function openGroupStat(groupId) {
+  const mode = statsMode();
+  const g = mode.groups.find(g => g.id === groupId);
+  if (!g || !g.muscles) return;
+  mgStatId = groupId;
   document.getElementById('mg-stat-title').textContent = g.label;
 
-  const exIds = S.exercises.filter(e => e.muscleGroup === mgId).map(e => e.id);
+  const exIds = S.exercises.filter(e => g.muscles.includes(e.muscleGroup)).map(e => e.id);
   const sessions = [...S.sessions]
     .map(s => ({date: s.date, vol: sessionVolume(s, exIds)}))
     .filter(s => s.vol > 0)
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-  // Summary
+  // Summary inkl. bestem 1RM
   const totalVol = sessions.reduce((a,s) => a + s.vol, 0);
   const sesCount = sessions.length;
+  let best1rm = 0;
+  exIds.forEach(id => { const e = exBest1RM(id); if (e > best1rm) best1rm = e; });
   document.getElementById('mg-stat-summary').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
-        <div style="font-size:22px;font-weight:700">${sesCount}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 6px;box-shadow:var(--gl-shad)">
+        <div style="font-size:20px;font-weight:700">${sesCount}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px">Einheiten</div>
       </div>
-      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
-        <div style="font-size:22px;font-weight:700">${fmtKg(totalVol)}</div>
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 6px;box-shadow:var(--gl-shad)">
+        <div style="font-size:20px;font-weight:700">${fmtKg(totalVol)}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px">Volumen</div>
+      </div>
+      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 6px;box-shadow:var(--gl-shad)">
+        <div style="font-size:20px;font-weight:700;color:var(--acc)">${best1rm ? fmt1RM(best1rm) : '–'}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Bestes 1RM</div>
       </div>
     </div>`;
 
   // Chart
   renderMgStatChart(sessions);
 
-  // Übungen dieser Muskelgruppe
+  // Übungen dieser Gruppe
   const exEl = document.getElementById('mg-stat-ex');
-  const exs  = S.exercises.filter(e => e.muscleGroup === mgId);
+  const exs  = S.exercises.filter(e => g.muscles.includes(e.muscleGroup));
   if (!exs.length) {
     exEl.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:14px">Keine Übungen in dieser Gruppe.</div>`;
   } else {
@@ -2298,11 +2434,12 @@ function openMuscleStat(mgId) {
       const hist = exHistory(ex.id);
       const last = hist.length ? hist[hist.length-1] : null;
       const lw = last ? maxW(last.sets) : 0;
+      const e1rm = exBest1RM(ex.id);
       return `<div class="row tap" onclick="closeOv('ov-mg-stat');setTimeout(()=>openDet('${ex.id}'),120)">
         <div class="ico">${ex.emoji}</div>
         <div class="row-body">
           <div class="row-title">${ex.name}</div>
-          <div class="row-sub">${hist.length} Einheit${hist.length!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}</div>
+          <div class="row-sub">${hist.length} Einheit${hist.length!==1?'en':''}${lw ? ' · Max '+lw+' kg' : ''}${e1rm ? ' · 1RM '+fmt1RM(e1rm) : ''}</div>
         </div>
         <div class="chev">›</div>
       </div>`;
@@ -2311,6 +2448,8 @@ function openMuscleStat(mgId) {
 
   openOv('ov-mg-stat');
 }
+// Rückwärts-kompatibler Alias
+const openMuscleStat = openGroupStat;
 
 function renderMgStatChart(sessions) {
   const empty = document.getElementById('mg-stat-empty');
