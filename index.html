@@ -1450,11 +1450,15 @@ body{
       <label class="f-label">Muskelgruppe</label>
     </div>
     <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
-    <div style="padding:0 20px 8px;display:flex;align-items:center;justify-content:space-between">
-      <label class="f-label" style="margin:0">Icon</label>
-      <button class="icat on" onclick="openIconPicker()" style="font-size:12px;padding:5px 13px">Alle Icons &nbsp;→</button>
+    <div class="px" style="padding-bottom:16px">
+      <label class="f-label">Icon</label>
+      <button type="button" id="ex-icon-btn" onclick="openIconPicker()"
+        style="display:flex;align-items:center;gap:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 16px;cursor:pointer;font-family:inherit;width:100%;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent">
+        <span id="ex-icon-preview" style="font-size:30px;line-height:1;flex-shrink:0">🏋️</span>
+        <span style="font-size:15px;font-weight:600;color:var(--acc);flex:1;text-align:left">Icon auswählen</span>
+        <span style="font-size:18px;color:var(--text2);opacity:.5">›</span>
+      </button>
     </div>
-    <div class="emo-grid" id="emo-grid"></div>
     <div class="px">
       <div class="f-field">
         <label class="f-label">Ziel pro Einheit</label>
@@ -1790,10 +1794,13 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251600';
+const APP_VERSION = 'gymtrack-v202605251700';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605251700': [
+    '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
+  ],
   'gymtrack-v202605251600': [
     '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
   ],
@@ -2553,9 +2560,8 @@ function toggleExDay(k) {
 }
 
 function renderEmoGrid() {
-  document.getElementById('emo-grid').innerHTML = EMOJIS.map(e =>
-    `<button class="emo-btn${e===selEmoji?' on':''}" onclick="pickEmo('${e}')">${e}</button>`
-  ).join('');
+  const preview = document.getElementById('ex-icon-preview');
+  if (preview) preview.textContent = selEmoji;
 }
 function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
 
