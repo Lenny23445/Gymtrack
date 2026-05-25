@@ -1184,6 +1184,110 @@ body{
 .tut-nav .btn{flex:1;width:auto;min-height:50px;padding:14px;font-size:16px}
 .tut-nav .btn-gray{flex:0 1 auto;min-width:108px}
 
+/* ── GUIDED TOUR (Spotlight) ── */
+.tour-veil{
+  position:fixed;z-index:1500;
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(1.5px);
+  -webkit-backdrop-filter:blur(1.5px);
+  transition:left .42s cubic-bezier(.34,1.2,.64,1),
+             top .42s cubic-bezier(.34,1.2,.64,1),
+             right .42s cubic-bezier(.34,1.2,.64,1),
+             bottom .42s cubic-bezier(.34,1.2,.64,1),
+             width .42s cubic-bezier(.34,1.2,.64,1),
+             height .42s cubic-bezier(.34,1.2,.64,1),
+             opacity .3s;
+  cursor:pointer;
+}
+.tour-ring{
+  position:fixed;z-index:1501;
+  border-radius:14px;pointer-events:none;
+  border:2.5px solid var(--acc);
+  box-shadow:0 0 0 4px rgba(var(--acc-rgb),.18),
+             0 0 28px rgba(var(--acc-rgb),.55),
+             inset 0 0 0 1px rgba(255,255,255,.10);
+  transition:left .42s cubic-bezier(.34,1.2,.64,1),
+             top .42s cubic-bezier(.34,1.2,.64,1),
+             width .42s cubic-bezier(.34,1.2,.64,1),
+             height .42s cubic-bezier(.34,1.2,.64,1),
+             opacity .3s;
+  animation:tour-pulse 2.2s ease-in-out infinite;
+}
+@keyframes tour-pulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(var(--acc-rgb),.18),0 0 24px rgba(var(--acc-rgb),.50),inset 0 0 0 1px rgba(255,255,255,.10)}
+  50%   {box-shadow:0 0 0 8px rgba(var(--acc-rgb),.12),0 0 38px rgba(var(--acc-rgb),.80),inset 0 0 0 1px rgba(255,255,255,.12)}
+}
+.tour-card{
+  position:fixed;z-index:1502;
+  max-width:360px;width:calc(100vw - 32px);
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(50px) saturate(220%);
+  -webkit-backdrop-filter:blur(50px) saturate(220%);
+  border:1px solid var(--gl-bdr);
+  border-radius:22px;
+  padding:14px 18px 14px;
+  box-shadow:var(--gl-shad-lg),var(--gl-hi);
+  transition:top .42s cubic-bezier(.34,1.2,.64,1),
+             opacity .3s,transform .35s;
+  animation:tour-card-in .42s cubic-bezier(.34,1.2,.64,1) both;
+}
+@keyframes tour-card-in{
+  from{opacity:0;transform:translateY(8px) scale(.97)}
+  to  {opacity:1;transform:translateY(0)   scale(1)}
+}
+.tour-card-step{
+  font-size:10.5px;font-weight:700;color:var(--acc);
+  letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px;
+}
+.tour-card-title{
+  font-size:18px;font-weight:700;color:var(--text);
+  margin-bottom:5px;letter-spacing:-.2px;line-height:1.25;
+}
+.tour-card-body{
+  font-size:13.5px;color:var(--text2);
+  line-height:1.5;margin-bottom:12px;
+}
+.tour-card-hint{
+  font-size:12px;color:var(--acc);font-weight:600;
+  display:flex;align-items:center;gap:6px;
+  margin:-6px 0 12px;
+}
+.tour-card-hint::before{content:'👆';font-size:14px;filter:drop-shadow(0 2px 4px rgba(var(--acc-rgb),.4))}
+.tour-card-nav{
+  display:flex;align-items:center;gap:8px;
+}
+.tour-card-dots{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.tour-card-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--gl-bdr2);transition:all .25s;
+}
+.tour-card-dot.on{background:var(--acc);width:16px;border-radius:3px}
+.tour-card-dot.done{background:rgba(var(--acc-rgb),.45)}
+.tour-card-nav button{
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  color:var(--text);font-family:inherit;font-size:13px;font-weight:600;
+  padding:9px 14px;border-radius:11px;cursor:pointer;
+  transition:opacity .15s,transform .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.tour-card-nav button.primary{
+  background:linear-gradient(148deg,var(--acc),var(--acc2));
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.35);
+  min-width:88px;
+}
+.tour-card-nav button:active{opacity:.7;transform:scale(.95)}
+.tour-skip-x{
+  position:absolute;top:9px;right:11px;
+  background:none;border:none;color:var(--text2);
+  font-size:18px;cursor:pointer;padding:6px;line-height:1;
+  font-family:inherit;border-radius:50%;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.tour-skip-x:hover{background:rgba(128,128,128,.12)}
+.tour-skip-x:active{opacity:.55}
+
 /* ── STREAK CARD (Heute) ── */
 .streak-card{
   display:flex;align-items:center;gap:14px;
@@ -1809,11 +1913,11 @@ body{
           </div>
           <div class="chev" id="update-chev">›</div>
         </div>
-        <div class="row tap" onclick="openTutorial()">
+        <div class="row tap" id="reset-tour-row" onclick="openTutorial()">
           <div class="ico">🎓</div>
           <div class="row-body">
             <div class="row-title">Tour neu starten</div>
-            <div class="row-sub">Alle Funktionen in 7 Schritten erklärt</div>
+            <div class="row-sub">Geführte Tour durch alle Funktionen der App</div>
           </div>
           <div class="chev">›</div>
         </div>
@@ -2304,10 +2408,14 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252130';
+const APP_VERSION = 'gymtrack-v202605252200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605252200': [
+    '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
+    '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
+  ],
   'gymtrack-v202605252130': [
     '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
   ],
@@ -4551,9 +4659,8 @@ function tutPrev(){
 function tutSkip(){ dismissWelcome(); }
 
 function openTutorial(){
-  _tutStep = 0;
-  renderTutorial('next');
-  openOv('ov-welcome');
+  // Geführte Spotlight-Tour statt altem Sheet
+  startGuidedTour();
 }
 
 function dismissWelcome() {
@@ -4564,6 +4671,338 @@ function dismissWelcome() {
 
 // ── HAPTIC FEEDBACK ────────────────────────────────────
 function haptic(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms||10); }catch{} }
+
+// ── GEFÜHRTE TOUR ──────────────────────────────────────
+function goTabId(id) {
+  const map = { heute:0, uebungen:1, stats:2, settings:3 };
+  const idx = map[id];
+  if (idx == null) return;
+  const tabs = document.querySelectorAll('.tabbar .tab');
+  if (!tabs[idx]) return;
+  goTab(id, tabs[idx]);
+}
+
+const TOUR = [
+  {
+    target:null,
+    title:'Willkommen bei GymTrack! 💪',
+    body:'Ich zeige dir jetzt alle Funktionen der App. Tippe auf <b>Weiter</b> oder probiere die hervorgehobenen Elemente selbst aus.',
+    prep:()=> goTabId('heute')
+  },
+  {
+    target:'.tabbar',
+    title:'Vier Tabs',
+    body:'<b>Heute</b> · <b>Übungen</b> · <b>Statistik</b> · <b>Einstellungen</b>. Wir gehen jeden gemeinsam durch.',
+    pad:4
+  },
+  {
+    target:'#streak-host > *',
+    title:'Streak-Counter 🔥',
+    body:'Hier siehst du, wie viele <b>Wochen in Folge</b> du trainiert hast. Trainiere mindestens 1× pro Woche, damit die Serie nicht reißt.',
+    skipIfEmpty:true,
+    prep:()=> goTabId('heute')
+  },
+  {
+    target:'#pg-heute .btn-acc:nth-of-type(1)',
+    title:'Cardio starten 🏃',
+    body:'Timer mit Hintergrund-Benachrichtigung — läuft weiter, auch wenn die App geschlossen ist.'
+  },
+  {
+    target:'#pg-heute .btn-acc:nth-of-type(2)',
+    title:'Training starten ▶',
+    body:'Wähle deine Übungen aus, logge Sätze mit Gewicht und Wdh. Mit <b>Live-Vergleich</b> zum letzten Mal direkt unter jedem Satz.'
+  },
+  {
+    target:'#sug-list',
+    title:'Vorschläge der Woche 🎯',
+    body:'<b>Auto-Progression:</b> Wenn du alle Ziel-Wdh schaffst, schlägt GymTrack automatisch mehr Gewicht für nächstes Mal vor.',
+    skipIfEmpty:true
+  },
+  {
+    target:'#last-card',
+    title:'Letztes Training 📋',
+    body:'Schneller Überblick: Welche Übungen waren zuletzt dran? Wann hast du trainiert?',
+    skipIfEmpty:true
+  },
+  {
+    target:'.tabbar .tab:nth-child(3)',
+    title:'Übungen-Tab',
+    body:'Deine persönliche Übungs-Bibliothek mit Wochenplan, Suche und Filtern.',
+    prep:()=> goTabId('uebungen')
+  },
+  {
+    target:'#pg-uebungen .hdr-plus',
+    title:'Wochenplan 📅',
+    body:'Plane jeden Wochentag. <b>Fertige Vorlagen</b> wie PPL, Upper-Lower oder Full Body kannst du mit einem Tap übernehmen.',
+    hint:'Tippe auf das Kalender-Icon zum Öffnen',
+    prep:()=> goTabId('uebungen')
+  },
+  {
+    target:'#ex-mode-switch',
+    title:'Filter-Modus 🎯',
+    body:'Wechsle zwischen <b>Muskeln</b>, <b>Push-Pull-Legs</b> und <b>Ober-Unter</b>. Die Filter darunter passen sich automatisch an.',
+    prep:()=> goTabId('uebungen')
+  },
+  {
+    target:'.ex-search-wrap',
+    title:'Suchleiste 🔍',
+    body:'Übungen schnell finden — egal wie viele du angelegt hast.',
+    prep:()=> goTabId('uebungen')
+  },
+  {
+    target:'#pg-uebungen .btn-gray',
+    title:'Übung hinzufügen ➕',
+    body:'Eigene Übung anlegen <i>oder</i> aus über 60 fertigen Standard-Übungen wählen (Button <b>„📚 Aus Bibliothek wählen"</b> im Formular).',
+    hint:'Tippe ruhig zum Ausprobieren',
+    prep:()=> goTabId('uebungen')
+  },
+  {
+    target:'.tabbar .tab:nth-child(4)',
+    title:'Statistik-Tab',
+    body:'Sieh deinen Fortschritt schwarz auf weiß.',
+    prep:()=> goTabId('stats')
+  },
+  {
+    target:'#pg-stats .chart-box',
+    title:'Volumen-Verlauf 📈',
+    body:'Wie viel Gewicht hast du insgesamt bewegt? Der Trend zeigt dir, ob du dich steigerst.',
+    prep:()=> goTabId('stats'),
+    skipIfEmpty:true
+  },
+  {
+    target:'.heatmap-wrap',
+    title:'Aktivitäts-Heatmap 🗓️',
+    body:'Letzte 12 Monate auf einen Blick — wie auf GitHub. Jede gefärbte Kachel = ein Trainingstag. Je dunkler, desto mehr Volumen.',
+    prep:()=> goTabId('stats')
+  },
+  {
+    target:'#stats-mg-list',
+    title:'Pro Muskelgruppe 🎯',
+    body:'Volumen und <b>1RM</b> (geschätztes Maximalgewicht) pro Muskel. Schwachstellen erkennen — gezielt trainieren.',
+    skipIfEmpty:true,
+    prep:()=> goTabId('stats')
+  },
+  {
+    target:'.tabbar .tab:nth-child(5)',
+    title:'Einstellungen ⚙️',
+    body:'Themes, Begleiter, Cloud-Sync und Trainings-Erinnerungen.',
+    prep:()=> goTabId('settings')
+  },
+  {
+    target:'#reset-tour-row',
+    title:'Tour erneut ansehen 🎓',
+    body:'Du kannst diese Tour jederzeit über <b>Einstellungen → App → „Tour neu starten"</b> wieder ansehen.',
+    prep:()=> goTabId('settings')
+  },
+  {
+    target:null,
+    title:'Du bist startklar! 🚀',
+    body:'Viel Spaß beim Training! Wenn neue Funktionen kommen, bekommst du beim nächsten App-Start ein Pop-up mit den Updates.',
+    prep:()=> goTabId('heute')
+  }
+];
+
+let _tourIdx = 0;
+let _tourActive = false;
+let _tourRepositionHandler = null;
+
+function startGuidedTour(){
+  if (_tourActive) return;
+  // Eventuell offene Bottom-Sheets schließen
+  document.querySelectorAll('.ov.on').forEach(o => o.classList.remove('on'));
+  _tourActive = true;
+  _tourIdx = 0;
+  ensureTourDom();
+  showTourStep();
+  _tourRepositionHandler = () => {
+    if (_tourActive) showTourStep(true);
+  };
+  window.addEventListener('resize', _tourRepositionHandler);
+}
+
+function ensureTourDom(){
+  if (document.getElementById('tour-veil-t')) return;
+  ['t','b','l','r'].forEach(s => {
+    const d = document.createElement('div');
+    d.id = 'tour-veil-' + s;
+    d.className = 'tour-veil';
+    document.body.appendChild(d);
+  });
+  const ring = document.createElement('div');
+  ring.id = 'tour-ring';
+  ring.className = 'tour-ring';
+  ring.style.display = 'none';
+  document.body.appendChild(ring);
+  const card = document.createElement('div');
+  card.id = 'tour-card';
+  card.className = 'tour-card';
+  document.body.appendChild(card);
+}
+
+function showTourStep(skipPrep){
+  const step = TOUR[_tourIdx];
+  if (!step) { endGuidedTour(); return; }
+  if (!skipPrep && typeof step.prep === 'function') step.prep();
+  // Warten auf Layout / Tab-Animation
+  setTimeout(() => positionTour(step), skipPrep ? 0 : 280);
+}
+
+function positionTour(step){
+  const veilT = document.getElementById('tour-veil-t');
+  const veilB = document.getElementById('tour-veil-b');
+  const veilL = document.getElementById('tour-veil-l');
+  const veilR = document.getElementById('tour-veil-r');
+  const ring  = document.getElementById('tour-ring');
+
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+
+  // Target finden (auch position:fixed-Elemente erkennen)
+  const isVisibleEl = (e) => {
+    if (!e) return false;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  let el = null;
+  if (step.target) {
+    const selectors = step.target.split(',').map(s => s.trim());
+    for (const sel of selectors) {
+      const cand = document.querySelector(sel);
+      if (isVisibleEl(cand)) { el = cand; break; }
+    }
+  }
+
+  // Skip wenn empty
+  if (!el && step.skipIfEmpty) {
+    _tourIdx++;
+    showTourStep(true);
+    return;
+  }
+
+  if (!el || !step.target) {
+    // Modal: gesamtes Veil
+    const veilCss = 'position:fixed;z-index:1500;background:rgba(0,0,0,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:default';
+    veilT.style.cssText = veilCss + ';left:0;top:0;right:0;bottom:0';
+    veilB.style.display = 'none';
+    veilL.style.display = 'none';
+    veilR.style.display = 'none';
+    ring.style.display  = 'none';
+    renderTourCard(step, null);
+    return;
+  }
+
+  // Sicht-Scroll
+  el.scrollIntoView({ block:'center', behavior:'smooth' });
+
+  setTimeout(() => {
+    const rect = el.getBoundingClientRect();
+    const pad = step.pad != null ? step.pad : 8;
+    const x = Math.max(2, rect.left - pad);
+    const y = Math.max(2, rect.top - pad);
+    const w = Math.min(W - x - 2, rect.width + 2*pad);
+    const h = Math.min(H - y - 2, rect.height + 2*pad);
+
+    const veilCss = 'position:fixed;z-index:1500;background:rgba(0,0,0,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:default';
+    veilT.style.cssText = veilCss + `;left:0;top:0;right:0;height:${y}px`;
+    veilB.style.cssText = veilCss + `;left:0;top:${y+h}px;right:0;bottom:0`;
+    veilL.style.cssText = veilCss + `;left:0;top:${y}px;width:${x}px;height:${h}px`;
+    veilR.style.cssText = veilCss + `;left:${x+w}px;top:${y}px;right:0;height:${h}px`;
+    veilB.style.display = 'block';
+    veilL.style.display = 'block';
+    veilR.style.display = 'block';
+
+    ring.style.display = 'block';
+    ring.style.left   = x + 'px';
+    ring.style.top    = y + 'px';
+    ring.style.width  = w + 'px';
+    ring.style.height = h + 'px';
+
+    renderTourCard(step, { x, y, w, h });
+  }, 320);
+}
+
+function renderTourCard(step, rect){
+  const card = document.getElementById('tour-card');
+  const i = _tourIdx;
+  const total = TOUR.length;
+  const last = i === total - 1;
+
+  const dots = TOUR.map((_,k) =>
+    `<div class="tour-card-dot${k===i?' on':(k<i?' done':'')}"></div>`
+  ).join('');
+  const hint = step.hint ? `<div class="tour-card-hint">${step.hint}</div>` : '';
+
+  card.innerHTML = `
+    <button class="tour-skip-x" onclick="endGuidedTour()" aria-label="Tour beenden">✕</button>
+    <div class="tour-card-step">Schritt ${i+1} von ${total}</div>
+    <div class="tour-card-title">${step.title}</div>
+    <div class="tour-card-body">${step.body}</div>
+    ${hint}
+    <div class="tour-card-nav">
+      <div class="tour-card-dots">${dots}</div>
+      ${i > 0 ? '<button onclick="tourPrev()">←</button>' : ''}
+      <button class="primary" onclick="tourNext()">${last ? 'Fertig 🚀' : 'Weiter'}</button>
+    </div>
+  `;
+  card.style.display = 'block';
+
+  // Höhe ermitteln + Position auswählen
+  requestAnimationFrame(() => {
+    const cRect = card.getBoundingClientRect();
+    const cardH = cRect.height;
+    const W = window.innerWidth, H = window.innerHeight;
+    const pad = 14;
+    let top;
+    if (!rect) {
+      top = Math.max(20, (H - cardH) / 2);
+    } else if (rect.y + rect.h + pad + cardH < H - 20) {
+      top = rect.y + rect.h + pad;
+    } else if (rect.y - pad - cardH > 20) {
+      top = rect.y - pad - cardH;
+    } else {
+      // Kein Platz → mittig in dem Bereich, der frei ist
+      top = Math.max(16, Math.min(H - cardH - 16, 80));
+    }
+    card.style.left   = '16px';
+    card.style.right  = '16px';
+    card.style.top    = top + 'px';
+    card.style.margin = 'auto';
+    card.style.maxWidth = '360px';
+  });
+}
+
+function tourNext(){
+  if (!_tourActive) return;
+  haptic(6);
+  if (_tourIdx >= TOUR.length - 1) { endGuidedTour(); return; }
+  _tourIdx++;
+  showTourStep();
+}
+function tourPrev(){
+  if (!_tourActive || _tourIdx <= 0) return;
+  haptic(6);
+  _tourIdx--;
+  showTourStep();
+}
+function endGuidedTour(){
+  haptic(10);
+  _tourActive = false;
+  if (_tourRepositionHandler) {
+    window.removeEventListener('resize', _tourRepositionHandler);
+    _tourRepositionHandler = null;
+  }
+  ['t','b','l','r'].forEach(s => {
+    const v = document.getElementById('tour-veil-' + s);
+    if (v) v.remove();
+  });
+  const r = document.getElementById('tour-ring'); if (r) r.remove();
+  const c = document.getElementById('tour-card'); if (c) c.remove();
+  S.welcomeShown = true;
+  persist();
+  goTabId('heute');
+}
 
 // ── STREAK (Wochen in Folge mit mind. einem Training) ──
 function calcStreak(){
