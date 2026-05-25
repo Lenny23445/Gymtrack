@@ -1,141 +1,93 @@
-# GymTrack – Projektübersicht für Claude
+# GymTrack — Projektübersicht
 
-## Was ist das?
-GymTrack ist eine **Progressive Web App (PWA)** – eine einzelne HTML-Datei, die als App auf dem iPhone installiert ist.  
-Live-URL: https://lenny23445.github.io/Gymtrack/
+**Was:** Progressive Web App (PWA), eine einzige HTML-Datei, auf iPhone installiert.
+**Live:** https://lenny23445.github.io/Gymtrack/ · **Repo:** https://github.com/Lenny23445/Gymtrack (Branch `main`, GitHub Pages auto-deploy ~1 Min nach Push)
 
 ## Dateien
-| Datei | Zweck |
-|---|---|
-| `index.html` | Die gesamte App (HTML + CSS + JS in einer Datei) |
-| `sw.js` | Service Worker – cached die App für Offline-Nutzung |
-| `manifest.json` | PWA-Metadaten (Name, Icons, Farbe) |
-| `GymTrack-Update.ps1` | Deploy-Script – Doppelklick = hochladen |
+- `index.html` — gesamte App (HTML+CSS+JS)
+- `sw.js` — Service Worker (Offline-Cache)
+- `manifest.json` — PWA-Metadaten
+- `GymTrack-Update.ps1` (in `C:\Users\wolte\Desktop\`) — Deploy: bumpt Version in `sw.js`+`index.html`, dann `git add/commit/push`
 
-## Deployen (App aktualisieren)
-```
-Doppelklick auf: C:\Users\wolte\Desktop\GymTrack-Update.ps1
-```
-Das Script:
-1. Bumpt die Version in `sw.js` + `index.html` (wichtig für Auto-Updates)
-2. Macht `git add . && git commit && git push`
-
-**WICHTIG beim manuellen Versionsbump via PowerShell:**  
-Immer `.NET` direkt benutzen, NICHT `Get-Content`/`Set-Content` – sonst wird das Encoding kaputt:
+## Deploy / Versionsbump
+Doppelklick auf `GymTrack-Update.ps1`. Bei manuellem Bump via PowerShell **immer .NET direkt nutzen, NIE `Get-Content`/`Set-Content`** (zerstört Encoding):
 ```powershell
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 $html = [System.IO.File]::ReadAllText($path, $utf8NoBom)
 $html = $html -replace "gymtrack-v\d+", "gymtrack-v$version"
 [System.IO.File]::WriteAllText($path, $html, $utf8NoBom)
 ```
+`APP_VERSION` in index.html muss immer mit `CACHE` in sw.js übereinstimmen.
 
-## Architektur – index.html
-Die Datei ist in drei Blöcke aufgeteilt:
+## Architektur (index.html: CSS oben, HTML mitte, JS unten)
 
-### CSS (oben)
-- **Themes**: `[data-theme="light"]`, `[data-theme="rosa"]`, `[data-theme="dark"]`, `[data-theme="blau"]`
-- **Variablen**: `--acc` (Akzentfarbe), `--acc-rgb`, `--mesh` (Hintergrund-Gradient), `--gl-bg` (Glass-Cards), etc.
-- Neue Themes brauchen: CSS-Block + `[data-theme="X"] #tab-indicator` + Theme-Row im HTML + Name in `setTheme()`
+**CSS:** Themes via `[data-theme="light|rosa|dark|blau"]`. Variablen: `--acc`, `--acc-rgb`, `--mesh`, `--gl-bg`. Neues Theme braucht: CSS-Block + `[data-theme="X"] #tab-indicator` + Theme-Row im HTML + Name in `setTheme()`.
 
-### HTML (mitte)
-Seitenstruktur:
-- `#pg-heute` – Startseite
-- `#pg-uebungen` – Übungsliste mit Muskelgruppen-Filter
-- `#pg-einstellungen` – Einstellungen
-- `.ov` Overlays = Bottom Sheets (z.B. `#ov-companion`, `#ov-icons`)
-- `#dackel-lane` – Der Dackel, der auf der Tab-Leiste läuft
+**HTML-Seiten:** `#pg-heute`, `#pg-uebungen`, `#pg-stats`, `#pg-settings`. Overlays = Bottom Sheets via `.ov`. `#dackel-lane` = animierter Dackel auf der Tab-Leiste. **Keine weiteren Tabs hinzufügen** — Tabs sind fix: Heute, Übungen, Statistik, Einstellungen.
 
-### JavaScript (unten)
-Wichtige Bereiche:
-```
-APP_VERSION        – muss immer mit sw.js CACHE-String übereinstimmen
-S = {}             – Alle App-Daten (localStorage key: 'ft4')
-persist()          – Speichert S in localStorage
-setTheme(t)        – Wechselt Theme (light/rosa/dark/blau)
-applyCompanion()   – Zeigt/versteckt Dackel + setzt Toggle-Zustand
-checkForUpdate()   – Holt sw.js direkt vom Server, vergleicht Version
-_doForceUpdate()   – Deregistriert SW, leert Cache, lädt neu
-initSheetSwipe()   – Swipe-to-dismiss für alle Bottom Sheets
-```
+**JS Kern:** `APP_VERSION` (muss = sw.js CACHE) · `S = {}` (alle Daten, localStorage `'ft4'`) · `persist()` · `setTheme(t)` · `applyCompanion()` · `checkForUpdate()` (holt sw.js vom Server, vergleicht Version) · `_doForceUpdate()` (deregistriert SW, leert Cache, lädt neu) · `initSheetSwipe()` (Swipe-to-dismiss für alle `.sh-handle`).
 
-## Datenstruktur (localStorage 'ft4')
-```javascript
+## Datenstruktur (`localStorage['ft4']`)
+```js
 S = {
-  exercises: [],      // { id, name, emoji, muscleGroup, sets: [{reps,weight}] }
-  sessions: [],       // { date, exercises: [{id, sets}] }
-  theme: 'light',     // 'light' | 'rosa' | 'dark' | 'blau'
-  companion: 'dackel',// welcher Begleiter gewählt
-  companionOn: true,  // Begleiter sichtbar?
+  exercises:[],  // {id, name, emoji, muscleGroup, sets:[{reps,weight}]}
+  sessions:[],   // {date, exercises:[{id, sets}]}
+  theme:'light', companion:'dackel', companionOn:true,
+  exFilterMode, wkFilterMode, statsFilterMode, // 'muskel'|'ppl'|'oberunter'
+  welcomeShown, lastSeenVersion, updatedAt
 }
 ```
 
-## Features (bereits implementiert)
-- ✅ Übungen mit Muskelgruppen (Brust/Rücken/Beine/Arme/Schultern/Core)
-- ✅ Muskelgruppen-Filter in Übungen-Tab + beim Training starten
-- ✅ Training starten, Sätze loggen, Progression (Gewichtsvorschläge)
-- ✅ Bottom Sheets mit Swipe-to-dismiss (Handle ziehen)
-- ✅ Themes: Hell, Rosa, Dunkel, Blau
-- ✅ Dackel-Begleiter auf der Tab-Leiste (animiert, läuft hin und her)
-- ✅ Begleiter ein/ausschalten per Toggle
-- ✅ Begleiter-Picker (aktuell nur Dackel verfügbar, andere "Bald")
-- ✅ Auto-Update: App prüft sw.js direkt vom Server (kein SW-API)
-- ✅ Stille Hintergrundprüfung beim App-Start (nach 3 Sek.)
+## Features (implementiert)
+Übungen mit Muskelgruppen (Brust/Rücken/Beine/Arme/Schultern/Core) · Muskelgruppen-Filter im Übungen-Tab und beim Training · Training starten, Sätze loggen, Progression mit Gewichtsvorschlägen · 1RM-Berechnung (Epley) inkl. Verlaufs-Chart · Statistik mit Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets mit Swipe-to-dismiss · 4 Themes · Dackel-Begleiter (toggle + Picker) · Auto-Update (direkter sw.js-Vergleich, kein SW-API) · Silent Background-Check beim App-Start (nach 3 Sek.) · Changelog-Popup nach Updates · Cardio-Timer mit SW-Notification · Cloud-Sync via Firebase.
 
-## Wichtige Code-Muster
+## Code-Muster
 
-### Neues Bottom Sheet hinzufügen
+**Neues Bottom Sheet:**
 ```html
-<div class="ov" id="ov-meinsheet" onclick="if(event.target===this)closeOv('ov-meinsheet')">
+<div class="ov" id="ov-X" onclick="if(event.target===this)closeOv('ov-X')">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head">
-      <h2>Titel</h2>
-      <button class="x-btn" onclick="closeOv('ov-meinsheet')">✕</button>
-    </div>
+    <div class="sh-head"><h2>Titel</h2><button class="x-btn" onclick="closeOv('ov-X')">✕</button></div>
     <!-- Inhalt -->
   </div>
 </div>
 ```
-Öffnen: `openOv('ov-meinsheet')` — Schließen: `closeOv('ov-meinsheet')`  
-`initSheetSwipe()` läuft automatisch beim Start und macht alle `.sh-handle` swipeable.
+Öffnen: `openOv('ov-X')` · Schließen: `closeOv('ov-X')` · `initSheetSwipe()` macht alle `.sh-handle` automatisch swipeable.
 
-### Neuen Settings-Toggle hinzufügen
+**Settings-Toggle:**
 ```html
 <div class="row">
   <div class="ico">🔔</div>
-  <div class="row-body">
-    <div class="row-title">Mein Toggle</div>
-    <div class="row-sub">Beschreibung</div>
-  </div>
+  <div class="row-body"><div class="row-title">Titel</div><div class="row-sub">Beschreibung</div></div>
   <label class="tgl" onclick="event.stopPropagation()">
-    <input type="checkbox" id="mein-toggle" onchange="meineFunktion(this.checked)">
+    <input type="checkbox" id="mein-toggle" onchange="fn(this.checked)">
     <span class="tgl-track"></span>
   </label>
 </div>
 ```
 
-### Neue Seite/Tab ist NICHT geplant
-Tabs sind: Heute, Übungen, Einstellungen. Keine weiteren Tabs hinzufügen.
+## Eigenheiten
+- **iOS Safari + PWA:** SW-Updates kommen ohne unsere sw.js-Direkt-Lösung nicht durch
+- **Encoding:** Datei ist UTF-8 ohne BOM. Edit-Tool erhält das korrekt. Niemals `Get-Content`/`Set-Content` (BOM + Mojibake).
+- **Preview-Server:** Port 5500, Config in `.claude/launch.json` (PowerShell HttpListener serviert direkt aus diesem Ordner)
 
-## Bekannte Eigenheiten
-- **iOS Safari + PWA**: Service Worker Updates kommen ohne unsere Lösung nicht durch
-- **Encoding**: Immer `.NET`-Methoden benutzen, nie `Get-Content`/`Set-Content` (fügt BOM + Mojibake ein)
-- **Emojis im Code**: Die Datei ist UTF-8 ohne BOM. Edit-Tool erhält das korrekt.
-- **Preview-Server**: Läuft auf Port 5500, Config in `.claude/launch.json`
+## Firebase / Cloud-Sync
 
-## GitHub
-- Repo: https://github.com/Lenny23445/Gymtrack
-- Branch: `main`
-- Pages: automatisch von `main` → live in ~1 Minute nach Push
+**Datenmodell Firestore:** Collection `users` · Document `{uid}` · Felder: `exercises[], sessions[], theme, companion, companionOn, exFilterMode, wkFilterMode, welcomeShown, updatedAt, _serverTime`.
 
-## Firebase / Google Login (Cloud-Sync)
-Die App hat einen Google-Login mit Cloud-Sync via Firebase Firestore. Bis die Config gesetzt ist, zeigt die App "noch nicht eingerichtet" in den Einstellungen → Konto.
+**Sync-Verhalten:**
+- Login: lokal + Cloud werden gemerged (verlustfrei), dann hochgeladen
+- Speichern: `persist()` pusht automatisch (800ms debounced)
+- Live-Sync: andere Geräte via `onSnapshot`
+- Abmelden: lokale Daten bleiben, Verbindung getrennt
+- Neues Gerät / nach App-Löschen: einfach wieder anmelden → alles aus Cloud
 
-### Einmaliges Setup (5–10 Min)
-1. https://console.firebase.google.com → **Projekt hinzufügen** (Name: z.B. "GymTrack")
-2. **Build → Authentication → Get Started → Google** aktivieren (Support-Email auswählen)
-3. **Build → Firestore Database → Create database** → Modus: **Production** → Region z.B. `eur3`
-4. In **Firestore → Rules** folgende Regeln einfügen (jeder User darf nur sein eigenes Dokument lesen/schreiben):
+**Einmaliges Setup (5–10 Min)** falls neu eingerichtet werden muss:
+1. https://console.firebase.google.com → **Projekt hinzufügen** (z.B. "GymTrack")
+2. **Build → Authentication → Get Started → Google** aktivieren (Support-Email)
+3. **Build → Firestore Database → Create database** → **Production** → Region z.B. `eur3`
+4. **Firestore → Rules** — jeder User nur sein Dokument:
    ```
    rules_version = '2';
    service cloud.firestore {
@@ -146,18 +98,6 @@ Die App hat einen Google-Login mit Cloud-Sync via Firebase Firestore. Bis die Co
      }
    }
    ```
-5. **Projektübersicht → Web-App hinzufügen (</>-Icon)** → Name eingeben → registrieren → die `firebaseConfig` kopieren
-6. In `index.html` nach `const FIREBASE_CONFIG = {` suchen, die Werte einsetzen
-7. **Authentication → Settings → Authorized domains**: `lenny23445.github.io` hinzufügen (für Live-Site) — `localhost` ist standardmäßig schon drin
-
-### Datenmodell (Firestore)
-- Collection: `users`
-- Document: `{uid}` (Google-User-ID)
-- Felder: `exercises[]`, `sessions[]`, `theme`, `companion`, `companionOn`, `updatedAt`, `_serverTime`
-
-### Sync-Verhalten
-- **Beim Login**: lokale + Cloud-Daten werden gemerged (nichts geht verloren), dann hochgeladen
-- **Beim Speichern**: persist() pusht automatisch (800ms debounced) in die Cloud
-- **Live-Sync**: Änderungen von anderen Geräten kommen via `onSnapshot` rein
-- **Beim Abmelden**: lokale Daten bleiben, Cloud-Verbindung wird getrennt
-- **Auf neuem Gerät / nach App-Löschen**: einfach wieder anmelden → alle Daten kommen aus der Cloud
+5. **Projektübersicht → Web-App hinzufügen (</>-Icon)** → registrieren → `firebaseConfig` kopieren
+6. In `index.html` nach `const FIREBASE_CONFIG = {` suchen, Werte einsetzen
+7. **Authentication → Settings → Authorized domains:** `lenny23445.github.io` hinzufügen (`localhost` ist schon drin)
