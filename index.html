@@ -767,6 +767,25 @@ body{
 }
 .set-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;width:28px}
 .add-set-btn{margin-top:10px;background:none;border:none;color:var(--acc);font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
+.set-timer-btn{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  background:var(--inp-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--gl-bdr);border-radius:12px;padding:9px 4px;
+  font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;
+  color:var(--text);cursor:pointer;width:100%;font-family:inherit;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.set-timer-btn.running{background:rgba(var(--acc-rgb),.12);border-color:var(--acc);color:var(--acc)}
+.set-timer-btn.done-t{background:rgba(52,199,89,.12);border-color:var(--green);color:var(--green)}
+.ex-type-seg{
+  display:flex;background:var(--g5);border-radius:9px;padding:2px;gap:1px;
+}
+.ex-type-seg button{
+  flex:1;border:none;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:600;
+  font-family:inherit;cursor:pointer;background:transparent;color:var(--text2);
+  transition:background .15s,color .15s;
+}
+.ex-type-seg button.on{background:var(--gl-bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.10)}
 
 /* ── TIMER BAR ── */
 .timer-bar{
@@ -1526,8 +1545,14 @@ body{
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
           </div>
           <div>
-            <label class="f-label" style="font-size:10px">Wdh</label>
-            <input class="f-in" type="number" id="in-reps" value="10" min="1" max="100">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <label class="f-label" id="in-reps-label" style="font-size:10px;margin-bottom:0">Wdh</label>
+              <div class="ex-type-seg">
+                <button type="button" id="ex-type-reps" class="on" onclick="setExType('reps')">Wdh</button>
+                <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
+              </div>
+            </div>
+            <input class="f-in" type="number" id="in-reps" value="10" min="1" max="9999">
           </div>
           <div>
             <label class="f-label" style="font-size:10px">Start-kg</label>
@@ -2030,11 +2055,13 @@ let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 let editId = null;
 let selEmoji = '🏋️';
 let selMuscle   = '';      // aktuell ausgewählt im Formular
+let selExType   = 'reps';  // 'reps' | 'time' im Übung-Formular
 let exCatFilter = 'alle';  // Filter im Übungen-Tab
 let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
 let timerInt = null, timerTs = null;
+let setTimerInt = null;
 let detId = null;
 let detChart = null;
 let det1rmChart = null;
@@ -2219,7 +2246,8 @@ function getSuggestion(ex) {
   if (allReps && allSets) {
     return { type:'up', icon:'💪', title:`${ex.emoji} ${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
   }
-  return { type:'hold', icon:'🎯', title:`${ex.emoji} ${ex.name}: Wdh-Fokus`, text:`Ziel: ${ex.targetSets}×${ex.targetReps} Wdh bei ${lMaxW} kg. Halte das Gewicht.` };
+  const gStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
+  return { type:'hold', icon:'🎯', title:`${ex.emoji} ${ex.name}: Fokus`, text:`Ziel: ${ex.targetSets}×${gStr} bei ${lMaxW} kg. Halte das Gewicht.` };
 }
 
 function renderLastSession() {
@@ -2285,7 +2313,8 @@ function renderExList() {
     const lw = last ? maxW(last.sets) : null;
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
     const days = exerciseDayLabels(ex.id);
-    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
+    const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
+    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
       <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
       <div class="ico">${ex.emoji}</div>
@@ -2611,6 +2640,7 @@ function openNewEx(exId) {
   selEmoji  = '🏋️';
   selMuscle = '';
   selExDays = [];
+  selExType = 'reps';
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps').value = '10';
@@ -2623,6 +2653,7 @@ function openNewEx(exId) {
     if (ex) {
       selEmoji  = ex.emoji;
       selMuscle = ex.muscleGroup || '';
+      selExType = ex.targetType || 'reps';
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       document.getElementById('in-reps').value = ex.targetReps;
@@ -2632,6 +2663,7 @@ function openNewEx(exId) {
       selExDays = exerciseDays(exId);
     }
   }
+  setExType(selExType);
   renderEmoGrid();
   renderMusclePicker();
   renderExDayPills();
@@ -2683,17 +2715,94 @@ function saveEx() {
   let savedId;
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, {name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
+    if (ex) Object.assign(ex, {name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
     savedId = editId;
   } else {
     savedId = uid();
-    S.exercises.push({id:savedId, name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
+    S.exercises.push({id:savedId, name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
   closeOv('ov-ex');
   renderExList();
   renderHome();
+}
+
+// ── EX TYPE TOGGLE ───────────────────────────────────
+function setExType(type) {
+  selExType = type;
+  const repsBtn = document.getElementById('ex-type-reps');
+  const timeBtn = document.getElementById('ex-type-time');
+  const lbl     = document.getElementById('in-reps-label');
+  if (!repsBtn) return;
+  if (type === 'time') {
+    repsBtn.classList.remove('on'); timeBtn.classList.add('on');
+    if (lbl) lbl.textContent = 'Sek';
+    const inp = document.getElementById('in-reps');
+    if (inp && (inp.value === '10' || !inp.value)) inp.value = '30';
+  } else {
+    timeBtn.classList.remove('on'); repsBtn.classList.add('on');
+    if (lbl) lbl.textContent = 'Wdh';
+    const inp = document.getElementById('in-reps');
+    if (inp && (inp.value === '30' || !inp.value)) inp.value = '10';
+  }
+}
+
+// ── TIMER HELPERS ────────────────────────────────────
+function fmtSec(s) {
+  const sec = Math.max(0, Math.round(s));
+  return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
+}
+
+function toggleSetTimer(li, si) {
+  const s = wkLogs[li].sets[si];
+  const ex = exById(wkLogs[li].exerciseId);
+  const target = ex?.targetReps || 0;
+  if (s.tRunning) {
+    // Pause
+    s.tElapsed += Math.floor((Date.now() - s.tStart) / 1000);
+    s.tStart = null;
+    s.tRunning = false;
+    if (!wkLogs.some(l => l.sets.some(ss => ss.tRunning))) {
+      clearInterval(setTimerInt); setTimerInt = null;
+    }
+    renderLogCards();
+  } else {
+    if (s.done) {
+      // Reset
+      s.tElapsed = 0; s.done = false;
+    }
+    s.tStart = Date.now();
+    s.tRunning = true;
+    if (!setTimerInt) setTimerInt = setInterval(tickSetTimers, 500);
+    renderLogCards();
+  }
+}
+
+function tickSetTimers() {
+  let anyRunning = false;
+  let needsRender = false;
+  wkLogs.forEach((log, li) => {
+    const ex = exById(log.exerciseId);
+    if (ex?.targetType !== 'time') return;
+    log.sets.forEach((s, si) => {
+      if (!s.tRunning) return;
+      anyRunning = true;
+      const elapsed = s.tElapsed + Math.floor((Date.now() - s.tStart) / 1000);
+      const target = ex.targetReps || 0;
+      const remaining = Math.max(0, target - elapsed);
+      const el = document.getElementById(`set-timer-${li}-${si}`);
+      if (el) el.querySelector('.set-timer-time').textContent = fmtSec(remaining);
+      if (remaining <= 0) {
+        s.tRunning = false;
+        s.tElapsed = target;
+        s.done = true;
+        needsRender = true;
+      }
+    });
+  });
+  if (needsRender) renderLogCards();
+  if (!anyRunning) { clearInterval(setTimerInt); setTimerInt = null; }
 }
 
 function deleteEx() {
@@ -3252,7 +3361,7 @@ function renderWkPicker() {
       <div class="ico">${ex.emoji}</div>
       <div class="row-body">
         <div class="row-title">${ex.name}</div>
-        <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetReps} Wdh</div>
+        <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetType==='time'?fmtSec(ex.targetReps):ex.targetReps+' Wdh'}</div>
       </div>
       <div class="wk-chk${sel?' on':''}" id="wchk-${ex.id}">${sel?'✓':''}</div>
     </div>`;
@@ -3283,7 +3392,11 @@ function startActive() {
     const sw = getSuggestedWeight(ex);
     const defaultW = sw != null ? String(sw) : '';
     const defaultR = String(ex.targetReps);
-    return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, ()=>({w:defaultW, r:defaultR})) };
+    const isTime = ex.targetType === 'time';
+    const makeset = () => isTime
+      ? {w:defaultW, tElapsed:0, tRunning:false, tStart:null}
+      : {w:defaultW, r:defaultR};
+    return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) };
   });
   timerTs = Date.now();
   timerInt = setInterval(()=>{
@@ -3299,25 +3412,38 @@ function startActive() {
 function renderLogCards() {
   document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
+    const isTime = ex.targetType === 'time';
+    const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${ex.targetReps}`;
     return `<div class="ex-card">
       <div class="ex-head">
         <span class="ex-title">${ex.emoji} ${ex.name}</span>
-        <span style="font-size:13px;color:var(--text2)">Ziel: ${ex.targetSets}×${ex.targetReps}</span>
+        <span style="font-size:13px;color:var(--text2)">Ziel: ${goalLabel}</span>
       </div>
       <div class="ex-body">
-        <div class="set-hdr"><span></span><span>KG</span><span>WDH</span><span></span><span></span></div>
-        ${log.sets.map((s,si)=>`
+        <div class="set-hdr"><span></span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span><span></span></div>
+        ${log.sets.map((s,si)=>{
+          const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
+          const remaining = Math.max(0, (ex.targetReps||0) - elapsed);
+          const timerCls = s.done ? 'done-t' : (s.tRunning ? 'running' : '');
+          const timerIcon = s.tRunning ? '⏸' : (s.tElapsed > 0 ? '↺' : '▶');
+          return `
         <div class="set-row${s.done?' done':''}">
           <div class="set-n">${si+1}</div>
           <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
             oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
-          <input class="set-in${s.r && s.r===log.sugR?' is-sug':''}" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
-            oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'r',this.value)">
+          ${isTime
+            ? `<button class="set-timer-btn ${timerCls}" id="set-timer-${li}-${si}" onclick="toggleSetTimer(${li},${si})">
+                <span class="set-timer-time">${s.done ? fmtSec(ex.targetReps) : fmtSec(remaining)}</span>
+                <span style="font-size:12px">${s.done ? '✓' : timerIcon}</span>
+               </button>`
+            : `<input class="set-in${s.r && s.r===log.sugR?' is-sug':''}" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
+                oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'r',this.value)">`
+          }
           <button class="set-chk${s.done?' done':''}" onclick="toggleSetDone(${li},${si})">
             <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
           </button>
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
-        </div>`).join('')}
+        </div>`;}).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
       </div>
     </div>`;
@@ -3330,8 +3456,13 @@ function toggleSetDone(li,si) {
   renderLogCards();
 }
 function addSet(li) {
+  const ex = exById(wkLogs[li].exerciseId);
   const p = wkLogs[li].sets.slice(-1)[0];
-  wkLogs[li].sets.push({w:p?.w||'',r:p?.r||''});
+  if (ex?.targetType === 'time') {
+    wkLogs[li].sets.push({w:p?.w||'', tElapsed:0, tRunning:false, tStart:null});
+  } else {
+    wkLogs[li].sets.push({w:p?.w||'', r:p?.r||''});
+  }
   renderLogCards();
 }
 function delSet(li,si) {
@@ -3342,8 +3473,16 @@ function delSet(li,si) {
 
 function finishWk() {
   clearInterval(timerInt);
+  clearInterval(setTimerInt); setTimerInt = null;
+  // Zeit-Übungen: elapsed als r sichern
+  wkLogs.forEach(l => {
+    const ex = exById(l.exerciseId);
+    if (ex?.targetType === 'time') {
+      l.sets.forEach(s => { s.r = String(s.tElapsed||0); });
+    }
+  });
   const dur = Math.floor((Date.now()-timerTs)/1000);
-  const valid = wkLogs.filter(l=>l.sets.some(s=>s.w||s.r));
+  const valid = wkLogs.filter(l=>l.sets.some(s=>s.w||s.r||s.tElapsed>0));
   if (!valid.length) { alert('Trag mindestens einen Satz ein!'); return; }
 
   S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, logs:valid});
