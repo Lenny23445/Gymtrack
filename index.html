@@ -1112,6 +1112,44 @@ body{
   text-align:center;font-size:12px;color:var(--text2);
   padding:6px 20px 2px;position:relative;z-index:1;
 }
+
+/* ── DRAG-AND-DROP: ÜBUNG → WOCHENPLAN ── */
+.ex-drag-handle{
+  width:30px;height:46px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);opacity:.35;
+  font-size:17px;flex-shrink:0;
+  cursor:grab;touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+}
+.ex-drag-handle:active{opacity:.7;cursor:grabbing}
+
+.dnd-ghost{
+  position:fixed;z-index:9999;pointer-events:none;
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(20px) saturate(200%);
+  -webkit-backdrop-filter:blur(20px) saturate(200%);
+  border:1.5px solid var(--acc);border-radius:16px;
+  padding:10px 16px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.28),0 2px 8px rgba(var(--acc-rgb),.22);
+  transform:scale(1.04) rotate(-1.5deg);opacity:.94;
+  max-width:220px;white-space:nowrap;overflow:hidden;
+}
+.dnd-ghost-emoji{font-size:20px}
+.dnd-ghost-name{font-size:13px;font-weight:700;color:var(--text)}
+
+.wk-prev-day.dnd-over{
+  border-color:var(--acc) !important;
+  background:rgba(var(--acc-rgb),.22) !important;
+  transform:scale(1.10) !important;
+  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.40) !important;
+  z-index:2;
+}
+.ex-week-hint{
+  font-size:11px;color:var(--text2);text-align:center;
+  padding:5px 20px 2px;letter-spacing:.1px;opacity:.7;
+}
 </style>
 </head>
 <body>
@@ -1161,6 +1199,7 @@ body{
   </div>
   <!-- Wochenplan-Vorschau (klick → öffnet Plan) -->
   <div class="wk-preview" id="ex-week-preview"></div>
+  <div class="ex-week-hint" id="ex-week-hint" style="display:none">⠿ Übungen auf einen Tag ziehen, um sie hinzuzufügen</div>
   <!-- Filter-Modus (Muskeln / Push-Pull-Legs / Ober-Unter) -->
   <div class="fmode-wrap" id="ex-mode-switch"></div>
   <!-- Gruppen-Filter-Pills (passt sich dem Modus an) -->
@@ -1751,10 +1790,13 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251500';
+const APP_VERSION = 'gymtrack-v202605251600';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605251600': [
+    '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
+  ],
   'gymtrack-v202605251500': [
     '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
   ],
@@ -2146,6 +2188,7 @@ function renderExList() {
     const days = exerciseDayLabels(ex.id);
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
+      <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
       <div class="ico">${ex.emoji}</div>
       <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
       <div class="chev">›</div>
@@ -2345,6 +2388,103 @@ function savePlanDay() {
   renderHome();
 }
 
+// ── DRAG-AND-DROP: ÜBUNG → WOCHENPLAN ────────────────
+let _dndExId  = null;
+let _dndGhost = null;
+let _dndOver  = null;
+
+function exDragStart(e, exId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const ex = exById(exId);
+  if (!ex) return;
+  _dndExId = exId;
+
+  _dndGhost = document.createElement('div');
+  _dndGhost.className = 'dnd-ghost';
+  _dndGhost.innerHTML = `<span class="dnd-ghost-emoji">${ex.emoji}</span><span class="dnd-ghost-name">${ex.name}</span>`;
+  document.body.appendChild(_dndGhost);
+
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  _dndMoveGhost(cx, cy);
+
+  document.addEventListener('touchmove', _dndOnMove, {passive:false});
+  document.addEventListener('touchend',  _dndOnEnd,  {passive:false});
+  document.addEventListener('mousemove', _dndOnMove);
+  document.addEventListener('mouseup',   _dndOnEnd);
+}
+
+function _dndMoveGhost(x, y) {
+  if (!_dndGhost) return;
+  _dndGhost.style.left = (x - 110) + 'px';
+  _dndGhost.style.top  = (y - 38)  + 'px';
+
+  let overKey = null;
+  document.querySelectorAll('.wk-prev-day[data-daykey]').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) overKey = el.dataset.daykey;
+  });
+
+  if (overKey !== _dndOver) {
+    if (_dndOver) {
+      const prev = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
+      if (prev) prev.classList.remove('dnd-over');
+    }
+    _dndOver = overKey;
+    if (_dndOver) {
+      const next = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
+      if (next) next.classList.add('dnd-over');
+    }
+  }
+}
+
+function _dndOnMove(e) {
+  e.preventDefault();
+  const t = e.touches ? e.touches[0] : e;
+  _dndMoveGhost(t.clientX, t.clientY);
+}
+
+function _dndOnEnd(e) {
+  document.removeEventListener('touchmove', _dndOnMove);
+  document.removeEventListener('touchend',  _dndOnEnd);
+  document.removeEventListener('mousemove', _dndOnMove);
+  document.removeEventListener('mouseup',   _dndOnEnd);
+
+  if (_dndGhost) { _dndGhost.remove(); _dndGhost = null; }
+  if (_dndOver) {
+    const el = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
+    if (el) el.classList.remove('dnd-over');
+  }
+  if (_dndOver && _dndExId) _dndDrop(_dndExId, _dndOver);
+  _dndExId = null;
+  _dndOver = null;
+}
+
+function _dndDrop(exId, dayKey) {
+  const p = planFor(dayKey);
+  if (p.type === 'exercises') {
+    if (p.exIds.includes(exId)) { _dndToast('Bereits an diesem Tag ✓'); return; }
+    p.exIds.push(exId);
+  } else {
+    S.weekPlan[dayKey] = {type:'exercises', exIds:[exId]};
+  }
+  persist();
+  renderWeekPreview();
+  renderExList();
+  const ex = exById(exId);
+  const d  = dayByKey(dayKey);
+  _dndToast(`${ex.emoji} ${ex.name} → ${d.label}`);
+}
+
+function _dndToast(msg) {
+  const t = document.getElementById('update-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_dndToast._t);
+  _dndToast._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
 function renderWeekPreview() {
   const el = document.getElementById('ex-week-preview');
   if (!el) return;
@@ -2355,11 +2495,13 @@ function renderWeekPreview() {
     if (d.key === tk) cls.push('today');
     if (!s.empty) cls.push('has');
     const label = s.empty ? 'Frei' : (s.badge || 'Plan');
-    return `<button type="button" class="${cls.join(' ')}" onclick="openPlan()">
+    return `<button type="button" class="${cls.join(' ')}" data-daykey="${d.key}" onclick="openPlan()">
       <div class="wk-prev-d">${d.short.toUpperCase()}</div>
       <div class="wk-prev-l${s.empty?' empty':''}">${label}</div>
     </button>`;
   }).join('');
+  const hint = document.getElementById('ex-week-hint');
+  if (hint) hint.style.display = S.exercises.length ? '' : 'none';
 }
 
 // ── NEW / EDIT EXERCISE ───────────────────────────────
