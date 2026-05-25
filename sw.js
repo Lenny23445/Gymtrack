@@ -1,8 +1,10 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605251900';
+const CACHE = 'gymtrack-v202605252000';
 const SHELL = [
   './index.html',
   './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 

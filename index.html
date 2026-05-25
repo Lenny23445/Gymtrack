@@ -1290,6 +1290,19 @@ body{
         </div>
       </div>
     </div>
+    <div id="install-section" style="display:none">
+      <div class="s-title">App installieren</div>
+      <div class="card">
+        <div style="padding:16px;position:relative;z-index:1;display:flex;align-items:center;gap:14px">
+          <div class="ico" style="background:rgba(var(--acc-rgb),.10);border-color:rgba(var(--acc-rgb),.2);font-size:22px;flex-shrink:0">📲</div>
+          <div style="flex:1;min-width:0">
+            <div class="row-title">Zum Homescreen hinzufügen</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:2px">Als App installieren — kein App Store nötig</div>
+          </div>
+          <button onclick="triggerInstall()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0">Installieren</button>
+        </div>
+      </div>
+    </div>
     <div>
       <div class="s-title">Design</div>
       <div class="card">
@@ -1839,7 +1852,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251900';
+const APP_VERSION = 'gymtrack-v202605252000';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -3796,6 +3809,25 @@ if (S.welcomeShown && S.lastSeenVersion !== APP_VERSION) {
     const ml=document.querySelector('link[rel="manifest"]');
     if(ml) ml.href=URL.createObjectURL(blob);
   }catch(e){}
+
+  /* ── PWA Install Prompt (Android) ── */
+  let _installPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _installPrompt = e;
+    const sec = document.getElementById('install-section');
+    if (sec) sec.style.display = '';
+  });
+  window.triggerInstall = async () => {
+    if (!_installPrompt) return;
+    _installPrompt.prompt();
+    const { outcome } = await _installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      _installPrompt = null;
+      const sec = document.getElementById('install-section');
+      if (sec) sec.style.display = 'none';
+    }
+  };
 
   /* ── Register Service Worker ── */
   if('serviceWorker' in navigator){
