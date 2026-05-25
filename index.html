@@ -266,6 +266,95 @@ body{
   pointer-events:none;
 }
 .hdr-plus:active{transform:scale(.90);opacity:.80}
+.hdr-plus svg{color:#fff}
+
+/* ── PLAN / WOCHENPLAN ── */
+.plan-day{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--gl-bdr);cursor:pointer;
+  transition:background .15s;
+}
+.plan-day:last-child{border-bottom:none}
+.plan-day:active{background:rgba(var(--acc-rgb),.08)}
+.plan-day.today{background:rgba(var(--acc-rgb),.06)}
+.plan-day-name{
+  font-weight:700;font-size:15px;width:46px;flex-shrink:0;color:var(--text);
+  letter-spacing:.2px;
+}
+.plan-day.today .plan-day-name{color:var(--acc)}
+.plan-day-body{flex:1;min-width:0}
+.plan-day-title{font-size:15px;color:var(--text);font-weight:600;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-day-title.empty{color:var(--text2);font-weight:400}
+.plan-day-sub{font-size:12px;color:var(--text2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-day-chev{color:var(--text2);font-size:22px;flex-shrink:0}
+.plan-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;
+  background:rgba(var(--acc-rgb),.14);color:var(--acc);
+  margin-right:6px;
+}
+.day-pill-row{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px}
+.day-pill{
+  flex:1;min-width:42px;padding:9px 6px;border-radius:12px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  font-family:inherit;font-size:12px;font-weight:700;
+  color:var(--text2);cursor:pointer;text-align:center;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.day-pill.on{
+  background:var(--acc);color:#fff;border-color:var(--acc);
+  box-shadow:0 2px 8px rgba(var(--acc-rgb),.35);
+}
+.plan-type-seg{
+  display:flex;gap:6px;background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  border-radius:14px;padding:4px;margin-bottom:14px;
+}
+.plan-type-seg button{
+  flex:1;padding:9px 4px;border:none;background:transparent;
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);
+  border-radius:10px;cursor:pointer;transition:background .15s,color .15s;
+}
+.plan-type-seg button.on{background:var(--acc);color:#fff}
+.plan-ex-pick{
+  display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow-y:auto;
+  padding:4px 2px;
+}
+.plan-ex-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  border-radius:12px;cursor:pointer;
+}
+.plan-ex-item.on{background:rgba(var(--acc-rgb),.12);border-color:var(--acc)}
+.plan-ex-item .pe-emo{font-size:18px}
+.plan-ex-item .pe-name{flex:1;font-size:14px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-ex-item .pe-chk{
+  width:22px;height:22px;border-radius:50%;border:2px solid var(--gl-bdr);
+  display:flex;align-items:center;justify-content:center;
+  color:transparent;font-weight:800;font-size:13px;flex-shrink:0;
+}
+.plan-ex-item.on .pe-chk{background:var(--acc);border-color:var(--acc);color:#fff}
+.wk-preview{
+  display:flex;gap:6px;overflow-x:auto;padding:10px 20px 4px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.wk-preview::-webkit-scrollbar{display:none}
+.wk-prev-day{
+  flex:0 0 auto;min-width:64px;padding:9px 10px;border-radius:14px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  text-align:center;cursor:pointer;
+  transition:transform .12s,background .15s;
+}
+.wk-prev-day:active{transform:scale(.96)}
+.wk-prev-day.today{border-color:var(--acc);box-shadow:0 0 0 1px rgba(var(--acc-rgb),.4)}
+.wk-prev-day.has{background:rgba(var(--acc-rgb),.10)}
+.wk-prev-d{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.4px}
+.wk-prev-day.today .wk-prev-d{color:var(--acc)}
+.wk-prev-l{font-size:11px;color:var(--text);font-weight:600;margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.wk-prev-l.empty{color:var(--text2);font-weight:400;opacity:.55}
 
 /* ── TABBAR — FLOATING LIQUID GLASS PILL ── */
 .tabbar{
@@ -1039,9 +1128,18 @@ body{
         <h1>Meine Übungen</h1>
         <div class="sub" id="ex-sub"></div>
       </div>
-      <button class="hdr-plus" onclick="openNewEx(null)">+</button>
+      <button class="hdr-plus" onclick="openPlan()" aria-label="Wochenplan öffnen">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block">
+          <rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect>
+          <line x1="3" y1="9.5" x2="21" y2="9.5"></line>
+          <line x1="8" y1="2.5" x2="8" y2="6.5"></line>
+          <line x1="16" y1="2.5" x2="16" y2="6.5"></line>
+        </svg>
+      </button>
     </div>
   </div>
+  <!-- Wochenplan-Vorschau (klick → öffnet Plan) -->
+  <div class="wk-preview" id="ex-week-preview"></div>
   <!-- Filter-Modus (Muskeln / Push-Pull-Legs / Ober-Unter) -->
   <div class="fmode-wrap" id="ex-mode-switch"></div>
   <!-- Gruppen-Filter-Pills (passt sich dem Modus an) -->
@@ -1315,9 +1413,65 @@ body{
           </div>
         </div>
       </div>
+      <div class="f-field">
+        <label class="f-label">Wochentag(e) für diese Übung</label>
+        <div class="day-pill-row" id="ex-day-pills"></div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">
+          Tippe Tage an, an denen du diese Übung trainieren willst — sie erscheint im Wochenplan.
+        </div>
+      </div>
       <button class="btn btn-acc" onclick="saveEx()">Speichern</button>
       <div class="gap" style="height:10px"></div>
       <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: WOCHENPLAN -->
+<div class="ov" id="ov-plan">
+  <div class="sheet" style="max-height:92vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>📅 Wochenplan</h2>
+      <button class="x-btn" onclick="closeOv('ov-plan')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:6px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px">
+        Plane pro Wochentag eine Trainingsgruppe oder einzelne Übungen. Wiederholt sich jede Woche.
+      </div>
+    </div>
+    <div id="plan-list" class="card" style="margin:8px 20px 20px"></div>
+  </div>
+</div>
+
+<!-- SHEET: PLAN-TAG BEARBEITEN -->
+<div class="ov" id="ov-plan-day" style="z-index:1001">
+  <div class="sheet" style="max-height:92vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="plan-day-title">Montag</h2>
+      <button class="x-btn" onclick="closeOv('ov-plan-day')">✕</button>
+    </div>
+    <div class="px">
+      <div class="plan-type-seg" id="plan-type-seg">
+        <button data-type="none" onclick="setPlanType('none')">Frei</button>
+        <button data-type="group" onclick="setPlanType('group')">Gruppe</button>
+        <button data-type="exercises" onclick="setPlanType('exercises')">Übungen</button>
+      </div>
+      <div id="plan-type-group" style="display:none">
+        <label class="f-label">Trainingsgruppe</label>
+        <div class="icon-cat-scroll" id="plan-group-picker" style="padding:6px 0 14px"></div>
+      </div>
+      <div id="plan-type-exercises" style="display:none">
+        <label class="f-label">Übungen wählen</label>
+        <div class="plan-ex-pick" id="plan-ex-pick"></div>
+      </div>
+      <div id="plan-type-none-info" style="display:none;padding:18px 6px;color:var(--text2);font-size:13px;text-align:center">
+        Kein Training für diesen Tag geplant.
+      </div>
+      <div class="gap"></div>
+      <button class="btn btn-acc" onclick="savePlanDay()">Speichern</button>
+      <div class="gap" style="height:8px"></div>
     </div>
   </div>
 </div>
@@ -1574,10 +1728,16 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605250100';
+const APP_VERSION = 'gymtrack-v202605251200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605251200': [
+    '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
+    '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
+    '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
+    '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
+  ],
   'gymtrack-v202605250100': [
     '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
     '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
@@ -1717,6 +1877,9 @@ S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 S.exFilterMode = S.exFilterMode || 'muskel';
 S.wkFilterMode = S.wkFilterMode || 'muskel';
 S.statsFilterMode = S.statsFilterMode || 'muskel';
+// Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
+S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
+['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -1950,13 +2113,16 @@ function renderExList() {
     const last = hist.length ? hist[hist.length-1] : null;
     const lw = last ? maxW(last.sets) : null;
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
-    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}`;
+    const days = exerciseDayLabels(ex.id);
+    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${ex.targetReps} Wdh${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
     return `<div class="row tap" onclick="openDet('${ex.id}')">
       <div class="ico">${ex.emoji}</div>
       <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
       <div class="chev">›</div>
     </div>`;
   }).join('')}</div>`;
+
+  renderWeekPreview();
 }
 
 function setExCat(id) {
@@ -1972,11 +2138,208 @@ function setExFilterMode(mode) {
   renderExList();
 }
 
+// ── WOCHENPLAN ────────────────────────────────────────
+const DAYS = [
+  { key:'mon', short:'Mo', label:'Montag' },
+  { key:'tue', short:'Di', label:'Dienstag' },
+  { key:'wed', short:'Mi', label:'Mittwoch' },
+  { key:'thu', short:'Do', label:'Donnerstag' },
+  { key:'fri', short:'Fr', label:'Freitag' },
+  { key:'sat', short:'Sa', label:'Samstag' },
+  { key:'sun', short:'So', label:'Sonntag' },
+];
+function todayKey() {
+  const js = new Date().getDay(); // 0=So..6=Sa
+  return ['sun','mon','tue','wed','thu','fri','sat'][js];
+}
+function dayByKey(k) { return DAYS.find(d => d.key === k); }
+function planFor(dayKey) { return (S.weekPlan && S.weekPlan[dayKey]) || {type:'none'}; }
+function groupLabelById(id) {
+  for (const m of GROUP_MODES) {
+    const g = m.groups.find(g => g.id === id && g.id !== 'alle');
+    if (g) return g.label;
+  }
+  return id;
+}
+function exerciseDays(exId) {
+  const out = [];
+  DAYS.forEach(d => {
+    const p = planFor(d.key);
+    if (p.type === 'exercises' && Array.isArray(p.exIds) && p.exIds.includes(exId)) out.push(d.key);
+  });
+  return out;
+}
+function exerciseDayLabels(exId) {
+  return exerciseDays(exId).map(k => dayByKey(k).short).join(', ');
+}
+function syncExerciseToDays(exId, dayKeys) {
+  DAYS.forEach(d => {
+    const p = planFor(d.key);
+    const want = dayKeys.includes(d.key);
+    if (want) {
+      if (p.type === 'exercises') {
+        if (!p.exIds.includes(exId)) p.exIds.push(exId);
+      } else if (p.type === 'none') {
+        S.weekPlan[d.key] = {type:'exercises', exIds:[exId]};
+      } else if (p.type === 'group') {
+        S.weekPlan[d.key] = {type:'exercises', exIds:[exId]};
+      }
+    } else {
+      if (p.type === 'exercises' && Array.isArray(p.exIds)) {
+        p.exIds = p.exIds.filter(id => id !== exId);
+        if (!p.exIds.length) S.weekPlan[d.key] = {type:'none'};
+      }
+    }
+  });
+}
+function planSummary(dayKey) {
+  const p = planFor(dayKey);
+  if (p.type === 'group' && p.group) {
+    return { badge:groupLabelById(p.group), text:'Trainingsgruppe', empty:false };
+  }
+  if (p.type === 'exercises' && Array.isArray(p.exIds) && p.exIds.length) {
+    const names = p.exIds.map(id => exById(id)).filter(Boolean).map(e => e.name);
+    if (!names.length) return { badge:'', text:'Frei', empty:true };
+    return { badge:names.length+' Übung'+(names.length!==1?'en':''), text:names.join(' · '), empty:false };
+  }
+  return { badge:'', text:'Frei', empty:true };
+}
+
+function openPlan() {
+  renderPlanList();
+  openOv('ov-plan');
+}
+function renderPlanList() {
+  const el = document.getElementById('plan-list');
+  if (!el) return;
+  const tk = todayKey();
+  el.innerHTML = DAYS.map(d => {
+    const s = planSummary(d.key);
+    return `<div class="plan-day${d.key===tk?' today':''}" onclick="editPlanDay('${d.key}')">
+      <div class="plan-day-name">${d.short}</div>
+      <div class="plan-day-body">
+        <div class="plan-day-title${s.empty?' empty':''}">${s.badge?`<span class="plan-badge">${s.badge}</span>`:''}${s.empty?'Frei':s.text}</div>
+        <div class="plan-day-sub">${d.label}${d.key===tk?' · heute':''}</div>
+      </div>
+      <div class="plan-day-chev">›</div>
+    </div>`;
+  }).join('');
+}
+
+let planEditDayKey = null;
+let planEditDraft  = null;
+
+function editPlanDay(dayKey) {
+  planEditDayKey = dayKey;
+  const cur = planFor(dayKey);
+  planEditDraft = JSON.parse(JSON.stringify(cur));
+  if (!planEditDraft.type) planEditDraft.type = 'none';
+  document.getElementById('plan-day-title').textContent = dayByKey(dayKey).label;
+  renderPlanTypeSeg();
+  renderPlanTypeBody();
+  openOv('ov-plan-day');
+}
+function setPlanType(t) {
+  planEditDraft.type = t;
+  if (t === 'group' && !planEditDraft.group) planEditDraft.group = '';
+  if (t === 'exercises' && !Array.isArray(planEditDraft.exIds)) planEditDraft.exIds = [];
+  renderPlanTypeSeg();
+  renderPlanTypeBody();
+}
+function renderPlanTypeSeg() {
+  document.querySelectorAll('#plan-type-seg button').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('data-type') === planEditDraft.type);
+  });
+}
+function renderPlanTypeBody() {
+  document.getElementById('plan-type-group').style.display      = planEditDraft.type==='group'     ? '' : 'none';
+  document.getElementById('plan-type-exercises').style.display  = planEditDraft.type==='exercises' ? '' : 'none';
+  document.getElementById('plan-type-none-info').style.display  = planEditDraft.type==='none'      ? '' : 'none';
+  if (planEditDraft.type === 'group') renderPlanGroupPicker();
+  if (planEditDraft.type === 'exercises') renderPlanExPicker();
+}
+function renderPlanGroupPicker() {
+  const opts = [];
+  GROUP_MODES.forEach(m => {
+    m.groups.forEach(g => {
+      if (g.id === 'alle') return;
+      if (!opts.some(o => o.id === g.id)) opts.push({ id:g.id, label:g.label });
+    });
+  });
+  document.getElementById('plan-group-picker').innerHTML = opts.map(o =>
+    `<button class="icat${planEditDraft.group===o.id?' on':''}" onclick="setPlanGroup('${o.id}')">${o.label}</button>`
+  ).join('');
+}
+function setPlanGroup(id) {
+  planEditDraft.group = planEditDraft.group === id ? '' : id;
+  renderPlanGroupPicker();
+}
+function renderPlanExPicker() {
+  const el = document.getElementById('plan-ex-pick');
+  if (!S.exercises.length) {
+    el.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:13px;text-align:center">Noch keine Übungen — füge zuerst Übungen hinzu.</div>`;
+    return;
+  }
+  el.innerHTML = S.exercises.map(ex => {
+    const on = planEditDraft.exIds && planEditDraft.exIds.includes(ex.id);
+    return `<div class="plan-ex-item${on?' on':''}" onclick="togglePlanEx('${ex.id}')">
+      <div class="pe-emo">${ex.emoji}</div>
+      <div class="pe-name">${ex.name}</div>
+      <div class="pe-chk">✓</div>
+    </div>`;
+  }).join('');
+}
+function togglePlanEx(id) {
+  if (!Array.isArray(planEditDraft.exIds)) planEditDraft.exIds = [];
+  const i = planEditDraft.exIds.indexOf(id);
+  if (i < 0) planEditDraft.exIds.push(id); else planEditDraft.exIds.splice(i, 1);
+  renderPlanExPicker();
+}
+function savePlanDay() {
+  if (!planEditDayKey) return;
+  let next;
+  if (planEditDraft.type === 'group') {
+    if (!planEditDraft.group) { alert('Bitte eine Gruppe wählen oder „Frei" auswählen.'); return; }
+    next = { type:'group', group:planEditDraft.group };
+  } else if (planEditDraft.type === 'exercises') {
+    const ids = (planEditDraft.exIds || []).filter(id => exById(id));
+    next = ids.length ? { type:'exercises', exIds:ids } : { type:'none' };
+  } else {
+    next = { type:'none' };
+  }
+  S.weekPlan[planEditDayKey] = next;
+  persist();
+  closeOv('ov-plan-day');
+  renderPlanList();
+  renderExList();
+  renderHome();
+}
+
+function renderWeekPreview() {
+  const el = document.getElementById('ex-week-preview');
+  if (!el) return;
+  const tk = todayKey();
+  el.innerHTML = DAYS.map(d => {
+    const s = planSummary(d.key);
+    const cls = ['wk-prev-day'];
+    if (d.key === tk) cls.push('today');
+    if (!s.empty) cls.push('has');
+    const label = s.empty ? 'Frei' : (s.badge || 'Plan');
+    return `<button type="button" class="${cls.join(' ')}" onclick="openPlan()">
+      <div class="wk-prev-d">${d.short.toUpperCase()}</div>
+      <div class="wk-prev-l${s.empty?' empty':''}">${label}</div>
+    </button>`;
+  }).join('');
+}
+
 // ── NEW / EDIT EXERCISE ───────────────────────────────
+let selExDays = []; // Wochentage, die im Übung-Modal ausgewählt sind
+
 function openNewEx(exId) {
   editId = exId;
   selEmoji  = '🏋️';
   selMuscle = '';
+  selExDays = [];
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps').value = '10';
@@ -1995,11 +2358,26 @@ function openNewEx(exId) {
       document.getElementById('in-kg').value = ex.targetWeight || '';
       document.getElementById('del-ex-btn').style.display = '';
       document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
+      selExDays = exerciseDays(exId);
     }
   }
   renderEmoGrid();
   renderMusclePicker();
+  renderExDayPills();
   openOv('ov-ex');
+}
+
+function renderExDayPills() {
+  const el = document.getElementById('ex-day-pills');
+  if (!el) return;
+  el.innerHTML = DAYS.map(d =>
+    `<button type="button" class="day-pill${selExDays.includes(d.key)?' on':''}" onclick="toggleExDay('${d.key}')">${d.short}</button>`
+  ).join('');
+}
+function toggleExDay(k) {
+  const i = selExDays.indexOf(k);
+  if (i < 0) selExDays.push(k); else selExDays.splice(i, 1);
+  renderExDayPills();
 }
 
 function renderEmoGrid() {
@@ -2032,12 +2410,16 @@ function saveEx() {
   const reps = parseInt(document.getElementById('in-reps').value)||10;
   const kg   = parseFloat(document.getElementById('in-kg').value)||0;
 
+  let savedId;
   if (editId) {
     const ex = exById(editId);
     if (ex) Object.assign(ex, {name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
+    savedId = editId;
   } else {
-    S.exercises.push({id:uid(), name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
+    savedId = uid();
+    S.exercises.push({id:savedId, name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg});
   }
+  syncExerciseToDays(savedId, selExDays);
   persist();
   closeOv('ov-ex');
   renderExList();
