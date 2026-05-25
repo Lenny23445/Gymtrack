@@ -729,10 +729,21 @@ body{
 }
 .ex-title{font-size:17px;font-weight:700}
 .ex-body{padding:10px 16px 16px;position:relative;z-index:1}
-.set-hdr{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:8px;padding:2px 0 8px}
+.set-hdr{display:grid;grid-template-columns:28px 1fr 1fr 30px 26px;gap:8px;padding:2px 0 8px}
 .set-hdr span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;letter-spacing:.4px}
-.set-row{display:grid;grid-template-columns:28px 1fr 1fr 28px;gap:8px;align-items:center;padding:4px 0}
-.set-n{font-size:14px;font-weight:600;color:var(--text2);text-align:center}
+.set-row{display:grid;grid-template-columns:28px 1fr 1fr 30px 26px;gap:8px;align-items:center;padding:4px 0;transition:opacity .2s}
+.set-n{font-size:14px;font-weight:600;color:var(--text2);text-align:center;transition:opacity .2s}
+.set-row.done .set-n,.set-row.done .set-in{opacity:.38}
+.set-chk{
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--text2);
+  background:none;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;padding:0;
+  transition:background .18s,border-color .18s,transform .12s;
+}
+.set-chk:active{transform:scale(.86)}
+.set-chk svg{width:12px;height:10px;opacity:0;transition:opacity .15s;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.set-chk.done{background:var(--green);border-color:var(--green)}
+.set-chk.done svg{opacity:1}
 .set-in{
   background:var(--inp-bg);
   backdrop-filter:blur(12px);
@@ -1828,7 +1839,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251800';
+const APP_VERSION = 'gymtrack-v202605251900';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -3275,14 +3286,17 @@ function renderLogCards() {
         <span style="font-size:13px;color:var(--text2)">Ziel: ${ex.targetSets}×${ex.targetReps}</span>
       </div>
       <div class="ex-body">
-        <div class="set-hdr"><span></span><span>KG</span><span>WDH</span><span></span></div>
+        <div class="set-hdr"><span></span><span>KG</span><span>WDH</span><span></span><span></span></div>
         ${log.sets.map((s,si)=>`
-        <div class="set-row">
+        <div class="set-row${s.done?' done':''}">
           <div class="set-n">${si+1}</div>
           <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
             oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
           <input class="set-in${s.r && s.r===log.sugR?' is-sug':''}" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
             oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'r',this.value)">
+          <button class="set-chk${s.done?' done':''}" onclick="toggleSetDone(${li},${si})">
+            <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
+          </button>
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
         </div>`).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
@@ -3292,6 +3306,10 @@ function renderLogCards() {
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
+function toggleSetDone(li,si) {
+  wkLogs[li].sets[si].done = !wkLogs[li].sets[si].done;
+  renderLogCards();
+}
 function addSet(li) {
   const p = wkLogs[li].sets.slice(-1)[0];
   wkLogs[li].sets.push({w:p?.w||'',r:p?.r||''});
