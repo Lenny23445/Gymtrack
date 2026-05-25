@@ -2060,6 +2060,14 @@ body{
           </div>
           <div class="chev">📋</div>
         </div>
+        <div class="row tap" onclick="adminDiagnose()">
+          <div class="ico" style="background:rgba(255,149,0,.14);border-color:rgba(255,149,0,.30)">🔧</div>
+          <div class="row-body">
+            <div class="row-title">Diagnose ausführen</div>
+            <div class="row-sub">Testet Login, UID, Firestore- und RTDB-Zugriff</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
         <div class="row tap" onclick="adminDisable()">
           <div class="ico">🚪</div>
           <div class="row-body">
@@ -2615,18 +2623,18 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252307';
+const APP_VERSION = 'gymtrack-v202605252333';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
     '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
     '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
     '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
@@ -2636,48 +2644,48 @@ const CHANGELOG = {
     '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
     '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
     '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '💧 Flüssige Tab-Animation: Die Blasen-Navigation bewegt sich jetzt wie eine Wasserblase — dehnt sich beim Wechsel und federt zurück',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
     '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
     '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
     '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
     '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
     '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
     '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
     '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
   ],
-  'gymtrack-v202605252307': [
+  'gymtrack-v202605252333': [
     '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
     '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
     '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
@@ -6485,6 +6493,58 @@ function adminCopyUid() {
     const t = document.getElementById('update-toast');
     if (t) { t.textContent = '✓ UID kopiert'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1600); }
   }).catch(() => alert(uid));
+}
+
+async function adminDiagnose() {
+  const lines = [];
+  const ok  = (s) => '✅ ' + s;
+  const bad = (s) => '❌ ' + s;
+  const inf = (s) => 'ℹ️ ' + s;
+  // App-Version
+  lines.push(inf('App-Version: ' + (typeof APP_VERSION === 'string' ? APP_VERSION : '?')));
+  // Firebase configured?
+  if (!window.FB?.configured) {
+    lines.push(bad('Firebase nicht konfiguriert'));
+    alert(lines.join('\n')); return;
+  }
+  lines.push(ok('Firebase configured'));
+  // User?
+  const u = window.FB.auth?.currentUser;
+  if (!u) {
+    lines.push(bad('Nicht eingeloggt (currentUser ist null)'));
+    alert(lines.join('\n')); return;
+  }
+  lines.push(ok('Eingeloggt: ' + (u.email || '(anonym)')));
+  lines.push(inf('UID in App:\n    ' + u.uid));
+  lines.push(inf('Admin-UID gespeichert:\n    ' + (S.adminUid || '(leer)')));
+  lines.push(u.uid === S.adminUid ? ok('Admin-Modus aktiv (UID stimmt)') : bad('UID stimmt NICHT mit Admin-UID überein'));
+
+  // Test: analytics_sessions lesen
+  try {
+    const snap = await window.FB.getDocs(window.FB.collection('analytics_sessions'));
+    lines.push(ok('analytics_sessions lesen: ' + snap.size + ' Dokumente'));
+  } catch (e) {
+    lines.push(bad('analytics_sessions LESEN fehlgeschlagen:\n    ' + (e?.code || e?.message || e)));
+  }
+  // Test: analytics_users lesen
+  try {
+    const snap = await window.FB.getDocs(window.FB.collection('analytics_users'));
+    lines.push(ok('analytics_users lesen: ' + snap.size + ' Dokumente'));
+  } catch (e) {
+    lines.push(bad('analytics_users LESEN fehlgeschlagen:\n    ' + (e?.code || e?.message || e)));
+  }
+  // Test: RTDB presence
+  try {
+    const snap = await window.FB.rtdbGet('presence');
+    const data = snap.val() || {};
+    let online = 0;
+    Object.values(data).forEach(p => { if (p && p.online === true) online++; });
+    lines.push(ok('RTDB presence lesen: ' + Object.keys(data).length + ' Einträge, ' + online + ' online'));
+  } catch (e) {
+    lines.push(bad('RTDB presence LESEN fehlgeschlagen:\n    ' + (e?.code || e?.message || e)));
+  }
+
+  alert(lines.join('\n\n'));
 }
 function isAdmin() {
   return !!(S.adminUid && _fbUser && S.adminUid === _fbUser.uid);
