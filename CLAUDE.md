@@ -101,3 +101,60 @@ S = {
 5. **Projektübersicht → Web-App hinzufügen (</>-Icon)** → registrieren → `firebaseConfig` kopieren
 6. In `index.html` nach `const FIREBASE_CONFIG = {` suchen, Werte einsetzen
 7. **Authentication → Settings → Authorized domains:** `lenny23445.github.io` hinzufügen (`localhost` ist schon drin)
+
+## Analytics / Admin-Statistiken
+
+**Aktivierung Anonymous-Auth (für vollständiges Tracking):** Firebase Console → **Authentication → Sign-in providers → Anonymous** aktivieren. Damit werden auch Besucher ohne Google-Login getrackt.
+
+**Datenmodell (Firestore):**
+- `analytics_users/{uid}` — `{uid, firstSeen, lastSeen, totalSessions, totalSec, isAnon}` (eine Doc pro Nutzer)
+- `analytics_sessions/{auto}` — `{uid, start, lastBeat, duration, isAnon}` (eine Doc pro Session, Heartbeat alle 60 s)
+- RTDB `presence/{uid}` (bestehend) — Live-Online-Count
+
+**Firestore-Rules** (Rules-Tab erweitern, `ADMIN_UID` durch die eigene UID ersetzen):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Analytics: jeder Nutzer schreibt seine eigenen Daten, NUR Admin liest alles
+    match /analytics_users/{userId} {
+      allow read:  if request.auth != null && request.auth.uid == "ADMIN_UID";
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+    match /analytics_sessions/{sid} {
+      allow read:   if request.auth != null && request.auth.uid == "ADMIN_UID";
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}
+```
+
+**Realtime DB Rules** (für Admin Lesezugriff auf `presence`, `ADMIN_UID` ersetzen):
+```
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null && auth.uid === 'ADMIN_UID'",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
+```
+
+**Admin-Modus aktivieren (einmalig pro Gerät):**
+1. In der App anmelden (Google)
+2. Einstellungen → 5× kurz auf die **„Version"**-Zeile tippen
+3. Bestätigen → eigene UID wird gespeichert
+4. UID kopieren aus „Meine UID kopieren" und in den Firestore-/RTDB-Rules (oben) einsetzen → publish
+5. Nun erscheint **📊 App-Statistiken** in den Einstellungen mit Live-Online, DAU/WAU/MAU, Ø Session-Dauer, Retention D1/D7/D30
+
+**Was die App automatisch macht:**
+- Beim App-Start: Auto-Login (anonym, falls Anonymous-Auth aktiviert), sonst nur signed-in
+- Pro Session: 1× Doc in `analytics_sessions` + 1× User-Update, Heartbeat alle 60 s
+- Bei `visibilitychange`/`pagehide`/`beforeunload`: finaler Heartbeat (Duration genau)

@@ -19,11 +19,11 @@
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
-  import { getDatabase, ref as dbRef, onValue, onDisconnect, set as dbSet, serverTimestamp as rtdbServerTimestamp }
+  import { getDatabase, ref as dbRef, onValue, onDisconnect, set as dbSet, get as dbGet, serverTimestamp as rtdbServerTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
 
   const FIREBASE_CONFIG = {
@@ -57,6 +57,7 @@
     window.FB.signInWithPopup    = () => signInWithPopup(auth, provider);
     window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
     window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
+    window.FB.signInAnonymously  = () => signInAnonymously(auth);
     window.FB.googleCredential   = (idToken) => GoogleAuthProvider.credential(idToken);
     window.FB.getRedirectResult  = () => getRedirectResult(auth);
     window.FB.signOut            = () => signOut(auth);
@@ -64,8 +65,19 @@
     window.FB.userDocRef         = (uid) => doc(db, 'users', uid);
     window.FB.getDoc             = getDoc;
     window.FB.setDoc             = setDoc;
+    window.FB.updateDoc          = updateDoc;
+    window.FB.addDoc             = addDoc;
+    window.FB.collection         = (path) => collection(db, path);
+    window.FB.doc                = (path, id) => doc(db, path, id);
+    window.FB.query              = query;
+    window.FB.where              = where;
+    window.FB.orderBy            = orderBy;
+    window.FB.limit              = limit;
+    window.FB.getDocs            = getDocs;
     window.FB.onSnapshot         = onSnapshot;
     window.FB.serverTimestamp    = serverTimestamp;
+    window.FB.Timestamp          = Timestamp;
+    window.FB.rtdbGet            = (path) => dbGet(dbRef(rtdb, path));
 
     // ── Presence (Realtime DB onDisconnect — kein Heartbeat) ──
     window.FB.startPresence = (user) => {
@@ -1666,6 +1678,36 @@ body{
   padding:5px 20px 2px;letter-spacing:.1px;opacity:.7;
 }
 
+/* ── ADMIN STATISTIK ── */
+.stat-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;
+}
+.stat-tile{
+  background:var(--gl-bg);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--gl-bdr);border-radius:14px;
+  padding:14px 12px;text-align:center;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  position:relative;overflow:hidden;
+}
+.stat-tile::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;
+  background:var(--sheen);pointer-events:none;
+}
+.stat-num{
+  font-size:24px;font-weight:700;color:var(--acc);
+  font-variant-numeric:tabular-nums;line-height:1.1;
+  position:relative;z-index:1;
+}
+.stat-lab{
+  font-size:11px;color:var(--text2);font-weight:600;
+  letter-spacing:.3px;margin-top:4px;
+  position:relative;z-index:1;
+}
+.stat-live .ico{font-size:18px}
+.stat-live{margin-bottom:14px}
+
 /* ── MINI WORKOUT BANNER (Training läuft im Hintergrund) ── */
 #wk-mini{
   position:fixed;left:10px;right:10px;
@@ -1990,12 +2032,41 @@ body{
           </div>
           <div class="chev">›</div>
         </div>
-        <div class="row">
+        <div class="row tap" id="version-row" onclick="adminTapCount()">
           <div class="ico">ℹ️</div>
           <div class="row-body">
             <div class="row-title">Version</div>
             <div class="row-sub">v1.1 – Test-Update ✅</div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div id="admin-section" style="display:none">
+      <div class="s-title">Admin</div>
+      <div class="card">
+        <div class="row tap" onclick="openAdminStats()">
+          <div class="ico" style="background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.25)">📊</div>
+          <div class="row-body">
+            <div class="row-title">App-Statistiken</div>
+            <div class="row-sub" id="admin-stats-sub">Live-Nutzer, Sessions, Retention</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+        <div class="row tap" onclick="adminCopyUid()">
+          <div class="ico">🆔</div>
+          <div class="row-body">
+            <div class="row-title">Meine UID kopieren</div>
+            <div class="row-sub" id="admin-uid-sub" style="font-family:monospace;font-size:11px;word-break:break-all">–</div>
+          </div>
+          <div class="chev">📋</div>
+        </div>
+        <div class="row tap" onclick="adminDisable()">
+          <div class="ico">🚪</div>
+          <div class="row-body">
+            <div class="row-title">Admin-Modus verlassen</div>
+            <div class="row-sub">Statistiken ausblenden</div>
+          </div>
+          <div class="chev">›</div>
         </div>
       </div>
     </div>
@@ -2018,6 +2089,61 @@ body{
           </div>
           <div class="chev">›</div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: ADMIN-STATISTIKEN -->
+<div class="ov" id="ov-admin-stats" style="z-index:1003">
+  <div class="sheet" style="max-height:92vh;padding-bottom:calc(24px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>📊 App-Statistiken</h2>
+      <button class="x-btn" onclick="closeOv('ov-admin-stats')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:20px">
+      <div id="admin-stats-status" style="font-size:12px;color:var(--text2);text-align:center;padding:8px 0 16px">Lade Daten…</div>
+
+      <div class="s-title" style="margin-top:4px">Jetzt online</div>
+      <div class="card stat-live">
+        <div class="row">
+          <div class="ico" style="background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.30)">🟢</div>
+          <div class="row-body">
+            <div class="row-title"><span id="stat-online">–</span> Nutzer aktiv</div>
+            <div class="row-sub" id="stat-online-sub">Live-Count via Realtime Presence</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="s-title">Aktive Nutzer</div>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="stat-num" id="stat-dau">–</div><div class="stat-lab">DAU · 24h</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-wau">–</div><div class="stat-lab">WAU · 7 Tage</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-mau">–</div><div class="stat-lab">MAU · 30 Tage</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-total">–</div><div class="stat-lab">Insgesamt</div></div>
+      </div>
+
+      <div class="s-title">Verweildauer (Sessions)</div>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="stat-num" id="stat-avg-dur">–</div><div class="stat-lab">Ø Session</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-med-dur">–</div><div class="stat-lab">Median</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-sess-7d">–</div><div class="stat-lab">Sessions / 7 Tage</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-sess-30d">–</div><div class="stat-lab">Sessions / 30 Tage</div></div>
+      </div>
+
+      <div class="s-title">Wiederkehr (Retention)</div>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="stat-num" id="stat-ret-1">–</div><div class="stat-lab">D1 · nach 1 Tag</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-ret-7">–</div><div class="stat-lab">D7 · nach 7 Tagen</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-ret-30">–</div><div class="stat-lab">D30 · nach 30 Tagen</div></div>
+        <div class="stat-tile"><div class="stat-num" id="stat-new-7d">–</div><div class="stat-lab">Neu · 7 Tage</div></div>
+      </div>
+
+      <div class="gap"></div>
+      <button class="btn btn-acc" onclick="loadAdminStats()">↻ Neu laden</button>
+      <div style="font-size:11px;color:var(--text2);text-align:center;padding:10px 0 4px">
+        Aktualisiert sich automatisch alle 30 Sekunden.
       </div>
     </div>
   </div>
@@ -2489,18 +2615,18 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252258';
+const APP_VERSION = 'gymtrack-v202605252307';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
     '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
     '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
     '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
@@ -2510,48 +2636,48 @@ const CHANGELOG = {
     '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
     '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
     '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '💧 Flüssige Tab-Animation: Die Blasen-Navigation bewegt sich jetzt wie eine Wasserblase — dehnt sich beim Wechsel und federt zurück',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
     '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
     '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
     '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
     '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
     '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
     '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
     '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
   ],
-  'gymtrack-v202605252258': [
+  'gymtrack-v202605252307': [
     '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
     '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
     '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
@@ -4555,6 +4681,7 @@ function renderSettings() {
   document.getElementById('data-info').textContent =
     S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
   updateCompanionSettingsRow();
+  updateAdminUI();
 }
 
 // ── BACKUP: EXPORT ────────────────────────────────────
@@ -6159,13 +6286,22 @@ function _mergeData(local, cloud) {
 }
 
 async function _onLogin(user) {
-  console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid);
+  console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid, user.isAnonymous ? '(anonym)' : '');
   _fbUser = user;
   updateAccountUI();
   if (!window.FB || !window.FB.configured) return;
 
   // Presence aktivieren (Realtime DB onDisconnect → kein Heartbeat)
   if (window.FB.startPresence) window.FB.startPresence(user);
+
+  // Analytics-Session starten
+  analyticsStart(user);
+
+  // Anonyme User: keine Cloud-Sync für Übungs-Daten
+  if (user.isAnonymous) {
+    _initialMergeDone = true;
+    return;
+  }
 
   _syncing = true;
   try {
@@ -6225,11 +6361,254 @@ async function _onLogin(user) {
 }
 
 function _onLogout() {
+  analyticsStop();
   if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   _initialMergeDone = false;
   updateAccountUI();
+}
+
+// ── ANALYTICS / NUTZUNGS-TRACKER ──────────────────────
+// Schreibt jede Session in Firestore:
+//   analytics_users/{uid}     → {uid, firstSeen, lastSeen, totalSessions, totalSec, isAnon}
+//   analytics_sessions/{sid}  → {uid, start, lastBeat, duration, isAnon}
+// Live-Online-Count nutzt das bestehende RTDB-presence-System.
+
+let _anaSessionRef   = null;
+let _anaSessionStart = null;
+let _anaHeartbeat    = null;
+const ANA_HEARTBEAT_MS = 60 * 1000;
+
+async function analyticsStart(user) {
+  if (!user || !window.FB?.configured) return;
+  if (_anaSessionRef) return; // schon getrackt
+  try {
+    _anaSessionStart = Date.now();
+    const userRef = window.FB.doc('analytics_users', user.uid);
+    const snap    = await window.FB.getDoc(userRef);
+    const isAnon  = !!user.isAnonymous;
+    if (!snap.exists()) {
+      await window.FB.setDoc(userRef, {
+        uid: user.uid,
+        firstSeen: window.FB.serverTimestamp(),
+        lastSeen:  window.FB.serverTimestamp(),
+        totalSessions: 1,
+        totalSec: 0,
+        isAnon
+      });
+    } else {
+      await window.FB.updateDoc(userRef, {
+        lastSeen: window.FB.serverTimestamp(),
+        totalSessions: (snap.data().totalSessions || 0) + 1,
+        isAnon
+      });
+    }
+    _anaSessionRef = await window.FB.addDoc(window.FB.collection('analytics_sessions'), {
+      uid: user.uid,
+      start: window.FB.serverTimestamp(),
+      lastBeat: window.FB.serverTimestamp(),
+      duration: 0,
+      isAnon
+    });
+    _anaHeartbeat = setInterval(_analyticsBeat, ANA_HEARTBEAT_MS);
+    console.log('[GymTrack] 📊 Analytics-Session gestartet', isAnon ? '(anonym)' : '(Google)');
+  } catch (e) {
+    console.warn('[GymTrack] Analytics-Start fehlgeschlagen (vermutlich Firestore-Rules):', e?.code || e?.message || e);
+  }
+}
+
+async function _analyticsBeat() {
+  if (!_anaSessionRef || !_anaSessionStart) return;
+  try {
+    const durSec = Math.floor((Date.now() - _anaSessionStart) / 1000);
+    await window.FB.updateDoc(_anaSessionRef, {
+      lastBeat: window.FB.serverTimestamp(),
+      duration: durSec
+    });
+    if (_fbUser) {
+      const userRef = window.FB.doc('analytics_users', _fbUser.uid);
+      await window.FB.updateDoc(userRef, { lastSeen: window.FB.serverTimestamp() });
+    }
+  } catch (e) { /* silent */ }
+}
+
+function analyticsStop() {
+  if (_anaHeartbeat) { clearInterval(_anaHeartbeat); _anaHeartbeat = null; }
+  _analyticsBeat();
+  _anaSessionRef   = null;
+  _anaSessionStart = null;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') _analyticsBeat();
+  else if (document.visibilityState === 'visible' && _fbUser && !_anaSessionRef) analyticsStart(_fbUser);
+});
+window.addEventListener('pagehide',     () => _analyticsBeat());
+window.addEventListener('beforeunload', () => _analyticsBeat());
+
+// ── ADMIN-MODUS ───────────────────────────────────────
+// 5× tap auf Version-Zeile (binnen 3s) → Admin-Modus aktivieren
+let _adminTapTimes = [];
+function adminTapCount() {
+  const now = Date.now();
+  _adminTapTimes = _adminTapTimes.filter(t => now - t < 3000);
+  _adminTapTimes.push(now);
+  if (_adminTapTimes.length >= 5) {
+    _adminTapTimes = [];
+    if (!_fbUser) {
+      alert('Bitte zuerst anmelden — Admin-Modus benötigt deine UID.');
+      return;
+    }
+    if (confirm('Admin-Modus aktivieren?\n\nDeine UID:\n' + _fbUser.uid + '\n\nDanach erscheint der „App-Statistiken"-Bereich. Beachte: Firestore-Rules müssen ebenfalls auf diese UID gesetzt sein, damit die Daten gelesen werden können.')) {
+      S.adminUid = _fbUser.uid;
+      persist();
+      haptic(40);
+      updateAdminUI();
+    }
+  } else if (_adminTapTimes.length >= 3) {
+    // sanftes Feedback dass etwas passiert
+    haptic(8);
+  }
+}
+function adminDisable() {
+  if (!confirm('Admin-Modus auf diesem Gerät deaktivieren?')) return;
+  S.adminUid = '';
+  persist();
+  updateAdminUI();
+}
+function adminCopyUid() {
+  const uid = _fbUser?.uid;
+  if (!uid) { alert('Nicht angemeldet.'); return; }
+  navigator.clipboard?.writeText(uid).then(() => {
+    haptic(15);
+    const t = document.getElementById('update-toast');
+    if (t) { t.textContent = '✓ UID kopiert'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1600); }
+  }).catch(() => alert(uid));
+}
+function isAdmin() {
+  return !!(S.adminUid && _fbUser && S.adminUid === _fbUser.uid);
+}
+function updateAdminUI() {
+  const sec = document.getElementById('admin-section');
+  if (!sec) return;
+  sec.style.display = isAdmin() ? '' : 'none';
+  const uidSub = document.getElementById('admin-uid-sub');
+  if (uidSub && _fbUser) uidSub.textContent = _fbUser.uid;
+}
+
+// ── ADMIN-STATISTIKEN LADEN & RENDERN ─────────────────
+let _adminStatsInt = null;
+
+function openAdminStats() {
+  if (!isAdmin()) return;
+  openOv('ov-admin-stats');
+  loadAdminStats();
+  if (_adminStatsInt) clearInterval(_adminStatsInt);
+  _adminStatsInt = setInterval(loadAdminStats, 30000);
+}
+// Auto-Stop bei Schließen
+(function(){
+  const orig = closeOv;
+  closeOv = function(id) {
+    orig(id);
+    if (id === 'ov-admin-stats' && _adminStatsInt) {
+      clearInterval(_adminStatsInt); _adminStatsInt = null;
+    }
+  };
+})();
+
+function _fmtDur(sec) {
+  if (!sec || sec < 1) return '0 s';
+  if (sec < 60) return sec + ' s';
+  const m = Math.floor(sec/60), s = sec % 60;
+  if (m < 60) return m + ':' + String(s).padStart(2,'0') + ' min';
+  const h = Math.floor(m/60), mm = m % 60;
+  return h + ':' + String(mm).padStart(2,'0') + ' h';
+}
+
+async function loadAdminStats() {
+  if (!isAdmin() || !window.FB?.configured) return;
+  const status = document.getElementById('admin-stats-status');
+  if (status) status.textContent = 'Lade Daten…';
+  try {
+    // ── 1) Live-Online (RTDB presence)
+    let online = 0, presOk = false;
+    try {
+      const snap = await window.FB.rtdbGet('presence');
+      const data = snap.val() || {};
+      Object.values(data).forEach(p => { if (p && p.online === true) online++; });
+      presOk = true;
+    } catch(e) { /* keine Rechte oder leer */ }
+    document.getElementById('stat-online').textContent = presOk ? online : '?';
+    document.getElementById('stat-online-sub').textContent = presOk
+      ? 'Live-Count via Realtime Presence'
+      : 'RTDB-Rules erlauben dem Admin kein Lesen';
+
+    // ── 2) analytics_users laden
+    const usersSnap = await window.FB.getDocs(window.FB.collection('analytics_users'));
+    const now = Date.now();
+    const dayMs = 86400000;
+    let dau = 0, wau = 0, mau = 0, total = 0, new7 = 0;
+    let ret1 = {seen:0, returned:0}, ret7 = {seen:0, returned:0}, ret30 = {seen:0, returned:0};
+    const users = [];
+    usersSnap.forEach(d => {
+      const u = d.data();
+      const firstSeen = u.firstSeen?.toMillis?.() || 0;
+      const lastSeen  = u.lastSeen?.toMillis?.()  || 0;
+      users.push({ uid: d.id, firstSeen, lastSeen });
+      total++;
+      const sinceLast = now - lastSeen;
+      if (sinceLast < dayMs)      dau++;
+      if (sinceLast < 7*dayMs)    wau++;
+      if (sinceLast < 30*dayMs)   mau++;
+      if (firstSeen && now - firstSeen < 7*dayMs) new7++;
+      // Retention: Nutzer ist „eligible" für D1/D7/D30 wenn sein firstSeen ≥ N+1 Tage her ist
+      const age = now - firstSeen;
+      if (age >= 1*dayMs)   { ret1.seen++;  if (lastSeen - firstSeen >= 0.8*dayMs)  ret1.returned++; }
+      if (age >= 7*dayMs)   { ret7.seen++;  if (lastSeen - firstSeen >= 6*dayMs)    ret7.returned++; }
+      if (age >= 30*dayMs)  { ret30.seen++; if (lastSeen - firstSeen >= 28*dayMs)   ret30.returned++; }
+    });
+    document.getElementById('stat-dau').textContent   = dau;
+    document.getElementById('stat-wau').textContent   = wau;
+    document.getElementById('stat-mau').textContent   = mau;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-new-7d').textContent = new7;
+    const pct = (r) => r.seen ? Math.round(100*r.returned/r.seen) + '%' : '—';
+    document.getElementById('stat-ret-1').textContent  = pct(ret1);
+    document.getElementById('stat-ret-7').textContent  = pct(ret7);
+    document.getElementById('stat-ret-30').textContent = pct(ret30);
+
+    // ── 3) Sessions: letzte 30 Tage
+    const since30 = window.FB.Timestamp.fromMillis(now - 30*dayMs);
+    const q = window.FB.query(
+      window.FB.collection('analytics_sessions'),
+      window.FB.where('start', '>=', since30)
+    );
+    const sessSnap = await window.FB.getDocs(q);
+    const durations = [];
+    let sess7 = 0, sess30 = 0;
+    sessSnap.forEach(d => {
+      const s = d.data();
+      const dur = s.duration || 0;
+      durations.push(dur);
+      const startMs = s.start?.toMillis?.() || 0;
+      if (now - startMs < 7*dayMs)  sess7++;
+      sess30++;
+    });
+    const avg = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0) / durations.length) : 0;
+    const sorted = durations.slice().sort((a,b)=>a-b);
+    const med = sorted.length ? sorted[Math.floor(sorted.length/2)] : 0;
+    document.getElementById('stat-avg-dur').textContent  = _fmtDur(avg);
+    document.getElementById('stat-med-dur').textContent  = _fmtDur(med);
+    document.getElementById('stat-sess-7d').textContent  = sess7;
+    document.getElementById('stat-sess-30d').textContent = sess30;
+
+    if (status) status.textContent = 'Zuletzt aktualisiert: ' + new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch (e) {
+    console.error('[GymTrack] Admin-Stats Fehler:', e);
+    if (status) status.textContent = '⚠️ ' + (e?.code || e?.message || 'Fehler beim Laden') + ' — Firestore-Rules prüfen';
+  }
 }
 
 // ── Google Identity Services (GIS) — funktioniert auch in iOS-PWA ──
@@ -6425,6 +6804,8 @@ function updateAccountUI() {
   if (document.getElementById('ov-account')?.classList.contains('on')) {
     renderAccountSheet();
   }
+  // Admin-Sichtbarkeit aktualisieren (UID kann sich geändert haben)
+  if (typeof updateAdminUI === 'function') updateAdminUI();
 }
 
 // Firebase initialisieren sobald geladen
@@ -6446,10 +6827,19 @@ function _initFirebaseListeners() {
     });
   // Auth-State beobachten
   window.FB.onAuthStateChanged((user) => {
-    console.log('[GymTrack] Auth-State changed:', user ? user.email : '(abgemeldet)');
+    console.log('[GymTrack] Auth-State changed:', user ? (user.email || user.uid) : '(abgemeldet)');
     if (user) _onLogin(user);
     else      _onLogout();
   });
+
+  // Anonyme Auth nach 3s Auto-Login (für Analytics auch ohne Google-Login)
+  setTimeout(() => {
+    if (!_fbUser && window.FB?.signInAnonymously) {
+      window.FB.signInAnonymously().catch(e => {
+        console.warn('[GymTrack] Anonyme Auth nicht verfügbar (in Firebase Console aktivieren):', e?.code || e?.message);
+      });
+    }
+  }, 3000);
 }
 if (window.FB !== undefined) {
   _initFirebaseListeners();
