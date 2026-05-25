@@ -3903,10 +3903,17 @@ function pendingChangelogVersions(sinceVersion) {
 }
 
 function formatVersionLabel(v) {
-  // 'gymtrack-vYYYYMMDDHHMM' → 'TT.MM.YYYY · HH:MM'
+  // 'gymtrack-vYYYYMMDDHHMM' → 'TT.MM.YYYY · HH:MM' (deutsche Zeit)
   const m = v.match(/gymtrack-v(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
   if (!m) return v.replace('gymtrack-v', 'Version ');
-  return `${m[3]}.${m[2]}.${m[1]} · ${m[4]}:${m[5]}`;
+  const utc = new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]));
+  const de  = utc.toLocaleString('de-DE', {
+    timeZone:'Europe/Berlin',
+    day:'2-digit', month:'2-digit', year:'numeric',
+    hour:'2-digit', minute:'2-digit'
+  });
+  const [date, time] = de.split(', ');
+  return `${date} · ${time} Uhr`;
 }
 
 function showChangelog(_unused) {
