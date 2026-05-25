@@ -1813,7 +1813,7 @@ body{
           <div class="ico">🎓</div>
           <div class="row-body">
             <div class="row-title">Tour neu starten</div>
-            <div class="row-sub">Alle Funktionen in 6 Schritten erklärt</div>
+            <div class="row-sub">Alle Funktionen in 7 Schritten erklärt</div>
           </div>
           <div class="chev">›</div>
         </div>
@@ -2304,10 +2304,13 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252100';
+const APP_VERSION = 'gymtrack-v202605252130';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605252130': [
+    '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
+  ],
   'gymtrack-v202605252100': [
     '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
     '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
@@ -4406,7 +4409,7 @@ const TUTORIAL_STEPS = [
   {
     emoji:'💪',
     title:'Willkommen bei GymTrack!',
-    sub:'Lass uns die App in 6 kurzen Schritten kennenlernen.',
+    sub:'Lass uns die App in 7 kurzen Schritten kennenlernen.',
     features:[
       { ico:'⏱️', title:'Nur eine Minute', sub:'Du kannst die Tour jederzeit überspringen.' },
       { ico:'🎯', title:'Alle Funktionen', sub:'Damit du sofort loslegen kannst.' }
@@ -4417,6 +4420,7 @@ const TUTORIAL_STEPS = [
     title:'Heute',
     sub:'Hier startest du dein Training.',
     features:[
+      { ico:'🔥', title:'Streak-Counter', sub:'Sieh, wie viele Wochen in Folge du trainiert hast.' },
       { ico:'▶️', title:'Training starten', sub:'Wähle Übungen aus und logge deine Sätze.' },
       { ico:'🏃', title:'Cardio-Timer', sub:'Mit Benachrichtigung — läuft auch im Hintergrund.' },
       { ico:'📋', title:'Vorschläge & letztes Training', sub:'Dein Überblick auf einen Blick.' }
@@ -4427,9 +4431,21 @@ const TUTORIAL_STEPS = [
     title:'Übungen',
     sub:'Deine persönliche Übungs-Bibliothek.',
     features:[
-      { ico:'➕', title:'Eigene Übungen anlegen', sub:'Mit Muskelgruppe, Icon und Notizen.' },
-      { ico:'📅', title:'Wochenplan', sub:'Kalender oben rechts — Übungen per Drag & Drop auf Tage ziehen.' },
-      { ico:'🔍', title:'Smarte Filter', sub:'Muskeln · Push-Pull-Legs · Ober-Unter.' }
+      { ico:'📚', title:'Standard-Bibliothek', sub:'Über 60 fertige Übungen — einfach auswählen.' },
+      { ico:'➕', title:'Eigene Übungen anlegen', sub:'Mit Muskelgruppe, Icon und Wochentagen.' },
+      { ico:'🔍', title:'Suche & Filter', sub:'Schnell finden — Muskeln · Push-Pull-Legs · Ober-Unter.' },
+      { ico:'📅', title:'Wochenplan & Vorlagen', sub:'Drag & Drop auf Tage oder fertige Pläne wie PPL laden.' }
+    ]
+  },
+  {
+    emoji:'🏋️',
+    title:'Training',
+    sub:'Sätze loggen wie ein Profi.',
+    features:[
+      { ico:'👀', title:'Letztes-Mal-Vergleich', sub:'Unter jedem Satz siehst du dein vorheriges Ergebnis.' },
+      { ico:'🏷️', title:'Satz-Typen', sub:'Tap auf den Typ-Button: Normal · Aufwärmen · Drop · Versagen.' },
+      { ico:'✅', title:'Satz-Checkboxen', sub:'Jeden Satz abhaken — mit haptischem Feedback.' },
+      { ico:'⬆️', title:'Auto-Progression', sub:'Gewichtsvorschläge wenn alle Ziel-Wdh geschafft sind.' }
     ]
   },
   {
@@ -4438,6 +4454,7 @@ const TUTORIAL_STEPS = [
     sub:'Sieh deinen Fortschritt schwarz auf weiß.',
     features:[
       { ico:'📈', title:'Volumen-Verlauf', sub:'Wie viel Gewicht hast du insgesamt bewegt?' },
+      { ico:'🗓️', title:'Aktivitäts-Heatmap', sub:'Letzte 12 Monate auf einen Blick — wie auf GitHub.' },
       { ico:'🏆', title:'1RM-Berechnung', sub:'Dein geschätztes Maximalgewicht via Epley-Formel.' },
       { ico:'🎯', title:'Pro Muskelgruppe', sub:'Schwachstellen erkennen — gezielt trainieren.' }
     ]
@@ -4459,6 +4476,7 @@ const TUTORIAL_STEPS = [
     sub:'Ein paar kleine Tipps zum Schluss.',
     features:[
       { ico:'👇', title:'Sheets per Swipe schließen', sub:'Den Griff oben einfach nach unten ziehen.' },
+      { ico:'📳', title:'Haptisches Feedback', sub:'Spürbares Klicken bei wichtigen Aktionen.' },
       { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen werden ganz von selbst aufgespielt.' },
       { ico:'💡', title:'Tour erneut ansehen', sub:'Jederzeit in Einstellungen → App verfügbar.' }
     ]
