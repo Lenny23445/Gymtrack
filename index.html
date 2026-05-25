@@ -1538,20 +1538,20 @@ body{
     </div>
     <div class="px">
       <div class="f-field">
-        <label class="f-label">Ziel pro Einheit</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label class="f-label" style="margin-bottom:0">Ziel pro Einheit</label>
+          <div class="ex-type-seg">
+            <button type="button" id="ex-type-reps" class="on" onclick="setExType('reps')">Wdh</button>
+            <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
+          </div>
+        </div>
         <div class="f-row3">
           <div>
             <label class="f-label" style="font-size:10px">Sätze</label>
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
           </div>
           <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-              <label class="f-label" id="in-reps-label" style="font-size:10px;margin-bottom:0">Wdh</label>
-              <div class="ex-type-seg">
-                <button type="button" id="ex-type-reps" class="on" onclick="setExType('reps')">Wdh</button>
-                <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
-              </div>
-            </div>
+            <label class="f-label" id="in-reps-label" style="font-size:10px">Wdh</label>
             <input class="f-in" type="number" id="in-reps" value="10" min="1" max="9999">
           </div>
           <div>
