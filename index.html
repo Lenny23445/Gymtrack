@@ -1323,6 +1323,34 @@ body{
       </div>
     </div>
     <div>
+      <div class="s-title">Benachrichtigungen</div>
+      <div class="card">
+        <div class="row">
+          <div class="ico">🔔</div>
+          <div class="row-body">
+            <div class="row-title">Trainings-Erinnerungen</div>
+            <div class="row-sub" id="notif-sub">Erinnert dich an geplante Trainings</div>
+          </div>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="notif-toggle" onchange="toggleNotif(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
+        <div class="row" id="notif-time-row" style="display:none">
+          <div class="ico">⏰</div>
+          <div class="row-body">
+            <div class="row-title">Uhrzeit der Erinnerung</div>
+            <div class="row-sub">Täglich zu dieser Zeit</div>
+          </div>
+          <input type="time" id="notif-time-input" value="08:00"
+            onchange="setNotifTime(this.value)"
+            style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:10px;
+                   padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
+                   outline:none;cursor:pointer;flex-shrink:0;width:auto">
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="s-title">Design</div>
       <div class="card">
         <div class="theme-row" onclick="setTheme('light')">
@@ -1877,10 +1905,13 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252000';
+const APP_VERSION = 'gymtrack-v202605252100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605252100': [
+    '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
+  ],
   'gymtrack-v202605251900': [
     '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
   ],
@@ -2048,6 +2079,8 @@ S.statsFilterMode = S.statsFilterMode || 'muskel';
 // Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
 S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
+S.notifEnabled = S.notifEnabled || false;
+S.notifTime    = S.notifTime    || '08:00';
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -2068,6 +2101,102 @@ let det1rmChart = null;
 let statsOverallChart = null;
 let mgStatChart = null;
 let mgStatId = null;
+
+// ── NOTIFICATIONS ─────────────────────────────────────
+function scheduleWorkoutNotifications() {
+  if (!S.notifEnabled || Notification.permission !== 'granted') return;
+  if (!navigator.serviceWorker?.controller) return;
+
+  const [h, m] = S.notifTime.split(':').map(Number);
+  const dayKeys = ['sun','mon','tue','wed','thu','fri','sat'];
+  const dayNames = { mon:'Montag', tue:'Dienstag', wed:'Mittwoch', thu:'Donnerstag',
+                     fri:'Freitag', sat:'Samstag', sun:'Sonntag' };
+  const notifications = [];
+  const now = new Date();
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(h, m, 0, 0);
+    if (d <= now) continue;
+    const key = dayKeys[d.getDay()];
+    const plan = S.weekPlan[key];
+    if (!plan || plan.type === 'none') continue;
+    let label = 'Training';
+    if (plan.type === 'group' && plan.group) label = plan.group;
+    else if (plan.type === 'exercises' && plan.exIds?.length) {
+      const names = plan.exIds.map(id => S.exercises.find(e => e.id === id)?.name).filter(Boolean);
+      label = names.slice(0,2).join(', ') + (names.length > 2 ? ' +' + (names.length - 2) : '');
+    }
+    notifications.push({ timestamp: d.getTime(), day: dayNames[key], label });
+  }
+
+  navigator.serviceWorker.controller.postMessage({ type: 'SCHEDULE_WORKOUT_NOTIFS', notifications });
+}
+
+function updateNotifUI() {
+  const toggle  = document.getElementById('notif-toggle');
+  const timeRow = document.getElementById('notif-time-row');
+  const sub     = document.getElementById('notif-sub');
+  const input   = document.getElementById('notif-time-input');
+  if (!toggle) return;
+  const granted = 'Notification' in window && Notification.permission === 'granted';
+  const active  = S.notifEnabled && granted;
+  toggle.checked = active;
+  if (timeRow) timeRow.style.display = active ? '' : 'none';
+  if (input) input.value = S.notifTime;
+  if (!sub) return;
+  if (!('Notification' in window)) {
+    sub.textContent = 'Dein Browser unterstützt keine Benachrichtigungen';
+  } else if (Notification.permission === 'denied') {
+    sub.textContent = 'Blockiert – in iOS: Einstellungen › App-Name › Mitteilungen';
+  } else if (active) {
+    sub.textContent = 'Aktiv – Erinnerung täglich um ' + S.notifTime + ' Uhr';
+  } else {
+    sub.textContent = 'Erinnert dich an geplante Trainings';
+  }
+}
+
+async function toggleNotif(checked) {
+  const toggle = document.getElementById('notif-toggle');
+  if (!('Notification' in window)) {
+    toggle.checked = false;
+    alert('Dein Browser unterstützt leider keine Benachrichtigungen.');
+    return;
+  }
+  if (checked) {
+    if (Notification.permission === 'denied') {
+      toggle.checked = false;
+      updateNotifUI();
+      return;
+    }
+    if (Notification.permission === 'default') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        toggle.checked = false;
+        updateNotifUI();
+        return;
+      }
+    }
+    S.notifEnabled = true;
+    persist();
+    scheduleWorkoutNotifications();
+  } else {
+    S.notifEnabled = false;
+    persist();
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_WORKOUT_NOTIFS' });
+    }
+  }
+  updateNotifUI();
+}
+
+function setNotifTime(val) {
+  S.notifTime = val;
+  persist();
+  scheduleWorkoutNotifications();
+  updateNotifUI();
+}
 
 // ── HELPERS ───────────────────────────────────────────
 const uid  = () => '_' + Math.random().toString(36).slice(2);
@@ -2510,6 +2639,7 @@ function savePlanDay() {
   }
   S.weekPlan[planEditDayKey] = next;
   persist();
+  scheduleWorkoutNotifications();
   closeOv('ov-plan-day');
   renderPlanList();
   renderExList();
@@ -2598,6 +2728,7 @@ function _dndDrop(exId, dayKey) {
     S.weekPlan[dayKey] = {type:'exercises', exIds:[exId]};
   }
   persist();
+  scheduleWorkoutNotifications();
   renderWeekPreview();
   renderExList();
   const ex = exById(exId);
@@ -4586,6 +4717,11 @@ if (window.FB !== undefined) {
 
 // Google Identity Services initialisieren (sobald geladen)
 _initGoogleIdentity();
+
+// ── BENACHRICHTIGUNGEN INITIALISIEREN ─────────────────
+updateNotifUI();
+// Wenn bereits erlaubt: Erinnerungen neu planen (nach SW-Start)
+navigator.serviceWorker?.ready.then(() => scheduleWorkoutNotifications());
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
 document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});

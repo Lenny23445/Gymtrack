@@ -1,5 +1,5 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605252000';
+const CACHE = 'gymtrack-v202605252100';
 const SHELL = [
   './index.html',
   './manifest.json',
@@ -24,6 +24,9 @@ self.addEventListener('activate', e => {
 
 /* ── Cardio-Timer im SW (läuft kurz weiter wenn App im Hintergrund) ── */
 let _cardioTimer = null;
+
+/* ── Workout-Erinnerungs-Timer ── */
+let _workoutTimers = [];
 
 /* ── Message ── */
 self.addEventListener('message', e => {
@@ -58,6 +61,31 @@ self.addEventListener('message', e => {
       tag: 'cardio-done',
       requireInteraction: false
     });
+  }
+
+  /* Workout-Erinnerungen planen */
+  if (e.data.type === 'SCHEDULE_WORKOUT_NOTIFS') {
+    _workoutTimers.forEach(t => clearTimeout(t));
+    _workoutTimers = [];
+    (e.data.notifications || []).forEach(n => {
+      const delay = n.timestamp - Date.now();
+      if (delay <= 0) return;
+      const t = setTimeout(() => {
+        self.registration.showNotification('Zeit fürs Training! 💪', {
+          body: n.day + ': ' + n.label,
+          tag: 'workout-' + n.timestamp,
+          icon: './icon-192.png',
+          requireInteraction: false
+        });
+      }, delay);
+      _workoutTimers.push(t);
+    });
+  }
+
+  /* Workout-Erinnerungen abbrechen */
+  if (e.data.type === 'CANCEL_WORKOUT_NOTIFS') {
+    _workoutTimers.forEach(t => clearTimeout(t));
+    _workoutTimers = [];
   }
 });
 
