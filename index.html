@@ -202,6 +202,28 @@
   --inp-bg:rgba(220,238,255,.58); --inp-focus:rgba(210,232,255,.92);
   --g5:rgba(0,80,200,.10); --g6:rgba(210,232,255,.46);
 }
+[data-theme="grün"] {
+  --acc:#28A745; --acc2:#48D368; --acc-rgb:40,167,69;
+  --text:#0d1f0f; --text2:rgba(20,60,25,.52);
+  --green:#1DB954; --orange:#E68900; --red:#D93025;
+  --soft:rgba(40,167,69,.12);
+  --mesh:
+    radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,180,80,.28) 0%,transparent 52%),
+    radial-gradient(ellipse 90% 80% at 105% 105%,rgba(100,220,130,.22) 0%,transparent 52%),
+    radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,140,60,.18) 0%,transparent 48%),
+    radial-gradient(ellipse 65% 80% at 18% 88%,rgba(180,255,200,.16) 0%,transparent 48%),
+    #e8f5e9;
+  --gl-bg:rgba(235,255,240,.72); --gl-bg-h:rgba(225,252,232,.88);
+  --gl-bg-t:rgba(225,252,232,.42);
+  --gl-bdr:rgba(80,180,100,.22); --gl-bdr2:rgba(40,120,60,.10);
+  --gl-shad:0 4px 24px rgba(0,100,40,.08),0 1px 4px rgba(0,100,40,.05);
+  --gl-shad-lg:0 14px 48px rgba(0,100,40,.16),0 4px 16px rgba(0,100,40,.10);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.92);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.36) 0%,transparent 100%);
+  --sep:rgba(40,140,70,.12);
+  --inp-bg:rgba(225,252,232,.58); --inp-focus:rgba(210,248,220,.92);
+  --g5:rgba(40,140,70,.10); --g6:rgba(210,248,220,.46);
+}
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -918,6 +940,11 @@ body{
   border:1px solid rgba(120,180,255,0.80);
   box-shadow:0 4px 20px rgba(0,80,200,.14),inset 0 1px 0 rgba(255,255,255,.90);
 }
+[data-theme="grün"] #tab-indicator{
+  background:rgba(210,248,220,0.96);
+  border:1px solid rgba(100,200,130,0.80);
+  box-shadow:0 4px 20px rgba(0,120,50,.14),inset 0 1px 0 rgba(255,255,255,.90);
+}
 #tab-indicator::after{
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
   background:var(--sheen);border-radius:46px;pointer-events:none;
@@ -1372,6 +1399,11 @@ body{
           <div class="theme-dot" style="background:linear-gradient(135deg,#4D9FFF 50%,#0055CC 50%);border:2px solid #3380dd"></div>
           <span class="theme-name">Blau</span>
           <span class="theme-chk" id="chk-blau" style="visibility:hidden">✓</span>
+        </div>
+        <div class="theme-row" onclick="setTheme('grün')">
+          <div class="theme-dot" style="background:linear-gradient(135deg,#48D368 50%,#28A745 50%);border:2px solid #2ea84a"></div>
+          <span class="theme-name">Grün</span>
+          <span class="theme-chk" id="chk-grün" style="visibility:hidden">✓</span>
         </div>
       </div>
     </div>
@@ -2298,7 +2330,7 @@ function setTheme(t) {
   S.theme = t;
   persist();
   document.documentElement.setAttribute('data-theme', t);
-  ['light','rosa','dark','blau'].forEach(n =>
+  ['light','rosa','dark','blau','grün'].forEach(n =>
     document.getElementById('chk-'+n).style.visibility = n===t ? 'visible' : 'hidden'
   );
 }
