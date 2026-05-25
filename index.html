@@ -1091,6 +1091,27 @@ body{
   box-shadow:0 1px 4px rgba(var(--acc-rgb),.4);
 }
 .changelog-footer{padding:16px 20px calc(18px + var(--sab));position:relative;z-index:1}
+.changelog-scroll{max-height:60vh;overflow-y:auto;position:relative;z-index:1}
+.changelog-section{padding:0 20px}
+.changelog-section + .changelog-section{
+  margin-top:6px;border-top:1px solid var(--sep);padding-top:10px;
+}
+.changelog-section .changelog-list{padding:0}
+.changelog-section .changelog-list li{font-size:14px;padding:9px 0}
+.changelog-section-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 0 4px;
+  font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text2);
+}
+.changelog-section-head .ver-pill{
+  background:rgba(var(--acc-rgb),.14);color:var(--acc);
+  padding:2px 9px;border-radius:9px;font-size:10.5px;
+}
+.changelog-summary{
+  text-align:center;font-size:12px;color:var(--text2);
+  padding:6px 20px 2px;position:relative;z-index:1;
+}
 </style>
 </head>
 <body>
@@ -1663,7 +1684,8 @@ body{
       <div class="changelog-title">GymTrack Update</div>
       <div class="changelog-version" id="changelog-version"></div>
     </div>
-    <ul class="changelog-list" id="changelog-list"></ul>
+    <div class="changelog-summary" id="changelog-summary"></div>
+    <div class="changelog-scroll" id="changelog-scroll"></div>
     <div class="changelog-footer">
       <button class="btn btn-acc" onclick="dismissChangelog()">Alles klar! 👍</button>
     </div>
@@ -1728,10 +1750,14 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605251200';
+const APP_VERSION = 'gymtrack-v202605251400';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
+  'gymtrack-v202605251400': [
+    '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
+    '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
+  ],
   'gymtrack-v202605251200': [
     '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
     '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
@@ -3323,16 +3349,59 @@ function initTabDrag() {
 }
 
 // ── CHANGELOG POPUP ─────────────────────────────────────
-function showChangelog(version) {
-  const changes = CHANGELOG[version] || [];
-  if (!changes.length) return;
-  const list = document.getElementById('changelog-list');
-  const ver  = document.getElementById('changelog-version');
-  if (ver) ver.textContent = version.replace('gymtrack-v', 'Version ');
-  if (list) {
-    list.innerHTML = changes.map(c =>
-      `<li><span class="changelog-dot"></span><span>${c}</span></li>`
-    ).join('');
+// CHANGELOG-Keys sind in absteigender Reihenfolge gepflegt (neueste zuerst).
+// Wir nehmen alle Einträge bis (exklusiv) zur lastSeenVersion — so sieht jemand,
+// der mehrere Updates verpasst hat, alle neuen Features auf einmal.
+function pendingChangelogVersions(sinceVersion) {
+  const all = Object.keys(CHANGELOG);
+  if (!sinceVersion) return all;            // Erstmal alles zeigen
+  const idx = all.indexOf(sinceVersion);
+  if (idx < 0) return all;                  // Unbekannte Version → komplett zeigen
+  return all.slice(0, idx);                 // alles oberhalb (= neuer als) der letzten gesehenen
+}
+
+function formatVersionLabel(v) {
+  // 'gymtrack-vYYYYMMDDHHMM' → 'TT.MM.YYYY · HH:MM'
+  const m = v.match(/gymtrack-v(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  if (!m) return v.replace('gymtrack-v', 'Version ');
+  return `${m[3]}.${m[2]}.${m[1]} · ${m[4]}:${m[5]}`;
+}
+
+function showChangelog(_unused) {
+  const versions = pendingChangelogVersions(S.lastSeenVersion).filter(v => (CHANGELOG[v] || []).length);
+  if (!versions.length) return;
+
+  const headerVer = document.getElementById('changelog-version');
+  const summary   = document.getElementById('changelog-summary');
+  const scroll    = document.getElementById('changelog-scroll');
+
+  if (headerVer) {
+    headerVer.textContent = versions.length === 1
+      ? formatVersionLabel(versions[0])
+      : `${versions.length} neue Versionen · aktuell ${formatVersionLabel(versions[0])}`;
+  }
+  if (summary) {
+    summary.textContent = versions.length > 1
+      ? `Du hast ${versions.length} Updates verpasst — hier ist alles, was seitdem dazugekommen ist:`
+      : '';
+    summary.style.display = versions.length > 1 ? '' : 'none';
+  }
+  if (scroll) {
+    scroll.innerHTML = versions.map((v, i) => {
+      const items = CHANGELOG[v] || [];
+      const head = versions.length > 1
+        ? `<div class="changelog-section-head">
+             <span class="ver-pill">${formatVersionLabel(v)}</span>
+             ${i === 0 ? '<span>Neueste</span>' : ''}
+           </div>`
+        : '';
+      return `<div class="changelog-section">
+        ${head}
+        <ul class="changelog-list">
+          ${items.map(c => `<li><span class="changelog-dot"></span><span>${c}</span></li>`).join('')}
+        </ul>
+      </div>`;
+    }).join('');
   }
   openOv('ov-changelog');
 }
@@ -3364,9 +3433,11 @@ if (!S.welcomeShown) {
   setTimeout(() => openOv('ov-welcome'), 350);
 }
 
-// Nach einem Update: Changelog anzeigen (nur wenn Onboarding bereits erledigt)
-if (S.welcomeShown && S.lastSeenVersion !== APP_VERSION && CHANGELOG[APP_VERSION]) {
-  setTimeout(() => showChangelog(APP_VERSION), 500);
+// Nach einem oder mehreren Updates: aggregierten Changelog anzeigen (nur wenn Onboarding bereits erledigt)
+if (S.welcomeShown && S.lastSeenVersion !== APP_VERSION) {
+  const pending = pendingChangelogVersions(S.lastSeenVersion).filter(v => (CHANGELOG[v] || []).length);
+  if (pending.length) setTimeout(() => showChangelog(), 500);
+  else { S.lastSeenVersion = APP_VERSION; persist(); }
 }
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
