@@ -747,9 +747,21 @@ body{
 .ex-head{
   display:flex;justify-content:space-between;align-items:center;
   padding:14px 16px;border-bottom:1px solid var(--sep);
-  position:relative;z-index:1;
+  position:relative;z-index:1;gap:8px;
 }
-.ex-title{font-size:17px;font-weight:700}
+.ex-title{font-size:17px;font-weight:700;flex:1;min-width:0}
+.wk-drag-handle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:28px;color:var(--text2);font-size:18px;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;letter-spacing:-3px;
+  opacity:.55;flex-shrink:0;
+}
+.wk-drag-handle:active{opacity:1;cursor:grabbing}
+.ex-card.dnd-wk-over{
+  box-shadow:0 0 0 2px var(--acc),0 8px 24px rgba(var(--acc-rgb),.18);
+  transform:scale(1.01);
+}
 .ex-body{padding:10px 16px 16px;position:relative;z-index:1}
 .set-hdr{display:grid;grid-template-columns:28px 1fr 1fr 30px 26px;gap:8px;padding:2px 0 8px}
 .set-hdr span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;letter-spacing:.4px}
@@ -1384,8 +1396,8 @@ body{
 .heatmap-legend .hm-cell{cursor:default}
 
 /* ── SET-TYPE BADGE (Drop / Warmup / Failure) ── */
-.set-row{grid-template-columns:24px 26px 1fr 1fr 30px 26px !important}
-.set-hdr{grid-template-columns:24px 26px 1fr 1fr 30px 26px !important}
+.set-row{grid-template-columns:26px 24px 26px 1fr 1fr 30px !important}
+.set-hdr{grid-template-columns:26px 24px 26px 1fr 1fr 30px !important}
 .set-type{
   width:24px;height:26px;border-radius:8px;
   border:1px solid var(--gl-bdr);background:var(--inp-bg);
@@ -1402,7 +1414,7 @@ body{
 
 /* ── LAST-TIME HINT (Live-Vergleich) ── */
 .set-prev-hint{
-  grid-column:3 / span 2;
+  grid-column:4 / span 2;
   font-size:10.5px;color:var(--text2);
   text-align:center;letter-spacing:.2px;
   margin:-2px 0 6px;opacity:.78;
@@ -1624,10 +1636,67 @@ body{
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.40) !important;
   z-index:2;
 }
+.plan-day.dnd-over{
+  background:rgba(var(--acc-rgb),.18) !important;
+  box-shadow:inset 0 0 0 2px var(--acc);
+}
+.ex-row.dnd-row-over{
+  background:rgba(var(--acc-rgb),.10) !important;
+  box-shadow:inset 0 2px 0 var(--acc);
+}
+.split-chip-row{
+  display:flex;gap:8px;flex-wrap:wrap;
+  padding:0 20px 10px;
+}
+.split-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border-radius:14px;
+  background:rgba(var(--acc-rgb),.12);
+  border:1px solid rgba(var(--acc-rgb),.30);
+  color:var(--acc);font-size:13px;font-weight:700;
+  cursor:grab;touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+  transition:transform .12s;
+}
+.split-chip:active{cursor:grabbing;transform:scale(.96)}
+.split-chip .split-grab{opacity:.6;font-size:12px;letter-spacing:-2px}
 .ex-week-hint{
   font-size:11px;color:var(--text2);text-align:center;
   padding:5px 20px 2px;letter-spacing:.1px;opacity:.7;
 }
+
+/* ── MINI WORKOUT BANNER (Training läuft im Hintergrund) ── */
+#wk-mini{
+  position:fixed;left:10px;right:10px;
+  top:calc(env(safe-area-inset-top,0px) + 8px);
+  z-index:1050;display:none;
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(28px) saturate(220%);
+  -webkit-backdrop-filter:blur(28px) saturate(220%);
+  border:1px solid rgba(var(--acc-rgb),.45);
+  border-radius:16px;padding:10px 14px;
+  align-items:center;gap:12px;
+  box-shadow:0 8px 28px rgba(0,0,0,.22),0 0 0 1px rgba(var(--acc-rgb),.20);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  animation:wkMiniIn .28s cubic-bezier(.32,1,.32,1);
+}
+#wk-mini.on{display:flex}
+@keyframes wkMiniIn{from{opacity:0;transform:translateY(-12px)}}
+.wk-mini-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--green);flex-shrink:0;
+  box-shadow:0 0 0 4px rgba(52,199,89,.18);
+  animation:wkMiniPulse 1.5s ease-in-out infinite;
+}
+@keyframes wkMiniPulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(52,199,89,.18)}
+  50%{box-shadow:0 0 0 7px rgba(52,199,89,.05)}
+}
+.wk-mini-body{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.1}
+.wk-mini-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.wk-mini-v{font-size:18px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+.wk-mini-chev{color:var(--acc);font-size:22px;font-weight:300;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -1954,6 +2023,16 @@ body{
   </div>
 </div>
 
+<!-- MINI WORKOUT BANNER (sichtbar wenn Training im Hintergrund läuft) -->
+<div id="wk-mini" onclick="resumeWorkout()">
+  <div class="wk-mini-dot"></div>
+  <div class="wk-mini-body">
+    <div class="wk-mini-l">Training läuft</div>
+    <div class="wk-mini-v" id="wk-mini-v">00:00</div>
+  </div>
+  <div class="wk-mini-chev">›</div>
+</div>
+
 <!-- TABBAR -->
 <div class="tabbar">
   <div id="tab-indicator"></div>
@@ -2109,6 +2188,8 @@ body{
       </span>
       <span class="tpl-trigger-chev">›</span>
     </button>
+    <div style="font-size:11px;color:var(--text2);padding:6px 20px 4px;letter-spacing:.1px;opacity:.8">⠿ Splits in einen Tag ziehen:</div>
+    <div class="split-chip-row" id="split-chip-row"></div>
     <div id="plan-list" class="card" style="margin:8px 20px 20px"></div>
   </div>
 </div>
@@ -2139,7 +2220,7 @@ body{
       <button class="x-btn" onclick="closeOv('ov-plan-tpl')">✕</button>
     </div>
     <div class="tpl-warn">
-      <b>Hinweis:</b> Beim Übernehmen wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch in deine Bibliothek angelegt.
+      <b>Hinweis:</b> Beim Übernehmen wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch in deine Bibliothek angelegt. <b>Tage und Übungen lassen sich danach jederzeit individuell anpassen oder aussetzen.</b>
     </div>
     <div class="tpl-list" id="tpl-list"></div>
   </div>
@@ -2408,18 +2489,18 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252200';
+const APP_VERSION = 'gymtrack-v202605252258';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
-  'gymtrack-v202605252200': [
+  'gymtrack-v202605252258': [
     '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
     '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
   ],
-  'gymtrack-v202605252130': [
+  'gymtrack-v202605252258': [
     '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
   ],
-  'gymtrack-v202605252100': [
+  'gymtrack-v202605252258': [
     '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
     '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
     '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
@@ -2429,48 +2510,48 @@ const CHANGELOG = {
     '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
     '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
   ],
-  'gymtrack-v202605252000': [
+  'gymtrack-v202605252258': [
     '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
     '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
   ],
-  'gymtrack-v202605251740': [
+  'gymtrack-v202605252258': [
     '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
   ],
-  'gymtrack-v202605251708': [
+  'gymtrack-v202605252258': [
     '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
   ],
-  'gymtrack-v202605251900': [
+  'gymtrack-v202605252258': [
     '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
   ],
-  'gymtrack-v202605251800': [
+  'gymtrack-v202605252258': [
     '💧 Flüssige Tab-Animation: Die Blasen-Navigation bewegt sich jetzt wie eine Wasserblase — dehnt sich beim Wechsel und federt zurück',
   ],
-  'gymtrack-v202605251700': [
+  'gymtrack-v202605252258': [
     '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
   ],
-  'gymtrack-v202605251600': [
+  'gymtrack-v202605252258': [
     '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
   ],
-  'gymtrack-v202605251500': [
+  'gymtrack-v202605252258': [
     '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
   ],
-  'gymtrack-v202605251400': [
+  'gymtrack-v202605252258': [
     '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
     '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
   ],
-  'gymtrack-v202605251200': [
+  'gymtrack-v202605252258': [
     '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
     '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
     '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
     '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
   ],
-  'gymtrack-v202605250100': [
+  'gymtrack-v202605252258': [
     '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
     '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
     '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
     '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
   ],
-  'gymtrack-v202605242230': [
+  'gymtrack-v202605252258': [
     '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
     '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
     '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
@@ -2742,6 +2823,22 @@ function maxW(sets) {
 }
 
 // ── NAVIGATION ────────────────────────────────────────
+function isWorkoutActive() {
+  const step2 = document.getElementById('wk-step2');
+  return !!(timerInt && wkLogs && wkLogs.length && step2 && step2.style.display !== 'none');
+}
+function updateWkMiniVisibility() {
+  const mini = document.getElementById('wk-mini');
+  if (!mini) return;
+  const ovOpen = document.getElementById('ov-wk')?.classList.contains('on');
+  if (isWorkoutActive() && !ovOpen) mini.classList.add('on');
+  else mini.classList.remove('on');
+}
+function resumeWorkout() {
+  haptic(8);
+  openOv('ov-wk');
+  updateWkMiniVisibility();
+}
 function goTab(id, btn) {
   haptic(6);
   // Close all open overlays before switching tabs
@@ -2750,6 +2847,7 @@ function goTab(id, btn) {
     else if (ov.id === 'ov-kardio') closeKardio();
     else closeOv(ov.id);
   });
+  updateWkMiniVisibility();
   // Remove active page (force reflow so animation re-triggers)
   document.querySelectorAll('.pg').forEach(p => {
     p.classList.remove('on');
@@ -2817,9 +2915,17 @@ function initTabIndicator() {
     if (active) moveTabIndicator(active);
   });
 }
-function openOv(id)  { document.getElementById(id).classList.add('on'); }
-function closeOv(id) { document.getElementById(id).classList.remove('on'); }
-document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('on'); }));
+function openOv(id)  {
+  document.getElementById(id).classList.add('on');
+  if (id === 'ov-wk') updateWkMiniVisibility();
+}
+function closeOv(id) {
+  document.getElementById(id).classList.remove('on');
+  if (id === 'ov-wk') updateWkMiniVisibility();
+}
+document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
+  if (e.target===o) { o.classList.remove('on'); if (o.id==='ov-wk') updateWkMiniVisibility(); }
+}));
 
 // ── THEME ─────────────────────────────────────────────
 function setTheme(t) {
@@ -2983,7 +3089,7 @@ function renderExList() {
     const days = exerciseDayLabels(ex.id);
     const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
-    return `<div class="row tap" onclick="openDet('${ex.id}')">
+    return `<div class="row tap ex-row" data-exid="${ex.id}" onclick="openDet('${ex.id}')">
       <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
       <div class="ico">${ex.emoji}</div>
       <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
@@ -3076,7 +3182,32 @@ function planSummary(dayKey) {
 
 function openPlan() {
   renderPlanList();
+  renderSplitChips();
   openOv('ov-plan');
+}
+
+const SPLIT_CHIPS = [
+  { id:'push',  label:'Push',        emoji:'💥' },
+  { id:'pull',  label:'Pull',        emoji:'🪢' },
+  { id:'legs',  label:'Legs',        emoji:'🦵' },
+  { id:'ober',  label:'Oberkörper',  emoji:'🫁' },
+  { id:'unter', label:'Unterkörper', emoji:'🦵' },
+  { id:'brust', label:'Brust',       emoji:'💪' },
+  { id:'ruecken',label:'Rücken',     emoji:'🪢' },
+  { id:'schultern',label:'Schultern',emoji:'🤷' },
+  { id:'arme',  label:'Arme',        emoji:'💪' },
+  { id:'core',  label:'Core',        emoji:'🧱' }
+];
+function renderSplitChips() {
+  const el = document.getElementById('split-chip-row');
+  if (!el) return;
+  el.innerHTML = SPLIT_CHIPS.map(c =>
+    `<div class="split-chip"
+       onmousedown="splitDragStart(event,'${c.id}','${c.label}','')"
+       ontouchstart="splitDragStart(event,'${c.id}','${c.label}','')">
+       <span class="split-grab">⠿</span>
+       <span>${c.label}</span>
+     </div>`).join('');
 }
 function renderPlanList() {
   const el = document.getElementById('plan-list');
@@ -3084,7 +3215,7 @@ function renderPlanList() {
   const tk = todayKey();
   el.innerHTML = DAYS.map(d => {
     const s = planSummary(d.key);
-    return `<div class="plan-day${d.key===tk?' today':''}" onclick="editPlanDay('${d.key}')">
+    return `<div class="plan-day${d.key===tk?' today':''}" data-daykey="${d.key}" onclick="editPlanDay('${d.key}')">
       <div class="plan-day-name">${d.short}</div>
       <div class="plan-day-body">
         <div class="plan-day-title${s.empty?' empty':''}">${s.badge?`<span class="plan-badge">${s.badge}</span>`:''}${s.empty?'Frei':s.text}</div>
@@ -3185,10 +3316,13 @@ function savePlanDay() {
   renderHome();
 }
 
-// ── DRAG-AND-DROP: ÜBUNG → WOCHENPLAN ────────────────
-let _dndExId  = null;
-let _dndGhost = null;
-let _dndOver  = null;
+// ── DRAG-AND-DROP: ÜBUNG → WOCHENPLAN / REIHENFOLGE ───
+let _dndExId      = null;
+let _dndGhost     = null;
+let _dndOver      = null;   // day key (Wochenplan)
+let _dndOverRow   = null;   // exId einer anderen Übung (Reihenfolge)
+let _dndOverSplit = null;   // split-key (Splits → Tag)
+let _dndSplitId   = null;   // beim Split-Drag aktiver Split
 
 function exDragStart(e, exId) {
   e.preventDefault();
@@ -3196,10 +3330,32 @@ function exDragStart(e, exId) {
   const ex = exById(exId);
   if (!ex) return;
   _dndExId = exId;
+  _dndSplitId = null;
 
   _dndGhost = document.createElement('div');
   _dndGhost.className = 'dnd-ghost';
   _dndGhost.innerHTML = `<span class="dnd-ghost-emoji">${ex.emoji}</span><span class="dnd-ghost-name">${ex.name}</span>`;
+  document.body.appendChild(_dndGhost);
+
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  _dndMoveGhost(cx, cy);
+
+  document.addEventListener('touchmove', _dndOnMove, {passive:false});
+  document.addEventListener('touchend',  _dndOnEnd,  {passive:false});
+  document.addEventListener('mousemove', _dndOnMove);
+  document.addEventListener('mouseup',   _dndOnEnd);
+}
+
+function splitDragStart(e, splitId, label, emoji) {
+  e.preventDefault();
+  e.stopPropagation();
+  _dndSplitId = splitId;
+  _dndExId = null;
+
+  _dndGhost = document.createElement('div');
+  _dndGhost.className = 'dnd-ghost';
+  _dndGhost.innerHTML = `<span class="dnd-ghost-emoji">${emoji||'🏋️'}</span><span class="dnd-ghost-name">${label}</span>`;
   document.body.appendChild(_dndGhost);
 
   const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -3217,21 +3373,42 @@ function _dndMoveGhost(x, y) {
   _dndGhost.style.left = (x - 110) + 'px';
   _dndGhost.style.top  = (y - 38)  + 'px';
 
+  // Wochenplan-Tag-Chips (Übungen-Tab Preview)
   let overKey = null;
   document.querySelectorAll('.wk-prev-day[data-daykey]').forEach(el => {
     const r = el.getBoundingClientRect();
     if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) overKey = el.dataset.daykey;
   });
-
+  // Plan-Tage im Wochenplan-Sheet
+  if (!overKey) {
+    document.querySelectorAll('.plan-day[data-daykey]').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) overKey = el.dataset.daykey;
+    });
+  }
   if (overKey !== _dndOver) {
-    if (_dndOver) {
-      const prev = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
-      if (prev) prev.classList.remove('dnd-over');
-    }
+    document.querySelectorAll('.dnd-over').forEach(n => n.classList.remove('dnd-over'));
     _dndOver = overKey;
     if (_dndOver) {
-      const next = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
-      if (next) next.classList.add('dnd-over');
+      document.querySelectorAll(`[data-daykey="${_dndOver}"]`).forEach(n => n.classList.add('dnd-over'));
+    }
+  }
+
+  // Reihenfolge in "Meine Übungen": Übung über andere ex-row
+  let overRow = null;
+  if (_dndExId) {
+    document.querySelectorAll('.ex-row[data-exid]').forEach(el => {
+      if (el.dataset.exid === _dndExId) return;
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) overRow = el.dataset.exid;
+    });
+  }
+  if (overRow !== _dndOverRow) {
+    document.querySelectorAll('.ex-row.dnd-row-over').forEach(n => n.classList.remove('dnd-row-over'));
+    _dndOverRow = overRow;
+    if (_dndOverRow) {
+      const el = document.querySelector(`.ex-row[data-exid="${_dndOverRow}"]`);
+      if (el) el.classList.add('dnd-row-over');
     }
   }
 }
@@ -3249,13 +3426,17 @@ function _dndOnEnd(e) {
   document.removeEventListener('mouseup',   _dndOnEnd);
 
   if (_dndGhost) { _dndGhost.remove(); _dndGhost = null; }
-  if (_dndOver) {
-    const el = document.querySelector(`.wk-prev-day[data-daykey="${_dndOver}"]`);
-    if (el) el.classList.remove('dnd-over');
+  document.querySelectorAll('.dnd-over,.dnd-row-over').forEach(n => { n.classList.remove('dnd-over'); n.classList.remove('dnd-row-over'); });
+
+  // Priorität: Split → Tag, Übung → Tag, Übung → andere Row (Reihenfolge)
+  if (_dndSplitId && _dndOver) {
+    _dndDropSplit(_dndSplitId, _dndOver);
+  } else if (_dndExId && _dndOver) {
+    _dndDrop(_dndExId, _dndOver);
+  } else if (_dndExId && _dndOverRow) {
+    _dndReorder(_dndExId, _dndOverRow);
   }
-  if (_dndOver && _dndExId) _dndDrop(_dndExId, _dndOver);
-  _dndExId = null;
-  _dndOver = null;
+  _dndExId = null; _dndOver = null; _dndOverRow = null; _dndSplitId = null;
 }
 
 function _dndDrop(exId, dayKey) {
@@ -3270,9 +3451,106 @@ function _dndDrop(exId, dayKey) {
   scheduleWorkoutNotifications();
   renderWeekPreview();
   renderExList();
+  renderPlanList();
   const ex = exById(exId);
   const d  = dayByKey(dayKey);
   _dndToast(`${ex.emoji} ${ex.name} → ${d.label}`);
+}
+
+function _dndDropSplit(splitId, dayKey) {
+  let label = splitId;
+  for (const m of GROUP_MODES) {
+    const g = m.groups.find(g => g.id === splitId);
+    if (g) { label = g.label; break; }
+  }
+  S.weekPlan[dayKey] = { type:'group', group: splitId };
+  persist();
+  scheduleWorkoutNotifications();
+  renderWeekPreview();
+  renderExList();
+  renderPlanList();
+  const d = dayByKey(dayKey);
+  _dndToast(`${label} → ${d.label}`);
+}
+
+function _dndReorder(draggedId, targetId) {
+  const ids = S.exercises.map(e => e.id);
+  const from = ids.indexOf(draggedId);
+  const to   = ids.indexOf(targetId);
+  if (from < 0 || to < 0 || from === to) return;
+  const [item] = S.exercises.splice(from, 1);
+  S.exercises.splice(to, 0, item);
+  persist();
+  renderExList();
+  haptic(8);
+}
+
+// ── DRAG-AND-DROP: AKTIVES TRAINING (wkLogs umsortieren) ──
+let _wkDndLi    = null;
+let _wkDndGhost = null;
+let _wkDndOver  = null;
+
+function wkDragStart(e, li) {
+  e.preventDefault();
+  e.stopPropagation();
+  const log = wkLogs[li];
+  if (!log) return;
+  const ex = exById(log.exerciseId);
+  if (!ex) return;
+  _wkDndLi = li;
+
+  _wkDndGhost = document.createElement('div');
+  _wkDndGhost.className = 'dnd-ghost';
+  _wkDndGhost.innerHTML = `<span class="dnd-ghost-emoji">${ex.emoji}</span><span class="dnd-ghost-name">${ex.name}</span>`;
+  document.body.appendChild(_wkDndGhost);
+
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  _wkDndMove(cx, cy);
+
+  document.addEventListener('touchmove', _wkDndOnMove, {passive:false});
+  document.addEventListener('touchend',  _wkDndOnEnd,  {passive:false});
+  document.addEventListener('mousemove', _wkDndOnMove);
+  document.addEventListener('mouseup',   _wkDndOnEnd);
+}
+function _wkDndMove(x, y) {
+  if (!_wkDndGhost) return;
+  _wkDndGhost.style.left = (x - 110) + 'px';
+  _wkDndGhost.style.top  = (y - 38)  + 'px';
+  let over = null;
+  document.querySelectorAll('#log-cards .ex-card[data-li]').forEach(el => {
+    if (parseInt(el.dataset.li) === _wkDndLi) return;
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) over = parseInt(el.dataset.li);
+  });
+  if (over !== _wkDndOver) {
+    document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
+    _wkDndOver = over;
+    if (_wkDndOver != null) {
+      const el = document.querySelector(`#log-cards .ex-card[data-li="${_wkDndOver}"]`);
+      if (el) el.classList.add('dnd-wk-over');
+    }
+  }
+}
+function _wkDndOnMove(e) {
+  e.preventDefault();
+  const t = e.touches ? e.touches[0] : e;
+  _wkDndMove(t.clientX, t.clientY);
+}
+function _wkDndOnEnd(e) {
+  document.removeEventListener('touchmove', _wkDndOnMove);
+  document.removeEventListener('touchend',  _wkDndOnEnd);
+  document.removeEventListener('mousemove', _wkDndOnMove);
+  document.removeEventListener('mouseup',   _wkDndOnEnd);
+  if (_wkDndGhost) { _wkDndGhost.remove(); _wkDndGhost = null; }
+  document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
+  if (_wkDndLi != null && _wkDndOver != null && _wkDndLi !== _wkDndOver) {
+    const [item] = wkLogs.splice(_wkDndLi, 1);
+    wkLogs.splice(_wkDndOver, 0, item);
+    renderLogCards();
+    haptic(8);
+  }
+  _wkDndLi = null; _wkDndOver = null;
 }
 
 function _dndToast(msg) {
@@ -3919,6 +4197,11 @@ function renderMgStatChart(sessions) {
 
 // ── WORKOUT ───────────────────────────────────────────
 function openWorkout() {
+  // Wenn ein Training bereits läuft → nur wieder anzeigen, NICHT zurücksetzen
+  if (isWorkoutActive()) {
+    resumeWorkout();
+    return;
+  }
   if (!S.exercises.length) {
     alert('Füge zuerst eine Übung hinzu!');
     goTab('uebungen', document.querySelectorAll('.tab')[1]);
@@ -4072,7 +4355,9 @@ function startActive() {
   timerTs = Date.now();
   timerInt = setInterval(()=>{
     const e = Math.floor((Date.now()-timerTs)/1000);
-    document.getElementById('timer-v').textContent = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+    const str = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+    const tv = document.getElementById('timer-v'); if (tv) tv.textContent = str;
+    const mv = document.getElementById('wk-mini-v'); if (mv) mv.textContent = str;
   },1000);
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
@@ -4086,13 +4371,14 @@ function renderLogCards() {
     const isTime = ex.targetType === 'time';
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${ex.targetReps}`;
     const prevSets = lastSessionSetsFor(log.exerciseId);
-    return `<div class="ex-card">
+    return `<div class="ex-card" data-li="${li}">
       <div class="ex-head">
+        <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title">${ex.emoji} ${ex.name}</span>
         <span style="font-size:13px;color:var(--text2)">Ziel: ${goalLabel}</span>
       </div>
       <div class="ex-body">
-        <div class="set-hdr"><span></span><span>TYP</span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span><span></span></div>
+        <div class="set-hdr"><span></span><span></span><span>TYP</span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
           const remaining = Math.max(0, (ex.targetReps||0) - elapsed);
@@ -4113,6 +4399,7 @@ function renderLogCards() {
           }
           return `
         <div class="set-row${s.done?' done':''}">
+          <button class="set-del" onclick="delSet(${li},${si})">−</button>
           <div class="set-n">${si+1}</div>
           <button class="set-type ${type}" onclick="cycleSetType(${li},${si})" title="${SET_TYPE_TITLE[type]} (tippen für Wechsel)">${typeLabel||'•'}</button>
           <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
@@ -4128,7 +4415,6 @@ function renderLogCards() {
           <button class="set-chk${s.done?' done':''}" onclick="toggleSetDone(${li},${si})">
             <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
           </button>
-          <button class="set-del" onclick="delSet(${li},${si})">−</button>
         </div>${prevHint}`;}).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
       </div>
@@ -4160,7 +4446,7 @@ function delSet(li,si) {
 }
 
 function finishWk() {
-  clearInterval(timerInt);
+  clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
   // Zeit-Übungen: elapsed als r sichern
   wkLogs.forEach(l => {
@@ -4176,7 +4462,10 @@ function finishWk() {
   S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, logs:valid});
   persist();
   haptic([20,40,20]);
+  wkLogs = [];
+  wkExIds = [];
   closeOv('ov-wk');
+  updateWkMiniVisibility();
   showDone(S.sessions[S.sessions.length-1]);
   renderHome();
 }
@@ -5266,12 +5555,12 @@ const PLAN_TEMPLATES = [
     id:'ppl6', emoji:'🔄', title:'Push · Pull · Legs (6×/Woche)', freq:'6 Tage',
     desc:'Klassisches Bodybuilding-Schema. Push (Brust/Schulter/Trizeps), Pull (Rücken/Bizeps), Legs zweimal die Woche.',
     days:{
-      mon:{type:'group',group:'push'},
-      tue:{type:'group',group:'pull'},
-      wed:{type:'group',group:'legs'},
-      thu:{type:'group',group:'push'},
-      fri:{type:'group',group:'pull'},
-      sat:{type:'group',group:'legs'},
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Schulterdrücken','Seitheben','Trizepsdrücken (Kabel)']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Face Pulls','Bizeps-Curls (LH)']},
+      wed:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      thu:{type:'exercises', libNames:['Kurzhantel-Bankdrücken','Fliegende','KH-Schulterdrücken','Reverse Flys','French Press']},
+      fri:{type:'exercises', libNames:['Kreuzheben','T-Bar Rudern','Kurzhantel-Rudern','Hammer-Curls','Shrugs']},
+      sat:{type:'exercises', libNames:['Front-Kniebeuge','Ausfallschritte','Hip Thrust','Beinstrecker','Wadenheben']},
       sun:{type:'none'}
     }
   },
@@ -5279,11 +5568,11 @@ const PLAN_TEMPLATES = [
     id:'ppl3', emoji:'🏋️', title:'Push · Pull · Legs (3×/Woche)', freq:'3 Tage',
     desc:'Einsteiger-Variante: Eine PPL-Runde pro Woche mit 1–2 Tagen Pause zwischen Einheiten.',
     days:{
-      mon:{type:'group',group:'push'},
+      mon:{type:'exercises', libNames:['Bankdrücken','Schulterdrücken','Schrägbankdrücken','Seitheben','Trizepsdrücken (Kabel)']},
       tue:{type:'none'},
-      wed:{type:'group',group:'pull'},
+      wed:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Bizeps-Curls (LH)','Face Pulls']},
       thu:{type:'none'},
-      fri:{type:'group',group:'legs'},
+      fri:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
       sat:{type:'none'},
       sun:{type:'none'}
     }
@@ -5292,11 +5581,11 @@ const PLAN_TEMPLATES = [
     id:'upperlower', emoji:'⬆️', title:'Upper · Lower (4×/Woche)', freq:'4 Tage',
     desc:'Oberkörper- und Unterkörper-Splits jeweils zweimal. Solide Mischung aus Volumen und Erholung.',
     days:{
-      mon:{type:'group',group:'ober'},
-      tue:{type:'group',group:'unter'},
+      mon:{type:'exercises', libNames:['Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Klimmzüge','Bizeps-Curls (LH)']},
+      tue:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
       wed:{type:'none'},
-      thu:{type:'group',group:'ober'},
-      fri:{type:'group',group:'unter'},
+      thu:{type:'exercises', libNames:['Schrägbankdrücken','Kurzhantel-Rudern','KH-Schulterdrücken','Latzug','Trizepsdrücken (Kabel)']},
+      fri:{type:'exercises', libNames:['Kreuzheben','Front-Kniebeuge','Ausfallschritte','Beinstrecker','Hip Thrust']},
       sat:{type:'none'},
       sun:{type:'none'}
     }
@@ -5318,12 +5607,12 @@ const PLAN_TEMPLATES = [
     id:'arnold', emoji:'🏆', title:'Arnold Split (6×/Woche)', freq:'6 Tage',
     desc:'Brust+Rücken, Schultern+Arme, Beine — zweimal pro Woche. Hohes Volumen, fortgeschritten.',
     days:{
-      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Klimmzüge','Rudern (Langhantel)']},
-      tue:{type:'exercises', libNames:['Schulterdrücken','Seitheben','Bizeps-Curls (LH)','Trizepsdrücken (Kabel)']},
-      wed:{type:'group', group:'legs'},
-      thu:{type:'exercises', libNames:['KH-Bankdrücken','Fliegende','Latzug','T-Bar Rudern']},
-      fri:{type:'exercises', libNames:['Arnold Press','Reverse Flys','Hammer-Curls','French Press']},
-      sat:{type:'group', group:'legs'},
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Klimmzüge','Rudern (Langhantel)','Fliegende']},
+      tue:{type:'exercises', libNames:['Schulterdrücken','Seitheben','Bizeps-Curls (LH)','Trizepsdrücken (Kabel)','Hammer-Curls']},
+      wed:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      thu:{type:'exercises', libNames:['Kurzhantel-Bankdrücken','Fliegende','Latzug','T-Bar Rudern','Pullover']},
+      fri:{type:'exercises', libNames:['Arnold Press','Reverse Flys','Hammer-Curls','French Press','Preacher Curls']},
+      sat:{type:'exercises', libNames:['Front-Kniebeuge','Ausfallschritte','Hip Thrust','Beinstrecker','Wadenheben']},
       sun:{type:'none'}
     }
   }
