@@ -2624,18 +2624,18 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252337';
+const APP_VERSION = 'gymtrack-v202605252342';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
     '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
     '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
     '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
@@ -2645,48 +2645,48 @@ const CHANGELOG = {
     '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
     '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
     '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '💧 Flüssige Tab-Animation: Die Blasen-Navigation bewegt sich jetzt wie eine Wasserblase — dehnt sich beim Wechsel und federt zurück',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
     '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
     '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
     '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
     '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
     '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
     '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
     '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
   ],
-  'gymtrack-v202605252337': [
+  'gymtrack-v202605252342': [
     '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
     '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
     '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
@@ -6601,86 +6601,88 @@ function _fmtDur(sec) {
 
 async function loadAdminStats() {
   if (!isAdmin() || !window.FB?.configured) return;
-  const status = document.getElementById('admin-stats-status');
-  if (status) status.textContent = 'Lade Daten…';
-  try {
-    // ── 1) Live-Online (RTDB presence)
-    let online = 0, presOk = false;
-    try {
-      const snap = await window.FB.rtdbGet('presence');
-      const data = snap.val() || {};
-      Object.values(data).forEach(p => { if (p && p.online === true) online++; });
-      presOk = true;
-    } catch(e) { /* keine Rechte oder leer */ }
-    document.getElementById('stat-online').textContent = presOk ? online : '?';
-    document.getElementById('stat-online-sub').textContent = presOk
-      ? 'Live-Count via Realtime Presence'
-      : 'RTDB-Rules erlauben dem Admin kein Lesen';
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const errs = [];
+  setText('admin-stats-status', 'Lade…');
+  const now = Date.now();
+  const dayMs = 86400000;
 
-    // ── 2) analytics_users laden
+  // ── 1) Live-Online (RTDB presence) — optional
+  try {
+    const snap = await window.FB.rtdbGet('presence');
+    const data = snap.val() || {};
+    let online = 0;
+    Object.values(data).forEach(p => { if (p && p.online === true) online++; });
+    setText('stat-online', online);
+    setText('stat-online-sub', 'Live-Count via Realtime Presence');
+  } catch(e) {
+    setText('stat-online', '?');
+    setText('stat-online-sub', 'RTDB-Lese-Rechte fehlen (optional)');
+    errs.push('RTDB: ' + (e?.code || e?.message || e));
+  }
+
+  // ── 2) analytics_users
+  try {
     const usersSnap = await window.FB.getDocs(window.FB.collection('analytics_users'));
-    const now = Date.now();
-    const dayMs = 86400000;
     let dau = 0, wau = 0, mau = 0, total = 0, new7 = 0;
     let ret1 = {seen:0, returned:0}, ret7 = {seen:0, returned:0}, ret30 = {seen:0, returned:0};
-    const users = [];
     usersSnap.forEach(d => {
       const u = d.data();
       const firstSeen = u.firstSeen?.toMillis?.() || 0;
       const lastSeen  = u.lastSeen?.toMillis?.()  || 0;
-      users.push({ uid: d.id, firstSeen, lastSeen });
       total++;
       const sinceLast = now - lastSeen;
-      if (sinceLast < dayMs)      dau++;
-      if (sinceLast < 7*dayMs)    wau++;
-      if (sinceLast < 30*dayMs)   mau++;
+      if (sinceLast < dayMs)    dau++;
+      if (sinceLast < 7*dayMs)  wau++;
+      if (sinceLast < 30*dayMs) mau++;
       if (firstSeen && now - firstSeen < 7*dayMs) new7++;
-      // Retention: Nutzer ist „eligible" für D1/D7/D30 wenn sein firstSeen ≥ N+1 Tage her ist
       const age = now - firstSeen;
-      if (age >= 1*dayMs)   { ret1.seen++;  if (lastSeen - firstSeen >= 0.8*dayMs)  ret1.returned++; }
-      if (age >= 7*dayMs)   { ret7.seen++;  if (lastSeen - firstSeen >= 6*dayMs)    ret7.returned++; }
-      if (age >= 30*dayMs)  { ret30.seen++; if (lastSeen - firstSeen >= 28*dayMs)   ret30.returned++; }
+      if (age >= 1*dayMs)   { ret1.seen++;  if (lastSeen - firstSeen >= 0.8*dayMs) ret1.returned++; }
+      if (age >= 7*dayMs)   { ret7.seen++;  if (lastSeen - firstSeen >= 6*dayMs)   ret7.returned++; }
+      if (age >= 30*dayMs)  { ret30.seen++; if (lastSeen - firstSeen >= 28*dayMs)  ret30.returned++; }
     });
-    document.getElementById('stat-dau').textContent   = dau;
-    document.getElementById('stat-wau').textContent   = wau;
-    document.getElementById('stat-mau').textContent   = mau;
-    document.getElementById('stat-total').textContent = total;
-    document.getElementById('stat-new-7d').textContent = new7;
+    setText('stat-dau', dau);
+    setText('stat-wau', wau);
+    setText('stat-mau', mau);
+    setText('stat-total', total);
+    setText('stat-new-7d', new7);
     const pct = (r) => r.seen ? Math.round(100*r.returned/r.seen) + '%' : '—';
-    document.getElementById('stat-ret-1').textContent  = pct(ret1);
-    document.getElementById('stat-ret-7').textContent  = pct(ret7);
-    document.getElementById('stat-ret-30').textContent = pct(ret30);
+    setText('stat-ret-1',  pct(ret1));
+    setText('stat-ret-7',  pct(ret7));
+    setText('stat-ret-30', pct(ret30));
+  } catch(e) {
+    errs.push('Users: ' + (e?.code || e?.message || e));
+  }
 
-    // ── 3) Sessions: letzte 30 Tage
-    const since30 = window.FB.Timestamp.fromMillis(now - 30*dayMs);
-    const q = window.FB.query(
-      window.FB.collection('analytics_sessions'),
-      window.FB.where('start', '>=', since30)
-    );
-    const sessSnap = await window.FB.getDocs(q);
+  // ── 3) Sessions: ALLE laden, client-seitig filtern (kein Index nötig)
+  try {
+    const sessSnap = await window.FB.getDocs(window.FB.collection('analytics_sessions'));
     const durations = [];
     let sess7 = 0, sess30 = 0;
     sessSnap.forEach(d => {
       const s = d.data();
+      const startMs = s.start?.toMillis?.() || 0;
+      if (!startMs || now - startMs > 30*dayMs) return;
       const dur = s.duration || 0;
       durations.push(dur);
-      const startMs = s.start?.toMillis?.() || 0;
-      if (now - startMs < 7*dayMs)  sess7++;
       sess30++;
+      if (now - startMs < 7*dayMs) sess7++;
     });
     const avg = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0) / durations.length) : 0;
     const sorted = durations.slice().sort((a,b)=>a-b);
     const med = sorted.length ? sorted[Math.floor(sorted.length/2)] : 0;
-    document.getElementById('stat-avg-dur').textContent  = _fmtDur(avg);
-    document.getElementById('stat-med-dur').textContent  = _fmtDur(med);
-    document.getElementById('stat-sess-7d').textContent  = sess7;
-    document.getElementById('stat-sess-30d').textContent = sess30;
-
-    if (status) status.textContent = 'Zuletzt aktualisiert: ' + new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  } catch (e) {
-    console.error('[GymTrack] Admin-Stats Fehler:', e);
-    if (status) status.textContent = '⚠️ ' + (e?.code || e?.message || 'Fehler beim Laden') + ' — Firestore-Rules prüfen';
+    setText('stat-avg-dur', _fmtDur(avg));
+    setText('stat-med-dur', _fmtDur(med));
+    setText('stat-sess-7d',  sess7);
+    setText('stat-sess-30d', sess30);
+  } catch(e) {
+    errs.push('Sessions: ' + (e?.code || e?.message || e));
   }
+
+  const ts = new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setText('admin-stats-status', errs.length
+    ? '⚠️ ' + errs.join(' · ')
+    : 'Zuletzt aktualisiert: ' + ts);
 }
 
 // ── Google Identity Services (GIS) — funktioniert auch in iOS-PWA ──
