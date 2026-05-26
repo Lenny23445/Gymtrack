@@ -2624,76 +2624,79 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605252342';
+const APP_VERSION = 'gymtrack-v202605260835';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
-  'gymtrack-v202605252342': [
-    '🎯 Neue geführte Tour: Spotlight führt dich durch jedes Feature in der echten App — der Rest wird abgedunkelt, du kannst Elemente selbst antippen',
-    '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow und automatischem Tab-Wechsel',
-  ],
-  'gymtrack-v202605252342': [
-    '🎓 Tour erweitert: Jetzt mit eigenem Training-Schritt und allen neuen Features (Streak, Bibliothek, Heatmap, Satz-Typen …)',
-  ],
-  'gymtrack-v202605252342': [
-    '🔥 Streak-Counter im Heute-Tab: zeigt, wie viele Wochen in Folge du trainiert hast',
-    '🗂️ Trainingsplan-Vorlagen: PPL, Upper-Lower, Full Body & Arnold Split mit einem Tap übernehmen',
-    '📚 Übungs-Bibliothek: über 60 Standard-Übungen beim „+ Übung hinzufügen" auswählbar',
-    '📊 Aktivitäts-Heatmap in der Statistik (letzte 12 Monate, GitHub-Style)',
-    '👀 Live-Vergleich beim Training: „letztes Mal: X kg × Y" unter jedem Satz',
-    '🔍 Suchleiste im Übungen-Tab',
-    '🏷️ Satz-Typen: Aufwärmen, Drop-Satz und Bis-zum-Versagen markieren',
-    '📳 Haptisches Feedback beim Satz-Abhaken, Tab-Wechsel und Training-Ende',
-  ],
-  'gymtrack-v202605252342': [
-    '🎓 Neue Tour: Beim ersten Start gibt es jetzt eine 6-Schritte-Tour durch alle Funktionen',
-    '🔁 Jederzeit erneut ansehbar — Einstellungen → App → „Tour neu starten"',
-  ],
-  'gymtrack-v202605252342': [
-    '🟢 Grünes Design: Neues frisches Grün-Theme unter Einstellungen → Design auswählbar',
-  ],
-  'gymtrack-v202605252342': [
-    '🔔 Trainings-Erinnerungen: Erinnert dich täglich an geplante Trainings — Uhrzeit frei wählbar in den Einstellungen',
-  ],
-  'gymtrack-v202605252342': [
-    '✅ Satz-Checkboxen: Jeden Satz beim Training einfach abhaken — grüner Haken, Zeile wird ausgegraut',
-  ],
-  'gymtrack-v202605252342': [
-    '💧 Flüssige Tab-Animation: Die Blasen-Navigation bewegt sich jetzt wie eine Wasserblase — dehnt sich beim Wechsel und federt zurück',
-  ],
-  'gymtrack-v202605252342': [
-    '🎨 Icon-Auswahl kompakter: nur noch ein Tap-Button statt dem großen Icon-Raster im Formular',
-  ],
-  'gymtrack-v202605252342': [
-    '🖐️ Drag & Drop: Übungen direkt in den Wochenplan ziehen — einfach den ⠿ Griff links anfassen und auf einen Tag loslassen',
-  ],
-  'gymtrack-v202605252342': [
-    '📅 Wochenplan-Vorauswahl: Übungen für heute werden beim Training starten automatisch ausgewählt',
-  ],
-  'gymtrack-v202605252342': [
-    '🆕 Update-Popup zeigt jetzt alle verpassten Versionen auf einmal',
-    '🗂️ Pro Version eigene Sektion mit Datum & Uhrzeit — nichts geht mehr verloren',
-  ],
-  'gymtrack-v202605252342': [
-    '📅 Neuer Wochenplan: Übungen Tagen zuordnen (Mo–So)',
-    '🗓️ Kalender-Symbol oben rechts in „Meine Übungen“ — öffnet Wochenplan',
-    '🎯 Pro Tag: Trainingsgruppe (Push/Pull/Legs/Ober/Unter) ODER einzelne Übungen',
-    '👀 Wochenvorschau direkt im Übungen-Tab — heutiger Tag hervorgehoben',
-  ],
-  'gymtrack-v202605252342': [
-    '💪 1RM-Berechnung: Geschätztes Maximalgewicht via Epley-Formel',
-    '📈 Neuer 1RM-Verlauf-Chart in der Übungs-Detailansicht',
-    '🔄 Statistik-Modus-Switcher: Muskeln · Push-Pull-Legs · Ober-Unter',
-    '🎯 1RM auch in Muskelgruppen-Stats & Übungsliste',
-  ],
-  'gymtrack-v202605252342': [
-    '✨ Update-Popup: Neue Funktionen werden jetzt nach jedem Update angezeigt',
-    '🐕 Begleiter-System: Wähle deinen eigenen Trainings-Begleiter',
-    '☁️ Google Login & Cloud-Sync – deine Daten auf allen Geräten',
-    '📊 Muskelgruppen-Statistik mit Verlaufsdiagramm',
-    '🎨 4 Themes: Hell, Rosa, Dunkel & Blau',
-    '🏃 Cardio-Timer mit Benachrichtigung im Hintergrund',
-  ]
+  // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
+  // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-25-analytics': {
+    label: '25.05.2026 · Mehrere Updates',
+    items: [
+      '📊 Admin-Statistiken: Live-Online, DAU/WAU/MAU, Verweildauer, Retention',
+      '🗂️ Trainingsplan-Vorlagen liefern jetzt konkrete Übungen pro Tag',
+      '🖐️ Drag & Drop: Übungen in „Meine Übungen" und im aktiven Training umsortieren',
+      '🎚️ Splits als Chips ins Wochenplan-Sheet zum Reinziehen',
+      '🔄 Training läuft im Hintergrund: Mini-Banner oben mit Timer',
+      '⬅️ Minus-Button (Satz löschen) jetzt links statt rechts',
+    ]
+  },
+  'cl-2025-tour-spotlight': {
+    label: 'Tour & Onboarding',
+    items: [
+      '🎯 Geführte Tour: Spotlight führt dich durch jedes Feature',
+      '✨ 19 Schritte durch alle Tabs mit pulsierendem Glow',
+      '🎓 Jederzeit erneut über Einstellungen → App → „Tour neu starten"',
+    ]
+  },
+  'cl-2025-streak-library': {
+    label: 'Streak, Bibliothek, Heatmap',
+    items: [
+      '🔥 Streak-Counter im Heute-Tab',
+      '📚 Übungs-Bibliothek: 60+ Standard-Übungen',
+      '📊 Aktivitäts-Heatmap (12 Monate, GitHub-Style)',
+      '👀 Live-Vergleich beim Training: „letztes Mal: X kg × Y"',
+      '🔍 Suchleiste im Übungen-Tab',
+      '🏷️ Satz-Typen: Aufwärmen, Drop-Satz, Bis-zum-Versagen',
+      '📳 Haptisches Feedback beim Satz-Abhaken und Tab-Wechsel',
+    ]
+  },
+  'cl-2025-themes-notif': {
+    label: 'Themes & Benachrichtigungen',
+    items: [
+      '🟢 Grünes Theme zusätzlich zu Hell, Rosa, Dunkel, Blau',
+      '🔔 Trainings-Erinnerungen täglich, Uhrzeit frei wählbar',
+      '✅ Satz-Checkboxen: abhaken, Zeile wird ausgegraut',
+      '💧 Flüssige Tab-Animation als Wasserblase',
+    ]
+  },
+  'cl-2025-weekplan': {
+    label: 'Wochenplan & Drag-Drop',
+    items: [
+      '📅 Wochenplan: Übungen Tagen zuordnen (Mo–So)',
+      '🗓️ Kalender-Symbol oben rechts in „Meine Übungen"',
+      '🎯 Pro Tag: Trainingsgruppe oder einzelne Übungen',
+      '👀 Wochenvorschau im Übungen-Tab',
+      '📅 Wochenplan-Vorauswahl beim Training-Start',
+    ]
+  },
+  'cl-2025-1rm-stats': {
+    label: '1RM & Statistik',
+    items: [
+      '💪 1RM-Berechnung via Epley-Formel',
+      '📈 1RM-Verlauf-Chart in der Übungs-Detailansicht',
+      '🔄 Statistik-Modus-Switcher: Muskeln · PPL · Ober-Unter',
+    ]
+  },
+  'cl-2025-foundation': {
+    label: 'Basis-Features',
+    items: [
+      '🐕 Begleiter-System',
+      '☁️ Google Login & Cloud-Sync',
+      '📊 Muskelgruppen-Statistik mit Verlaufsdiagramm',
+      '🏃 Cardio-Timer mit Hintergrund-Benachrichtigung',
+    ]
+  }
 };
 
 /* ── MUSKELGRUPPEN ── */
@@ -4874,56 +4877,52 @@ function initTabDrag() {
 }
 
 // ── CHANGELOG POPUP ─────────────────────────────────────
-// CHANGELOG-Keys sind in absteigender Reihenfolge gepflegt (neueste zuerst).
-// Wir nehmen alle Einträge bis (exklusiv) zur lastSeenVersion — so sieht jemand,
-// der mehrere Updates verpasst hat, alle neuen Features auf einmal.
-function pendingChangelogVersions(sinceVersion) {
-  const all = Object.keys(CHANGELOG);
-  if (!sinceVersion) return all;            // Erstmal alles zeigen
-  const idx = all.indexOf(sinceVersion);
-  if (idx < 0) return all;                  // Unbekannte Version → komplett zeigen
-  return all.slice(0, idx);                 // alles oberhalb (= neuer als) der letzten gesehenen
+// CHANGELOG-Keys sind STABIL (überleben Versionsbump). Es wird nur angezeigt,
+// was der User noch NICHT in S.seenChangelog hat. Reihenfolge: NEUESTE zuerst.
+function pendingChangelogKeys() {
+  const seen = new Set(S.seenChangelog || []);
+  return Object.keys(CHANGELOG).filter(k => !seen.has(k));
 }
 
-function formatVersionLabel(v) {
-  // 'gymtrack-vYYYYMMDDHHMM' → 'TT.MM.YYYY · HH:MM Uhr' (Zeiten sind bereits deutsche Lokalzeit)
-  const m = v.match(/gymtrack-v(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
-  if (!m) return v.replace('gymtrack-v', 'Version ');
-  return `${m[3]}.${m[2]}.${m[1]} · ${m[4]}:${m[5]} Uhr`;
+function _clEntry(k) {
+  const e = CHANGELOG[k];
+  if (Array.isArray(e)) return { label: k, items: e }; // Legacy
+  return { label: (e && e.label) || k, items: (e && e.items) || [] };
 }
 
-function showChangelog(_unused) {
-  const versions = pendingChangelogVersions(S.lastSeenVersion).filter(v => (CHANGELOG[v] || []).length);
-  if (!versions.length) return;
+function showChangelog() {
+  const keys = pendingChangelogKeys().filter(k => _clEntry(k).items.length);
+  if (!keys.length) return;
 
   const headerVer = document.getElementById('changelog-version');
   const summary   = document.getElementById('changelog-summary');
   const scroll    = document.getElementById('changelog-scroll');
 
+  const newest = _clEntry(keys[0]);
   if (headerVer) {
-    headerVer.textContent = versions.length === 1
-      ? formatVersionLabel(versions[0])
-      : `${versions.length} neue Versionen · aktuell ${formatVersionLabel(versions[0])}`;
+    headerVer.textContent = keys.length === 1
+      ? newest.label
+      : `${keys.length} Updates · aktuell ${newest.label}`;
   }
   if (summary) {
-    summary.textContent = versions.length > 1
-      ? `Du hast ${versions.length} Updates verpasst — hier ist alles, was seitdem dazugekommen ist:`
+    summary.textContent = keys.length > 1
+      ? `Du hast ${keys.length} Updates verpasst — alles, was seitdem dazukam:`
       : '';
-    summary.style.display = versions.length > 1 ? '' : 'none';
+    summary.style.display = keys.length > 1 ? '' : 'none';
   }
   if (scroll) {
-    scroll.innerHTML = versions.map((v, i) => {
-      const items = CHANGELOG[v] || [];
-      const head = versions.length > 1
+    scroll.innerHTML = keys.map((k, i) => {
+      const e = _clEntry(k);
+      const head = keys.length > 1
         ? `<div class="changelog-section-head">
-             <span class="ver-pill">${formatVersionLabel(v)}</span>
+             <span class="ver-pill">${e.label}</span>
              ${i === 0 ? '<span>Neueste</span>' : ''}
            </div>`
         : '';
       return `<div class="changelog-section">
         ${head}
         <ul class="changelog-list">
-          ${items.map(c => `<li><span class="changelog-dot"></span><span>${c}</span></li>`).join('')}
+          ${e.items.map(c => `<li><span class="changelog-dot"></span><span>${c}</span></li>`).join('')}
         </ul>
       </div>`;
     }).join('');
@@ -4932,7 +4931,10 @@ function showChangelog(_unused) {
 }
 
 function dismissChangelog() {
-  S.lastSeenVersion = APP_VERSION;
+  // Alle aktuellen Keys als gesehen markieren — Popup erscheint erst wieder
+  // wenn NEUE Keys in CHANGELOG hinzukommen.
+  S.seenChangelog   = Object.keys(CHANGELOG);
+  S.lastSeenVersion = APP_VERSION; // Legacy
   persist();
   closeOv('ov-changelog');
 }
@@ -5853,11 +5855,18 @@ if (!S.welcomeShown) {
   setTimeout(() => openTutorial(), 350);
 }
 
-// Nach einem oder mehreren Updates: aggregierten Changelog anzeigen (nur wenn Onboarding bereits erledigt)
-if (S.welcomeShown && S.lastSeenVersion !== APP_VERSION) {
-  const pending = pendingChangelogVersions(S.lastSeenVersion).filter(v => (CHANGELOG[v] || []).length);
+// Migration: bei alten Usern (lastSeenVersion gesetzt, aber seenChangelog leer)
+// → alle aktuellen Keys als gesehen markieren, damit das Popup nicht nochmal kommt
+// nach diesem Update.
+if (!Array.isArray(S.seenChangelog)) {
+  S.seenChangelog = S.lastSeenVersion ? Object.keys(CHANGELOG) : [];
+  persist();
+}
+
+// Changelog-Popup nur zeigen wenn es ECHT neue Keys gibt (Onboarding muss durch sein)
+if (S.welcomeShown) {
+  const pending = pendingChangelogKeys().filter(k => _clEntry(k).items.length);
   if (pending.length) setTimeout(() => showChangelog(), 500);
-  else { S.lastSeenVersion = APP_VERSION; persist(); }
 }
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
