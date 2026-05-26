@@ -877,6 +877,13 @@ body{
 .sug-title{font-size:15px;font-weight:700;position:relative;z-index:1}
 .sug-sub{font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4;position:relative;z-index:1}
 
+#sug-list{
+  max-height:260px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  border-radius:20px;
+}
+
 /* ── BADGE ── */
 .badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
 .b-acc{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
@@ -1627,6 +1634,24 @@ body{
   user-select:none;-webkit-user-select:none;
 }
 .ex-drag-handle:active{opacity:.7;cursor:grabbing}
+
+/* ── SWIPE-TO-DELETE: ÜBUNGEN ── */
+.ex-swipe-wrap{overflow:hidden}
+.ex-swipe-inner{
+  display:flex;flex-direction:row;
+  width:calc(100% + 72px);
+  will-change:transform;
+  transition:transform .22s cubic-bezier(.25,.46,.45,.94);
+}
+.ex-row{flex:1;min-width:0}
+.ex-row-del{
+  flex:none;width:72px;
+  background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.ex-row-del:active{opacity:.8}
 
 .dnd-ghost{
   position:fixed;z-index:9999;pointer-events:none;
@@ -3228,15 +3253,21 @@ function renderExList() {
     const days = exerciseDayLabels(ex.id);
     const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
-    return `<div class="row tap ex-row" data-exid="${ex.id}" onclick="openDet('${ex.id}')">
-      <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
-      <div class="ico">${ex.emoji}</div>
-      <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
-      <div class="chev">›</div>
+    return `<div class="ex-swipe-wrap">
+      <div class="ex-swipe-inner">
+        <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
+          <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
+          <div class="ico">${ex.emoji}</div>
+          <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="ex-row-del" onclick="deleteExDirect('${ex.id}')">🗑</div>
+      </div>
     </div>`;
   }).join('')}</div>`;
 
   renderWeekPreview();
+  initExSwipes();
 }
 
 function setExCat(id) {
@@ -3902,6 +3933,78 @@ function deleteEx() {
   closeOv('ov-det');
   renderExList();
   renderHome();
+}
+
+// ── SWIPE-TO-DELETE HELPERS ──────────────────────────────
+let _swipeActive = null;
+
+function exRowClick(el, exId) {
+  const inner = el.closest('.ex-swipe-inner');
+  if (inner && inner.classList.contains('swipe-open')) { exCloseSwipe(inner); }
+  else { openDet(exId); }
+}
+
+function exCloseSwipe(inner) {
+  inner.style.transform = '';
+  inner.classList.remove('swipe-open');
+  if (_swipeActive === inner) _swipeActive = null;
+}
+
+function deleteExDirect(exId) {
+  if (!confirm('Übung wirklich löschen?')) return;
+  S.exercises = S.exercises.filter(e => e.id !== exId);
+  S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== exId); });
+  S.sessions = S.sessions.filter(s => s.logs.length > 0);
+  persist();
+  renderExList();
+  renderHome();
+}
+
+function initExSwipes() {
+  document.querySelectorAll('.ex-swipe-wrap').forEach(wrap => {
+    const inner = wrap.querySelector('.ex-swipe-inner');
+    const row   = wrap.querySelector('.ex-row');
+    if (!inner || !row) return;
+    let startX, startY, tracking = false, wasOpen = false;
+
+    row.addEventListener('touchstart', e => {
+      if (e.target.closest('.ex-drag-handle')) return;
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      tracking = true;
+      wasOpen = inner.classList.contains('swipe-open');
+    }, {passive:true});
+
+    row.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx) + 8) { tracking = false; return; }
+      if (Math.abs(dx) < 4) return;
+      e.preventDefault();
+      const base = wasOpen ? -72 : 0;
+      const nx = Math.max(-72, Math.min(0, base + dx));
+      inner.style.transition = 'none';
+      inner.style.transform = `translateX(${nx}px)`;
+    }, {passive:false});
+
+    row.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const base = wasOpen ? -72 : 0;
+      inner.style.transition = '';
+      if (base + dx < -36) {
+        inner.style.transform = 'translateX(-72px)';
+        inner.classList.add('swipe-open');
+        if (_swipeActive && _swipeActive !== inner) exCloseSwipe(_swipeActive);
+        _swipeActive = inner;
+      } else {
+        exCloseSwipe(inner);
+      }
+    }, {passive:true});
+  });
 }
 
 // ── EXERCISE DETAIL ───────────────────────────────────
