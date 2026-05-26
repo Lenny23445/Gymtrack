@@ -2650,12 +2650,19 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605261105';
+const APP_VERSION = 'gymtrack-v202605261800';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-26-swipe-suggestions': {
+    label: '26.05.2026 · UI-Verbesserungen',
+    items: [
+      '📋 Vorschläge diese Woche: Box scrollt intern – Startseite bleibt kompakt',
+      '👆 Übungen: Nach links wischen zeigt Löschen-Button – schnell & ohne Detail-Ansicht',
+    ]
+  },
   'cl-2026-05-25-analytics': {
     label: '25.05.2026 · Mehrere Updates',
     items: [
