@@ -6098,17 +6098,48 @@ if (S.welcomeShown) {
   };
 
   /* ── Register Service Worker ── */
-  if('serviceWorker' in navigator){
+  if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(reg => {
         swReg = reg;
         console.log('[GymTrack] SW registered', reg.scope);
-        setTimeout(_silentUpdateCheck, 3000);
+
+        // ── Standard-Update-Flow (funktioniert auf Android & iOS) ──
+        // Neuer SW wartet bereits (z.B. Tab war offen beim Deployment)
+        if (reg.waiting) _handleWaitingWorker(reg.waiting);
+
+        // Neuer SW wird gefunden (Browser hat sw.js neu heruntergeladen)
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            // 'installed' + controller vorhanden = echter Update (nicht Erstinstallation)
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              _handleWaitingWorker(nw);
+            }
+          });
+        });
+
+        // Wenn neuer SW die Kontrolle übernimmt → Seite neu laden
+        let _reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!_reloading) { _reloading = true; window.location.reload(); }
+        });
+
+        // Browser anweisen, sw.js jetzt vom Server zu holen und zu vergleichen
+        // (triggert updatefound wenn die Datei sich geändert hat)
+        reg.update().catch(() => {});
       })
       .catch(e => console.warn('[GymTrack] SW skip:', e.message));
-
   }
 })();
+
+function _handleWaitingWorker(worker) {
+  if (window._gymtrackUpdating) return; // Nur einmal pro Session
+  window._gymtrackUpdating = true;
+  showUpdateToast('🔄 Update gefunden – wird installiert…');
+  setTimeout(() => worker.postMessage({ type: 'SKIP_WAITING' }), 1800);
+}
 
 // ── KARDIO TIMER ──────────────────────────────────────
 const KRD_CIRC = 2 * Math.PI * 85; // ≈ 534.07
@@ -6262,10 +6293,16 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── APP UPDATE ────────────────────────────────────────
-// Kein Verlass auf SW-Update-API (auf iOS unzuverlässig).
-// sw.js direkt vom Server holen, Version vergleichen → bei Unterschied
-// alles zurücksetzen und neu laden. 100% zuverlässig.
+// Primär: Standard-SW-Flow (updatefound → skipWaiting → controllerchange → reload)
+// Fallback (Einstellungen-Button): sw.js manuell prüfen und ggf. Force-Update
 let swReg = null;
+
+function showUpdateToast(msg) {
+  const t = document.getElementById('update-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+}
 
 async function checkForUpdate() {
   const title = document.getElementById('update-title');
@@ -6277,9 +6314,10 @@ async function checkForUpdate() {
   if (sub) sub.textContent = '';
 
   try {
-    const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
-    const text = await res.text();
-    const m    = text.match(/gymtrack-v\d+/);
+    // sw.js vom Server holen (kein Browser-Cache)
+    const res     = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
+    const text    = await res.text();
+    const m       = text.match(/gymtrack-v\d+/);
     const serverV = m ? m[0] : null;
 
     if (!serverV) { title.textContent = '❌ Prüfung fehlgeschlagen'; return; }
@@ -6317,27 +6355,7 @@ async function _doForceUpdate() {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   }
-  window.location.replace(location.pathname + '?_=' + Date.now());
-}
-
-function showUpdateToast(msg) {
-  const t = document.getElementById('update-toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-}
-
-async function _silentUpdateCheck() {
-  try {
-    const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
-    const text = await res.text();
-    const m    = text.match(/gymtrack-v\d+/);
-    if (m && m[0] !== APP_VERSION) {
-      showUpdateToast('🔄 Update gefunden – wird installiert…');
-      await new Promise(r => setTimeout(r, 1800));
-      await _doForceUpdate();
-    }
-  } catch (e) { /* offline → ignorieren */ }
+  window.location.replace(location.href.split('?')[0] + '?_=' + Date.now());
 }
 
 // ═══════════════════════════════════════════════════════
