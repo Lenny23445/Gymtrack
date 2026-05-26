@@ -2624,7 +2624,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605260835';
+const APP_VERSION = 'gymtrack-v202605261030';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6608,90 +6608,122 @@ function _fmtDur(sec) {
   return h + ':' + String(mm).padStart(2,'0') + ' h';
 }
 
+// Helper: Promise mit Timeout (verhindert Hänger bei fehlender RTDB-URL etc.)
+function _withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout-' + (label||'') + ' (>' + ms + 'ms)')), ms))
+  ]);
+}
+
 async function loadAdminStats() {
   if (!isAdmin() || !window.FB?.configured) return;
   const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const statusEl = document.getElementById('admin-stats-status');
+  if (statusEl) { statusEl.textContent = 'Lade…'; statusEl.style.color = ''; statusEl.style.fontWeight = ''; }
   const errs = [];
-  setText('admin-stats-status', 'Lade…');
   const now = Date.now();
   const dayMs = 86400000;
 
-  // ── 1) Live-Online (RTDB presence) — optional
-  try {
-    const snap = await window.FB.rtdbGet('presence');
-    const data = snap.val() || {};
-    let online = 0;
-    Object.values(data).forEach(p => { if (p && p.online === true) online++; });
-    setText('stat-online', online);
-    setText('stat-online-sub', 'Live-Count via Realtime Presence');
-  } catch(e) {
-    setText('stat-online', '?');
-    setText('stat-online-sub', 'RTDB-Lese-Rechte fehlen (optional)');
-    errs.push('RTDB: ' + (e?.code || e?.message || e));
-  }
+  // ── 1) Live-Online (RTDB presence) — optional, mit Timeout
+  const loadPresence = (async () => {
+    try {
+      const snap = await _withTimeout(window.FB.rtdbGet('presence'), 4000, 'rtdb');
+      const data = snap.val() || {};
+      let online = 0;
+      Object.values(data).forEach(p => { if (p && p.online === true) online++; });
+      setText('stat-online', online);
+      setText('stat-online-sub', 'Live-Count via Realtime Presence');
+    } catch(e) {
+      setText('stat-online', '?');
+      setText('stat-online-sub', 'RTDB nicht erreichbar (optional)');
+      errs.push('RTDB: ' + (e?.code || e?.message || e));
+    }
+  })();
 
   // ── 2) analytics_users
-  try {
-    const usersSnap = await window.FB.getDocs(window.FB.collection('analytics_users'));
-    let dau = 0, wau = 0, mau = 0, total = 0, new7 = 0;
-    let ret1 = {seen:0, returned:0}, ret7 = {seen:0, returned:0}, ret30 = {seen:0, returned:0};
-    usersSnap.forEach(d => {
-      const u = d.data();
-      const firstSeen = u.firstSeen?.toMillis?.() || 0;
-      const lastSeen  = u.lastSeen?.toMillis?.()  || 0;
-      total++;
-      const sinceLast = now - lastSeen;
-      if (sinceLast < dayMs)    dau++;
-      if (sinceLast < 7*dayMs)  wau++;
-      if (sinceLast < 30*dayMs) mau++;
-      if (firstSeen && now - firstSeen < 7*dayMs) new7++;
-      const age = now - firstSeen;
-      if (age >= 1*dayMs)   { ret1.seen++;  if (lastSeen - firstSeen >= 0.8*dayMs) ret1.returned++; }
-      if (age >= 7*dayMs)   { ret7.seen++;  if (lastSeen - firstSeen >= 6*dayMs)   ret7.returned++; }
-      if (age >= 30*dayMs)  { ret30.seen++; if (lastSeen - firstSeen >= 28*dayMs)  ret30.returned++; }
-    });
-    setText('stat-dau', dau);
-    setText('stat-wau', wau);
-    setText('stat-mau', mau);
-    setText('stat-total', total);
-    setText('stat-new-7d', new7);
-    const pct = (r) => r.seen ? Math.round(100*r.returned/r.seen) + '%' : '—';
-    setText('stat-ret-1',  pct(ret1));
-    setText('stat-ret-7',  pct(ret7));
-    setText('stat-ret-30', pct(ret30));
-  } catch(e) {
-    errs.push('Users: ' + (e?.code || e?.message || e));
-  }
+  const loadUsers = (async () => {
+    try {
+      const usersSnap = await _withTimeout(
+        window.FB.getDocs(window.FB.collection('analytics_users')),
+        12000, 'users'
+      );
+      let dau = 0, wau = 0, mau = 0, total = 0, new7 = 0;
+      let ret1 = {seen:0, returned:0}, ret7 = {seen:0, returned:0}, ret30 = {seen:0, returned:0};
+      usersSnap.forEach(d => {
+        const u = d.data();
+        const firstSeen = u.firstSeen?.toMillis?.() || 0;
+        const lastSeen  = u.lastSeen?.toMillis?.()  || 0;
+        total++;
+        const sinceLast = now - lastSeen;
+        if (sinceLast < dayMs)    dau++;
+        if (sinceLast < 7*dayMs)  wau++;
+        if (sinceLast < 30*dayMs) mau++;
+        if (firstSeen && now - firstSeen < 7*dayMs) new7++;
+        const age = now - firstSeen;
+        if (age >= 1*dayMs)   { ret1.seen++;  if (lastSeen - firstSeen >= 0.8*dayMs) ret1.returned++; }
+        if (age >= 7*dayMs)   { ret7.seen++;  if (lastSeen - firstSeen >= 6*dayMs)   ret7.returned++; }
+        if (age >= 30*dayMs)  { ret30.seen++; if (lastSeen - firstSeen >= 28*dayMs)  ret30.returned++; }
+      });
+      setText('stat-dau', dau);
+      setText('stat-wau', wau);
+      setText('stat-mau', mau);
+      setText('stat-total', total);
+      setText('stat-new-7d', new7);
+      const pct = (r) => r.seen ? Math.round(100*r.returned/r.seen) + '%' : '—';
+      setText('stat-ret-1',  pct(ret1));
+      setText('stat-ret-7',  pct(ret7));
+      setText('stat-ret-30', pct(ret30));
+    } catch(e) {
+      errs.push('Users: ' + (e?.code || e?.message || e));
+    }
+  })();
 
   // ── 3) Sessions: ALLE laden, client-seitig filtern (kein Index nötig)
-  try {
-    const sessSnap = await window.FB.getDocs(window.FB.collection('analytics_sessions'));
-    const durations = [];
-    let sess7 = 0, sess30 = 0;
-    sessSnap.forEach(d => {
-      const s = d.data();
-      const startMs = s.start?.toMillis?.() || 0;
-      if (!startMs || now - startMs > 30*dayMs) return;
-      const dur = s.duration || 0;
-      durations.push(dur);
-      sess30++;
-      if (now - startMs < 7*dayMs) sess7++;
-    });
-    const avg = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0) / durations.length) : 0;
-    const sorted = durations.slice().sort((a,b)=>a-b);
-    const med = sorted.length ? sorted[Math.floor(sorted.length/2)] : 0;
-    setText('stat-avg-dur', _fmtDur(avg));
-    setText('stat-med-dur', _fmtDur(med));
-    setText('stat-sess-7d',  sess7);
-    setText('stat-sess-30d', sess30);
-  } catch(e) {
-    errs.push('Sessions: ' + (e?.code || e?.message || e));
-  }
+  const loadSessions = (async () => {
+    try {
+      const sessSnap = await _withTimeout(
+        window.FB.getDocs(window.FB.collection('analytics_sessions')),
+        12000, 'sessions'
+      );
+      const durations = [];
+      let sess7 = 0, sess30 = 0;
+      sessSnap.forEach(d => {
+        const s = d.data();
+        const startMs = s.start?.toMillis?.() || 0;
+        if (!startMs || now - startMs > 30*dayMs) return;
+        const dur = s.duration || 0;
+        durations.push(dur);
+        sess30++;
+        if (now - startMs < 7*dayMs) sess7++;
+      });
+      const avg = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0) / durations.length) : 0;
+      const sorted = durations.slice().sort((a,b)=>a-b);
+      const med = sorted.length ? sorted[Math.floor(sorted.length/2)] : 0;
+      setText('stat-avg-dur', _fmtDur(avg));
+      setText('stat-med-dur', _fmtDur(med));
+      setText('stat-sess-7d',  sess7);
+      setText('stat-sess-30d', sess30);
+    } catch(e) {
+      errs.push('Sessions: ' + (e?.code || e?.message || e));
+    }
+  })();
+
+  // Parallel ausführen — ein Fehler/Timeout blockiert nicht die anderen
+  await Promise.allSettled([loadPresence, loadUsers, loadSessions]);
 
   const ts = new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  setText('admin-stats-status', errs.length
-    ? '⚠️ ' + errs.join(' · ')
-    : 'Zuletzt aktualisiert: ' + ts);
+  if (statusEl) {
+    if (errs.length) {
+      statusEl.textContent = '⚠️ ' + errs.join(' · ');
+      statusEl.style.color = 'var(--red)';
+      statusEl.style.fontWeight = '600';
+    } else {
+      statusEl.textContent = 'Zuletzt aktualisiert: ' + ts;
+      statusEl.style.color = '';
+      statusEl.style.fontWeight = '';
+    }
+  }
 }
 
 // ── Google Identity Services (GIS) — funktioniert auch in iOS-PWA ──
