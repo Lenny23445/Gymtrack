@@ -2326,12 +2326,18 @@ body{
     <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
     <div class="px" style="padding-bottom:16px">
       <label class="f-label">Icon</label>
-      <button type="button" id="ex-icon-btn" onclick="openIconPicker()"
-        style="display:flex;align-items:center;gap:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 16px;cursor:pointer;font-family:inherit;width:100%;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent">
-        <span id="ex-icon-preview" style="font-size:30px;line-height:1;flex-shrink:0">🏋️</span>
-        <span style="font-size:15px;font-weight:600;color:var(--acc);flex:1;text-align:left">Icon auswählen</span>
-        <span style="font-size:18px;color:var(--text2);opacity:.5">›</span>
-      </button>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <button type="button" id="ex-icon-btn" onclick="openIconPicker()"
+          style="display:flex;align-items:center;gap:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 16px;cursor:pointer;font-family:inherit;flex:1;min-width:0;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent">
+          <span id="ex-icon-preview" style="font-size:30px;line-height:1;flex-shrink:0">🏋️</span>
+          <span style="font-size:15px;font-weight:600;color:var(--acc);flex:1;text-align:left">Icon auswählen</span>
+          <span style="font-size:18px;color:var(--text2);opacity:.5">›</span>
+        </button>
+        <button type="button" id="no-icon-btn" onclick="pickNoIcon()"
+          style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 14px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0;transition:background .15s,border-color .15s,color .15s;-webkit-tap-highlight-color:transparent">
+          Kein Icon
+        </button>
+      </div>
     </div>
     <div class="px">
       <div class="f-field">
@@ -3918,8 +3924,22 @@ function toggleExDay(k) {
 
 function renderEmoGrid() {
   const preview = document.getElementById('ex-icon-preview');
-  if (preview) preview.textContent = selEmoji;
+  if (preview) {
+    if (selEmoji === '') {
+      preview.textContent = '–';
+      preview.style.opacity = '0.35';
+    } else {
+      preview.textContent = selEmoji;
+      preview.style.opacity = '';
+    }
+  }
+  const noBtn = document.getElementById('no-icon-btn');
+  if (noBtn) {
+    noBtn.style.borderColor = selEmoji === '' ? 'var(--acc)' : '';
+    noBtn.style.color       = selEmoji === '' ? 'var(--acc)' : '';
+  }
 }
+function pickNoIcon() { selEmoji = ''; renderEmoGrid(); }
 function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
 
 function renderMusclePicker() {
