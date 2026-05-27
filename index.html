@@ -1505,9 +1505,36 @@ body{
 }
 .set-type.normal{}
 .set-type.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
+.set-type.top{background:rgba(175,82,222,.18);border-color:rgba(175,82,222,.45);color:#AF52DE}
 .set-type.drop{background:rgba(0,122,255,.18);border-color:rgba(var(--acc-rgb),.45);color:var(--acc)}
 .set-type.fail{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.45);color:var(--red)}
 .set-type:active{transform:scale(.86)}
+
+/* ── SET-TYPE EXPLAIN POPUP ── */
+.settype-body{display:flex;flex-direction:column;gap:10px;padding:6px 20px calc(24px + var(--sab))}
+.settype-card{
+  display:flex;align-items:flex-start;gap:14px;
+  background:var(--gl-bg);border:1.5px solid var(--gl-bdr2);
+  border-radius:18px;padding:14px 16px;
+  cursor:pointer;font-family:inherit;text-align:left;
+  transition:background .15s,border-color .15s,transform .15s;
+  color:var(--text);
+}
+.settype-card:active{transform:scale(.98)}
+.settype-card.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.08)}
+.settype-badge{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;letter-spacing:-.3px;
+  border:1.5px solid var(--gl-bdr2);background:var(--inp-bg);color:var(--text2);
+}
+.settype-badge.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
+.settype-badge.top   {background:rgba(175,82,222,.20);border-color:rgba(175,82,222,.45);color:#AF52DE}
+.settype-badge.drop  {background:rgba(0,122,255,.18);border-color:rgba(var(--acc-rgb),.45);color:var(--acc)}
+.settype-badge.fail  {background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.45);color:var(--red)}
+.settype-info{flex:1;min-width:0}
+.settype-name{font-size:16px;font-weight:700;margin-bottom:3px}
+.settype-desc{font-size:13px;color:var(--text2);line-height:1.45}
 
 /* ── LAST-TIME HINT (Live-Vergleich) ── */
 .set-prev-hint{
@@ -2669,6 +2696,54 @@ body{
   </div>
 </div>
 
+<!-- OVERLAY: SATZ-TYP ERKLÄRUNG -->
+<div class="ov" id="ov-settype" onclick="if(event.target===this)closeOv('ov-settype')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Satz-Typ wählen</h2>
+      <button class="x-btn" onclick="closeOv('ov-settype')">✕</button>
+    </div>
+    <div class="settype-body">
+      <button class="settype-card" data-type="normal" onclick="pickSetType('normal')">
+        <div class="settype-badge">•</div>
+        <div class="settype-info">
+          <div class="settype-name">Normal</div>
+          <div class="settype-desc">Regulärer Arbeitssatz mit deinem normalen Trainingsgewicht. Zählt voll zum Trainingsvolumen.</div>
+        </div>
+      </button>
+      <button class="settype-card" data-type="warmup" onclick="pickSetType('warmup')">
+        <div class="settype-badge warmup">W</div>
+        <div class="settype-info">
+          <div class="settype-name">Aufwärmsatz</div>
+          <div class="settype-desc">Leichter Satz mit weniger Gewicht (ca. 40–60 %), um Muskeln, Gelenke und Nervensystem aufzuwärmen. Zählt nicht zum Trainingsvolumen.</div>
+        </div>
+      </button>
+      <button class="settype-card" data-type="top" onclick="pickSetType('top')">
+        <div class="settype-badge top">T</div>
+        <div class="settype-info">
+          <div class="settype-name">Top-Satz</div>
+          <div class="settype-desc">Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.</div>
+        </div>
+      </button>
+      <button class="settype-card" data-type="drop" onclick="pickSetType('drop')">
+        <div class="settype-badge drop">D</div>
+        <div class="settype-info">
+          <div class="settype-name">Drop-Satz</div>
+          <div class="settype-desc">Direkt nach dem Versagen Gewicht um 20–40 % reduzieren und ohne Pause weitermachen, bis du erneut versagst. Sehr hohe Intensität.</div>
+        </div>
+      </button>
+      <button class="settype-card" data-type="fail" onclick="pickSetType('fail')">
+        <div class="settype-badge fail">F</div>
+        <div class="settype-info">
+          <div class="settype-name">Bis zum Versagen</div>
+          <div class="settype-desc">Wiederholungen bis zur kompletten muskulären Erschöpfung — keine Reps in Reserve. Sparsam einsetzen wegen hoher Belastung.</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- OVERLAY: KARDIO TIMER -->
 <div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
   <div class="sheet">
@@ -2728,12 +2803,21 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272204';
+const APP_VERSION = 'gymtrack-v202605272205';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-27-settype-cleanup': {
+    label: '27.05.2026 · Satz-Typen & UI-Cleanup',
+    items: [
+      'Satz-Typ-Button: Tap öffnet jetzt Auswahl-Popup mit Erklärungen zu Normal, Aufwärmsatz, Top-Satz, Drop-Satz & Bis-zum-Versagen',
+      'Neuer Satz-Typ „T" (Top-Satz) für den schwersten Arbeitssatz des Tages',
+      'Übungen-Liste: weißes Icon-Feld verschwindet, wenn kein Emoji gewählt wurde — Text rückt nach links',
+      'Heute-Seite: Begrüßung & Vorschlagskarten ohne Emojis',
+    ]
+  },
   'cl-2026-05-27-cardio-update': {
     label: '27.05.2026 · Cardio & Update-Fixes',
     items: [
@@ -3199,7 +3283,7 @@ function setTheme(t) {
 // ── HOME ──────────────────────────────────────────────
 function renderHome() {
   const h = new Date().getHours();
-  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen 🌅' : h<17 ? 'Guten Tag ☀️' : 'Guten Abend 🌙';
+  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
   renderSuggestions();
@@ -3209,17 +3293,18 @@ function renderHome() {
 function renderSuggestions() {
   const el = document.getElementById('sug-list');
   if (!S.exercises.length) {
-    el.innerHTML = html_sug('wait','💡','Los geht\'s!','Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.');
+    el.innerHTML = html_sug('wait','','Los geht\'s!','Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.');
     return;
   }
   const cards = S.exercises.map(getSuggestion).filter(Boolean);
   el.innerHTML = cards.length
     ? cards.map(s => html_sug(s.type, s.icon, s.title, s.text)).join('')
-    : html_sug('wait','📊','Noch kein Training','Absolviere dein erstes Training, um Vorschläge zu erhalten.');
+    : html_sug('wait','','Noch kein Training','Absolviere dein erstes Training, um Vorschläge zu erhalten.');
 }
 
 function html_sug(type, icon, title, text) {
-  return `<div class="sug ${type}"><div class="sug-ic">${icon}</div><div><div class="sug-title">${title}</div><div class="sug-sub">${text}</div></div></div>`;
+  const ic = icon ? `<div class="sug-ic">${icon}</div>` : '';
+  return `<div class="sug ${type}">${ic}<div><div class="sug-title">${title}</div><div class="sug-sub">${text}</div></div></div>`;
 }
 
 function getSuggestedWeight(ex) {
@@ -3246,7 +3331,7 @@ function getSuggestedWeight(ex) {
 
 function getSuggestion(ex) {
   const hist = exHistory(ex.id);
-  if (!hist.length) return { type:'wait', icon:'🆕', title: ex.emoji+' '+ex.name, text:'Noch kein Training. Starte heute!' };
+  if (!hist.length) return { type:'wait', icon:'', title: ex.name, text:'Noch kein Training. Starte heute!' };
 
   const last = hist[hist.length-1];
   const validSets = last.sets.filter(s => s.w && s.r);
@@ -3263,14 +3348,14 @@ function getSuggestion(ex) {
     const prevMax = maxW(pValid);
     if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
       const inc = lMaxW >= 60 ? 5 : 2.5;
-      return { type:'up', icon:'⬆️', title:`${ex.emoji} ${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nächstes Mal!` };
+      return { type:'up', icon:'', title:`${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nächstes Mal!` };
     }
   }
   if (allReps && allSets) {
-    return { type:'up', icon:'💪', title:`${ex.emoji} ${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
+    return { type:'up', icon:'', title:`${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
   }
   const gStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
-  return { type:'hold', icon:'🎯', title:`${ex.emoji} ${ex.name}: Fokus`, text:`Ziel: ${ex.targetSets}×${gStr} bei ${lMaxW} kg. Halte das Gewicht.` };
+  return { type:'hold', icon:'', title:`${ex.name}: Fokus`, text:`Ziel: ${ex.targetSets}×${gStr} bei ${lMaxW} kg. Halte das Gewicht.` };
 }
 
 function renderLastSession() {
@@ -3414,7 +3499,7 @@ function renderExList() {
       <div class="ex-swipe-inner">
         <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
           <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
-          <div class="ico">${ex.emoji}</div>
+          ${ex.emoji ? `<div class="ico">${ex.emoji}</div>` : ''}
           <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
           <div class="chev">›</div>
         </div>
@@ -4814,7 +4899,7 @@ function renderLogCards() {
         <div class="set-row${s.done?' done':''}">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
           <div class="set-n">${si+1}</div>
-          <button class="set-type ${type}" onclick="cycleSetType(${li},${si})" title="${SET_TYPE_TITLE[type]} (tippen für Wechsel)">${typeLabel||'•'}</button>
+          <button class="set-type ${type}" onclick="openSetTypePopup(${li},${si})" title="${SET_TYPE_TITLE[type]} – tippen für Typ-Auswahl">${typeLabel||'•'}</button>
           <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
             oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
           ${isTime
@@ -6133,16 +6218,35 @@ function applyTemplate(id){
   if (t) { t.textContent = '✓ Plan übernommen: ' + tpl.title; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
 }
 
-// ── SET-TYPEN (normal / warmup / drop / fail) ─────────
-const SET_TYPES = ['normal','warmup','drop','fail'];
-const SET_TYPE_LABEL = { normal:'', warmup:'W', drop:'D', fail:'F' };
-const SET_TYPE_TITLE = { normal:'Normal', warmup:'Aufwärmen', drop:'Drop-Satz', fail:'Bis zum Versagen' };
-function cycleSetType(li, si){
-  const s = wkLogs[li].sets[si];
-  const cur = s.type || 'normal';
-  const idx = SET_TYPES.indexOf(cur);
-  s.type = SET_TYPES[(idx + 1) % SET_TYPES.length];
+// ── SET-TYPEN (normal / warmup / top / drop / fail) ─────────
+const SET_TYPES = ['normal','warmup','top','drop','fail'];
+const SET_TYPE_LABEL = { normal:'', warmup:'W', top:'T', drop:'D', fail:'F' };
+const SET_TYPE_TITLE = { normal:'Normal', warmup:'Aufwärmen', top:'Top-Satz', drop:'Drop-Satz', fail:'Bis zum Versagen' };
+const SET_TYPE_DESC = {
+  normal: 'Regulärer Arbeitssatz mit deinem normalen Trainingsgewicht. Zählt voll zum Trainingsvolumen.',
+  warmup: 'Leichter Satz mit weniger Gewicht (ca. 40–60 %), um Muskeln, Gelenke und Nervensystem aufzuwärmen. Zählt nicht zum Trainingsvolumen.',
+  top:    'Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.',
+  drop:   'Direkt nach dem Versagen Gewicht um 20–40 % reduzieren und ohne Pause weitermachen, bis du erneut versagst. Sehr hohe Intensität.',
+  fail:   'Wiederholungen bis zur kompletten muskulären Erschöpfung — keine Reps in Reserve. Sparsam einsetzen wegen hoher Belastung.'
+};
+let _setTypeTarget = null;
+function openSetTypePopup(li, si){
+  _setTypeTarget = { li, si };
   haptic(8);
+  const cur = (wkLogs[li] && wkLogs[li].sets[si] && wkLogs[li].sets[si].type) || 'normal';
+  document.querySelectorAll('.settype-card').forEach(c =>
+    c.classList.toggle('on', c.dataset.type === cur));
+  openOv('ov-settype');
+}
+function pickSetType(type){
+  if (!_setTypeTarget) return;
+  const { li, si } = _setTypeTarget;
+  if (wkLogs[li] && wkLogs[li].sets[si]) {
+    wkLogs[li].sets[si].type = type;
+    haptic(10);
+  }
+  closeOv('ov-settype');
+  _setTypeTarget = null;
   renderLogCards();
 }
 
