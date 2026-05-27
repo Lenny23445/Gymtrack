@@ -1074,6 +1074,13 @@ body{
 .krd-ring-fg{fill:none;stroke:var(--acc);stroke-width:14;stroke-linecap:round;
   stroke-dasharray:534.07;stroke-dashoffset:0;
   transition:stroke-dashoffset .95s linear}
+@keyframes krd-ring-pulse{
+  0%,100%{filter:drop-shadow(0 0 5px rgba(var(--acc-rgb),.55))}
+  50%    {filter:drop-shadow(0 0 18px rgba(var(--acc-rgb),.95))}
+}
+.krd-ring-wrap.running .krd-ring-fg{
+  animation:krd-ring-pulse 1.8s ease-in-out infinite;
+}
 .krd-time{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:4px}
 .krd-digits{font-size:48px;font-weight:700;letter-spacing:3px;
@@ -1881,9 +1888,9 @@ body{
     <button class="ex-search-clr" id="ex-search-clr" onclick="setExSearch('',true)" aria-label="Suche leeren">✕</button>
   </div>
   <div class="pad">
-    <div id="ex-list"></div>
-    <div class="gap"></div>
     <button class="btn btn-gray" onclick="openNewEx(null)">+ Übung hinzufügen</button>
+    <div class="gap"></div>
+    <div id="ex-list"></div>
   </div>
 </div>
 
@@ -2702,7 +2709,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272200';
+const APP_VERSION = 'gymtrack-v202605272201';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4076,7 +4083,7 @@ let _swipeActive = null;
 function exRowClick(el, exId) {
   const inner = el.closest('.ex-swipe-inner');
   if (inner && inner.classList.contains('swipe-open')) { exCloseSwipe(inner); }
-  else { openDet(exId); }
+  else { openNewEx(exId); }
 }
 
 function exCloseSwipe(inner) {
@@ -6352,6 +6359,7 @@ function _swPost(msg) {
 
 function krdStart() {
   krdRunning = true;
+  document.querySelector('.krd-ring-wrap').classList.add('running');
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   const endTime = Date.now() + krdRemain * 1000;
   localStorage.setItem('krdEnd', String(endTime));
@@ -6371,6 +6379,7 @@ function krdStart() {
 
 function krdPause() {
   krdRunning = false;
+  document.querySelector('.krd-ring-wrap').classList.remove('running');
   clearInterval(krdTick);
   localStorage.removeItem('krdEnd');
   _swPost({ type: 'CANCEL_CARDIO' });
@@ -6380,6 +6389,8 @@ function krdPause() {
 
 function krdReset() {
   krdRunning = false;
+  const rw = document.querySelector('.krd-ring-wrap');
+  if (rw) rw.classList.remove('running');
   clearInterval(krdTick);
   localStorage.removeItem('krdEnd');
   _swPost({ type: 'CANCEL_CARDIO' });
@@ -6402,6 +6413,8 @@ function krdReset() {
 }
 
 function krdDone() {
+  const rw = document.querySelector('.krd-ring-wrap');
+  if (rw) rw.classList.remove('running');
   localStorage.removeItem('krdEnd');
   const disp = document.getElementById('krd-display');
   const lbl  = document.getElementById('krd-lbl');
