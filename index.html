@@ -1320,34 +1320,84 @@ body{
 .tour-skip-x:hover{background:rgba(128,128,128,.12)}
 .tour-skip-x:active{opacity:.55}
 
-/* ── STREAK CARD (Heute) ── */
-.streak-card{
-  display:flex;align-items:center;gap:14px;
-  padding:14px 16px;border-radius:18px;
-  background:linear-gradient(135deg,rgba(255,149,0,.16),rgba(255,59,48,.10));
-  border:1px solid rgba(255,149,0,.28);
-  box-shadow:0 2px 14px rgba(255,149,0,.10);
+/* ── STREAK BADGE (Header oben rechts) ── */
+.streak-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 10px 5px 7px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(255,149,0,.18),rgba(255,59,48,.12));
+  border:1px solid rgba(255,149,0,.32);
+  box-shadow:0 2px 10px rgba(255,149,0,.18);
+  font-size:13px;font-weight:700;color:var(--text);
+  line-height:1;cursor:default;
+  font-variant-numeric:tabular-nums;
 }
-.streak-fire{
-  font-size:32px;line-height:1;flex-shrink:0;
-  filter:drop-shadow(0 4px 12px rgba(255,149,0,.45));
+.streak-badge .streak-fire{
+  font-size:15px;line-height:1;
+  filter:drop-shadow(0 1px 4px rgba(255,149,0,.55));
   animation:streak-pulse 2.4s ease-in-out infinite;
+}
+.streak-badge.cold{
+  background:linear-gradient(135deg,rgba(120,140,170,.10),rgba(120,140,170,.05));
+  border-color:rgba(120,140,170,.22);
+  box-shadow:none;color:var(--text2);
+}
+.streak-badge.cold .streak-fire{
+  filter:grayscale(.7) opacity(.65);
+  animation:none;
 }
 @keyframes streak-pulse{
   0%,100%{transform:scale(1)}
-  50%{transform:scale(1.08) rotate(-3deg)}
+  50%{transform:scale(1.10) rotate(-3deg)}
 }
-.streak-body{flex:1;min-width:0}
-.streak-title{font-size:16px;font-weight:700;color:var(--text);line-height:1.2}
-.streak-sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.35}
-.streak-card.cold{
-  background:linear-gradient(135deg,rgba(120,140,170,.10),rgba(120,140,170,.05));
-  border-color:rgba(120,140,170,.20);
-  box-shadow:none;
+.hdr-greet-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  position:relative;z-index:1;
 }
-.streak-card.cold .streak-fire{
-  filter:grayscale(.7) opacity(.6);
-  animation:none;
+.hdr-greet-row h1{flex:1;min-width:0}
+
+/* ── LAST-CARD SWIPE (Letztes Training auf Heute) ── */
+.last-swipe-wrap{overflow:hidden;border-radius:18px}
+.last-swipe-inner{
+  display:flex;flex-direction:row;
+  width:calc(100% + 72px);
+  will-change:transform;
+  transition:transform .22s cubic-bezier(.25,.46,.45,.94);
+}
+.last-swipe-row{flex:1;min-width:0}
+.last-swipe-del{
+  flex:none;width:72px;
+  background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.last-swipe-del:active{opacity:.8}
+
+/* ── WORKOUT CANCEL BUTTON ── */
+.wk-cancel-btn{
+  background:transparent;border:1px solid var(--gl-bdr);
+  color:var(--text2);font-family:inherit;font-size:13px;font-weight:600;
+  padding:8px 12px;border-radius:10px;cursor:pointer;
+  transition:opacity .15s,color .15s,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+}
+.wk-cancel-btn:active{opacity:.6;color:var(--red);border-color:var(--red)}
+
+/* ── KONFETTI ── */
+.confetti-host{
+  position:fixed;inset:0;pointer-events:none;
+  z-index:5000;overflow:hidden;
+}
+.confetti-piece{
+  position:absolute;top:-12px;
+  width:9px;height:14px;border-radius:2px;
+  will-change:transform,opacity;
+  animation:confetti-fall linear forwards;
+}
+@keyframes confetti-fall{
+  0%{transform:translate3d(0,0,0) rotate(0);opacity:1}
+  100%{transform:translate3d(var(--cx,0),105vh,0) rotate(var(--cr,720deg));opacity:.85}
 }
 
 /* ── ÜBUNGS-SUCHE ── */
@@ -1380,26 +1430,28 @@ body{
 
 /* ── HEATMAP (Statistik) ── */
 .heatmap-wrap{
-  padding:14px;border-radius:18px;
+  padding:12px 10px;border-radius:18px;
   background:var(--gl-bg);border:1px solid var(--gl-bdr);
   backdrop-filter:blur(40px) saturate(180%);
   -webkit-backdrop-filter:blur(40px) saturate(180%);
   box-shadow:var(--gl-shad),var(--gl-hi);
   overflow:hidden;position:relative;
+  box-sizing:border-box;max-width:100%;
 }
 .heatmap-scroll{
   overflow-x:auto;
   -webkit-overflow-scrolling:touch;
   padding-bottom:4px;
   scrollbar-width:none;
+  max-width:100%;
 }
 .heatmap-scroll::-webkit-scrollbar{display:none}
 .heatmap-grid{
   display:grid;grid-auto-flow:column;grid-template-rows:repeat(7, 1fr);
-  gap:3px;width:max-content;
+  gap:2px;width:max-content;
 }
 .hm-cell{
-  width:11px;height:11px;border-radius:2.5px;
+  width:9px;height:9px;border-radius:2px;
   background:rgba(128,128,128,.10);
   transition:transform .12s;
 }
@@ -1777,15 +1829,13 @@ body{
 <!-- PAGE: HEUTE -->
 <div class="pg on" id="pg-heute">
   <div class="hdr">
-    <h1 id="greet-h">Heute 💪</h1>
+    <div class="hdr-greet-row">
+      <h1 id="greet-h">Heute</h1>
+      <div id="streak-badge-host"></div>
+    </div>
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div onclick="goTab('settings',document.querySelector('.tab:last-of-type'))" style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:12px;background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.14);cursor:pointer;transition:opacity .15s" onpointerdown="this.style.opacity='.7'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-      <span style="font-size:14px">💙</span>
-      <span style="font-size:12px;color:var(--text2);line-height:1.4">Gefällt dir GymTrack? Schau mal kurz in die <span style="color:var(--acc);font-weight:600">Einstellungen</span> ›</span>
-    </div>
-    <div id="streak-host"></div>
     <button class="btn btn-acc" onclick="openKardio()">🏃&nbsp; Cardio starten</button>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
@@ -1840,7 +1890,7 @@ body{
 <!-- PAGE: STATISTIK -->
 <div class="pg" id="pg-stats">
   <div class="hdr">
-    <h1>Statistik 📊</h1>
+    <h1>Statistik</h1>
     <div class="sub" id="stats-sub"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
@@ -1926,7 +1976,6 @@ body{
       <div class="s-title">Benachrichtigungen</div>
       <div class="card">
         <div class="row">
-          <div class="ico">🔔</div>
           <div class="row-body">
             <div class="row-title">Trainings-Erinnerungen</div>
             <div class="row-sub" id="notif-sub">Erinnert dich an geplante Trainings</div>
@@ -1937,7 +1986,6 @@ body{
           </label>
         </div>
         <div class="row" id="notif-time-row" style="display:none">
-          <div class="ico">⏰</div>
           <div class="row-body">
             <div class="row-title">Uhrzeit der Erinnerung</div>
             <div class="row-sub">Täglich zu dieser Zeit</div>
@@ -1983,16 +2031,7 @@ body{
     <div>
       <div class="s-title">Begleiter</div>
       <div class="card">
-        <div class="row tap" onclick="openCompanionPicker()">
-          <div class="ico" id="companion-settings-ico">🐕</div>
-          <div class="row-body">
-            <div class="row-title" id="companion-settings-name">Dackel</div>
-            <div class="row-sub">Dein Trainings-Begleiter</div>
-          </div>
-          <div class="chev">›</div>
-        </div>
         <div class="row">
-          <div class="ico">👁️</div>
           <div class="row-body">
             <div class="row-title">Begleiter anzeigen</div>
             <div class="row-sub">Auf der Tab-Leiste ein- oder ausblenden</div>
@@ -2001,6 +2040,13 @@ body{
             <input type="checkbox" id="companion-toggle" onchange="toggleCompanion(this.checked)">
             <span class="tgl-track"></span>
           </label>
+        </div>
+        <div class="row tap" id="companion-picker-row" onclick="openCompanionPicker()" style="display:none">
+          <div class="row-body">
+            <div class="row-title" id="companion-settings-name">Dackel</div>
+            <div class="row-sub">Begleiter auswählen</div>
+          </div>
+          <div class="chev">›</div>
         </div>
       </div>
     </div>
@@ -2043,7 +2089,6 @@ body{
       <div class="s-title">App</div>
       <div class="card">
         <div class="row tap" onclick="checkForUpdate()">
-          <div class="ico">🔄</div>
           <div class="row-body">
             <div class="row-title" id="update-title">Auf Updates prüfen</div>
             <div class="row-sub"  id="update-sub">Wird beim App-Start automatisch geprüft</div>
@@ -2051,7 +2096,6 @@ body{
           <div class="chev" id="update-chev">›</div>
         </div>
         <div class="row tap" id="reset-tour-row" onclick="openTutorial()">
-          <div class="ico">🎓</div>
           <div class="row-body">
             <div class="row-title">Tour neu starten</div>
             <div class="row-sub">Geführte Tour durch alle Funktionen der App</div>
@@ -2059,10 +2103,9 @@ body{
           <div class="chev">›</div>
         </div>
         <div class="row tap" id="version-row" onclick="adminTapCount()">
-          <div class="ico">ℹ️</div>
           <div class="row-body">
             <div class="row-title">Version</div>
-            <div class="row-sub">v1.1 – Test-Update ✅</div>
+            <div class="row-sub">v1.1</div>
           </div>
         </div>
       </div>
@@ -2481,7 +2524,10 @@ body{
             <div class="timer-l">Trainingszeit</div>
             <div class="timer-v" id="timer-v">00:00</div>
           </div>
-          <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="wk-cancel-btn" onclick="cancelWk()">Abbrechen</button>
+            <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
+          </div>
         </div>
         <div id="log-cards"></div>
       </div>
@@ -3191,13 +3237,75 @@ function renderLastSession() {
   const last = S.sessions[S.sessions.length-1];
   const d = new Date(last.date);
   const sets = last.logs.reduce((s,l) => s+l.sets.length, 0);
-  el.innerHTML = `<div class="row">
-    <div class="row-body">
-      <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
-      <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' · ')}</div>
+  el.innerHTML = `<div class="last-swipe-wrap">
+    <div class="last-swipe-inner">
+      <div class="row last-swipe-row">
+        <div class="row-body">
+          <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
+          <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' · ')}</div>
+        </div>
+        <span class="badge b-green">${sets} Sätze</span>
+      </div>
+      <div class="last-swipe-del" onclick="deleteLastSession('${last.id}')">🗑</div>
     </div>
-    <span class="badge b-green">${sets} Sätze</span>
   </div>`;
+  initLastSwipe();
+}
+
+function deleteLastSession(sesId) {
+  if (!confirm('Letztes Training wirklich löschen?')) return;
+  S.sessions = S.sessions.filter(s => s.id !== sesId);
+  persist();
+  haptic(20);
+  renderHome();
+}
+
+let _lastSwipeActive = null;
+function initLastSwipe() {
+  const wrap = document.querySelector('#last-card .last-swipe-wrap');
+  if (!wrap) return;
+  const inner = wrap.querySelector('.last-swipe-inner');
+  const row   = wrap.querySelector('.last-swipe-row');
+  if (!inner || !row) return;
+  let startX, startY, tracking = false, wasOpen = false;
+
+  row.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    tracking = true;
+    wasOpen = inner.classList.contains('swipe-open');
+  }, {passive:true});
+
+  row.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx) + 8) { tracking = false; return; }
+    if (Math.abs(dx) < 4) return;
+    e.preventDefault();
+    const base = wasOpen ? -72 : 0;
+    const nx = Math.max(-72, Math.min(0, base + dx));
+    inner.style.transition = 'none';
+    inner.style.transform = `translateX(${nx}px)`;
+  }, {passive:false});
+
+  row.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const base = wasOpen ? -72 : 0;
+    inner.style.transition = '';
+    if (base + dx < -36) {
+      inner.style.transform = 'translateX(-72px)';
+      inner.classList.add('swipe-open');
+      _lastSwipeActive = inner;
+    } else {
+      inner.style.transform = '';
+      inner.classList.remove('swipe-open');
+      if (_lastSwipeActive === inner) _lastSwipeActive = null;
+    }
+  }, {passive:true});
 }
 
 // ── EXERCISE LIST ─────────────────────────────────────
@@ -3240,7 +3348,7 @@ function renderExList() {
   sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
 
   if (!S.exercises.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-i">💪</div><h3>Noch keine Übungen</h3><p>Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.</p></div>`;
+    el.innerHTML = `<div class="empty"><h3>Noch keine Übungen</h3><p>Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.</p></div>`;
     return;
   }
   if (!filtered.length) {
@@ -4203,11 +4311,11 @@ function renderStatsSummary() {
   const totalSessions = S.sessions.length;
   const totalSets = S.sessions.reduce((s, ses) => s + ses.logs.reduce((a,l)=>a+l.sets.length,0), 0);
   const totalVol  = S.sessions.reduce((s, ses) => s + sessionVolume(ses), 0);
-  if (sub) sub.textContent = totalSessions ? totalSessions+' Training'+(totalSessions!==1?'s':'') : 'Noch keine Daten';
+  if (sub) sub.textContent = totalSessions ? totalSessions+' Einheit'+(totalSessions!==1?'en':'') : 'Noch keine Daten';
   el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
     <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
       <div style="font-size:22px;font-weight:700">${totalSessions}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:2px">Trainings</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Einheiten</div>
     </div>
     <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)">
       <div style="font-size:22px;font-weight:700">${totalSets}</div>
@@ -4716,7 +4824,52 @@ function finishWk() {
   closeOv('ov-wk');
   updateWkMiniVisibility();
   showDone(S.sessions[S.sessions.length-1]);
+  fireConfetti();
   renderHome();
+}
+
+function cancelWk() {
+  if (!confirm('Training abbrechen? Eingetragene Daten werden verworfen.')) return;
+  clearInterval(timerInt); timerInt = null;
+  clearInterval(setTimerInt); setTimerInt = null;
+  wkLogs = [];
+  wkExIds = [];
+  closeOv('ov-wk');
+  updateWkMiniVisibility();
+  renderHome();
+}
+
+function fireConfetti(count = 90) {
+  try {
+    let host = document.getElementById('confetti-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'confetti-host';
+      host.className = 'confetti-host';
+      document.body.appendChild(host);
+    }
+    const colors = ['#FF3B30','#FF9500','#FFCC00','#34C759','#5AC8FA','#007AFF','#AF52DE','#FF2D55'];
+    const W = window.innerWidth;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-piece';
+      const startX = Math.random() * W;
+      const drift  = (Math.random() - 0.5) * 240;
+      const rot    = (Math.random() * 1080 + 360) * (Math.random() < .5 ? -1 : 1);
+      const dur    = 2.4 + Math.random() * 1.6;
+      const delay  = Math.random() * 0.3;
+      p.style.left = startX + 'px';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--cx', drift + 'px');
+      p.style.setProperty('--cr', rot + 'deg');
+      p.style.animationDuration = dur + 's';
+      p.style.animationDelay = delay + 's';
+      frag.appendChild(p);
+    }
+    host.appendChild(frag);
+    setTimeout(() => { host.innerHTML = ''; }, 4500);
+  } catch (e) { /* silent */ }
 }
 
 function showDone(ses) {
@@ -4781,6 +4934,8 @@ function applyCompanion() {
   if (lane) lane.style.display = S.companionOn ? '' : 'none';
   const chk  = document.getElementById('companion-toggle');
   if (chk)  chk.checked = S.companionOn;
+  const pickRow = document.getElementById('companion-picker-row');
+  if (pickRow) pickRow.style.display = S.companionOn ? '' : 'none';
   updateCompanionSettingsRow(c);
 }
 
@@ -4789,13 +4944,13 @@ function toggleCompanion(on) {
   persist();
   const lane = document.getElementById('dackel-lane');
   if (lane) lane.style.display = on ? '' : 'none';
+  const pickRow = document.getElementById('companion-picker-row');
+  if (pickRow) pickRow.style.display = on ? '' : 'none';
 }
 
 function updateCompanionSettingsRow(c) {
   c = c || COMPANIONS.find(c => c.id === S.companion) || COMPANIONS[0];
-  const ico  = document.getElementById('companion-settings-ico');
   const name = document.getElementById('companion-settings-name');
-  if (ico)  ico.textContent  = c.emoji;
   if (name) name.textContent = c.name;
 }
 
@@ -5571,30 +5726,20 @@ function calcStreak(){
   };
 }
 function renderStreak(){
-  const host = document.getElementById('streak-host');
+  const host = document.getElementById('streak-badge-host');
   if (!host) return;
   const st = calcStreak();
-  if (st.weeks <= 0) {
-    if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
-    host.innerHTML = `<div class="streak-card cold">
-      <div class="streak-fire">🌱</div>
-      <div class="streak-body">
-        <div class="streak-title">Neue Streak starten</div>
-        <div class="streak-sub">Trainiere diese Woche, um deine Serie zu beginnen.</div>
-      </div>
-    </div>`;
+  if (!S.sessions || !S.sessions.length || st.weeks <= 0) {
+    host.innerHTML = '';
     return;
   }
-  const wkLabel = st.weeks === 1 ? '1 Woche' : st.weeks + ' Wochen';
-  const sub = st.weeksThis
-    ? 'Diese Woche schon trainiert — weiter so! 💪'
-    : 'Trainiere diese Woche, damit die Serie nicht reißt.';
-  host.innerHTML = `<div class="streak-card${st.weeksThis?'':' cold'}">
-    <div class="streak-fire">${st.weeksThis?'🔥':'⏳'}</div>
-    <div class="streak-body">
-      <div class="streak-title">${wkLabel} in Folge trainiert</div>
-      <div class="streak-sub">${sub}</div>
-    </div>
+  const cold = st.weeksThis ? '' : ' cold';
+  const tip  = st.weeksThis
+    ? st.weeks + ' Wochen in Folge trainiert'
+    : 'Trainiere diese Woche, damit die Serie nicht reißt';
+  host.innerHTML = `<div class="streak-badge${cold}" title="${tip}">
+    <span class="streak-fire">${st.weeksThis?'🔥':'⏳'}</span>
+    <span>${st.weeks}</span>
   </div>`;
 }
 
@@ -6869,9 +7014,10 @@ function _initGoogleIdentity() {
       client_id: window.GOOGLE_CLIENT_ID,
       callback: _handleGoogleCredential,
       auto_select: false,
-      cancel_on_tap_outside: true,
+      cancel_on_tap_outside: false,
       ux_mode: 'popup',
-      itp_support: true
+      itp_support: true,
+      use_fedcm_for_prompt: true
     });
     _gisReady = true;
     console.log('[GymTrack] 🔑 Google Identity Services bereit');
@@ -6921,6 +7067,15 @@ async function _handleGoogleCredential(response) {
     console.log('[GymTrack] ✅ Firebase-Login via GIS ok:', result?.user?.email);
   } catch (e) {
     console.error('[GymTrack] ❌ signInWithCredential fehlgeschlagen:', e);
+    // Fallback: Popup-Login versuchen
+    try {
+      console.log('[GymTrack] Fallback → signInWithPopup nach GIS-Fehler');
+      await window.FB.signInWithPopup();
+      return;
+    } catch (e2) {
+      if (e2 && (e2.code === 'auth/popup-closed-by-user' || e2.code === 'auth/cancelled-popup-request')) return;
+      console.error('[GymTrack] ❌ Popup-Fallback ebenfalls fehlgeschlagen:', e2);
+    }
     alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
   }
 }
