@@ -1,5 +1,5 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605272202';
+const CACHE = 'gymtrack-v202605272203';
 const SHELL = [
   './index.html',
   './manifest.json',
@@ -89,19 +89,47 @@ self.addEventListener('message', e => {
   }
 });
 
-/* ── Fetch: Cache-first for app shell, network-first for rest ── */
+/* ── Fetch-Strategien ──
+   - index.html + sw.js: NETWORK-FIRST (immer neueste Version wenn online)
+     → fixt das Problem, dass Updates hängen bleiben
+   - Andere Shell-Dateien (Icons, Chart.js): cache-first (Performance, ändern sich selten)
+   - Rest: network-first mit Cache-Fallback                                         */
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
-  if (SHELL.some(s => url.includes(s.replace('./', '')))) {
+
+  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json');
+  const isStaticShell   = SHELL.some(s => {
+    const name = s.replace('./', '');
+    return name && !name.includes('index.html') && !name.includes('manifest.json') && url.includes(name);
+  });
+
+  if (isCriticalShell) {
+    // Network-first: immer frisch, Cache nur als Offline-Fallback
+    e.respondWith(
+      fetch(e.request).then(r => {
+        if (r && r.ok) {
+          const rc = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, rc)).catch(()=>{});
+        }
+        return r;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  if (isStaticShell) {
+    // Cache-first für statische Assets (Icons, Chart.js)
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request).then(r2 => {
         const rc = r2.clone();
-        caches.open(CACHE).then(c => c.put(e.request, rc));
+        caches.open(CACHE).then(c => c.put(e.request, rc)).catch(()=>{});
         return r2;
       }))
     );
     return;
   }
+
+  // Alles andere: network-first
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

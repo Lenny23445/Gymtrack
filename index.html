@@ -2728,7 +2728,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272202';
+const APP_VERSION = 'gymtrack-v202605272203';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6494,32 +6494,62 @@ document.addEventListener('visibilitychange', () => {
 // Fallback: Standard-SW-Flow (updatefound → skipWaiting → controllerchange → reload)
 let swReg = null;
 
-function showUpdateToast(msg) {
+function showUpdateToast(msg, opts) {
   const t = document.getElementById('update-toast');
   if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
+  clearTimeout(showUpdateToast._t);
+  const auto = opts && opts.autoHide;
+  if (auto) showUpdateToast._t = setTimeout(() => t.classList.remove('show'), auto);
 }
+
+// Nach erfolgtem Update: kurzes Bestätigungs-Toast
+try {
+  if (sessionStorage.getItem('gt_just_updated') === '1') {
+    sessionStorage.removeItem('gt_just_updated');
+    setTimeout(() => showUpdateToast('✓ Update installiert – ' + APP_VERSION.replace('gymtrack-v',''), { autoHide: 3500 }), 600);
+  }
+} catch (_) {}
 
 // Beim App-Start: sw.js direkt vom Server holen und Version vergleichen.
 // Zuverlässiger als der SW-Event-Flow, der auf iOS/GitHub Pages oft hängt.
-(async () => {
+async function _runUpdateCheck() {
+  if (window._gymtrackUpdating) return;
+  if (!navigator.onLine) return;
   try {
-    await new Promise(r => setTimeout(r, 2000)); // kurz warten bis App initialisiert ist
-    const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
+    // Mehrfache Cache-Busts gegen CDN/SW-Cache (GitHub Pages CDN cached aggressive)
+    const bust = Date.now() + '-' + Math.random().toString(36).slice(2);
+    const res  = await fetch('./sw.js?v=' + bust, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' } });
+    if (!res.ok) return;
     const text = await res.text();
     const m    = text.match(/gymtrack-v\d+/);
     if (m && m[0] !== APP_VERSION && !window._gymtrackUpdating) {
       window._gymtrackUpdating = true;
-      console.log('[GymTrack] Update gefunden:', m[0], '→ Force-Update');
-      showUpdateToast('Update gefunden – wird installiert…');
-      await new Promise(r => setTimeout(r, 1600));
+      console.log('[GymTrack] Update gefunden:', m[0], '(installiert:', APP_VERSION + ') → Force-Update');
+      const newV = m[0].replace('gymtrack-v','');
+      try { sessionStorage.setItem('gt_just_updated', '1'); } catch (_) {}
+      showUpdateToast('🔄 Update gefunden — wird installiert…');
+      await new Promise(r => setTimeout(r, 1400));
+      showUpdateToast('⬇️ Lade Version ' + newV + '…');
+      await new Promise(r => setTimeout(r, 600));
       await _doForceUpdate();
     }
   } catch (e) {
-    console.log('[GymTrack] Auto-Update-Check übersprungen (kein Netz)');
+    console.log('[GymTrack] Update-Check übersprungen:', e.message);
   }
-})();
+}
+
+// Erster Check kurz nach Start (App soll erst rendern)
+setTimeout(_runUpdateCheck, 800);
+// Wiederkehrender Check alle 3 Minuten solange App offen ist
+setInterval(_runUpdateCheck, 3 * 60 * 1000);
+// Check wenn App aus Hintergrund zurückkommt (Tab-Wechsel, PWA aufwecken)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) _runUpdateCheck();
+});
+// Check sobald wieder online
+window.addEventListener('online', _runUpdateCheck);
 
 async function checkForUpdate() {
   const title = document.getElementById('update-title');
