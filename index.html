@@ -2728,12 +2728,22 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272203';
+const APP_VERSION = 'gymtrack-v202605272204';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-27-cardio-update': {
+    label: '27.05.2026 · Cardio & Update-Fixes',
+    items: [
+      '🏃 Cardio-Timer: Ring pulsiert dynamisch mit umlaufendem Lichtbogen während Training',
+      '✏️ Übungen-Tab: Tap auf Übung öffnet jetzt Bearbeiten statt Statistik',
+      '➕ „Übung hinzufügen"-Button jetzt oben über der Liste',
+      '🔄 Updates werden jetzt zuverlässig erkannt: regelmäßiger Check alle 3 Min + beim App-Wiederöffnen',
+      '✓ Bestätigungs-Toast nach jedem Update mit Versionsnummer',
+    ]
+  },
   'cl-2026-05-26-swipe-suggestions': {
     label: '26.05.2026 · UI-Verbesserungen',
     items: [
