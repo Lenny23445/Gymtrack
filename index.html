@@ -6438,8 +6438,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── APP UPDATE ────────────────────────────────────────
-// Primär: Standard-SW-Flow (updatefound → skipWaiting → controllerchange → reload)
-// Fallback (Einstellungen-Button): sw.js manuell prüfen und ggf. Force-Update
+// Primär: Direkter Versions-Check beim App-Start (unabhängig von SW-Events)
+// Fallback: Standard-SW-Flow (updatefound → skipWaiting → controllerchange → reload)
 let swReg = null;
 
 function showUpdateToast(msg) {
@@ -6448,6 +6448,26 @@ function showUpdateToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
 }
+
+// Beim App-Start: sw.js direkt vom Server holen und Version vergleichen.
+// Zuverlässiger als der SW-Event-Flow, der auf iOS/GitHub Pages oft hängt.
+(async () => {
+  try {
+    await new Promise(r => setTimeout(r, 2000)); // kurz warten bis App initialisiert ist
+    const res  = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    const m    = text.match(/gymtrack-v\d+/);
+    if (m && m[0] !== APP_VERSION && !window._gymtrackUpdating) {
+      window._gymtrackUpdating = true;
+      console.log('[GymTrack] Update gefunden:', m[0], '→ Force-Update');
+      showUpdateToast('Update gefunden – wird installiert…');
+      await new Promise(r => setTimeout(r, 1600));
+      await _doForceUpdate();
+    }
+  } catch (e) {
+    console.log('[GymTrack] Auto-Update-Check übersprungen (kein Netz)');
+  }
+})();
 
 async function checkForUpdate() {
   const title = document.getElementById('update-title');
