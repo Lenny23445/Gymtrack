@@ -673,6 +673,10 @@ body{
   color:var(--text);
   box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04);
 }
+.fmode-btn.fmode-add{flex:0 0 auto;padding:8px 10px;color:var(--acc);font-size:16px;font-weight:700;line-height:1}
+.fmode-edit{margin-left:6px;opacity:.55;font-size:11px;font-weight:600;cursor:pointer;display:inline-block;padding:0 2px}
+.fmode-edit:hover{opacity:1;color:var(--acc)}
+.is-disabled{opacity:.5;pointer-events:none}
 .icon-full-grid{
   display:grid;grid-template-columns:repeat(7,1fr);
   gap:6px;padding:0 20px 24px;
@@ -812,6 +816,71 @@ body{
   background:rgba(var(--acc-rgb),.08);
   border-color:rgba(var(--acc-rgb),.25);
 }
+.set-in-btn{
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  font-weight:600;line-height:1.1;min-height:42px;
+  display:flex;align-items:center;justify-content:center;
+}
+.set-in-btn:active{transform:scale(.97)}
+.set-in-ph{color:var(--text2);opacity:.5;font-weight:400}
+.ex-title-tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ex-title-tap:active{opacity:.6}
+.ex-info-btn{
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(var(--acc-rgb),.14);
+  border:1px solid rgba(var(--acc-rgb),.3);
+  color:var(--acc);font-size:13px;font-weight:700;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;
+}
+.ex-info-btn:active{transform:scale(.92)}
+/* ── Wheel-Picker (Apple-Style) ── */
+.wheel-wrap{
+  display:flex;justify-content:center;gap:14px;padding:8px 20px 16px;
+  position:relative;
+}
+.wheel-col{
+  position:relative;flex:1;max-width:160px;height:220px;
+  background:var(--inp-bg);
+  border:1px solid var(--gl-bdr);border-radius:18px;overflow:hidden;
+}
+.wheel-col::before,.wheel-col::after{
+  content:'';position:absolute;left:0;right:0;height:88px;pointer-events:none;z-index:2;
+}
+.wheel-col::before{top:0;background:linear-gradient(to bottom, var(--bg) 0%, transparent 100%);opacity:.85}
+.wheel-col::after{bottom:0;background:linear-gradient(to top, var(--bg) 0%, transparent 100%);opacity:.85}
+.wheel-center{
+  position:absolute;left:8px;right:8px;top:50%;transform:translateY(-50%);
+  height:44px;border-top:1px solid rgba(var(--acc-rgb),.4);
+  border-bottom:1px solid rgba(var(--acc-rgb),.4);
+  pointer-events:none;z-index:1;
+  background:rgba(var(--acc-rgb),.06);border-radius:8px;
+}
+.wheel-list{
+  position:relative;z-index:3;
+  height:100%;overflow-y:auto;scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.wheel-list::-webkit-scrollbar{display:none}
+.wheel-item{
+  height:44px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;
+  scroll-snap-align:center;scroll-snap-stop:always;
+  color:var(--text2);transition:color .15s,font-size .15s;
+}
+.wheel-item.center{color:var(--acc);font-size:26px;font-weight:700}
+.wheel-label{
+  font-size:12px;font-weight:600;color:var(--text2);
+  text-align:center;margin-top:6px;letter-spacing:.4px;text-transform:uppercase;
+}
+.unit-toggle{display:inline-flex;background:var(--g5);border-radius:10px;padding:2px;gap:1px}
+.unit-toggle button{
+  border:none;background:transparent;border-radius:8px;padding:6px 12px;
+  font-size:13px;font-weight:600;font-family:inherit;color:var(--text2);
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.unit-toggle button.on{background:var(--acc);color:#fff}
 .set-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;width:28px}
 .add-set-btn{margin-top:10px;background:none;border:none;color:var(--acc);font-size:15px;cursor:pointer;font-family:inherit;font-weight:600;padding:4px 0}
 .set-timer-btn{
@@ -2103,8 +2172,30 @@ body{
       </div>
     </div>
     <div>
+      <div class="s-title">Einheit</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Gewicht in</div>
+            <div class="row-sub">Wird überall in der App verwendet</div>
+          </div>
+          <div class="unit-toggle">
+            <button type="button" data-unit-btn="kg" class="${''}" onclick="setUnitMode('kg')">kg</button>
+            <button type="button" data-unit-btn="lbs" onclick="setUnitMode('lbs')">lbs</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
       <div class="s-title">Progression – so funktioniert's</div>
       <div class="card">
+        <div class="row tap" onclick="openProgressionInfo()">
+          <div class="row-body">
+            <div class="row-title">Ausführliche Erklärung</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.45">Wie GymTrack dein nächstes Gewicht und deine Wdh vorschlägt</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
         <div class="row"><div class="row-body">
           <div class="row-title">Gewicht erhöhen</div>
           <div class="row-sub" style="white-space:normal;line-height:1.45">Wenn du 2× alle Ziel-Wdh schaffst → +2,5 kg (leicht) / +5 kg (schwer)</div>
@@ -2113,6 +2204,19 @@ body{
           <div class="row-title">Wdh-Fokus</div>
           <div class="row-sub" style="white-space:normal;line-height:1.45">Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren</div>
         </div></div>
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Feedback</div>
+      <div class="card">
+        <div class="row tap" onclick="openFeedback()">
+          <div class="ico" style="background:rgba(0,150,80,.12);border-color:rgba(0,150,80,.28);font-size:20px">✉️</div>
+          <div class="row-body">
+            <div class="row-title">Feedback senden</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.45">Wünsche, Bugs oder Ideen — direkt an den Entwickler</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
       </div>
     </div>
     <div>
@@ -2376,21 +2480,6 @@ body{
       <label class="f-label">Muskelgruppe</label>
     </div>
     <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
-    <div class="px" style="padding-bottom:16px">
-      <label class="f-label">Icon</label>
-      <div style="display:flex;gap:8px;align-items:stretch">
-        <button type="button" id="ex-icon-btn" onclick="openIconPicker()"
-          style="display:flex;align-items:center;gap:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 16px;cursor:pointer;font-family:inherit;flex:1;min-width:0;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent">
-          <span id="ex-icon-preview" style="font-size:30px;line-height:1;flex-shrink:0">🏋️</span>
-          <span style="font-size:15px;font-weight:600;color:var(--acc);flex:1;text-align:left">Icon auswählen</span>
-          <span style="font-size:18px;color:var(--text2);opacity:.5">›</span>
-        </button>
-        <button type="button" id="no-icon-btn" onclick="pickNoIcon()"
-          style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 14px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0;transition:background .15s,border-color .15s,color .15s;-webkit-tap-highlight-color:transparent">
-          Kein Icon
-        </button>
-      </div>
-    </div>
     <div class="px">
       <div class="f-field">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -2410,8 +2499,8 @@ body{
             <input class="f-in" type="number" id="in-reps" value="10" min="1" max="9999">
           </div>
           <div>
-            <label class="f-label" style="font-size:10px">Start-kg</label>
-            <input class="f-in" type="number" id="in-kg" placeholder="0" min="0" step="2.5">
+            <label class="f-label" style="font-size:10px" id="in-kg-label">Start-kg</label>
+            <input class="f-in" type="number" id="in-kg" placeholder="0" min="0" step="2.5" inputmode="decimal">
           </div>
         </div>
       </div>
@@ -2745,6 +2834,107 @@ body{
 </div>
 
 <!-- OVERLAY: KARDIO TIMER -->
+<!-- SHEET: FEEDBACK -->
+<div class="ov" id="ov-feedback" onclick="if(event.target===this)closeOv('ov-feedback')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>✉️ Feedback senden</h2>
+      <button class="x-btn" onclick="closeOv('ov-feedback')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px">
+        Wünsche, Bug-Meldungen oder Ideen? Schreib mir eine Nachricht — ich lese jede!
+      </div>
+      <div class="f-field">
+        <label class="f-label">Deine Nachricht</label>
+        <textarea id="fb-msg" rows="6" placeholder="Was möchtest du verbessern?"
+          style="width:100%;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--text);outline:none;resize:vertical;min-height:120px"></textarea>
+      </div>
+      <button class="btn btn-acc" onclick="sendFeedback()">Per E-Mail senden</button>
+      <div style="font-size:11px;color:var(--text2);text-align:center;margin-top:10px;line-height:1.5">
+        Öffnet deine Mail-App. Geht an wolterlenny362@gmail.com
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: PROGRESSION INFO -->
+<div class="ov" id="ov-prog-info" onclick="if(event.target===this)closeOv('ov-prog-info')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>📈 So funktioniert Progression</h2>
+      <button class="x-btn" onclick="closeOv('ov-prog-info')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <div id="prog-info-body" style="font-size:14px;color:var(--text);line-height:1.6"></div>
+      <button class="btn btn-gray" onclick="closeOv('ov-prog-info')" style="margin-top:14px">Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: WHEEL PICKER -->
+<div class="ov" id="ov-wheel" onclick="if(event.target===this)closeOv('ov-wheel')">
+  <div class="sheet" style="max-height:80vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="wheel-title">Wert wählen</h2>
+      <button class="x-btn" onclick="closeOv('ov-wheel')">✕</button>
+    </div>
+    <div class="wheel-wrap" id="wheel-wrap">
+      <!-- Wheel cols inserted by JS -->
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <button class="btn btn-acc" onclick="confirmWheel()">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: EXERCISE EDIT MENU (im aktiven Training) -->
+<div class="ov" id="ov-ex-edit" onclick="if(event.target===this)closeOv('ov-ex-edit')">
+  <div class="sheet" style="max-height:80vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="ex-edit-title">Übung bearbeiten</h2>
+      <button class="x-btn" onclick="closeOv('ov-ex-edit')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <div class="f-field">
+        <label class="f-label">Name (für dieses Training)</label>
+        <input id="ex-edit-name" class="f-in" type="text" maxlength="40">
+      </div>
+      <button class="btn btn-acc" onclick="applyExRename()" style="margin-bottom:14px">Namen speichern</button>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase">Durch andere Übung ersetzen</div>
+      <div id="ex-edit-replace-list" style="max-height:280px;overflow:auto;border:1px solid var(--gl-bdr);border-radius:14px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: CUSTOM SPLIT EDITOR -->
+<div class="ov" id="ov-custom-split" onclick="if(event.target===this)closeOv('ov-custom-split')">
+  <div class="sheet" style="max-height:90vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="cs-title">Eigener Split</h2>
+      <button class="x-btn" onclick="closeOv('ov-custom-split')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <div class="f-field">
+        <label class="f-label">Name des Splits</label>
+        <input id="cs-name" class="f-in" type="text" placeholder="z. B. Mein PPL+" maxlength="32">
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;letter-spacing:.3px;text-transform:uppercase">Gruppen</div>
+      <div id="cs-groups" style="display:flex;flex-direction:column;gap:10px"></div>
+      <button class="btn btn-gray btn-sm" onclick="csAddGroup()" style="margin-top:10px">+ Gruppe hinzufügen</button>
+      <div style="height:14px"></div>
+      <button class="btn btn-acc" onclick="saveCustomSplit()">Speichern</button>
+      <div style="height:8px"></div>
+      <button class="btn btn-danger btn-sm" id="cs-delete-btn" onclick="deleteCustomSplit()" style="display:none">Split löschen</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
   <div class="sheet">
     <div class="sh-handle"></div>
@@ -2803,7 +2993,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272206';
+const APP_VERSION = 'gymtrack-v202605272300';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -2958,8 +3148,50 @@ const GROUP_MODES = [
     ]
   },
 ];
-function currentMode()  { return GROUP_MODES.find(m => m.id === S.exFilterMode) || GROUP_MODES[0]; }
+function allModes() {
+  const custom = (S.customSplits || []).map(s => ({
+    id: s.id,
+    label: s.label,
+    isCustom: true,
+    groups: [{ id:'alle', label:'Alle', muscles:null }, ...(s.groups || []).map(g => ({ id:g.id, label:g.label, muscles:g.muscles }))]
+  }));
+  return [...GROUP_MODES, ...custom];
+}
+function modeById(id) { return allModes().find(m => m.id === id) || allModes()[0]; }
+function currentMode()  { return modeById(S.exFilterMode); }
 function currentGroup() { const m = currentMode(); return m.groups.find(g => g.id === exCatFilter) || m.groups[0]; }
+
+/* ── Einheiten (kg / lbs) ── */
+const LBS_PER_KG = 2.20462;
+function unitLabel() { return S.unitMode === 'lbs' ? 'lbs' : 'kg'; }
+function kgToDisp(v) {
+  if (v === '' || v == null || isNaN(parseFloat(v))) return v;
+  const n = parseFloat(v);
+  if (S.unitMode === 'lbs') return Math.round(n * LBS_PER_KG * 2) / 2;
+  return n;
+}
+function dispToKg(v) {
+  if (v === '' || v == null || isNaN(parseFloat(v))) return v;
+  const n = parseFloat(v);
+  if (S.unitMode === 'lbs') return Math.round((n / LBS_PER_KG) * 10) / 10;
+  return n;
+}
+function fmtWeight(v) {
+  if (v === '' || v == null || isNaN(parseFloat(v))) return '–';
+  const d = kgToDisp(v);
+  return d + ' ' + unitLabel();
+}
+function setUnitMode(m) {
+  if (m !== 'kg' && m !== 'lbs') return;
+  S.unitMode = m;
+  persist();
+  document.querySelectorAll('[data-unit-btn]').forEach(b => {
+    b.classList.toggle('on', b.dataset.unitBtn === m);
+  });
+  if (typeof renderExList === 'function') renderExList();
+  if (typeof renderHome === 'function') renderHome();
+  if (typeof renderLogCards === 'function' && isWorkoutActive && isWorkoutActive()) renderLogCards();
+}
 
 /* ── BEGLEITER ── */
 const COMPANIONS = [
@@ -3027,6 +3259,8 @@ S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
 S.exFilterMode = S.exFilterMode || 'muskel';
 S.wkFilterMode = S.wkFilterMode || 'muskel';
 S.statsFilterMode = S.statsFilterMode || 'muskel';
+S.unitMode    = S.unitMode    || 'kg';   // 'kg' | 'lbs'
+S.customSplits = Array.isArray(S.customSplits) ? S.customSplits : []; // [{id,label,groups:[{id,label,muscles:[]}]}]
 // Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
 S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
@@ -3348,14 +3582,20 @@ function getSuggestion(ex) {
     const prevMax = maxW(pValid);
     if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
       const inc = lMaxW >= 60 ? 5 : 2.5;
-      return { type:'up', icon:'', title:`${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${lMaxW+inc} kg nächstes Mal!` };
+      return { type:'up', icon:'', title:`${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${kgToDisp(lMaxW+inc)} ${unitLabel()} nächstes Mal!` };
     }
   }
   if (allReps && allSets) {
-    return { type:'up', icon:'', title:`${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${lMaxW+2.5} kg ausprobieren.` };
+    return { type:'up', icon:'', title:`${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${kgToDisp(lMaxW+2.5)} ${unitLabel()} ausprobieren.` };
   }
+  // Eingebrochen → realistisches Wdh-Ziel vorschlagen
+  const sum = validSets.reduce((a,s) => a + parseInt(s.r||0), 0);
+  const avg = Math.max(1, Math.round(sum / validSets.length));
   const gStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
-  return { type:'hold', icon:'', title:`${ex.name}: Fokus`, text:`Ziel: ${ex.targetSets}×${gStr} bei ${lMaxW} kg. Halte das Gewicht.` };
+  if (avg < ex.targetReps - 2) {
+    return { type:'hold', icon:'', title:`${ex.name}: Wdh aufbauen`, text:`Zuletzt nur ~${avg} Wdh. Versuche ${avg} Wdh bei ${kgToDisp(lMaxW)} ${unitLabel()} sauber zu halten.` };
+  }
+  return { type:'hold', icon:'', title:`${ex.name}: Fokus`, text:`Ziel: ${ex.targetSets}×${gStr} bei ${kgToDisp(lMaxW)} ${unitLabel()}. Halte das Gewicht.` };
 }
 
 function renderLastSession() {
@@ -3369,7 +3609,7 @@ function renderLastSession() {
       <div class="row last-swipe-row">
         <div class="row-body">
           <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
-          <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.emoji+' '+e.name:l.exerciseId}).join(' · ')}</div>
+          <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.name:l.exerciseId}).join(' · ')}</div>
         </div>
         <span class="badge b-green">${sets} Sätze</span>
       </div>
@@ -3440,12 +3680,17 @@ function renderExList() {
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
 
-  // Mode-Switcher (Muskeln / Push-Pull-Legs / Ober-Unter)
+  // Mode-Switcher (Muskeln / Push-Pull-Legs / Ober-Unter / Custom-Splits / +)
   const modeBar = document.getElementById('ex-mode-switch');
   if (modeBar) {
-    modeBar.innerHTML = GROUP_MODES.map(m =>
-      `<button class="fmode-btn${S.exFilterMode===m.id?' on':''}" onclick="setExFilterMode('${m.id}')">${m.label}</button>`
-    ).join('');
+    const modes = allModes();
+    const btns = modes.map(m => {
+      const isCustom = m.isCustom;
+      const editIcon = isCustom ? `<span class="fmode-edit" onclick="event.stopPropagation();openCustomSplitEdit('${m.id}')">✎</span>` : '';
+      return `<button class="fmode-btn${S.exFilterMode===m.id?' on':''}" onclick="setExFilterMode('${m.id}')">${m.label}${editIcon}</button>`;
+    });
+    btns.push(`<button class="fmode-btn fmode-add" onclick="openCustomSplitNew()" title="Eigenen Split erstellen">＋</button>`);
+    modeBar.innerHTML = btns.join('');
   }
 
   // Gruppen-Pills für aktuellen Modus
@@ -3494,12 +3739,11 @@ function renderExList() {
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
     const days = exerciseDayLabels(ex.id);
     const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
-    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+lw+' kg' : ''}${days ? ' · 📅 '+days : ''}`;
+    const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+kgToDisp(lw)+' '+unitLabel() : ''}${days ? ' · 📅 '+days : ''}`;
     return `<div class="ex-swipe-wrap">
       <div class="ex-swipe-inner">
         <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
           <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
-          ${ex.emoji ? `<div class="ico">${ex.emoji}</div>` : ''}
           <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
           <div class="chev">›</div>
         </div>
@@ -3695,7 +3939,6 @@ function renderPlanExPicker() {
   el.innerHTML = S.exercises.map(ex => {
     const on = planEditDraft.exIds && planEditDraft.exIds.includes(ex.id);
     return `<div class="plan-ex-item${on?' on':''}" onclick="togglePlanEx('${ex.id}')">
-      <div class="pe-emo">${ex.emoji}</div>
       <div class="pe-name">${ex.name}</div>
       <div class="pe-chk">✓</div>
     </div>`;
@@ -3746,7 +3989,7 @@ function exDragStart(e, exId) {
 
   _dndGhost = document.createElement('div');
   _dndGhost.className = 'dnd-ghost';
-  _dndGhost.innerHTML = `<span class="dnd-ghost-emoji">${ex.emoji}</span><span class="dnd-ghost-name">${ex.name}</span>`;
+  _dndGhost.innerHTML = `<span class="dnd-ghost-name">${ex.name}</span>`;
   document.body.appendChild(_dndGhost);
 
   const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -3767,7 +4010,7 @@ function splitDragStart(e, splitId, label, emoji) {
 
   _dndGhost = document.createElement('div');
   _dndGhost.className = 'dnd-ghost';
-  _dndGhost.innerHTML = `<span class="dnd-ghost-emoji">${emoji||'🏋️'}</span><span class="dnd-ghost-name">${label}</span>`;
+  _dndGhost.innerHTML = `<span class="dnd-ghost-name">${label}</span>`;
   document.body.appendChild(_dndGhost);
 
   const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -3829,6 +4072,7 @@ function _dndOnMove(e) {
   e.preventDefault();
   const t = e.touches ? e.touches[0] : e;
   _dndMoveGhost(t.clientX, t.clientY);
+  _dndAutoScroll(t.clientY);
 }
 
 function _dndOnEnd(e) {
@@ -3866,7 +4110,7 @@ function _dndDrop(exId, dayKey) {
   renderPlanList();
   const ex = exById(exId);
   const d  = dayByKey(dayKey);
-  _dndToast(`${ex.emoji} ${ex.name} → ${d.label}`);
+  _dndToast(`${ex.name} → ${d.label}`);
 }
 
 function _dndDropSplit(splitId, dayKey) {
@@ -3913,7 +4157,7 @@ function wkDragStart(e, li) {
 
   _wkDndGhost = document.createElement('div');
   _wkDndGhost.className = 'dnd-ghost';
-  _wkDndGhost.innerHTML = `<span class="dnd-ghost-emoji">${ex.emoji}</span><span class="dnd-ghost-name">${ex.name}</span>`;
+  _wkDndGhost.innerHTML = `<span class="dnd-ghost-name">${ex.name}</span>`;
   document.body.appendChild(_wkDndGhost);
 
   const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -3948,6 +4192,7 @@ function _wkDndOnMove(e) {
   e.preventDefault();
   const t = e.touches ? e.touches[0] : e;
   _wkDndMove(t.clientX, t.clientY);
+  _dndAutoScroll(t.clientY);
 }
 function _wkDndOnEnd(e) {
   document.removeEventListener('touchmove', _wkDndOnMove);
@@ -3971,6 +4216,359 @@ function _dndToast(msg) {
   t.classList.add('show');
   clearTimeout(_dndToast._t);
   _dndToast._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── DRAG AUTO-SCROLL (wenn nahe oberer/unterer Rand des Scroll-Containers) ──
+function _dndAutoScroll(y) {
+  const EDGE = 90;       // px-Abstand zur Kante
+  const MAX_SPEED = 16;  // max px pro Frame
+  const vh = window.innerHeight;
+
+  // Welcher Container scrollt? (Sheet > Page > Window)
+  const sheet = document.querySelector('.ov.on .sheet');
+  let scroller = null;
+  let topEdge = 0, botEdge = vh;
+  if (sheet) {
+    const r = sheet.getBoundingClientRect();
+    scroller = sheet;
+    topEdge = r.top;
+    botEdge = r.bottom;
+  } else {
+    // aktuelle Page
+    const pg = document.querySelector('.pg.on') || document.scrollingElement;
+    scroller = pg || document.scrollingElement;
+    topEdge = 60;          // unter Tab-Bar
+    botEdge = vh - 80;     // über Tab-Bar
+  }
+
+  let dy = 0;
+  if (y < topEdge + EDGE) {
+    dy = -MAX_SPEED * (1 - (y - topEdge) / EDGE);
+  } else if (y > botEdge - EDGE) {
+    dy =  MAX_SPEED * (1 - (botEdge - y) / EDGE);
+  }
+  if (dy && scroller && typeof scroller.scrollBy === 'function') {
+    scroller.scrollBy(0, dy);
+  } else if (dy) {
+    window.scrollBy(0, dy);
+  }
+}
+
+// ── FEEDBACK ───────────────────────────────────────────
+function openFeedback() {
+  const msg = document.getElementById('fb-msg');
+  if (msg) msg.value = '';
+  openOv('ov-feedback');
+}
+function sendFeedback() {
+  const msg = (document.getElementById('fb-msg').value || '').trim();
+  if (!msg) { alert('Bitte schreibe eine Nachricht.'); return; }
+  const subject = encodeURIComponent('GymTrack Feedback');
+  const ver = (typeof APP_VERSION === 'string' ? APP_VERSION : '?');
+  const body = encodeURIComponent(msg + '\n\n— — — — —\nApp: ' + ver + '\nDevice: ' + (navigator.userAgent||'?'));
+  window.location.href = `mailto:wolterlenny362@gmail.com?subject=${subject}&body=${body}`;
+  setTimeout(() => closeOv('ov-feedback'), 300);
+}
+
+// ── PROGRESSION INFO POPUP ─────────────────────────────
+function openProgressionInfo(exId) {
+  const body = document.getElementById('prog-info-body');
+  let exText = '';
+  if (exId) {
+    const ex = exById(exId);
+    if (ex) {
+      const sug = getSuggestion(ex);
+      const sw  = getSuggestedWeight(ex);
+      const sr  = getSuggestedReps(ex);
+      const swDisp = sw ? kgToDisp(sw) + ' ' + unitLabel() : '–';
+      exText = `
+        <div style="background:rgba(var(--acc-rgb),.08);border:1px solid rgba(var(--acc-rgb),.24);border-radius:14px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-weight:700;margin-bottom:4px">${ex.name}</div>
+          <div style="color:var(--text2);font-size:13px">Vorschlag fürs nächste Mal: <b style="color:var(--acc)">${swDisp}</b> × <b style="color:var(--acc)">${sr||ex.targetReps} Wdh</b></div>
+          ${sug && sug.text ? `<div style="margin-top:6px;font-size:13px;color:var(--text2)">${sug.text}</div>` : ''}
+        </div>`;
+    }
+  }
+  body.innerHTML = exText + `
+    <p style="margin:0 0 10px"><b>1. Sätze + Wdh schaffen</b><br>
+    Schaffst du <b>alle Sätze mit allen Ziel-Wdh</b>, wird beim nächsten Training mehr Gewicht empfohlen.</p>
+    <p style="margin:0 0 10px"><b>2. Stufenweise steigern</b><br>
+    +2,5 ${unitLabel()} (leichte Übung) oder +5 ${unitLabel()} (ab 60&nbsp;kg / schwer).
+    Wer 2× hintereinander alles geschafft hat, bekommt direkt die größere Steigerung.</p>
+    <p style="margin:0 0 10px"><b>3. Wdh-Fokus statt Gewicht</b><br>
+    Schaffst du noch nicht alle Wdh, bleibt das Gewicht gleich — du baust Wdh auf, bis das Ziel sitzt.</p>
+    <p style="margin:0 0 10px"><b>4. Eingebrochen?</b><br>
+    Schaffst du deutlich weniger als das Ziel (z. B. 6 statt 10), schlägt GymTrack die letzte erreichte Wdh-Zahl als realistisches Ziel vor.</p>
+    <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Pro Übung auf das <b>i</b>-Symbol tippen — du siehst direkt, was als nächstes ansteht.</p>`;
+  openOv('ov-prog-info');
+}
+
+// ── INTELLIGENTERE PROGRESSION: Reps-Vorschlag ─────────
+function getSuggestedReps(ex) {
+  const hist = exHistory(ex.id);
+  if (!hist.length) return ex.targetReps;
+  const last = hist[hist.length-1];
+  const validSets = last.sets.filter(s => s.w && s.r);
+  if (!validSets.length) return ex.targetReps;
+  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
+  if (allReps) return ex.targetReps;
+  // unter Ziel: avg-Wdh (gerundet) als realistisches Ziel
+  const sum = validSets.reduce((a,s) => a + parseInt(s.r||0), 0);
+  const avg = Math.max(1, Math.round(sum / validSets.length));
+  return avg;
+}
+
+// ── WHEEL PICKER ───────────────────────────────────────
+let _wheelCtx = null; // { li, si, field, isWeight, cols: [{values, idx}], step }
+function openWheel(li, si, field) {
+  const log = wkLogs[li]; if (!log) return;
+  const ex = exById(log.exerciseId); if (!ex) return;
+  const isW = field === 'w';
+  const curRaw = log.sets[si][field];
+  let curDisp = '';
+  if (curRaw !== '' && curRaw != null) curDisp = isW ? kgToDisp(curRaw) : curRaw;
+  document.getElementById('wheel-title').textContent = isW
+    ? `Gewicht (${unitLabel()})`
+    : 'Wiederholungen';
+
+  if (isW) {
+    // Gewicht-Wheel: ganze + Nachkommastellen (.0, .25, .5, .75)
+    const step = S.unitMode === 'lbs' ? 0.5 : 0.25;
+    const maxV = S.unitMode === 'lbs' ? 1100 : 500;
+    const ints = []; for (let i = 0; i <= maxV; i++) ints.push(i);
+    const fracs = S.unitMode === 'lbs' ? [0, 0.5] : [0, 0.25, 0.5, 0.75];
+    const cur = parseFloat(curDisp||'0') || 0;
+    const iInt = Math.max(0, Math.min(maxV, Math.floor(cur)));
+    const iFrac = fracs.indexOf(Math.round((cur - Math.floor(cur)) * 100) / 100);
+    _wheelCtx = {
+      li, si, field, isWeight:true, step,
+      cols:[
+        { values: ints,  idx: iInt,  label: unitLabel(), fmt: v => String(v) },
+        { values: fracs, idx: Math.max(0, iFrac), label: '.', fmt: v => '.' + String(Math.round(v*100)).padStart(2,'0') }
+      ]
+    };
+  } else {
+    // Reps-Wheel: 0–200
+    const max = 300;
+    const arr = []; for (let i = 0; i <= max; i++) arr.push(i);
+    const cur = parseInt(curDisp||'0') || 0;
+    _wheelCtx = {
+      li, si, field, isWeight:false,
+      cols:[
+        { values: arr, idx: Math.max(0, Math.min(max, cur)), label:'Wdh', fmt: v => String(v) }
+      ]
+    };
+  }
+  renderWheel();
+  openOv('ov-wheel');
+}
+function renderWheel() {
+  const wrap = document.getElementById('wheel-wrap');
+  wrap.innerHTML = _wheelCtx.cols.map((c, ci) => {
+    const items = c.values.map((v, vi) =>
+      `<div class="wheel-item${vi===c.idx?' center':''}" data-vi="${vi}">${c.fmt(v)}</div>`).join('');
+    // Padding oben und unten, damit Werte mittig erscheinen können (88px = (220-44)/2)
+    return `<div style="flex:1;max-width:160px">
+      <div class="wheel-col">
+        <div class="wheel-center"></div>
+        <div class="wheel-list" id="wheel-list-${ci}" data-ci="${ci}">
+          <div style="height:88px"></div>
+          ${items}
+          <div style="height:88px"></div>
+        </div>
+      </div>
+      <div class="wheel-label">${c.label}</div>
+    </div>`;
+  }).join('');
+  // Scroll-Listener einrichten
+  setTimeout(() => {
+    _wheelCtx.cols.forEach((c, ci) => {
+      const list = document.getElementById('wheel-list-'+ci);
+      if (!list) return;
+      // Initial-Position
+      list.scrollTo({top: c.idx * 44, behavior:'instant'});
+      let snapTo = null;
+      list.addEventListener('scroll', () => {
+        const idx = Math.max(0, Math.min(c.values.length-1, Math.round(list.scrollTop / 44)));
+        if (idx !== c.idx) {
+          c.idx = idx;
+          // Center-Highlight aktualisieren
+          list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
+          // leichte Haptik
+          if (typeof haptic === 'function') haptic(4);
+        }
+      }, {passive:true});
+    });
+  }, 30);
+}
+function confirmWheel() {
+  if (!_wheelCtx) { closeOv('ov-wheel'); return; }
+  const { li, si, field, cols, isWeight } = _wheelCtx;
+  let value;
+  if (isWeight) {
+    const whole = cols[0].values[cols[0].idx];
+    const frac  = cols[1].values[cols[1].idx];
+    const disp  = whole + frac;
+    value = disp ? Number(dispToKg(disp)) : '';
+  } else {
+    value = String(cols[0].values[cols[0].idx]);
+  }
+  wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
+  if (typeof haptic === 'function') haptic(12);
+  closeOv('ov-wheel');
+  renderLogCards();
+}
+
+// ── ÜBUNG IM TRAINING BEARBEITEN (umbenennen / ersetzen) ──
+let _exEditLi = null;
+function openExEditMenu(li) {
+  _exEditLi = li;
+  const log = wkLogs[li]; if (!log) return;
+  const ex = exById(log.exerciseId); if (!ex) return;
+  document.getElementById('ex-edit-title').textContent = ex.name;
+  document.getElementById('ex-edit-name').value = log._overrideName || ex.name;
+  // Ersatz-Liste
+  const list = document.getElementById('ex-edit-replace-list');
+  const usedIds = wkLogs.map(l => l.exerciseId);
+  list.innerHTML = S.exercises.map(other => {
+    if (other.id === log.exerciseId) return '';
+    const inUse = usedIds.includes(other.id);
+    return `<div class="row tap${inUse?' is-disabled':''}" onclick="${inUse?'':`replaceExInWorkout('${other.id}')`}">
+      <div class="row-body">
+        <div class="row-title">${other.name}${inUse?' <span style=\"color:var(--text2);font-size:11px\">(schon im Training)</span>':''}</div>
+        <div class="row-sub">${other.muscleGroup ? muscleLabel(other.muscleGroup) : ''}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`;
+  }).filter(Boolean).join('') || '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Keine weiteren Übungen verfügbar.</div>';
+  openOv('ov-ex-edit');
+}
+function applyExRename() {
+  if (_exEditLi == null) return;
+  const log = wkLogs[_exEditLi]; if (!log) return;
+  const ex = exById(log.exerciseId); if (!ex) return;
+  const newName = (document.getElementById('ex-edit-name').value || '').trim();
+  if (!newName) { alert('Name darf nicht leer sein.'); return; }
+  if (newName === ex.name) {
+    delete log._overrideName;
+  } else {
+    log._overrideName = newName;
+    // außerdem: die Original-Übung umbenennen (User-Erwartung: dauerhaft)
+    ex.name = newName;
+    persist();
+  }
+  closeOv('ov-ex-edit');
+  renderLogCards();
+}
+function replaceExInWorkout(newExId) {
+  if (_exEditLi == null) return;
+  const log = wkLogs[_exEditLi]; if (!log) return;
+  const newEx = exById(newExId); if (!newEx) return;
+  // Behalte bisher geloggte Werte, aber wechsle die exerciseId
+  log.exerciseId = newExId;
+  delete log._overrideName;
+  // Suggested Werte neu berechnen
+  const sw = getSuggestedWeight(newEx);
+  log.sugW = sw != null ? String(sw) : '';
+  log.sugR = String(newEx.targetReps);
+  closeOv('ov-ex-edit');
+  renderLogCards();
+}
+
+// ── CUSTOM SPLITS ─────────────────────────────────────
+let _csEdit = null; // {id?, label, groups:[{id,label,muscles:[]}]}
+const ALL_MUSCLES = [
+  { id:'brust', label:'Brust' },
+  { id:'ruecken', label:'Rücken' },
+  { id:'schultern', label:'Schultern' },
+  { id:'arme', label:'Arme' },
+  { id:'beine', label:'Beine' },
+  { id:'core', label:'Core' }
+];
+function openCustomSplitNew() {
+  _csEdit = { label:'', groups:[ { id: uid(), label:'', muscles:[] } ] };
+  document.getElementById('cs-title').textContent = 'Eigener Split';
+  document.getElementById('cs-name').value = '';
+  document.getElementById('cs-delete-btn').style.display = 'none';
+  renderCsGroups();
+  openOv('ov-custom-split');
+}
+function openCustomSplitEdit(splitId) {
+  const s = (S.customSplits||[]).find(s => s.id === splitId);
+  if (!s) return;
+  _csEdit = JSON.parse(JSON.stringify(s));
+  document.getElementById('cs-title').textContent = 'Split bearbeiten';
+  document.getElementById('cs-name').value = _csEdit.label || '';
+  document.getElementById('cs-delete-btn').style.display = '';
+  renderCsGroups();
+  openOv('ov-custom-split');
+}
+function csAddGroup() {
+  _csEdit.groups.push({ id: uid(), label:'', muscles:[] });
+  renderCsGroups();
+}
+function csDelGroup(gid) {
+  _csEdit.groups = _csEdit.groups.filter(g => g.id !== gid);
+  if (!_csEdit.groups.length) _csEdit.groups.push({ id: uid(), label:'', muscles:[] });
+  renderCsGroups();
+}
+function csSetGroupLabel(gid, val) {
+  const g = _csEdit.groups.find(g => g.id === gid); if (!g) return;
+  g.label = val;
+}
+function csToggleMuscle(gid, mid) {
+  const g = _csEdit.groups.find(g => g.id === gid); if (!g) return;
+  const i = g.muscles.indexOf(mid);
+  if (i < 0) g.muscles.push(mid); else g.muscles.splice(i,1);
+  renderCsGroups();
+}
+function renderCsGroups() {
+  document.getElementById('cs-groups').innerHTML = _csEdit.groups.map((g,gi) => `
+    <div style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;padding:12px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input class="f-in" type="text" value="${(g.label||'').replace(/"/g,'&quot;')}" placeholder="Gruppen-Name (z.B. Push A)"
+          oninput="csSetGroupLabel('${g.id}', this.value)" style="flex:1">
+        <button class="btn btn-danger btn-sm" onclick="csDelGroup('${g.id}')" style="flex:0;padding:8px 12px">−</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${ALL_MUSCLES.map(m =>
+          `<button type="button" class="icat${g.muscles.includes(m.id)?' on':''}" onclick="csToggleMuscle('${g.id}','${m.id}')">${m.label}</button>`
+        ).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+function saveCustomSplit() {
+  const name = (document.getElementById('cs-name').value || '').trim();
+  if (!name) { alert('Bitte gib dem Split einen Namen.'); return; }
+  const groups = _csEdit.groups
+    .filter(g => (g.label||'').trim() && g.muscles.length)
+    .map(g => ({ id: g.id, label: g.label.trim(), muscles: g.muscles.slice() }));
+  if (!groups.length) { alert('Mindestens eine Gruppe mit Muskeln benötigt.'); return; }
+
+  if (_csEdit.id) {
+    const idx = S.customSplits.findIndex(s => s.id === _csEdit.id);
+    if (idx >= 0) S.customSplits[idx] = { id:_csEdit.id, label:name, groups };
+  } else {
+    const id = 'cs_' + uid();
+    S.customSplits.push({ id, label:name, groups });
+    S.exFilterMode = id;
+  }
+  persist();
+  closeOv('ov-custom-split');
+  if (typeof renderExList === 'function') renderExList();
+  if (typeof renderWkFilterBar === 'function') renderWkFilterBar();
+}
+function deleteCustomSplit() {
+  if (!_csEdit || !_csEdit.id) return;
+  if (!confirm('Diesen Split wirklich löschen?')) return;
+  S.customSplits = S.customSplits.filter(s => s.id !== _csEdit.id);
+  if (S.exFilterMode === _csEdit.id) S.exFilterMode = 'muskel';
+  if (S.wkFilterMode === _csEdit.id) S.wkFilterMode = 'muskel';
+  persist();
+  closeOv('ov-custom-split');
+  if (typeof renderExList === 'function') renderExList();
+  if (typeof renderWkFilterBar === 'function') renderWkFilterBar();
 }
 
 function renderWeekPreview() {
@@ -4007,24 +4605,25 @@ function openNewEx(exId) {
   document.getElementById('in-kg').value = '';
   document.getElementById('del-ex-btn').style.display = 'none';
   document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
+  const kgLab = document.getElementById('in-kg-label');
+  if (kgLab) kgLab.textContent = 'Start-' + unitLabel();
 
   if (exId) {
     const ex = exById(exId);
     if (ex) {
-      selEmoji  = ex.emoji;
+      selEmoji  = '';
       selMuscle = ex.muscleGroup || '';
       selExType = ex.targetType || 'reps';
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       document.getElementById('in-reps').value = ex.targetReps;
-      document.getElementById('in-kg').value = ex.targetWeight || '';
+      document.getElementById('in-kg').value = ex.targetWeight ? kgToDisp(ex.targetWeight) : '';
       document.getElementById('del-ex-btn').style.display = '';
       document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
       selExDays = exerciseDays(exId);
     }
   }
   setExType(selExType);
-  renderEmoGrid();
   renderMusclePicker();
   renderExDayPills();
   openOv('ov-ex');
@@ -4084,16 +4683,17 @@ function saveEx() {
   if (!name) { alert('Bitte Namen eingeben!'); return; }
   const sets = parseInt(document.getElementById('in-sets').value)||3;
   const reps = parseInt(document.getElementById('in-reps').value)||10;
-  const kg   = parseFloat(document.getElementById('in-kg').value)||0;
+  const rawKg = parseFloat(document.getElementById('in-kg').value)||0;
+  const kg = rawKg ? Number(dispToKg(rawKg)) : 0;
 
   let savedId;
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, {name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
+    if (ex) Object.assign(ex, {name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
     savedId = editId;
   } else {
     savedId = uid();
-    S.exercises.push({id:savedId, name, emoji:selEmoji, muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
+    S.exercises.push({id:savedId, name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
@@ -4737,16 +5337,16 @@ function openWorkout() {
   openOv('ov-wk');
 }
 
-function wkMode()  { return GROUP_MODES.find(m => m.id === S.wkFilterMode) || GROUP_MODES[0]; }
+function wkMode()  { return modeById(S.wkFilterMode); }
 function wkGroup() { const m = wkMode(); return m.groups.find(g => g.id === wkCatFilter) || m.groups[0]; }
 
 function renderWkFilterBar() {
   // Mode-Switcher
   const modeBar = document.getElementById('wk-mode-switch');
   if (modeBar) {
-    modeBar.innerHTML = GROUP_MODES.map(m =>
+    modeBar.innerHTML = allModes().map(m =>
       `<button class="fmode-btn${S.wkFilterMode===m.id?' on':''}" onclick="setWkFilterMode('${m.id}')">${m.label}</button>`
-    ).join('');
+    ).join('') + `<button class="fmode-btn fmode-add" onclick="openCustomSplitNew()" title="Eigenen Split erstellen">＋</button>`;
   }
   // Falls aktiver Filter nicht im neuen Modus existiert → 'alle'
   const mode = wkMode();
@@ -4810,7 +5410,6 @@ function renderWkPicker() {
   document.getElementById('wk-picker').innerHTML = filtered.map(ex => {
     const sel = wkExIds.includes(ex.id);
     return `<div class="row tap" onclick="toggleEx('${ex.id}')">
-      <div class="ico">${ex.emoji}</div>
       <div class="row-body">
         <div class="row-title">${ex.name}</div>
         <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetType==='time'?fmtSec(ex.targetReps):ex.targetReps+' Wdh'}</div>
@@ -4843,7 +5442,7 @@ function startActive() {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
     const defaultW = sw != null ? String(sw) : '';
-    const defaultR = String(ex.targetReps);
+    const defaultR = String(getSuggestedReps(ex));
     const isTime = ex.targetType === 'time';
     const makeset = () => isTime
       ? {w:defaultW, tElapsed:0, tRunning:false, tStart:null}
@@ -4869,14 +5468,16 @@ function renderLogCards() {
     const isTime = ex.targetType === 'time';
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${ex.targetReps}`;
     const prevSets = lastSessionSetsFor(log.exerciseId);
+    const displayName = log._overrideName || ex.name;
     return `<div class="ex-card" data-li="${li}">
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
-        <span class="ex-title">${ex.emoji} ${ex.name}</span>
+        <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
         <span style="font-size:13px;color:var(--text2)">Ziel: ${goalLabel}</span>
+        <button class="ex-info-btn" onclick="openProgressionInfo('${log.exerciseId}')" title="Progression erklären" aria-label="Progression erklären">i</button>
       </div>
       <div class="ex-body">
-        <div class="set-hdr"><span></span><span></span><span>TYP</span><span>KG</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
+        <div class="set-hdr"><span></span><span></span><span>TYP</span><span>${unitLabel().toUpperCase()}</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
           const remaining = Math.max(0, (ex.targetReps||0) - elapsed);
@@ -4890,25 +5491,24 @@ function renderLogCards() {
             const p = prevSets[si];
             if (isTime) {
               const t = parseInt(p.r||p.tElapsed||0);
-              if (t > 0) prevHint = `<div class="set-prev-hint">letztes Mal: <b>${fmtSec(t)}</b>${p.w?` @ <b>${p.w} kg</b>`:''}</div>`;
+              if (t > 0) prevHint = `<div class="set-prev-hint">letztes Mal: <b>${fmtSec(t)}</b>${p.w?` @ <b>${kgToDisp(p.w)} ${unitLabel()}</b>`:''}</div>`;
             } else if (p.w || p.r) {
-              prevHint = `<div class="set-prev-hint">letztes Mal: <b>${p.w||'–'} kg</b> × <b>${p.r||'–'}</b></div>`;
+              prevHint = `<div class="set-prev-hint">letztes Mal: <b>${p.w?kgToDisp(p.w)+' '+unitLabel():'–'}</b> × <b>${p.r||'–'}</b></div>`;
             }
           }
+          const wDisp = s.w === '' || s.w == null ? '' : kgToDisp(s.w);
           return `
         <div class="set-row${s.done?' done':''}">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
           <div class="set-n">${si+1}</div>
           <button class="set-type ${type}" onclick="openSetTypePopup(${li},${si})" title="${SET_TYPE_TITLE[type]} – tippen für Typ-Auswahl">${typeLabel||'•'}</button>
-          <input class="set-in${s.w && s.w===log.sugW?' is-sug':''}" type="number" inputmode="decimal" placeholder="–" value="${s.w}"
-            oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'w',this.value)">
+          <button class="set-in set-in-btn${s.w && s.w===log.sugW?' is-sug':''}" onclick="openWheel(${li},${si},'w')">${wDisp===''?'<span class="set-in-ph">–</span>':wDisp}</button>
           ${isTime
             ? `<button class="set-timer-btn ${timerCls}" id="set-timer-${li}-${si}" onclick="toggleSetTimer(${li},${si})">
                 <span class="set-timer-time">${s.done ? fmtSec(ex.targetReps) : fmtSec(remaining)}</span>
                 <span style="font-size:12px">${s.done ? '✓' : timerIcon}</span>
                </button>`
-            : `<input class="set-in${s.r && s.r===log.sugR?' is-sug':''}" type="number" inputmode="numeric" placeholder="–" value="${s.r}"
-                oninput="this.classList.remove('is-sug')" onchange="setVal(${li},${si},'r',this.value)">`
+            : `<button class="set-in set-in-btn${s.r && s.r===log.sugR?' is-sug':''}" onclick="openWheel(${li},${si},'r')">${s.r===''||s.r==null?'<span class="set-in-ph">–</span>':s.r}</button>`
           }
           <button class="set-chk${s.done?' done':''}" onclick="toggleSetDone(${li},${si})">
             <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
@@ -5101,6 +5701,10 @@ function renderSettings() {
     S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
   updateCompanionSettingsRow();
   updateAdminUI();
+  // Unit-Toggle aktuellen Stand anzeigen
+  document.querySelectorAll('[data-unit-btn]').forEach(b => {
+    b.classList.toggle('on', b.dataset.unitBtn === (S.unitMode||'kg'));
+  });
 }
 
 // ── BACKUP: EXPORT ────────────────────────────────────
