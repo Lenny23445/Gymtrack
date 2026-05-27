@@ -2993,12 +2993,26 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272300';
+const APP_VERSION = 'gymtrack-v202605272330';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-27-big-update': {
+    label: '27.05.2026 · Großes Feature-Update',
+    items: [
+      '🎡 Apple-Style Drehrad-Picker für Gewicht & Wiederholungen statt Tastatur',
+      '⚖️ kg / lbs umschaltbar in den Einstellungen — automatische Umrechnung',
+      '✏️ Übung im Training tippen → umbenennen oder durch andere ersetzen',
+      '➕ Eigene Splits erstellen: Plus-Button bei Muskeln/PPL/Ober-Unter mit eigenen Gruppen & Muskel-Auswahl',
+      '📈 Progression intelligenter: bei eingebrochenen Wdh wird ein realistisches Wdh-Ziel vorgeschlagen statt nur Gewicht halten',
+      'ℹ️ i-Button pro Übung im Training öffnet eine ausführliche Progressions-Erklärung',
+      '↕️ Drag & Drop scrollt jetzt automatisch nach oben/unten, damit Wochentage immer erreichbar sind',
+      '✉️ Feedback senden direkt aus den Einstellungen per Mail an den Entwickler',
+      '🚫 Icons komplett entfernt: keine Emoji-Auswahl beim Erstellen, keine Emojis vor Übungsnamen mehr',
+    ]
+  },
   'cl-2026-05-27-settype-cleanup': {
     label: '27.05.2026 · Satz-Typen & UI-Cleanup',
     items: [
