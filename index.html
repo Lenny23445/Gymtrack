@@ -241,12 +241,14 @@
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-/* html bekommt den Mesh-Hintergrund, damit Safe-Area (Home-Indicator) nicht weiß durchscheint */
-html{background:var(--mesh);background-attachment:fixed;background-color:#f4f4f9}
-[data-theme="rosa"] html, html[data-theme="rosa"]{background-color:#fff0f8}
-[data-theme="dark"] html, html[data-theme="dark"]{background-color:#060609}
-[data-theme="blau"] html, html[data-theme="blau"]{background-color:#d6eaff}
-[data-theme="grün"] html, html[data-theme="grün"]{background-color:#e8f5e9}
+/* html bekommt Mesh + Fallback-Farbe damit Safe-Area (Home-Indicator) nicht weiß ist.
+   KEIN background-attachment:fixed — das ist auf iOS PWA buggy.
+   data-theme sitzt auf <html>, daher greift var(--mesh) hier direkt. */
+html{background:var(--mesh);background-color:#f4f4f9}
+html[data-theme="rosa"]{background-color:#fff0f8}
+html[data-theme="dark"]{background-color:#060609}
+html[data-theme="blau"]{background-color:#d6eaff}
+html[data-theme="grün"]{background-color:#e8f5e9}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
   color:var(--text);
@@ -258,9 +260,8 @@ body{
   overflow:hidden;
   overscroll-behavior:none;
   touch-action:pan-y;
-  /* Mesh-Hintergrund auch direkt auf body, damit Safe-Area-Bottom innerhalb der max-width keinen weißen Rand zeigt */
+  /* Mesh auch auf body, damit innerhalb max-width kein Weißbereich sichtbar ist */
   background:var(--mesh);
-  background-attachment:fixed;
 }
 
 /* Fixed gradient background */
@@ -3327,7 +3328,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605282300';
+const APP_VERSION = 'gymtrack-v202605282330';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5881,7 +5882,7 @@ function renderRecoveryList() {
     const sub = recoveryState(r.recPct) + ' · zuletzt ' + fmtLastTraining(r.lastTs);
     const emptyCls = r.recPct < 15 ? ' is-empty' : '';
     const title = (ex.emoji ? ex.emoji + ' ' : '') + (ex.name || 'Übung');
-    return '<div class="rec-row" onclick="openDet(\'' + ex.id + '\')">'
+    return '<div class="rec-row" onclick="openExRecoveryDetail(\'' + ex.id + '\')">'
       + '<div class="rec-row-body">'
       + '<div class="rec-row-title">' + title + '</div>'
       + '<div class="rec-row-sub">' + sub + '</div>'
@@ -5892,6 +5893,75 @@ function renderRecoveryList() {
       + '</div>'
       + '</div>';
   }).join('');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ÜBUNGS-ERHOLUNGS-DETAIL  (öffnet sich bei Tap auf rec-row)
+   Zeigt: Recovery-Ring, letztes Training, Ready-in-Stunden,
+   Mini-Historie der letzten 8 Sessions dieser Übung.
+   ════════════════════════════════════════════════════════════════ */
+function openExRecoveryDetail(exId) {
+  const ex = exById(exId);
+  if (!ex) return;
+  const rec = getExerciseRecovery();
+  const r   = rec[exId] || { recPct:100, fatPct:0, lastTs:null };
+
+  /* Kopfzeile des Overlays befüllen */
+  document.getElementById('mus-title').textContent  = (ex.emoji ? ex.emoji + ' ' : '') + ex.name;
+  document.getElementById('mus-sub-grp').textContent = muscleLabel(ex.muscleGroup) || '';
+
+  const pct   = r.recPct;
+  const col   = recoveryColor(pct);
+  const state = recoveryState(pct);
+  /* "Ready in": wie viele Stunden bis fatPct < 20 (= recPct > 80, Status "Bereit") */
+  const readyH = fatigueRecoveryHours(r.fatPct);
+
+  /* SVG-Ring (recPct = Füllung, hoher Wert = grün = gut) */
+  const R = 60, C = 2 * Math.PI * R;
+  const dash = (pct / 100) * C;
+
+  /* Trainings-Historie dieser Übung (letzte 8 Sessions) */
+  const hist = exHistory(exId).slice(-8).reverse();
+  const histRows = hist.length
+    ? hist.map(h => {
+        const w   = maxW(h.sets);
+        const vol = h.sets.reduce((s, set) => s + setLoad(set), 0);
+        return `<div class="mus-hist-row">
+          <span class="mus-hist-date">${fmtLastTraining(new Date(h.date).getTime())}</span>
+          <span class="mus-hist-ex">${h.sets.length} Sätze · ${fmtKg(w)}</span>
+          <span class="mus-hist-vol">${fmtKg(vol)}</span>
+        </div>`;
+      }).join('')
+    : `<div style="padding:10px;color:var(--text2);font-size:13px;text-align:center">Keine Einheiten in den letzten 7 Tagen.</div>`;
+
+  document.getElementById('mus-body').innerHTML = `
+    <div class="mus-ring-wrap">
+      <div class="mus-ring">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--gl-bdr)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="${R}" fill="none" stroke="${col}" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="${dash} ${C - dash}"/>
+        </svg>
+        <div class="mus-ring-val">
+          <div class="mus-ring-pct" style="color:${col}">${pct}%</div>
+          <div class="mus-ring-state">${state}</div>
+        </div>
+      </div>
+    </div>
+    <div class="mus-stats-grid">
+      <div class="mus-stat-box">
+        <div class="mus-stat-l">Letztes Training</div>
+        <div class="mus-stat-v">${fmtLastTraining(r.lastTs)}</div>
+      </div>
+      <div class="mus-stat-box">
+        <div class="mus-stat-l">Ready in</div>
+        <div class="mus-stat-v" style="color:${col}">${fmtRecovery(readyH)}</div>
+      </div>
+    </div>
+    <div class="s-title" style="margin-top:6px">Trainings-Historie</div>
+    <div class="card" style="padding:6px 12px">${histRows}</div>
+  `;
+  openOv('ov-muscle');
 }
 
 /* Kompat-Stubs für alten Aufruf-Sites */
