@@ -996,6 +996,28 @@ body{
 #tracker-sheet.open{pointer-events:all}
 .tracker-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .28s}
 #tracker-sheet.open .tracker-sheet-backdrop{background:rgba(0,0,0,.38)}
+
+/* ── TRACKER CONTEXT POPOVER ── */
+.tracker-popover-backdrop{position:fixed;inset:0;z-index:3998}
+.tracker-popover{
+  position:fixed;z-index:3999;
+  background:var(--card);border-radius:13px;
+  box-shadow:0 4px 28px rgba(0,0,0,.22),0 1px 6px rgba(0,0,0,.12);
+  min-width:190px;overflow:hidden;
+  opacity:0;transform:scale(.85);
+  transition:opacity .16s,transform .16s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.tracker-popover.show{opacity:1;transform:scale(1);pointer-events:all}
+.tracker-popover-item{
+  display:block;width:100%;padding:13px 16px;
+  border:none;border-bottom:1px solid var(--sep);
+  background:none;text-align:left;font-size:15px;
+  color:var(--text);cursor:pointer;font-family:inherit;
+}
+.tracker-popover-item:last-child{border-bottom:none}
+.tracker-popover-item:active{background:var(--g5)}
+.tracker-popover-item.danger{color:var(--red)}
 .tracker-sheet-content{
   position:absolute;bottom:0;left:0;right:0;
   background:var(--gl-bg-h);
@@ -4078,10 +4100,10 @@ function renderTrackers() {
     return `<div class="tracker-circle-wrap">
       <button class="tracker-circle"
         onclick="_trackerClick('${item.id}')"
-        ontouchstart="_trackerTouchStart('${item.id}')"
+        ontouchstart="_trackerTouchStart(this,'${item.id}')"
         ontouchend="_trackerTouchEnd()"
         ontouchmove="_trackerTouchEnd()"
-        oncontextmenu="trackerLongPress('${item.id}');return false">${count}</button>
+        oncontextmenu="trackerLongPress(this,'${item.id}');return false">${count}</button>
       <div class="tracker-circle-label">${item.label}</div>
     </div>`;
   }).join('');
@@ -4155,19 +4177,19 @@ function incrementTracker(id) {
   renderTrackers();
 }
 
-function removeTrackerPrompt(id) {
-  trackerLongPress(id);
+function removeTrackerPrompt(btn, id) {
+  trackerLongPress(btn, id);
 }
 
 let _trackerLPTimer = null;
 let _trackerLPFired = false;
 
-function _trackerTouchStart(id) {
+function _trackerTouchStart(btn, id) {
   _trackerLPFired = false;
   _trackerLPTimer = setTimeout(() => {
     _trackerLPFired = true;
     haptic(30);
-    trackerLongPress(id);
+    trackerLongPress(btn, id);
   }, 500);
 }
 
@@ -4192,32 +4214,62 @@ function decrementTracker(id) {
   renderTrackers();
 }
 
-function trackerLongPress(id) {
+function _closeLPSheet() {
+  const pop = document.getElementById('tracker-lp-sheet');
+  const bd  = document.getElementById('tracker-lp-bd');
+  if (pop) { pop.classList.remove('show'); setTimeout(() => pop.remove(), 180); }
+  if (bd)  bd.remove();
+}
+
+function trackerLongPress(btn, id) {
   const item = (S.trackerItems || []).find(i => i.id === id);
   if (!item) return;
   const wk    = getWeekKey();
   const count = (S.trackerCounts[id] || {})[wk] || 0;
 
-  const old = document.getElementById('tracker-lp-sheet');
-  if (old) old.remove();
+  _closeLPSheet();
 
-  const sheet = document.createElement('div');
-  sheet.id    = 'tracker-lp-sheet';
-  const closeFn = `document.getElementById('tracker-lp-sheet').classList.remove('open');setTimeout(()=>document.getElementById('tracker-lp-sheet')?.remove(),290)`;
-  sheet.innerHTML = `
-    <div class="tracker-sheet-backdrop" onclick="${closeFn}"></div>
-    <div class="tracker-sheet-content">
-      <div class="tracker-sheet-title">${item.label}</div>
-      <div class="tracker-menu-list">
-        ${count > 0
-          ? `<button class="tracker-menu-item" onclick="decrementTracker('${id}');${closeFn}">−1 rückgängig (${count} → ${count - 1})</button>`
-          : ''}
-        <button class="tracker-menu-item" style="color:var(--red)" onclick="S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');persist();renderTrackers();${closeFn}">Kategorie entfernen</button>
-      </div>
-      <button class="tracker-menu-cancel" onclick="${closeFn}">Abbrechen</button>
-    </div>`;
-  document.body.appendChild(sheet);
-  requestAnimationFrame(() => sheet.classList.add('open'));
+  // Backdrop (fängt Taps außerhalb ab)
+  const bd = document.createElement('div');
+  bd.id = 'tracker-lp-bd';
+  bd.className = 'tracker-popover-backdrop';
+  bd.addEventListener('click', _closeLPSheet);
+
+  // Popover
+  const pop = document.createElement('div');
+  pop.id = 'tracker-lp-sheet';
+  pop.className = 'tracker-popover';
+
+  const rows = [];
+  if (count > 0) {
+    rows.push(`<button class="tracker-popover-item" onclick="_closeLPSheet();decrementTracker('${id}')">−1 rückgängig (${count} → ${count - 1})</button>`);
+  }
+  rows.push(`<button class="tracker-popover-item danger" onclick="_closeLPSheet();S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');persist();renderTrackers()">Kategorie entfernen</button>`);
+  pop.innerHTML = rows.join('');
+
+  document.body.appendChild(bd);
+  document.body.appendChild(pop);
+
+  // Position: über dem Kreis, zentriert; wenn kein Platz → darunter
+  requestAnimationFrame(() => {
+    const rect = btn.getBoundingClientRect();
+    const pw   = pop.offsetWidth  || 200;
+    const ph   = pop.offsetHeight || 90;
+    const gap  = 8;
+
+    let top  = rect.top - ph - gap;
+    const above = top >= 8;
+    if (!above) top = rect.bottom + gap;
+
+    let left = rect.left + rect.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
+
+    pop.style.top  = top + 'px';
+    pop.style.left = left + 'px';
+    pop.style.transformOrigin = above ? 'bottom center' : 'top center';
+
+    requestAnimationFrame(() => pop.classList.add('show'));
+  });
 }
 
 let _lastSwipeActive = null;
