@@ -241,6 +241,12 @@
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+/* html bekommt den Mesh-Hintergrund, damit Safe-Area (Home-Indicator) nicht weiß durchscheint */
+html{background:var(--mesh);background-attachment:fixed;background-color:#f4f4f9}
+[data-theme="rosa"] html, html[data-theme="rosa"]{background-color:#fff0f8}
+[data-theme="dark"] html, html[data-theme="dark"]{background-color:#060609}
+[data-theme="blau"] html, html[data-theme="blau"]{background-color:#d6eaff}
+[data-theme="grün"] html, html[data-theme="grün"]{background-color:#e8f5e9}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
   color:var(--text);
@@ -252,6 +258,9 @@ body{
   overflow:hidden;
   overscroll-behavior:none;
   touch-action:pan-y;
+  /* Mesh-Hintergrund auch direkt auf body, damit Safe-Area-Bottom innerhalb der max-width keinen weißen Rand zeigt */
+  background:var(--mesh);
+  background-attachment:fixed;
 }
 
 /* Fixed gradient background */
@@ -3318,7 +3327,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605282230';
+const APP_VERSION = 'gymtrack-v202605282300';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5801,36 +5810,80 @@ function recoveryState(pct) {
 /* Stub für Kompatibilität (frühere Aufrufer) */
 function invalidateRecovery() { /* personalNormLoad ist on-the-fly */ }
 
-/* Rendert die Akku-Liste auf dem Stats-Tab */
+/* ── EXERCISE-LEVEL RECOVERY ─────────────────────────────────────
+   Pro NUTZER-Übung berechnet: aktuelle Last (mit Half-Life-Decay)
+   normalisiert auf den persönlichen Peak der letzten 90 Tage.
+   Damit erscheinen NUR Übungen, die der Nutzer selbst angelegt hat
+   – keine Muskel-Pseudo-Einträge wie "Quadrizeps".
+   ──────────────────────────────────────────────────────────────── */
+function getExerciseRecovery() {
+  const now = Date.now();
+  const cutoff = now - FAT_WINDOW_H * 3600 * 1000;
+  const cutoff90 = now - 90 * 24 * 3600 * 1000;
+  const out = {};
+
+  for (const ex of (S.exercises || [])) {
+    let load = 0;        // aktuell anstehende Last (mit Decay)
+    let lastTs = null;
+    let peakSession = 0; // Norm = größte Session-Last der letzten 90 Tage
+
+    for (const ses of (S.sessions || [])) {
+      const ts = new Date(ses.date).getTime();
+      if (!ts) continue;
+      const log = (ses.logs || []).find(l => l.exerciseId === ex.id);
+      if (!log) continue;
+      const sesLoad = (log.sets || []).reduce((s, set) => s + setLoad(set), 0);
+      if (sesLoad <= 0) continue;
+
+      // Peak für persönliche Norm
+      if (ts >= cutoff90 && sesLoad > peakSession) peakSession = sesLoad;
+
+      // Aktuelle Last im Fenster mit Half-Life-Decay
+      if (ts >= cutoff) {
+        const hoursAgo = (now - ts) / 3600000;
+        const decay = Math.pow(0.5, hoursAgo / FAT_HALFLIFE_H);
+        load += sesLoad * decay;
+        if (!lastTs || ts > lastTs) lastTs = ts;
+      }
+    }
+
+    const norm = Math.max(FAT_NORM_LOAD * 0.5, peakSession);
+    const fatPct = Math.min(100, Math.round((load / norm) * 100));
+    const recPct = Math.max(0, 100 - fatPct);
+    out[ex.id] = { recPct, fatPct, lastTs };
+  }
+  return out;
+}
+
+/* Rendert die Akku-Liste auf dem Stats-Tab – pro USER-Übung */
 function renderRecoveryList() {
   const host = document.getElementById('rec-list');
   if (!host) return;
-  const rec = getRecovery();
   const hasSessions = (S.sessions || []).length > 0;
   if (!hasSessions) {
     host.innerHTML = '<div class="rec-list-empty">Noch keine Trainings.<br>Logge dein erstes Workout, um deine Erholung zu sehen.</div>';
     return;
   }
-  const rows = MUSCLES
-    .map(m => ({ m, r: rec[m.id] || { recPct:100, fatPct:0, lastTs:null, lastEx:null } }))
-    // Vollgeladene Muskeln (100%) raus — User will nur sehen was noch nicht erholt ist
-    .filter(({r}) => r.recPct < 100)
-    .sort((a,b) => b.r.recPct - a.r.recPct);
+  const rec = getExerciseRecovery();
+  const rows = (S.exercises || [])
+    .map(ex => ({ ex, r: rec[ex.id] || { recPct:100, fatPct:0, lastTs:null } }))
+    // Nur Übungen mit aktueller Belastung anzeigen
+    .filter(({r}) => r.recPct < 100 && r.lastTs)
+    .sort((a,b) => a.r.recPct - b.r.recPct); // am wenigsten erholt oben
 
   if (!rows.length) {
-    host.innerHTML = '<div class="rec-list-empty">Alle Muskeln vollständig erholt 💪</div>';
+    host.innerHTML = '<div class="rec-list-empty">Alle Übungen vollständig erholt 💪</div>';
     return;
   }
 
-  host.innerHTML = rows.map(({m, r}) => {
+  host.innerHTML = rows.map(({ex, r}) => {
     const col = recoveryColor(r.recPct);
-    const sub = r.lastTs
-      ? (recoveryState(r.recPct) + ' · zuletzt ' + fmtLastTraining(r.lastTs))
-      : (recoveryState(r.recPct) + ' · noch nicht trainiert');
+    const sub = recoveryState(r.recPct) + ' · zuletzt ' + fmtLastTraining(r.lastTs);
     const emptyCls = r.recPct < 15 ? ' is-empty' : '';
-    return '<div class="rec-row" onclick="openMuscleDetail(\'' + m.id + '\')">'
+    const title = (ex.emoji ? ex.emoji + ' ' : '') + (ex.name || 'Übung');
+    return '<div class="rec-row" onclick="openDet(\'' + ex.id + '\')">'
       + '<div class="rec-row-body">'
-      + '<div class="rec-row-title">' + m.label + '</div>'
+      + '<div class="rec-row-title">' + title + '</div>'
       + '<div class="rec-row-sub">' + sub + '</div>'
       + '</div>'
       + '<div class="rec-batt' + emptyCls + '">'
