@@ -4885,17 +4885,21 @@ function _dndToast(msg) {
 let _dndScrollRaf = null;
 let _dndScrollLastY = 0;
 function _dndScroller() {
-  // Aktiv: oberstes offenes Sheet (mit eigenem Scroll-Body) > aktuelle Page
+  // Offenes Sheet: hat eigenen Scroll-Container → diesen nutzen
   const sheet = document.querySelector('.ov.on .sheet');
   if (sheet) {
     const r = sheet.getBoundingClientRect();
     return { node: sheet, top: r.top, bot: r.bottom };
   }
-  const pg = document.querySelector('.pg.on');
-  if (pg) {
-    return { node: pg, top: 60, bot: window.innerHeight - 80 };
-  }
-  return { node: document.scrollingElement, top: 0, bot: window.innerHeight };
+  // Normaler Page-Scroll: document.scrollingElement scrollt (nicht das .pg-div!)
+  // Top-Grenze = Unterkante des sticky Headers, damit Auto-Scroll dort beginnt
+  const hdr = document.querySelector('.pg.on .hdr');
+  const topEdge = hdr ? hdr.getBoundingClientRect().bottom : 0;
+  return {
+    node: document.scrollingElement || document.documentElement,
+    top: topEdge,
+    bot: window.innerHeight - 80   // 80px für untere Nav-Leiste freilassen
+  };
 }
 function _dndAutoScroll(y) {
   _dndScrollLastY = y;
