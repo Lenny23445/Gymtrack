@@ -1016,6 +1016,14 @@ body{
   cursor:pointer;text-align:left;transition:background .12s;
 }
 .tracker-menu-item:active{background:rgba(var(--acc-rgb),.10)}
+.tracker-menu-custom{color:var(--acc);border-color:rgba(var(--acc-rgb),.25);background:rgba(var(--acc-rgb),.06)}
+.tracker-custom-input{
+  width:100%;padding:14px 16px;border-radius:14px;
+  background:var(--inp-bg);border:1px solid var(--gl-bdr);
+  font-family:inherit;font-size:16px;color:var(--text);
+  outline:none;transition:background .15s,border-color .15s;
+}
+.tracker-custom-input:focus{background:var(--inp-focus);border-color:var(--acc)}
 .tracker-menu-cancel{
   width:100%;padding:14px;border-radius:14px;
   background:var(--g5);border:none;font-family:inherit;
@@ -4079,7 +4087,6 @@ function renderTrackers() {
 function openTrackerMenu() {
   const existing = (S.trackerItems || []).map(i => i.id);
   const available = TRACKER_OPTIONS.filter(o => !existing.includes(o.id));
-  if (!available.length) { return; }
   const opts = available.map(o =>
     `<button class="tracker-menu-item" onclick="addTracker('${o.id}','${o.label}')">${o.label}</button>`
   ).join('');
@@ -4089,11 +4096,32 @@ function openTrackerMenu() {
     <div class="tracker-sheet-backdrop" onclick="closeTrackerMenu()"></div>
     <div class="tracker-sheet-content">
       <div class="tracker-sheet-title">Kategorie hinzufügen</div>
-      <div class="tracker-menu-list">${opts}</div>
+      <div class="tracker-menu-list" id="tracker-menu-list">
+        ${opts}
+        <button class="tracker-menu-item tracker-menu-custom" onclick="showCustomTrackerInput()">+ Eigene erstellen ...</button>
+      </div>
       <button class="tracker-menu-cancel" onclick="closeTrackerMenu()">Abbrechen</button>
     </div>`;
   document.body.appendChild(sheet);
   requestAnimationFrame(() => sheet.classList.add('open'));
+}
+
+function showCustomTrackerInput() {
+  const list = document.getElementById('tracker-menu-list');
+  if (!list) return;
+  list.innerHTML = `
+    <input id="tracker-custom-input" class="tracker-custom-input" type="text"
+      placeholder="Name der Kategorie" maxlength="20" autocomplete="off"
+      onkeydown="if(event.key==='Enter')submitCustomTracker()" />
+    <button class="btn btn-acc" style="margin-top:8px" onclick="submitCustomTracker()">Hinzufügen</button>`;
+  setTimeout(() => document.getElementById('tracker-custom-input')?.focus(), 80);
+}
+
+function submitCustomTracker() {
+  const input = document.getElementById('tracker-custom-input');
+  const label = input?.value.trim();
+  if (!label) { input?.focus(); return; }
+  addTracker('custom_' + uid(), label);
 }
 
 function closeTrackerMenu() {
