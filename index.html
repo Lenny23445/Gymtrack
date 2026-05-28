@@ -1086,6 +1086,10 @@ body{
 .hist-more-toggle:active{background:rgba(120,120,128,.08)}
 .muscle-req-hint{font-size:11px;color:var(--red);padding:4px 20px 8px;display:none}
 .muscle-req-hint.show{display:block}
+.mg-split-picker{padding:0 0 8px}
+.mg-split-section{padding:4px 20px 8px}
+.mg-split-section-title{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.mg-split-chips{display:flex;flex-wrap:wrap;gap:6px}
 
 /* ── BADGE ── */
 .badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
@@ -2787,12 +2791,12 @@ body{
         <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
       </div>
     </div>
-    <!-- Muskelgruppe -->
+    <!-- Muskelgruppe oder Split -->
     <div class="px" style="padding-bottom:4px">
-      <label class="f-label">Muskelgruppe <span style="color:var(--red);font-size:11px">*</span></label>
+      <label class="f-label">Muskelgruppe oder Split <span style="color:var(--red);font-size:11px">*</span></label>
     </div>
-    <div class="icon-cat-scroll" id="muscle-picker" style="padding:6px 20px 16px"></div>
-    <div class="muscle-req-hint" id="muscle-req-hint">Bitte eine Muskelgruppe wählen.</div>
+    <div class="mg-split-picker" id="muscle-picker"></div>
+    <div class="muscle-req-hint" id="muscle-req-hint">Bitte eine Muskelgruppe oder einen Split wählen.</div>
     <div class="px">
       <div class="f-field">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -3510,6 +3514,10 @@ function muscleLabel(id) {
   for (const mode of GROUP_MODES) {
     const grp = mode.groups.find(g => g.id === id);
     if (grp) return grp.label;
+  }
+  for (const cs of (S.customSplits || [])) {
+    const grp = (cs.groups || []).find(g => g.id === id);
+    if (grp) return grp.label + ' · ' + cs.label;
   }
   return '';
 }
@@ -5408,12 +5416,33 @@ function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
 function renderMusclePicker() {
   const el = document.getElementById('muscle-picker');
   if (!el) return;
-  const mode = currentMode();
-  const options = mode.id === 'muskel'
-    ? MUSCLE_GROUPS
-    : mode.groups.filter(g => g.id !== 'alle');
-  el.innerHTML = options.map(g =>
-    `<button class="icat${selMuscle===g.id?' on':''}" onclick="pickMuscle('${g.id}')">${g.label}</button>`
+
+  const secs = [];
+
+  // Muskelgruppen
+  secs.push({ title:'Muskelgruppe', opts: MUSCLE_GROUPS.map(g => ({id:g.id, label:g.label})) });
+
+  // Push · Pull · Legs
+  const ppl = GROUP_MODES.find(m => m.id === 'ppl');
+  if (ppl) secs.push({ title:'Push · Pull · Legs', opts: ppl.groups.filter(g => g.id !== 'alle').map(g => ({id:g.id, label:g.label})) });
+
+  // Ober · Unter
+  const ou = GROUP_MODES.find(m => m.id === 'oberunter');
+  if (ou) secs.push({ title:'Ober · Unter', opts: ou.groups.filter(g => g.id !== 'alle').map(g => ({id:g.id, label:g.label})) });
+
+  // Eigene Splits
+  (S.customSplits || []).forEach(cs => {
+    const opts = (cs.groups || []).map(g => ({id:g.id, label:g.label}));
+    if (opts.length) secs.push({ title:cs.label, opts });
+  });
+
+  el.innerHTML = secs.map(sec =>
+    `<div class="mg-split-section">
+      <div class="mg-split-section-title">${sec.title}</div>
+      <div class="mg-split-chips">
+        ${sec.opts.map(opt => `<button class="icat${selMuscle===opt.id?' on':''}" onclick="pickMuscle('${opt.id}')">${opt.label}</button>`).join('')}
+      </div>
+    </div>`
   ).join('');
 }
 function pickMuscle(id) {
