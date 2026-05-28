@@ -240,10 +240,8 @@
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-/* html bekommt Mesh + Fallback-Farbe damit Safe-Area (Home-Indicator) nicht weiß ist.
-   KEIN background-attachment:fixed — das ist auf iOS PWA buggy.
-   data-theme sitzt auf <html>, daher greift var(--mesh) hier direkt. */
+html,body{height:100%}
+/* html bekommt Mesh + Fallback-Farbe damit Safe-Area (Home-Indicator) nicht weiß ist. */
 html{background:var(--mesh);background-color:#f4f4f9}
 html[data-theme="rosa"]{background-color:#fff0f8}
 html[data-theme="dark"]{background-color:#060609}
@@ -255,11 +253,6 @@ body{
   max-width:430px;margin:0 auto;min-height:100%;
   position:relative;
   -webkit-font-smoothing:antialiased;
-  /* App-Container fest – nur innere Pages scrollen */
-  height:100%;
-  overflow:hidden;
-  overscroll-behavior:none;
-  touch-action:pan-y;
   /* Mesh auch auf body, damit innerhalb max-width kein Weißbereich sichtbar ist */
   background:var(--mesh);
 }
@@ -278,14 +271,7 @@ body{
 }
 
 /* ── PAGES ── */
-.pg{
-  display:none;
-  padding-bottom:calc(114px + var(--sab));
-  position:absolute;inset:0;
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-}
+.pg{display:none;padding-bottom:calc(114px + var(--sab));min-height:100vh}
 .pg.on{display:block}
 
 /* ── GLASS HEADER ── */
@@ -412,20 +398,6 @@ body{
 .wk-prev-l{font-size:11px;color:var(--text);font-weight:600;margin-top:3px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
 .wk-prev-l.empty{color:var(--text2);font-weight:400;opacity:.55}
-
-/* ── TABBAR FLOOR — füllt den Bereich zwischen Pille und Bildschirmrand ── */
-/* Verhindert den weißen Streifen auf iOS PWA unterhalb des Tabbars.      */
-#tab-floor{
-  position:fixed;bottom:0;left:0;right:0;
-  height:calc(18px + var(--sab));
-  background:var(--gl-bg-h);
-  backdrop-filter:blur(80px) saturate(240%);
-  -webkit-backdrop-filter:blur(80px) saturate(240%);
-  border-top:1px solid var(--gl-bdr);
-  z-index:999;
-  transition:background .4s cubic-bezier(.4,0,.2,1);
-  pointer-events:none;
-}
 
 /* ── TABBAR — FLOATING LIQUID GLASS PILL ── */
 .tabbar{
@@ -2710,9 +2682,6 @@ body{
   <div class="wk-mini-chev">›</div>
 </div>
 
-<!-- TABBAR FLOOR: Glas-Boden unter der Pill, verhindert weißen Rand auf iOS -->
-<div id="tab-floor"></div>
-
 <!-- TABBAR -->
 <div class="tabbar">
   <div id="tab-indicator"></div>
@@ -3345,7 +3314,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605282345';
+const APP_VERSION = 'gymtrack-v202605290010';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
