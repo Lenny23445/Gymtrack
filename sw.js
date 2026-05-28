@@ -1,5 +1,5 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202605290010';
+const CACHE = 'gymtrack-v202605290100';
 const SHELL = [
   './index.html',
   './manifest.json',

@@ -1519,6 +1519,8 @@ body{
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.16);
 }
 .ex-search::placeholder{color:var(--text2);opacity:.7}
+/* Variante ohne Lupen-Icon — Text bleibt weiter rechts (statt links anzukleben) */
+.ex-search.no-ico{padding-left:18px}
 .ex-search-ico{
   position:absolute;left:32px;top:50%;transform:translateY(-50%);
   font-size:15px;opacity:.55;pointer-events:none;
@@ -2277,8 +2279,7 @@ body{
   <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:8px 20px 4px"></div>
   <!-- Suche -->
   <div class="ex-search-wrap">
-    <span class="ex-search-ico">🔍</span>
-    <input class="ex-search" id="ex-search" type="search" placeholder="Übung suchen…" oninput="setExSearch(this.value)" autocomplete="off">
+    <input class="ex-search no-ico" id="ex-search" type="search" placeholder="Übung suchen…" oninput="setExSearch(this.value)" autocomplete="off">
     <button class="ex-search-clr" id="ex-search-clr" onclick="setExSearch('',true)" aria-label="Suche leeren">✕</button>
   </div>
   <div class="pad">
@@ -2337,6 +2338,10 @@ body{
     </div>
     <div>
       <div class="s-title">Übungen</div>
+      <div class="ex-search-wrap" style="padding:0 0 10px">
+        <input class="ex-search no-ico" id="stats-ex-search" type="search" placeholder="Übung suchen…" oninput="setStatsExSearch(this.value)" autocomplete="off">
+        <button class="ex-search-clr" id="stats-ex-search-clr" onclick="setStatsExSearch('',true)" aria-label="Suche leeren" style="right:10px">✕</button>
+      </div>
       <div class="card" id="stats-ex-list"></div>
     </div>
   </div>
@@ -2346,29 +2351,6 @@ body{
 <div class="pg" id="pg-settings">
   <div class="hdr"><h1>Einstellungen</h1></div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div>
-      <div class="s-title">GymTrack unterstützen</div>
-      <div class="card" style="overflow:visible">
-        <div style="padding:18px 16px 14px;position:relative;z-index:1">
-          <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px">
-            <div class="ico" style="background:rgba(0,112,240,.12);border-color:rgba(0,112,240,.25);font-size:24px;flex-shrink:0">💙</div>
-            <div>
-              <div class="row-title">GymTrack in den App Store bringen</div>
-              <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:4px">Wenn dir die App gefällt, freue ich mich über eine freiwillige Spende! Das Geld dient ausschließlich dazu, GymTrack offiziell in den App Store zu bringen. Für die Veröffentlichung werden <span style="color:var(--text);font-weight:600">100 €</span> benötigt.</div>
-            </div>
-          </div>
-          <a href="https://www.paypal.com/donate?business=wolterlenny362%40gmail.com&currency_code=EUR" target="_blank" rel="noopener" style="display:block;text-decoration:none">
-            <div style="background:linear-gradient(135deg,#003087 0%,#009cde 100%);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 16px rgba(0,100,220,.32),0 1px 4px rgba(0,100,220,.18);transition:opacity .15s" onpointerdown="this.style.opacity='.78'" onpointerup="this.style.opacity='1'" onpointercancel="this.style.opacity='1'">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19a.894.894 0 0 0-.883.756l-.91 5.25Z" fill="#fff"/>
-                <path d="M19.858 7.593c-1.138 5.834-5.066 7.89-10.075 7.89H7.34a1.06 1.06 0 0 0-1.048.898L4.98 24h3.878a.9.9 0 0 0 .888-.76l.037-.19.706-4.477.046-.247a.9.9 0 0 1 .888-.76h.56c3.62 0 6.454-1.47 7.282-5.722.346-1.776.167-3.261-.607-4.252Z" fill="rgba(255,255,255,.55)"/>
-              </svg>
-              <span style="color:#fff;font-size:16px;font-weight:700;font-family:inherit">Mit PayPal spenden</span>
-            </div>
-          </a>
-        </div>
-      </div>
-    </div>
     <div id="install-section" style="display:none">
       <div class="s-title">App installieren</div>
       <div class="card">
@@ -2435,28 +2417,6 @@ body{
           <div class="theme-dot" style="background:linear-gradient(135deg,#48D368 50%,#28A745 50%);border:2px solid #2ea84a"></div>
           <span class="theme-name">Grün</span>
           <span class="theme-chk" id="chk-grün" style="visibility:hidden">✓</span>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="s-title">Begleiter</div>
-      <div class="card">
-        <div class="row">
-          <div class="row-body">
-            <div class="row-title">Begleiter anzeigen</div>
-            <div class="row-sub">Auf der Tab-Leiste ein- oder ausblenden</div>
-          </div>
-          <label class="tgl" onclick="event.stopPropagation()">
-            <input type="checkbox" id="companion-toggle" onchange="toggleCompanion(this.checked)">
-            <span class="tgl-track"></span>
-          </label>
-        </div>
-        <div class="row tap" id="companion-picker-row" onclick="openCompanionPicker()" style="display:none">
-          <div class="row-body">
-            <div class="row-title" id="companion-settings-name">Dackel</div>
-            <div class="row-sub">Begleiter auswählen</div>
-          </div>
-          <div class="chev">›</div>
         </div>
       </div>
     </div>
@@ -2528,69 +2488,6 @@ body{
           <div class="row-title" id="data-info">–</div>
           <div class="row-sub" id="data-sub">Alles gespeichert auf deinem Gerät</div>
         </div></div>
-      </div>
-    </div>
-    <div>
-      <div class="s-title">App</div>
-      <div class="card">
-        <div class="row tap" onclick="checkForUpdate()">
-          <div class="row-body">
-            <div class="row-title" id="update-title">Auf Updates prüfen</div>
-            <div class="row-sub"  id="update-sub">Wird beim App-Start automatisch geprüft</div>
-          </div>
-          <div class="chev" id="update-chev">›</div>
-        </div>
-        <div class="row tap" id="reset-tour-row" onclick="openTutorial()">
-          <div class="row-body">
-            <div class="row-title">Tour neu starten</div>
-            <div class="row-sub">Geführte Tour durch alle Funktionen der App</div>
-          </div>
-          <div class="chev">›</div>
-        </div>
-        <div class="row tap" id="version-row" onclick="adminTapCount()">
-          <div class="row-body">
-            <div class="row-title">Version</div>
-            <div class="row-sub">v1.1</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="admin-section" style="display:none">
-      <div class="s-title">Admin</div>
-      <div class="card">
-        <div class="row tap" onclick="openAdminStats()">
-          <div class="ico" style="background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.25)">📊</div>
-          <div class="row-body">
-            <div class="row-title">App-Statistiken</div>
-            <div class="row-sub" id="admin-stats-sub">Live-Nutzer, Sessions, Retention</div>
-          </div>
-          <div class="chev">›</div>
-        </div>
-        <div class="row tap" onclick="adminCopyUid()">
-          <div class="ico">🆔</div>
-          <div class="row-body">
-            <div class="row-title">Meine UID kopieren</div>
-            <div class="row-sub" id="admin-uid-sub" style="font-family:monospace;font-size:11px;word-break:break-all">–</div>
-          </div>
-          <div class="chev">📋</div>
-        </div>
-        <div class="row tap" onclick="adminDiagnose()">
-          <div class="ico" style="background:rgba(255,149,0,.14);border-color:rgba(255,149,0,.30)">🔧</div>
-          <div class="row-body">
-            <div class="row-title">Diagnose ausführen</div>
-            <div class="row-sub">Testet Login, UID, Firestore- und RTDB-Zugriff</div>
-          </div>
-          <div class="chev">›</div>
-        </div>
-        <div id="diag-out" style="display:none;padding:12px 16px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.55;white-space:pre-wrap;word-break:break-all;color:var(--text);border-top:1px solid var(--sep);background:rgba(0,0,0,.03);max-height:60vh;overflow:auto"></div>
-        <div class="row tap" onclick="adminDisable()">
-          <div class="ico">🚪</div>
-          <div class="row-body">
-            <div class="row-title">Admin-Modus verlassen</div>
-            <div class="row-sub">Statistiken ausblenden</div>
-          </div>
-          <div class="chev">›</div>
-        </div>
       </div>
     </div>
     <div>
@@ -3314,12 +3211,21 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605290010';
+const APP_VERSION = 'gymtrack-v202605290100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-29-settings-cleanup': {
+    label: '29.05.2026 · Einstellungen aufgeräumt + Statistik-Suche',
+    items: [
+      '🧹 Einstellungen aufgeräumt: „GymTrack unterstützen", „Begleiter", „App" und „Admin" entfernt',
+      '🐕 Begleiter-Feature komplett deaktiviert — keine Pet-Lane mehr in der Tab-Leiste',
+      '🔍 Lupen-Icon im Suchfeld der Übungen-Seite entfernt — schlichter Look',
+      '🔎 Neues Suchfeld im Statistik-Tab: Übungen direkt durchsuchen',
+    ]
+  },
   'cl-2026-05-28-3d-arme-waden': {
     label: '28.05.2026 · 3D-Modell: Arme & Waden anatomisch korrigiert',
     items: [
@@ -3622,7 +3528,7 @@ S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
 S.companion   = S.companion   || 'dackel';
-S.companionOn = S.companionOn !== undefined ? S.companionOn : false;
+S.companionOn = false; // Begleiter-Feature entfernt — immer aus
 S.exFilterMode = S.exFilterMode || 'muskel';
 S.wkFilterMode = S.wkFilterMode || 'muskel';
 S.statsFilterMode = S.statsFilterMode || 'muskel';
@@ -6188,6 +6094,16 @@ function renderStatsMuscleGroups() {
   `).join('');
 }
 
+let statsExSearchText = '';
+function setStatsExSearch(v, fromClear) {
+  statsExSearchText = (v || '').trim();
+  const inp = document.getElementById('stats-ex-search');
+  if (inp && fromClear) inp.value = '';
+  const clr = document.getElementById('stats-ex-search-clr');
+  if (clr) clr.classList.toggle('on', !!statsExSearchText);
+  renderStatsExerciseList();
+}
+
 function renderStatsExerciseList() {
   const el = document.getElementById('stats-ex-list');
   if (!S.exercises.length) {
@@ -6197,11 +6113,22 @@ function renderStatsExerciseList() {
     return;
   }
   // Nach Muskelgruppe sortieren, dann nach Namen
-  const sorted = [...S.exercises].sort((a,b) => {
+  let sorted = [...S.exercises].sort((a,b) => {
     const ma = a.muscleGroup || 'zzz', mb = b.muscleGroup || 'zzz';
     if (ma !== mb) return ma.localeCompare(mb);
     return a.name.localeCompare(b.name);
   });
+  // Such-Filter
+  if (statsExSearchText) {
+    const q = statsExSearchText.toLowerCase();
+    sorted = sorted.filter(ex => (ex.name||'').toLowerCase().includes(q));
+  }
+  if (!sorted.length) {
+    el.innerHTML = `<div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
+      Nichts gefunden für „${statsExSearchText}".
+    </div>`;
+    return;
+  }
   el.innerHTML = sorted.map(ex => {
     const hist = exHistory(ex.id);
     const last = hist.length ? hist[hist.length-1] : null;
@@ -7238,7 +7165,6 @@ const TUTORIAL_STEPS = [
     sub:'Mach die App zu deiner.',
     features:[
       { ico:'🎨', title:'5 Themes', sub:'Hell, Rosa, Dunkel, Blau und Grün.' },
-      { ico:'🐕', title:'Trainings-Begleiter', sub:'Wähle deinen Lieblings-Begleiter für die Tab-Leiste.' },
       { ico:'☁️', title:'Cloud-Sync', sub:'Mit Google anmelden — Daten auf allen Geräten.' },
       { ico:'🔔', title:'Erinnerungen', sub:'Tägliche Trainings-Reminder zur Wunsch-Uhrzeit.' }
     ]
@@ -7250,8 +7176,7 @@ const TUTORIAL_STEPS = [
     features:[
       { ico:'👇', title:'Sheets per Swipe schließen', sub:'Den Griff oben einfach nach unten ziehen.' },
       { ico:'📳', title:'Haptisches Feedback', sub:'Spürbares Klicken bei wichtigen Aktionen.' },
-      { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen werden ganz von selbst aufgespielt.' },
-      { ico:'💡', title:'Tour erneut ansehen', sub:'Jederzeit in Einstellungen → App verfügbar.' }
+      { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen werden ganz von selbst aufgespielt.' }
     ]
   }
 ];
@@ -7450,13 +7375,7 @@ const TOUR = [
   {
     target:'.tabbar .tab:nth-child(5)',
     title:'Einstellungen ⚙️',
-    body:'Themes, Begleiter, Cloud-Sync und Trainings-Erinnerungen.',
-    prep:()=> goTabId('settings')
-  },
-  {
-    target:'#reset-tour-row',
-    title:'Tour erneut ansehen 🎓',
-    body:'Du kannst diese Tour jederzeit über <b>Einstellungen → App → „Tour neu starten"</b> wieder ansehen.',
+    body:'Themes, Cloud-Sync und Trainings-Erinnerungen.',
     prep:()=> goTabId('settings')
   },
   {
