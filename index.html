@@ -964,28 +964,17 @@ body{
 /* ── TRACKER CIRCLES ── */
 .tracker-row{display:flex;flex-direction:row;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:4px 0}
 .tracker-circle-wrap{display:flex;flex-direction:column;align-items:center;gap:5px}
-.tracker-circle{
-  width:58px;height:58px;border-radius:50%;
-  background:var(--acc);border:none;color:#fff;
-  font-size:20px;font-weight:700;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 14px rgba(var(--acc-rgb),.38),0 1px 4px rgba(var(--acc-rgb),.24);
-  transition:transform .13s,opacity .12s;font-family:inherit;position:relative;overflow:hidden;
-  -webkit-user-select:none;user-select:none;
-  -webkit-touch-callout:none;
-  -webkit-tap-highlight-color:transparent;
-}
-.tracker-circle::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:50%;border-radius:50% 50% 0 0;
-  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,transparent 100%);pointer-events:none;
-}
-.tracker-circle:active{transform:scale(.90);opacity:.80}
-.tracker-circle-label{
-  font-size:11px;font-weight:600;color:var(--text2);text-align:center;
-  max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.tracker-ring-btn{background:none;border:none;padding:0;cursor:pointer;display:block;-webkit-tap-highlight-color:transparent;transition:transform .13s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+.tracker-ring-btn:active{transform:scale(.90)}
+.tracker-ring-svg{display:block;overflow:visible}
+.tracker-ring-bg{fill:none;stroke:var(--sep);stroke-width:5;stroke-linecap:round}
+.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .4s ease;transform:rotate(-90deg);transform-origin:50% 50%}
+.tracker-ring-progress.done{stroke:#4cd137}
+.tracker-ring-count{font-size:15px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:middle;font-family:inherit}
+.tracker-ring-goal{font-size:9px;font-weight:500;fill:var(--text2);text-anchor:middle;dominant-baseline:middle;font-family:inherit}
+.tracker-circle-label{font-size:11px;font-weight:600;color:var(--text2);text-align:center;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tracker-add-btn{
-  width:58px;height:58px;border-radius:50%;
+  width:64px;height:64px;border-radius:50%;
   background:var(--g5);border:1.5px dashed var(--sep);
   color:var(--text2);font-size:28px;font-weight:300;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -993,6 +982,8 @@ body{
   align-self:flex-start;
 }
 .tracker-add-btn:active{transform:scale(.90)}
+.tracker-goal-btn{width:48px;height:48px;border-radius:50%;background:var(--g5);border:1.5px solid var(--sep);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .12s,border-color .12s,-webkit-tap-highlight-color 0s;-webkit-tap-highlight-color:transparent;}
+.tracker-goal-btn:active,.tracker-goal-btn.selected{background:var(--acc);color:#fff;border-color:var(--acc)}
 
 /* ── TRACKER BOTTOM SHEET ── */
 #tracker-sheet{position:fixed;inset:0;z-index:3000;pointer-events:none}
@@ -4133,15 +4124,28 @@ function renderTrackers() {
   const row = document.getElementById('tracker-row');
   if (!row) return;
   const wk = getWeekKey();
+  const R = 26, CX = 32, CY = 32;
+  const circ = +(2 * Math.PI * R).toFixed(1);
   let html = (S.trackerItems || []).map(item => {
     const count = (S.trackerCounts[item.id] || {})[wk] || 0;
+    const goal  = item.goal || 1;
+    const done  = count >= goal;
+    const dashoffset = +(circ * (1 - Math.min(count / goal, 1))).toFixed(1);
     return `<div class="tracker-circle-wrap">
-      <button class="tracker-circle"
+      <button class="tracker-ring-btn"
         onclick="_trackerClick('${item.id}')"
         ontouchstart="_trackerTouchStart(event,this,'${item.id}')"
         ontouchend="_trackerTouchEnd('${item.id}')"
         ontouchmove="_trackerTouchCancel()"
-        oncontextmenu="trackerLongPress(this,'${item.id}');return false">${count}</button>
+        oncontextmenu="trackerLongPress(this,'${item.id}');return false">
+        <svg class="tracker-ring-svg" width="64" height="64" viewBox="0 0 64 64">
+          <circle class="tracker-ring-bg" cx="${CX}" cy="${CY}" r="${R}"/>
+          <circle class="tracker-ring-progress${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
+            stroke-dasharray="${circ}" stroke-dashoffset="${dashoffset}"/>
+          <text class="tracker-ring-count" x="${CX}" y="${CY - 5}">${count}</text>
+          <text class="tracker-ring-goal" x="${CX}" y="${CY + 9}">/${goal}×</text>
+        </svg>
+      </button>
       <div class="tracker-circle-label">${item.label}</div>
     </div>`;
   }).join('');
@@ -4153,7 +4157,7 @@ function openTrackerMenu() {
   const existing = (S.trackerItems || []).map(i => i.id);
   const available = TRACKER_OPTIONS.filter(o => !existing.includes(o.id));
   const opts = available.map(o =>
-    `<button class="tracker-menu-item" onclick="addTracker('${o.id}','${o.label}')">${o.label}</button>`
+    `<button class="tracker-menu-item" onclick="_showGoalStep('${o.id}','${o.label}')">${o.label}</button>`
   ).join('');
   const sheet = document.createElement('div');
   sheet.id = 'tracker-sheet';
@@ -4171,22 +4175,47 @@ function openTrackerMenu() {
   requestAnimationFrame(() => sheet.classList.add('open'));
 }
 
-function showCustomTrackerInput() {
+let _pendingTracker = null;
+
+function _showGoalStep(id, label) {
+  _pendingTracker = { id, label };
+  const sheet = document.getElementById('tracker-sheet');
+  if (sheet) sheet.querySelector('.tracker-sheet-title').textContent = 'Wochenziel festlegen';
   const list = document.getElementById('tracker-menu-list');
   if (!list) return;
   list.innerHTML = `
+    <div style="padding:4px 16px 12px;color:var(--text2);font-size:13px">
+      Wie oft pro Woche möchtest du <strong style="color:var(--text)">${label}</strong> machen?
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px">
+      ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn" onclick="_selectGoal(${n})">${n}×</button>`).join('')}
+    </div>`;
+}
+
+function _selectGoal(goal) {
+  if (!_pendingTracker) return;
+  addTracker(_pendingTracker.id, _pendingTracker.label, goal);
+  _pendingTracker = null;
+}
+
+function showCustomTrackerInput() {
+  const list = document.getElementById('tracker-menu-list');
+  if (!list) return;
+  const sheet = document.getElementById('tracker-sheet');
+  if (sheet) sheet.querySelector('.tracker-sheet-title').textContent = 'Eigene Kategorie';
+  list.innerHTML = `
     <input id="tracker-custom-input" class="tracker-custom-input" type="text"
       placeholder="Name der Kategorie" maxlength="20" autocomplete="off"
-      onkeydown="if(event.key==='Enter')submitCustomTracker()" />
-    <button class="btn btn-acc" style="margin-top:8px" onclick="submitCustomTracker()">Hinzufügen</button>`;
+      onkeydown="if(event.key==='Enter')_customTrackerToGoal()" />
+    <button class="btn btn-acc" style="margin-top:8px" onclick="_customTrackerToGoal()">Weiter →</button>`;
   setTimeout(() => document.getElementById('tracker-custom-input')?.focus(), 80);
 }
 
-function submitCustomTracker() {
+function _customTrackerToGoal() {
   const input = document.getElementById('tracker-custom-input');
   const label = input?.value.trim();
   if (!label) { input?.focus(); return; }
-  addTracker('custom_' + uid(), label);
+  _showGoalStep('custom_' + uid(), label);
 }
 
 function closeTrackerMenu() {
@@ -4196,10 +4225,10 @@ function closeTrackerMenu() {
   setTimeout(() => sheet.remove(), 290);
 }
 
-function addTracker(id, label) {
+function addTracker(id, label, goal) {
   S.trackerItems = S.trackerItems || [];
   if (!S.trackerItems.find(i => i.id === id)) {
-    S.trackerItems.push({ id, label });
+    S.trackerItems.push({ id, label, goal: goal || 1 });
     persist();
   }
   closeTrackerMenu();
@@ -4268,6 +4297,34 @@ function _closeLPSheet() {
   if (bd)  bd.remove();
 }
 
+function _changeTrackerGoal(id) {
+  const item = (S.trackerItems || []).find(i => i.id === id);
+  if (!item) return;
+  const sheet = document.createElement('div');
+  sheet.id = 'tracker-sheet';
+  sheet.innerHTML = `
+    <div class="tracker-sheet-backdrop" onclick="closeTrackerMenu()"></div>
+    <div class="tracker-sheet-content">
+      <div class="tracker-sheet-title">Ziel ändern: ${item.label}</div>
+      <div class="tracker-menu-list" id="tracker-menu-list">
+        <div style="padding:4px 16px 12px;color:var(--text2);font-size:13px">Wie oft pro Woche?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px">
+          ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn${(item.goal||1)===n?' selected':''}" onclick="_applyGoalChange('${id}',${n})">${n}×</button>`).join('')}
+        </div>
+      </div>
+      <button class="tracker-menu-cancel" onclick="closeTrackerMenu()">Abbrechen</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(() => sheet.classList.add('open'));
+}
+
+function _applyGoalChange(id, goal) {
+  const item = (S.trackerItems || []).find(i => i.id === id);
+  if (item) { item.goal = goal; persist(); }
+  closeTrackerMenu();
+  renderTrackers();
+}
+
 function trackerLongPress(btn, id) {
   const item = (S.trackerItems || []).find(i => i.id === id);
   if (!item) return;
@@ -4291,6 +4348,7 @@ function trackerLongPress(btn, id) {
   if (count > 0) {
     rows.push(`<button class="tracker-popover-item" onclick="_closeLPSheet();decrementTracker('${id}')">−1 rückgängig (${count} → ${count - 1})</button>`);
   }
+  rows.push(`<button class="tracker-popover-item" onclick="_closeLPSheet();_changeTrackerGoal('${id}')">Ziel ändern (aktuell ${item.goal||1}×/Woche)</button>`);
   rows.push(`<button class="tracker-popover-item danger" onclick="_closeLPSheet();S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');persist();renderTrackers()">Kategorie entfernen</button>`);
   pop.innerHTML = rows.join('');
 
