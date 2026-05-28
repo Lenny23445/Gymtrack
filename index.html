@@ -4076,7 +4076,12 @@ function renderTrackers() {
   let html = (S.trackerItems || []).map(item => {
     const count = (S.trackerCounts[item.id] || {})[wk] || 0;
     return `<div class="tracker-circle-wrap">
-      <button class="tracker-circle" onclick="incrementTracker('${item.id}')" oncontextmenu="removeTrackerPrompt('${item.id}');return false">${count}</button>
+      <button class="tracker-circle"
+        onclick="_trackerClick('${item.id}')"
+        ontouchstart="_trackerTouchStart('${item.id}')"
+        ontouchend="_trackerTouchEnd()"
+        ontouchmove="_trackerTouchEnd()"
+        oncontextmenu="trackerLongPress('${item.id}');return false">${count}</button>
       <div class="tracker-circle-label">${item.label}</div>
     </div>`;
   }).join('');
@@ -4151,12 +4156,68 @@ function incrementTracker(id) {
 }
 
 function removeTrackerPrompt(id) {
+  trackerLongPress(id);
+}
+
+let _trackerLPTimer = null;
+let _trackerLPFired = false;
+
+function _trackerTouchStart(id) {
+  _trackerLPFired = false;
+  _trackerLPTimer = setTimeout(() => {
+    _trackerLPFired = true;
+    haptic(30);
+    trackerLongPress(id);
+  }, 500);
+}
+
+function _trackerTouchEnd() {
+  clearTimeout(_trackerLPTimer);
+  _trackerLPTimer = null;
+}
+
+function _trackerClick(id) {
+  if (_trackerLPFired) { _trackerLPFired = false; return; }
+  incrementTracker(id);
+}
+
+function decrementTracker(id) {
+  const wk = getWeekKey();
+  if (!S.trackerCounts[id]) return;
+  const cur = S.trackerCounts[id][wk] || 0;
+  if (cur <= 0) return;
+  S.trackerCounts[id][wk] = cur - 1;
+  persist();
+  haptic(10);
+  renderTrackers();
+}
+
+function trackerLongPress(id) {
   const item = (S.trackerItems || []).find(i => i.id === id);
   if (!item) return;
-  if (!confirm(`"${item.label}" entfernen?`)) return;
-  S.trackerItems = S.trackerItems.filter(i => i.id !== id);
-  persist();
-  renderTrackers();
+  const wk    = getWeekKey();
+  const count = (S.trackerCounts[id] || {})[wk] || 0;
+
+  const old = document.getElementById('tracker-lp-sheet');
+  if (old) old.remove();
+
+  const sheet = document.createElement('div');
+  sheet.id    = 'tracker-lp-sheet';
+  const closeFn = `document.getElementById('tracker-lp-sheet').classList.remove('open');setTimeout(()=>document.getElementById('tracker-lp-sheet')?.remove(),290)`;
+  sheet.innerHTML = `
+    <div class="tracker-sheet-backdrop" onclick="${closeFn}"></div>
+    <div class="tracker-sheet-content">
+      <div class="tracker-sheet-title">${item.label}</div>
+      <div class="tracker-menu-list">
+        ${count > 0
+          ? `<button class="tracker-menu-item" onclick="decrementTracker('${id}');${closeFn}">−1 rückgängig (${count} → ${count - 1})</button>`
+          : ''}
+        <button class="tracker-menu-item" style="color:var(--red)" onclick="S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');persist();renderTrackers();${closeFn}">Kategorie entfernen</button>
+      </div>
+      <button class="tracker-menu-cancel" onclick="${closeFn}">Abbrechen</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(() => sheet.classList.add('open'));
 }
 
 let _lastSwipeActive = null;
@@ -8434,10 +8495,10 @@ if (S.welcomeShown) {
           });
         });
 
-        // Wenn neuer SW die Kontrolle übernimmt → Seite neu laden
+        // Wenn neuer SW die Kontrolle übernimmt → nur neu laden wenn Update aktiv angefordert
         let _reloading = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!_reloading) { _reloading = true; window.location.reload(); }
+          if (window._swUpdateRequested && !_reloading) { _reloading = true; window.location.reload(); }
         });
 
         // Browser anweisen, sw.js jetzt vom Server zu holen und zu vergleichen
@@ -8451,6 +8512,7 @@ if (S.welcomeShown) {
 function _handleWaitingWorker(worker) {
   if (window._gymtrackUpdating) return;
   window._gymtrackUpdating = true;
+  window._swUpdateRequested = true;
   try { sessionStorage.setItem('gt_just_updated', '1'); } catch (_) {}
   worker.postMessage({ type: 'SKIP_WAITING' });
 }
