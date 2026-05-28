@@ -961,6 +961,87 @@ body{
   border-radius:20px;
 }
 
+/* ── TRACKER CIRCLES ── */
+.tracker-row{display:flex;flex-direction:row;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:4px 0}
+.tracker-circle-wrap{display:flex;flex-direction:column;align-items:center;gap:5px}
+.tracker-circle{
+  width:58px;height:58px;border-radius:50%;
+  background:var(--acc);border:none;color:#fff;
+  font-size:20px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.38),0 1px 4px rgba(var(--acc-rgb),.24);
+  transition:transform .13s,opacity .12s;font-family:inherit;position:relative;overflow:hidden;
+}
+.tracker-circle::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:50%;border-radius:50% 50% 0 0;
+  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,transparent 100%);pointer-events:none;
+}
+.tracker-circle:active{transform:scale(.90);opacity:.80}
+.tracker-circle-label{
+  font-size:11px;font-weight:600;color:var(--text2);text-align:center;
+  max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tracker-add-btn{
+  width:58px;height:58px;border-radius:50%;
+  background:var(--g5);border:1.5px dashed var(--sep);
+  color:var(--text2);font-size:28px;font-weight:300;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .13s,background .15s;font-family:inherit;line-height:1;
+  align-self:flex-start;
+}
+.tracker-add-btn:active{transform:scale(.90)}
+
+/* ── TRACKER BOTTOM SHEET ── */
+#tracker-sheet{position:fixed;inset:0;z-index:3000;pointer-events:none}
+#tracker-sheet.open{pointer-events:all}
+.tracker-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .28s}
+#tracker-sheet.open .tracker-sheet-backdrop{background:rgba(0,0,0,.38)}
+.tracker-sheet-content{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(64px) saturate(220%);
+  -webkit-backdrop-filter:blur(64px) saturate(220%);
+  border-top:1px solid var(--gl-bdr);border-radius:24px 24px 0 0;
+  padding:20px 20px calc(20px + var(--sab));
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 -8px 40px rgba(0,0,0,.14);
+}
+#tracker-sheet.open .tracker-sheet-content{transform:translateY(0)}
+.tracker-sheet-title{font-size:17px;font-weight:700;text-align:center;margin-bottom:16px;color:var(--text)}
+.tracker-menu-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.tracker-menu-item{
+  padding:14px 16px;border-radius:14px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  font-family:inherit;font-size:16px;font-weight:600;color:var(--text);
+  cursor:pointer;text-align:left;transition:background .12s;
+}
+.tracker-menu-item:active{background:rgba(var(--acc-rgb),.10)}
+.tracker-menu-cancel{
+  width:100%;padding:14px;border-radius:14px;
+  background:var(--g5);border:none;font-family:inherit;
+  font-size:16px;font-weight:600;color:var(--text2);cursor:pointer;
+  transition:opacity .12s;
+}
+.tracker-menu-cancel:active{opacity:.7}
+
+/* ── SESSION HISTORY ── */
+.history-collapsed-row{
+  display:flex;align-items:center;padding:14px 16px;gap:13px;
+  cursor:pointer;position:relative;z-index:1;transition:background .12s;
+}
+.history-collapsed-row:active{background:rgba(120,120,128,.08)}
+.history-more-rows{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.4,0,.2,1)}
+.history-more-rows.open{max-height:600px;overflow-y:auto}
+.history-expand-chev{
+  color:var(--text2);font-size:22px;opacity:.5;flex-shrink:0;
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.history-expand-chev.open{transform:rotate(90deg)}
+.history-session-row{
+  display:flex;align-items:center;padding:12px 16px;gap:13px;
+  border-top:1px solid var(--sep);position:relative;z-index:1;
+}
+
 /* ── BADGE ── */
 .badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
 .b-acc{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
@@ -2240,15 +2321,15 @@ body{
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div>
+      <div class="s-title">Diese Woche</div>
+      <div class="tracker-row" id="tracker-row"></div>
+    </div>
+    <div>
+      <div class="s-title">Letzte Trainings</div>
+      <div class="card" id="history-card"></div>
+    </div>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
-    <div>
-      <div class="s-title">Vorschläge diese Woche</div>
-      <div id="sug-list"></div>
-    </div>
-    <div>
-      <div class="s-title">Letztes Training</div>
-      <div class="card" id="last-card"></div>
-    </div>
   </div>
 </div>
 
@@ -3537,8 +3618,10 @@ S.customSplits = Array.isArray(S.customSplits) ? S.customSplits : []; // [{id,la
 // Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
 S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
-S.notifEnabled = S.notifEnabled || false;
-S.notifTime    = S.notifTime    || '08:00';
+S.notifEnabled  = S.notifEnabled  || false;
+S.notifTime     = S.notifTime     || '08:00';
+S.trackerItems  = S.trackerItems  || [];
+S.trackerCounts = S.trackerCounts || {};
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -3793,8 +3876,8 @@ function renderHome() {
   document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
-  renderSuggestions();
-  renderLastSession();
+  renderTrackers();
+  renderSessionHistory();
 }
 
 function renderSuggestions() {
@@ -3898,6 +3981,154 @@ function deleteLastSession(sesId) {
   persist();
   haptic(20);
   renderHome();
+}
+
+// ── SESSION HISTORY ──────────────────────────────────
+let historyExpanded = false;
+
+function renderSessionHistory() {
+  const el = document.getElementById('history-card');
+  if (!el) return;
+  if (!S.sessions.length) {
+    historyExpanded = false;
+    el.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:15px;position:relative;z-index:1">Noch kein Training</div>`;
+    return;
+  }
+  const sessions = [...S.sessions].reverse();
+  const last = sessions[0];
+  const rest  = sessions.slice(1);
+
+  const fmtDate = ses => new Date(ses.date).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'});
+  const exNames = ses => ses.logs.map(l => { const e = exById(l.exerciseId); return e ? e.name : l.exerciseId; }).join(' · ');
+  const setCount = ses => ses.logs.reduce((n,l) => n + l.sets.length, 0);
+
+  const chevHtml = rest.length
+    ? `<div class="history-expand-chev${historyExpanded?' open':''}">›</div>`
+    : '';
+
+  let html = `<div class="history-collapsed-row${historyExpanded?' open':''}" id="history-top-row" onclick="toggleHistory()">
+    <div class="row-body">
+      <div class="row-title">${fmtDate(last)}</div>
+      <div class="row-sub">${exNames(last)}</div>
+    </div>
+    <span class="badge b-green">${setCount(last)} Sätze</span>
+    ${chevHtml}
+  </div>`;
+
+  if (rest.length) {
+    const rows = rest.map(s => `
+      <div class="history-session-row">
+        <div class="row-body">
+          <div class="row-title">${fmtDate(s)}</div>
+          <div class="row-sub">${exNames(s)}</div>
+        </div>
+        <span class="badge b-green">${setCount(s)} Sätze</span>
+      </div>`).join('');
+    html += `<div class="history-more-rows${historyExpanded?' open':''}" id="history-more">${rows}</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function toggleHistory() {
+  historyExpanded = !historyExpanded;
+  const topRow  = document.getElementById('history-top-row');
+  const moreRows = document.getElementById('history-more');
+  const chev    = topRow?.querySelector('.history-expand-chev');
+  if (topRow)   topRow.classList.toggle('open', historyExpanded);
+  if (moreRows) moreRows.classList.toggle('open', historyExpanded);
+  if (chev)     chev.classList.toggle('open', historyExpanded);
+  haptic(8);
+}
+
+// ── TRACKER CIRCLES ──────────────────────────────────
+const TRACKER_OPTIONS = [
+  { id:'gym',       label:'Gym' },
+  { id:'laufen',    label:'Laufen' },
+  { id:'fahrrad',   label:'Fahrrad' },
+  { id:'schwimmen', label:'Schwimmen' },
+  { id:'kader',     label:'Kader' },
+  { id:'dehnen',    label:'Dehnen' },
+  { id:'yoga',      label:'Yoga' },
+  { id:'spazieren', label:'Spazieren' },
+  { id:'hiit',      label:'HIIT' },
+];
+
+function getWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const wk = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${wk}`;
+}
+
+function renderTrackers() {
+  const row = document.getElementById('tracker-row');
+  if (!row) return;
+  const wk = getWeekKey();
+  let html = (S.trackerItems || []).map(item => {
+    const count = (S.trackerCounts[item.id] || {})[wk] || 0;
+    return `<div class="tracker-circle-wrap">
+      <button class="tracker-circle" onclick="incrementTracker('${item.id}')" oncontextmenu="removeTrackerPrompt('${item.id}');return false">${count}</button>
+      <div class="tracker-circle-label">${item.label}</div>
+    </div>`;
+  }).join('');
+  html += `<button class="tracker-add-btn" onclick="openTrackerMenu()">+</button>`;
+  row.innerHTML = html;
+}
+
+function openTrackerMenu() {
+  const existing = (S.trackerItems || []).map(i => i.id);
+  const available = TRACKER_OPTIONS.filter(o => !existing.includes(o.id));
+  if (!available.length) { return; }
+  const opts = available.map(o =>
+    `<button class="tracker-menu-item" onclick="addTracker('${o.id}','${o.label}')">${o.label}</button>`
+  ).join('');
+  const sheet = document.createElement('div');
+  sheet.id = 'tracker-sheet';
+  sheet.innerHTML = `
+    <div class="tracker-sheet-backdrop" onclick="closeTrackerMenu()"></div>
+    <div class="tracker-sheet-content">
+      <div class="tracker-sheet-title">Kategorie hinzufügen</div>
+      <div class="tracker-menu-list">${opts}</div>
+      <button class="tracker-menu-cancel" onclick="closeTrackerMenu()">Abbrechen</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(() => sheet.classList.add('open'));
+}
+
+function closeTrackerMenu() {
+  const sheet = document.getElementById('tracker-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  setTimeout(() => sheet.remove(), 290);
+}
+
+function addTracker(id, label) {
+  S.trackerItems = S.trackerItems || [];
+  if (!S.trackerItems.find(i => i.id === id)) {
+    S.trackerItems.push({ id, label });
+    persist();
+  }
+  closeTrackerMenu();
+  renderTrackers();
+}
+
+function incrementTracker(id) {
+  const wk = getWeekKey();
+  if (!S.trackerCounts[id]) S.trackerCounts[id] = {};
+  S.trackerCounts[id][wk] = (S.trackerCounts[id][wk] || 0) + 1;
+  persist();
+  haptic(10);
+  renderTrackers();
+}
+
+function removeTrackerPrompt(id) {
+  const item = (S.trackerItems || []).find(i => i.id === id);
+  if (!item) return;
+  if (!confirm(`"${item.label}" entfernen?`)) return;
+  S.trackerItems = S.trackerItems.filter(i => i.id !== id);
+  persist();
+  renderTrackers();
 }
 
 let _lastSwipeActive = null;
