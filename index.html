@@ -971,6 +971,9 @@ body{
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 4px 14px rgba(var(--acc-rgb),.38),0 1px 4px rgba(var(--acc-rgb),.24);
   transition:transform .13s,opacity .12s;font-family:inherit;position:relative;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
 }
 .tracker-circle::after{
   content:'';position:absolute;top:0;left:0;right:0;height:50%;border-radius:50% 50% 0 0;
@@ -4100,9 +4103,9 @@ function renderTrackers() {
     return `<div class="tracker-circle-wrap">
       <button class="tracker-circle"
         onclick="_trackerClick('${item.id}')"
-        ontouchstart="_trackerTouchStart(this,'${item.id}')"
-        ontouchend="_trackerTouchEnd()"
-        ontouchmove="_trackerTouchEnd()"
+        ontouchstart="_trackerTouchStart(event,this,'${item.id}')"
+        ontouchend="_trackerTouchEnd('${item.id}')"
+        ontouchmove="_trackerTouchCancel()"
         oncontextmenu="trackerLongPress(this,'${item.id}');return false">${count}</button>
       <div class="tracker-circle-label">${item.label}</div>
     </div>`;
@@ -4184,7 +4187,8 @@ function removeTrackerPrompt(btn, id) {
 let _trackerLPTimer = null;
 let _trackerLPFired = false;
 
-function _trackerTouchStart(btn, id) {
+function _trackerTouchStart(event, btn, id) {
+  event.preventDefault(); // verhindert Textmarkierung & iOS-Callout
   _trackerLPFired = false;
   _trackerLPTimer = setTimeout(() => {
     _trackerLPFired = true;
@@ -4193,13 +4197,21 @@ function _trackerTouchStart(btn, id) {
   }, 500);
 }
 
-function _trackerTouchEnd() {
+function _trackerTouchEnd(id) {
   clearTimeout(_trackerLPTimer);
   _trackerLPTimer = null;
+  if (!_trackerLPFired && id) incrementTracker(id); // kurzer Tap → hochzählen
+}
+
+function _trackerTouchCancel() {
+  clearTimeout(_trackerLPTimer);
+  _trackerLPTimer = null;
+  _trackerLPFired = true; // Bewegung = kein Tap mehr
 }
 
 function _trackerClick(id) {
-  if (_trackerLPFired) { _trackerLPFired = false; return; }
+  // Nur für Maus/Desktop – Touch wird über touchend behandelt
+  if (window._trackerWasTouch) { window._trackerWasTouch = false; return; }
   incrementTracker(id);
 }
 
