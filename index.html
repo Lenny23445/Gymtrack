@@ -1951,7 +1951,12 @@ body{
 .wk-mini-v{font-size:18px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
 .wk-mini-chev{color:var(--acc);font-size:22px;font-weight:300;flex-shrink:0}
 
-/* ── STATISTIK: Volumen-Mini ── */
+/* ── STATISTIK: 2-Spalten-Layout (Volumen + Erholung) ── */
+.stats-dual{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
 .stats-mini-box{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -1962,7 +1967,7 @@ body{
   box-shadow:var(--gl-shad),var(--gl-hi);
   position:relative;overflow:hidden;
   display:flex;flex-direction:column;
-  min-height:200px;
+  height:230px;
   cursor:pointer;
   transition:transform .12s ease, box-shadow .15s ease;
   -webkit-tap-highlight-color:transparent;
@@ -1988,7 +1993,7 @@ body{
   position:relative;z-index:1;font-weight:500;
 }
 
-/* ── MUSKEL-AKKU-LISTE (statt 3D) ── */
+/* ── MUSKEL-AKKU-LISTE ── */
 .rec-list{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -1999,6 +2004,26 @@ body{
   box-shadow:var(--gl-shad),var(--gl-hi);
   overflow:hidden;
 }
+/* Kompakt-Variante in der Mini-Box neben Volumen: scrollbare, schmalere Zeilen */
+.stats-rec-box{padding:12px 8px 10px}
+.stats-rec-box .stats-mini-title{padding:0 6px}
+.rec-list-mini{
+  background:transparent;border:none;box-shadow:none;
+  padding:2px 2px 4px;
+  flex:1;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+}
+.rec-list-mini::-webkit-scrollbar{width:4px}
+.rec-list-mini::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
+.rec-list-mini .rec-row{padding:7px 8px;gap:8px;border-radius:10px}
+.rec-list-mini .rec-row + .rec-row{border-top-color:rgba(255,255,255,.04)}
+.rec-list-mini .rec-row-title{font-size:12px;line-height:1.2}
+.rec-list-mini .rec-row-sub{font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-list-mini .rec-batt{flex:0 0 42px;height:18px;border-width:1.5px;padding:1.5px}
+.rec-list-mini .rec-batt::after{width:2px;height:7px;right:-3.5px}
+.rec-list-mini .rec-batt-val{font-size:9px;letter-spacing:.2px}
 .rec-row{
   display:flex;align-items:center;gap:12px;
   padding:11px 14px;border-radius:14px;
@@ -2278,19 +2303,21 @@ body{
       <div class="s-title">Überblick</div>
       <div id="stats-summary"></div>
     </div>
-    <div class="stats-mini-box" onclick="openVolumeFull()">
-      <div class="stats-mini-title">Volumen</div>
-      <div class="stats-mini-canvas-wrap">
-        <canvas id="stats-overall-chart" height="170"></canvas>
-        <div id="stats-overall-empty" class="stats-mini-empty" style="display:none">
-          Noch keine Trainings
+    <div class="stats-dual">
+      <div class="stats-mini-box" onclick="openVolumeFull()">
+        <div class="stats-mini-title">Volumen</div>
+        <div class="stats-mini-canvas-wrap">
+          <canvas id="stats-overall-chart" height="170"></canvas>
+          <div id="stats-overall-empty" class="stats-mini-empty" style="display:none">
+            Noch keine Trainings
+          </div>
         </div>
+        <div class="stats-mini-foot">Tap für Vollbild</div>
       </div>
-      <div class="stats-mini-foot">Tap für Vollbild</div>
-    </div>
-    <div>
-      <div class="s-title">Muskel-Erholung</div>
-      <div class="rec-list" id="rec-list"></div>
+      <div class="stats-mini-box stats-rec-box">
+        <div class="stats-mini-title">Erholung</div>
+        <div class="rec-list rec-list-mini" id="rec-list"></div>
+      </div>
     </div>
     <div>
       <div class="s-title" id="heatmap-title">Aktivität · letzte 12 Monate</div>
@@ -2923,7 +2950,6 @@ body{
       <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
         <div class="wk-cardio-card" onclick="openKardio()">
-          <div class="wk-cardio-ico">🏃</div>
           <div class="wk-cardio-body">
             <div class="wk-cardio-title">Cardio</div>
             <div class="wk-cardio-sub">Timer starten – läuft im Hintergrund</div>
@@ -3292,7 +3318,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605282200';
+const APP_VERSION = 'gymtrack-v202605282230';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5787,7 +5813,14 @@ function renderRecoveryList() {
   }
   const rows = MUSCLES
     .map(m => ({ m, r: rec[m.id] || { recPct:100, fatPct:0, lastTs:null, lastEx:null } }))
+    // Vollgeladene Muskeln (100%) raus — User will nur sehen was noch nicht erholt ist
+    .filter(({r}) => r.recPct < 100)
     .sort((a,b) => b.r.recPct - a.r.recPct);
+
+  if (!rows.length) {
+    host.innerHTML = '<div class="rec-list-empty">Alle Muskeln vollständig erholt 💪</div>';
+    return;
+  }
 
   host.innerHTML = rows.map(({m, r}) => {
     const col = recoveryColor(r.recPct);
