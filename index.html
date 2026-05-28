@@ -1004,8 +1004,12 @@ body{
 .tracker-popover-backdrop{position:fixed;inset:0;z-index:3998}
 .tracker-popover{
   position:fixed;z-index:3999;
-  background:var(--card);border-radius:13px;
-  box-shadow:0 4px 28px rgba(0,0,0,.22),0 1px 6px rgba(0,0,0,.12);
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(48px) saturate(200%);
+  -webkit-backdrop-filter:blur(48px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:13px;
+  box-shadow:var(--gl-shad-lg);
   min-width:190px;overflow:hidden;
   opacity:0;transform:scale(.85);
   transition:opacity .16s,transform .16s cubic-bezier(.34,1.56,.64,1);
