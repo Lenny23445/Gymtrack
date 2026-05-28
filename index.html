@@ -4386,7 +4386,7 @@ function trackerLongPress(btn, id) {
     rows.push(`<button class="tracker-popover-item" onclick="_closeLPSheet();decrementTracker('${id}')">−1 rückgängig (${count} → ${count - 1})</button>`);
   }
   rows.push(`<button class="tracker-popover-item" onclick="_closeLPSheet();_changeTrackerGoal('${id}')">Ziel ändern (aktuell ${item.goal||1}×/Woche)</button>`);
-  rows.push(`<button class="tracker-popover-item danger" onclick="_closeLPSheet();S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');persist();renderTrackers()">Kategorie entfernen</button>`);
+  rows.push(`<button class="tracker-popover-item danger" onclick="_closeLPSheet();S.trackerItems=S.trackerItems.filter(i=>i.id!=='${id}');delete S.trackerCounts['${id}'];persist();renderTrackers()">Kategorie entfernen</button>`);
   pop.innerHTML = rows.join('');
 
   document.body.appendChild(bd);
