@@ -240,13 +240,18 @@
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
   color:var(--text);
   max-width:430px;margin:0 auto;min-height:100%;
   position:relative;
   -webkit-font-smoothing:antialiased;
+  /* App-Container fest – nur innere Pages scrollen */
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:pan-y;
 }
 
 /* Fixed gradient background */
@@ -263,7 +268,14 @@ body{
 }
 
 /* ── PAGES ── */
-.pg{display:none;padding-bottom:calc(114px + var(--sab));min-height:100vh}
+.pg{
+  display:none;
+  padding-bottom:calc(114px + var(--sab));
+  position:absolute;inset:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
 .pg.on{display:block}
 
 /* ── GLASS HEADER ── */
@@ -858,15 +870,15 @@ body{
 }
 .wheel-list{
   position:relative;z-index:3;
-  height:100%;overflow-y:auto;scroll-snap-type:y mandatory;
+  height:100%;overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
+  scroll-behavior:auto;
 }
 .wheel-list::-webkit-scrollbar{display:none}
 .wheel-item{
   height:44px;display:flex;align-items:center;justify-content:center;
   font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;
-  scroll-snap-align:center;scroll-snap-stop:always;
   color:var(--text2);transition:color .15s,font-size .15s;
 }
 .wheel-item.center{color:var(--acc);font-size:26px;font-weight:700}
@@ -1938,6 +1950,254 @@ body{
 .wk-mini-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 .wk-mini-v{font-size:18px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
 .wk-mini-chev{color:var(--acc);font-size:22px;font-weight:300;flex-shrink:0}
+
+/* ── STATISTIK: Volumen-Mini ── */
+.stats-mini-box{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;
+  padding:12px 12px 10px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+  min-height:200px;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.stats-mini-box:active{transform:scale(.99)}
+.stats-mini-box::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:40%;
+  background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0;
+}
+.stats-mini-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--text2);margin-bottom:6px;
+  position:relative;z-index:1;
+}
+.stats-mini-canvas-wrap{flex:1;position:relative;min-height:160px;max-height:200px;z-index:1}
+.stats-mini-canvas-wrap canvas{display:block}
+.stats-mini-empty{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--text2);text-align:center;padding:8px;line-height:1.4;
+}
+.stats-mini-foot{
+  font-size:10px;color:var(--text2);text-align:center;margin-top:4px;
+  position:relative;z-index:1;font-weight:500;
+}
+
+/* ── MUSKEL-AKKU-LISTE (statt 3D) ── */
+.rec-list{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:20px;
+  padding:6px 4px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  overflow:hidden;
+}
+.rec-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:14px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .15s;
+}
+.rec-row:active{background:rgba(var(--acc-rgb),.08)}
+.rec-row + .rec-row{border-top:1px solid rgba(255,255,255,.06)}
+.rec-row-body{flex:1;min-width:0}
+.rec-row-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.15}
+.rec-row-sub{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
+.rec-batt{
+  position:relative;flex:0 0 64px;height:26px;
+  border-radius:6px;
+  border:2px solid var(--text2);
+  padding:2px;
+  background:rgba(0,0,0,.18);
+  display:flex;align-items:center;
+}
+.rec-batt::after{
+  /* Pluspol */
+  content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);
+  width:3px;height:11px;background:var(--text2);border-radius:0 2px 2px 0;
+}
+.rec-batt-fill{
+  height:100%;border-radius:3px;
+  transition:width .4s cubic-bezier(.4,0,.2,1), background .25s;
+  box-shadow:0 0 8px currentColor;
+}
+.rec-batt-val{
+  position:absolute;left:0;right:0;top:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  font-variant-numeric:tabular-nums;letter-spacing:.5px;
+  z-index:2;pointer-events:none;
+}
+.rec-batt.is-empty{border-color:rgba(255,59,48,.55)}
+.rec-batt.is-empty .rec-batt-val{color:rgba(255,255,255,.85)}
+.rec-list-empty{
+  padding:24px 16px;text-align:center;color:var(--text2);font-size:13px;
+}
+
+/* ── PR-FEIER OVERLAY ── */
+.pr-burst-host{
+  position:fixed;inset:0;pointer-events:none;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+}
+.pr-burst{
+  background:linear-gradient(135deg,#FFD700 0%,#FFA500 100%);
+  color:#1a1a1a;font-weight:800;font-size:28px;
+  padding:18px 32px;border-radius:22px;
+  box-shadow:0 12px 40px rgba(255,165,0,.55),0 0 0 4px rgba(255,215,0,.35);
+  animation:pr-pop 1.6s cubic-bezier(.34,1.56,.64,1) forwards;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  text-align:center;letter-spacing:.5px;
+}
+.pr-burst-sub{font-size:13px;font-weight:600;opacity:.85;letter-spacing:.2px}
+@keyframes pr-pop{
+  0%   {transform:scale(.4) rotate(-8deg);opacity:0}
+  18%  {transform:scale(1.12) rotate(2deg);opacity:1}
+  35%  {transform:scale(.96) rotate(-1deg)}
+  55%  {transform:scale(1) rotate(0)}
+  85%  {transform:scale(1);opacity:1}
+  100% {transform:scale(.9) translateY(-30px);opacity:0}
+}
+.pr-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  background:linear-gradient(135deg,#FFD700,#FFA500);
+  color:#1a1a1a;font-size:10px;font-weight:800;
+  padding:2px 7px;border-radius:999px;letter-spacing:.3px;
+  margin-left:6px;vertical-align:middle;
+  box-shadow:0 2px 6px rgba(255,165,0,.4);
+}
+
+/* Swipe-to-delete im aktiven Training */
+.ex-card{position:relative;transition:transform .3s cubic-bezier(.32,1,.32,1)}
+.ex-card.is-swiping{transition:none}
+.ex-card.swipe-removing{
+  transform:translateX(-110%);opacity:0;
+  transition:transform .35s ease-out,opacity .35s ease-out,margin .35s ease-out,padding .35s ease-out,max-height .35s ease-out;
+  margin:0!important;padding-top:0!important;padding-bottom:0!important;max-height:0!important;overflow:hidden;
+}
+.ex-card-swipe-bg{
+  position:absolute;inset:0;background:linear-gradient(90deg,transparent 30%,#ff3b30 100%);
+  border-radius:18px;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:24px;color:#fff;font-weight:700;font-size:15px;
+  pointer-events:none;opacity:0;transition:opacity .2s;z-index:-1;
+}
+.ex-card-swipe-bg.on{opacity:1}
+
+/* Cardio-Karte im Training-Start */
+.wk-cardio-card{
+  background:linear-gradient(135deg,rgba(255,149,0,.18),rgba(255,59,48,.10));
+  border:1px solid rgba(255,149,0,.32);
+  border-radius:16px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:transform .12s,opacity .15s;
+  margin-bottom:12px;
+}
+.wk-cardio-card:active{transform:scale(.98);opacity:.85}
+.wk-cardio-ico{
+  flex:0 0 44px;height:44px;border-radius:12px;
+  background:rgba(255,149,0,.20);border:1px solid rgba(255,149,0,.35);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.wk-cardio-body{flex:1;min-width:0}
+.wk-cardio-title{font-size:15px;font-weight:700;color:var(--text)}
+.wk-cardio-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.wk-cardio-chev{color:#ff9500;font-size:22px;font-weight:300;flex-shrink:0}
+
+/* ── MUSKEL-DETAIL-OVERLAY ── */
+.ov.ov-mus{
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  z-index:1003;
+}
+.mus-card{
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(60px) saturate(200%);
+  -webkit-backdrop-filter:blur(60px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:24px;
+  width:calc(100% - 24px);
+  max-width:440px;
+  max-height:88vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 16px 56px rgba(0,0,0,.32);
+  overflow:hidden;
+  animation:up .28s cubic-bezier(.32,1,.32,1);
+}
+.mus-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;border-bottom:1px solid var(--gl-bdr);
+}
+.mus-title{font-size:17px;font-weight:700;flex:1;min-width:0}
+.mus-sub{font-size:11px;color:var(--text2);font-weight:500;margin-top:1px}
+.mus-body{overflow-y:auto;padding:18px 16px}
+.mus-ring-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:18px;
+}
+.mus-ring{
+  position:relative;width:140px;height:140px;
+}
+.mus-ring svg{transform:rotate(-90deg)}
+.mus-ring-val{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.mus-ring-pct{font-size:34px;font-weight:700;line-height:1}
+.mus-ring-state{font-size:11px;color:var(--text2);margin-top:3px;font-weight:600}
+.mus-stats-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;
+}
+.mus-stat-box{
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
+  border-radius:12px;padding:10px;text-align:center;
+}
+.mus-stat-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.mus-stat-v{font-size:15px;font-weight:700;margin-top:2px}
+.mus-hist-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--gl-bdr);font-size:13px;
+}
+.mus-hist-row:last-child{border-bottom:none}
+.mus-hist-date{color:var(--text2);font-size:11px}
+.mus-hist-ex{font-weight:600;flex:1;margin:0 8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mus-hist-vol{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums}
+
+/* ── VOLUME-VOLLBILD ── */
+.ov.ov-vol{
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  z-index:1002;
+}
+.vol-card{
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(60px) saturate(200%);
+  -webkit-backdrop-filter:blur(60px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:24px;
+  width:calc(100% - 24px);
+  max-width:680px;
+  max-height:88vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 16px 56px rgba(0,0,0,.32);
+  overflow:hidden;
+  animation:up .28s cubic-bezier(.32,1,.32,1);
+}
+.vol-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--gl-bdr);
+}
+.vol-body{flex:1;padding:14px 16px;min-height:300px;display:flex}
+.vol-body canvas{width:100% !important;height:100% !important}
+
 </style>
 </head>
 <body>
@@ -1957,7 +2217,6 @@ body{
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <button class="btn btn-acc" onclick="openKardio()">🏃&nbsp; Cardio starten</button>
     <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
     <div>
       <div class="s-title">Vorschläge diese Woche</div>
@@ -2019,12 +2278,19 @@ body{
       <div class="s-title">Überblick</div>
       <div id="stats-summary"></div>
     </div>
-    <div>
-      <div class="s-title">Gesamtverlauf · Trainingsvolumen</div>
-      <div class="chart-box"><canvas id="stats-overall-chart" height="170"></canvas></div>
-      <div id="stats-overall-empty" style="display:none;padding:18px;color:var(--text2);font-size:14px;text-align:center">
-        Noch keine Trainings – starte dein erstes, um deinen Verlauf zu sehen.
+    <div class="stats-mini-box" onclick="openVolumeFull()">
+      <div class="stats-mini-title">Volumen</div>
+      <div class="stats-mini-canvas-wrap">
+        <canvas id="stats-overall-chart" height="170"></canvas>
+        <div id="stats-overall-empty" class="stats-mini-empty" style="display:none">
+          Noch keine Trainings
+        </div>
       </div>
+      <div class="stats-mini-foot">Tap für Vollbild</div>
+    </div>
+    <div>
+      <div class="s-title">Muskel-Erholung</div>
+      <div class="rec-list" id="rec-list"></div>
     </div>
     <div>
       <div class="s-title" id="heatmap-title">Aktivität · letzte 12 Monate</div>
@@ -2656,6 +2922,14 @@ body{
       <!-- Körperpartien-Filter -->
       <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
       <div class="px">
+        <div class="wk-cardio-card" onclick="openKardio()">
+          <div class="wk-cardio-ico">🏃</div>
+          <div class="wk-cardio-body">
+            <div class="wk-cardio-title">Cardio</div>
+            <div class="wk-cardio-sub">Timer starten – läuft im Hintergrund</div>
+          </div>
+          <div class="wk-cardio-chev">›</div>
+        </div>
         <div class="s-title" id="wk-step1-title">Welche Übungen heute?</div>
         <div id="wk-plan-hint" style="display:none;margin-bottom:10px;padding:10px 12px;background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20);border-radius:12px;font-size:13px;color:var(--acc);font-weight:600"></div>
         <div class="card" id="wk-picker"></div>
@@ -2974,6 +3248,31 @@ body{
   </div>
 </div>
 
+<!-- OVERLAY: MUSKEL DETAIL -->
+<div class="ov ov-mus" id="ov-muscle" onclick="if(event.target===this)closeOv('ov-muscle')">
+  <div class="mus-card">
+    <div class="mus-head">
+      <div style="flex:1;min-width:0">
+        <div class="mus-title" id="mus-title">Muskel</div>
+        <div class="mus-sub" id="mus-sub-grp"></div>
+      </div>
+      <button class="x-btn" onclick="closeOv('ov-muscle')">✕</button>
+    </div>
+    <div class="mus-body" id="mus-body"></div>
+  </div>
+</div>
+
+<!-- OVERLAY: VOLUMEN VOLLBILD -->
+<div class="ov ov-vol" id="ov-volume" onclick="if(event.target===this)closeOv('ov-volume')">
+  <div class="vol-card">
+    <div class="vol-head">
+      <div style="font-size:17px;font-weight:700">Trainingsvolumen</div>
+      <button class="x-btn" onclick="closeOv('ov-volume')">✕</button>
+    </div>
+    <div class="vol-body"><canvas id="vol-full-chart"></canvas></div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────
 /* ── ICON-BIBLIOTHEK ── */
@@ -2993,12 +3292,44 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605272359';
+const APP_VERSION = 'gymtrack-v202605282200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-05-28-3d-arme-waden': {
+    label: '28.05.2026 · 3D-Modell: Arme & Waden anatomisch korrigiert',
+    items: [
+      '🚫 Unterarm als anklickbarer Muskel komplett entfernt — Unterarm bleibt jetzt im neutralen Hautton',
+      '💪 Bizeps schmiegt sich exakt an die Vorderseite des Oberarms, nicht mehr mit dem Unterarm verbunden',
+      '🦾 Trizeps korrekt an der Rückseite des Oberarms, sichtbare Ellenbogen-Gap zum Unterarm',
+      '🦵 Waden hinten an der Kniekehle (vorher leicht zu weit vorne Richtung Schienbein)',
+      '🎯 Im Armbereich nur noch: Bizeps, Trizeps, vordere/seitliche/hintere Schulter',
+      '🧪 Diesmal: GLB direkt in Blender geladen + Vertex-Daten pro Z-Schicht ausgewertet — Kapseln liegen nachweisbar im Modell (max 2 cm Abweichung)',
+    ]
+  },
+  'cl-2026-05-28-3d-bizeps-fix': {
+    label: '28.05.2026 · 3D-Modell: Bizeps & vordere Schulter korrigiert',
+    items: [
+      '💪 Bizeps-Markierung sitzt jetzt exakt auf der Oberarm-Vorderseite (vorher lag die Capsule vor dem Arm in der Luft)',
+      '🤷 Vordere Schulter (anteriorer Deltoid) korrekt am oberen Schulterrand statt im Kopf-/Halsbereich',
+      '🎯 Capsule-Koordinaten durch direkte Vertex-Analyse des GLB-Modells kalibriert (kein Raten mehr)',
+      '🔧 Auch Trizeps + seitliche/hintere Schulter an die echte Arm-Geometrie (T-Pose) angepasst',
+    ]
+  },
+  'cl-2026-05-28-muscle-fatigue': {
+    label: '28.05.2026 · 3D-Muskel-Ermüdung im Statistik-Tab',
+    items: [
+      '🧬 Echte anatomische 3D-Figur (Sketchfab-Modell "MaleMuscle" von HEPL3D, CC-BY 4.0) statt prozeduraler Ellipsoide',
+      '👆 Mini-Vorschau im Statistik-Tab: Daumen-Wischen dreht die Figur leicht (~±40°)',
+      '🔄 Vollbild-Ansicht: 360°-Rotation in beide Richtungen, Auf/Ab-Wischen kippt die Ansicht',
+      '🎯 Tap auf einen Muskel öffnet Detail-Overlay mit %-Ring, letztem Training, empfohlener Pause & 7-Tage-Historie',
+      '🎨 Farbcode: Rot = sehr stark ermüdet · Orange = mittel · Grün = leicht · Hautton = erholt',
+      '🧠 Berechnung: Gewicht × Wiederholungen × Satz-Typ-Multiplikator (Warmup 0.2 · Top 1.3 · Drop 1.2 · Fail 1.35), Half-Life-Decay 36 h',
+      '📊 Tap auf Volumen-Chart → Vollbild für genauere Ansicht',
+    ]
+  },
   'cl-2026-05-27-big-update': {
     label: '27.05.2026 · Großes Feature-Update',
     items: [
@@ -4094,6 +4425,7 @@ function _dndOnEnd(e) {
   document.removeEventListener('touchend',  _dndOnEnd);
   document.removeEventListener('mousemove', _dndOnMove);
   document.removeEventListener('mouseup',   _dndOnEnd);
+  _dndAutoScrollStop();
 
   if (_dndGhost) { _dndGhost.remove(); _dndGhost = null; }
   document.querySelectorAll('.dnd-over,.dnd-row-over').forEach(n => { n.classList.remove('dnd-over'); n.classList.remove('dnd-row-over'); });
@@ -4213,6 +4545,7 @@ function _wkDndOnEnd(e) {
   document.removeEventListener('touchend',  _wkDndOnEnd);
   document.removeEventListener('mousemove', _wkDndOnMove);
   document.removeEventListener('mouseup',   _wkDndOnEnd);
+  _dndAutoScrollStop();
   if (_wkDndGhost) { _wkDndGhost.remove(); _wkDndGhost = null; }
   document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
   if (_wkDndLi != null && _wkDndOver != null && _wkDndLi !== _wkDndOver) {
@@ -4233,39 +4566,52 @@ function _dndToast(msg) {
 }
 
 // ── DRAG AUTO-SCROLL (wenn nahe oberer/unterer Rand des Scroll-Containers) ──
-function _dndAutoScroll(y) {
-  const EDGE = 90;       // px-Abstand zur Kante
-  const MAX_SPEED = 16;  // max px pro Frame
-  const vh = window.innerHeight;
-
-  // Welcher Container scrollt? (Sheet > Page > Window)
+// Aggressiver, kontinuierlicher Auto-Scroll via requestAnimationFrame:
+// solange das Ghost-Element nahe einem Rand bleibt, wird gescrollt – auch
+// wenn der Finger nicht weiter bewegt wird. Das fixt den Fall, dass man
+// Übungen vom Ende einer langen Seite auf einen Wochentag oben ziehen will.
+let _dndScrollRaf = null;
+let _dndScrollLastY = 0;
+function _dndScroller() {
+  // Aktiv: oberstes offenes Sheet (mit eigenem Scroll-Body) > aktuelle Page
   const sheet = document.querySelector('.ov.on .sheet');
-  let scroller = null;
-  let topEdge = 0, botEdge = vh;
   if (sheet) {
     const r = sheet.getBoundingClientRect();
-    scroller = sheet;
-    topEdge = r.top;
-    botEdge = r.bottom;
-  } else {
-    // aktuelle Page
-    const pg = document.querySelector('.pg.on') || document.scrollingElement;
-    scroller = pg || document.scrollingElement;
-    topEdge = 60;          // unter Tab-Bar
-    botEdge = vh - 80;     // über Tab-Bar
+    return { node: sheet, top: r.top, bot: r.bottom };
   }
-
-  let dy = 0;
-  if (y < topEdge + EDGE) {
-    dy = -MAX_SPEED * (1 - (y - topEdge) / EDGE);
-  } else if (y > botEdge - EDGE) {
-    dy =  MAX_SPEED * (1 - (botEdge - y) / EDGE);
+  const pg = document.querySelector('.pg.on');
+  if (pg) {
+    return { node: pg, top: 60, bot: window.innerHeight - 80 };
   }
-  if (dy && scroller && typeof scroller.scrollBy === 'function') {
-    scroller.scrollBy(0, dy);
-  } else if (dy) {
-    window.scrollBy(0, dy);
-  }
+  return { node: document.scrollingElement, top: 0, bot: window.innerHeight };
+}
+function _dndAutoScroll(y) {
+  _dndScrollLastY = y;
+  if (_dndScrollRaf) return; // läuft bereits
+  const tick = () => {
+    _dndScrollRaf = null;
+    const y2 = _dndScrollLastY;
+    const { node, top, bot } = _dndScroller();
+    if (!node) return;
+    const EDGE = 120;         // großzügiger Rand: 120px vom Rand triggert scroll
+    const MAX_SPEED = 22;     // schnellere Geschwindigkeit für lange Listen
+    let dy = 0;
+    if (y2 < top + EDGE) {
+      const t = Math.max(0, (top + EDGE - y2) / EDGE);
+      dy = -MAX_SPEED * t * t;
+    } else if (y2 > bot - EDGE) {
+      const t = Math.max(0, (y2 - (bot - EDGE)) / EDGE);
+      dy =  MAX_SPEED * t * t;
+    }
+    if (dy !== 0) {
+      node.scrollBy(0, dy);
+      _dndScrollRaf = requestAnimationFrame(tick);
+    }
+  };
+  _dndScrollRaf = requestAnimationFrame(tick);
+}
+function _dndAutoScrollStop() {
+  if (_dndScrollRaf) { cancelAnimationFrame(_dndScrollRaf); _dndScrollRaf = null; }
 }
 
 // ── FEEDBACK ───────────────────────────────────────────
@@ -4394,24 +4740,68 @@ function renderWheel() {
       <div class="wheel-label">${c.label}</div>
     </div>`;
   }).join('');
-  // Scroll-Listener einrichten
+  // Scroll-Listener einrichten — JS-basiert mit Inertia + Snap nach Stillstand,
+  // damit sich die Walze beim Loslassen flüssig austrudelt (statt sofortigem Snap).
   setTimeout(() => {
     _wheelCtx.cols.forEach((c, ci) => {
       const list = document.getElementById('wheel-list-'+ci);
       if (!list) return;
-      // Initial-Position
-      list.scrollTo({top: c.idx * 44, behavior:'instant'});
-      let snapTo = null;
-      list.addEventListener('scroll', () => {
+      list.scrollTo({top: c.idx * 44, behavior: 'auto'});
+      let snapTimer = null;
+      let isTouching = false;
+      let scrollEndPoll = null;
+      let lastTop = list.scrollTop;
+      let stillCount = 0;
+
+      const updateHighlight = () => {
         const idx = Math.max(0, Math.min(c.values.length-1, Math.round(list.scrollTop / 44)));
         if (idx !== c.idx) {
           c.idx = idx;
-          // Center-Highlight aktualisieren
           list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
-          // leichte Haptik
           if (typeof haptic === 'function') haptic(4);
         }
-      }, {passive:true});
+      };
+
+      const snapToCenter = () => {
+        const idx = Math.max(0, Math.min(c.values.length-1, Math.round(list.scrollTop / 44)));
+        const target = idx * 44;
+        if (Math.abs(list.scrollTop - target) > 0.5) {
+          list.scrollTo({top: target, behavior: 'smooth'});
+        }
+        c.idx = idx;
+      };
+
+      const startScrollEndPoll = () => {
+        if (scrollEndPoll) return;
+        lastTop = list.scrollTop;
+        stillCount = 0;
+        scrollEndPoll = setInterval(() => {
+          if (isTouching) { stillCount = 0; lastTop = list.scrollTop; return; }
+          if (Math.abs(list.scrollTop - lastTop) < 0.5) {
+            stillCount++;
+            if (stillCount >= 3) {  // 3×80ms = ~240ms ohne Bewegung → snap
+              clearInterval(scrollEndPoll);
+              scrollEndPoll = null;
+              snapToCenter();
+            }
+          } else {
+            stillCount = 0;
+            lastTop = list.scrollTop;
+          }
+        }, 80);
+      };
+
+      list.addEventListener('scroll', () => {
+        updateHighlight();
+        startScrollEndPoll();
+      }, {passive: true});
+
+      list.addEventListener('touchstart', () => { isTouching = true; }, {passive: true});
+      list.addEventListener('touchend',   () => { isTouching = false; startScrollEndPoll(); }, {passive: true});
+      list.addEventListener('touchcancel',() => { isTouching = false; startScrollEndPoll(); }, {passive: true});
+      // Pointer für Maus / Desktop
+      list.addEventListener('pointerdown', () => { isTouching = true; }, {passive: true});
+      window.addEventListener('pointerup',   () => { isTouching = false; startScrollEndPoll(); }, {passive: true});
     });
   }, 30);
 }
@@ -5052,9 +5442,489 @@ function dateShort(d) {
   return new Date(d).toLocaleDateString('de-DE', {day:'numeric', month:'short'});
 }
 
+/* ════════════════════════════════════════════════════════════════
+   MUSKEL-ERMÜDUNGS-MODUL
+   ──────────────────────
+   • Berechnet pro Muskel einen Fatigue-Wert (0–100%) aus den Sessions
+   • Faktoren: Gewicht × Reps × Satz-Typ-Multiplikator
+   • Decay: Half-Life 36 h (nach 36 h ist die Ermüdung halbiert)
+   • Fenster: nur Sessions der letzten 7 Tage relevant
+   ════════════════════════════════════════════════════════════════ */
+const FAT_HALFLIFE_H = 36;
+const FAT_WINDOW_H   = 168;            // 7 Tage
+const FAT_NORM_LOAD  = 800;            // Normalisierungs-Last für 100% (≈ schwere Trainings-Session pro Muskel)
+
+/* Satz-Typ-Multiplikatoren für die Ermüdung */
+function setTypeMul(t) {
+  switch ((t || 'normal').toLowerCase()) {
+    case 'warmup': return 0.20;   // kaum Ermüdung
+    case 'top':    return 1.30;   // schwerster Satz
+    case 'drop':   return 1.20;   // Drop-Set zerrt mehr
+    case 'fail':   return 1.35;   // bis zum Versagen
+    default:       return 1.00;   // normaler Arbeitssatz
+  }
+}
+
+/* Muskel-Definitionen
+   - mg: MUSCLE_GROUPS-id für Fallback-Verteilung
+   - kw: Schlagworte zum Abgleich gegen Übungsname (lowercase)
+   - front/back: Hotspots auf der jeweiligen Ansicht in 0..100 Koordinaten (viewBox 100×160)
+*/
+const MUSCLES = [
+  { id:'chest', label:'Brust', mg:'brust',
+    kw:['bank','bench','butterfly','fly','flie','flys','dip','liege','schräg','schraeg','incline','decline','klimm','push-up','pushup','liegestütz','press-up'],
+    front:[{cx:37,cy:38,rx:10,ry:7},{cx:63,cy:38,rx:10,ry:7}], back:[] },
+
+  { id:'shoulders_front', label:'Vordere Schulter', mg:'schultern',
+    kw:['front-press','vorder','militär','military','arnold','overhead-press','ohp','schulterdrücken','shoulder-press','front-rais','frontheb'],
+    front:[{cx:21,cy:28,rx:7.5,ry:6},{cx:79,cy:28,rx:7.5,ry:6}], back:[] },
+
+  { id:'shoulders_side', label:'Seitliche Schulter', mg:'schultern',
+    kw:['side-rais','seitheb','lateral','lat-rais','side-lat','upright'],
+    front:[{cx:14,cy:30,rx:5,ry:6},{cx:86,cy:30,rx:5,ry:6}],
+    back:[{cx:14,cy:30,rx:5,ry:6},{cx:86,cy:30,rx:5,ry:6}] },
+
+  { id:'shoulders_rear', label:'Hintere Schulter', mg:'schultern',
+    kw:['rear','hintere','reverse','rev-fly','face-pull','facepull','pull-apart','bent-over-rais','reverse-fly'],
+    front:[], back:[{cx:21,cy:29,rx:7,ry:5},{cx:79,cy:29,rx:7,ry:5}] },
+
+  { id:'traps', label:'Trapezius', mg:'ruecken',
+    kw:['trap','nacken','shrug','schrug','rack-pull'],
+    front:[{cx:50,cy:22,rx:9,ry:3}],
+    back:[{cx:50,cy:26,rx:14,ry:6}] },
+
+  { id:'mid_back', label:'Mittlerer Rücken', mg:'ruecken',
+    kw:['rhomboid','mittlerer-rücken','mittlerer-ruecken','rud','row','rowing','seated-row','bent-over-row','t-bar','meadows','face-pull','facepull','reverse-fly','rev-fly','pull-apart','retraction'],
+    front:[], back:[{cx:50,cy:37,rx:14,ry:7}] },
+
+  { id:'lats', label:'Latissimus', mg:'ruecken',
+    kw:['lat','klimmz','klimm','pull-up','pullup','chin','latzug','pulldown','rud','row','rowing','t-bar','seated-row','one-arm','bent-over-row','meadows'],
+    front:[], back:[{cx:34,cy:44,rx:9,ry:11},{cx:66,cy:44,rx:9,ry:11}] },
+
+  { id:'lower_back', label:'Unterer Rücken', mg:'ruecken',
+    kw:['kreuzheb','deadlift','dead','goodmorn','good-morn','hyperexten','back-exten','rückenstreck'],
+    front:[], back:[{cx:50,cy:60,rx:10,ry:6}] },
+
+  { id:'biceps', label:'Bizeps', mg:'arme',
+    kw:['biz','bicep','curl','klimm','chin','hammer','konzentr','prediger','preacher','scott'],
+    front:[{cx:14,cy:43,rx:4.5,ry:7},{cx:86,cy:43,rx:4.5,ry:7}], back:[] },
+
+  { id:'triceps', label:'Trizeps', mg:'arme',
+    kw:['triz','tricep','dip','french','skull','crusher','pushdown','press-down','overhead-ex','kickback','kick-back'],
+    front:[], back:[{cx:14,cy:43,rx:4.5,ry:7.5},{cx:86,cy:43,rx:4.5,ry:7.5}] },
+
+  { id:'abs', label:'Bauchmuskeln', mg:'core',
+    kw:['bauch','abs','sit-up','situp','crunch','plank','unterarmstütz','beinheb','leg-rais','knee-rais','knie-heb','hollow','dragon','toes-to-bar','v-up'],
+    front:[{cx:50,cy:54,rx:6,ry:11}], back:[] },
+
+  { id:'obliques', label:'Schräge Bauchmuskeln', mg:'core',
+    kw:['oblique','schräg','side-bend','russian','wood','holzfäll','rotation','seitlich','bicycle','side-plank','side-crunch'],
+    front:[{cx:38,cy:55,rx:3,ry:8},{cx:62,cy:55,rx:3,ry:8}], back:[] },
+
+  { id:'glutes', label:'Gesäß', mg:'beine',
+    kw:['gluteus','glute','gesäß','po','hip-thrust','thrust','hip-abduct','bridge','b-stand'],
+    front:[], back:[{cx:41,cy:71,rx:7,ry:6},{cx:59,cy:71,rx:7,ry:6}] },
+
+  { id:'quads', label:'Quadrizeps', mg:'beine',
+    kw:['quad','squat','squad','kniebeug','leg-press','beinpress','beinstreck','leg-exten','extension','front-squat','lunge','ausfall','hack','bulgarian','split-squat','smith','step-up'],
+    front:[{cx:42,cy:85,rx:7,ry:13},{cx:58,cy:85,rx:7,ry:13}], back:[] },
+
+  { id:'hamstrings', label:'Beinbeuger', mg:'beine',
+    kw:['hamstring','beinbeug','leg-curl','beincurl','rdl','romanian','stiff-leg','stiff-knee','glute-ham','nordic'],
+    front:[], back:[{cx:42,cy:88,rx:7,ry:11},{cx:58,cy:88,rx:7,ry:11}] },
+
+  { id:'calves', label:'Waden', mg:'beine',
+    kw:['wade','calf','heel','standing-calf','sitting-calf','seated-calf','donkey'],
+    front:[], back:[{cx:42,cy:122,rx:5,ry:11},{cx:58,cy:122,rx:5,ry:11}] },
+];
+const MUSCLES_BY_ID = MUSCLES.reduce((m,x)=>{m[x.id]=x;return m;},{});
+
+/* MUSCLE_GROUP-id → Liste von Muskeln (für Fallback, wenn Übungsname keine Treffer hat) */
+const MUSCLES_BY_MG = MUSCLES.reduce((acc, m) => {
+  (acc[m.mg] = acc[m.mg] || []).push(m);
+  return acc;
+}, {});
+
+/* Übung → Verteilung der Last auf Muskeln (Summe = 1.0)
+   Heuristik: 1) Schlagwort-Treffer im Namen
+              2) Sonst gleichmäßig auf alle Muskeln der Hauptgruppe */
+function exerciseMuscleWeights(ex) {
+  if (!ex) return {};
+  const name = String(ex.name || '').toLowerCase();
+  const hits = [];
+  for (const m of MUSCLES) {
+    if (m.kw.some(k => name.includes(k))) hits.push(m.id);
+  }
+  if (hits.length) {
+    const w = 1 / hits.length;
+    return hits.reduce((acc, id) => { acc[id] = w; return acc; }, {});
+  }
+  // Fallback: über MUSCLE_GROUPS verteilen
+  const list = MUSCLES_BY_MG[ex.muscleGroup] || [];
+  if (!list.length) return {};
+  const w = 1 / list.length;
+  return list.reduce((acc, m) => { acc[m.id] = w; return acc; }, {});
+}
+
+/* Last eines einzelnen Satzes (in kg-reps-Äquivalent) */
+function setLoad(s) {
+  const w = parseFloat(s.w) || 0;
+  const r = parseInt(s.r)  || 0;
+  if (!w || !r) return 0;
+  return w * r * setTypeMul(s.type);
+}
+
+/* Berechnet aktuellen Ermüdungs-% pro Muskel (cached) */
+let _fatigueCache = null;
+function invalidateFatigue() { _fatigueCache = null; }
+function getFatigue() {
+  if (_fatigueCache && (Date.now() - _fatigueCache.ts) < 60 * 1000) return _fatigueCache.data;
+  _fatigueCache = { ts: Date.now(), data: computeFatigueAll() };
+  return _fatigueCache.data;
+}
+function computeFatigueAll() {
+  const now = Date.now();
+  const cutoff = now - FAT_WINDOW_H * 3600 * 1000;
+  /* Akkumuliere pro Muskel: gewichtete Last × Decay */
+  const acc = {};
+  for (const m of MUSCLES) acc[m.id] = { load:0, lastTs:null, lastEx:null, lastVol:0, hist:[] };
+
+  for (const ses of (S.sessions || [])) {
+    const ts = new Date(ses.date).getTime();
+    if (!ts || ts < cutoff) continue;
+    const hoursAgo = (now - ts) / 3600000;
+    const decay = Math.pow(0.5, hoursAgo / FAT_HALFLIFE_H);
+
+    for (const log of (ses.logs || [])) {
+      const ex = S.exercises.find(e => e.id === log.exerciseId);
+      if (!ex) continue;
+      const weights = exerciseMuscleWeights(ex);
+      const ids = Object.keys(weights);
+      if (!ids.length) continue;
+      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      if (exVol <= 0) continue;
+
+      for (const id of ids) {
+        const w = weights[id];
+        const contrib = exVol * w;
+        acc[id].load += contrib * decay;
+        acc[id].hist.push({ date: ses.date, ts, exId: ex.id, exName: ex.name, vol: contrib });
+        if (!acc[id].lastTs || ts > acc[id].lastTs) {
+          acc[id].lastTs  = ts;
+          acc[id].lastEx  = ex.name;
+          acc[id].lastVol = contrib;
+        }
+      }
+    }
+  }
+
+  /* Normalisieren auf 0..100 */
+  const out = {};
+  for (const m of MUSCLES) {
+    const raw = acc[m.id].load;
+    const pct = Math.min(100, Math.round((raw / FAT_NORM_LOAD) * 100));
+    out[m.id] = {
+      pct,
+      raw,
+      lastTs:  acc[m.id].lastTs,
+      lastEx:  acc[m.id].lastEx,
+      lastVol: acc[m.id].lastVol,
+      hist:    acc[m.id].hist.sort((a,b)=>b.ts-a.ts),
+    };
+  }
+  return out;
+}
+
+/* Farbe für %-Wert */
+function fatigueColor(pct) {
+  if (pct < 5)  return '#7f8c95';   // grau – erholt
+  if (pct < 25) return '#34c759';   // grün – leicht
+  if (pct < 60) return '#ff9500';   // orange – mittel
+  return '#ff3b30';                  // rot – stark
+}
+function fatigueState(pct) {
+  if (pct < 5)  return 'Erholt';
+  if (pct < 25) return 'Leichte Ermüdung';
+  if (pct < 60) return 'Mittlere Ermüdung';
+  return 'Starke Ermüdung';
+}
+function fatigueRecoveryHours(pct) {
+  // Wie lange bis Wert unter 20% sinkt (Half-Life-Decay)
+  if (pct <= 20) return 0;
+  return Math.ceil(FAT_HALFLIFE_H * Math.log2(pct / 20));
+}
+function fmtRecovery(h) {
+  if (h <= 0) return 'bereit';
+  if (h < 24) return h + ' h';
+  const d = Math.floor(h / 24), r = h % 24;
+  return r ? (d + ' Tag' + (d>1?'e ':' ') + r + ' h') : (d + ' Tag' + (d>1?'e':''));
+}
+function fmtLastTraining(ts) {
+  if (!ts) return '–';
+  const h = Math.floor((Date.now() - ts) / 3600000);
+  if (h < 1)  return 'gerade eben';
+  if (h < 24) return 'vor ' + h + ' h';
+  const d = Math.floor(h / 24);
+  if (d === 1) return 'gestern';
+  if (d < 7)   return 'vor ' + d + ' Tagen';
+  return new Date(ts).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MUSKEL-ERHOLUNGS-LISTE (ersetzt das frühere 3D-Modell)
+   ──────────────────────
+   Akku-Symbol pro Muskel: Recovery% = 100 − Fatigue%
+   Sortierung: meist-erholt oben → am wenigsten erholt unten
+   Personalisierte Skala: Norm-Last = rolling max aus eigener Historie
+   ════════════════════════════════════════════════════════════════ */
+
+/* Personalisierte Norm-Last pro Muskel (rolling max der letzten 90 Tage) */
+function _personalNormLoad(muscleId) {
+  const now = Date.now();
+  const cutoff = now - 90 * 24 * 3600 * 1000;
+  let best = 0;
+  // Pro Session: gewichtete Last für diesen Muskel summieren, max nehmen.
+  for (const ses of (S.sessions || [])) {
+    const ts = new Date(ses.date).getTime();
+    if (!ts || ts < cutoff) continue;
+    let sesLoad = 0;
+    for (const log of (ses.logs || [])) {
+      const ex = S.exercises.find(e => e.id === log.exerciseId);
+      if (!ex) continue;
+      const weights = exerciseMuscleWeights(ex);
+      const w = weights[muscleId];
+      if (!w) continue;
+      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      sesLoad += exVol * w;
+    }
+    if (sesLoad > best) best = sesLoad;
+  }
+  // Mindestens FAT_NORM_LOAD, damit erste Sessions nicht sofort 100% anzeigen.
+  return Math.max(FAT_NORM_LOAD * 0.5, best);
+}
+
+/* Recovery% pro Muskel auf Basis personalisierter Skala */
+function getRecovery() {
+  const now = Date.now();
+  const cutoff = now - FAT_WINDOW_H * 3600 * 1000;
+  const acc = {};
+  for (const m of MUSCLES) acc[m.id] = { load:0, lastTs:null, lastEx:null, lastVol:0, hist:[] };
+
+  for (const ses of (S.sessions || [])) {
+    const ts = new Date(ses.date).getTime();
+    if (!ts || ts < cutoff) continue;
+    const hoursAgo = (now - ts) / 3600000;
+    const decay = Math.pow(0.5, hoursAgo / FAT_HALFLIFE_H);
+
+    for (const log of (ses.logs || [])) {
+      const ex = S.exercises.find(e => e.id === log.exerciseId);
+      if (!ex) continue;
+      const weights = exerciseMuscleWeights(ex);
+      const ids = Object.keys(weights);
+      if (!ids.length) continue;
+      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      if (exVol <= 0) continue;
+      for (const id of ids) {
+        const w = weights[id];
+        const contrib = exVol * w;
+        acc[id].load += contrib * decay;
+        acc[id].hist.push({ date: ses.date, ts, exId: ex.id, exName: ex.name, vol: contrib });
+        if (!acc[id].lastTs || ts > acc[id].lastTs) {
+          acc[id].lastTs  = ts;
+          acc[id].lastEx  = ex.name;
+          acc[id].lastVol = contrib;
+        }
+      }
+    }
+  }
+
+  const out = {};
+  for (const m of MUSCLES) {
+    const norm = _personalNormLoad(m.id);
+    const fatRaw = acc[m.id].load;
+    const fatPct = Math.min(100, Math.round((fatRaw / norm) * 100));
+    const recPct = Math.max(0, 100 - fatPct);
+    out[m.id] = {
+      recPct,
+      fatPct,
+      raw: fatRaw,
+      lastTs:  acc[m.id].lastTs,
+      lastEx:  acc[m.id].lastEx,
+      lastVol: acc[m.id].lastVol,
+      hist:    acc[m.id].hist.sort((a,b)=>b.ts-a.ts),
+    };
+  }
+  return out;
+}
+
+/* Akku-Farbe nach Recovery (umgekehrte Logik zu Fatigue):
+   0..30% leer = rot · 30..65% halb = orange/gelb · 65..100% voll = grün */
+function recoveryColor(pct) {
+  if (pct < 30) return '#ff3b30';
+  if (pct < 55) return '#ff9500';
+  if (pct < 75) return '#ffcc00';
+  return '#34c759';
+}
+function recoveryState(pct) {
+  if (pct < 30) return 'Nicht erholt';
+  if (pct < 55) return 'Wenig erholt';
+  if (pct < 75) return 'Fast bereit';
+  return 'Bereit';
+}
+
+/* Stub für Kompatibilität (frühere Aufrufer) */
+function invalidateRecovery() { /* personalNormLoad ist on-the-fly */ }
+
+/* Rendert die Akku-Liste auf dem Stats-Tab */
+function renderRecoveryList() {
+  const host = document.getElementById('rec-list');
+  if (!host) return;
+  const rec = getRecovery();
+  const hasSessions = (S.sessions || []).length > 0;
+  if (!hasSessions) {
+    host.innerHTML = '<div class="rec-list-empty">Noch keine Trainings.<br>Logge dein erstes Workout, um deine Erholung zu sehen.</div>';
+    return;
+  }
+  const rows = MUSCLES
+    .map(m => ({ m, r: rec[m.id] || { recPct:100, fatPct:0, lastTs:null, lastEx:null } }))
+    .sort((a,b) => b.r.recPct - a.r.recPct);
+
+  host.innerHTML = rows.map(({m, r}) => {
+    const col = recoveryColor(r.recPct);
+    const sub = r.lastTs
+      ? (recoveryState(r.recPct) + ' · zuletzt ' + fmtLastTraining(r.lastTs))
+      : (recoveryState(r.recPct) + ' · noch nicht trainiert');
+    const emptyCls = r.recPct < 15 ? ' is-empty' : '';
+    return '<div class="rec-row" onclick="openMuscleDetail(\'' + m.id + '\')">'
+      + '<div class="rec-row-body">'
+      + '<div class="rec-row-title">' + m.label + '</div>'
+      + '<div class="rec-row-sub">' + sub + '</div>'
+      + '</div>'
+      + '<div class="rec-batt' + emptyCls + '">'
+      + '<div class="rec-batt-fill" style="width:' + Math.max(4, r.recPct) + '%;background:' + col + ';color:' + col + '"></div>'
+      + '<div class="rec-batt-val">' + r.recPct + '%</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+/* Kompat-Stubs für alten Aufruf-Sites */
+function renderFatigueMini() { renderRecoveryList(); }
+function openFatigueFull()   { /* deprecated – Liste ist direkt sichtbar */ }
+function setFatSide()        { /* deprecated */ }
+function toggleMuscleEditor(){ /* deprecated */ }
+function onEditMuscleChange(){ /* deprecated */ }
+function onEditCapsuleChange(){/* deprecated */ }
+function onEditRadiusChange(){ /* deprecated */ }
+function saveMuscleEdit()    { /* deprecated */ }
+function resetMuscleEdit()   { /* deprecated */ }
+function addCapsuleAtCurrent(){ /* deprecated */ }
+function removeCapsuleAtCurrent(){ /* deprecated */ }
+function exportMuscleEdit()  { /* deprecated */ }
+
+/* ════════════════════════════════════════════════════════════════
+   MUSKEL-DETAIL-OVERLAY (Tap auf Hotspot)
+   ════════════════════════════════════════════════════════════════ */
+function openMuscleDetail(id) {
+  const m = MUSCLES_BY_ID[id];
+  if (!m) return;
+  const fat = getFatigue();
+  const f = fat[id] || { pct:0, lastTs:null, lastEx:null, hist:[] };
+
+  document.getElementById('mus-title').textContent  = m.label;
+  document.getElementById('mus-sub-grp').textContent = muscleLabel(m.mg) || '';
+
+  const pct = f.pct;
+  const col = fatigueColor(pct);
+  const state = fatigueState(pct);
+  const rec = fatigueRecoveryHours(pct);
+
+  /* Ring: SVG circle mit stroke-dasharray */
+  const R = 60, C = 2 * Math.PI * R;
+  const dash = (pct / 100) * C;
+
+  const histRows = (f.hist || []).slice(0, 8).map(h => `
+    <div class="mus-hist-row">
+      <span class="mus-hist-date">${fmtLastTraining(h.ts)}</span>
+      <span class="mus-hist-ex">${h.exName || '?'}</span>
+      <span class="mus-hist-vol">${fmtKg(h.vol)}</span>
+    </div>
+  `).join('') || `<div style="padding:10px;color:var(--text2);font-size:13px;text-align:center">Keine Einheiten in den letzten 7 Tagen.</div>`;
+
+  document.getElementById('mus-body').innerHTML = `
+    <div class="mus-ring-wrap">
+      <div class="mus-ring">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--gl-bdr)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="${R}" fill="none" stroke="${col}" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="${dash} ${C-dash}"/>
+        </svg>
+        <div class="mus-ring-val">
+          <div class="mus-ring-pct" style="color:${col}">${pct}%</div>
+          <div class="mus-ring-state">${state}</div>
+        </div>
+      </div>
+    </div>
+    <div class="mus-stats-grid">
+      <div class="mus-stat-box">
+        <div class="mus-stat-l">Letztes Training</div>
+        <div class="mus-stat-v">${fmtLastTraining(f.lastTs)}</div>
+      </div>
+      <div class="mus-stat-box">
+        <div class="mus-stat-l">Empfohlene Pause</div>
+        <div class="mus-stat-v">${fmtRecovery(rec)}</div>
+      </div>
+    </div>
+    ${f.lastEx ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px;text-align:center">
+      Letzte Übung für diesen Muskel: <span style="color:var(--text);font-weight:600">${f.lastEx}</span>
+    </div>` : ''}
+    <div class="s-title" style="margin-top:6px">Trainings-Historie (7 Tage)</div>
+    <div class="card" style="padding:6px 12px">${histRows}</div>
+  `;
+  openOv('ov-muscle');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VOLUMEN-VOLLBILD
+   ════════════════════════════════════════════════════════════════ */
+let _volFullChart = null;
+function openVolumeFull() {
+  openOv('ov-volume');
+  setTimeout(() => {
+    if (_volFullChart) { _volFullChart.destroy(); _volFullChart = null; }
+    const canvas = document.getElementById('vol-full-chart');
+    if (!canvas) return;
+    const sessions = [...S.sessions].sort((a,b) => new Date(a.date) - new Date(b.date));
+    const pts = sessions.map(s => ({x: dateShort(s.date), y: sessionVolume(s)})).filter(p => p.y > 0);
+    const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+    _volFullChart = new Chart(canvas.getContext('2d'), {
+      type:'line',
+      data:{
+        labels: pts.map(p=>p.x),
+        datasets:[{
+          data: pts.map(p=>p.y),
+          borderColor: acc, backgroundColor: acc+'22',
+          fill:true, tension:.4, pointBackgroundColor:acc,
+          pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:12}}},
+          y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:12},callback:v=>fmtKg(v)}}
+        }
+      }
+    });
+  }, 60);
+}
+
 function renderStats() {
+  invalidateFatigue();
   renderStatsSummary();
   renderStatsOverallChart();
+  renderFatigueMini();
   renderHeatmap();
   renderStatsMuscleGroups();
   renderStatsExerciseList();
@@ -5108,15 +5978,16 @@ function renderStatsOverallChart() {
         data: pts.map(p=>p.y),
         borderColor: acc, backgroundColor: acc+'22',
         fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+        pointRadius:3, pointHoverRadius:5, borderWidth:2
       }]
     },
     options:{
       responsive:true,
+      maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>fmtKg(v)}}
+        x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:4}},
+        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:9},maxTicksLimit:4,callback:v=>fmtKg(v)}}
       }
     }
   });
@@ -5484,6 +6355,7 @@ function renderLogCards() {
     const prevSets = lastSessionSetsFor(log.exerciseId);
     const displayName = log._overrideName || ex.name;
     return `<div class="ex-card" data-li="${li}">
+      <div class="ex-card-swipe-bg"><span>🗑 Entfernen</span></div>
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
@@ -5532,6 +6404,81 @@ function renderLogCards() {
       </div>
     </div>`;
   }).join('');
+  _attachSwipeToDelete();
+}
+
+/* ── SWIPE-TO-DELETE (Übung im aktiven Training nach links wischen) ──
+   Threshold: 35% der Card-Breite. Unter dem Threshold → zurückspringen.
+   Über dem Threshold → Card raus-animieren + aus wkLogs löschen.        */
+function _attachSwipeToDelete() {
+  const cards = document.querySelectorAll('#log-cards .ex-card');
+  cards.forEach(card => {
+    if (card._swipeBound) return;
+    card._swipeBound = true;
+    let startX = 0, startY = 0;
+    let dx = 0;
+    let active = false;
+    let decided = false;
+    let dir = null; // 'h' | 'v'
+    const bg = card.querySelector('.ex-card-swipe-bg');
+
+    const onStart = (e) => {
+      // Wenn das Touch auf einem Button / Input / Drag-Handle startet → kein Swipe
+      const tgt = e.target;
+      if (tgt.closest('button, input, .wk-drag-handle, .set-in, .set-chk, .set-del, .set-type, .set-timer-btn, .add-set-btn, .ex-info-btn, .ex-title-tap')) return;
+      const t = e.touches ? e.touches[0] : e;
+      startX = t.clientX; startY = t.clientY;
+      dx = 0; active = true; decided = false; dir = null;
+      card.classList.add('is-swiping');
+    };
+    const onMove = (e) => {
+      if (!active) return;
+      const t = e.touches ? e.touches[0] : e;
+      const ax = t.clientX - startX;
+      const ay = t.clientY - startY;
+      if (!decided) {
+        if (Math.abs(ax) > 8 || Math.abs(ay) > 8) {
+          decided = true;
+          dir = Math.abs(ax) > Math.abs(ay) ? 'h' : 'v';
+        }
+      }
+      if (dir !== 'h') return;
+      // Nur Links-Swipe (negative dx)
+      dx = Math.min(0, ax);
+      card.style.transform = 'translateX(' + dx + 'px)';
+      const cw = card.offsetWidth || 1;
+      if (bg) bg.classList.toggle('on', Math.abs(dx) > cw * 0.15);
+      if (Math.abs(ax) > 8 && e.cancelable) e.preventDefault();
+    };
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      card.classList.remove('is-swiping');
+      if (dir !== 'h') { card.style.transform = ''; if (bg) bg.classList.remove('on'); return; }
+      const cw = card.offsetWidth || 1;
+      const li = parseInt(card.dataset.li);
+      if (Math.abs(dx) > cw * 0.35 && !Number.isNaN(li)) {
+        card.classList.add('swipe-removing');
+        try { haptic([15, 30, 15]); } catch(_) {}
+        setTimeout(() => {
+          wkLogs.splice(li, 1);
+          renderLogCards();
+        }, 320);
+      } else {
+        card.style.transform = '';
+        if (bg) bg.classList.remove('on');
+      }
+    };
+
+    card.addEventListener('touchstart', onStart, {passive: true});
+    card.addEventListener('touchmove',  onMove,  {passive: false});
+    card.addEventListener('touchend',   onEnd);
+    card.addEventListener('touchcancel', onEnd);
+    card.addEventListener('mousedown',  onStart);
+    card.addEventListener('mousemove',  onMove);
+    card.addEventListener('mouseup',    onEnd);
+    card.addEventListener('mouseleave', onEnd);
+  });
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
@@ -5578,7 +6525,18 @@ function finishWk() {
   wkExIds = [];
   closeOv('ov-wk');
   updateWkMiniVisibility();
-  showDone(S.sessions[S.sessions.length-1]);
+  // === Auto-Sync: Muskel-Erholung neu berechnen + Liste re-rendern ===
+  invalidateFatigue();
+  invalidateRecovery();
+  try {
+    const statsActive = document.getElementById('pg-stats')?.classList.contains('on');
+    if (statsActive) renderRecoveryList();
+  } catch(_) {}
+  // PR-Erkennung + Feier vor showDone, damit der Done-Screen die PRs zeigen kann.
+  const newSession = S.sessions[S.sessions.length-1];
+  const prs = detectPRs(newSession);
+  if (prs.length) celebratePRs(prs);
+  showDone(newSession, prs);
   fireConfetti();
   renderHome();
 }
@@ -5627,9 +6585,121 @@ function fireConfetti(count = 90) {
   } catch (e) { /* silent */ }
 }
 
-function showDone(ses) {
+/* ── PR-ERKENNUNG ──
+   Vergleicht jeden Set der neuen Session mit allen vorherigen Sessions:
+   - max-weight       : neues schwerstes je gemachtes Gewicht
+   - max-reps-at-w    : meiste Reps bei einem Gewicht das mindestens so schwer war
+   - max-1rm          : neues bestes geschätztes 1RM (Epley)                       */
+function detectPRs(newSession) {
+  if (!newSession || !newSession.logs) return [];
+  const prs = [];
+  const prevSessions = (S.sessions || []).filter(s => s.id !== newSession.id);
+
+  for (const log of newSession.logs) {
+    const ex = exById(log.exerciseId);
+    if (!ex) continue;
+    if (ex.targetType === 'time') continue; // Zeit-Übungen: keine PR-Logik
+
+    // Beste vorherige Werte sammeln
+    let prevMaxW = 0, prevMax1RM = 0;
+    const prevRepsAt = {}; // w(rounded) → maxReps
+    for (const ps of prevSessions) {
+      for (const pl of (ps.logs || [])) {
+        if (pl.exerciseId !== ex.id) continue;
+        for (const s of (pl.sets || [])) {
+          const w = parseFloat(s.w) || 0;
+          const r = parseInt(s.r)   || 0;
+          if (!w || !r) continue;
+          if (w > prevMaxW) prevMaxW = w;
+          const oneRm = w * (1 + r/30);
+          if (oneRm > prevMax1RM) prevMax1RM = oneRm;
+          const key = Math.round(w * 4) / 4; // 0.25er Bucket
+          if (!prevRepsAt[key] || r > prevRepsAt[key]) prevRepsAt[key] = r;
+        }
+      }
+    }
+
+    // Neue Sets prüfen
+    let bestNewW = 0, bestNewSet = null, bestNew1RM = 0, bestNew1RMSet = null;
+    let repsPR = null;
+    for (const s of (log.sets || [])) {
+      const w = parseFloat(s.w) || 0;
+      const r = parseInt(s.r)   || 0;
+      if (!w || !r) continue;
+      if (w > bestNewW) { bestNewW = w; bestNewSet = s; }
+      const oneRm = w * (1 + r/30);
+      if (oneRm > bestNew1RM) { bestNew1RM = oneRm; bestNew1RMSet = s; }
+      // Reps-PR: bei gleichem oder schwererem Gewicht mehr Reps als je zuvor
+      const key = Math.round(w * 4) / 4;
+      const prevR = prevRepsAt[key] || 0;
+      if (prevR > 0 && r > prevR && (!repsPR || r > repsPR.r)) {
+        repsPR = { w, r, prevR };
+      }
+    }
+
+    // PR-Typen sammeln (max-weight hat Vorrang, dann 1RM, dann reps)
+    if (prevMaxW > 0 && bestNewW > prevMaxW) {
+      prs.push({
+        type: 'weight', exId: ex.id, exName: ex.name,
+        newVal: bestNewW, prevVal: prevMaxW,
+        label: 'Neues Max-Gewicht', unit: unitLabel()
+      });
+    } else if (prevMax1RM > 0 && bestNew1RM > prevMax1RM + 0.5) {
+      prs.push({
+        type: '1rm', exId: ex.id, exName: ex.name,
+        newVal: Math.round(bestNew1RM * 10) / 10,
+        prevVal: Math.round(prevMax1RM * 10) / 10,
+        label: 'Neues 1RM (geschätzt)', unit: unitLabel()
+      });
+    } else if (repsPR) {
+      prs.push({
+        type: 'reps', exId: ex.id, exName: ex.name,
+        newVal: repsPR.r, prevVal: repsPR.prevR,
+        label: 'Neue Reps-Bestleistung bei ' + kgToDisp(repsPR.w) + ' ' + unitLabel(),
+        unit: 'Wdh'
+      });
+    }
+  }
+  return prs;
+}
+
+/* Zelebrieren: dicker Burst-Toast pro PR, gestaffelt + Haptik + Extra-Konfetti */
+function celebratePRs(prs) {
+  if (!prs || !prs.length) return;
+  let host = document.getElementById('pr-burst-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'pr-burst-host';
+    host.className = 'pr-burst-host';
+    document.body.appendChild(host);
+  }
+  try { haptic([30, 60, 30, 60, 30]); } catch(_) {}
+  prs.forEach((pr, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'pr-burst';
+      el.innerHTML = '<div>🏆 NEUER PR</div>'
+        + '<div class="pr-burst-sub">' + pr.exName + '</div>'
+        + '<div class="pr-burst-sub">' + pr.label + ': <b>' + pr.newVal + ' ' + pr.unit + '</b></div>'
+        + (pr.prevVal ? '<div class="pr-burst-sub" style="opacity:.65;font-size:11px">vorher ' + pr.prevVal + ' ' + pr.unit + '</div>' : '');
+      host.appendChild(el);
+      try { fireConfetti(45); } catch(_) {}
+      setTimeout(() => el.remove(), 1700);
+    }, i * 1200);
+  });
+}
+
+function showDone(ses, prs) {
+  prs = prs || [];
   const sets = ses.logs.reduce((s,l)=>s+l.sets.length,0);
-  document.getElementById('done-body').innerHTML = `
+  const prBlock = prs.length
+    ? '<div style="background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,165,0,.10));border:1px solid rgba(255,165,0,.35);border-radius:16px;padding:14px 16px;margin-bottom:14px">'
+      + '<div style="font-weight:800;font-size:15px;margin-bottom:8px">🏆 ' + prs.length + ' neue' + (prs.length===1?'r':'') + ' Personal Record' + (prs.length===1?'':'s') + '!</div>'
+      + prs.map(pr => '<div style="font-size:13px;line-height:1.5"><b>' + pr.exName + '</b> – ' + pr.label + ': <b>' + pr.newVal + ' ' + pr.unit + '</b>' + (pr.prevVal ? ' <span style="color:var(--text2);font-size:11px">(vorher ' + pr.prevVal + ')</span>' : '') + '</div>').join('')
+      + '</div>'
+    : '';
+  const prExIds = new Set(prs.map(p => p.exId));
+  document.getElementById('done-body').innerHTML = prBlock + `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
         <div style="font-size:26px;font-weight:700">${ses.logs.length}</div>
@@ -5643,9 +6713,10 @@ function showDone(ses) {
     <div class="card">${ses.logs.map(l=>{
       const ex=exById(l.exerciseId);
       const w=maxW(l.sets);
+      const isPr = prExIds.has(l.exerciseId);
       return `<div class="row"><div class="ico">${ex?.emoji||'🏋️'}</div>
         <div class="row-body">
-          <div class="row-title">${ex?.name||l.exerciseId}</div>
+          <div class="row-title">${ex?.name||l.exerciseId}${isPr?'<span class="pr-badge">PR</span>':''}</div>
           <div class="row-sub">${l.sets.length} Sätze · Max ${w||'–'} kg</div>
         </div></div>`;
     }).join('')}</div>`;
