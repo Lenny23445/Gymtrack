@@ -3347,18 +3347,18 @@ body{
 
 <!-- SHEET: ÜBUNG HINZUFÜGEN (mid-workout) -->
 <div class="ov" id="ov-mid-add" onclick="if(event.target===this)closeOv('ov-mid-add')">
-  <div class="sheet" style="max-height:85vh">
-    <div class="sh-handle"></div>
-    <div class="sh-head">
+  <div class="sheet" style="max-height:85vh;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
+    <div class="sh-handle" style="flex-shrink:0"></div>
+    <div class="sh-head" style="flex-shrink:0">
       <h2>Übung hinzufügen</h2>
       <button class="x-btn" onclick="closeOv('ov-mid-add')">✕</button>
     </div>
-    <div class="px" style="padding-bottom:8px">
+    <div class="px" style="padding-bottom:8px;flex-shrink:0">
       <input type="search" id="mid-add-search" class="srch-inp" placeholder="Übung suchen…"
              oninput="_midAddQ=this.value;renderMidAddList()" autocomplete="off">
     </div>
-    <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;max-height:calc(85vh - 210px)"></div>
-    <div style="padding:10px 16px calc(12px + var(--sab));border-top:1px solid var(--gl-bdr)">
+    <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;flex:1;min-height:0"></div>
+    <div style="flex-shrink:0;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 16px);border-top:1px solid var(--gl-bdr);background:var(--gl-bg-h)">
       <button class="btn btn-gray" onclick="openNewExFromWorkout()">＋ Neue Übung erstellen</button>
     </div>
   </div>
@@ -3700,7 +3700,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291640';
+const APP_VERSION = 'gymtrack-v202605291650';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
