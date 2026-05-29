@@ -2798,7 +2798,7 @@ body{
 
 <!-- SHEET: GEWICHT EINTRAGEN -->
 <div class="ov" id="ov-weight-entry">
-  <div class="sheet" style="padding-bottom:calc(28px + var(--sab))">
+  <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Gewicht eintragen</h2>
@@ -2831,7 +2831,7 @@ body{
 
 <!-- SHEET: GEWICHT-ZIEL BEARBEITEN -->
 <div class="ov" id="ov-weight-goal">
-  <div class="sheet" style="padding-bottom:calc(28px + var(--sab))">
+  <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Ziel bearbeiten</h2>
@@ -4100,6 +4100,25 @@ function renderHome() {
   renderSessionHistory();
 }
 
+// ── CHART HELPERS ─────────────────────────────────────
+// Liefert lesbare X-Achsen-Ticks: keine Rotation, Auto-Skip, dynamisches Limit
+function _cXT(n) {
+  return {
+    font: { size: 10 }, color: '#8e8e93',
+    maxRotation: 0, minRotation: 0,
+    autoSkip: true,
+    maxTicksLimit: n <= 4 ? n : n <= 8 ? 4 : n <= 20 ? 4 : n <= 50 ? 3 : 3
+  };
+}
+// Punkt-Radius: bei vielen Punkten kleiner, über 40 unsichtbar
+function _cPR(n) {
+  return n <= 8 ? 5 : n <= 15 ? 3 : n <= 30 ? 2 : 1;
+}
+// Standard Y-Achse
+function _cYT(cb) {
+  return { grid: { color: 'rgba(120,120,128,.10)' }, ticks: { font: { size: 10 }, color: '#8e8e93', callback: cb } };
+}
+
 // ── KÖRPERGEWICHT ──────────────────────────────────────
 let _weightChart = null;
 
@@ -4225,7 +4244,7 @@ function renderWeightCard() {
         data: { labels, datasets: [{
           data, borderColor: acc, backgroundColor: acc + '22',
           fill: true, tension: .4, pointBackgroundColor: acc,
-          pointRadius: data.length > 10 ? 3 : 5, pointHoverRadius: 7, borderWidth: 2.5
+          pointRadius: _cPR(data.length), pointHoverRadius: 7, borderWidth: 2.5
         }, ...goalLineDatasets]},
         options: {
           responsive: true, maintainAspectRatio: false,
@@ -4234,8 +4253,8 @@ function renderWeightCard() {
             tooltip: { callbacks: { label: ctx => ctx.datasetIndex === 0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}` }}
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#8e8e93', maxTicksLimit: 5 }},
-            y: { grid: { color: 'rgba(120,120,128,.10)' }, ticks: { font: { size: 11 }, color: '#8e8e93', callback: v => v + ' ' + unit }}
+            x: { grid: { display: false }, ticks: _cXT(data.length) },
+            y: _cYT(v => v + ' ' + unit)
           }
         }
       });
@@ -6222,15 +6241,15 @@ function renderDet1rmChart(hist) {
         data: pts.map(p=>p.y),
         borderColor: acc, backgroundColor: acc+'22',
         fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+        pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
       }]
     },
     options:{
       responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt1RM(c.parsed.y)}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>v.toFixed(0)+' kg'}}
+        x:{grid:{display:false},ticks:_cXT(pts.length)},
+        y:_cYT(v=>v.toFixed(0)+' kg')
       }
     }
   });
@@ -6251,15 +6270,15 @@ function renderDetChart(hist) {
         data: pts.map(p=>p.y),
         borderColor: acc, backgroundColor: acc+'22',
         fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+        pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
       }]
     },
     options:{
       responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>v+' kg'}}
+        x:{grid:{display:false},ticks:_cXT(pts.length)},
+        y:_cYT(v=>v+' kg')
       }
     }
   });
@@ -6974,15 +6993,15 @@ function openVolumeFull() {
           data: pts.map(p=>p.y),
           borderColor: acc, backgroundColor: acc+'22',
           fill:true, tension:.4, pointBackgroundColor:acc,
-          pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+          pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
         }]
       },
       options:{
         responsive:true, maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
         scales:{
-          x:{grid:{display:false},ticks:{font:{size:12}}},
-          y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:12},callback:v=>fmtKg(v)}}
+          x:{grid:{display:false},ticks:_cXT(pts.length)},
+          y:_cYT(v=>fmtKg(v))
         }
       }
     });
@@ -7047,7 +7066,7 @@ function renderStatsOverallChart() {
         data: pts.map(p=>p.y),
         borderColor: acc, backgroundColor: acc+'22',
         fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:3, pointHoverRadius:5, borderWidth:2
+        pointRadius:_cPR(pts.length), pointHoverRadius:5, borderWidth:2
       }]
     },
     options:{
@@ -7055,7 +7074,7 @@ function renderStatsOverallChart() {
       maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:4}},
+        x:{grid:{display:false},ticks:{..._cXT(pts.length),font:{size:9}}},
         y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:9},maxTicksLimit:4,callback:v=>fmtKg(v)}}
       }
     }
@@ -7254,15 +7273,15 @@ function renderMgStatChart(sessions) {
         data: sessions.map(s => s.vol),
         borderColor: acc, backgroundColor: acc+'22',
         fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:5, pointHoverRadius:7, borderWidth:2.5
+        pointRadius:_cPR(sessions.length), pointHoverRadius:7, borderWidth:2.5
       }]
     },
     options:{
       responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{grid:{color:'rgba(128,128,128,.08)'},ticks:{font:{size:11},callback:v=>fmtKg(v)}}
+        x:{grid:{display:false},ticks:_cXT(sessions.length)},
+        y:_cYT(v=>fmtKg(v))
       }
     }
   });
