@@ -1912,6 +1912,13 @@ body{
 }
 .heatmap-legend .hm-cell{cursor:default}
 
+/* ── MID-ADD FOOTER (Button unter Übungsliste im aktiven Training) ── */
+.mid-add-footer{
+  flex-shrink:0;padding:10px 16px 16px;
+  padding-bottom:max(16px, calc(env(safe-area-inset-bottom,0px) + 16px));
+  border-top:1px solid var(--gl-bdr);
+}
+
 /* ── SET-TYPE BADGE (Drop / Warmup / Failure) ── */
 .set-row{grid-template-columns:26px 24px 26px 1fr 1fr 30px !important}
 .set-hdr{grid-template-columns:26px 24px 26px 1fr 1fr 30px !important}
@@ -3106,12 +3113,12 @@ body{
 </div>
 
 <!-- SHEET: NEUE / BEARBEITE ÜBUNG -->
-<div class="ov" id="ov-ex">
+<div class="ov" id="ov-ex" onclick="if(event.target===this)onCloseExOverlay()">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="ex-sheet-title">Übung hinzufügen</h2>
-      <button class="x-btn" onclick="closeOv('ov-ex')">✕</button>
+      <button class="x-btn" onclick="onCloseExOverlay()">✕</button>
     </div>
     <div class="px" style="padding-bottom:6px">
       <button type="button" class="lib-trigger" id="lib-trigger-btn" onclick="openExLibrary()">
@@ -3358,7 +3365,7 @@ body{
              oninput="_midAddQ=this.value;renderMidAddList()" autocomplete="off">
     </div>
     <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;flex:1;min-height:0"></div>
-    <div style="flex-shrink:0;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 16px);border-top:1px solid var(--gl-bdr);background:var(--gl-bg-h)">
+    <div class="mid-add-footer">
       <button class="btn btn-gray" onclick="openNewExFromWorkout()">＋ Neue Übung erstellen</button>
     </div>
   </div>
@@ -3700,7 +3707,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291650';
+const APP_VERSION = 'gymtrack-v202605291710';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -7907,7 +7914,19 @@ let _midAddPending = false; // true = neue Übung nach Speichern direkt ins Trai
 function openNewExFromWorkout() {
   _midAddPending = true;
   closeOv('ov-mid-add');
-  openNewEx(null); // bestehende Erstellmaske öffnen
+  closeOv('ov-wk');          // Workout temp. verbergen (ov-ex liegt im DOM davor → würde sonst dahinter verschwinden)
+  updateWkMiniVisibility();  // Mini-Indikator erscheint oben
+  openNewEx(null);
+}
+
+/* Wird vom ✕-Button und Backdrop-Tap von ov-ex aufgerufen.
+   Wenn aus aktivem Training heraus geöffnet → Workout wieder einblenden. */
+function onCloseExOverlay() {
+  closeOv('ov-ex');
+  if (_midAddPending) {
+    _midAddPending = false;
+    if (isWorkoutActive()) { openOv('ov-wk'); updateWkMiniVisibility(); }
+  }
 }
 
 function openMidAddExercise() {
@@ -7952,7 +7971,14 @@ function addExToActiveWorkout(exId) {
     : {w:defaultW, r:defaultR};
   wkLogs.push({ exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) });
   closeOv('ov-mid-add');
+  openOv('ov-wk');           // Workout-Sheet wieder öffnen
+  updateWkMiniVisibility();
   renderLogCards();
+  // Zur neu hinzugefügten Karte scrollen
+  setTimeout(() => {
+    const cards = document.querySelectorAll('#log-cards .ex-card');
+    if (cards.length) cards[cards.length - 1].scrollIntoView({behavior:'smooth', block:'start'});
+  }, 150);
   haptic(10);
 }
 
