@@ -1588,6 +1588,112 @@ body{
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .shake{animation:shake .35s ease}
 
+/* ══════════════════════════════════════════
+   HEUTE – FULL-VIEWPORT NO-SCROLL LAYOUT
+   ══════════════════════════════════════════ */
+#pg-heute.on{
+  display:flex!important;
+  flex-direction:column;
+  height:100dvh;
+  height:100vh; /* fallback */
+  min-height:unset;
+  overflow:hidden;
+}
+.heute-hdr{
+  position:relative!important; /* kein sticky – wir brauchen den Platz */
+  flex-shrink:0;
+  padding-bottom:14px!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+}
+.heute-pad{
+  flex:1;
+  min-height:0;
+  overflow:hidden;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  padding-top:4px!important;
+  padding-bottom:calc(98px + var(--sab))!important;
+}
+#pg-heute .s-title{margin-bottom:5px}
+#heute-woche-sec{flex-shrink:0}
+/* Tracker: max 4 sichtbar, kein Umbruch */
+.tracker-row{
+  overflow:hidden!important;
+  flex-wrap:nowrap!important;
+  padding:2px 0 4px;
+}
+/* Gewichts-Section wächst */
+#heute-weight-sec{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+}
+#heute-weight-sec .card{
+  flex:1;min-height:0;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+/* History: kompakte Einzelzeile */
+#heute-history-sec{flex-shrink:0}
+#heute-history-sec .card{
+  max-height:54px;overflow:hidden;
+}
+.heute-train-btn{flex-shrink:0}
+
+/* ── WEIGHT CARD: NEUE SEITE-AN-SEITE-LAYOUT ── */
+.weight-card-inner{
+  padding:12px 14px;
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+  position:relative;z-index:1;
+}
+.weight-top-row{
+  display:flex;align-items:flex-start;gap:10px;
+  flex-shrink:0;margin-bottom:10px;
+}
+.weight-left{flex-shrink:0;min-width:80px}
+.weight-mini-wrap{
+  flex:1;min-width:0;
+  height:74px;
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  background:rgba(var(--acc-rgb),.05);
+  -webkit-tap-highlight-color:transparent;
+  transition:opacity .12s;
+}
+.weight-mini-wrap:active{opacity:.7}
+.weight-mini-wrap canvas{
+  width:100%!important;height:100%!important;display:block;
+}
+.weight-mini-tap-hint{
+  position:absolute;bottom:3px;right:6px;
+  font-size:9px;color:var(--text2);opacity:.5;
+  pointer-events:none;
+}
+.weight-mini-empty{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--text2);opacity:.55;
+}
+/* Zahlen in der Card */
+.weight-current-val{font-size:30px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.weight-current-unit{font-size:13px;color:var(--text2);font-weight:500}
+.weight-delta{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:3px;display:inline-block}
+.weight-delta.pos{background:rgba(255,59,48,.12);color:var(--red)}
+.weight-delta.neg{background:rgba(52,199,89,.12);color:var(--green)}
+.weight-delta.neu{background:var(--g5);color:var(--text2)}
+.weight-add-btn{
+  background:var(--acc);border:none;border-radius:50%;
+  width:34px;height:34px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;font-size:22px;font-weight:300;line-height:1;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.40);
+  margin-top:2px;
+}
+
 /* ── KÖRPERGEWICHT CARD ── */
 .weight-card-inner{padding:16px;position:relative;z-index:1}
 .weight-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
@@ -2444,28 +2550,27 @@ body{
 
 <!-- PAGE: HEUTE -->
 <div class="pg on" id="pg-heute">
-  <div class="hdr">
+  <div class="hdr heute-hdr">
     <div class="hdr-greet-row">
       <h1 id="greet-h">Heute</h1>
       <div id="streak-badge-host"></div>
     </div>
     <div class="sub" id="greet-d"></div>
   </div>
-  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div>
+  <div class="pad heute-pad" id="heute-pad">
+    <div id="heute-woche-sec">
       <div class="s-title">Diese Woche</div>
       <div class="tracker-row" id="tracker-row"></div>
     </div>
-    <!-- ── KÖRPERGEWICHT ── -->
-    <div>
+    <div id="heute-weight-sec">
       <div class="s-title">Körpergewicht</div>
       <div class="card" id="weight-card"></div>
     </div>
-    <div>
+    <div id="heute-history-sec">
       <div class="s-title">Letzte Trainings</div>
       <div class="card" id="history-card"></div>
     </div>
-    <button class="btn btn-acc" onclick="openWorkout()">▶&nbsp; Training starten</button>
+    <button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; Training starten</button>
   </div>
 </div>
 
@@ -2794,6 +2899,27 @@ body{
     <div class="wk-mini-v" id="wk-mini-v">00:00</div>
   </div>
   <div class="wk-mini-chev">›</div>
+</div>
+
+<!-- OVERLAY: GEWICHTSVERLAUF VOLLBILD -->
+<div class="ov" id="ov-weight-chart-full">
+  <div style="
+    background:var(--gl-bg-h);backdrop-filter:blur(90px) saturate(240%);
+    -webkit-backdrop-filter:blur(90px) saturate(240%);
+    border-radius:28px 28px 0 0;border:1px solid var(--gl-bdr);border-bottom:none;
+    width:100%;height:72vh;display:flex;flex-direction:column;
+    box-shadow:0 -8px 48px rgba(0,0,0,.18);animation:up .28s cubic-bezier(.32,1,.32,1);
+    padding-bottom:calc(20px + var(--sab));">
+    <div class="sh-handle" style="margin:10px auto 0"></div>
+    <div class="sh-head">
+      <h2>Gewichtsverlauf</h2>
+      <button class="x-btn" onclick="closeOv('ov-weight-chart-full')">✕</button>
+    </div>
+    <div style="flex:1;min-height:0;padding:0 18px 16px;display:flex;flex-direction:column;gap:8px">
+      <canvas id="weight-chart-full" style="flex:1;min-height:0;width:100%!important"></canvas>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:0 2px" id="weight-chart-full-foot"></div>
+    </div>
+  </div>
 </div>
 
 <!-- SHEET: GEWICHT EINTRAGEN -->
@@ -4097,7 +4223,31 @@ function renderHome() {
   renderStreak();
   renderTrackers();
   renderWeightCard();
-  renderSessionHistory();
+  renderCompactHistory();
+}
+
+// Kompakte History für Heute-Tab (eine Zeile, kein Expand)
+function renderCompactHistory() {
+  const el = document.getElementById('history-card');
+  if (!el) return;
+  if (!S.sessions.length) {
+    el.innerHTML = `<div style="padding:13px 16px;color:var(--text2);font-size:14px;position:relative;z-index:1">Noch kein Training</div>`;
+    return;
+  }
+  const last = [...S.sessions].sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+  const d    = new Date(last.date).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+  const sets = last.logs.reduce((s,l)=>s+l.sets.length,0);
+  const exN  = last.logs.length;
+  el.innerHTML = `<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer" onclick="goTab('stats',document.querySelector('.tab:nth-child(3)'))">
+    <div>
+      <div style="font-size:14px;font-weight:600">${d}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:1px">${exN} Übung${exN===1?'':'en'}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge b-green">${sets} Sätze</span>
+      <span style="color:var(--text2);font-size:18px">›</span>
+    </div>
+  </div>`;
 }
 
 // ── CHART HELPERS ─────────────────────────────────────
@@ -4120,21 +4270,89 @@ function _cYT(cb) {
 }
 
 // ── KÖRPERGEWICHT ──────────────────────────────────────
-let _weightChart = null;
+let _weightMiniChart = null;
+let _weightFullChart = null;
+
+function _buildGoalHtml(start, goal, cur, unit) {
+  if (start == null || goal == null || cur == null) {
+    return `<button class="weight-set-goal-btn" onclick="openWeightGoal()">Ziel setzen →</button>`;
+  }
+  const totalDiff = start - goal;
+  const isLoss    = totalDiff > 0;
+  const isDone    = isLoss ? cur <= goal : cur >= goal;
+  const done      = isLoss ? +(start - cur).toFixed(1) : +(cur - start).toFixed(1);
+  const remaining = isLoss ? +(cur - goal).toFixed(1)  : +(goal - cur).toFixed(1);
+  const pct       = Math.max(0, Math.min(100, Math.round((done / Math.abs(totalDiff)) * 100)));
+  const gainCls   = isLoss ? '' : ' gain';
+  const arrow     = isLoss ? '↓' : '↑';
+  if (isDone) {
+    return `<div class="weight-goal-section">
+      <div class="wgt-goal-done">
+        <div class="wgt-goal-done-title">🎉 Ziel erreicht!</div>
+        <div class="wgt-goal-done-sub">${done} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${goal} ${unit}</div>
+      </div>
+      <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
+    </div>`;
+  }
+  return `<div class="weight-goal-section">
+    <div class="wgt-track-wrap">
+      <div class="wgt-track-fill${gainCls}" style="width:${pct}%"></div>
+      <div class="wgt-track-dot${gainCls}" style="left:${pct}%"></div>
+    </div>
+    <div class="wgt-track-labels">
+      <div class="wgt-track-lbl"><span class="wgt-track-lbl-val">${start} ${unit}</span><span class="wgt-track-lbl-sub">Start</span></div>
+      <div class="wgt-track-lbl right"><span class="wgt-track-lbl-val">${goal} ${unit}</span><span class="wgt-track-lbl-sub">Ziel</span></div>
+    </div>
+    <div class="wgt-stats-row">
+      <div class="wgt-stat"><div class="wgt-stat-val">${arrow} ${done} ${unit}</div><div class="wgt-stat-lbl">${isLoss?'abgenommen':'zugenommen'}</div></div>
+      <div class="wgt-pct-badge${gainCls}">${pct} %</div>
+      <div class="wgt-stat right"><div class="wgt-stat-val">${remaining} ${unit}</div><div class="wgt-stat-lbl">noch bis Ziel</div></div>
+    </div>
+    <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
+  </div>`;
+}
+
+function _buildMiniChart(log, goal, acc) {
+  if (_weightMiniChart) { _weightMiniChart.destroy(); _weightMiniChart = null; }
+  const canvas = document.getElementById('weight-mini-canvas');
+  if (!canvas || log.length < 2) return;
+  const pts  = log.slice(-30);
+  const data = pts.map(p => p.weight);
+  const goalDs = goal != null ? [{
+    data: pts.map(() => goal),
+    borderColor: 'rgba(52,199,89,.5)', borderDash: [3,3],
+    borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0
+  }] : [];
+  _weightMiniChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels: pts.map(() => ''), datasets: [{
+      data, borderColor: acc, backgroundColor: acc + '18',
+      fill: true, tension: .4, pointRadius: 0, borderWidth: 2
+    }, ...goalDs]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      }
+    }
+  });
+}
 
 function renderWeightCard() {
   const el = document.getElementById('weight-card');
   if (!el) return;
 
-  const log    = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
-  const unit   = S.unitMode === 'lbs' ? 'lbs' : 'kg';
-  const last   = log.length ? log[log.length - 1] : null;
-  const prev   = log.length > 1 ? log[log.length - 2] : null;
-  const start  = S.weightStart != null ? +S.weightStart : null;
-  const goal   = S.weightGoal  != null ? +S.weightGoal  : null;
-  const cur    = last ? last.weight : start;
+  const log   = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const unit  = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  const last  = log.length ? log[log.length - 1] : null;
+  const prev  = log.length > 1 ? log[log.length - 2] : null;
+  const start = S.weightStart != null ? +S.weightStart : null;
+  const goal  = S.weightGoal  != null ? +S.weightGoal  : null;
+  const cur   = last ? last.weight : start;
+  const acc   = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
 
-  // ── Aktuell-Anzeige ──
   let deltaHtml = '';
   if (last && prev) {
     const diff = +(last.weight - prev.weight).toFixed(1);
@@ -4142,124 +4360,77 @@ function renderWeightCard() {
     const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
     deltaHtml  = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
   }
-  const currentHtml = last
-    ? `<div class="weight-current-val">${last.weight}</div>
-       <div class="weight-current-unit">${unit}</div>
-       ${deltaHtml}`
-    : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
-       <div class="weight-current-unit">${unit}</div>`;
 
-  // ── Chart ──
-  const chartHtml = log.length >= 2
-    ? `<div class="weight-chart-wrap"><canvas id="weight-chart"></canvas></div>`
-    : `<div class="weight-empty">${log.length === 1 ? 'Noch ein Eintrag für das Diagramm nötig' : 'Tippe + um dein Gewicht einzutragen'}</div>`;
-
-  // ── Ziel-Fortschritt ──
-  let goalHtml = '';
-  if (start != null && goal != null && cur != null) {
-    const totalDiff = start - goal; // >0 = Abnehmen, <0 = Zunehmen
-    const isLoss    = totalDiff > 0;
-    const isDone    = isLoss ? cur <= goal : cur >= goal;
-    const done      = isLoss ? +(start - cur).toFixed(1) : +(cur - start).toFixed(1);
-    const remaining = isLoss ? +(cur  - goal).toFixed(1) : +(goal - cur).toFixed(1);
-    const pct       = Math.max(0, Math.min(100, Math.round((done / Math.abs(totalDiff)) * 100)));
-    const gainCls   = isLoss ? '' : ' gain';
-    const arrow     = isLoss ? '↓' : '↑';
-    const doneLabel = isLoss ? 'abgenommen' : 'zugenommen';
-    const restLabel = isLoss ? 'noch bis Ziel' : 'noch bis Ziel';
-
-    if (isDone) {
-      goalHtml = `<div class="weight-goal-section">
-        <div class="wgt-goal-done">
-          <div class="wgt-goal-done-title">🎉 Ziel erreicht!</div>
-          <div class="wgt-goal-done-sub">${done} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${goal} ${unit}</div>
-        </div>
-        <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
-      </div>`;
-    } else {
-      goalHtml = `<div class="weight-goal-section">
-        <div class="wgt-track-wrap">
-          <div class="wgt-track-fill${gainCls}" style="width:${pct}%"></div>
-          <div class="wgt-track-dot${gainCls}" style="left:${pct}%"></div>
-        </div>
-        <div class="wgt-track-labels">
-          <div class="wgt-track-lbl">
-            <span class="wgt-track-lbl-val">${start} ${unit}</span>
-            <span class="wgt-track-lbl-sub">Start</span>
-          </div>
-          <div class="wgt-track-lbl right">
-            <span class="wgt-track-lbl-val">${goal} ${unit}</span>
-            <span class="wgt-track-lbl-sub">Ziel</span>
-          </div>
-        </div>
-        <div class="wgt-stats-row">
-          <div class="wgt-stat">
-            <div class="wgt-stat-val">${arrow} ${done} ${unit}</div>
-            <div class="wgt-stat-lbl">${doneLabel}</div>
-          </div>
-          <div class="wgt-pct-badge${gainCls}">${pct} %</div>
-          <div class="wgt-stat right">
-            <div class="wgt-stat-val">${remaining} ${unit}</div>
-            <div class="wgt-stat-lbl">${restLabel}</div>
-          </div>
-        </div>
-        <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
-      </div>`;
-    }
-  } else {
-    goalHtml = `<button class="weight-set-goal-btn" onclick="openWeightGoal()">Ziel setzen →</button>`;
-  }
+  const miniContent = log.length >= 2
+    ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
+    : `<div class="weight-mini-empty">${log.length===1 ? '1 Eintrag' : 'Noch kein Verlauf'}</div>`;
 
   el.innerHTML = `<div class="weight-card-inner">
-    <div class="weight-header">
-      <div class="weight-current">${currentHtml}</div>
+    <div class="weight-top-row">
+      <div class="weight-left">
+        ${last
+          ? `<div class="weight-current-val">${last.weight}</div>
+             <div class="weight-current-unit">${unit}</div>
+             ${deltaHtml}`
+          : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
+             <div class="weight-current-unit">${unit}</div>`
+        }
+      </div>
+      <div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">
+        ${miniContent}
+      </div>
       <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
-    ${chartHtml}
-    ${goalHtml}
+    ${_buildGoalHtml(start, goal, cur, unit)}
   </div>`;
 
-  // Chart rendern
-  if (log.length >= 2) {
-    requestAnimationFrame(() => {
-      const canvas = document.getElementById('weight-chart');
-      if (!canvas) return;
-      if (_weightChart) { _weightChart.destroy(); _weightChart = null; }
-      const pts  = log.slice(-20);
-      const labels = pts.map(p => new Date(p.date).toLocaleDateString('de-DE', {day:'numeric', month:'short'}));
-      const data   = pts.map(p => p.weight);
-      const acc    = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
-      // Zielline wenn gesetzt
-      const goalLineDatasets = (goal != null) ? [{
-        data: pts.map(() => goal),
-        borderColor: 'rgba(52,199,89,.55)',
-        borderDash: [5, 4],
-        borderWidth: 1.5,
-        pointRadius: 0,
-        fill: false,
-        tension: 0
-      }] : [];
-      _weightChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: { labels, datasets: [{
-          data, borderColor: acc, backgroundColor: acc + '22',
+  requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
+}
+
+function openWeightChartFull() {
+  if ((S.weightLog || []).length < 2) { openWeightEntry(); return; }
+  openOv('ov-weight-chart-full');
+  haptic && haptic(8);
+  setTimeout(() => {
+    if (_weightFullChart) { _weightFullChart.destroy(); _weightFullChart = null; }
+    const canvas = document.getElementById('weight-chart-full');
+    if (!canvas) return;
+    const log  = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+    const unit = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+    const goal = S.weightGoal != null ? +S.weightGoal : null;
+    const pts  = log.slice(-40);
+    const data = pts.map(p => p.weight);
+    const acc  = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+    const goalDs = goal != null ? [{
+      data: pts.map(() => goal),
+      borderColor: 'rgba(52,199,89,.6)', borderDash: [5,4],
+      borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0
+    }] : [];
+    // Footer: Zeitraum
+    const foot = document.getElementById('weight-chart-full-foot');
+    if (foot && pts.length) {
+      const fmt = d => new Date(d).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'});
+      foot.innerHTML = `<span>${fmt(pts[0].date)}</span><span>${fmt(pts[pts.length-1].date)}</span>`;
+    }
+    _weightFullChart = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels: pts.map(p => new Date(p.date).toLocaleDateString('de-DE',{day:'numeric',month:'short'})),
+        datasets: [{ data, borderColor: acc, backgroundColor: acc+'22',
           fill: true, tension: .4, pointBackgroundColor: acc,
           pointRadius: _cPR(data.length), pointHoverRadius: 7, borderWidth: 2.5
-        }, ...goalLineDatasets]},
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ctx.datasetIndex === 0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}` }}
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: _cXT(data.length) },
-            y: _cYT(v => v + ' ' + unit)
-          }
+        }, ...goalDs]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: {
+          label: ctx => ctx.datasetIndex===0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}`
+        }}},
+        scales: {
+          x: { grid: { display: false }, ticks: _cXT(data.length) },
+          y: _cYT(v => v + ' ' + unit)
         }
-      });
+      }
     });
-  }
+  }, 80);
 }
 
 function openWeightEntry() {
@@ -4542,7 +4713,9 @@ function renderTrackers() {
   const R = 26, CX = 32, CY = 32;
   const circ = +(2 * Math.PI * R).toFixed(1);
   const targets = [];
-  let html = (S.trackerItems || []).map(item => {
+  const MAX_TRACKER = 4;
+  const visibleItems = (S.trackerItems || []).slice(0, MAX_TRACKER);
+  let html = visibleItems.map(item => {
     const count = (S.trackerCounts[item.id] || {})[wk] || 0;
     const goal  = item.goal || 1;
     const done  = count >= goal;
@@ -4566,7 +4739,9 @@ function renderTrackers() {
       <div class="tracker-circle-label">${item.label}</div>
     </div>`;
   }).join('');
-  html += `<button class="tracker-add-btn" onclick="openTrackerMenu()">+</button>`;
+  if (visibleItems.length < MAX_TRACKER) {
+    html += `<button class="tracker-add-btn" onclick="openTrackerMenu()">+</button>`;
+  }
   row.innerHTML = html;
   // Animate rings from empty to actual value
   requestAnimationFrame(() => {
