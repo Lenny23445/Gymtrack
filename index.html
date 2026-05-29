@@ -3353,7 +3353,7 @@ body{
 </div>
 
 <!-- SHEET: ÜBUNG HINZUFÜGEN (mid-workout) -->
-<div class="ov" id="ov-mid-add" onclick="if(event.target===this)closeOv('ov-mid-add')">
+<div class="ov" id="ov-mid-add" style="z-index:1001" onclick="if(event.target===this)closeOv('ov-mid-add')">
   <div class="sheet" style="max-height:85vh;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
     <div class="sh-handle" style="flex-shrink:0"></div>
     <div class="sh-head" style="flex-shrink:0">
@@ -3707,7 +3707,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291710';
+const APP_VERSION = 'gymtrack-v202605291730';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
