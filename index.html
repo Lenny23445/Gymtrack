@@ -1606,19 +1606,68 @@ body{
 }
 .weight-chart-wrap{height:90px;position:relative;margin:0 -2px}
 .weight-chart-wrap canvas{width:100%!important}
-.weight-empty{font-size:14px;color:var(--text2);text-align:center;padding:24px 0 8px}
-.weight-photos-row{display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
-.weight-photo-btn{
-  flex:1;height:72px;border-radius:14px;
-  background:var(--g5);border:1.5px dashed var(--gl-bdr2);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;cursor:pointer;color:var(--text2);font-size:12px;font-weight:600;
-  transition:background .15s;-webkit-tap-highlight-color:transparent;
+.weight-empty{font-size:14px;color:var(--text2);text-align:center;padding:20px 0 6px}
+/* ── Ziel-Fortschritt ── */
+.weight-goal-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
+.wgt-track-wrap{position:relative;height:8px;background:var(--g5);border-radius:99px;margin-bottom:7px}
+.wgt-track-fill{
+  position:absolute;top:0;left:0;height:100%;border-radius:99px;
+  background:var(--green);
+  transition:width .65s cubic-bezier(.34,1.56,.64,1);
 }
-.weight-photo-btn:active{background:rgba(var(--acc-rgb),.10)}
-.weight-photo-btn svg{width:20px;height:20px;opacity:.5}
-.weight-photo-btn.has-img{border-style:solid;border-color:rgba(var(--acc-rgb),.25);background:rgba(var(--acc-rgb),.06)}
-.weight-photo-btn.has-img span{color:var(--acc)}
+.wgt-track-fill.gain{background:var(--orange)}
+.wgt-track-dot{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:16px;height:16px;border-radius:50%;
+  background:var(--green);border:2.5px solid var(--gl-bg);
+  box-shadow:0 2px 8px rgba(52,199,89,.50);
+  transition:left .65s cubic-bezier(.34,1.56,.64,1);
+}
+.wgt-track-dot.gain{background:var(--orange);box-shadow:0 2px 8px rgba(255,149,0,.45)}
+.wgt-track-labels{display:flex;justify-content:space-between;margin-bottom:10px}
+.wgt-track-lbl{display:flex;flex-direction:column;gap:1px}
+.wgt-track-lbl-val{font-size:13px;font-weight:700;color:var(--text)}
+.wgt-track-lbl-sub{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.wgt-track-lbl.right{text-align:right}
+.wgt-stats-row{display:flex;align-items:center;justify-content:space-between}
+.wgt-stat{display:flex;flex-direction:column;gap:1px}
+.wgt-stat-val{font-size:17px;font-weight:800;color:var(--text)}
+.wgt-stat-lbl{font-size:11px;color:var(--text2)}
+.wgt-stat.right{text-align:right}
+.wgt-pct-badge{
+  font-size:14px;font-weight:800;
+  color:var(--green);background:rgba(52,199,89,.12);
+  border-radius:20px;padding:5px 12px;
+}
+.wgt-pct-badge.gain{color:var(--orange);background:rgba(255,149,0,.12)}
+/* Ziel erreicht */
+.wgt-goal-done{
+  padding:12px 14px;border-radius:14px;
+  background:rgba(52,199,89,.10);border:1px solid rgba(52,199,89,.20);
+  text-align:center;
+}
+.wgt-goal-done-title{font-size:19px;font-weight:800;color:var(--green)}
+.wgt-goal-done-sub{font-size:12px;color:var(--text2);margin-top:3px}
+/* Ziel setzen Button */
+.weight-set-goal-btn{
+  width:100%;margin-top:14px;padding:11px;
+  border-radius:13px;
+  background:rgba(var(--acc-rgb),.07);
+  border:1.5px dashed rgba(var(--acc-rgb),.28);
+  color:var(--acc);font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .15s;
+}
+.weight-set-goal-btn:active{background:rgba(var(--acc-rgb),.14)}
+/* Ziel bearbeiten Link */
+.wgt-edit-link{
+  display:block;text-align:right;
+  font-size:11px;font-weight:600;color:var(--text2);
+  margin-top:8px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.wgt-edit-link:active{color:var(--acc)}
 
 /* ── LAST-CARD SWIPE (Letztes Training auf Heute) ── */
 .last-swipe-wrap{overflow:hidden;border-radius:18px}
@@ -2780,6 +2829,48 @@ body{
   </div>
 </div>
 
+<!-- SHEET: GEWICHT-ZIEL BEARBEITEN -->
+<div class="ov" id="ov-weight-goal">
+  <div class="sheet" style="padding-bottom:calc(28px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Ziel bearbeiten</h2>
+      <button class="x-btn" onclick="closeOv('ov-weight-goal')">✕</button>
+    </div>
+    <div class="px" style="display:flex;flex-direction:column;gap:14px;padding-bottom:8px">
+      <div style="background:rgba(var(--acc-rgb),.07);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.5">
+        Trage dein Startgewicht und Zielgewicht ein. Der Fortschritt wird automatisch berechnet.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:13px;font-weight:600;color:var(--text2)">Startgewicht</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="weight-start-input" type="number" step="0.1" min="20" max="500"
+            placeholder="z. B. 95.0"
+            style="flex:1;background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:14px;
+                   padding:12px 16px;font-size:20px;font-weight:700;color:var(--text);
+                   font-family:inherit;outline:none;text-align:center;
+                   -webkit-appearance:none;appearance:none">
+          <div style="font-size:16px;font-weight:600;color:var(--text2);flex-shrink:0" id="weight-goal-unit-1">kg</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:13px;font-weight:600;color:var(--text2)">Zielgewicht</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="weight-goal-input" type="number" step="0.1" min="20" max="500"
+            placeholder="z. B. 80.0"
+            style="flex:1;background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:14px;
+                   padding:12px 16px;font-size:20px;font-weight:700;color:var(--text);
+                   font-family:inherit;outline:none;text-align:center;
+                   -webkit-appearance:none;appearance:none">
+          <div style="font-size:16px;font-weight:600;color:var(--text2);flex-shrink:0" id="weight-goal-unit-2">kg</div>
+        </div>
+      </div>
+      <button class="btn btn-acc" onclick="saveWeightGoal()">Ziel speichern</button>
+      <button class="btn btn-gray" id="weight-goal-reset-btn" onclick="resetWeightGoal()" style="display:none">Ziel zurücksetzen</button>
+    </div>
+  </div>
+</div>
+
 <!-- TABBAR -->
 <div class="tabbar">
   <div id="tab-indicator"></div>
@@ -3748,6 +3839,8 @@ S.notifTime     = S.notifTime     || '08:00';
 S.trackerItems  = S.trackerItems  || [];
 S.trackerCounts = S.trackerCounts || {};
 S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
+S.weightStart   = S.weightStart   ?? null; // Startgewicht (einmalig)
+S.weightGoal    = S.weightGoal    ?? null; // Zielgewicht
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -4014,19 +4107,22 @@ function renderWeightCard() {
   const el = document.getElementById('weight-card');
   if (!el) return;
 
-  const log = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
-  const unit = S.unitMode === 'lbs' ? 'lbs' : 'kg';
-  const last  = log.length ? log[log.length - 1] : null;
-  const prev  = log.length > 1 ? log[log.length - 2] : null;
+  const log    = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const unit   = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  const last   = log.length ? log[log.length - 1] : null;
+  const prev   = log.length > 1 ? log[log.length - 2] : null;
+  const start  = S.weightStart != null ? +S.weightStart : null;
+  const goal   = S.weightGoal  != null ? +S.weightGoal  : null;
+  const cur    = last ? last.weight : start;
 
+  // ── Aktuell-Anzeige ──
   let deltaHtml = '';
   if (last && prev) {
     const diff = +(last.weight - prev.weight).toFixed(1);
     const sign = diff > 0 ? '+' : '';
     const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
-    deltaHtml = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
+    deltaHtml  = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
   }
-
   const currentHtml = last
     ? `<div class="weight-current-val">${last.weight}</div>
        <div class="weight-current-unit">${unit}</div>
@@ -4034,74 +4130,112 @@ function renderWeightCard() {
     : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
        <div class="weight-current-unit">${unit}</div>`;
 
+  // ── Chart ──
+  const chartHtml = log.length >= 2
+    ? `<div class="weight-chart-wrap"><canvas id="weight-chart"></canvas></div>`
+    : `<div class="weight-empty">${log.length === 1 ? 'Noch ein Eintrag für das Diagramm nötig' : 'Tippe + um dein Gewicht einzutragen'}</div>`;
+
+  // ── Ziel-Fortschritt ──
+  let goalHtml = '';
+  if (start != null && goal != null && cur != null) {
+    const totalDiff = start - goal; // >0 = Abnehmen, <0 = Zunehmen
+    const isLoss    = totalDiff > 0;
+    const isDone    = isLoss ? cur <= goal : cur >= goal;
+    const done      = isLoss ? +(start - cur).toFixed(1) : +(cur - start).toFixed(1);
+    const remaining = isLoss ? +(cur  - goal).toFixed(1) : +(goal - cur).toFixed(1);
+    const pct       = Math.max(0, Math.min(100, Math.round((done / Math.abs(totalDiff)) * 100)));
+    const gainCls   = isLoss ? '' : ' gain';
+    const arrow     = isLoss ? '↓' : '↑';
+    const doneLabel = isLoss ? 'abgenommen' : 'zugenommen';
+    const restLabel = isLoss ? 'noch bis Ziel' : 'noch bis Ziel';
+
+    if (isDone) {
+      goalHtml = `<div class="weight-goal-section">
+        <div class="wgt-goal-done">
+          <div class="wgt-goal-done-title">🎉 Ziel erreicht!</div>
+          <div class="wgt-goal-done-sub">${done} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${goal} ${unit}</div>
+        </div>
+        <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
+      </div>`;
+    } else {
+      goalHtml = `<div class="weight-goal-section">
+        <div class="wgt-track-wrap">
+          <div class="wgt-track-fill${gainCls}" style="width:${pct}%"></div>
+          <div class="wgt-track-dot${gainCls}" style="left:${pct}%"></div>
+        </div>
+        <div class="wgt-track-labels">
+          <div class="wgt-track-lbl">
+            <span class="wgt-track-lbl-val">${start} ${unit}</span>
+            <span class="wgt-track-lbl-sub">Start</span>
+          </div>
+          <div class="wgt-track-lbl right">
+            <span class="wgt-track-lbl-val">${goal} ${unit}</span>
+            <span class="wgt-track-lbl-sub">Ziel</span>
+          </div>
+        </div>
+        <div class="wgt-stats-row">
+          <div class="wgt-stat">
+            <div class="wgt-stat-val">${arrow} ${done} ${unit}</div>
+            <div class="wgt-stat-lbl">${doneLabel}</div>
+          </div>
+          <div class="wgt-pct-badge${gainCls}">${pct} %</div>
+          <div class="wgt-stat right">
+            <div class="wgt-stat-val">${remaining} ${unit}</div>
+            <div class="wgt-stat-lbl">${restLabel}</div>
+          </div>
+        </div>
+        <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
+      </div>`;
+    }
+  } else {
+    goalHtml = `<button class="weight-set-goal-btn" onclick="openWeightGoal()">Ziel setzen →</button>`;
+  }
+
   el.innerHTML = `<div class="weight-card-inner">
     <div class="weight-header">
       <div class="weight-current">${currentHtml}</div>
       <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
-    ${log.length >= 2
-      ? `<div class="weight-chart-wrap"><canvas id="weight-chart"></canvas></div>`
-      : `<div class="weight-empty">${log.length === 1 ? 'Noch ein Eintrag für das Diagramm nötig' : 'Noch kein Gewicht eingetragen'}</div>`
-    }
-    <div class="weight-photos-row">
-      <button class="weight-photo-btn" id="weight-photo-before" onclick="weightPhotoTap('before')" aria-label="Vorher-Foto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.5"/>
-          <path d="M3 9l3-3 3 3"/>
-        </svg>
-        <span>Vorher</span>
-      </button>
-      <button class="weight-photo-btn" id="weight-photo-after" onclick="weightPhotoTap('after')" aria-label="Nachher-Foto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.5"/>
-          <path d="M21 9l-3-3-3 3"/>
-        </svg>
-        <span>Nachher</span>
-      </button>
-    </div>
+    ${chartHtml}
+    ${goalHtml}
   </div>`;
 
-  // Chart rendern wenn genug Einträge
+  // Chart rendern
   if (log.length >= 2) {
     requestAnimationFrame(() => {
       const canvas = document.getElementById('weight-chart');
       if (!canvas) return;
       if (_weightChart) { _weightChart.destroy(); _weightChart = null; }
-      const pts = log.slice(-20); // max 20 Einträge
-      const labels = pts.map(p => {
-        const d = new Date(p.date);
-        return d.toLocaleDateString('de-DE', {day:'numeric', month:'short'});
-      });
-      const data = pts.map(p => p.weight);
-      const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+      const pts  = log.slice(-20);
+      const labels = pts.map(p => new Date(p.date).toLocaleDateString('de-DE', {day:'numeric', month:'short'}));
+      const data   = pts.map(p => p.weight);
+      const acc    = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+      // Zielline wenn gesetzt
+      const goalLineDatasets = (goal != null) ? [{
+        data: pts.map(() => goal),
+        borderColor: 'rgba(52,199,89,.55)',
+        borderDash: [5, 4],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+      }] : [];
       _weightChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            borderColor: acc,
-            backgroundColor: acc + '22',
-            fill: true,
-            tension: .4,
-            pointBackgroundColor: acc,
-            pointRadius: data.length > 10 ? 3 : 5,
-            pointHoverRadius: 7,
-            borderWidth: 2.5
-          }]
-        },
+        data: { labels, datasets: [{
+          data, borderColor: acc, backgroundColor: acc + '22',
+          fill: true, tension: .4, pointBackgroundColor: acc,
+          pointRadius: data.length > 10 ? 3 : 5, pointHoverRadius: 7, borderWidth: 2.5
+        }, ...goalLineDatasets]},
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: {
-            callbacks: { label: ctx => ` ${ctx.parsed.y} ${unit}` }
-          }},
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.datasetIndex === 0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}` }}
+          },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#8e8e93', maxTicksLimit: 5 } },
-            y: {
-              grid: { color: 'rgba(120,120,128,.10)' },
-              ticks: { font: { size: 11 }, color: '#8e8e93', callback: v => v + ' ' + unit }
-            }
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#8e8e93', maxTicksLimit: 5 }},
+            y: { grid: { color: 'rgba(120,120,128,.10)' }, ticks: { font: { size: 11 }, color: '#8e8e93', callback: v => v + ' ' + unit }}
           }
         }
       });
@@ -4110,30 +4244,30 @@ function renderWeightCard() {
 }
 
 function openWeightEntry() {
-  // Datum auf heute setzen
   const today = new Date().toISOString().slice(0, 10);
-  const inp = document.getElementById('weight-date-input');
-  if (inp) inp.value = today;
-  // Einheit-Label setzen
+  const dInp = document.getElementById('weight-date-input');
+  if (dInp) dInp.value = today;
   const ul = document.getElementById('weight-unit-label');
   if (ul) ul.textContent = S.unitMode === 'lbs' ? 'lbs' : 'kg';
-  // Letztes Gewicht vorausfüllen
-  const log = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const log  = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
   const wInp = document.getElementById('weight-input');
-  if (wInp) { wInp.value = log.length ? log[log.length-1].weight : ''; }
+  if (wInp) wInp.value = log.length ? log[log.length-1].weight : '';
   openOv('ov-weight-entry');
   haptic && haptic(8);
   setTimeout(() => wInp && wInp.focus(), 300);
 }
 
 function saveWeightEntry() {
-  const wInp  = document.getElementById('weight-input');
-  const dInp  = document.getElementById('weight-date-input');
+  const wInp = document.getElementById('weight-input');
+  const dInp = document.getElementById('weight-date-input');
   const w = parseFloat((wInp?.value || '').replace(',', '.'));
   const d = dInp?.value || new Date().toISOString().slice(0, 10);
-  if (!w || w < 20 || w > 500) { wInp?.classList.add('shake'); setTimeout(() => wInp?.classList.remove('shake'), 400); return; }
+  if (!w || w < 20 || w > 500) {
+    wInp?.classList.add('shake');
+    setTimeout(() => wInp?.classList.remove('shake'), 400);
+    return;
+  }
   S.weightLog = S.weightLog || [];
-  // Vorhandenen Eintrag für diesen Tag ersetzen oder neu hinzufügen
   const idx = S.weightLog.findIndex(e => e.date === d);
   if (idx >= 0) S.weightLog[idx].weight = w;
   else S.weightLog.push({ date: d, weight: w });
@@ -4143,9 +4277,52 @@ function saveWeightEntry() {
   haptic && haptic(20);
 }
 
-function weightPhotoTap(type) {
-  // Noch kein Upload — kommt später
+function openWeightGoal() {
+  const unit = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  ['weight-goal-unit-1','weight-goal-unit-2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = unit;
+  });
+  const sInp = document.getElementById('weight-start-input');
+  const gInp = document.getElementById('weight-goal-input');
+  if (sInp) sInp.value = S.weightStart ?? '';
+  if (gInp) gInp.value = S.weightGoal  ?? '';
+  const resetBtn = document.getElementById('weight-goal-reset-btn');
+  if (resetBtn) resetBtn.style.display = (S.weightStart != null || S.weightGoal != null) ? '' : 'none';
+  openOv('ov-weight-goal');
   haptic && haptic(8);
+  setTimeout(() => sInp && sInp.focus(), 300);
+}
+
+function saveWeightGoal() {
+  const sInp = document.getElementById('weight-start-input');
+  const gInp = document.getElementById('weight-goal-input');
+  const sv = parseFloat((sInp?.value || '').replace(',', '.'));
+  const gv = parseFloat((gInp?.value || '').replace(',', '.'));
+  let valid = true;
+  if (sInp && (!sv || sv < 20 || sv > 500)) {
+    sInp.classList.add('shake'); setTimeout(() => sInp.classList.remove('shake'), 400); valid = false;
+  }
+  if (gInp && (!gv || gv < 20 || gv > 500)) {
+    gInp.classList.add('shake'); setTimeout(() => gInp.classList.remove('shake'), 400); valid = false;
+  }
+  if (!valid) return;
+  S.weightStart = sv;
+  S.weightGoal  = gv;
+  persist();
+  closeOv('ov-weight-goal');
+  renderWeightCard();
+  haptic && haptic(20);
+}
+
+function resetWeightGoal() {
+  if (!confirm('Start- und Zielgewicht wirklich zurücksetzen?')) return;
+  S.weightStart = null;
+  S.weightGoal  = null;
+  persist();
+  closeOv('ov-weight-goal');
+  renderWeightCard();
+  haptic && haptic(20);
 }
 
 function renderSuggestions() {
