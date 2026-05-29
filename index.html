@@ -1584,6 +1584,42 @@ body{
 }
 .hdr-greet-row h1{flex:1;min-width:0}
 
+/* ── SHAKE ANIMATION ── */
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shake{animation:shake .35s ease}
+
+/* ── KÖRPERGEWICHT CARD ── */
+.weight-card-inner{padding:16px;position:relative;z-index:1}
+.weight-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.weight-current{display:flex;flex-direction:column;gap:2px}
+.weight-current-val{font-size:32px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.weight-current-unit{font-size:14px;color:var(--text2);font-weight:500}
+.weight-delta{font-size:12px;font-weight:600;padding:3px 8px;border-radius:20px;margin-top:4px;display:inline-block}
+.weight-delta.pos{background:rgba(255,59,48,.12);color:var(--red)}
+.weight-delta.neg{background:rgba(52,199,89,.12);color:var(--green)}
+.weight-delta.neu{background:var(--g5);color:var(--text2)}
+.weight-add-btn{
+  background:var(--acc);border:none;border-radius:50%;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;font-size:22px;flex-shrink:0;font-weight:300;line-height:1;
+  box-shadow:0 4px 14px rgba(var(--acc-rgb),.40);
+}
+.weight-chart-wrap{height:90px;position:relative;margin:0 -2px}
+.weight-chart-wrap canvas{width:100%!important}
+.weight-empty{font-size:14px;color:var(--text2);text-align:center;padding:24px 0 8px}
+.weight-photos-row{display:flex;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
+.weight-photo-btn{
+  flex:1;height:72px;border-radius:14px;
+  background:var(--g5);border:1.5px dashed var(--gl-bdr2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;cursor:pointer;color:var(--text2);font-size:12px;font-weight:600;
+  transition:background .15s;-webkit-tap-highlight-color:transparent;
+}
+.weight-photo-btn:active{background:rgba(var(--acc-rgb),.10)}
+.weight-photo-btn svg{width:20px;height:20px;opacity:.5}
+.weight-photo-btn.has-img{border-style:solid;border-color:rgba(var(--acc-rgb),.25);background:rgba(var(--acc-rgb),.06)}
+.weight-photo-btn.has-img span{color:var(--acc)}
+
 /* ── LAST-CARD SWIPE (Letztes Training auf Heute) ── */
 .last-swipe-wrap{overflow:hidden;border-radius:18px}
 .last-swipe-inner{
@@ -2371,6 +2407,11 @@ body{
       <div class="s-title">Diese Woche</div>
       <div class="tracker-row" id="tracker-row"></div>
     </div>
+    <!-- ── KÖRPERGEWICHT ── -->
+    <div>
+      <div class="s-title">Körpergewicht</div>
+      <div class="card" id="weight-card"></div>
+    </div>
     <div>
       <div class="s-title">Letzte Trainings</div>
       <div class="card" id="history-card"></div>
@@ -2704,6 +2745,39 @@ body{
     <div class="wk-mini-v" id="wk-mini-v">00:00</div>
   </div>
   <div class="wk-mini-chev">›</div>
+</div>
+
+<!-- SHEET: GEWICHT EINTRAGEN -->
+<div class="ov" id="ov-weight-entry">
+  <div class="sheet" style="padding-bottom:calc(28px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Gewicht eintragen</h2>
+      <button class="x-btn" onclick="closeOv('ov-weight-entry')">✕</button>
+    </div>
+    <div class="px" style="display:flex;flex-direction:column;gap:16px;padding-bottom:8px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:13px;font-weight:600;color:var(--text2)">Körpergewicht</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="weight-input" type="number" step="0.1" min="20" max="300"
+            placeholder="z. B. 80.5"
+            style="flex:1;background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:14px;
+                   padding:14px 16px;font-size:22px;font-weight:700;color:var(--text);
+                   font-family:inherit;outline:none;text-align:center;
+                   -webkit-appearance:none;appearance:none">
+          <div style="font-size:18px;font-weight:600;color:var(--text2);flex-shrink:0" id="weight-unit-label">kg</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:13px;font-weight:600;color:var(--text2)">Datum</label>
+        <input id="weight-date-input" type="date"
+          style="background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:14px;
+                 padding:12px 16px;font-size:15px;color:var(--text);font-family:inherit;outline:none;
+                 -webkit-appearance:none;appearance:none">
+      </div>
+      <button class="btn btn-acc" onclick="saveWeightEntry()">Speichern</button>
+    </div>
+  </div>
 </div>
 
 <!-- TABBAR -->
@@ -3673,6 +3747,7 @@ S.notifEnabled  = S.notifEnabled  || false;
 S.notifTime     = S.notifTime     || '08:00';
 S.trackerItems  = S.trackerItems  || [];
 S.trackerCounts = S.trackerCounts || {};
+S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -3928,7 +4003,149 @@ function renderHome() {
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
   renderTrackers();
+  renderWeightCard();
   renderSessionHistory();
+}
+
+// ── KÖRPERGEWICHT ──────────────────────────────────────
+let _weightChart = null;
+
+function renderWeightCard() {
+  const el = document.getElementById('weight-card');
+  if (!el) return;
+
+  const log = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const unit = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  const last  = log.length ? log[log.length - 1] : null;
+  const prev  = log.length > 1 ? log[log.length - 2] : null;
+
+  let deltaHtml = '';
+  if (last && prev) {
+    const diff = +(last.weight - prev.weight).toFixed(1);
+    const sign = diff > 0 ? '+' : '';
+    const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
+    deltaHtml = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
+  }
+
+  const currentHtml = last
+    ? `<div class="weight-current-val">${last.weight}</div>
+       <div class="weight-current-unit">${unit}</div>
+       ${deltaHtml}`
+    : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
+       <div class="weight-current-unit">${unit}</div>`;
+
+  el.innerHTML = `<div class="weight-card-inner">
+    <div class="weight-header">
+      <div class="weight-current">${currentHtml}</div>
+      <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
+    </div>
+    ${log.length >= 2
+      ? `<div class="weight-chart-wrap"><canvas id="weight-chart"></canvas></div>`
+      : `<div class="weight-empty">${log.length === 1 ? 'Noch ein Eintrag für das Diagramm nötig' : 'Noch kein Gewicht eingetragen'}</div>`
+    }
+    <div class="weight-photos-row">
+      <button class="weight-photo-btn" id="weight-photo-before" onclick="weightPhotoTap('before')" aria-label="Vorher-Foto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.5"/>
+          <path d="M3 9l3-3 3 3"/>
+        </svg>
+        <span>Vorher</span>
+      </button>
+      <button class="weight-photo-btn" id="weight-photo-after" onclick="weightPhotoTap('after')" aria-label="Nachher-Foto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.5"/>
+          <path d="M21 9l-3-3-3 3"/>
+        </svg>
+        <span>Nachher</span>
+      </button>
+    </div>
+  </div>`;
+
+  // Chart rendern wenn genug Einträge
+  if (log.length >= 2) {
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('weight-chart');
+      if (!canvas) return;
+      if (_weightChart) { _weightChart.destroy(); _weightChart = null; }
+      const pts = log.slice(-20); // max 20 Einträge
+      const labels = pts.map(p => {
+        const d = new Date(p.date);
+        return d.toLocaleDateString('de-DE', {day:'numeric', month:'short'});
+      });
+      const data = pts.map(p => p.weight);
+      const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+      _weightChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            borderColor: acc,
+            backgroundColor: acc + '22',
+            fill: true,
+            tension: .4,
+            pointBackgroundColor: acc,
+            pointRadius: data.length > 10 ? 3 : 5,
+            pointHoverRadius: 7,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ` ${ctx.parsed.y} ${unit}` }
+          }},
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#8e8e93', maxTicksLimit: 5 } },
+            y: {
+              grid: { color: 'rgba(120,120,128,.10)' },
+              ticks: { font: { size: 11 }, color: '#8e8e93', callback: v => v + ' ' + unit }
+            }
+          }
+        }
+      });
+    });
+  }
+}
+
+function openWeightEntry() {
+  // Datum auf heute setzen
+  const today = new Date().toISOString().slice(0, 10);
+  const inp = document.getElementById('weight-date-input');
+  if (inp) inp.value = today;
+  // Einheit-Label setzen
+  const ul = document.getElementById('weight-unit-label');
+  if (ul) ul.textContent = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  // Letztes Gewicht vorausfüllen
+  const log = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const wInp = document.getElementById('weight-input');
+  if (wInp) { wInp.value = log.length ? log[log.length-1].weight : ''; }
+  openOv('ov-weight-entry');
+  haptic && haptic(8);
+  setTimeout(() => wInp && wInp.focus(), 300);
+}
+
+function saveWeightEntry() {
+  const wInp  = document.getElementById('weight-input');
+  const dInp  = document.getElementById('weight-date-input');
+  const w = parseFloat((wInp?.value || '').replace(',', '.'));
+  const d = dInp?.value || new Date().toISOString().slice(0, 10);
+  if (!w || w < 20 || w > 500) { wInp?.classList.add('shake'); setTimeout(() => wInp?.classList.remove('shake'), 400); return; }
+  S.weightLog = S.weightLog || [];
+  // Vorhandenen Eintrag für diesen Tag ersetzen oder neu hinzufügen
+  const idx = S.weightLog.findIndex(e => e.date === d);
+  if (idx >= 0) S.weightLog[idx].weight = w;
+  else S.weightLog.push({ date: d, weight: w });
+  persist();
+  closeOv('ov-weight-entry');
+  renderWeightCard();
+  haptic && haptic(20);
+}
+
+function weightPhotoTap(type) {
+  // Noch kein Upload — kommt später
+  haptic && haptic(8);
 }
 
 function renderSuggestions() {
