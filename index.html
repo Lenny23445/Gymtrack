@@ -1768,6 +1768,34 @@ body{
 }
 .wgt-edit-link:active{color:var(--acc)}
 
+/* ── GEWICHTSVERLAUF SHEET ── */
+.wh-item{overflow:hidden;border-radius:14px;margin-bottom:8px}
+.wh-item-track{
+  display:flex;flex-direction:row;
+  width:calc(100% + 80px);
+  will-change:transform;
+  transition:transform .25s cubic-bezier(.25,.46,.45,.94);
+}
+.wh-item-row{
+  flex:1;min-width:0;
+  display:flex;align-items:center;padding:14px 16px;
+  background:var(--gl-bg-h);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.wh-item-row:active{background:var(--g5)}
+.wh-del-btn{
+  flex:none;width:80px;
+  background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.wh-del-btn:active{opacity:.8}
+.wh-item-date{flex:1;font-size:14px;color:var(--text2);font-weight:500}
+.wh-item-val{font-size:19px;font-weight:800;color:var(--text);margin-right:4px}
+.wh-item-unit{font-size:13px;font-weight:500;color:var(--text2)}
+.wh-item-chevron{font-size:20px;color:var(--text2);line-height:1;margin-left:6px;opacity:.4}
+
 /* ── LAST-CARD SWIPE (Letztes Training auf Heute) ── */
 .last-swipe-wrap{overflow:hidden;border-radius:18px}
 .last-swipe-inner{
@@ -2990,6 +3018,18 @@ body{
   </div>
 </div>
 
+<!-- SHEET: GEWICHTSVERLAUF -->
+<div class="ov" id="ov-weight-history">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Verlauf</h2>
+      <button class="x-btn" onclick="closeOv('ov-weight-history')">✕</button>
+    </div>
+    <div id="wh-list-wrap" style="overflow-y:auto;max-height:60vh;padding:0 16px 16px;display:flex;flex-direction:column"></div>
+  </div>
+</div>
+
 <!-- SHEET: TRAINING DETAIL / BEARBEITEN -->
 <div class="ov" id="ov-sess-detail">
   <div class="sheet" style="max-height:92vh">
@@ -3635,7 +3675,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605282100';
+const APP_VERSION = 'gymtrack-v202605291430';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4474,7 +4514,7 @@ function renderWeightCard() {
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
-          ? `<div class="weight-current-val">${last.weight}</div>
+          ? `<div class="weight-current-val" onclick="openWeightHistory()" style="cursor:pointer">${last.weight}</div>
              <div class="weight-current-unit">${unit}</div>
              ${deltaHtml}`
           : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
@@ -4618,6 +4658,97 @@ function resetWeightGoal() {
   closeOv('ov-weight-goal');
   renderWeightCard();
   haptic && haptic(20);
+}
+
+function openWeightHistory() {
+  renderWeightHistoryList();
+  openOv('ov-weight-history');
+  haptic && haptic(8);
+}
+
+function renderWeightHistoryList() {
+  const wrap = document.getElementById('wh-list-wrap');
+  if (!wrap) return;
+  const log  = (S.weightLog || []).slice().sort((a,b) => b.date.localeCompare(a.date));
+  const unit = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  if (!log.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text2);font-size:15px">Noch keine Einträge</div>';
+    return;
+  }
+  wrap.innerHTML = log.map(entry => {
+    const d = new Date(entry.date + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('de-DE', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+    return `<div class="wh-item" data-date="${entry.date}">
+      <div class="wh-item-track">
+        <div class="wh-item-row" onclick="editWeightEntry('${entry.date}')">
+          <div class="wh-item-date">${dateStr}</div>
+          <div class="wh-item-val">${entry.weight} <span class="wh-item-unit">${unit}</span></div>
+          <div class="wh-item-chevron">›</div>
+        </div>
+        <div class="wh-del-btn" onclick="deleteWeightEntry('${entry.date}')">Löschen</div>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.wh-item').forEach(_initWhSwipe);
+}
+
+function _initWhSwipe(item) {
+  const track = item.querySelector('.wh-item-track');
+  const DEL_W = 80;
+  let startX = 0, curX = 0, dragging = false, opened = false;
+
+  track.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    dragging = true;
+    track.style.transition = 'none';
+  }, {passive: true});
+
+  track.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    let dx = e.touches[0].clientX - startX;
+    if (opened) dx -= DEL_W;
+    dx = Math.min(0, Math.max(dx, -DEL_W * 1.3));
+    curX = dx;
+    track.style.transform = `translateX(${dx}px)`;
+  }, {passive: true});
+
+  track.addEventListener('touchend', () => {
+    dragging = false;
+    track.style.transition = 'transform .25s cubic-bezier(.25,.46,.45,.94)';
+    const threshold = opened ? -DEL_W * 0.3 : -DEL_W * 0.45;
+    if (curX < threshold) {
+      track.style.transform = `translateX(-${DEL_W}px)`;
+      opened = true;
+    } else {
+      track.style.transform = 'translateX(0)';
+      opened = false;
+    }
+  });
+}
+
+function deleteWeightEntry(date) {
+  S.weightLog = (S.weightLog || []).filter(e => e.date !== date);
+  persist();
+  renderWeightCard();
+  renderWeightHistoryList();
+  haptic && haptic(10);
+}
+
+function editWeightEntry(date) {
+  const entry = (S.weightLog || []).find(e => e.date === date);
+  if (!entry) return;
+  closeOv('ov-weight-history');
+  setTimeout(() => {
+    const dInp = document.getElementById('weight-date-input');
+    const wInp = document.getElementById('weight-input');
+    const ul   = document.getElementById('weight-unit-label');
+    if (dInp) dInp.value = entry.date;
+    if (wInp) wInp.value = entry.weight;
+    if (ul)   ul.textContent = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+    openOv('ov-weight-entry');
+    haptic && haptic(8);
+    setTimeout(() => wInp && wInp.focus(), 300);
+  }, 220);
 }
 
 function renderSuggestions() {
