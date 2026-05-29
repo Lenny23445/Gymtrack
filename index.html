@@ -1641,6 +1641,8 @@ body{
 #heute-weight-sec .weight-card-inner{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 .weight-top-row{
   display:flex;align-items:flex-start;gap:10px;
@@ -2991,6 +2993,18 @@ body{
   </div>
 </div>
 
+<!-- SHEET: TRAINING DETAIL / BEARBEITEN -->
+<div class="ov" id="ov-sess-detail">
+  <div class="sheet" style="max-height:92vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="sess-detail-title">Training</h2>
+      <button class="x-btn" onclick="closeOv('ov-sess-detail')">✕</button>
+    </div>
+    <div id="sess-detail-body" style="padding:0 20px 16px;display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+</div>
+
 <!-- TABBAR -->
 <div class="tabbar">
   <div id="tab-indicator"></div>
@@ -4237,16 +4251,19 @@ function renderCompactHistory() {
   const sets = s => s.logs.reduce((n,l)=>n+l.sets.length,0);
 
   const row = (s, border) => `
-    <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer;${border?'border-top:1px solid var(--sep)':''}" onclick="goTab('stats',document.querySelector('.tab:nth-child(3)'))">
+    <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer;${border?'border-top:1px solid var(--sep)':''}" onclick="openSessDetail('${s.id}')">
       <div>
         <div style="font-size:13px;font-weight:600">${fmt(s)}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:1px">${s.logs.length} Übung${s.logs.length===1?'':'en'}</div>
       </div>
-      <span class="badge b-green">${sets(s)} Sätze</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge b-green">${sets(s)} Sätze</span>
+        <span style="color:var(--text2);font-size:16px">›</span>
+      </div>
     </div>`;
 
   const chevRot = _compactHistOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-  let html = `<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer" onclick="toggleCompactHistory()">
+  let html = `<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer" onclick="${rest.length ? 'toggleCompactHistory()' : `openSessDetail('${last.id}')`}">
     <div>
       <div style="font-size:14px;font-weight:600">${fmt(last)}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:1px">${last.logs.length} Übung${last.logs.length===1?'':'en'}</div>
@@ -4265,10 +4282,80 @@ function renderCompactHistory() {
 
 function toggleCompactHistory() {
   const sessions = [...(S.sessions||[])];
-  if (sessions.length < 2) { goTab('stats',document.querySelector('.tab:nth-child(3)')); return; }
+  if (sessions.length < 2) { openSessDetail(sessions[0]?.id); return; }
   _compactHistOpen = !_compactHistOpen;
   renderCompactHistory();
   haptic && haptic(8);
+}
+
+// ── SESSION DETAIL / BEARBEITEN ───────────────────────
+let _sessDetailId = null;
+
+function openSessDetail(sesId) {
+  if (!sesId) return;
+  _sessDetailId = sesId;
+  renderSessDetail();
+  openOv('ov-sess-detail');
+  haptic && haptic(8);
+}
+
+function renderSessDetail() {
+  const ses = S.sessions.find(s => s.id === _sessDetailId);
+  if (!ses) return;
+  const el    = document.getElementById('sess-detail-body');
+  const title = document.getElementById('sess-detail-title');
+  const d = new Date(ses.date).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  if (title) title.textContent = d;
+  if (!el) return;
+
+  el.innerHTML = ses.logs.map((log, li) => {
+    const ex     = exById(log.exerciseId);
+    const name   = ex ? ex.name : (log._overrideName || log.exerciseId);
+    const isTime = ex?.targetType === 'time';
+    const unit   = unitLabel();
+
+    const setRows = log.sets.map((s, si) => {
+      const wDisp = s.w !== '' && s.w != null ? kgToDisp(s.w) : '';
+      const timeCol = isTime
+        ? `<span style="font-size:14px;font-weight:600;color:var(--text);min-width:56px;text-align:center">${fmtSec(s.tElapsed||0)}</span>`
+        : `<span style="color:var(--text2);font-size:13px">×</span>
+           <input type="number" step="1" value="${s.r??''}" placeholder="–"
+             style="width:56px;background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:10px;padding:8px;font-size:15px;font-weight:600;color:var(--text);font-family:inherit;text-align:center;-webkit-appearance:none;appearance:none"
+             oninput="updateSessSet('${ses.id}',${li},${si},'r',this.value)">
+           <span style="color:var(--text2);font-size:12px">Wdh</span>`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--sep)">
+        <span style="width:20px;text-align:center;font-size:13px;color:var(--text2);font-weight:600;flex-shrink:0">${si+1}</span>
+        <input type="number" step="0.5" value="${wDisp}" placeholder="–"
+          style="width:64px;background:var(--inp-bg);border:1.5px solid var(--gl-bdr2);border-radius:10px;padding:8px;font-size:15px;font-weight:600;color:var(--text);font-family:inherit;text-align:center;-webkit-appearance:none;appearance:none"
+          oninput="updateSessSet('${ses.id}',${li},${si},'w',this.value)">
+        <span style="color:var(--text2);font-size:12px">${unit}</span>
+        ${timeCol}
+      </div>`;
+    }).join('');
+
+    return `<div style="background:var(--gl-bg);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px 14px;box-shadow:var(--gl-shad)">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">${name}</div>
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px">
+        <span style="width:20px;flex-shrink:0"></span>
+        <span style="width:64px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">${unit.toUpperCase()}</span>
+        <span style="font-size:11px;color:transparent;font-size:12px">×</span>
+        ${!isTime ? `<span style="width:56px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase">WDH</span>` : ''}
+      </div>
+      ${setRows}
+    </div>`;
+  }).join('');
+}
+
+function updateSessSet(sesId, li, si, field, val) {
+  const ses = S.sessions.find(s => s.id === sesId);
+  if (!ses?.logs[li]?.sets[si]) return;
+  const num = parseFloat(val);
+  if (field === 'w') {
+    ses.logs[li].sets[si].w = isNaN(num) ? '' : dispToKg(num);
+  } else {
+    ses.logs[li].sets[si].r = isNaN(num) ? '' : String(Math.round(num));
+  }
+  persist();
 }
 
 // ── CHART HELPERS ─────────────────────────────────────
