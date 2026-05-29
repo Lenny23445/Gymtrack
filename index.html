@@ -3334,8 +3334,25 @@ body{
           </div>
         </div>
         <div id="log-cards"></div>
+        <button class="btn btn-gray" style="margin-top:12px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- SHEET: ÜBUNG HINZUFÜGEN (mid-workout) -->
+<div class="ov" id="ov-mid-add" onclick="if(event.target===this)closeOv('ov-mid-add')">
+  <div class="sheet" style="max-height:85vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Übung hinzufügen</h2>
+      <button class="x-btn" onclick="closeOv('ov-mid-add')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:8px">
+      <input type="search" id="mid-add-search" class="srch-inp" placeholder="Übung suchen…"
+             oninput="_midAddQ=this.value;renderMidAddList()" autocomplete="off">
+    </div>
+    <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;max-height:calc(85vh - 148px);padding-bottom:calc(16px + var(--sab))"></div>
   </div>
 </div>
 
@@ -3675,7 +3692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291430';
+const APP_VERSION = 'gymtrack-v202605291620';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -7073,9 +7090,33 @@ function recoveryState(pct) {
 /* Stub für Kompatibilität (frühere Aufrufer) */
 function invalidateRecovery() { /* personalNormLoad ist on-the-fly */ }
 
+/* Übungstyp-Schadensfaktor:
+   bestimmt wie schnell sich eine Übung erholt (hoher Wert = langsamer).
+   Exzentrisch-dominant (RDL, Nordic, Bulgarian) → 1.5
+   Schwere Compound (Kreuzheben, Kniebeugen, Bankdrücken) → 1.25
+   Moderate Compound (Rudern, Latzug, OHP) → 1.10
+   Maschinen / Kabel / Isolation → 0.82 */
+function exerciseDamageFactor(ex) {
+  if (!ex) return 1.0;
+  const n = (ex.name || '').toLowerCase();
+  if (/rdl|romanian|rum[äa]n|nordic|bulgar|split.squat|goodmorn|hyperexten|back.exten|negativ/.test(n)) return 1.50;
+  if (/kreuzheb|deadlift|kniebeu|squat|bankdrück|bench|klimmz|pull.?up(?!down)|dip/.test(n)) return 1.25;
+  if (/ruder|row|schulterdrück|overhead|latzug|pulldown|kurzhantel/.test(n)) return 1.10;
+  if (/maschine|machine|kabel|cable|smith|leg.?press|beinpress|butterfly|fly|peck|curls|extension/.test(n)) return 0.82;
+  return 1.0;
+}
+
+/* Session-Schadensmultiplikator: Top-/Drop-/Failure-Sätze erhöhen die Ermüdung. */
+function sessionDamageMul(sets) {
+  if (!sets || !sets.length) return 1.0;
+  const high = sets.filter(s => ['top','drop','fail'].includes((s.type||'').toLowerCase())).length;
+  return 1.0 + (high / sets.length) * 0.35;
+}
+
 /* ── EXERCISE-LEVEL RECOVERY ─────────────────────────────────────
    Pro NUTZER-Übung berechnet: aktuelle Last (mit Half-Life-Decay)
    normalisiert auf den persönlichen Peak der letzten 90 Tage.
+   Half-Life variiert nach Übungstyp (exzentrisch → länger).
    Damit erscheinen NUR Übungen, die der Nutzer selbst angelegt hat
    – keine Muskel-Pseudo-Einträge wie "Quadrizeps".
    ──────────────────────────────────────────────────────────────── */
@@ -7086,9 +7127,11 @@ function getExerciseRecovery() {
   const out = {};
 
   for (const ex of (S.exercises || [])) {
-    let load = 0;        // aktuell anstehende Last (mit Decay)
+    const dmg = exerciseDamageFactor(ex);
+    const halflife = FAT_HALFLIFE_H * dmg;
+    let load = 0;
     let lastTs = null;
-    let peakSession = 0; // Norm = größte Session-Last der letzten 90 Tage
+    let peakSession = 0;
 
     for (const ses of (S.sessions || [])) {
       const ts = new Date(ses.date).getTime();
@@ -7098,14 +7141,14 @@ function getExerciseRecovery() {
       const sesLoad = (log.sets || []).reduce((s, set) => s + setLoad(set), 0);
       if (sesLoad <= 0) continue;
 
-      // Peak für persönliche Norm
+      // Peak für persönliche Norm (ohne set-type-Bonus → roher Volume-Peak)
       if (ts >= cutoff90 && sesLoad > peakSession) peakSession = sesLoad;
 
-      // Aktuelle Last im Fenster mit Half-Life-Decay
+      // Aktuelle Last im Fenster: Half-Life nach Übungstyp + Set-Typ-Bonus
       if (ts >= cutoff) {
         const hoursAgo = (now - ts) / 3600000;
-        const decay = Math.pow(0.5, hoursAgo / FAT_HALFLIFE_H);
-        load += sesLoad * decay;
+        const decay = Math.pow(0.5, hoursAgo / halflife);
+        load += sesLoad * sessionDamageMul(log.sets) * decay;
         if (!lastTs || ts > lastTs) lastTs = ts;
       }
     }
@@ -7839,6 +7882,54 @@ function toggleEx(id) {
   if (btn) btn.textContent = wkExIds.length
     ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
     : 'Training starten ▶';
+}
+
+/* ── ÜBUNG MITTEN IM TRAINING HINZUFÜGEN ─────────────── */
+let _midAddQ = '';
+function openMidAddExercise() {
+  _midAddQ = '';
+  const inp = document.getElementById('mid-add-search');
+  if (inp) inp.value = '';
+  renderMidAddList();
+  openOv('ov-mid-add');
+  setTimeout(() => { const inp2 = document.getElementById('mid-add-search'); if (inp2) inp2.focus(); }, 200);
+}
+function renderMidAddList() {
+  const list = document.getElementById('mid-add-list');
+  if (!list) return;
+  const q = _midAddQ.toLowerCase();
+  const activeIds = new Set((wkLogs || []).map(l => l.exerciseId));
+  const exs = (S.exercises || []).filter(ex => !q || ex.name.toLowerCase().includes(q));
+  if (!exs.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2)">Keine Übungen gefunden</div>';
+    return;
+  }
+  list.innerHTML = exs.map(ex => {
+    const already = activeIds.has(ex.id);
+    const mg = MUSCLE_GROUPS.find(m => m.id === ex.muscleGroup);
+    return `<div class="row tap" onclick="addExToActiveWorkout('${ex.id}')">
+      <div class="row-body">
+        <div class="row-title">${ex.name}${already?'<span style="font-size:11px;color:var(--text2);margin-left:6px">bereits drin</span>':''}</div>
+        <div class="row-sub">${mg ? mg.label : ex.muscleGroup}</div>
+      </div>
+      <div style="color:var(--acc);font-size:22px;font-weight:300;padding-left:8px">＋</div>
+    </div>`;
+  }).join('');
+}
+function addExToActiveWorkout(exId) {
+  const ex = exById(exId);
+  if (!ex) return;
+  const sw = getSuggestedWeight(ex);
+  const defaultW = sw != null ? String(sw) : '';
+  const defaultR = String(getSuggestedReps(ex));
+  const isTime = ex.targetType === 'time';
+  const makeset = () => isTime
+    ? {w:defaultW, tElapsed:0, tRunning:false, tStart:null}
+    : {w:defaultW, r:defaultR};
+  wkLogs.push({ exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) });
+  closeOv('ov-mid-add');
+  renderLogCards();
+  haptic(10);
 }
 
 function startActive() {
@@ -9099,34 +9190,42 @@ function setExSearch(v, clearInput){
 }
 
 // ── HEATMAP (letzte 12 Monate, Wochen × Tage) ─────────
+function _localDateKey(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth()+1).padStart(2,'0') + '-'
+    + String(d.getDate()).padStart(2,'0');
+}
 function renderHeatmap(){
   const grid = document.getElementById('heatmap-grid');
   if (!grid) return;
   const today = new Date(); today.setHours(0,0,0,0);
-  // Map: YYYY-MM-DD → summed volume (kg)
+
+  // Map: lokales YYYY-MM-DD → summed volume (kg)
   const map = {};
   S.sessions.forEach(s => {
     const d = new Date(s.date); d.setHours(0,0,0,0);
-    const k = d.toISOString().slice(0,10);
-    const v = sessionVolume(s) || 1; // mindestens 1 = trainiert
+    const k = _localDateKey(d);
+    const v = sessionVolume(s) || 1;
     map[k] = (map[k]||0) + v;
   });
-  // Quartile für Stufen 1..4 aus aktiven Tagen
+
+  // Quartile für Intensitätsstufen 1..4
   const active = Object.values(map).filter(v=>v>0).sort((a,b)=>a-b);
   const q = (p) => active.length ? active[Math.min(active.length-1, Math.floor(active.length*p))] : 0;
   const q1=q(.25), q2=q(.50), q3=q(.75);
 
-  // Start: 52 Wochen rückwärts vom letzten Sonntag
+  // 52 Wochen: Mo der aktuellen Woche rückwärts
   const dayOfWeekMon0 = (d) => (d.getDay()+6)%7; // Mo=0
   const end = new Date(today);
-  end.setDate(today.getDate() + (6 - dayOfWeekMon0(today))); // bis Sonntag der laufenden Woche
+  end.setDate(today.getDate() + (6 - dayOfWeekMon0(today)));
   const start = new Date(end);
   start.setDate(end.getDate() - (52*7 - 1));
 
+  // Zellen rendern
   let html = '';
   const cur = new Date(start);
   while (cur <= end) {
-    const k = cur.toISOString().slice(0,10);
+    const k = _localDateKey(cur);
     const v = map[k] || 0;
     let cls = '';
     if (v > 0) {
@@ -9137,12 +9236,12 @@ function renderHeatmap(){
     }
     const isFuture = cur > today;
     const isToday = cur.getTime() === today.getTime();
-    const title = isFuture ? '' : (cur.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}) + (v>0?(' · '+fmtKg(v)):' · kein Training'));
+    const title = isFuture ? '' : (_localDateKey(cur).split('-').reverse().join('.').slice(0,6) + (v>0?(' · '+fmtKg(v)):' · kein Training'));
     html += `<div class="hm-cell ${cls}${isToday?' today':''}"${isFuture?' style="visibility:hidden"':''} title="${title}"></div>`;
     cur.setDate(cur.getDate()+1);
   }
   grid.innerHTML = html;
-  // Scroll ans Ende
+  // Scroll zur aktuellen Woche (rechts = heute sichtbar)
   const sc = grid.parentElement;
   if (sc) sc.scrollLeft = sc.scrollWidth;
 }
