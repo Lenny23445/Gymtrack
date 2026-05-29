@@ -1889,6 +1889,8 @@ body{
   max-width:100%;
 }
 .heatmap-scroll::-webkit-scrollbar{display:none}
+.heatmap-months{display:flex;flex-wrap:nowrap;width:max-content;margin-bottom:3px}
+.hm-month-lbl{font-size:9px;color:var(--text2);line-height:1;overflow:hidden;white-space:nowrap;flex-shrink:0}
 .heatmap-grid{
   display:grid;grid-auto-flow:column;grid-template-rows:repeat(7, 1fr);
   gap:2px;width:max-content;
@@ -2662,7 +2664,10 @@ body{
     <div>
       <div class="s-title" id="heatmap-title">Aktivität · letzte 12 Monate</div>
       <div class="heatmap-wrap">
-        <div class="heatmap-scroll"><div class="heatmap-grid" id="heatmap-grid"></div></div>
+        <div class="heatmap-scroll">
+          <div id="heatmap-months" class="heatmap-months"></div>
+          <div class="heatmap-grid" id="heatmap-grid"></div>
+        </div>
         <div class="heatmap-legend">
           <span>weniger</span>
           <div class="hm-cell"></div>
@@ -3352,7 +3357,10 @@ body{
       <input type="search" id="mid-add-search" class="srch-inp" placeholder="Übung suchen…"
              oninput="_midAddQ=this.value;renderMidAddList()" autocomplete="off">
     </div>
-    <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;max-height:calc(85vh - 148px);padding-bottom:calc(16px + var(--sab))"></div>
+    <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;max-height:calc(85vh - 210px)"></div>
+    <div style="padding:10px 16px calc(12px + var(--sab));border-top:1px solid var(--gl-bdr)">
+      <button class="btn btn-gray" onclick="openNewExFromWorkout()">＋ Neue Übung erstellen</button>
+    </div>
   </div>
 </div>
 
@@ -3692,7 +3700,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291620';
+const APP_VERSION = 'gymtrack-v202605291640';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6419,6 +6427,14 @@ function saveEx() {
   closeOv('ov-ex');
   renderExList();
   renderHome();
+
+  // Wenn aus aktivem Training heraus aufgerufen → neue Übung direkt hinzufügen
+  if (_midAddPending && !editId) {
+    _midAddPending = false;
+    addExToActiveWorkout(savedId);
+  } else {
+    _midAddPending = false;
+  }
 }
 
 // ── EX TYPE TOGGLE ───────────────────────────────────
@@ -7886,6 +7902,14 @@ function toggleEx(id) {
 
 /* ── ÜBUNG MITTEN IM TRAINING HINZUFÜGEN ─────────────── */
 let _midAddQ = '';
+let _midAddPending = false; // true = neue Übung nach Speichern direkt ins Training
+
+function openNewExFromWorkout() {
+  _midAddPending = true;
+  closeOv('ov-mid-add');
+  openNewEx(null); // bestehende Erstellmaske öffnen
+}
+
 function openMidAddExercise() {
   _midAddQ = '';
   const inp = document.getElementById('mid-add-search');
@@ -9220,6 +9244,24 @@ function renderHeatmap(){
   end.setDate(today.getDate() + (6 - dayOfWeekMon0(today)));
   const start = new Date(end);
   start.setDate(end.getDate() - (52*7 - 1));
+
+  // Monatsbeschriftungen (scrollen mit dem Grid, gleiche Zellenbreite wie .hm-cell)
+  const CELL = 9, GAP = 2, COL_W = CELL + GAP;
+  const numCols = Math.ceil(((end - start) / 86400000 + 1) / 7);
+  const monthsDiv = document.getElementById('heatmap-months');
+  const MONATE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  if (monthsDiv) {
+    let lastM = -1, mHtml = '';
+    const colCur = new Date(start);
+    for (let i = 0; i < numCols; i++) {
+      const m = colCur.getMonth();
+      const lbl = (m !== lastM) ? MONATE[m] : '';
+      if (m !== lastM) lastM = m;
+      mHtml += `<div class="hm-month-lbl" style="width:${CELL}px;${i > 0 ? 'margin-left:' + GAP + 'px' : ''}">${lbl}</div>`;
+      colCur.setDate(colCur.getDate() + 7);
+    }
+    monthsDiv.innerHTML = mHtml;
+  }
 
   // Zellen rendern
   let html = '';
