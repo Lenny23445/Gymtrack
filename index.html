@@ -1578,6 +1578,26 @@ body{
   0%,100%{transform:scale(1)}
   50%{transform:scale(1.10) rotate(-3deg)}
 }
+/* ── STREAK DETAIL OVERLAY ── */
+.ov.ov-streak-detail{align-items:flex-end;justify-content:center;background:rgba(0,0,0,.50);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1003}
+.streak-detail-card{background:var(--gl-bg-h);backdrop-filter:blur(60px) saturate(200%);-webkit-backdrop-filter:blur(60px) saturate(200%);border:1px solid var(--gl-bdr);border-radius:28px 28px 0 0;width:100%;max-width:430px;padding-bottom:calc(32px + var(--sab));animation:up .28s cubic-bezier(.32,1,.32,1)}
+.strd-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--sep)}
+.strd-hero{display:flex;flex-direction:column;align-items:center;padding:22px 20px 16px;gap:4px}
+.strd-fire{font-size:52px;filter:drop-shadow(0 4px 12px rgba(255,149,0,.45));animation:streak-pulse 2.4s ease-in-out infinite;display:block}
+.strd-weeks{font-size:48px;font-weight:800;line-height:1;background:linear-gradient(135deg,#ff9500,#ff3b30);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.strd-label{font-size:14px;color:var(--text2);font-weight:500}
+.strd-hist-wrap{padding:14px 20px 6px}
+.strd-hist-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:10px}
+.strd-hist-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+.strd-hist-dot{aspect-ratio:1;border-radius:6px;background:var(--g5)}
+.strd-hist-dot.done{background:#34c759}
+.strd-hist-dot.current{outline:2px solid var(--acc);outline-offset:2px}
+.strd-rows{display:flex;flex-direction:column;gap:0;padding:4px 20px 0}
+.strd-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--sep);font-size:15px}
+.strd-row:last-child{border-bottom:none}
+.strd-row-label{color:var(--text2)}
+.strd-row-val{font-weight:600}
+.strd-msg{text-align:center;padding:10px 20px 4px;font-size:14px;color:var(--text2);line-height:1.5}
 .hdr-greet-row{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   position:relative;z-index:1;
@@ -3660,6 +3680,44 @@ body{
         <button class="btn btn-gray" id="krd-reset-btn" onclick="krdReset()" style="display:none;flex:0;padding:14px 20px">↺</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- OVERLAY: STREAK DETAIL -->
+<div class="ov ov-streak-detail" id="ov-streak" onclick="if(event.target===this)closeOv('ov-streak')">
+  <div class="streak-detail-card">
+    <div class="strd-head">
+      <span style="font-size:17px;font-weight:700">🔥 Streak</span>
+      <button class="x-btn" onclick="closeOv('ov-streak')">✕</button>
+    </div>
+    <div class="strd-hero">
+      <span class="strd-fire" id="strd-fire">🔥</span>
+      <span class="strd-weeks" id="strd-weeks">0</span>
+      <span class="strd-label" id="strd-label">Wochen in Folge</span>
+    </div>
+    <div class="strd-hist-wrap">
+      <div class="strd-hist-title">Letzte 12 Wochen</div>
+      <div class="strd-hist-grid" id="strd-hist"></div>
+    </div>
+    <div class="strd-rows">
+      <div class="strd-row">
+        <span class="strd-row-label">Diese Woche</span>
+        <span class="strd-row-val" id="strd-this-week">–</span>
+      </div>
+      <div class="strd-row">
+        <span class="strd-row-label">Letztes Training</span>
+        <span class="strd-row-val" id="strd-last-date">–</span>
+      </div>
+      <div class="strd-row">
+        <span class="strd-row-label">Bester Streak</span>
+        <span class="strd-row-val" id="strd-best">–</span>
+      </div>
+      <div class="strd-row">
+        <span class="strd-row-label">Trainingswochen gesamt</span>
+        <span class="strd-row-val" id="strd-total-weeks">–</span>
+      </div>
+    </div>
+    <div class="strd-msg" id="strd-msg"></div>
   </div>
 </div>
 
@@ -9183,30 +9241,41 @@ function endGuidedTour(){
 
 // ── STREAK (Wochen in Folge mit mind. einem Training) ──
 function calcStreak(){
-  if (!S.sessions || !S.sessions.length) return { weeks:0, weeksThis:0, lastDate:null };
-  // Hilfsfunktion: Montag-Datum (00:00) für ein Datum
+  if (!S.sessions || !S.sessions.length) return { weeks:0, weeksThis:false, lastDate:null, bestWeeks:0, totalWeeks:0, weekHistory:[] };
   const mondayOf = (d) => {
     const x = new Date(d);
     x.setHours(0,0,0,0);
-    const dow = (x.getDay() + 6) % 7; // Mo=0..So=6
+    const dow = (x.getDay() + 6) % 7;
     x.setDate(x.getDate() - dow);
     return x.getTime();
   };
-  // Set aller Trainings-Wochen-Anker
   const weeks = new Set(S.sessions.map(s => mondayOf(s.date)));
   const thisMon = mondayOf(new Date());
-  let count = 0;
-  let cursor = thisMon;
-  // Lücke darf nur letzte Woche sein, wenn diese Woche noch nicht trainiert
+  // Aktueller Streak
+  let count = 0, cursor = thisMon;
   if (!weeks.has(cursor)) cursor = cursor - 7*86400000;
-  while (weeks.has(cursor)) {
-    count++;
-    cursor -= 7*86400000;
+  while (weeks.has(cursor)) { count++; cursor -= 7*86400000; }
+  // Bester Streak (über alle Wochen)
+  const sortedWeeks = [...weeks].sort((a,b) => a-b);
+  let best = 0, run = 0, prev = null;
+  for (const w of sortedWeeks) {
+    run = (prev !== null && w - prev === 7*86400000) ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = w;
+  }
+  // Verlauf der letzten 12 Wochen
+  const weekHistory = [];
+  for (let i = 11; i >= 0; i--) {
+    const wMon = thisMon - i * 7 * 86400000;
+    weekHistory.push({ ts: wMon, trained: weeks.has(wMon), isCurrent: wMon === thisMon });
   }
   return {
     weeks: count,
     weeksThis: weeks.has(thisMon),
-    lastDate: S.sessions.slice().sort((a,b)=> new Date(b.date)-new Date(a.date))[0]?.date
+    lastDate: S.sessions.slice().sort((a,b)=> new Date(b.date)-new Date(a.date))[0]?.date,
+    bestWeeks: best,
+    totalWeeks: weeks.size,
+    weekHistory,
   };
 }
 function renderStreak(){
@@ -9221,10 +9290,47 @@ function renderStreak(){
   const tip  = st.weeksThis
     ? st.weeks + ' Wochen in Folge trainiert'
     : 'Trainiere diese Woche, damit die Serie nicht reißt';
-  host.innerHTML = `<div class="streak-badge${cold}" title="${tip}">
+  host.innerHTML = `<div class="streak-badge${cold}" title="${tip}" onclick="openStreakDetail()" style="cursor:pointer">
     <span class="streak-fire">${st.weeksThis?'🔥':'⏳'}</span>
     <span>${st.weeks}</span>
   </div>`;
+}
+function openStreakDetail() {
+  const st = calcStreak();
+  document.getElementById('strd-fire').textContent = st.weeksThis ? '🔥' : '⏳';
+  document.getElementById('strd-weeks').textContent = st.weeks;
+  document.getElementById('strd-label').textContent = st.weeks === 1 ? 'Woche in Folge' : 'Wochen in Folge';
+  document.getElementById('strd-this-week').innerHTML = st.weeksThis
+    ? '<span style="color:#34c759;font-weight:700">✓ Trainiert</span>'
+    : '<span style="color:#ff9500;font-weight:600">Noch nicht trainiert</span>';
+  document.getElementById('strd-last-date').textContent = st.lastDate
+    ? new Date(st.lastDate).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})
+    : '–';
+  document.getElementById('strd-best').textContent = st.bestWeeks
+    ? st.bestWeeks + (st.bestWeeks === 1 ? ' Woche' : ' Wochen')
+    : '–';
+  document.getElementById('strd-total-weeks').textContent = st.totalWeeks
+    ? st.totalWeeks + (st.totalWeeks === 1 ? ' Woche' : ' Wochen')
+    : '–';
+  document.getElementById('strd-hist').innerHTML = st.weekHistory.map(w => {
+    const cls = ['strd-hist-dot', w.trained?'done':'', w.isCurrent?'current':''].filter(Boolean).join(' ');
+    const date = new Date(w.ts).toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+    return `<div class="${cls}" title="${date}"></div>`;
+  }).join('');
+  const msgs = [
+    [12, 'Unglaublich! 3 Monate in Folge — du bist eine Maschine 💪'],
+    [8,  'Starke Serie! Bleib dran 🔥'],
+    [4,  'Super Konstanz! Du bist auf dem richtigen Weg 💪'],
+    [2,  'Gut gemacht! Halte die Serie am Leben 🔥'],
+    [1,  'Guter Start! Trainiere nächste Woche wieder 💪'],
+  ];
+  const msg = !st.weeksThis && st.weeks === 0
+    ? 'Trainiere diese Woche — starte deine Serie! 🔥'
+    : !st.weeksThis
+      ? 'Trainiere diese Woche, damit die Serie nicht reißt!'
+      : (msgs.find(([min]) => st.weeks >= min) || [0,'Weiter so!'])[1];
+  document.getElementById('strd-msg').textContent = msg;
+  openOv('ov-streak');
 }
 
 // ── SUCHE im Übungen-Tab ──────────────────────────────
