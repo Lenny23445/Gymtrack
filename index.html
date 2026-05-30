@@ -10741,32 +10741,29 @@ async function _handleGoogleCredential(response) {
     console.log('[GymTrack] ✅ Firebase-Login via GIS ok:', result?.user?.email);
   } catch (e) {
     console.error('[GymTrack] ❌ signInWithCredential fehlgeschlagen:', e);
-    // Fallback: Popup-Login versuchen
+    // Fallback: Redirect-Login (WKWebView-kompatibel — kein window.open() nötig)
     try {
-      console.log('[GymTrack] Fallback → signInWithPopup nach GIS-Fehler');
-      await window.FB.signInWithPopup();
+      console.log('[GymTrack] Fallback → signInWithRedirect nach GIS-Fehler');
+      await window.FB.signInWithRedirect();
       return;
     } catch (e2) {
-      if (e2 && (e2.code === 'auth/popup-closed-by-user' || e2.code === 'auth/cancelled-popup-request')) return;
-      console.error('[GymTrack] ❌ Popup-Fallback ebenfalls fehlgeschlagen:', e2);
+      console.error('[GymTrack] ❌ Redirect-Fallback ebenfalls fehlgeschlagen:', e2);
     }
     alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
   }
 }
 
-// Legacy-Fallback (z.B. falls GIS blockiert wird)
+// Fallback (z.B. falls GIS-Button blockiert wird) — Redirect statt Popup (WKWebView-kompatibel)
 async function doGoogleSignIn() {
   if (!window.FB || !window.FB.configured) {
     alert('⚙️ Firebase ist noch nicht konfiguriert.');
     return;
   }
-  console.log('[GymTrack] Fallback → signInWithPopup');
+  console.log('[GymTrack] Fallback → signInWithRedirect');
   try {
-    const res = await window.FB.signInWithPopup();
-    console.log('[GymTrack] Popup-Login ok:', res?.user?.email);
+    await window.FB.signInWithRedirect();
   } catch (e) {
-    console.error('[GymTrack] ❌ Popup-Login fehlgeschlagen:', e);
-    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    console.error('[GymTrack] ❌ Redirect-Login fehlgeschlagen:', e);
     alert('❌ Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
   }
 }
@@ -10895,6 +10892,7 @@ function _initFirebaseListeners() {
       if (res && res.user) console.log('[GymTrack] ✅ Redirect-Login erfolgreich:', res.user.email);
     })
     .catch(e => {
+      if (!e?.code || e.code === 'auth/no-auth-event') return; // kein Redirect ausstehend → normal
       console.error('[GymTrack] ❌ Redirect-Result-Error:', e);
       alert('❌ Login (Redirect) fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
     });
