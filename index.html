@@ -2590,6 +2590,35 @@ body{
 .vol-body{flex:1;padding:14px 16px;min-height:300px;display:flex}
 .vol-body canvas{width:100% !important;height:100% !important}
 
+/* ── OVERLOAD-AMPEL ──────────────────────────────────── */
+.prog-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;align-self:center}
+.prog-dot.up{background:#34c759}.prog-dot.down{background:#ff3b30}
+.prog-dot.same{background:#ff9500}.prog-dot.new{background:#c7c7cc}
+/* ── REST-TIMER BAR ─────────────────────────────────── */
+.rest-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(var(--acc-rgb),.1);border:1.5px solid rgba(var(--acc-rgb),.25);border-radius:16px;padding:11px 16px;margin:10px 0 4px;gap:10px}
+.rest-bar-lbl{font-size:13px;color:var(--text2)}
+.rest-bar-val{font-size:22px;font-weight:700;color:var(--acc);min-width:50px;text-align:center;letter-spacing:.5px}
+.rest-bar-skip{font-size:12px;font-weight:600;color:var(--acc);background:none;border:1px solid rgba(var(--acc-rgb),.3);border-radius:20px;padding:5px 13px;cursor:pointer}
+/* ── SESSION-NOTIZ ──────────────────────────────────── */
+.wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
+.wk-note-inp:focus{border-color:var(--acc)}
+/* ── ERHOLUNG SLIDER ────────────────────────────────── */
+.rec-slider-wrap{flex:1;min-height:0;overflow:hidden;position:relative}
+.rec-slider{display:flex;width:100%;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1)}
+.rec-panel{flex:0 0 100%;min-width:100%;display:flex;flex-direction:column;min-height:0}
+.rec-dots{display:flex;gap:5px;align-items:center}
+.rec-dot{width:5px;height:5px;border-radius:50%;background:var(--text2);opacity:.35;transition:opacity .2s,background .2s;flex-shrink:0}
+.rec-dot.on{background:var(--acc);opacity:1}
+/* Großer senkrechter Akku */
+.rec-batt-v-wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:2px 0;overflow:hidden}
+.rec-batt-v-outer{display:flex;flex-direction:column;align-items:center}
+.rec-batt-v-cap{width:14px;height:6px;background:var(--text);border-radius:3px 3px 0 0;opacity:.3}
+.rec-batt-v{width:44px;height:82px;border:2px solid var(--text);border-radius:10px;position:relative;overflow:hidden;opacity:.7}
+.rec-batt-v-fill{position:absolute;bottom:0;left:0;right:0;transition:height .6s cubic-bezier(.34,1.56,.64,1);border-radius:7px;opacity:.9}
+.rec-batt-v-pct{font-size:22px;font-weight:800;letter-spacing:.5px}
+.rec-batt-v-lbl{font-size:10px;color:var(--text2);text-align:center;line-height:1.4}
+/* ── SHARE-BUTTON ───────────────────────────────────── */
+.share-wk-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:16px;padding:14px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;margin-top:10px}
 </style>
 </head>
 <body>
@@ -2684,9 +2713,21 @@ body{
         </div>
         <div class="stats-mini-foot">Tap für Vollbild</div>
       </div>
-      <div class="stats-mini-box stats-rec-box">
-        <div class="stats-mini-title">Erholung</div>
-        <div class="rec-list rec-list-mini" id="rec-list"></div>
+      <div class="stats-mini-box stats-rec-box" id="rec-box">
+        <div class="stats-mini-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Erholung</span>
+          <div class="rec-dots"><span class="rec-dot on" id="rec-dot-0"></span><span class="rec-dot" id="rec-dot-1"></span></div>
+        </div>
+        <div class="rec-slider-wrap">
+          <div class="rec-slider" id="rec-slider">
+            <div class="rec-panel">
+              <div class="rec-list rec-list-mini" id="rec-list"></div>
+            </div>
+            <div class="rec-panel">
+              <div id="rec-overall" class="rec-batt-v-wrap"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div>
@@ -3362,8 +3403,14 @@ body{
             <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
           </div>
         </div>
+        <div id="rest-timer-bar" class="rest-bar" style="display:none">
+          <span class="rest-bar-lbl">⏱ Pause</span>
+          <span class="rest-bar-val" id="rest-timer-val">1:30</span>
+          <button class="rest-bar-skip" onclick="skipRest()">Überspringen</button>
+        </div>
         <div id="log-cards"></div>
-        <button class="btn btn-gray" style="margin-top:12px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
+        <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2"></textarea>
+        <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
       </div>
     </div>
   </div>
@@ -5374,6 +5421,21 @@ function initLastSwipe() {
 }
 
 // ── EXERCISE LIST ─────────────────────────────────────
+function exProgressStatus(exId) {
+  const sessions = (S.sessions || [])
+    .filter(s => s.logs && s.logs.some(l => l.exerciseId === exId))
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (sessions.length < 1) return null;
+  if (sessions.length < 2) return 'new';
+  const last = sessions[sessions.length-1].logs.find(l => l.exerciseId === exId);
+  const prev = sessions[sessions.length-2].logs.find(l => l.exerciseId === exId);
+  const lastW = last ? (maxW(last.sets)||0) : 0;
+  const prevW = prev ? (maxW(prev.sets)||0) : 0;
+  if (lastW > prevW) return 'up';
+  if (lastW < prevW) return 'down';
+  return 'same';
+}
+
 function renderExList() {
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
@@ -5438,12 +5500,14 @@ function renderExList() {
     const days = exerciseDayLabels(ex.id);
     const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+kgToDisp(lw)+' '+unitLabel() : ''}${days ? ' · 📅 '+days : ''}`;
+    const _ps = exProgressStatus(ex.id);
+    const _dot = _ps ? `<div class="prog-dot ${_ps}" title="${{up:'Fortschritt ↑',down:'Rückgang ↓',same:'Gleichstand →',new:'Erstes Training'}[_ps]}"></div>` : '';
     return `<div class="ex-swipe-wrap">
       <div class="ex-swipe-inner">
         <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
           <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
           <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
-          <div class="chev">›</div>
+          ${_dot}<div class="chev">›</div>
         </div>
         <div class="ex-row-del" onclick="deleteExDirect('${ex.id}')">🗑</div>
       </div>
@@ -7255,6 +7319,62 @@ function getMuscleGroupRecovery() {
 }
 
 /* Rendert die Akku-Liste auf dem Stats-Tab – pro Muskelgruppe */
+let _recPage = 0;
+function setRecPage(page) {
+  _recPage = page;
+  const slider = document.getElementById('rec-slider');
+  if (slider) slider.style.transform = `translateX(${-page * 100}%)`;
+  document.getElementById('rec-dot-0')?.classList.toggle('on', page === 0);
+  document.getElementById('rec-dot-1')?.classList.toggle('on', page === 1);
+  if (page === 1) renderRecOverall();
+}
+function renderRecOverall() {
+  const el = document.getElementById('rec-overall');
+  if (!el) return;
+  const mgRec = getMuscleGroupRecovery();
+  const trained = MUSCLE_GROUPS.map(mg => mgRec[mg.id]).filter(r => r?.lastTs);
+  if (!trained.length) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.55);text-align:center">Noch keine Daten</div>';
+    return;
+  }
+  const pct = Math.round(trained.reduce((s,r) => s + r.recPct, 0) / trained.length);
+  const col = recoveryColor(pct);
+  const state = recoveryState(pct);
+  el.innerHTML = `
+    <div class="rec-batt-v-outer">
+      <div class="rec-batt-v-cap"></div>
+      <div class="rec-batt-v">
+        <div class="rec-batt-v-fill" style="height:${pct}%;background:${col}"></div>
+      </div>
+    </div>
+    <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
+    <div class="rec-batt-v-lbl">Gesamterholung<br><b>${state}</b></div>`;
+}
+function initRecSlider() {
+  const box = document.getElementById('rec-box');
+  if (!box || box._swipeReady) return;
+  box._swipeReady = true;
+  let sx = 0, sy = 0;
+  box.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  box.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0 && _recPage === 0) setRecPage(1);
+      else if (dx > 0 && _recPage === 1) setRecPage(0);
+    }
+  }, {passive:true});
+  // Desktop-Maus-Support
+  let mx = 0;
+  box.addEventListener('mousedown', e => { mx = e.clientX; }, {passive:true});
+  box.addEventListener('mouseup', e => {
+    const dx = e.clientX - mx;
+    if (Math.abs(dx) > 28) {
+      if (dx < 0 && _recPage === 0) setRecPage(1);
+      else if (dx > 0 && _recPage === 1) setRecPage(0);
+    }
+  }, {passive:true});
+}
 function renderRecoveryList() {
   const host = document.getElementById('rec-list');
   if (!host) return;
@@ -7289,6 +7409,8 @@ function renderRecoveryList() {
       + '</div>'
       + '</div>';
   }).join('');
+  initRecSlider();
+  if (_recPage === 1) renderRecOverall();
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -8193,10 +8315,39 @@ function _attachSwipeToDelete() {
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
+let _restInt = null, _restSecs = 0;
+function startRestTimer() {
+  _restSecs = S.restTimerSecs || 90;
+  clearInterval(_restInt);
+  const bar = document.getElementById('rest-timer-bar');
+  if (bar) bar.style.display = '';
+  _updRest();
+  _restInt = setInterval(() => {
+    _restSecs--;
+    _updRest();
+    if (_restSecs <= 0) {
+      clearInterval(_restInt); _restInt = null;
+      const b = document.getElementById('rest-timer-bar');
+      if (b) b.style.display = 'none';
+      haptic([30,50,30]);
+    }
+  }, 1000);
+}
+function _updRest() {
+  const el = document.getElementById('rest-timer-val');
+  if (!el) return;
+  el.textContent = Math.floor(_restSecs/60) + ':' + String(_restSecs%60).padStart(2,'0');
+}
+function skipRest() {
+  clearInterval(_restInt); _restInt = null;
+  const b = document.getElementById('rest-timer-bar');
+  if (b) b.style.display = 'none';
+}
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
   haptic(next ? 18 : 8);
+  if (next) startRestTimer(); else skipRest();
   renderLogCards();
 }
 function addSet(li) {
@@ -8225,11 +8376,14 @@ function finishWk() {
       l.sets.forEach(s => { s.r = String(s.tElapsed||0); });
     }
   });
+  skipRest();
   const dur = Math.floor((Date.now()-timerTs)/1000);
   const valid = wkLogs.filter(l=>l.sets.some(s=>s.w||s.r||s.tElapsed>0));
   if (!valid.length) { alert('Trag mindestens einen Satz ein!'); return; }
+  const _wkNote = document.getElementById('wk-note')?.value?.trim() || '';
+  if (document.getElementById('wk-note')) document.getElementById('wk-note').value = '';
 
-  S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, logs:valid});
+  S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid});
   persist();
   haptic([20,40,20]);
   wkLogs = [];
@@ -8256,6 +8410,8 @@ function cancelWk() {
   if (!confirm('Training abbrechen? Eingetragene Daten werden verworfen.')) return;
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
+  skipRest();
+  if (document.getElementById('wk-note')) document.getElementById('wk-note').value = '';
   wkLogs = [];
   wkExIds = [];
   closeOv('ov-wk');
@@ -8400,8 +8556,68 @@ function celebratePRs(prs) {
   });
 }
 
+/* ── WORKOUT TEILEN ───────────────────────────────────── */
+async function _shareWk() {
+  const ses = _shareSes; const prs = _sharePrs || [];
+  if (!ses) return;
+  const W=390, H=Math.min(120+ses.logs.length*48+100, 700);
+  const canvas = document.createElement('canvas');
+  const dpr = Math.min(window.devicePixelRatio||2, 3);
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  // Hintergrund
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,'#007AFF'); grad.addColorStop(1,'#0047b3');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.roundRect(0,0,W,H,0); ctx.fill();
+  // Logo + Datum
+  ctx.fillStyle='#fff'; ctx.font='bold 26px -apple-system,sans-serif';
+  ctx.fillText('GymTrack 💪', 24, 44);
+  const dateStr = new Date(ses.date).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  ctx.font='15px -apple-system,sans-serif'; ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.fillText(dateStr, 24, 68);
+  // Trennlinie
+  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(24,80); ctx.lineTo(W-24,80); ctx.stroke();
+  // Übungen
+  let y=108;
+  ses.logs.forEach(l=>{
+    const ex=exById(l.exerciseId); const w=maxW(l.sets);
+    const isPr = prs.some(p=>p.exId===l.exerciseId);
+    ctx.fillStyle='#fff'; ctx.font='bold 15px -apple-system,sans-serif';
+    ctx.fillText((ex?.name||'?')+(isPr?' 🏆':''), 24, y);
+    ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='13px -apple-system,sans-serif';
+    ctx.fillText(l.sets.length+' Sätze'+(w?' · Max '+kgToDisp(w)+' kg':''), 24, y+18);
+    y+=44;
+  });
+  // Stats-Leiste
+  const sets=ses.logs.reduce((s,l)=>s+l.sets.length,0);
+  const vol=ses.logs.reduce((sum,l)=>sum+l.sets.reduce((s2,s)=>s2+((parseFloat(s.w)||0)*(parseInt(s.r)||0)),0),0);
+  const durMin=ses.duration?Math.round(ses.duration/60):0;
+  ctx.fillStyle='rgba(255,255,255,.15)';
+  ctx.beginPath(); ctx.roundRect(16,H-72,W-32,52,14); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 14px -apple-system,sans-serif';
+  ctx.fillText(`${ses.logs.length} Übungen  ·  ${sets} Sätze  ·  ${fmtKg(vol)} Vol${durMin?' · '+durMin+' min':''}`, 28, H-40);
+  ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='11px -apple-system,sans-serif';
+  ctx.fillText('Made with GymTrack', 28, H-22);
+  // Teilen
+  const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
+  const file = new File([blob],'gymtrack-workout.png',{type:'image/png'});
+  try {
+    if (navigator.share && navigator.canShare?.({files:[file]}))
+      await navigator.share({files:[file], title:'GymTrack Workout'});
+    else if (navigator.share)
+      await navigator.share({title:'GymTrack Workout', text: ses.logs.map(l=>{const ex=exById(l.exerciseId);const w=maxW(l.sets);return `• ${ex?.name}: ${l.sets.length} Sätze${w?' · Max '+kgToDisp(w)+' kg':''}`;}).join('\n')});
+    else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='gymtrack-workout.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
+  } catch(e) { if(e.name!=='AbortError') console.warn('Share:',e); }
+}
+
+
+let _shareSes = null, _sharePrs = [];
 function showDone(ses, prs) {
   prs = prs || [];
+  _shareSes = ses; _sharePrs = prs;
   const sets = ses.logs.reduce((s,l)=>s+l.sets.length,0);
   const prBlock = prs.length
     ? '<div style="background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,165,0,.10));border:1px solid rgba(255,165,0,.35);border-radius:16px;padding:14px 16px;margin-bottom:14px">'
@@ -8430,7 +8646,9 @@ function showDone(ses, prs) {
           <div class="row-title">${ex?.name||l.exerciseId}${isPr?'<span class="pr-badge">PR</span>':''}</div>
           <div class="row-sub">${l.sets.length} Sätze · Max ${w||'–'} kg</div>
         </div></div>`;
-    }).join('')}</div>`;
+    }).join('')}</div>
+    ${ses.note ? `<div style="margin-top:10px;background:var(--soft);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text2)">📝 ${ses.note}</div>` : ''}
+    <button class="share-wk-btn" onclick="_shareWk()">↑ Training teilen</button>`;
   openOv('ov-done');
 }
 
