@@ -608,6 +608,7 @@ body{
 }
 .f-in::placeholder{color:var(--text2)}
 .f-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.f-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .f-field{margin-bottom:16px}
 
 /* ── EMOJI GRID ── */
@@ -3171,7 +3172,7 @@ body{
             <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
           </div>
         </div>
-        <div class="f-row3">
+        <div class="f-row2">
           <div>
             <label class="f-label" style="font-size:10px">Sätze</label>
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
@@ -3179,10 +3180,6 @@ body{
           <div>
             <label class="f-label" id="in-reps-label" style="font-size:10px">Wdh</label>
             <input class="f-in" type="number" id="in-reps" value="10" min="1" max="9999">
-          </div>
-          <div>
-            <label class="f-label" style="font-size:10px" id="in-kg-label">Start-kg</label>
-            <input class="f-in" type="number" id="in-kg" placeholder="0" min="0" step="2.5" inputmode="decimal">
           </div>
         </div>
       </div>
@@ -6366,11 +6363,8 @@ function openNewEx(exId) {
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps').value = '10';
-  document.getElementById('in-kg').value = '';
   document.getElementById('del-ex-btn').style.display = 'none';
   document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
-  const kgLab = document.getElementById('in-kg-label');
-  if (kgLab) kgLab.textContent = 'Start-' + unitLabel();
 
   if (exId) {
     const ex = exById(exId);
@@ -6381,7 +6375,6 @@ function openNewEx(exId) {
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       document.getElementById('in-reps').value = ex.targetReps;
-      document.getElementById('in-kg').value = ex.targetWeight ? kgToDisp(ex.targetWeight) : '';
       document.getElementById('del-ex-btn').style.display = '';
       document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
       selExDays = exerciseDays(exId);
@@ -6475,17 +6468,15 @@ function saveEx() {
   document.getElementById('muscle-req-hint')?.classList.remove('show');
   const sets = parseInt(document.getElementById('in-sets').value)||3;
   const reps = parseInt(document.getElementById('in-reps').value)||10;
-  const rawKg = parseFloat(document.getElementById('in-kg').value)||0;
-  const kg = rawKg ? Number(dispToKg(rawKg)) : 0;
 
   let savedId;
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, {name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
+    if (ex) Object.assign(ex, {name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetType:selExType});
     savedId = editId;
   } else {
     savedId = uid();
-    S.exercises.push({id:savedId, name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:kg, targetType:selExType});
+    S.exercises.push({id:savedId, name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:0, targetType:selExType});
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
