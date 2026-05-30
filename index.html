@@ -1835,6 +1835,9 @@ body{
 }
 .last-swipe-del:active{opacity:.8}
 
+/* ── COMPACT HISTORY SWIPE ── */
+.ch-swipe-wrap{overflow:hidden}
+
 /* ── WORKOUT CANCEL BUTTON ── */
 .wk-cancel-btn{
   background:transparent;border:1px solid var(--gl-bdr);
@@ -4421,27 +4424,37 @@ function renderCompactHistory() {
   const fmt  = s => new Date(s.date).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
   const sets = s => s.logs.reduce((n,l)=>n+l.sets.length,0);
 
-  // Sub-Zeilen: kein Pfeil, ganzes Feld öffnet Detail
+  // Sub-Zeilen mit Swipe-to-Delete
   const row = (s, border) => `
-    <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer;${border?'border-top:1px solid var(--sep)':''}" onclick="openSessDetail('${s.id}')">
-      <div>
-        <div style="font-size:13px;font-weight:600">${fmt(s)}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:1px">${s.logs.length} Übung${s.logs.length===1?'':'en'}</div>
+    <div class="ch-swipe-wrap"${border?' style="border-top:1px solid var(--sep)"':''}>
+      <div class="last-swipe-inner" data-ses="${s.id}">
+        <div class="last-swipe-row" style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;z-index:1" onclick="openSessDetail('${s.id}')">
+          <div>
+            <div style="font-size:13px;font-weight:600">${fmt(s)}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">${s.logs.length} Übung${s.logs.length===1?'':'en'}</div>
+          </div>
+          <span class="badge b-green">${sets(s)} Sätze</span>
+        </div>
+        <div class="last-swipe-del" onclick="deleteSession('${s.id}')">🗑</div>
       </div>
-      <span class="badge b-green">${sets(s)} Sätze</span>
     </div>`;
 
   // Hauptzeile: Klick auf Zeile → Detail öffnen; Klick auf Pfeil → Dropdown togglen
   const chevRot = _compactHistOpen ? 'rotate(90deg)' : 'rotate(0deg)';
   const hasMore = rest.length > 0;
-  let html = `<div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;cursor:pointer" onclick="openSessDetail('${last.id}')">
-    <div>
-      <div style="font-size:14px;font-weight:600">${fmt(last)}</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:1px">${last.logs.length} Übung${last.logs.length===1?'':'en'}</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:4px">
-      <span class="badge b-green">${sets(last)} Sätze</span>
-      ${hasMore ? `<span onclick="event.stopPropagation();toggleCompactHistory()" style="color:var(--text2);font-size:20px;display:inline-block;transition:transform .25s;transform:${chevRot};padding:4px 6px;cursor:pointer">›</span>` : ''}
+  let html = `<div class="ch-swipe-wrap">
+    <div class="last-swipe-inner" data-ses="${last.id}">
+      <div class="last-swipe-row" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;z-index:1" onclick="openSessDetail('${last.id}')">
+        <div>
+          <div style="font-size:14px;font-weight:600">${fmt(last)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:1px">${last.logs.length} Übung${last.logs.length===1?'':'en'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="badge b-green">${sets(last)} Sätze</span>
+          ${hasMore ? `<span ontouchstart="event.stopPropagation()" onclick="event.stopPropagation();toggleCompactHistory()" style="color:var(--text2);font-size:20px;display:inline-block;transition:transform .25s;transform:${chevRot};padding:4px 6px;cursor:pointer">›</span>` : ''}
+        </div>
+      </div>
+      <div class="last-swipe-del" onclick="deleteSession('${last.id}')">🗑</div>
     </div>
   </div>`;
 
@@ -4449,6 +4462,7 @@ function renderCompactHistory() {
     html += rest.map(s => row(s, true)).join('');
   }
   el.innerHTML = html;
+  initCompactHistSwipe();
 }
 
 function toggleCompactHistory() {
@@ -4988,6 +5002,14 @@ function deleteLastSession(sesId) {
   renderHome();
 }
 
+function deleteSession(sesId) {
+  S.sessions = S.sessions.filter(s => s.id !== sesId);
+  persist();
+  haptic(30);
+  _compactHistOpen = false;
+  renderHome();
+}
+
 // ── SESSION HISTORY ──────────────────────────────────
 let historyExpanded = false;
 let _histSessOpen = new Set();
@@ -5418,6 +5440,56 @@ function initLastSwipe() {
       if (_lastSwipeActive === inner) _lastSwipeActive = null;
     }
   }, {passive:true});
+}
+
+let _chSwipeActive = null;
+function initCompactHistSwipe() {
+  document.querySelectorAll('#history-card .last-swipe-inner').forEach(inner => {
+    const row = inner.querySelector('.last-swipe-row');
+    if (!row) return;
+    let startX, startY, tracking = false, wasOpen = false;
+
+    row.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      tracking = true;
+      wasOpen = inner.classList.contains('swipe-open');
+    }, {passive:true});
+
+    row.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx) + 8) { tracking = false; return; }
+      if (Math.abs(dx) < 4) return;
+      e.preventDefault();
+      const base = wasOpen ? -72 : 0;
+      const nx = Math.max(-72, Math.min(0, base + dx));
+      inner.style.transition = 'none';
+      inner.style.transform = `translateX(${nx}px)`;
+    }, {passive:false});
+
+    row.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const base = wasOpen ? -72 : 0;
+      inner.style.transition = '';
+      if (base + dx < -36) {
+        if (_chSwipeActive && _chSwipeActive !== inner) {
+          _chSwipeActive.style.transform = '';
+          _chSwipeActive.classList.remove('swipe-open');
+        }
+        inner.style.transform = 'translateX(-72px)';
+        inner.classList.add('swipe-open');
+        _chSwipeActive = inner;
+      } else {
+        inner.style.transform = '';
+        inner.classList.remove('swipe-open');
+        if (_chSwipeActive === inner) _chSwipeActive = null;
+      }
+    }, {passive:true});
+  });
 }
 
 // ── EXERCISE LIST ─────────────────────────────────────
@@ -8969,43 +9041,43 @@ const TUTORIAL_STEPS = [
   {
     emoji:'💪',
     title:'Willkommen bei GymTrack!',
-    sub:'Lass uns die App in 7 kurzen Schritten kennenlernen.',
+    sub:'Die App in 7 Schritten kennenlernen — jederzeit überspringbar.',
     features:[
-      { ico:'⏱️', title:'Nur eine Minute', sub:'Du kannst die Tour jederzeit überspringen.' },
-      { ico:'🎯', title:'Alle Funktionen', sub:'Damit du sofort loslegen kannst.' }
+      { ico:'⏱️', title:'Schnelle Tour', sub:'Alle Features auf einen Blick.' },
+      { ico:'🎯', title:'Sofort loslegen', sub:'Du kannst die Tour jederzeit überspringen.' }
     ]
   },
   {
     emoji:'🏠',
-    title:'Heute',
-    sub:'Hier startest du dein Training.',
+    title:'Heute-Tab',
+    sub:'Deine Schaltzentrale für jeden Trainingstag.',
     features:[
-      { ico:'🔥', title:'Streak-Counter', sub:'Sieh, wie viele Wochen in Folge du trainiert hast.' },
-      { ico:'▶️', title:'Training starten', sub:'Wähle Übungen aus und logge deine Sätze.' },
-      { ico:'🏃', title:'Cardio-Timer', sub:'Mit Benachrichtigung — läuft auch im Hintergrund.' },
-      { ico:'📋', title:'Vorschläge & letztes Training', sub:'Dein Überblick auf einen Blick.' }
+      { ico:'🔥', title:'Streak-Counter', sub:'Zählt deine Trainingswochen in Folge.' },
+      { ico:'⭕', title:'Tracker-Kreise', sub:'Gym, Laufen, Cardio & mehr — Ziele pro Woche setzen.' },
+      { ico:'📋', title:'Letzte Trainings', sub:'Nach links wischen zum Löschen.' },
+      { ico:'🎯', title:'Vorschläge der Woche', sub:'Zeigt, welche Übungen als nächstes dran sind.' }
+    ]
+  },
+  {
+    emoji:'▶️',
+    title:'Training & Cardio',
+    sub:'Sätze loggen wie ein Profi.',
+    features:[
+      { ico:'👀', title:'Live-Vergleich', sub:'Unter jedem Satz: dein Ergebnis vom letzten Mal.' },
+      { ico:'🏷️', title:'Satz-Typen', sub:'Normal · Aufwärmen · Drop-Set · Bis Versagen.' },
+      { ico:'⬆️', title:'Auto-Progression', sub:'Gewichtsvorschlag wenn alle Ziel-Wdh geschafft.' },
+      { ico:'🏃', title:'Cardio-Timer', sub:'Mit Hintergrund-Benachrichtigung — auch bei geschlossener App.' }
     ]
   },
   {
     emoji:'💪',
-    title:'Übungen',
-    sub:'Deine persönliche Übungs-Bibliothek.',
+    title:'Übungen-Tab',
+    sub:'Deine persönliche Trainings-Bibliothek.',
     features:[
-      { ico:'📚', title:'Standard-Bibliothek', sub:'Über 60 fertige Übungen — einfach auswählen.' },
-      { ico:'➕', title:'Eigene Übungen anlegen', sub:'Mit Muskelgruppe, Icon und Wochentagen.' },
-      { ico:'🔍', title:'Suche & Filter', sub:'Schnell finden — Muskeln · Push-Pull-Legs · Ober-Unter.' },
-      { ico:'📅', title:'Wochenplan & Vorlagen', sub:'Drag & Drop auf Tage oder fertige Pläne wie PPL laden.' }
-    ]
-  },
-  {
-    emoji:'🏋️',
-    title:'Training',
-    sub:'Sätze loggen wie ein Profi.',
-    features:[
-      { ico:'👀', title:'Letztes-Mal-Vergleich', sub:'Unter jedem Satz siehst du dein vorheriges Ergebnis.' },
-      { ico:'🏷️', title:'Satz-Typen', sub:'Tap auf den Typ-Button: Normal · Aufwärmen · Drop · Versagen.' },
-      { ico:'✅', title:'Satz-Checkboxen', sub:'Jeden Satz abhaken — mit haptischem Feedback.' },
-      { ico:'⬆️', title:'Auto-Progression', sub:'Gewichtsvorschläge wenn alle Ziel-Wdh geschafft sind.' }
+      { ico:'📚', title:'60+ Standardübungen', sub:'Direkt nutzbar — oder eigene anlegen.' },
+      { ico:'📅', title:'Wochenplan & Vorlagen', sub:'PPL, Upper-Lower, Full Body per Tap laden.' },
+      { ico:'🔍', title:'Filter & Suche', sub:'Muskeln · Push-Pull-Legs · Ober-Unter.' },
+      { ico:'✏️', title:'Eigene Übungen', sub:'Mit Icon, Muskelgruppe & Zielwerten.' }
     ]
   },
   {
@@ -9013,10 +9085,10 @@ const TUTORIAL_STEPS = [
     title:'Statistik',
     sub:'Sieh deinen Fortschritt schwarz auf weiß.',
     features:[
-      { ico:'📈', title:'Volumen-Verlauf', sub:'Wie viel Gewicht hast du insgesamt bewegt?' },
-      { ico:'🗓️', title:'Aktivitäts-Heatmap', sub:'Letzte 12 Monate auf einen Blick — wie auf GitHub.' },
-      { ico:'🏆', title:'1RM-Berechnung', sub:'Dein geschätztes Maximalgewicht via Epley-Formel.' },
-      { ico:'🎯', title:'Pro Muskelgruppe', sub:'Schwachstellen erkennen — gezielt trainieren.' }
+      { ico:'🗓️', title:'Aktivitäts-Heatmap', sub:'Letzte 12 Monate — wie auf GitHub.' },
+      { ico:'📈', title:'Volumen-Verlauf', sub:'Wie viel Gewicht du insgesamt bewegt hast.' },
+      { ico:'🏆', title:'1RM-Berechnung', sub:'Dein Maximalgewicht via Epley-Formel.' },
+      { ico:'🎯', title:'Pro Muskelgruppe', sub:'Schwachstellen erkennen und gezielt trainieren.' }
     ]
   },
   {
@@ -9026,17 +9098,18 @@ const TUTORIAL_STEPS = [
     features:[
       { ico:'🎨', title:'5 Themes', sub:'Hell, Rosa, Dunkel, Blau und Grün.' },
       { ico:'☁️', title:'Cloud-Sync', sub:'Mit Google anmelden — Daten auf allen Geräten.' },
-      { ico:'🔔', title:'Erinnerungen', sub:'Tägliche Trainings-Reminder zur Wunsch-Uhrzeit.' }
+      { ico:'🔔', title:'Erinnerungen', sub:'Tägliche Trainings-Reminder zur Wunsch-Uhrzeit.' },
+      { ico:'📤', title:'Daten exportieren', sub:'Jederzeit als JSON-Backup sichern.' }
     ]
   },
   {
     emoji:'🚀',
     title:'Du bist startklar!',
-    sub:'Ein paar kleine Tipps zum Schluss.',
+    sub:'Ein paar Tipps für den Alltag.',
     features:[
-      { ico:'👇', title:'Sheets per Swipe schließen', sub:'Den Griff oben einfach nach unten ziehen.' },
+      { ico:'👇', title:'Sheets schließen', sub:'Den Griff oben nach unten wischen.' },
       { ico:'📳', title:'Haptisches Feedback', sub:'Spürbares Klicken bei wichtigen Aktionen.' },
-      { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen werden ganz von selbst aufgespielt.' }
+      { ico:'🔄', title:'Auto-Update', sub:'Neue Funktionen kommen automatisch — mit Changelog-Pop-up.' }
     ]
   }
 ];
@@ -9136,112 +9209,43 @@ const TOUR = [
   {
     target:null,
     title:'Willkommen bei GymTrack! 💪',
-    body:'Ich zeige dir jetzt alle Funktionen der App. Tippe auf <b>Weiter</b> oder probiere die hervorgehobenen Elemente selbst aus.',
+    body:'Ich zeige dir in <b>7 Schritten</b> alles, was die App kann. Tippe auf <b>Weiter</b> oder überspringe die Tour jederzeit.',
     prep:()=> goTabId('heute')
   },
   {
-    target:'.tabbar',
-    title:'Vier Tabs',
-    body:'<b>Heute</b> · <b>Übungen</b> · <b>Statistik</b> · <b>Einstellungen</b>. Wir gehen jeden gemeinsam durch.',
-    pad:4
-  },
-  {
-    target:'#streak-host > *',
-    title:'Streak-Counter 🔥',
-    body:'Hier siehst du, wie viele <b>Wochen in Folge</b> du trainiert hast. Trainiere mindestens 1× pro Woche, damit die Serie nicht reißt.',
-    skipIfEmpty:true,
+    target:'#heute-history-sec',
+    title:'Heute-Tab 🏠',
+    body:'<b>Streak-Counter</b> zählt deine Trainingswochen in Folge. <b>Tracker-Kreise</b> für Gym, Laufen, Cardio & mehr. <b>Letzte Trainings</b> — nach links wischen zum Löschen. <b>Vorschläge der Woche</b> zeigen, was als nächstes dran ist.',
     prep:()=> goTabId('heute')
   },
   {
-    target:'#pg-heute .btn-acc:nth-of-type(1)',
-    title:'Cardio starten 🏃',
-    body:'Timer mit Hintergrund-Benachrichtigung — läuft weiter, auch wenn die App geschlossen ist.'
-  },
-  {
-    target:'#pg-heute .btn-acc:nth-of-type(2)',
-    title:'Training starten ▶',
-    body:'Wähle deine Übungen aus, logge Sätze mit Gewicht und Wdh. Mit <b>Live-Vergleich</b> zum letzten Mal direkt unter jedem Satz.'
-  },
-  {
-    target:'#sug-list',
-    title:'Vorschläge der Woche 🎯',
-    body:'<b>Auto-Progression:</b> Wenn du alle Ziel-Wdh schaffst, schlägt GymTrack automatisch mehr Gewicht für nächstes Mal vor.',
-    skipIfEmpty:true
-  },
-  {
-    target:'#last-card',
-    title:'Letztes Training 📋',
-    body:'Schneller Überblick: Welche Übungen waren zuletzt dran? Wann hast du trainiert?',
-    skipIfEmpty:true
+    target:'#pg-heute .btn-acc',
+    title:'Training & Cardio ▶',
+    body:'<b>Training starten:</b> Übungen wählen und Sätze loggen. <b>Live-Vergleich</b> zum letzten Mal direkt unter jedem Satz. <b>Satz-Typen:</b> Normal · Aufwärmen · Drop · Versagen. <b>Auto-Progression:</b> Gewichtsvorschlag wenn alle Ziel-Wdh geschafft. <b>Cardio-Timer</b> läuft auch im Hintergrund.',
+    prep:()=> goTabId('heute')
   },
   {
     target:'.tabbar .tab:nth-child(3)',
-    title:'Übungen-Tab',
-    body:'Deine persönliche Übungs-Bibliothek mit Wochenplan, Suche und Filtern.',
+    title:'Übungen-Tab 💪',
+    body:'<b>60+ Standardübungen</b> direkt nutzbar — oder eigene anlegen mit Icon & Muskelgruppe. <b>Wochenplan</b> per Drag & Drop. <b>Fertige Vorlagen</b>: PPL, Upper-Lower, Full Body. <b>Filter</b> nach Muskeln / Push-Pull-Legs / Ober-Unter. <b>Suche</b> für schnelles Finden.',
     prep:()=> goTabId('uebungen')
-  },
-  {
-    target:'#pg-uebungen .hdr-plus',
-    title:'Wochenplan 📅',
-    body:'Plane jeden Wochentag. <b>Fertige Vorlagen</b> wie PPL, Upper-Lower oder Full Body kannst du mit einem Tap übernehmen.',
-    hint:'Tippe auf das Kalender-Icon zum Öffnen',
-    prep:()=> goTabId('uebungen')
-  },
-  {
-    target:'#ex-mode-switch',
-    title:'Filter-Modus 🎯',
-    body:'Wechsle zwischen <b>Muskeln</b>, <b>Push-Pull-Legs</b> und <b>Ober-Unter</b>. Die Filter darunter passen sich automatisch an.',
-    prep:()=> goTabId('uebungen')
-  },
-  {
-    target:'.ex-search-wrap',
-    title:'Suchleiste 🔍',
-    body:'Übungen schnell finden — egal wie viele du angelegt hast.',
-    prep:()=> goTabId('uebungen')
-  },
-  {
-    target:'#pg-uebungen .btn-gray',
-    title:'Übung hinzufügen ➕',
-    body:'Eigene Übung anlegen <i>oder</i> aus über 60 fertigen Standard-Übungen wählen (Button <b>„📚 Aus Bibliothek wählen"</b> im Formular).',
-    hint:'Tippe ruhig zum Ausprobieren',
-    prep:()=> goTabId('uebungen')
-  },
-  {
-    target:'.tabbar .tab:nth-child(4)',
-    title:'Statistik-Tab',
-    body:'Sieh deinen Fortschritt schwarz auf weiß.',
-    prep:()=> goTabId('stats')
-  },
-  {
-    target:'#pg-stats .chart-box',
-    title:'Volumen-Verlauf 📈',
-    body:'Wie viel Gewicht hast du insgesamt bewegt? Der Trend zeigt dir, ob du dich steigerst.',
-    prep:()=> goTabId('stats'),
-    skipIfEmpty:true
   },
   {
     target:'.heatmap-wrap',
-    title:'Aktivitäts-Heatmap 🗓️',
-    body:'Letzte 12 Monate auf einen Blick — wie auf GitHub. Jede gefärbte Kachel = ein Trainingstag. Je dunkler, desto mehr Volumen.',
-    prep:()=> goTabId('stats')
-  },
-  {
-    target:'#stats-mg-list',
-    title:'Pro Muskelgruppe 🎯',
-    body:'Volumen und <b>1RM</b> (geschätztes Maximalgewicht) pro Muskel. Schwachstellen erkennen — gezielt trainieren.',
-    skipIfEmpty:true,
+    title:'Statistik 📊',
+    body:'<b>Aktivitäts-Heatmap</b> — alle Trainingstage der letzten 12 Monate auf einen Blick. <b>Volumen-Verlauf</b> zeigt deinen Fortschritt als Chart. <b>1RM-Berechnung</b> (Maximalgewicht) per Epley-Formel. <b>Pro Muskelgruppe</b> — Schwachstellen erkennen & gezielt trainieren.',
     prep:()=> goTabId('stats')
   },
   {
     target:'.tabbar .tab:nth-child(5)',
     title:'Einstellungen ⚙️',
-    body:'Themes, Cloud-Sync und Trainings-Erinnerungen.',
+    body:'<b>5 Themes:</b> Hell, Rosa, Dunkel, Blau, Grün. <b>Cloud-Sync</b> mit Google — Daten automatisch auf allen Geräten. <b>Erinnerungen</b> täglich zur Wunsch-Uhrzeit. <b>Daten exportieren</b> jederzeit per JSON.',
     prep:()=> goTabId('settings')
   },
   {
     target:null,
     title:'Du bist startklar! 🚀',
-    body:'Viel Spaß beim Training! Wenn neue Funktionen kommen, bekommst du beim nächsten App-Start ein Pop-up mit den Updates.',
+    body:'<b>Sheets schließen:</b> Griff nach unten wischen. <b>Haptisches Feedback</b> bei wichtigen Aktionen. <b>Auto-Update:</b> Neue Funktionen kommen automatisch — beim nächsten Start gibt es ein Changelog-Pop-up. Viel Spaß beim Training!',
     prep:()=> goTabId('heute')
   }
 ];
