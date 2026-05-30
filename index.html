@@ -7104,6 +7104,7 @@ function recoveryColor(pct) {
   return '#34c759';
 }
 function recoveryState(pct) {
+  if (pct >= 100) return 'Vollständig erholt';
   if (pct < 30) return 'Nicht erholt';
   if (pct < 55) return 'Wenig erholt';
   if (pct < 75) return 'Fast bereit';
@@ -7216,7 +7217,7 @@ function renderRecoveryList() {
   const mgRec = getMuscleGroupRecovery();
   const rows = MUSCLE_GROUPS
     .map(mg => ({ mg, r: mgRec[mg.id] || { recPct:100, fatPct:0, lastTs:null } }))
-    .filter(({r}) => r.recPct < 100 && r.lastTs)
+    .filter(({r}) => r.lastTs)
     .sort((a,b) => a.r.recPct - b.r.recPct);
 
   if (!rows.length) {
