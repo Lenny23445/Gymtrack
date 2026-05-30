@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datenschutzerklärung – GymTrack</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f4f9;
+    color: #1c1c1e;
+    line-height: 1.7;
+    padding: 40px 20px 80px;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .logo img {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  .logo-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #007AFF;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1c1c1e;
+  }
+  .updated {
+    font-size: 13px;
+    color: #8e8e93;
+    margin-bottom: 36px;
+  }
+  h2 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: #007AFF;
+  }
+  p { margin-bottom: 12px; color: #3a3a3c; font-size: 15px; }
+  ul {
+    padding-left: 20px;
+    margin-bottom: 12px;
+    color: #3a3a3c;
+    font-size: 15px;
+  }
+  ul li { margin-bottom: 6px; }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  a { color: #007AFF; text-decoration: none; }
+  .contact-box {
+    background: #e8f1ff;
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 8px;
+  }
+  .contact-box p { color: #1c1c1e; }
+</style>
+</head>
+<body>
+
+<div class="logo">
+  <img src="icon-192.png" alt="GymTrack Icon">
+  <span class="logo-name">GymTrack</span>
+</div>
+
+<h1>Datenschutzerklärung</h1>
+<p class="updated">Zuletzt aktualisiert: Mai 2026</p>
+
+<div class="card">
+  <h2>1. Verantwortlicher</h2>
+  <p>
+    Verantwortlich für die Datenverarbeitung in dieser App ist:<br><br>
+    <strong>[Dein vollständiger Name]</strong><br>
+    [Deine Adresse]<br>
+    <a href="mailto:[deine@email.de]">[deine@email.de]</a>
+  </p>
+</div>
+
+<div class="card">
+  <h2>2. Welche Daten werden gespeichert?</h2>
+  <p><strong>Lokal auf deinem Gerät (localStorage):</strong></p>
+  <ul>
+    <li>Übungen (Name, Muskelgruppe, Emoji)</li>
+    <li>Trainingseinheiten (Datum, Gewichte, Sätze, Wiederholungen)</li>
+    <li>App-Einstellungen (Theme, Begleiter, Darstellungsoptionen)</li>
+  </ul>
+  <p><strong>In der Cloud (Firebase, nur bei Google-Login):</strong></p>
+  <ul>
+    <li>Google-Konto: Name, E-Mail-Adresse, Profilbild</li>
+    <li>Dieselben Trainingsdaten wie oben – zur Synchronisation zwischen Geräten</li>
+    <li>Anonyme Nutzer-ID (auch ohne Google-Login, für interne Nutzungsstatistiken)</li>
+    <li>Nutzungsstatistiken: Sitzungsdauer, Anzahl der App-Starts (keine personenbezogenen Inhalte)</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>3. Wofür werden die Daten verwendet?</h2>
+  <ul>
+    <li>Speicherung und Anzeige deiner Trainingsdaten</li>
+    <li>Geräteübergreifende Synchronisation (nur bei Google-Login)</li>
+    <li>Anonyme Nutzungsstatistiken zur App-Verbesserung</li>
+  </ul>
+  <p>Die Daten werden <strong>nicht</strong> verkauft, weitergegeben oder für Werbung genutzt.</p>
+</div>
+
+<div class="card">
+  <h2>4. Wo werden die Daten gespeichert?</h2>
+  <p>
+    Die lokalen Daten liegen ausschließlich auf deinem Gerät (Browser-localStorage) und werden nicht automatisch übertragen.
+  </p>
+  <p>
+    Bei aktiviertem Cloud-Sync werden die Daten in <strong>Google Firebase</strong> (Firestore & Realtime Database) in europäischen Rechenzentren (Region: <em>eur3</em>) gespeichert.
+    Informationen zur Datenschutzpraxis von Google Firebase findest du unter
+    <a href="https://firebase.google.com/support/privacy" target="_blank">firebase.google.com/support/privacy</a>.
+  </p>
+</div>
+
+<div class="card">
+  <h2>5. Wie lange werden Daten gespeichert?</h2>
+  <p>
+    Lokale Daten bleiben bis zur manuellen Löschung (App-Einstellungen → Daten löschen) oder bis zur Deinstallation gespeichert.
+  </p>
+  <p>
+    Cloud-Daten werden gespeichert, bis du dein Konto in der App löschst oder eine Löschanfrage stellst.
+  </p>
+</div>
+
+<div class="card">
+  <h2>6. Deine Rechte</h2>
+  <p>Du hast das Recht auf:</p>
+  <ul>
+    <li><strong>Auskunft</strong> – welche Daten über dich gespeichert sind</li>
+    <li><strong>Berichtigung</strong> – Korrektur unrichtiger Daten</li>
+    <li><strong>Löschung</strong> – Entfernung deiner Daten (jederzeit in der App oder per Kontaktanfrage)</li>
+    <li><strong>Datenportabilität</strong> – Export deiner Trainingsdaten</li>
+    <li><strong>Widerspruch</strong> – gegen die Verarbeitung</li>
+  </ul>
+  <p>
+    Du kannst deine Daten jederzeit direkt in der App unter <em>Einstellungen → Daten löschen</em> entfernen.
+    Für Cloud-Daten genügt es, dich abzumelden und eine Löschanfrage per E-Mail zu stellen.
+  </p>
+</div>
+
+<div class="card">
+  <h2>7. Google-Dienste & Drittanbieter</h2>
+  <p>Die App nutzt folgende externe Dienste:</p>
+  <ul>
+    <li><strong>Google Firebase</strong> (Auth, Firestore, Realtime Database) – <a href="https://policies.google.com/privacy" target="_blank">Datenschutz von Google</a></li>
+    <li><strong>Google Identity Services</strong> (Google-Login) – <a href="https://policies.google.com/privacy" target="_blank">Datenschutz von Google</a></li>
+    <li><strong>Chart.js</strong> (Statistik-Grafiken, lädt von jsdelivr.net) – keine Datenweitergabe</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>8. Kinder</h2>
+  <p>
+    GymTrack richtet sich nicht bewusst an Kinder unter 13 Jahren.
+    Wir sammeln wissentlich keine Daten von Kindern.
+  </p>
+</div>
+
+<div class="contact-box">
+  <h2 style="margin-top:0">9. Kontakt</h2>
+  <p>
+    Bei Fragen zum Datenschutz oder zur Datenlöschung erreichst du mich unter:<br><br>
+    <a href="mailto:[deine@email.de]">[deine@email.de]</a>
+  </p>
+</div>
+
+</body>
+</html>
