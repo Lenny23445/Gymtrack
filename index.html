@@ -1684,53 +1684,143 @@ body{
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .shake{animation:shake .35s ease}
 
-/* ══════════════════════════════════════════
-   HEUTE – FULL-VIEWPORT NO-SCROLL LAYOUT
-   ══════════════════════════════════════════ */
-#pg-heute.on{
-  display:flex!important;
-  flex-direction:column;
-  height:100dvh;
-  height:100vh; /* fallback */
-  min-height:unset;
-  overflow:hidden;
-}
-.heute-hdr{
-  position:relative!important; /* kein sticky – wir brauchen den Platz */
-  flex-shrink:0;
-  padding-bottom:42px!important;
-}
-.heute-pad{
-  flex:1;
-  min-height:0;
-  overflow:hidden;
-  display:flex!important;
-  flex-direction:column!important;
-  gap:8px!important;
-  padding-top:4px!important;
-  padding-bottom:calc(98px + var(--sab))!important;
-}
-#pg-heute .s-title{margin-bottom:5px}
-#heute-woche-sec{flex-shrink:0}
+/* ── HEUTE – Widget-Grid (scrollt wie alle anderen Seiten) ── */
+.heute-pad{gap:12px!important;padding-top:4px!important}
 /* Tracker: max 4 sichtbar, kein Umbruch */
 .tracker-row{
   overflow:hidden!important;
   flex-wrap:nowrap!important;
   padding:2px 0 4px;
 }
-/* Gewichts-Section wächst */
-#heute-weight-sec{
-  flex:1;min-height:200px;
-  display:flex;flex-direction:column;
+.heute-train-btn{width:100%}
+
+/* ── HEUTE WIDGET-RASTER (anpassbar, iOS-Kontrollzentrum-Style) ── */
+#heute-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.hw{position:relative;min-width:0}
+.hw-lg{grid-column:1 / -1}
+.hw-sm{grid-column:span 1}
+.hw-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;padding-left:2px}
+.hw-content{min-width:0}
+.hw-content>.btn{margin:0}
+.hw-card{
+  background:var(--gl-bg);
+  backdrop-filter:blur(42px) saturate(200%);
+  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);border-radius:20px;padding:15px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  position:relative;overflow:hidden;
 }
-#heute-weight-sec .card{
-  flex:1;min-height:0;
-  display:flex;flex-direction:column;
+.hw-card::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:var(--sheen);pointer-events:none;border-radius:20px 20px 0 0}
+.hw-big{font-size:26px;font-weight:800;line-height:1.1}
+.hw-sub{font-size:12px;color:var(--text2);margin-top:3px}
+.hw-spark{display:block;width:100%;height:34px;margin-top:10px;overflow:visible}
+.hw-empty-mini{font-size:13px;color:var(--text2);text-align:center;padding:6px 0}
+/* Quick-Action Kachel */
+.hw-quick{
+  width:100%;border:none;font-family:inherit;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  min-height:96px;text-align:center;
+  background:var(--gl-bg);backdrop-filter:blur(42px) saturate(200%);-webkit-backdrop-filter:blur(42px) saturate(200%);
+  border:1px solid var(--gl-bdr);border-radius:20px;
+  box-shadow:var(--gl-shad),var(--gl-hi);
 }
-/* History: expandierbar */
-#heute-history-sec{flex-shrink:0}
-#heute-history-sec .card{overflow:hidden}
-.heute-train-btn{flex-shrink:0}
+.hw-quick .hw-quick-ico{font-size:28px;line-height:1}
+.hw-quick .hw-quick-lbl{font-size:13px;font-weight:700;color:var(--text)}
+.hw-quick:active{transform:scale(.97);opacity:.85}
+/* Erholungs-Widget */
+.hw-rec-list{display:flex;flex-direction:column;gap:9px}
+.hw-rec-row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.hw-rec-label{font-size:12px;font-weight:600;flex:0 0 72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-rec-bar{flex:1;height:6px;border-radius:4px;background:var(--g5);overflow:hidden}
+.hw-rec-bar>span{display:block;height:100%;border-radius:4px}
+.hw-rec-val{font-size:11px;font-weight:700;color:var(--text2);flex:0 0 30px;text-align:right}
+/* Muskelgruppen-Widget */
+.hw-mg-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.hw-mg-row:last-child{margin-bottom:0}
+.hw-mg-label{font-size:12px;font-weight:600;flex:0 0 90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-mg-bar{flex:1;height:7px;border-radius:4px;background:var(--g5);overflow:hidden}
+.hw-mg-bar>span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.hw-mg-val{font-size:11px;font-weight:700;color:var(--text2);flex:0 0 36px;text-align:right}
+/* 1RM-Widget */
+.hw-orm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--sep)}
+.hw-orm-row:first-child{border-top:none;padding-top:0}
+.hw-orm-name{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-orm-val{font-size:13px;font-weight:800;color:var(--acc);flex-shrink:0}
+/* Heatmap-Widget */
+.hw-hm-wrap{display:flex;gap:2px;justify-content:space-between}
+.hw-hm-col{display:flex;flex-direction:column;gap:2px;flex:1}
+.hw-hm-cell{aspect-ratio:1;border-radius:2px;background:var(--g5)}
+.hw-hm-cell.l1{background:rgba(var(--acc-rgb),.25)}
+.hw-hm-cell.l2{background:rgba(var(--acc-rgb),.5)}
+.hw-hm-cell.l3{background:rgba(var(--acc-rgb),.75)}
+.hw-hm-cell.l4{background:rgba(var(--acc-rgb),1)}
+.hw-hm-cell.fut{opacity:.2}
+/* Bearbeitungs-Modus */
+.hw-badge{
+  position:absolute;width:24px;height:24px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;line-height:1;
+  z-index:6;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.35);
+  -webkit-tap-highlight-color:transparent;
+}
+.hw-remove{top:-8px;left:-8px;background:#ff3b30;color:#fff}
+.hw-resize{top:-8px;right:-8px;background:rgba(90,90,98,.95);color:#fff;font-size:12px}
+.heute-pad.editing .hw-badge{display:flex}
+.heute-pad.editing .hw{
+  touch-action:none;
+  animation:hw-jiggle .28s ease-in-out infinite;
+  cursor:grab;
+}
+.heute-pad.editing .hw:nth-child(2n){animation-delay:-.14s}
+.heute-pad.editing .hw:nth-child(3n){animation-delay:-.09s}
+.heute-pad.editing .hw:active{cursor:grabbing}
+.heute-pad.editing .hw-content{pointer-events:none}
+.heute-pad.editing .hw-quick{pointer-events:none}
+@keyframes hw-jiggle{
+  0%  {transform:rotate(-.8deg)}
+  50% {transform:rotate( .9deg)}
+  100%{transform:rotate(-.8deg)}
+}
+.hw-drag-ghost{
+  opacity:.95;transform:scale(1.06) rotate(1.5deg);
+  box-shadow:0 16px 40px rgba(0,0,0,.3);border-radius:20px;
+  pointer-events:none;transition:none;animation:none!important;
+}
+.hw-drop-hint{outline:2px dashed var(--acc);outline-offset:3px;border-radius:20px}
+/* Edit-Bar */
+.heute-edit-bar{display:none;gap:10px;margin-top:4px;flex-shrink:0}
+.heute-pad.editing .heute-edit-bar{display:flex}
+.heute-edit-bar button{
+  flex:1;padding:13px;border-radius:14px;border:none;
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  transition:opacity .12s;
+}
+.heute-edit-bar button:active{opacity:.75}
+.heute-edit-bar .eb-add{background:var(--g5);color:var(--text)}
+.heute-edit-bar .eb-done{background:var(--acc);color:#fff;box-shadow:0 3px 12px rgba(var(--acc-rgb),.35)}
+.heute-grid-empty{
+  grid-column:1 / -1;text-align:center;color:var(--text2);
+  font-size:14px;padding:32px 10px;line-height:1.65;
+}
+/* Widget-Picker Sheet */
+.widget-add-list{display:flex;flex-direction:column;padding:4px 0 12px}
+.wa-row{
+  display:flex;align-items:center;gap:13px;padding:13px 16px;
+  cursor:pointer;border-bottom:1px solid var(--sep);transition:background .12s;
+}
+.wa-row:last-child{border-bottom:none}
+.wa-row:active{background:rgba(120,120,128,.08)}
+.wa-row.added{opacity:.45;cursor:default}
+.wa-ico{
+  font-size:22px;width:42px;height:42px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--g5);border-radius:12px;flex-shrink:0;
+}
+.wa-body{flex:1;min-width:0}
+.wa-title{font-size:15px;font-weight:700}
+.wa-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.wa-act{font-size:20px;font-weight:700;color:var(--acc);flex-shrink:0;width:24px;text-align:center}
+.wa-row.added .wa-act{color:var(--green);font-size:16px}
 
 /* ── WEIGHT CARD: NEUE SEITE-AN-SEITE-LAYOUT ── */
 #heute-weight-sec .weight-card-inner{
@@ -2770,19 +2860,20 @@ body{
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad heute-pad" id="heute-pad">
-    <div id="heute-woche-sec">
-      <div class="s-title">Diese Woche</div>
-      <div class="tracker-row" id="tracker-row"></div>
+    <div id="heute-grid"></div>
+    <div class="heute-edit-bar" id="heute-edit-bar">
+      <button class="eb-add" onclick="openWidgetPicker()">＋ Widget</button>
+      <button class="eb-done" onclick="exitEditMode()">Fertig</button>
     </div>
-    <div id="heute-weight-sec">
-      <div class="s-title">Körpergewicht</div>
-      <div class="card" id="weight-card"></div>
-    </div>
-    <div id="heute-history-sec">
-      <div class="s-title">Letzte Trainings</div>
-      <div class="card" id="history-card"></div>
-    </div>
-    <button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; Training starten</button>
+  </div>
+</div>
+
+<!-- WIDGET PICKER -->
+<div class="ov" id="ov-widget-add" onclick="if(event.target===this)closeOv('ov-widget-add')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Widget hinzufügen</h2><button class="x-btn" onclick="closeOv('ov-widget-add')">✕</button></div>
+    <div id="widget-add-list" class="widget-add-list"></div>
   </div>
 </div>
 
@@ -3962,7 +4053,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605291730';
+const APP_VERSION = 'gymtrack-v202605312132';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4300,6 +4391,8 @@ S.trackerCounts = S.trackerCounts || {};
 S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
 S.weightStart   = S.weightStart   ?? null; // Startgewicht (einmalig)
 S.weightGoal    = S.weightGoal    ?? null; // Zielgewicht
+// heuteLayout: null = Default-Layout verwenden
+if (S.heuteLayout !== undefined && !Array.isArray(S.heuteLayout)) S.heuteLayout = null;
 
 let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
 
@@ -4556,14 +4649,320 @@ function setGlass(on) {
 }
 
 // ── HOME ──────────────────────────────────────────────
+/* ════════════════════════════════════════════════════════════════
+   ANPASSBARER „HEUTE"-BILDSCHIRM  (iOS-Kontrollzentrum-Style)
+   Long-Press → Bearbeiten · Drag & Drop · Größe · Widget-Picker
+   Layout in S.heuteLayout = [{type, size:'lg'|'sm'}, …]
+   ════════════════════════════════════════════════════════════════ */
+const DEFAULT_HEUTE_LAYOUT = [
+  {type:'woche',   size:'lg'},
+  {type:'weight',  size:'lg'},
+  {type:'history', size:'lg'},
+  {type:'train',   size:'lg'},
+];
+
+const WIDGET_DEFS = {
+  woche:   {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochen-Tracker-Ringe',        sizes:['lg'],      build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
+  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['lg','sm'], build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
+  history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],      build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
+  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['lg','sm'], build:()=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; Training starten</button>`},
+  streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','lg'], build:hwStreak},
+  volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['lg'],      build:hwVolume},
+  recovery:{title:'Erholung',        icon:'🔋', label:'Erholung',          desc:'Muskel-Erholung',             sizes:['lg','sm'], build:hwRecovery},
+  heatmap: {title:'Aktivität',       icon:'🟩', label:'Aktivität',         desc:'Trainings-Heatmap',           sizes:['lg'],      build:hwHeatmap},
+  muscles: {title:'Muskelgruppen',   icon:'💪', label:'Muskelgruppen',     desc:'Volumen-Verteilung',          sizes:['lg'],      build:hwMuscles},
+  onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['lg','sm'], build:hwOneRM},
+  qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('➕','Übung','openNewEx(null)')},
+  qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('⚖️','Gewicht','openWeightEntry()')},
+  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('🏃','Cardio','openKardio()')},
+};
+const WIDGET_PICK_ORDER = ['woche','weight','history','train','streak','volume','recovery','heatmap','muscles','onerm','qadd','qweight','qcardio'];
+
+let heuteEditMode = false;
+
+function getHeuteLayout(){
+  if (Array.isArray(S.heuteLayout) && S.heuteLayout.length)
+    return S.heuteLayout.filter(w => w && WIDGET_DEFS[w.type]);
+  return DEFAULT_HEUTE_LAYOUT.map(w => ({...w}));
+}
+function _heuteLayout(){
+  if (!Array.isArray(S.heuteLayout)) S.heuteLayout = getHeuteLayout();
+  return S.heuteLayout;
+}
+
+function renderHeuteGrid(){
+  const grid = document.getElementById('heute-grid');
+  if (!grid) return;
+  const layout = getHeuteLayout();
+  if (!layout.length){
+    grid.innerHTML = `<div class="heute-grid-empty">Keine Widgets.<br>Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.</div>`;
+  } else {
+    grid.innerHTML = layout.map((w,i)=>{
+      const def = WIDGET_DEFS[w.type];
+      const size = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+      const canResize = def.sizes.length > 1;
+      return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}">
+        <div class="hw-badge hw-remove" onclick="removeWidget(${i})">−</div>
+        ${canResize ? `<div class="hw-badge hw-resize" onclick="toggleWidgetSize(${i})">⤢</div>` : ''}
+        ${def.title ? `<div class="hw-title">${def.title}</div>` : ''}
+        <div class="hw-content">${def.build(size)}</div>
+      </div>`;
+    }).join('');
+  }
+  layout.forEach(w => { const d = WIDGET_DEFS[w.type]; if (d && d.fill) { try { d.fill(); } catch(e){} } });
+  attachHeuteGestures(grid);
+}
+
+/* ── Kompakte Widget-Renderer (nutzen vorhandene Compute-Helfer) ── */
+function hwStreak(){
+  const st = calcStreak();
+  return `<div class="hw-card">
+    <div class="hw-big">${st.weeksThis?'🔥':'⏳'} ${st.weeks}</div>
+    <div class="hw-sub">Wochen-Streak${st.bestWeeks?` · Best ${st.bestWeeks}`:''}</div>
+  </div>`;
+}
+function _sparkline(arr){
+  if (!arr || arr.length < 2) return '';
+  const max = Math.max(...arr), min = Math.min(...arr), rng = (max-min)||1;
+  const pts = arr.map((v,i)=>`${(i/(arr.length-1)*100).toFixed(1)},${(30-((v-min)/rng)*28).toFixed(1)}`).join(' ');
+  return `<svg class="hw-spark" viewBox="0 0 100 32" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function hwVolume(){
+  const sessions = [...S.sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const vols = sessions.map(sessionVolume).filter(v=>v>0);
+  if (!vols.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Trainings</div></div>`;
+  const total = vols.reduce((a,b)=>a+b,0);
+  return `<div class="hw-card" onclick="openVolumeFull()">
+    <div class="hw-big">${fmtKg(total)}</div>
+    <div class="hw-sub">Gesamt-Volumen · ${S.sessions.length} Einheit${S.sessions.length!==1?'en':''}</div>
+    ${_sparkline(vols.slice(-16))}
+  </div>`;
+}
+function hwRecovery(){
+  const mgRec = getMuscleGroupRecovery();
+  const rows = MUSCLE_GROUPS
+    .map(mg => ({mg, r: mgRec[mg.id] || {recPct:100,lastTs:null}}))
+    .filter(x => x.r.lastTs)
+    .sort((a,b)=>a.r.recPct-b.r.recPct)
+    .slice(0,5);
+  if (!rows.length) return `<div class="hw-card"><div class="hw-empty-mini">Alle Muskeln erholt 💪</div></div>`;
+  return `<div class="hw-card hw-rec-list">` + rows.map(({mg,r})=>{
+    const col = recoveryColor(r.recPct);
+    return `<div class="hw-rec-row" onclick="openMuscleGroupRecoveryDetail('${mg.id}')">
+      <span class="hw-rec-label">${mg.label}</span>
+      <span class="hw-rec-bar"><span style="width:${Math.max(4,r.recPct)}%;background:${col}"></span></span>
+      <span class="hw-rec-val">${r.recPct}%</span>
+    </div>`;
+  }).join('') + `</div>`;
+}
+function hwHeatmap(){
+  if (!S.sessions.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Aktivität</div></div>`;
+  const map = {};
+  S.sessions.forEach(s => { const k=_localDateKey(new Date(s.date)); map[k]=(map[k]||0)+(sessionVolume(s)||1); });
+  const active = Object.values(map).filter(v=>v>0).sort((a,b)=>a-b);
+  const q = p => active.length ? active[Math.min(active.length-1, Math.floor(active.length*p))] : 0;
+  const q1=q(.25), q2=q(.5), q3=q(.75);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dow = (today.getDay()+6)%7;
+  const end = new Date(today); end.setDate(today.getDate()+(6-dow));
+  const WEEKS = 14;
+  const start = new Date(end); start.setDate(end.getDate()-(WEEKS*7-1));
+  let html = '';
+  for (let c=0;c<WEEKS;c++){
+    html += '<div class="hw-hm-col">';
+    for (let r=0;r<7;r++){
+      const d = new Date(start); d.setDate(start.getDate()+c*7+r);
+      const fut = d>today;
+      let lvl = 0;
+      if (!fut){ const v=map[_localDateKey(d)]||0; lvl = v<=0?0:v<=q1?1:v<=q2?2:v<=q3?3:4; }
+      html += `<div class="hw-hm-cell l${lvl}${fut?' fut':''}"></div>`;
+    }
+    html += '</div>';
+  }
+  return `<div class="hw-card hw-hm-wrap">${html}</div>`;
+}
+function hwMuscles(){
+  const tot = {}; let grand = 0;
+  S.sessions.forEach(s => s.logs.forEach(l => {
+    const ex = exById(l.exerciseId); if (!ex) return;
+    const g = ex.muscleGroup || 'other';
+    const v = setsVolume(l.sets);
+    tot[g] = (tot[g]||0)+v; grand += v;
+  }));
+  if (!grand) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Daten</div></div>`;
+  const rows = MUSCLE_GROUPS.map(mg=>({mg,v:tot[mg.id]||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,6);
+  const max = rows[0].v || 1;
+  return `<div class="hw-card">` + rows.map(({mg,v})=>`
+    <div class="hw-mg-row">
+      <span class="hw-mg-label">${mg.emoji} ${mg.label}</span>
+      <span class="hw-mg-bar"><span style="width:${Math.max(5,Math.round(v/max*100))}%"></span></span>
+      <span class="hw-mg-val">${Math.round(v/grand*100)}%</span>
+    </div>`).join('') + `</div>`;
+}
+function hwOneRM(){
+  const rows = (S.exercises||[]).map(ex=>({ex, orm:exBest1RM(ex.id)})).filter(x=>x.orm>0).sort((a,b)=>b.orm-a.orm).slice(0,5);
+  if (!rows.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine 1RM-Daten</div></div>`;
+  return `<div class="hw-card">` + rows.map(({ex,orm})=>`
+    <div class="hw-orm-row">
+      <span class="hw-orm-name">${ex.emoji?ex.emoji+' ':''}${ex.name}</span>
+      <span class="hw-orm-val">${fmt1RM(orm)}</span>
+    </div>`).join('') + `</div>`;
+}
+function hwQuick(icon,label,fn){
+  return `<button class="hw-card hw-quick" onclick="${fn}"><span class="hw-quick-ico">${icon}</span><span class="hw-quick-lbl">${label}</span></button>`;
+}
+
+/* ── Bearbeitungs-Modus ── */
+function enterEditMode(){
+  if (heuteEditMode) return;
+  heuteEditMode = true;
+  const pad = document.getElementById('heute-pad');
+  if (pad) pad.classList.add('editing');
+}
+function exitEditMode(){
+  heuteEditMode = false;
+  const pad = document.getElementById('heute-pad');
+  if (pad) pad.classList.remove('editing');
+}
+function removeWidget(i){
+  const L = _heuteLayout();
+  if (i<0 || i>=L.length) return;
+  L.splice(i,1);
+  persist(); renderHeuteGrid();
+}
+function toggleWidgetSize(i){
+  const L = _heuteLayout(); const w = L[i]; if (!w) return;
+  const def = WIDGET_DEFS[w.type]; if (!def || def.sizes.length < 2) return;
+  const cur = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+  w.size = def.sizes[(def.sizes.indexOf(cur)+1) % def.sizes.length];
+  persist(); renderHeuteGrid();
+}
+function addWidget(type){
+  if (!WIDGET_DEFS[type]) return;
+  const L = _heuteLayout();
+  if (L.some(w=>w.type===type)) return;
+  L.push({type, size: WIDGET_DEFS[type].sizes[0]});
+  persist();
+  if (!heuteEditMode) enterEditMode();
+  renderHeuteGrid();
+  renderWidgetPicker();
+}
+
+/* ── Widget-Picker (Bottom-Sheet) ── */
+function openWidgetPicker(){ renderWidgetPicker(); openOv('ov-widget-add'); }
+function renderWidgetPicker(){
+  const host = document.getElementById('widget-add-list');
+  if (!host) return;
+  const L = getHeuteLayout();
+  host.innerHTML = WIDGET_PICK_ORDER.map(type=>{
+    const def = WIDGET_DEFS[type]; if (!def) return '';
+    const added = L.some(w=>w.type===type);
+    return `<div class="wa-row${added?' added':''}"${added?'':` onclick="addWidget('${type}')"`}>
+      <div class="wa-ico">${def.icon}</div>
+      <div class="wa-body"><div class="wa-title">${def.label}</div><div class="wa-sub">${def.desc||''}</div></div>
+      <div class="wa-act">${added?'✓':'＋'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Gesten: Long-Press (Bearbeiten) + Drag & Drop (Umsortieren) ── */
+let _hlpTimer=null, _hlpStart=null, _hDrag=null;
+function attachHeuteGestures(grid){
+  if (grid._gestBound) return;
+  grid._gestBound = true;
+  grid.addEventListener('pointerdown', _hOnDown);
+  grid.addEventListener('pointermove', _hOnMove, {passive:false});
+  grid.addEventListener('pointerup', _hOnUp);
+  grid.addEventListener('pointercancel', _hOnUp);
+  grid.addEventListener('contextmenu', e=>{ if (heuteEditMode) e.preventDefault(); });
+}
+function _hClearLP(){ if (_hlpTimer){ clearTimeout(_hlpTimer); _hlpTimer=null; } }
+function _hOnDown(e){
+  if (e.pointerType==='mouse' && e.button!==0) return;
+  const tile = e.target.closest('.hw');
+  if (heuteEditMode){
+    if (e.target.closest('.hw-badge')) return;
+    if (!tile) return;
+    _hDrag = {tile, id:e.pointerId, sx:e.clientX, sy:e.clientY, started:false};
+    return;
+  }
+  if (e.target.closest('.tracker-ring-btn')) return; // hat eigenen Long-Press
+  _hlpStart = {x:e.clientX, y:e.clientY};
+  _hClearLP();
+  _hlpTimer = setTimeout(()=>{ _hlpTimer=null; enterEditMode(); if (navigator.vibrate) navigator.vibrate(18); }, 480);
+}
+function _hOnMove(e){
+  if (_hlpTimer && _hlpStart && Math.hypot(e.clientX-_hlpStart.x, e.clientY-_hlpStart.y) > 10) _hClearLP();
+  if (_hDrag && _hDrag.id===e.pointerId){
+    if (!_hDrag.started){
+      if (Math.hypot(e.clientX-_hDrag.sx, e.clientY-_hDrag.sy) < 8) return;
+      _hStartDrag(e);
+    }
+    e.preventDefault();
+    _hMoveDrag(e);
+  }
+}
+function _hOnUp(e){
+  _hClearLP();
+  if (_hDrag){
+    if (_hDrag.started){
+      if (_hDrag.ghost) _hDrag.ghost.remove();
+      _hDrag.tile.style.opacity='';
+      _hCommitOrder();
+    }
+    _hDrag = null;
+  }
+}
+function _hStartDrag(e){
+  const t = _hDrag.tile;
+  const r = t.getBoundingClientRect();
+  _hDrag.ox = e.clientX - r.left;
+  _hDrag.oy = e.clientY - r.top;
+  const g = t.cloneNode(true);
+  g.classList.add('hw-ghost');
+  g.style.position='fixed'; g.style.left=r.left+'px'; g.style.top=r.top+'px';
+  g.style.width=r.width+'px'; g.style.height=r.height+'px';
+  g.style.margin='0'; g.style.pointerEvents='none'; g.style.zIndex='9999';
+  document.body.appendChild(g);
+  _hDrag.ghost = g;
+  t.style.opacity = '0';
+  _hDrag.started = true;
+  const grid = document.getElementById('heute-grid');
+  try { grid.setPointerCapture(_hDrag.id); } catch(_){}
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+function _hMoveDrag(e){
+  const g = _hDrag.ghost;
+  g.style.left = (e.clientX - _hDrag.ox) + 'px';
+  g.style.top  = (e.clientY - _hDrag.oy) + 'px';
+  g.style.display='none';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  g.style.display='';
+  const grid = document.getElementById('heute-grid');
+  const over = el && el.closest ? el.closest('.hw') : null;
+  if (over && over!==_hDrag.tile && over.parentNode===grid){
+    const r = over.getBoundingClientRect();
+    let before = e.clientY < r.top + r.height/2;
+    if (over.classList.contains('hw-sm') && e.clientY>=r.top && e.clientY<=r.bottom){
+      before = e.clientX < r.left + r.width/2;
+    }
+    grid.insertBefore(_hDrag.tile, before ? over : over.nextSibling);
+  }
+}
+function _hCommitOrder(){
+  const grid = document.getElementById('heute-grid');
+  if (!grid) return;
+  S.heuteLayout = [...grid.querySelectorAll('.hw')].map(el=>({type:el.dataset.type, size:el.dataset.size}));
+  persist();
+  renderHeuteGrid();
+}
+
 function renderHome() {
   const h = new Date().getHours();
   document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
-  renderTrackers();
-  renderWeightCard();
-  renderCompactHistory();
+  renderHeuteGrid();
 }
 
 // Kompakte History für Heute-Tab (erweiterbar)
@@ -10642,6 +11041,7 @@ async function _pushToCloud() {
       exFilterMode: S.exFilterMode,
       wkFilterMode: S.wkFilterMode,
       welcomeShown: S.welcomeShown,
+      heuteLayout: S.heuteLayout || null,
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
@@ -10677,6 +11077,7 @@ function _mergeData(local, cloud) {
     exFilterMode: cloud.exFilterMode ?? local.exFilterMode,
     wkFilterMode: cloud.wkFilterMode ?? local.wkFilterMode,
     welcomeShown: cloud.welcomeShown ?? local.welcomeShown,
+    heuteLayout:  cloud.heuteLayout  ?? local.heuteLayout ?? null,
     updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
   };
 }
