@@ -2697,6 +2697,63 @@ body{
 .rec-batt-v-lbl{font-size:10px;color:var(--text2);text-align:center;line-height:1.4}
 /* ── SHARE-BUTTON ───────────────────────────────────── */
 .share-wk-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:16px;padding:14px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;margin-top:10px}
+
+/* ── POST-WORKOUT DONE SCREEN ──────────────────────── */
+#ov-done{align-items:stretch!important;background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
+.done-screen{width:100%;height:100%;background:linear-gradient(160deg,#0c0c26 0%,#070714 40%,#090820 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;animation:done-slide-in .38s cubic-bezier(.32,1,.32,1)}
+@keyframes done-slide-in{from{transform:translateY(100%)}}
+.done-bg-glow{position:absolute;border-radius:50%;pointer-events:none}
+.done-glow-1{width:440px;height:440px;top:-110px;left:-110px;background:radial-gradient(circle,rgba(88,36,230,.58) 0%,transparent 68%);filter:blur(65px)}
+.done-glow-2{width:360px;height:360px;bottom:-90px;right:-90px;background:radial-gradient(circle,rgba(0,124,255,.52) 0%,transparent 68%);filter:blur(60px)}
+.done-glow-3{width:300px;height:300px;top:38%;left:50%;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,168,36,.26) 0%,transparent 68%);filter:blur(55px)}
+.done-close-btn{position:absolute;top:calc(var(--sat,0px) + 16px);right:20px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:15px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.done-close-btn:active{background:rgba(255,255,255,.22)}
+.done-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(var(--sat,0px) + 62px) 20px 0;position:relative;z-index:2}
+.done-hero{text-align:center;padding:4px 0 24px}
+.done-hero-emoji{font-size:70px;display:block;margin-bottom:14px;animation:done-emoji-pop .55s cubic-bezier(.34,1.56,.64,1) .18s both;filter:drop-shadow(0 8px 28px rgba(255,200,50,.42))}
+@keyframes done-emoji-pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+.done-hero-title{font-size:30px;font-weight:800;color:#fff;letter-spacing:-.6px;line-height:1.1;margin-bottom:6px}
+.done-hero-date{font-size:13px;color:rgba(255,255,255,.44);letter-spacing:.1px}
+.done-hero-dur{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 16px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);border-radius:22px;font-size:14px;font-weight:600;color:rgba(255,255,255,.78)}
+.done-stats-row{display:flex;gap:8px;margin-bottom:20px}
+.done-stat-chip{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:16px;padding:13px 6px;text-align:center}
+.done-stat-ico{font-size:18px;display:block;margin-bottom:5px;line-height:1}
+.done-stat-val{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1;display:block;margin-bottom:3px;font-variant-numeric:tabular-nums}
+.done-stat-lbl{font-size:9px;color:rgba(255,255,255,.38);letter-spacing:.5px;display:block;text-transform:uppercase;font-weight:600}
+.done-pr-wrap{background:linear-gradient(135deg,rgba(255,185,0,.16) 0%,rgba(255,100,0,.10) 100%);border:1px solid rgba(255,185,0,.30);border-radius:20px;padding:16px 18px;margin-bottom:18px}
+.done-pr-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.done-pr-icon{font-size:30px;line-height:1;filter:drop-shadow(0 2px 10px rgba(255,185,0,.55))}
+.done-pr-headtitle{font-size:16px;font-weight:800;color:#fff}
+.done-pr-headsub{font-size:10px;font-weight:700;color:rgba(255,185,0,.72);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.done-pr-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,185,0,.13)}
+.done-pr-item-left{flex:1;min-width:0}
+.done-pr-item-name{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done-pr-item-detail{font-size:11px;color:rgba(255,255,255,.38);margin-top:1px}
+.done-pr-item-val{font-size:16px;font-weight:800;color:rgba(255,210,50,.95);flex-shrink:0;font-variant-numeric:tabular-nums}
+.done-section-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.36);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.done-hl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.done-hl-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:16px 14px;position:relative;overflow:hidden}
+.done-hl-card::before{content:'';position:absolute;top:-25px;right:-25px;width:80px;height:80px;border-radius:50%;background:var(--done-hl-color,rgba(255,255,255,.04));pointer-events:none;filter:blur(20px)}
+.done-hl-ico{font-size:26px;margin-bottom:8px;display:block;line-height:1}
+.done-hl-val{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1;font-variant-numeric:tabular-nums}
+.done-hl-sub{font-size:10px;color:rgba(255,255,255,.38);margin-top:3px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.done-hl-name{font-size:12px;color:rgba(255,255,255,.52);margin-top:6px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done-ex-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.done-ex-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:12px 14px}
+.done-ex-emo{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:rgba(255,255,255,.09)}
+.done-ex-info{flex:1;min-width:0}
+.done-ex-name{font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done-ex-meta{font-size:12px;color:rgba(255,255,255,.38);margin-top:2px}
+.done-ex-right{text-align:right;flex-shrink:0}
+.done-ex-maxw{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.done-ex-maxw-u{font-size:10px;font-weight:500;color:rgba(255,255,255,.35)}
+.done-ex-pr{display:inline-block;padding:2px 7px;border-radius:8px;background:linear-gradient(135deg,#ffd700,#ff8c00);font-size:10px;font-weight:800;color:#000;margin-top:3px}
+.done-note{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px 15px;font-size:14px;color:rgba(255,255,255,.58);margin-bottom:16px;line-height:1.5}
+.done-actions{display:flex;gap:10px;position:sticky;bottom:0;padding:14px 0 10px;background:linear-gradient(to top,#09091e 52%,transparent 100%)}
+.done-share-btn{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.20);color:rgba(255,255,255,.88);border-radius:16px;padding:14px 18px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;-webkit-tap-highlight-color:transparent}
+.done-share-btn:active{background:rgba(255,255,255,.16)}
+.done-ok-btn{flex:1;background:linear-gradient(135deg,#007AFF 0%,#0051d6 100%);color:#fff;border:none;border-radius:16px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 28px rgba(0,90,255,.48);transition:opacity .15s;-webkit-tap-highlight-color:transparent;letter-spacing:-.2px}
+.done-ok-btn:active{opacity:.82}
 </style>
 </head>
 <body>
@@ -3568,18 +3625,29 @@ body{
   </div>
 </div>
 
-<!-- SHEET: DONE -->
+<!-- SCREEN: DONE -->
 <div class="ov" id="ov-done">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head">
-      <h2>Training beendet 🎉</h2>
-      <button class="x-btn" onclick="closeOv('ov-done')">✕</button>
-    </div>
-    <div class="px">
-      <div id="done-body"></div>
-      <div class="gap"></div>
-      <button class="btn btn-acc" onclick="closeOv('ov-done')">Perfekt!</button>
+  <div class="done-screen">
+    <div class="done-bg-glow done-glow-1"></div>
+    <div class="done-bg-glow done-glow-2"></div>
+    <div class="done-bg-glow done-glow-3"></div>
+    <button class="done-close-btn" onclick="closeOv('ov-done')">✕</button>
+    <div class="done-scroll">
+      <div class="done-hero" id="done-hero"></div>
+      <div class="done-stats-row" id="done-stats-row"></div>
+      <div id="done-pr-section"></div>
+      <div id="done-hl-wrapper">
+        <div class="done-section-lbl">Highlights</div>
+        <div class="done-hl-grid" id="done-hl-grid"></div>
+      </div>
+      <div class="done-section-lbl">Übungen</div>
+      <div class="done-ex-list" id="done-ex-list"></div>
+      <div id="done-note-box"></div>
+      <div class="done-actions">
+        <button class="done-share-btn" onclick="_shareWk()">↑ Teilen</button>
+        <button class="done-ok-btn" onclick="closeOv('ov-done')">Perfekt! 🎉</button>
+      </div>
+      <div style="height:calc(32px + var(--sab))"></div>
     </div>
   </div>
 </div>
@@ -8783,37 +8851,98 @@ let _shareSes = null, _sharePrs = [];
 function showDone(ses, prs) {
   prs = prs || [];
   _shareSes = ses; _sharePrs = prs;
-  const sets = ses.logs.reduce((s,l)=>s+l.sets.length,0);
-  const prBlock = prs.length
-    ? '<div style="background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,165,0,.10));border:1px solid rgba(255,165,0,.35);border-radius:16px;padding:14px 16px;margin-bottom:14px">'
-      + '<div style="font-weight:800;font-size:15px;margin-bottom:8px">🏆 ' + prs.length + ' neue' + (prs.length===1?'r':'') + ' Personal Record' + (prs.length===1?'':'s') + '!</div>'
-      + prs.map(pr => '<div style="font-size:13px;line-height:1.5"><b>' + pr.exName + '</b> – ' + pr.label + ': <b>' + pr.newVal + ' ' + pr.unit + '</b>' + (pr.prevVal ? ' <span style="color:var(--text2);font-size:11px">(vorher ' + pr.prevVal + ')</span>' : '') + '</div>').join('')
-      + '</div>'
-    : '';
+  const sets = ses.logs.reduce((s,l) => s + l.sets.length, 0);
+  const vol  = ses.logs.reduce((sum,l) => sum + l.sets.reduce((s2,st) => s2 + ((parseFloat(st.w)||0)*(parseInt(st.r)||0)), 0), 0);
+  const durMin = ses.duration ? Math.round(ses.duration / 60) : 0;
   const prExIds = new Set(prs.map(p => p.exId));
-  document.getElementById('done-body').innerHTML = prBlock + `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
-        <div style="font-size:26px;font-weight:700">${ses.logs.length}</div>
-        <div style="font-size:12px;color:var(--text2)">Übungen</div>
-      </div>
-      <div style="text-align:center;background:var(--gl-bg-t);backdrop-filter:blur(20px);border:1px solid var(--gl-bdr);border-radius:16px;padding:16px;box-shadow:var(--gl-shad)">
-        <div style="font-size:26px;font-weight:700">${sets}</div>
-        <div style="font-size:12px;color:var(--text2)">Sätze</div>
-      </div>
-    </div>
-    <div class="card">${ses.logs.map(l=>{
-      const ex=exById(l.exerciseId);
-      const w=maxW(l.sets);
-      const isPr = prExIds.has(l.exerciseId);
-      return `<div class="row"><div class="ico">${ex?.emoji||'🏋️'}</div>
-        <div class="row-body">
-          <div class="row-title">${ex?.name||l.exerciseId}${isPr?'<span class="pr-badge">PR</span>':''}</div>
-          <div class="row-sub">${l.sets.length} Sätze · Max ${w||'–'} kg</div>
-        </div></div>`;
-    }).join('')}</div>
-    ${ses.note ? `<div style="margin-top:10px;background:var(--soft);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text2)">📝 ${ses.note}</div>` : ''}
-    <button class="share-wk-btn" onclick="_shareWk()">↑ Training teilen</button>`;
+  const dateStr = new Date(ses.date).toLocaleDateString('de-DE', {weekday:'long', day:'numeric', month:'long'});
+  const timeStr = new Date(ses.date).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+  const durH = Math.floor(durMin / 60), durM = durMin % 60;
+  const durStr = durH ? durH + 'h ' + (durM ? durM + 'min' : '') : durMin + ' min';
+
+  // Hero
+  document.getElementById('done-hero').innerHTML =
+    '<span class="done-hero-emoji">💪</span>' +
+    '<div class="done-hero-title">Training beendet!</div>' +
+    '<div class="done-hero-date">' + dateStr + ' · ' + timeStr + ' Uhr</div>' +
+    (durMin ? '<div class="done-hero-dur">⏱ ' + durStr.trim() + '</div>' : '');
+
+  // Stats chips
+  const volDisp = vol >= 1000 ? (vol/1000).toFixed(1).replace('.',',') : Math.round(vol);
+  const volLbl  = vol >= 1000 ? 't Vol.' : 'kg Vol.';
+  document.getElementById('done-stats-row').innerHTML =
+    '<div class="done-stat-chip"><span class="done-stat-ico">🏋️</span><span class="done-stat-val">' + ses.logs.length + '</span><span class="done-stat-lbl">Übungen</span></div>' +
+    '<div class="done-stat-chip"><span class="done-stat-ico">🔁</span><span class="done-stat-val">' + sets + '</span><span class="done-stat-lbl">Sätze</span></div>' +
+    (vol > 0 ? '<div class="done-stat-chip"><span class="done-stat-ico">🔥</span><span class="done-stat-val">' + volDisp + '</span><span class="done-stat-lbl">' + volLbl + '</span></div>' : '') +
+    (durMin ? '<div class="done-stat-chip"><span class="done-stat-ico">⏱</span><span class="done-stat-val">' + durMin + '</span><span class="done-stat-lbl">Minuten</span></div>' : '');
+
+  // PRs
+  const prEl = document.getElementById('done-pr-section');
+  if (prs.length) {
+    prEl.innerHTML = '<div class="done-pr-wrap">' +
+      '<div class="done-pr-head"><span class="done-pr-icon">🏆</span><div><div class="done-pr-headtitle">' +
+      prs.length + ' neue' + (prs.length===1?'r':'') + ' Personal Record' + (prs.length===1?'':'s') + '!</div>' +
+      '<div class="done-pr-headsub">Neue Bestleistung</div></div></div>' +
+      prs.map(pr =>
+        '<div class="done-pr-item"><div class="done-pr-item-left">' +
+        '<div class="done-pr-item-name">' + pr.exName + '</div>' +
+        '<div class="done-pr-item-detail">' + pr.label + (pr.prevVal ? ' · vorher ' + pr.prevVal + ' ' + pr.unit : '') + '</div>' +
+        '</div><div class="done-pr-item-val">' + pr.newVal + ' ' + pr.unit + '</div></div>'
+      ).join('') + '</div>';
+  } else {
+    prEl.innerHTML = '';
+  }
+
+  // Highlights
+  const hls = [];
+  let bestW = 0, bestWLog = null;
+  ses.logs.forEach(l => { const w = maxW(l.sets); if (w > bestW) { bestW = w; bestWLog = l; } });
+  if (bestWLog) {
+    const ex = exById(bestWLog.exerciseId);
+    hls.push({ ico: ex?.emoji||'🏋️', val: kgToDisp(bestW) + ' ' + unitLabel(), sub: 'Max Gewicht', name: ex?.name||bestWLog.exerciseId, color: 'rgba(0,122,255,.30)' });
+  }
+  let mostS = 0, mostSLog = null;
+  ses.logs.forEach(l => { if (l.sets.length > mostS) { mostS = l.sets.length; mostSLog = l; } });
+  if (mostSLog && mostS > 1) {
+    const ex = exById(mostSLog.exerciseId);
+    hls.push({ ico: ex?.emoji||'💪', val: mostS + ' Sätze', sub: 'Meiste Sätze', name: ex?.name||mostSLog.exerciseId, color: 'rgba(52,199,89,.30)' });
+  }
+  const totalReps = ses.logs.reduce((s,l) => s + l.sets.reduce((s2,st) => s2+(parseInt(st.r)||0), 0), 0);
+  if (totalReps > 0) hls.push({ ico: '🔄', val: totalReps.toLocaleString('de-DE'), sub: 'Gesamt', name: 'Wiederholungen', color: 'rgba(255,149,0,.30)' });
+  const hlWrapper = document.getElementById('done-hl-wrapper');
+  if (hls.length) {
+    hlWrapper.style.display = '';
+    document.getElementById('done-hl-grid').innerHTML = hls.map(h =>
+      '<div class="done-hl-card" style="--done-hl-color:' + h.color + '">' +
+      '<span class="done-hl-ico">' + h.ico + '</span>' +
+      '<div class="done-hl-val">' + h.val + '</div>' +
+      '<div class="done-hl-sub">' + h.sub + '</div>' +
+      '<div class="done-hl-name">' + h.name + '</div></div>'
+    ).join('');
+  } else {
+    hlWrapper.style.display = 'none';
+  }
+
+  // Exercise list
+  document.getElementById('done-ex-list').innerHTML = ses.logs.map(l => {
+    const ex = exById(l.exerciseId);
+    const w  = maxW(l.sets);
+    const isPr = prExIds.has(l.exerciseId);
+    const exVol = l.sets.reduce((s,st) => s + ((parseFloat(st.w)||0)*(parseInt(st.r)||0)), 0);
+    return '<div class="done-ex-row">' +
+      '<div class="done-ex-emo">' + (ex?.emoji||'🏋️') + '</div>' +
+      '<div class="done-ex-info"><div class="done-ex-name">' + (ex?.name||l.exerciseId) + '</div>' +
+      '<div class="done-ex-meta">' + l.sets.length + ' Sätze' + (exVol ? ' · ' + Math.round(exVol) + ' kg' : '') + '</div></div>' +
+      '<div class="done-ex-right">' +
+      (w ? '<div class="done-ex-maxw">' + kgToDisp(w) + ' <span class="done-ex-maxw-u">' + unitLabel() + '</span></div>' : '') +
+      (isPr ? '<div class="done-ex-pr">PR 🏆</div>' : '') +
+      '</div></div>';
+  }).join('');
+
+  // Note
+  document.getElementById('done-note-box').innerHTML = ses.note
+    ? '<div class="done-note">📝 ' + ses.note + '</div>' : '';
+
   openOv('ov-done');
 }
 
