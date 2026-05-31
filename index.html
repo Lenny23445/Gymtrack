@@ -9711,7 +9711,7 @@ function renderStreak(){
   const host = document.getElementById('streak-badge-host');
   if (!host) return;
   const st = calcStreak();
-  if (!S.sessions || !S.sessions.length || st.weeks <= 0) {
+  if (!S.sessions || !S.sessions.length) {
     host.innerHTML = '';
     return;
   }
