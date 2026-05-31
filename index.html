@@ -240,6 +240,50 @@
   --g5:rgba(40,140,70,.09); --g6:rgba(210,248,220,.55);
 }
 
+/* ── GLASS EFFECT OFF ── */
+html[data-glass="off"]{background:#f4f4f9}
+html[data-glass="off"][data-theme="rosa"]{background:#fff0f8}
+html[data-glass="off"][data-theme="dark"]{background:#060609}
+html[data-glass="off"][data-theme="blau"]{background:#d6eaff}
+html[data-glass="off"][data-theme="grün"]{background:#e8f5e9}
+[data-glass="off"] #bg{opacity:0;pointer-events:none}
+[data-glass="off"]{
+  --gl-bg:rgba(255,255,255,.96);--gl-bg-h:rgba(255,255,255,.99);--gl-bg-t:rgba(255,255,255,.80);
+  --gl-bdr:rgba(0,0,0,.09);--gl-bdr2:rgba(0,0,0,.06);
+  --gl-shad:0 2px 10px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
+  --gl-shad-lg:0 8px 24px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.06);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.8);
+  --sheen:transparent;--sep:rgba(60,60,67,.12);
+  --inp-bg:rgba(255,255,255,.90);--inp-focus:rgba(255,255,255,.99);--g5:rgba(120,120,128,.10);
+}
+[data-glass="off"][data-theme="rosa"]{
+  --gl-bg:rgba(255,248,254,.97);--gl-bg-h:rgba(255,248,254,.99);
+  --gl-bdr:rgba(200,30,100,.09);--sep:rgba(200,30,100,.10);--inp-bg:rgba(255,248,254,.92);
+}
+[data-glass="off"][data-theme="dark"]{
+  --gl-bg:rgba(22,22,36,.97);--gl-bg-h:rgba(14,14,28,.99);--gl-bg-t:rgba(22,22,36,.80);
+  --gl-bdr:rgba(255,255,255,.10);--gl-bdr2:rgba(255,255,255,.06);
+  --sep:rgba(255,255,255,.08);--inp-bg:rgba(255,255,255,.07);--inp-focus:rgba(255,255,255,.13);--g5:rgba(255,255,255,.12);
+}
+[data-glass="off"][data-theme="blau"]{
+  --gl-bg:rgba(240,248,255,.97);--gl-bg-h:rgba(240,248,255,.99);
+  --gl-bdr:rgba(0,100,220,.10);--sep:rgba(0,80,200,.10);--inp-bg:rgba(240,248,255,.92);
+}
+[data-glass="off"][data-theme="grün"]{
+  --gl-bg:rgba(240,255,244,.97);--gl-bg-h:rgba(240,255,244,.99);
+  --gl-bdr:rgba(40,140,70,.10);--sep:rgba(40,140,70,.10);--inp-bg:rgba(240,255,244,.92);
+}
+[data-glass="off"] .card,[data-glass="off"] .ex-card,[data-glass="off"] .companion-card,
+[data-glass="off"] .sheet,[data-glass="off"] .hdr,[data-glass="off"] .tabbar,
+[data-glass="off"] .f-in,[data-glass="off"] .set-in,[data-glass="off"] .btn-gray,
+[data-glass="off"] .wk-prev-day,[data-glass="off"] .day-pill,[data-glass="off"] .fmode-wrap,
+[data-glass="off"] .wheel-col,[data-glass="off"] .plan-type-seg{
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+[data-glass="off"] .card::after,[data-glass="off"] .ex-card::after,
+[data-glass="off"] .companion-card::after,[data-glass="off"] .sheet::after,
+[data-glass="off"] .tabbar::after,[data-glass="off"] .hdr::after{display:none}
+
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -2839,6 +2883,16 @@ body{
           <span class="theme-name">Grün</span>
           <span class="theme-chk" id="chk-grün" style="visibility:hidden">✓</span>
         </div>
+        <div class="row" style="border-top:1px solid var(--sep)">
+          <div class="row-body">
+            <div class="row-title">Glaseffekt</div>
+            <div class="row-sub">Transparenter Milchglas-Look</div>
+          </div>
+          <label class="tgl">
+            <input type="checkbox" id="glass-toggle" checked onchange="setGlass(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
       </div>
     </div>
     <div>
@@ -4133,6 +4187,7 @@ let S = (() => {
 S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
 S.theme      = S.theme      || 'light';
+S.glass      = S.glass !== undefined ? S.glass : true;
 S.companion   = S.companion   || 'dackel';
 S.companionOn = false; // Begleiter-Feature entfernt — immer aus
 S.exFilterMode = S.exFilterMode || 'muskel';
@@ -4396,6 +4451,13 @@ function setTheme(t) {
   ['light','rosa','dark','blau','grün'].forEach(n =>
     document.getElementById('chk-'+n).style.visibility = n===t ? 'visible' : 'hidden'
   );
+}
+function setGlass(on) {
+  S.glass = on;
+  persist();
+  document.documentElement.dataset.glass = on ? 'on' : 'off';
+  const el = document.getElementById('glass-toggle');
+  if (el) el.checked = on;
 }
 
 // ── HOME ──────────────────────────────────────────────
@@ -9948,6 +10010,7 @@ function lastSessionSetsFor(exId){
 
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
+setGlass(S.glass);
 applyCompanion();
 renderHome();
 renderExList();
