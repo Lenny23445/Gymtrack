@@ -241,12 +241,42 @@
 }
 
 /* ── GLASS EFFECT OFF ── */
-html[data-glass="off"]{background:#f4f4f9}
-html[data-glass="off"][data-theme="rosa"]{background:#fff0f8}
-html[data-glass="off"][data-theme="dark"]{background:#060609}
-html[data-glass="off"][data-theme="blau"]{background:#d6eaff}
-html[data-glass="off"][data-theme="grün"]{background:#e8f5e9}
-[data-glass="off"] #bg{opacity:0;pointer-events:none}
+html[data-glass="off"]{background-color:#f4f4f9}
+html[data-glass="off"][data-theme="rosa"]{background-color:#fff0f8}
+html[data-glass="off"][data-theme="dark"]{background-color:#060609}
+html[data-glass="off"][data-theme="blau"]{background-color:#d6eaff}
+html[data-glass="off"][data-theme="grün"]{background-color:#e8f5e9}
+/* #bg zeigt originales sanftes Gradient pro Theme */
+html[data-glass="off"] #bg{background:
+  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(110,60,255,.22) 0%,transparent 52%),
+  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,190,255,.18) 0%,transparent 52%),
+  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(255,55,140,.13) 0%,transparent 48%),
+  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(50,210,120,.10) 0%,transparent 48%),
+  #f4f4f9}
+html[data-glass="off"][data-theme="rosa"] #bg{background:
+  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(255,55,150,.26) 0%,transparent 52%),
+  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(255,130,195,.20) 0%,transparent 52%),
+  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(200,0,100,.16) 0%,transparent 48%),
+  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(255,180,220,.14) 0%,transparent 48%),
+  #fff0f8}
+html[data-glass="off"][data-theme="dark"] #bg{background:
+  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(80,40,225,.55) 0%,transparent 52%),
+  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,148,255,.42) 0%,transparent 52%),
+  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(180,38,118,.38) 0%,transparent 48%),
+  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(0,185,130,.24) 0%,transparent 48%),
+  #060609}
+html[data-glass="off"][data-theme="blau"] #bg{background:
+  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,100,255,.30) 0%,transparent 52%),
+  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,180,255,.22) 0%,transparent 52%),
+  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,60,200,.18) 0%,transparent 48%),
+  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(100,200,255,.16) 0%,transparent 48%),
+  #d6eaff}
+html[data-glass="off"][data-theme="grün"] #bg{background:
+  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,180,80,.28) 0%,transparent 52%),
+  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(100,220,130,.22) 0%,transparent 52%),
+  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,140,60,.18) 0%,transparent 48%),
+  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(180,255,200,.16) 0%,transparent 48%),
+  #e8f5e9}
 [data-glass="off"]{
   --gl-bg:rgba(255,255,255,.96);--gl-bg-h:rgba(255,255,255,.99);--gl-bg-t:rgba(255,255,255,.80);
   --gl-bdr:rgba(0,0,0,.09);--gl-bdr2:rgba(0,0,0,.06);
