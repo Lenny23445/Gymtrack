@@ -1788,16 +1788,28 @@ body{
 }
 .hw-drop-hint{outline:2px dashed var(--acc);outline-offset:3px;border-radius:20px}
 /* Edit-Bar */
-.heute-edit-bar{display:none;gap:10px;margin-top:4px;flex-shrink:0}
-.heute-pad.editing .heute-edit-bar{display:flex}
+.heute-edit-bar{
+  display:none;
+  position:fixed;
+  left:50%;transform:translateX(-50%);
+  width:calc(100% - 40px);max-width:390px;
+  bottom:calc(18px + var(--sab) + 64px + 10px); /* über der Tabbar */
+  gap:10px;
+  z-index:1100;
+}
+.heute-pad.editing~* .heute-edit-bar,
+.heute-pad.editing .heute-edit-bar,
+body.heute-editing .heute-edit-bar{display:flex}
+#heute-edit-bar.visible{display:flex}
 .heute-edit-bar button{
   flex:1;padding:13px;border-radius:14px;border:none;
   font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
   transition:opacity .12s;
+  box-shadow:0 4px 16px rgba(0,0,0,.18);
 }
 .heute-edit-bar button:active{opacity:.75}
-.heute-edit-bar .eb-add{background:var(--g5);color:var(--text)}
-.heute-edit-bar .eb-done{background:var(--acc);color:#fff;box-shadow:0 3px 12px rgba(var(--acc-rgb),.35)}
+.heute-edit-bar .eb-add{background:var(--gl-bg-h);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);color:var(--text);border:1px solid var(--gl-bdr)}
+.heute-edit-bar .eb-done{background:var(--acc);color:#fff;box-shadow:0 3px 14px rgba(var(--acc-rgb),.45)}
 .heute-grid-empty{
   grid-column:1 / -1;text-align:center;color:var(--text2);
   font-size:14px;padding:32px 10px;line-height:1.65;
@@ -2765,8 +2777,12 @@ body{
 /* ── REST-TIMER BAR ─────────────────────────────────── */
 .rest-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(var(--acc-rgb),.1);border:1.5px solid rgba(var(--acc-rgb),.25);border-radius:16px;padding:11px 16px;margin:10px 0 4px;gap:10px}
 .rest-bar-lbl{font-size:13px;color:var(--text2)}
-.rest-bar-val{font-size:22px;font-weight:700;color:var(--acc);min-width:50px;text-align:center;letter-spacing:.5px}
+.rest-bar-controls{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
+.rest-bar-val{font-size:22px;font-weight:700;color:var(--acc);min-width:54px;text-align:center;letter-spacing:.5px}
+.rest-adj-btn{font-size:12px;font-weight:600;color:var(--acc);background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.25);border-radius:16px;padding:4px 10px;cursor:pointer}
+.rest-adj-btn:active{background:rgba(var(--acc-rgb),.22)}
 .rest-bar-skip{font-size:12px;font-weight:600;color:var(--acc);background:none;border:1px solid rgba(var(--acc-rgb),.3);border-radius:20px;padding:5px 13px;cursor:pointer}
+.last-train-tag{display:inline-block;font-size:11px;font-weight:600;background:rgba(var(--acc-rgb),.12);color:var(--acc);border:1px solid rgba(var(--acc-rgb),.25);border-radius:10px;padding:2px 8px;margin-left:8px;vertical-align:middle;white-space:nowrap}
 /* ── SESSION-NOTIZ ──────────────────────────────────── */
 .wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
 .wk-note-inp:focus{border-color:var(--acc)}
@@ -2861,11 +2877,13 @@ body{
   </div>
   <div class="pad heute-pad" id="heute-pad">
     <div id="heute-grid"></div>
-    <div class="heute-edit-bar" id="heute-edit-bar">
-      <button class="eb-add" onclick="openWidgetPicker()">＋ Widget</button>
-      <button class="eb-done" onclick="exitEditMode()">Fertig</button>
-    </div>
   </div>
+</div>
+
+<!-- Edit-Bar: fixed über der Tabbar, sichtbar nur im Bearbeitungsmodus -->
+<div class="heute-edit-bar" id="heute-edit-bar">
+  <button class="eb-add" onclick="openWidgetPicker()">＋ Widget</button>
+  <button class="eb-done" onclick="exitEditMode()">Fertig</button>
 </div>
 
 <!-- WIDGET PICKER -->
@@ -4053,7 +4071,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605312132';
+const APP_VERSION = 'gymtrack-v202605312143';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4818,11 +4836,15 @@ function enterEditMode(){
   heuteEditMode = true;
   const pad = document.getElementById('heute-pad');
   if (pad) pad.classList.add('editing');
+  const bar = document.getElementById('heute-edit-bar');
+  if (bar) bar.classList.add('visible');
 }
 function exitEditMode(){
   heuteEditMode = false;
   const pad = document.getElementById('heute-pad');
   if (pad) pad.classList.remove('editing');
+  const bar = document.getElementById('heute-edit-bar');
+  if (bar) bar.classList.remove('visible');
 }
 function removeWidget(i){
   const L = _heuteLayout();
