@@ -3656,8 +3656,12 @@ body.heute-editing .heute-edit-bar{display:flex}
         </div>
         <div id="rest-timer-bar" class="rest-bar" style="display:none">
           <span class="rest-bar-lbl">⏱ Pause</span>
-          <span class="rest-bar-val" id="rest-timer-val">1:30</span>
-          <button class="rest-bar-skip" onclick="skipRest()">Überspringen</button>
+          <div class="rest-bar-controls">
+            <button class="rest-adj-btn" onclick="adjustRest(-15)">−15s</button>
+            <span class="rest-bar-val" id="rest-timer-val">1:30</span>
+            <button class="rest-adj-btn" onclick="adjustRest(15)">+15s</button>
+          </div>
+          <button class="rest-bar-skip" onclick="skipRest()">✕</button>
         </div>
         <div id="log-cards"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2"></textarea>
@@ -4071,7 +4075,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605312143';
+const APP_VERSION = 'gymtrack-v202605312145';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5495,25 +5499,52 @@ function html_sug(type, icon, title, text) {
   return `<div class="sug ${type}">${ic}<div><div class="sug-title">${title}</div><div class="sug-sub">${text}</div></div></div>`;
 }
 
+// Hilfsfunktion: Arbeitssätze extrahieren (ohne Aufwärmsätze)
+function _workSets(sets) {
+  return sets.filter(s => s.w && s.r && (s.type || 'normal') !== 'warmup');
+}
+// Reps-Prüfung: fail = immer als "erreicht" zählen
+function _repsOk(s, target) {
+  return s.type === 'fail' || parseInt(s.r) >= target;
+}
+
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
   if (!hist.length) return ex.targetWeight ? Number(ex.targetWeight) : null;
   const last = hist[hist.length-1];
-  const validSets = last.sets.filter(s => s.w && s.r);
-  if (!validSets.length) return null;
-  const lMaxW = maxW(validSets);
-  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
-  const allSets = validSets.length >= ex.targetSets;
+
+  const workSets = _workSets(last.sets);
+  if (!workSets.length) return null;
+
+  // Top-Sätze separat – gelten als eigene Kategorie (1 schwerer Arbeitssatz)
+  const topSets  = workSets.filter(s => s.type === 'top');
+  const jobSets  = workSets.filter(s => (s.type || 'normal') !== 'top');
+  // Drop-Sätze zählen bei den Job-Sätzen mit, treiben aber nicht alleine die Progression
+  const mainSets = jobSets.length ? jobSets : topSets;
+  const topOnly  = !jobSets.length && topSets.length > 0;
+
+  const lMaxW   = maxW(mainSets);
+  const allReps = mainSets.every(s => _repsOk(s, ex.targetReps));
+  const allSets = mainSets.length >= (topOnly ? 1 : ex.targetSets);
+
+  // Top-Satz: kleinere Stufen bis 100 kg (präzisere Intensitätssteuerung)
+  const stepBig   = topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5);
+  const stepSmall = 2.5;
+
   if (hist.length >= 2) {
-    const prev = hist[hist.length-2];
-    const pValid = prev.sets.filter(s=>s.w&&s.r);
-    const prevAllReps = pValid.every(s => parseInt(s.r) >= ex.targetReps);
-    const prevMax = maxW(pValid);
-    if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
-      return lMaxW + (lMaxW >= 60 ? 5 : 2.5);
+    const prev    = hist[hist.length-2];
+    const pWork   = _workSets(prev.sets);
+    const pJob    = pWork.filter(s => (s.type||'normal') !== 'top');
+    const pMain   = pJob.length ? pJob : pWork.filter(s => s.type === 'top');
+    if (pMain.length) {
+      const pAllReps = pMain.every(s => _repsOk(s, ex.targetReps));
+      const pMax     = maxW(pMain);
+      if (allReps && allSets && pAllReps && lMaxW === pMax) {
+        return lMaxW + stepBig;
+      }
     }
   }
-  if (allReps && allSets) return lMaxW + 2.5;
+  if (allReps && allSets) return lMaxW + stepSmall;
   return lMaxW;
 }
 
@@ -5522,29 +5553,45 @@ function getSuggestion(ex) {
   if (!hist.length) return { type:'wait', icon:'', title: ex.name, text:'Noch kein Training. Starte heute!' };
 
   const last = hist[hist.length-1];
-  const validSets = last.sets.filter(s => s.w && s.r);
-  if (!validSets.length) return null;
+  const workSets = _workSets(last.sets);
+  if (!workSets.length) return null;
 
-  const lMaxW = maxW(validSets);
-  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
-  const allSets = validSets.length >= ex.targetSets;
+  const topSets  = workSets.filter(s => s.type === 'top');
+  const jobSets  = workSets.filter(s => (s.type || 'normal') !== 'top');
+  const mainSets = jobSets.length ? jobSets : topSets;
+  const topOnly  = !jobSets.length && topSets.length > 0;
+
+  const lMaxW   = maxW(mainSets);
+  const allReps = mainSets.every(s => _repsOk(s, ex.targetReps));
+  const allSets = mainSets.length >= (topOnly ? 1 : ex.targetSets);
+
+  const stepBig   = topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5);
+  const stepSmall = 2.5;
 
   if (hist.length >= 2) {
-    const prev = hist[hist.length-2];
-    const pValid = prev.sets.filter(s=>s.w&&s.r);
-    const prevAllReps = pValid.every(s => parseInt(s.r) >= ex.targetReps);
-    const prevMax = maxW(pValid);
-    if (allReps && allSets && prevAllReps && lMaxW === prevMax) {
-      const inc = lMaxW >= 60 ? 5 : 2.5;
-      return { type:'up', icon:'', title:`${ex.name}: Gewicht erhöhen!`, text:`2× alle Ziel-Wdh geschafft. Versuche ${kgToDisp(lMaxW+inc)} ${unitLabel()} nächstes Mal!` };
+    const prev   = hist[hist.length-2];
+    const pWork  = _workSets(prev.sets);
+    const pJob   = pWork.filter(s => (s.type||'normal') !== 'top');
+    const pMain  = pJob.length ? pJob : pWork.filter(s => s.type === 'top');
+    if (pMain.length) {
+      const pAllReps = pMain.every(s => _repsOk(s, ex.targetReps));
+      const pMax     = maxW(pMain);
+      if (allReps && allSets && pAllReps && lMaxW === pMax) {
+        const inc    = stepBig;
+        const setTxt = topOnly ? 'Top-Satz 2× geschafft' : '2× alle Ziel-Wdh geschafft';
+        return { type:'up', icon:'', title:`${ex.name}: Gewicht erhöhen!`, text:`${setTxt}. Versuche ${kgToDisp(lMaxW+inc)} ${unitLabel()} nächstes Mal!` };
+      }
     }
   }
   if (allReps && allSets) {
-    return { type:'up', icon:'', title:`${ex.name}: Super!`, text:`Alle Ziel-Wdh erreicht. Nächstes Mal: ${kgToDisp(lMaxW+2.5)} ${unitLabel()} ausprobieren.` };
+    const txt = topOnly
+      ? `Top-Satz geschafft. Nächstes Mal: ${kgToDisp(lMaxW+stepSmall)} ${unitLabel()} als neuen Top-Satz versuchen.`
+      : `Alle Ziel-Wdh erreicht. Nächstes Mal: ${kgToDisp(lMaxW+stepSmall)} ${unitLabel()} ausprobieren.`;
+    return { type:'up', icon:'', title:`${ex.name}: Super!`, text: txt };
   }
   // Eingebrochen → realistisches Wdh-Ziel vorschlagen
-  const sum = validSets.reduce((a,s) => a + parseInt(s.r||0), 0);
-  const avg = Math.max(1, Math.round(sum / validSets.length));
+  const sum = mainSets.reduce((a,s) => a + parseInt(s.r||0), 0);
+  const avg = Math.max(1, Math.round(sum / mainSets.length));
   const gStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
   if (avg < ex.targetReps - 2) {
     return { type:'hold', icon:'', title:`${ex.name}: Wdh aufbauen`, text:`Zuletzt nur ~${avg} Wdh. Versuche ${avg} Wdh bei ${kgToDisp(lMaxW)} ${unitLabel()} sauber zu halten.` };
@@ -5558,11 +5605,12 @@ function renderLastSession() {
   const last = S.sessions[S.sessions.length-1];
   const d = new Date(last.date);
   const sets = last.logs.reduce((s,l) => s+l.sets.length, 0);
+  const trainLabel = deriveTrainingLabel(last);
   el.innerHTML = `<div class="last-swipe-wrap">
     <div class="last-swipe-inner">
       <div class="row last-swipe-row">
         <div class="row-body">
-          <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}</div>
+          <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'short'})}${trainLabel ? `<span class="last-train-tag">${trainLabel}</span>` : ''}</div>
           <div class="row-sub">${last.logs.map(l=>{const e=exById(l.exerciseId);return e?e.name:l.exerciseId}).join(' · ')}</div>
         </div>
         <span class="badge b-green">${sets} Sätze</span>
@@ -5571,6 +5619,25 @@ function renderLastSession() {
     </div>
   </div>`;
   initLastSwipe();
+}
+
+function deriveTrainingLabel(session) {
+  const ids = [...new Set(session.logs.map(l => {
+    const ex = exById(l.exerciseId);
+    return ex?.muscleGroup || null;
+  }).filter(Boolean))];
+  if (!ids.length) return '';
+  if (ids.length === 1) return muscleLabel(ids[0]);
+  const hasBeine = ids.some(m => ['beine','legs','unter'].includes(m));
+  const hasBrust = ids.some(m => ['brust','push'].includes(m));
+  const hasRueck = ids.some(m => ['ruecken','pull'].includes(m));
+  const hasOber  = ids.some(m => ['brust','ruecken','arme','schultern','core','push','pull','ober'].includes(m));
+  if (hasBeine && hasOber) return 'Ganzkörper';
+  if (hasBeine && !hasOber) return ids.length <= 2 ? ids.map(muscleLabel).filter(Boolean).join(' · ') : 'Unterkörper';
+  if (hasBrust && !hasRueck) return 'Push';
+  if (hasRueck && !hasBrust) return 'Pull';
+  if (hasBrust && hasRueck) return 'Oberkörper';
+  return ids.length <= 3 ? ids.map(muscleLabel).filter(Boolean).join(' · ') : 'Oberkörper';
 }
 
 function deleteLastSession(sesId) {
@@ -6722,14 +6789,17 @@ function openProgressionInfo(exId) {
     }
   }
   body.innerHTML = exText + `
-    <p style="margin:0 0 10px"><b>1. Sätze + Wdh schaffen</b><br>
-    Schaffst du <b>alle Sätze mit allen Ziel-Wdh</b>, wird beim nächsten Training mehr Gewicht empfohlen.</p>
-    <p style="margin:0 0 10px"><b>2. Stufenweise steigern</b><br>
-    +2,5 ${unitLabel()} (leichte Übung) oder +5 ${unitLabel()} (ab 60&nbsp;kg / schwer).
+    <p style="margin:0 0 10px"><b>1. Arbeitssätze zählen</b><br>
+    Nur <b>Normal-, Top- und Versagen-Sätze</b> fließen in die Progression ein. Aufwärmsätze (W) werden komplett ignoriert.</p>
+    <p style="margin:0 0 10px"><b>2. Satz-Typ macht den Unterschied</b><br>
+    <b>Arbeitssätze (Normal):</b> +2,5 ${unitLabel()} wenn alle Ziel-Wdh geschafft; ab 60 kg +5 ${unitLabel()} nach 2× in Folge.<br>
+    <b>Top-Satz (T):</b> Ein schwerer Maximalsatz (RPE 8–10). Steigerung in 2,5er-Schritten bis 100 kg, danach 5er.<br>
+    <b>Bis zum Versagen (F):</b> Gilt automatisch als Ziel-Wdh erreicht — harte Intensität zählt voll.</p>
+    <p style="margin:0 0 10px"><b>3. Stufenweise steigern</b><br>
     Wer 2× hintereinander alles geschafft hat, bekommt direkt die größere Steigerung.</p>
-    <p style="margin:0 0 10px"><b>3. Wdh-Fokus statt Gewicht</b><br>
+    <p style="margin:0 0 10px"><b>4. Wdh-Fokus statt Gewicht</b><br>
     Schaffst du noch nicht alle Wdh, bleibt das Gewicht gleich — du baust Wdh auf, bis das Ziel sitzt.</p>
-    <p style="margin:0 0 10px"><b>4. Eingebrochen?</b><br>
+    <p style="margin:0 0 10px"><b>5. Eingebrochen?</b><br>
     Schaffst du deutlich weniger als das Ziel (z. B. 6 statt 10), schlägt GymTrack die letzte erreichte Wdh-Zahl als realistisches Ziel vor.</p>
     <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Pro Übung auf das <b>i</b>-Symbol tippen — du siehst direkt, was als nächstes ansteht.</p>`;
   openOv('ov-prog-info');
@@ -6740,9 +6810,10 @@ function getSuggestedReps(ex) {
   const hist = exHistory(ex.id);
   if (!hist.length) return ex.targetReps;
   const last = hist[hist.length-1];
-  const validSets = last.sets.filter(s => s.w && s.r);
+  // Aufwärmsätze komplett ausschließen
+  const validSets = _workSets(last.sets);
   if (!validSets.length) return ex.targetReps;
-  const allReps = validSets.every(s => parseInt(s.r) >= ex.targetReps);
+  const allReps = validSets.every(s => _repsOk(s, ex.targetReps));
   if (allReps) return ex.targetReps;
   // unter Ziel: avg-Wdh (gerundet) als realistisches Ziel
   const sum = validSets.reduce((a,s) => a + parseInt(s.r||0), 0);
@@ -8993,6 +9064,12 @@ function skipRest() {
   clearInterval(_restInt); _restInt = null;
   const b = document.getElementById('rest-timer-bar');
   if (b) b.style.display = 'none';
+}
+function adjustRest(delta) {
+  _restSecs = Math.max(0, _restSecs + delta);
+  if (_restSecs <= 0) { skipRest(); return; }
+  _updRest();
+  haptic(8);
 }
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
