@@ -243,20 +243,19 @@
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-/* html bekommt Mesh + Fallback-Farbe damit Safe-Area (Home-Indicator) nicht weiß ist. */
-html{background:var(--mesh);background-color:#ececf4}
-html[data-theme="rosa"]{background-color:#fce8f4}
-html[data-theme="dark"]{background-color:#060609}
-html[data-theme="blau"]{background-color:#c8dfff}
-html[data-theme="grün"]{background-color:#d4f0d8}
+/* Gradient NUR in #bg (position:fixed) – html/body nur Farb-Fallback für Overscroll */
+html{background-color:#cccae8}
+html[data-theme="rosa"]{background-color:#f4d8ec}
+html[data-theme="dark"]{background-color:#020208}
+html[data-theme="blau"]{background-color:#b8d4f8}
+html[data-theme="grün"]{background-color:#c0e8c4}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
   color:var(--text);
   max-width:430px;margin:0 auto;min-height:100%;
   position:relative;
   -webkit-font-smoothing:antialiased;
-  /* Mesh auch auf body, damit innerhalb max-width kein Weißbereich sichtbar ist */
-  background:var(--mesh);
+  background:transparent;
 }
 
 /* Fixed gradient background */
