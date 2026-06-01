@@ -319,7 +319,10 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;overscroll-behavior:none}
+/* Disable text selection & bounce in native app */
+*{-webkit-touch-callout:none}
+body *:not(input):not(textarea):not([contenteditable]){-webkit-user-select:none;user-select:none}
 /* Gradient NUR in #bg (position:fixed) – html/body nur Farb-Fallback für Overscroll */
 html{background-color:#cccae8}
 html[data-theme="rosa"]{background-color:#f4d8ec}

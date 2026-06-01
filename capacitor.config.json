@@ -7,7 +7,9 @@
   },
   "ios": {
     "contentInset": "automatic",
-    "backgroundColor": "#f4f4f9"
+    "backgroundColor": "#f4f4f9",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false
   },
   "plugins": {
     "FirebaseAuthentication": {
