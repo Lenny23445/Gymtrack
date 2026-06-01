@@ -14,6 +14,7 @@ struct GymTrackActivityAttributes: ActivityAttributes {
     var workoutName: String
 }
 
+@available(iOS 16.1, *)
 struct GymTrackLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GymTrackActivityAttributes.self) { context in
@@ -32,21 +33,15 @@ struct GymTrackLiveActivity: Widget {
                         .lineLimit(1)
                 }
                 Spacer()
-                if context.state.isResting {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Pause")
-                            .font(.caption2).foregroundColor(.secondary)
-                        Text("\(context.state.restSeconds)s")
-                            .font(.title2).bold().foregroundColor(.orange)
-                            .monospacedDigit()
-                    }
-                } else {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Satz")
-                            .font(.caption2).foregroundColor(.secondary)
-                        Text("\(context.state.setsDone)/\(context.state.totalSets)")
-                            .font(.title2).bold().monospacedDigit()
-                    }
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(context.state.isResting ? "Pause" : "Satz")
+                        .font(.caption2).foregroundColor(.secondary)
+                    Text(context.state.isResting
+                         ? "\(context.state.restSeconds)s"
+                         : "\(context.state.setsDone)/\(context.state.totalSets)")
+                        .font(.title2).bold()
+                        .foregroundColor(context.state.isResting ? .orange : .primary)
+                        .monospacedDigit()
                 }
             }
             .padding(.horizontal, 16)
@@ -59,18 +54,15 @@ struct GymTrackLiveActivity: Widget {
                         .font(.title3)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    if context.state.isResting {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text("Pause").font(.caption2).foregroundColor(.secondary)
-                            Text("\(context.state.restSeconds)s")
-                                .font(.title3).bold().foregroundColor(.orange).monospacedDigit()
-                        }
-                    } else {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text("Satz").font(.caption2).foregroundColor(.secondary)
-                            Text("\(context.state.setsDone)/\(context.state.totalSets)")
-                                .font(.title3).bold().monospacedDigit()
-                        }
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text(context.state.isResting ? "Pause" : "Satz")
+                            .font(.caption2).foregroundColor(.secondary)
+                        Text(context.state.isResting
+                             ? "\(context.state.restSeconds)s"
+                             : "\(context.state.setsDone)/\(context.state.totalSets)")
+                            .font(.title3).bold()
+                            .foregroundColor(context.state.isResting ? .orange : .primary)
+                            .monospacedDigit()
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -85,13 +77,12 @@ struct GymTrackLiveActivity: Widget {
                 Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
                     .foregroundColor(context.state.isResting ? .orange : .accentColor)
             } compactTrailing: {
-                if context.state.isResting {
-                    Text("\(context.state.restSeconds)s")
-                        .font(.caption).bold().foregroundColor(.orange).monospacedDigit()
-                } else {
-                    Text("\(context.state.setsDone)/\(context.state.totalSets)")
-                        .font(.caption).bold().monospacedDigit()
-                }
+                Text(context.state.isResting
+                     ? "\(context.state.restSeconds)s"
+                     : "\(context.state.setsDone)/\(context.state.totalSets)")
+                    .font(.caption).bold()
+                    .foregroundColor(context.state.isResting ? .orange : .primary)
+                    .monospacedDigit()
             } minimal: {
                 Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
                     .foregroundColor(context.state.isResting ? .orange : .accentColor)
