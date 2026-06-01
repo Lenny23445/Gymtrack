@@ -52,6 +52,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - "**/*.dSYM.zip"
 
     publishing:
       app_store_connect:
