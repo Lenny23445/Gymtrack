@@ -5,7 +5,7 @@ import SwiftUI
 
 private let appGroup = "group.com.wolter.gymtrack"
 
-private struct WidgetData {
+struct WidgetData {
     var streakWeeks:   Int
     var todayPlan:     String
     var weekSessions:  Int
