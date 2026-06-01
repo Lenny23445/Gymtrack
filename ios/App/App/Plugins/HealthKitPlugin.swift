@@ -7,20 +7,20 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "HealthKitPlugin"
     public let jsName = "HealthKitPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "isAvailable",          returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "requestHKPermissions", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "saveWorkout",          returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "saveWeight",           returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getLatestWeight",      returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "isAvailable",         returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestPermissions",  returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "saveWorkout",         returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "saveWeight",          returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getLatestWeight",     returnType: CAPPluginReturnPromise)
     ]
 
-    private lazy var healthStore = HKHealthStore()
+    private let healthStore = HKHealthStore()
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         call.resolve(["available": HKHealthStore.isHealthDataAvailable()])
     }
 
-    @objc func requestHKPermissions(_ call: CAPPluginCall) {
+    @objc func requestPermissions(_ call: CAPPluginCall) {
         guard HKHealthStore.isHealthDataAvailable() else {
             call.reject("HealthKit nicht verfügbar")
             return
