@@ -11694,7 +11694,26 @@ async function doGoogleSignIn() {
     alert('⚙️ Firebase ist noch nicht konfiguriert.');
     return;
   }
-  console.log('[GymTrack] Fallback → signInWithRedirect');
+  // Native iOS: use Capacitor Firebase Authentication plugin
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    try {
+      const { FirebaseAuthentication } = window.Capacitor.Plugins;
+      if (!FirebaseAuthentication) {
+        alert('❌ Firebase Auth Plugin nicht gefunden.');
+        return;
+      }
+      const result = await FirebaseAuthentication.signInWithGoogle();
+      const credential = window.FB.googleCredential(result.credential.idToken);
+      await window.FB.signInWithCredential(credential);
+      console.log('[GymTrack] ✅ Native Google Sign-In erfolgreich');
+    } catch (e) {
+      console.error('[GymTrack] ❌ Native Sign-In fehlgeschlagen:', e);
+      alert('❌ Login fehlgeschlagen:\n' + (e?.code || e?.message || e));
+    }
+    return;
+  }
+  // Web fallback
+  console.log('[GymTrack] Web → signInWithRedirect');
   try {
     await window.FB.signInWithRedirect();
   } catch (e) {

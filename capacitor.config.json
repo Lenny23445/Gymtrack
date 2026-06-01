@@ -8,5 +8,11 @@
   "ios": {
     "contentInset": "automatic",
     "backgroundColor": "#f4f4f9"
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
+    }
   }
 }

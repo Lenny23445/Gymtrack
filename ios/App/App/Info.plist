@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>GymTrack liest dein Körpergewicht aus Apple Health.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>GymTrack speichert deine Workouts und dein Körpergewicht in Apple Health.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 </dict>
 </plist>
