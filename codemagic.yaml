@@ -6,9 +6,8 @@ workflows:
     integrations:
       app_store_connect: codemagic_api_key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.wolter.gymtrack
+      groups:
+        - signing
       node: v20
     scripts:
       - name: Install dependencies
@@ -20,13 +19,16 @@ workflows:
       - name: Sync iOS
         script: npx cap sync ios
 
-      - name: Set bundle identifier
+      - name: Set up keychain
         script: |
-          PLIST="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.wolter.gymtrack" "$PLIST"
+          keychain initialize
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/distribution.p12
+          keychain add-certificates --certificate /tmp/distribution.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
 
-      - name: Set up code signing
-        script: xcode-project use-profiles
+      - name: Set up provisioning profile
+        script: |
+          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          xcode-project use-profiles --profile /tmp/profile.mobileprovision
 
       - name: Build IPA
         script: |
