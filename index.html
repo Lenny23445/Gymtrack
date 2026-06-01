@@ -4531,7 +4531,7 @@ async function _initHealthKit() {
   const hkCard = document.getElementById('healthkit-card');
   if (hkCard) hkCard.style.display = '';
   if (S.healthKitEnabled) {
-    HK.requestPermissions().catch(() => {});
+    HK.requestHKPermissions().catch(() => {});
   }
 }
 async function _saveWorkoutToHealthKit(session) {
@@ -4556,7 +4556,7 @@ async function toggleHealthKit(checked) {
   S.healthKitEnabled = checked; persist();
   if (!checked) { updateHealthKitUI(); return; }
   const HK = _cap('HealthKitPlugin'); if (!HK) { updateHealthKitUI(); return; }
-  const { granted } = await HK.requestPermissions().catch(() => ({ granted: false }));
+  const { granted } = await HK.requestHKPermissions().catch(() => ({ granted: false }));
   if (!granted) { S.healthKitEnabled = false; persist(); }
   updateHealthKitUI();
 }
