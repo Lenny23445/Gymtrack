@@ -19,7 +19,7 @@
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously }
+  import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
@@ -60,6 +60,7 @@
     window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
     window.FB.signInAnonymously  = () => signInAnonymously(auth);
     window.FB.googleCredential   = (idToken) => GoogleAuthProvider.credential(idToken);
+    window.FB.appleCredential    = (idToken) => { const p = new OAuthProvider('apple.com'); return p.credential({ idToken }); };
     window.FB.getRedirectResult  = () => getRedirectResult(auth);
     window.FB.signOut            = () => signOut(auth);
     window.FB.onAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
@@ -3046,6 +3047,22 @@ body.heute-editing .heute-edit-bar{display:flex}
         </div>
       </div>
     </div>
+    <div id="healthkit-card" style="display:none">
+      <div class="s-title">Apple Health</div>
+      <div class="card">
+        <div class="row">
+          <div class="ico" style="background:rgba(255,45,85,.10);border-color:rgba(255,45,85,.22);font-size:20px">❤️</div>
+          <div class="row-body">
+            <div class="row-title">Apple Health Sync</div>
+            <div class="row-sub" id="hk-sub">Trainings und Gewicht in Apple Health sichern</div>
+          </div>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="hk-toggle" onchange="toggleHealthKit(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
     <div>
       <div class="s-title">Design</div>
       <div class="card">
@@ -4073,7 +4090,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202605312147';
+const APP_VERSION = 'gymtrack-v202606011600';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4404,8 +4421,9 @@ S.customSplits = Array.isArray(S.customSplits) ? S.customSplits : []; // [{id,la
 // Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
 S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
-S.notifEnabled  = S.notifEnabled  || false;
-S.notifTime     = S.notifTime     || '08:00';
+S.notifEnabled    = S.notifEnabled    || false;
+S.notifTime       = S.notifTime       || '08:00';
+S.healthKitEnabled = S.healthKitEnabled || false;
 S.trackerItems  = S.trackerItems  || [];
 S.trackerCounts = S.trackerCounts || {};
 S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
@@ -4414,7 +4432,139 @@ S.weightGoal    = S.weightGoal    ?? null; // Zielgewicht
 // heuteLayout: null = Default-Layout verwenden
 if (S.heuteLayout !== undefined && !Array.isArray(S.heuteLayout)) S.heuteLayout = null;
 
-let persist = () => localStorage.setItem('ft4', JSON.stringify(S));
+let persist = () => {
+  localStorage.setItem('ft4', JSON.stringify(S));
+  _updateWidgetData();
+};
+
+// ── CAPACITOR NATIVE PLUGINS ───────────────────────────────
+const _isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform?.());
+const _cap = (name) => _isNative() ? window.Capacitor?.Plugins?.[name] : null;
+
+// Widget-Daten an iOS-Widget senden (debounced, non-blocking)
+let _widgetDebounce = null;
+function _updateWidgetData() {
+  if (!_isNative()) return;
+  clearTimeout(_widgetDebounce);
+  _widgetDebounce = setTimeout(() => {
+    try {
+      const WDP = _cap('WidgetDataPlugin');
+      if (!WDP) return;
+      const streak  = typeof calcStreak === 'function' ? (calcStreak().weeks || 0) : 0;
+      const today   = typeof planFor === 'function' ? planFor(todayKey()) : null;
+      let todayStr  = '';
+      if (today?.type === 'group' && today.group) todayStr = today.group;
+      else if (today?.type === 'exercises' && today.exIds?.length) {
+        todayStr = today.exIds.slice(0,2)
+          .map(id => S.exercises.find(e => e.id === id)?.name)
+          .filter(Boolean).join(', ');
+      }
+      const now   = new Date();
+      const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+      weekStart.setHours(0,0,0,0);
+      const weekSess = (S.sessions || []).filter(s => new Date(s.date) >= weekStart).length;
+      const last     = S.sessions?.length ? S.sessions[S.sessions.length - 1] : null;
+      const lastStr  = last ? _relativeDate(last.date) : '';
+      WDP.update({
+        streakWeeks:   streak,
+        todayPlan:     todayStr,
+        totalSessions: (S.sessions||[]).length,
+        weekSessions:  weekSess,
+        lastWorkout:   lastStr
+      }).then(() => WDP.reload?.()).catch(() => {});
+    } catch(e) {}
+  }, 800);
+}
+function _relativeDate(iso) {
+  const d = new Date(iso); const now = new Date();
+  const diff = Math.floor((now - d) / 86400000);
+  if (diff === 0) return 'Heute';
+  if (diff === 1) return 'Gestern';
+  if (diff < 7)  return 'Vor ' + diff + ' Tagen';
+  return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+}
+
+// ── LIVE ACTIVITY ──────────────────────────────────────────
+let _liveActivityActive = false;
+function _startLiveActivity(workoutName, exerciseName, setsDone, totalSets) {
+  const LA = _cap('LiveActivityPlugin'); if (!LA) return;
+  LA.start({ workoutName, exerciseName, setsDone, totalSets })
+    .then(r => { _liveActivityActive = !!r?.started; })
+    .catch(() => {});
+}
+function _updateLiveActivity(exerciseName, setsDone, totalSets, restSeconds, isResting) {
+  if (!_liveActivityActive) return;
+  const LA = _cap('LiveActivityPlugin'); if (!LA) return;
+  LA.update({ exerciseName, setsDone, totalSets, restSeconds: restSeconds||0, isResting: !!isResting })
+    .catch(() => {});
+}
+function _endLiveActivity() {
+  if (!_liveActivityActive) return;
+  _liveActivityActive = false;
+  const LA = _cap('LiveActivityPlugin'); if (!LA) return;
+  LA.end().catch(() => {});
+}
+
+// ── SPOTLIGHT ─────────────────────────────────────────────
+let _spotlightDebounce = null;
+function _indexExercisesSpotlight() {
+  if (!_isNative()) return;
+  clearTimeout(_spotlightDebounce);
+  _spotlightDebounce = setTimeout(() => {
+    const SP = _cap('SpotlightPlugin'); if (!SP) return;
+    const items = (S.exercises || []).map(e => ({
+      id: e.id, name: e.name, muscleGroup: e.muscleGroup || ''
+    }));
+    SP.indexExercises({ items }).catch(() => {});
+  }, 1500);
+}
+
+// ── HEALTHKIT ─────────────────────────────────────────────
+async function _initHealthKit() {
+  if (!_isNative()) return;
+  const HK = _cap('HealthKitPlugin'); if (!HK) return;
+  const { available } = await HK.isAvailable().catch(() => ({ available: false }));
+  if (!available) return;
+  const hkCard = document.getElementById('healthkit-card');
+  if (hkCard) hkCard.style.display = '';
+  if (S.healthKitEnabled) {
+    HK.requestPermissions().catch(() => {});
+  }
+}
+async function _saveWorkoutToHealthKit(session) {
+  if (!_isNative() || !S.healthKitEnabled) return;
+  const HK = _cap('HealthKitPlugin'); if (!HK) return;
+  try {
+    await HK.saveWorkout({
+      startTime: timerTs,
+      duration:  session.duration || 0,
+      calories:  _estimateCalories(session),
+      sessionId: session.id
+    });
+  } catch(e) {}
+}
+function _estimateCalories(session) {
+  if (!session?.logs?.length) return 0;
+  let totalSets = 0;
+  session.logs.forEach(l => { totalSets += (l.sets||[]).filter(s => s.w || s.r).length; });
+  return Math.round(totalSets * 5.5);
+}
+async function toggleHealthKit(checked) {
+  S.healthKitEnabled = checked; persist();
+  if (!checked) { updateHealthKitUI(); return; }
+  const HK = _cap('HealthKitPlugin'); if (!HK) { updateHealthKitUI(); return; }
+  const { granted } = await HK.requestPermissions().catch(() => ({ granted: false }));
+  if (!granted) { S.healthKitEnabled = false; persist(); }
+  updateHealthKitUI();
+}
+function updateHealthKitUI() {
+  const tgl = document.getElementById('hk-toggle');
+  const sub = document.getElementById('hk-sub');
+  if (tgl) tgl.checked = !!S.healthKitEnabled;
+  if (sub) sub.textContent = S.healthKitEnabled
+    ? 'Workouts werden in Apple Health gespeichert'
+    : 'Trainings und Gewicht in Apple Health sichern';
+}
 
 // working state
 let editId = null;
@@ -4436,34 +4586,70 @@ let mgStatId = null;
 
 // ── NOTIFICATIONS ─────────────────────────────────────
 function scheduleWorkoutNotifications() {
-  if (!S.notifEnabled || Notification.permission !== 'granted') return;
-  if (!navigator.serviceWorker?.controller) return;
+  if (!S.notifEnabled) return;
+  if (_isNative()) {
+    _scheduleNativeNotifications();
+  } else {
+    _scheduleWebNotifications();
+  }
+}
 
+function _buildNotifList() {
   const [h, m] = S.notifTime.split(':').map(Number);
-  const dayKeys = ['sun','mon','tue','wed','thu','fri','sat'];
+  const dayKeys  = ['sun','mon','tue','wed','thu','fri','sat'];
   const dayNames = { mon:'Montag', tue:'Dienstag', wed:'Mittwoch', thu:'Donnerstag',
                      fri:'Freitag', sat:'Samstag', sun:'Sonntag' };
-  const notifications = [];
-  const now = new Date();
-
+  const list = [];
+  const now  = new Date();
   for (let i = 0; i < 7; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     d.setHours(h, m, 0, 0);
     if (d <= now) continue;
-    const key = dayKeys[d.getDay()];
-    const plan = S.weekPlan[key];
+    const key  = dayKeys[d.getDay()];
+    const plan = S.weekPlan?.[key];
     if (!plan || plan.type === 'none') continue;
     let label = 'Training';
     if (plan.type === 'group' && plan.group) label = plan.group;
     else if (plan.type === 'exercises' && plan.exIds?.length) {
       const names = plan.exIds.map(id => S.exercises.find(e => e.id === id)?.name).filter(Boolean);
-      label = names.slice(0,2).join(', ') + (names.length > 2 ? ' +' + (names.length - 2) : '');
+      label = names.slice(0,2).join(', ') + (names.length > 2 ? ' +' + (names.length-2) : '');
     }
-    notifications.push({ timestamp: d.getTime(), day: dayNames[key], label });
+    list.push({ timestamp: d.getTime(), day: dayNames[key], label });
   }
+  return list;
+}
 
-  navigator.serviceWorker.controller.postMessage({ type: 'SCHEDULE_WORKOUT_NOTIFS', notifications });
+async function _scheduleNativeNotifications() {
+  const LN = _cap('LocalNotifications'); if (!LN) return;
+  try {
+    // Alle alten GymTrack-Notifs löschen
+    const existing = await LN.getPending().catch(() => ({ notifications: [] }));
+    const gymIds   = existing.notifications.filter(n => n.id >= 1000 && n.id < 2000);
+    if (gymIds.length) await LN.cancel({ notifications: gymIds }).catch(() => {});
+
+    const list = _buildNotifList();
+    if (!list.length) return;
+    const notifs = list.map((item, i) => ({
+      id:       1000 + i,
+      title:    'Zeit fürs Training! 💪',
+      body:     item.day + ': ' + item.label,
+      schedule: { at: new Date(item.timestamp) },
+      sound:    null,
+      extra:    null,
+      channelId: 'gymtrack-reminders'
+    }));
+    await LN.schedule({ notifications: notifs });
+  } catch(e) { console.warn('[GymTrack] Native Notification Schedule fehlgeschlagen:', e); }
+}
+
+function _scheduleWebNotifications() {
+  if (Notification.permission !== 'granted') return;
+  if (!navigator.serviceWorker?.controller) return;
+  navigator.serviceWorker.controller.postMessage({
+    type: 'SCHEDULE_WORKOUT_NOTIFS',
+    notifications: _buildNotifList()
+  });
 }
 
 function updateNotifUI() {
@@ -4472,42 +4658,50 @@ function updateNotifUI() {
   const sub     = document.getElementById('notif-sub');
   const input   = document.getElementById('notif-time-input');
   if (!toggle) return;
-  const granted = 'Notification' in window && Notification.permission === 'granted';
-  const active  = S.notifEnabled && granted;
+  const active = S.notifEnabled;
   toggle.checked = active;
   if (timeRow) timeRow.style.display = active ? '' : 'none';
   if (input) input.value = S.notifTime;
   if (!sub) return;
-  if (!('Notification' in window)) {
-    sub.textContent = 'Dein Browser unterstützt keine Benachrichtigungen';
-  } else if (Notification.permission === 'denied') {
-    sub.textContent = 'Blockiert – in iOS: Einstellungen › App-Name › Mitteilungen';
-  } else if (active) {
-    sub.textContent = 'Aktiv – Erinnerung täglich um ' + S.notifTime + ' Uhr';
-  } else {
-    sub.textContent = 'Erinnert dich an geplante Trainings';
-  }
+  if (active) sub.textContent = 'Aktiv – Erinnerung täglich um ' + S.notifTime + ' Uhr';
+  else        sub.textContent = 'Erinnert dich an geplante Trainings';
 }
 
 async function toggleNotif(checked) {
-  const toggle = document.getElementById('notif-toggle');
-  if (!('Notification' in window)) {
-    toggle.checked = false;
-    alert('Dein Browser unterstützt leider keine Benachrichtigungen.');
-    return;
-  }
   if (checked) {
-    if (Notification.permission === 'denied') {
-      toggle.checked = false;
-      updateNotifUI();
-      return;
-    }
-    if (Notification.permission === 'default') {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        toggle.checked = false;
+    if (_isNative()) {
+      const LN = _cap('LocalNotifications');
+      if (LN) {
+        const { display } = await LN.requestPermissions().catch(() => ({ display: 'denied' }));
+        if (display !== 'granted') {
+          document.getElementById('notif-toggle').checked = false;
+          updateNotifUI();
+          return;
+        }
+        // Channel für Android-Kompatibilität (wird auf iOS ignoriert)
+        await LN.createChannel?.({
+          id: 'gymtrack-reminders', name: 'Trainings-Erinnerungen',
+          importance: 4, visibility: 1, sound: 'default'
+        }).catch(() => {});
+      }
+    } else {
+      if (!('Notification' in window)) {
+        document.getElementById('notif-toggle').checked = false;
+        alert('Dein Browser unterstützt leider keine Benachrichtigungen.');
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        document.getElementById('notif-toggle').checked = false;
         updateNotifUI();
         return;
+      }
+      if (Notification.permission === 'default') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          document.getElementById('notif-toggle').checked = false;
+          updateNotifUI();
+          return;
+        }
       }
     }
     S.notifEnabled = true;
@@ -4516,7 +4710,14 @@ async function toggleNotif(checked) {
   } else {
     S.notifEnabled = false;
     persist();
-    if (navigator.serviceWorker?.controller) {
+    if (_isNative()) {
+      const LN = _cap('LocalNotifications');
+      if (LN) {
+        const existing = await LN.getPending().catch(() => ({ notifications: [] }));
+        const gymIds   = existing.notifications.filter(n => n.id >= 1000 && n.id < 2000);
+        if (gymIds.length) LN.cancel({ notifications: gymIds }).catch(() => {});
+      }
+    } else if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_WORKOUT_NOTIFS' });
     }
   }
@@ -5337,6 +5538,11 @@ function saveWeightEntry() {
   if (idx >= 0) S.weightLog[idx].weight = w;
   else S.weightLog.push({ date: d, weight: w });
   persist();
+  // Gewicht auch in Apple Health speichern
+  if (S.healthKitEnabled) {
+    const HK = _cap('HealthKitPlugin');
+    if (HK) HK.saveWeight({ weightKg: w }).catch(() => {});
+  }
   closeOv('ov-weight-entry');
   renderWeightCard();
   haptic && haptic(20);
@@ -5618,6 +5824,18 @@ function renderLastSession() {
     </div>
   </div>`;
   initLastSwipe();
+}
+
+function _getTodayLabel() {
+  try {
+    const plan = planFor(todayKey());
+    if (plan?.type === 'group' && plan.group) return plan.group;
+    if (plan?.type === 'exercises' && plan.exIds?.length) {
+      const names = plan.exIds.slice(0,2).map(id => exById(id)?.name).filter(Boolean);
+      return names.join(' & ');
+    }
+  } catch(e) {}
+  return '';
 }
 
 function deriveTrainingLabel(session) {
@@ -7265,6 +7483,7 @@ function saveEx() {
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
+  _indexExercisesSpotlight();
   closeOv('ov-ex');
   renderExList();
   renderHome();
@@ -7388,6 +7607,7 @@ function deleteExDirect(exId) {
   S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== exId); });
   S.sessions = S.sessions.filter(s => s.logs.length > 0);
   persist();
+  _indexExercisesSpotlight();
   renderExList();
   renderHome();
 }
@@ -8889,6 +9109,16 @@ function startActive() {
     return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) };
   });
   timerTs = Date.now();
+  // Live Activity starten
+  if (wkLogs.length) {
+    const firstEx = exById(wkLogs[0]?.exerciseId);
+    const totalS  = wkLogs.reduce((a,l) => a + (l.sets?.length||0), 0);
+    _startLiveActivity(
+      _getTodayLabel() || 'Training',
+      firstEx?.name || '',
+      0, totalS
+    );
+  }
   timerInt = setInterval(()=>{
     const e = Math.floor((Date.now()-timerTs)/1000);
     const str = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
@@ -9110,8 +9340,11 @@ function finishWk() {
   const _wkNote = document.getElementById('wk-note')?.value?.trim() || '';
   if (document.getElementById('wk-note')) document.getElementById('wk-note').value = '';
 
-  S.sessions.push({id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid});
+  const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
+  S.sessions.push(_newSess);
   persist();
+  _endLiveActivity();
+  _saveWorkoutToHealthKit(_newSess);
   haptic([20,40,20]);
   wkLogs = [];
   wkExIds = [];
@@ -9125,7 +9358,7 @@ function finishWk() {
     if (statsActive) renderRecoveryList();
   } catch(_) {}
   // PR-Erkennung + Feier vor showDone, damit der Done-Screen die PRs zeigen kann.
-  const newSession = S.sessions[S.sessions.length-1];
+  const newSession = _newSess;
   const prs = detectPRs(newSession);
   if (prs.length) celebratePRs(prs);
   showDone(newSession, prs);
@@ -9135,6 +9368,7 @@ function finishWk() {
 
 function cancelWk() {
   if (!confirm('Training abbrechen? Eingetragene Daten werden verworfen.')) return;
+  _endLiveActivity();
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
   skipRest();
@@ -9906,7 +10140,19 @@ function dismissWelcome() {
 }
 
 // ── HAPTIC FEEDBACK ────────────────────────────────────
-function haptic(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms||10); }catch{} }
+function haptic(ms) {
+  try {
+    const H = _cap('Haptics');
+    if (H) {
+      if      (ms <= 5)  H.selectionStart?.();
+      else if (ms <= 12) H.impact({ style: 'LIGHT'  });
+      else if (ms <= 22) H.impact({ style: 'MEDIUM' });
+      else               H.impact({ style: 'HEAVY'  });
+    } else if (navigator.vibrate) {
+      navigator.vibrate(ms || 10);
+    }
+  } catch(e) {}
+}
 
 // ── GEFÜHRTE TOUR ──────────────────────────────────────
 function goTabId(id) {
@@ -11635,13 +11881,7 @@ function _initGoogleIdentity() {
 
 function _renderGisButton() {
   const host = document.getElementById('gsi-btn-host');
-  if (!host) return;
-  // In Capacitor (native app) GIS script doesn't load — always show fallback button
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    host.innerHTML = '<button class="btn btn-acc" onclick="doGoogleSignIn()" style="width:280px">Mit Google anmelden</button>';
-    return;
-  }
-  if (!_gisReady || !window.google) return;
+  if (!host || !_gisReady || !window.google) return;
   host.innerHTML = ''; // Reset
   try {
     window.google.accounts.id.renderButton(host, {
@@ -11694,31 +11934,29 @@ async function doGoogleSignIn() {
     alert('⚙️ Firebase ist noch nicht konfiguriert.');
     return;
   }
-  // Native iOS: use Capacitor Firebase Authentication plugin
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    try {
-      const { FirebaseAuthentication } = window.Capacitor.Plugins;
-      if (!FirebaseAuthentication) {
-        alert('❌ Firebase Auth Plugin nicht gefunden.');
-        return;
-      }
-      const result = await FirebaseAuthentication.signInWithGoogle();
-      const credential = window.FB.googleCredential(result.credential.idToken);
-      await window.FB.signInWithCredential(credential);
-      console.log('[GymTrack] ✅ Native Google Sign-In erfolgreich');
-    } catch (e) {
-      console.error('[GymTrack] ❌ Native Sign-In fehlgeschlagen:', e);
-      alert('❌ Login fehlgeschlagen:\n' + (e?.code || e?.message || e));
-    }
-    return;
-  }
-  // Web fallback
-  console.log('[GymTrack] Web → signInWithRedirect');
+  console.log('[GymTrack] Fallback → signInWithRedirect');
   try {
     await window.FB.signInWithRedirect();
   } catch (e) {
     console.error('[GymTrack] ❌ Redirect-Login fehlgeschlagen:', e);
     alert('❌ Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+  }
+}
+
+async function doAppleSignIn() {
+  const ASP = _cap('AppleSignInPlugin');
+  if (!ASP) { alert('Sign in with Apple ist nur in der nativen App verfügbar.'); return; }
+  if (!window.FB?.configured) { alert('⚙️ Firebase nicht konfiguriert.'); return; }
+  try {
+    const result = await ASP.authorize();
+    if (!result?.identityToken) throw new Error('Kein Identity Token');
+    const cred = window.FB.appleCredential(result.identityToken);
+    await window.FB.signInWithCredential(cred);
+    console.log('[GymTrack] ✅ Apple Sign In erfolgreich');
+  } catch(e) {
+    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
+    console.error('[GymTrack] ❌ Apple Sign In fehlgeschlagen:', e);
+    alert('❌ Apple-Login fehlgeschlagen:\n' + (e?.message || e));
   }
 }
 
@@ -11792,8 +12030,21 @@ function renderAccountSheet() {
         💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
       </div>
       <div id="gsi-btn-host" style="display:flex;justify-content:center;min-height:44px"></div>
+      ${_isNative() ? `
+      <div style="display:flex;justify-content:center;margin-top:10px">
+        <button onclick="doAppleSignIn()" style="
+          display:flex;align-items:center;gap:10px;
+          background:#000;color:#fff;border:none;border-radius:22px;
+          padding:12px 24px;font-size:16px;font-weight:600;font-family:inherit;
+          cursor:pointer;min-width:280px;justify-content:center;letter-spacing:-.2px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+          Mit Apple anmelden
+        </button>
+      </div>` : ''}
       <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text2)">
-        Falls der Button nicht erscheint:
+        Falls der Google-Button nicht erscheint:
         <button onclick="doGoogleSignIn()" style="background:none;border:none;color:var(--acc);text-decoration:underline;font-size:12px;padding:0;cursor:pointer">Alternative Methode</button>
       </div>
     `;
@@ -11877,8 +12128,35 @@ _initGoogleIdentity();
 
 // ── BENACHRICHTIGUNGEN INITIALISIEREN ─────────────────
 updateNotifUI();
-// Wenn bereits erlaubt: Erinnerungen neu planen (nach SW-Start)
-navigator.serviceWorker?.ready.then(() => scheduleWorkoutNotifications());
+if (_isNative()) {
+  scheduleWorkoutNotifications();
+} else {
+  navigator.serviceWorker?.ready.then(() => scheduleWorkoutNotifications());
+}
+
+// ── APPLE NATIVE FEATURES INITIALISIEREN ──────────────
+if (_isNative()) {
+  // HealthKit
+  _initHealthKit();
+  updateHealthKitUI();
+
+  // Spotlight: Übungen beim Start indizieren
+  setTimeout(_indexExercisesSpotlight, 2000);
+
+  // Spotlight-Deep-Link Handler (aus AppDelegate.swift → triggerJSEvent)
+  window.addEventListener('spotlightOpen', (e) => {
+    try {
+      const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+      if (data?.exerciseId) {
+        const ex = exById(data.exerciseId);
+        if (ex) {
+          goTab('uebungen', document.querySelectorAll('.tab')[1]);
+          setTimeout(() => openDet(data.exerciseId), 300);
+        }
+      }
+    } catch(_) {}
+  });
+}
 
 // ── ZOOM DEAKTIVIEREN ──────────────────────────────────
 document.addEventListener('gesturestart',  e => e.preventDefault(), {passive:false});

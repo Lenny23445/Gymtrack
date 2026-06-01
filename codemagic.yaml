@@ -19,6 +19,11 @@ workflows:
       - name: Sync iOS
         script: npx cap sync ios
 
+      - name: Add Widget Extension to Xcode project
+        script: |
+          gem install xcodeproj --no-document
+          ruby setup_ios_extensions.rb
+
       - name: Set up keychain
         script: |
           keychain initialize
