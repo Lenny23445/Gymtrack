@@ -12,6 +12,14 @@ public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
     static let appGroup = "group.com.wolter.gymtrack"
 
+    override public func load() {
+        DispatchQueue.main.async { [weak self] in
+            self?.bridge?.webView?.scrollView.bounces = false
+            self?.bridge?.webView?.scrollView.alwaysBounceVertical = false
+            self?.bridge?.webView?.scrollView.alwaysBounceHorizontal = false
+        }
+    }
+
     @objc func updateWidget(_ call: CAPPluginCall) {
         guard let defaults = UserDefaults(suiteName: Self.appGroup) else {
             call.reject("App Group nicht verfuegbar"); return
