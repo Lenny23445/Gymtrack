@@ -32,6 +32,11 @@ workflows:
           cp MyGymTrack_AppStore.mobileprovision "$PROFILES_HOME/MyGymTrack_AppStore.mobileprovision"
           xcode-project use-profiles
 
+      - name: Set build number
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
+
       - name: Build IPA
         script: |
           xcode-project build-ipa \
