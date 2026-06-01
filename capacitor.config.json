@@ -1,7 +1,7 @@
 {
   "appId": "com.wolter.gymtrack",
   "appName": "MyGymTrack",
-  "webDir": ".",
+  "webDir": "www",
   "server": {
     "androidScheme": "https"
   },

@@ -14,15 +14,16 @@ workflows:
       - name: Install dependencies
         script: npm install
 
-      - name: Add iOS platform
-        script: |
-          npx cap add ios || echo "iOS already added"
-          npx cap sync ios
+      - name: Build web assets
+        script: npm run build
+
+      - name: Sync iOS
+        script: npx cap sync ios
 
       - name: Set bundle identifier
         script: |
           PLIST="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.wolte.mygymtrack" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.wolter.gymtrack" "$PLIST"
 
       - name: Set up code signing
         script: xcode-project use-profiles
