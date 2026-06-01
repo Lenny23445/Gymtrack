@@ -11635,7 +11635,13 @@ function _initGoogleIdentity() {
 
 function _renderGisButton() {
   const host = document.getElementById('gsi-btn-host');
-  if (!host || !_gisReady || !window.google) return;
+  if (!host) return;
+  // In Capacitor (native app) GIS script doesn't load — always show fallback button
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    host.innerHTML = '<button class="btn btn-acc" onclick="doGoogleSignIn()" style="width:280px">Mit Google anmelden</button>';
+    return;
+  }
+  if (!_gisReady || !window.google) return;
   host.innerHTML = ''; // Reset
   try {
     window.google.accounts.id.renderButton(host, {
