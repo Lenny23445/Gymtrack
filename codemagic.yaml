@@ -29,9 +29,7 @@ workflows:
         script: |
           PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PROFILES_HOME"
-          PROFILE_PATH="$(mktemp "$PROFILES_HOME"/$(uuidgen).mobileprovision)"
-          echo $CM_PROVISIONING_PROFILE | base64 -d > "$PROFILE_PATH"
-          echo "Installed profile at $PROFILE_PATH"
+          cp MyGymTrack_AppStore.mobileprovision "$PROFILES_HOME/MyGymTrack_AppStore.mobileprovision"
           xcode-project use-profiles
 
       - name: Build IPA
