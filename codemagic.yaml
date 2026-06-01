@@ -8,7 +8,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.wolter.mygymtrack
+        bundle_identifier: com.wolter.gymtrack
       node: v20
     scripts:
       - name: Install dependencies
