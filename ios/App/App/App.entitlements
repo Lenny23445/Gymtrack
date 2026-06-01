@@ -16,9 +16,5 @@
     <array>
         <string>group.com.wolter.gymtrack</string>
     </array>
-    <key>com.apple.developer.associated-domains</key>
-    <array>
-        <string>applinks:lenny23445.github.io</string>
-    </array>
 </dict>
 </plist>
