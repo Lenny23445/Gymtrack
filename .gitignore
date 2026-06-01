@@ -1,0 +1,6 @@
+.claude/
+model/renders/
+node_modules/
+ios/
+android/
+

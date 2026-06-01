@@ -1,0 +1,12 @@
+{
+  "appId": "com.wolte.mygymtrack",
+  "appName": "MyGymTrack",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#f4f4f9"
+  }
+}
