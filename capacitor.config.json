@@ -11,10 +11,5 @@
 
     "allowsLinkPreview": false
   },
-  "plugins": {
-    "FirebaseAuthentication": {
-      "skipNativeAuth": false,
-      "providers": ["google.com"]
-    }
-  }
+  "plugins": {}
 }
