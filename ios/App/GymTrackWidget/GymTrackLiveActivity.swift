@@ -14,7 +14,6 @@ struct GymTrackActivityAttributes: ActivityAttributes {
     var workoutName: String
 }
 
-@available(iOS 16.1, *)
 struct GymTrackLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GymTrackActivityAttributes.self) { context in

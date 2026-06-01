@@ -11,7 +11,7 @@ WIDGET_DIR      = 'ios/App/GymTrackWidget'
 MAIN_BUNDLE_ID  = 'com.wolter.gymtrack'
 WIDGET_BUNDLE_ID = "#{MAIN_BUNDLE_ID}.widget"
 APP_GROUP       = "group.#{MAIN_BUNDLE_ID}"
-MIN_IOS_VERSION = '16.0'
+MIN_IOS_VERSION = '16.1'
 
 project = Xcodeproj::Project.open(PROJECT_PATH)
 
