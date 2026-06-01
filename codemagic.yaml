@@ -8,7 +8,7 @@ workflows:
     environment:
       groups:
         - signing
-      node: v20
+      node: v22
     scripts:
       - name: Install dependencies
         script: npm install
