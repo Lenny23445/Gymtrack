@@ -3,4 +3,12 @@ model/renders/
 node_modules/
 android/
 www/
+distribution.key
+distribution.p12
+distribution.pem
+distribution.csr
+distribution_p12_b64.txt
+provisioning_b64.txt
+ios_distribution_*.cer
+*.p8
 
