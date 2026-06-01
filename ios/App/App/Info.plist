@@ -53,9 +53,5 @@
 	<string>GymTrack speichert deine Workouts und dein Körpergewicht in Apple Health.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
-	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
-	<key>FirebaseMessagingAutoInitEnabled</key>
-	<false/>
 </dict>
 </plist>
