@@ -20,7 +20,7 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve(["available": HKHealthStore.isHealthDataAvailable()])
     }
 
-    @objc func requestPermissions(_ call: CAPPluginCall) {
+    @objc override public func requestPermissions(_ call: CAPPluginCall) {
         guard HKHealthStore.isHealthDataAvailable() else {
             call.reject("HealthKit nicht verfügbar")
             return

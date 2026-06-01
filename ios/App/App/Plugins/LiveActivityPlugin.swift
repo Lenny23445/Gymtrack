@@ -25,7 +25,7 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "end",         returnType: CAPPluginReturnPromise)
     ]
 
-    private var currentActivity: Activity<GymTrackActivityAttributes>?
+    private var _currentActivity: Any?
 
     @objc func isSupported(_ call: CAPPluginCall) {
         if #available(iOS 16.1, *) {
@@ -58,7 +58,7 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
                 contentState: state,
                 pushType: nil
             )
-            currentActivity = activity
+            _currentActivity = activity
             call.resolve(["started": true, "activityId": activity.id])
         } catch {
             call.resolve(["started": false])
@@ -66,7 +66,7 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func update(_ call: CAPPluginCall) {
-        guard #available(iOS 16.1, *), let activity = currentActivity else {
+        guard #available(iOS 16.1, *), let activity = _currentActivity as? Activity<GymTrackActivityAttributes> else {
             call.resolve(); return
         }
         let newState = GymTrackActivityAttributes.ContentState(
@@ -83,12 +83,12 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func end(_ call: CAPPluginCall) {
-        guard #available(iOS 16.1, *), let activity = currentActivity else {
+        guard #available(iOS 16.1, *), let activity = _currentActivity as? Activity<GymTrackActivityAttributes> else {
             call.resolve(); return
         }
         Task {
             await activity.end(dismissalPolicy: .immediate)
-            self.currentActivity = nil
+            self._currentActivity = nil
             call.resolve()
         }
     }
