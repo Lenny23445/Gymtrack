@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import CoreSpotlight
+import FirebaseCore
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,6 +9,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        FirebaseApp.configure()
         return true
     }
 
@@ -16,7 +18,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                      restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         if userActivity.activityType == CSSearchableItemActionType,
            let uniqueID = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
-            // Übung-ID aus "gymtrack.exercise.<id>" extrahieren
             let parts = uniqueID.split(separator: ".")
             if parts.count >= 3 {
                 let exId = String(parts.dropFirst(2).joined(separator: "."))
@@ -28,13 +29,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
-    // MARK: - Helpers
     private func notifyWebView(event: String, data: [String: Any]) {
         guard let bridge = (window?.rootViewController as? CAPBridgeViewController)?.bridge else { return }
         bridge.triggerJSEvent(eventName: event, target: "window", data: try! JSONSerialization.data(withJSONObject: data).description)
     }
 
-    // MARK: - Standard Lifecycle
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationDidEnterBackground(_ application: UIApplication) {}
     func applicationWillEnterForeground(_ application: UIApplication) {}
