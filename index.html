@@ -4468,13 +4468,13 @@ function _updateWidgetData() {
       const weekSess = (S.sessions || []).filter(s => new Date(s.date) >= weekStart).length;
       const last     = S.sessions?.length ? S.sessions[S.sessions.length - 1] : null;
       const lastStr  = last ? _relativeDate(last.date) : '';
-      WDP.update({
+      WDP.updateWidget({
         streakWeeks:   streak,
         todayPlan:     todayStr,
         totalSessions: (S.sessions||[]).length,
         weekSessions:  weekSess,
         lastWorkout:   lastStr
-      }).then(() => WDP.reload?.()).catch(() => {});
+      }).then(() => WDP.reloadWidget()).catch(() => {});
     } catch(e) {}
   }, 800);
 }

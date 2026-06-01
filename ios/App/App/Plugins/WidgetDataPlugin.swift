@@ -1,2 +1,32 @@
 import Foundation
-// Plugin temporarily stubbed for crash diagnosis - build #33
+import WidgetKit
+import Capacitor
+
+@objc(WidgetDataPlugin)
+public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "WidgetDataPlugin"
+    public let jsName = "WidgetDataPlugin"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "updateWidget", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reloadWidget", returnType: CAPPluginReturnPromise)
+    ]
+    static let appGroup = "group.com.wolter.gymtrack"
+
+    @objc func updateWidget(_ call: CAPPluginCall) {
+        guard let defaults = UserDefaults(suiteName: Self.appGroup) else {
+            call.reject("App Group nicht verfuegbar"); return
+        }
+        defaults.set(call.getInt("streakWeeks")    ?? 0,  forKey: "gymtrack.streakWeeks")
+        defaults.set(call.getString("todayPlan")   ?? "", forKey: "gymtrack.todayPlan")
+        defaults.set(call.getInt("totalSessions")  ?? 0,  forKey: "gymtrack.totalSessions")
+        defaults.set(call.getInt("weekSessions")   ?? 0,  forKey: "gymtrack.weekSessions")
+        defaults.set(call.getString("lastWorkout") ?? "", forKey: "gymtrack.lastWorkout")
+        defaults.set(Date().timeIntervalSince1970,         forKey: "gymtrack.lastUpdated")
+        call.resolve()
+    }
+
+    @objc func reloadWidget(_ call: CAPPluginCall) {
+        if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
+        call.resolve()
+    }
+}
