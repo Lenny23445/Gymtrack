@@ -1012,12 +1012,12 @@ body{
 .timer-v{font-size:28px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;position:relative;z-index:1}
 .timer-l{font-size:11px;color:var(--text2);margin-bottom:2px;position:relative;z-index:1}
 
-/* ── AKTIVES WORKOUT: Glaslook + bessere Lesbarkeit ── */
-:root{--wk-card-bg:rgba(255,255,255,.52);--wk-inp-bg:rgba(255,255,255,.82)}
-[data-theme="rosa"]{--wk-card-bg:rgba(255,245,252,.52);--wk-inp-bg:rgba(255,245,252,.82)}
-[data-theme="dark"]{--wk-card-bg:rgba(255,255,255,.16);--wk-inp-bg:rgba(255,255,255,.14)}
-[data-theme="blau"]{--wk-card-bg:rgba(220,238,255,.52);--wk-inp-bg:rgba(220,238,255,.82)}
-[data-theme="grün"]{--wk-card-bg:rgba(225,252,232,.52);--wk-inp-bg:rgba(225,252,232,.82)}
+/* ── AKTIVES WORKOUT: Glaslook + bessere Lesbarkeit (Theme-korrekte Farbbasis) ── */
+:root       {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(255,255,255,.82)}
+[data-theme="rosa"] {--wk-card-bg:rgba(255,235,248,.52); --wk-inp-bg:rgba(255,235,248,.82)}
+[data-theme="dark"] {--wk-card-bg:rgba(28,28,46,.72);    --wk-inp-bg:rgba(255,255,255,.13)}
+[data-theme="blau"] {--wk-card-bg:rgba(210,232,255,.52); --wk-inp-bg:rgba(210,232,255,.82)}
+[data-theme="grün"] {--wk-card-bg:rgba(212,248,220,.52); --wk-inp-bg:rgba(212,248,220,.82)}
 html:not([data-glass="off"]) #wk-step2 .ex-card{background:var(--wk-card-bg)}
 html:not([data-glass="off"]) #wk-step2 .timer-bar{background:var(--wk-card-bg)}
 html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
