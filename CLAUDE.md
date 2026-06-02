@@ -120,14 +120,15 @@ service cloud.firestore {
 | `@capacitor-firebase/authentication` zu `package.json` hinzufügen | Zieht Firebase iOS SDK + Facebook SDK rein. FacebookCore crasht ohne korrekte AppDelegate-Initialisierung |
 | `FirebaseApp.configure()` in `AppDelegate.swift` aufrufen | Nur nötig mit nativem Firebase SDK – das wir nicht haben |
 | `import FirebaseCore` in `AppDelegate.swift` | Wie oben |
-| `ApplicationDelegateProxy.shared.application(...)` aus `didFinishLaunchingWithOptions` entfernen oder durch `return true` ersetzen | Ohne diesen Aufruf bekommen alle Capacitor-Plugins den Launch-Event nie → NSException → Crash |
+| `@capacitor-firebase/authentication` zu `package.json` hinzufügen (doppelte Zeile, nur zur Betonung) | Caucht immer den gleichen Facebook-SDK-Crash |
 
 ### ✅ MUSS so bleiben
 
 **`AppDelegate.swift` – `didFinishLaunchingWithOptions`:**
 ```swift
-return ApplicationDelegateProxy.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+return true   // Capacitor 8.x: kein ApplicationDelegateProxy hier (Methode existiert nicht!)
 ```
+`ApplicationDelegateProxy` in Capacitor 8.x hat NUR `application(_:open:options:)` – das ist weiter unten korrekt eingebunden. `didFinishLaunchingWithOptions` gibt einfach `true` zurück.
 
 **`GymTrackActivityAttributes`** muss in BEIDEN Dateien identisch sein:
 - `ios/App/App/Plugins/LiveActivityPlugin.swift`

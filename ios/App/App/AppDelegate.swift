@@ -8,11 +8,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // ⚠️ KRITISCH: ApplicationDelegateProxy MUSS aufgerufen werden.
-        // Ohne diesen Aufruf bekommen Capacitor-Plugins (LocalNotifications,
-        // AppleSignInPlugin, etc.) den Launch-Event nie → NSException → SIGABRT-Crash.
-        // NIEMALS durch „return true" ersetzen!
-        return ApplicationDelegateProxy.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+        // Capacitor 8.x: ApplicationDelegateProxy hat KEINE didFinishLaunchingWithOptions-Methode
+        // (nur application(_:open:options:) weiter unten). Einfach true zurückgeben.
+        // Der frühere SIGABRT-Crash kam von @capacitor-firebase/authentication (Facebook SDK),
+        // nicht von dieser Zeile.
+        return true
     }
 
     // MARK: - Spotlight Deep Link
