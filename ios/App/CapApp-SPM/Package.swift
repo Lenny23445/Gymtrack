@@ -2,6 +2,12 @@
 import PackageDescription
 
 // DO NOT MODIFY THIS FILE - managed by Capacitor CLI commands
+//
+// ⚠️ CRASH-WARNUNG: NIEMALS folgende Pakete hinzufügen:
+//   - @capacitor-firebase/authentication  → zieht Firebase iOS SDK + Facebook SDK rein
+//     → FacebookCore crasht in didFinishLaunchingWithOptions → SIGABRT
+//   Firebase-Auth läuft komplett über das JS Web SDK (CDN in index.html).
+//   Es gibt KEINE native Firebase iOS SDK in diesem Projekt – das ist Absicht!
 let package = Package(
     name: "CapApp-SPM",
     platforms: [.iOS(.v15)],

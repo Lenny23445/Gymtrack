@@ -106,6 +106,42 @@ service cloud.firestore {
 {"rules":{"presence":{".read":"auth != null && auth.uid === 'ADMIN_UID'","$uid":{".write":"auth != null && auth.uid === $uid"}}}}
 ```
 
+## iOS / Capacitor – Architektur & Crash-Schutz
+
+### Architektur (WICHTIG)
+- **Firebase Auth** → läuft über das **Firebase JavaScript Web SDK** (CDN in `index.html`). Es gibt KEIN natives Firebase iOS SDK im Projekt. Das ist Absicht.
+- **Capacitor-Plugins** (in `ios/App/App/Plugins/`): AppleSignInPlugin, HealthKitPlugin, LiveActivityPlugin, SpotlightPlugin, WidgetDataPlugin. Alle custom, kein npm-Paket dafür.
+- **SPM-Pakete** (`CapApp-SPM/Package.swift`): Nur Capacitor Core + `@capacitor/app` + `@capacitor/browser`. Wird von `npx cap sync ios` verwaltet.
+
+### ⛔ NIEMALS – diese Dinge verursachen SIGABRT-Crash
+
+| Was | Warum verboten |
+|-----|---------------|
+| `@capacitor-firebase/authentication` zu `package.json` hinzufügen | Zieht Firebase iOS SDK + Facebook SDK rein. FacebookCore crasht ohne korrekte AppDelegate-Initialisierung |
+| `FirebaseApp.configure()` in `AppDelegate.swift` aufrufen | Nur nötig mit nativem Firebase SDK – das wir nicht haben |
+| `import FirebaseCore` in `AppDelegate.swift` | Wie oben |
+| `ApplicationDelegateProxy.shared.application(...)` aus `didFinishLaunchingWithOptions` entfernen oder durch `return true` ersetzen | Ohne diesen Aufruf bekommen alle Capacitor-Plugins den Launch-Event nie → NSException → Crash |
+
+### ✅ MUSS so bleiben
+
+**`AppDelegate.swift` – `didFinishLaunchingWithOptions`:**
+```swift
+return ApplicationDelegateProxy.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
+```
+
+**`GymTrackActivityAttributes`** muss in BEIDEN Dateien identisch sein:
+- `ios/App/App/Plugins/LiveActivityPlugin.swift`
+- `ios/App/GymTrackWidget/GymTrackLiveActivity.swift`
+
+### Build-Reihenfolge (Codemagic)
+1. `npm install` → 2. `npm run build` (root `index.html` → `www/`) → 3. `npx cap sync ios` (aktualisiert Package.swift) → 4. `ruby setup_ios_extensions.rb` (fügt Widget-Extension zum Xcode-Projekt hinzu) → 5. Build IPA
+
+### Bekannte gute Konfiguration (crash-frei ab Build #43)
+- `AppDelegate.swift`: ApplicationDelegateProxy ✓, kein FirebaseCore ✓
+- `Package.swift`: Nur capacitor-swift-pm + CapacitorApp + CapacitorBrowser ✓
+- `package.json`: Kein `@capacitor-firebase/authentication` ✓
+- `setup_ios_extensions.rb`: Kein `exit 0` am Anfang ✓
+
 ## Analytics / Admin
 
 **Datenmodell:**
