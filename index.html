@@ -12054,10 +12054,16 @@ async function doGoogleSignIn() {
       '&code_challenge_method=S256' +
       '&nonce='               + nonce;
     console.log('[GymTrack] 🔑 Google PKCE → ASWebAuthenticationSession');
+    window._ggTrace = ['1) Google geöffnet (PKCE/ASWebAuth)'];
     const result = await GA.startAuth({ url, callbackScheme: _GG_CB_SCHEME });
+    window._ggTrace.push('2) Callback zurück: ' + (result?.url ? result.url.slice(0,90) : '(KEINE URL!)'));
     await _handleGoogleOAuthCallback(result.url);
   } catch(e) {
-    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
+    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) {
+      alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
+            '\n\n⚠️ ASWebAuthenticationSession: "cancelled"\n→ Das Browser-Fenster wurde geschlossen, BEVOR der Callback ankam (Redirect-URI vom Google-Client passt nicht zum Schema, oder du hast abgebrochen).');
+      return;
+    }
     console.error('[GymTrack] ❌ Google-Login fehlgeschlagen:', e);
     alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
   }
@@ -12078,11 +12084,20 @@ async function _handleGoogleOAuthCallback(rawUrl) {
       code  = cm ? decodeURIComponent(cm[1]) : null;
       error = em ? decodeURIComponent(em[1]) : null;
     }
-    if (error) { if (error !== 'access_denied') alert('❌ Google: ' + error); return; }
+    window._ggTrace = window._ggTrace || [];
+    window._ggTrace.push('3) code=' + (code?'ja':'NEIN') + ', error=' + (error||'-') + ', pkce=' + (_googlePKCE?'ja':'NEIN'));
+    if (error) {
+      alert('🔎 Google-Login Diagnose:\n\n' + window._ggTrace.join('\n') +
+            '\n\n⚠️ Google hat "' + error + '" zurückgegeben.' +
+            (error === 'access_denied'
+              ? '\n→ Meist: OAuth-Zustimmungsbildschirm im "Testing"-Modus und dein Konto ist NICHT als Testnutzer eingetragen (oder App nicht veröffentlicht).'
+              : ''));
+      return;
+    }
     try { sessionStorage.removeItem('_gg_pkce'); } catch(_) {}
     if (!code || !_googlePKCE) {
-      console.error('[GymTrack] ❌ PKCE-State verloren — Login kann nicht abgeschlossen werden');
-      alert('❌ Google-Login fehlgeschlagen: Interner State verloren.\nBitte erneut versuchen.');
+      alert('🔎 Google-Login Diagnose:\n\n' + window._ggTrace.join('\n') +
+            '\n\n❌ Interner State verloren (code oder PKCE fehlt). Bitte erneut versuchen.');
       return;
     }
     console.log('[GymTrack] 🔑 Google Code erhalten — tausche gegen Token...');
@@ -12099,15 +12114,18 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     });
     const tok = await resp.json();
     _googlePKCE = null;
+    window._ggTrace.push('4) Token-Tausch: ' + (tok.error ? ('FEHLER ' + tok.error) : (tok.id_token ? 'id_token erhalten' : 'KEIN id_token')));
     if (tok.error) throw new Error(tok.error_description || tok.error);
     if (!tok.id_token) throw new Error('Kein ID Token erhalten');
     const cred = window.FB.googleCredential(tok.id_token);
     await window.FB.signInWithCredential(cred);
+    window._ggTrace.push('5) signInWithCredential ok ✅');
     console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');
   } catch(e) {
     _googlePKCE = null;
     console.error('[GymTrack] ❌ Google OAuth Callback fehlgeschlagen:', e);
-    alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
+    alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
+          '\n\n❌ Fehler: ' + (e?.message||e));
   }
 }
 
