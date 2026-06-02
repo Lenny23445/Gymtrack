@@ -4517,6 +4517,21 @@ function _endLiveActivity() {
   const LA = _cap('LiveActivityPlugin'); if (!LA) return;
   LA.end().catch(() => {});
 }
+// Berechnet den aktuellen Workout-Zustand und schiebt ihn in die Dynamic Island.
+function _syncLiveActivity() {
+  if (!_liveActivityActive || !wkLogs.length) return;
+  let totalSets = 0, doneSets = 0;
+  for (const l of wkLogs) {
+    if (!l.sets) continue;
+    totalSets += l.sets.length;
+    doneSets  += l.sets.filter(s => s.done).length;
+  }
+  // Aktuelle Übung: erste mit offenem Satz, sonst die letzte.
+  const curLog = wkLogs.find(l => l.sets?.some(s => !s.done)) || wkLogs[wkLogs.length - 1];
+  const exName = exById(curLog?.exerciseId)?.name || '';
+  const resting = _restInt !== null && _restSecs > 0;
+  _updateLiveActivity(exName, doneSets, totalSets, resting ? _restSecs : 0, resting);
+}
 
 // ── SPOTLIGHT ─────────────────────────────────────────────
 let _spotlightDebounce = null;
@@ -7611,7 +7626,7 @@ function tickSetTimers() {
       }
     });
   });
-  if (needsRender) renderLogCards();
+  if (needsRender) { renderLogCards(); _syncLiveActivity(); }
   if (!anyRunning) { clearInterval(setTimerInt); setTimerInt = null; }
 }
 
@@ -9323,7 +9338,9 @@ function startRestTimer() {
       if (b) b.style.display = 'none';
       haptic([30,50,30]);
     }
+    _syncLiveActivity();
   }, 1000);
+  _syncLiveActivity();
 }
 function _updRest() {
   const el = document.getElementById('rest-timer-val');
@@ -9334,12 +9351,14 @@ function skipRest() {
   clearInterval(_restInt); _restInt = null;
   const b = document.getElementById('rest-timer-bar');
   if (b) b.style.display = 'none';
+  _syncLiveActivity();
 }
 function adjustRest(delta) {
   _restSecs = Math.max(0, _restSecs + delta);
   if (_restSecs <= 0) { skipRest(); return; }
   _updRest();
   haptic(8);
+  _syncLiveActivity();
 }
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
@@ -9357,11 +9376,13 @@ function addSet(li) {
     wkLogs[li].sets.push({w:p?.w||'', r:p?.r||''});
   }
   renderLogCards();
+  _syncLiveActivity();
 }
 function delSet(li,si) {
   if (wkLogs[li].sets.length<=1) return;
   wkLogs[li].sets.splice(si,1);
   renderLogCards();
+  _syncLiveActivity();
 }
 
 function finishWk() {
