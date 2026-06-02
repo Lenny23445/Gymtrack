@@ -104,3 +104,19 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         completionHandler()
     }
 }
+
+// MARK: - Bridge View Controller mit expliziter Plugin-Registrierung
+// Capacitor 8 + SPM registriert App-eigene Plugins NICHT automatisch über die
+// Objective-C-Runtime. Darum hier explizit registrieren, sonst sind sie im JS
+// (window.Capacitor.Plugins.*) nicht verfügbar → "Plugin nicht verfügbar".
+
+class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(GoogleAuthPlugin())
+        bridge?.registerPluginInstance(AppleSignInPlugin())
+        bridge?.registerPluginInstance(HealthKitPlugin())
+        bridge?.registerPluginInstance(LiveActivityPlugin())
+        bridge?.registerPluginInstance(SpotlightPlugin())
+        bridge?.registerPluginInstance(WidgetDataPlugin())
+    }
+}
