@@ -49,7 +49,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
               let wv = rootVC.bridge?.webView else { return }
         wv.scrollView.bounces = false
         wv.scrollView.alwaysBounceVertical = false
-        wv.scrollView.isScrollEnabled = false
+        wv.scrollView.alwaysBounceHorizontal = false
     }
 
     func applicationWillTerminate(_ application: UIApplication) {}
