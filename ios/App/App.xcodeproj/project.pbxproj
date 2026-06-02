@@ -20,6 +20,7 @@
 		AA7777777777777777777777 /* SpotlightPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6666666666666666666666 /* SpotlightPlugin.swift */; };
 		AA9999999999999999999999 /* LiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA8888888888888888888888 /* LiveActivityPlugin.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAAAC /* WidgetDataPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAB /* WidgetDataPlugin.swift */; };
+		AACCFFFFFFFFFFFFFFFFFFFF /* GoogleAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACCEEEEEEEEEEEEEEEEEEEE /* GoogleAuthPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,12 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		AA2222222222222222222222 /* HealthKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitPlugin.swift; sourceTree = "<group>"; };
+		AA4444444444444444444444 /* AppleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInPlugin.swift; sourceTree = "<group>"; };
+		AA6666666666666666666666 /* SpotlightPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightPlugin.swift; sourceTree = "<group>"; };
+		AA8888888888888888888888 /* LiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPlugin.swift; sourceTree = "<group>"; };
+		AAAAAAAAAAAAAAAAAAAAAAAB /* WidgetDataPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataPlugin.swift; sourceTree = "<group>"; };
+		AACCEEEEEEEEEEEEEEEEEEEE /* GoogleAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +76,7 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				AACCDDDDDDDDDDDDDDDDDDDD /* Plugins */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -77,6 +85,19 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		AACCDDDDDDDDDDDDDDDDDDDD /* Plugins */ = {
+			isa = PBXGroup;
+			children = (
+				AA2222222222222222222222 /* HealthKitPlugin.swift */,
+				AA4444444444444444444444 /* AppleSignInPlugin.swift */,
+				AA6666666666666666666666 /* SpotlightPlugin.swift */,
+				AA8888888888888888888888 /* LiveActivityPlugin.swift */,
+				AAAAAAAAAAAAAAAAAAAAAAAB /* WidgetDataPlugin.swift */,
+				AACCEEEEEEEEEEEEEEEEEEEE /* GoogleAuthPlugin.swift */,
+			);
+			path = Plugins;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -161,6 +182,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				AA3333333333333333333333 /* HealthKitPlugin.swift in Sources */,
+				AA5555555555555555555555 /* AppleSignInPlugin.swift in Sources */,
+				AA7777777777777777777777 /* SpotlightPlugin.swift in Sources */,
+				AA9999999999999999999999 /* LiveActivityPlugin.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAAAC /* WidgetDataPlugin.swift in Sources */,
+				AACCFFFFFFFFFFFFFFFFFFFF /* GoogleAuthPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
