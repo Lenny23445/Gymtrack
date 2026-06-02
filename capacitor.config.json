@@ -6,9 +6,8 @@
     "androidScheme": "https"
   },
   "ios": {
-    "contentInset": "automatic",
+    "contentInset": "scrollEdgeToEdge",
     "backgroundColor": "#cccae8",
-
     "allowsLinkPreview": false
   },
   "plugins": {}

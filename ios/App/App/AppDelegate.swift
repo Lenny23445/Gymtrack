@@ -1,20 +1,49 @@
 import UIKit
 import Capacitor
 import CoreSpotlight
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private var _bounceObserver: NSKeyValueObservation?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Bounce-Fix beim Start: WebView braucht etwas Zeit zum Laden
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self._applyScrollFix() }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self._applyScrollFix() }
+        // Notifications im Vordergrund anzeigen (für @capacitor/local-notifications)
+        UNUserNotificationCenter.current().delegate = self
+        // Scroll-Fix: startet Retry-Loop bis WKWebView bereit ist
+        _tryScrollFix(attempt: 0)
         return true
     }
 
+    // MARK: - Scroll / Bounce Fix
+
+    private func _tryScrollFix(attempt: Int) {
+        guard attempt < 24 else { return } // max 12 Sekunden
+        guard let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
+              let wv = rootVC.bridge?.webView else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self._tryScrollFix(attempt: attempt + 1) }
+            return
+        }
+        _applyScrollSettings(wv)
+        // KVO: sobald etwas bounces wieder auf true setzt, sofort zurücksetzen
+        _bounceObserver = wv.scrollView.observe(\.bounces, options: [.new]) { scrollView, change in
+            if change.newValue == true { scrollView.bounces = false }
+        }
+    }
+
+    private func _applyScrollSettings(_ wv: WKWebView) {
+        wv.scrollView.bounces = false
+        wv.scrollView.alwaysBounceVertical = false
+        wv.scrollView.alwaysBounceHorizontal = false
+        // .never → CSS env(safe-area-inset-*) übernimmt Safe-Area vollständig,
+        // kein doppeltes Inset durch iOS und CSS gleichzeitig
+        wv.scrollView.contentInsetAdjustmentBehavior = .never
+    }
+
     // MARK: - Spotlight Deep Link
+
     func application(_ application: UIApplication, continue userActivity: NSUserActivity,
                      restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         if userActivity.activityType == CSSearchableItemActionType,
@@ -35,26 +64,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         bridge.triggerJSEvent(eventName: event, target: "window", data: try! JSONSerialization.data(withJSONObject: data).description)
     }
 
+    // MARK: - App Lifecycle
+
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationDidEnterBackground(_ application: UIApplication) {}
-    func applicationWillEnterForeground(_ application: UIApplication) {}
 
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        _applyScrollFix()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self._applyScrollFix() }
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        // Fix erneut anwenden falls WkWebView neu erstellt wurde
+        _tryScrollFix(attempt: 0)
     }
 
-    private func _applyScrollFix() {
-        guard let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
-              let wv = rootVC.bridge?.webView else { return }
-        wv.scrollView.bounces = false
-        wv.scrollView.alwaysBounceVertical = false
-        wv.scrollView.alwaysBounceHorizontal = false
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        if let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
+           let wv = rootVC.bridge?.webView {
+            _applyScrollSettings(wv)
+        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+// Zeigt Benachrichtigungen auch dann an, wenn die App im Vordergrund ist
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .badge])
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        completionHandler()
     }
 }
