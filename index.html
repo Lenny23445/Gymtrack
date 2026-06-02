@@ -4093,7 +4093,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606021230';
+const APP_VERSION = 'gymtrack-v202606021300';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6044,15 +6044,13 @@ function _showGoalStep(id, label) {
     <div style="padding:4px 16px 10px;color:var(--text2);font-size:13px">
       Wie oft pro Woche möchtest du <strong style="color:var(--text)">${label}</strong> machen?
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 14px">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px;align-items:center">
       ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn" onclick="_selectGoal(${n})">${n}×</button>`).join('')}
-    </div>
-    <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
-      <input type="number" id="tracker-goal-num" class="tracker-custom-input" min="1" max="365"
-        placeholder="Andere Zahl …" style="flex:1;padding:12px 14px"
+      <input type="number" id="tracker-goal-num" min="1" max="365" placeholder="8+"
+        style="width:62px;height:48px;border-radius:14px;background:var(--g5);border:1.5px solid var(--sep);color:var(--text);font-size:15px;font-weight:600;text-align:center;padding:0 6px;font-family:inherit;outline:none;-webkit-appearance:textfield;box-sizing:border-box;"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_selectGoalFromInput()}">
-      <button class="btn btn-acc" style="flex-shrink:0;padding:12px 18px;min-width:0"
-        onclick="_selectGoalFromInput()">OK</button>
+      <button class="tracker-goal-btn" onclick="_selectGoalFromInput()"
+        style="background:var(--acc);color:#fff;border-color:var(--acc)">✓</button>
     </div>`;
   setTimeout(() => document.getElementById('tracker-goal-num')?.focus(), 80);
 }
@@ -6209,16 +6207,14 @@ function _changeTrackerGoal(id) {
       <div class="tracker-sheet-title">Ziel ändern: ${item.label}</div>
       <div class="tracker-menu-list" id="tracker-menu-list">
         <div style="padding:4px 16px 10px;color:var(--text2);font-size:13px">Wie oft pro Woche?</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 14px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px;align-items:center">
           ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn${(item.goal||1)===n?' selected':''}" onclick="_applyGoalChange('${id}',${n})">${n}×</button>`).join('')}
-        </div>
-        <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
-          <input type="number" id="tracker-goal-num" class="tracker-custom-input" min="1" max="365"
-            placeholder="Andere Zahl …" value="${(item.goal||1) > 7 ? (item.goal||1) : ''}"
-            style="flex:1;padding:12px 14px"
+          <input type="number" id="tracker-goal-num" min="1" max="365" placeholder="8+"
+            value="${(item.goal||1) > 7 ? (item.goal||1) : ''}"
+            style="width:62px;height:48px;border-radius:14px;background:var(--g5);border:1.5px solid var(--sep);color:var(--text);font-size:15px;font-weight:600;text-align:center;padding:0 6px;font-family:inherit;outline:none;-webkit-appearance:textfield;box-sizing:border-box;"
             onkeydown="if(event.key==='Enter'){event.preventDefault();_applyGoalFromInput('${id}')}">
-          <button class="btn btn-acc" style="flex-shrink:0;padding:12px 18px;min-width:0"
-            onclick="_applyGoalFromInput('${id}')">OK</button>
+          <button class="tracker-goal-btn" onclick="_applyGoalFromInput('${id}')"
+            style="background:var(--acc);color:#fff;border-color:var(--acc)">✓</button>
         </div>
       </div>
       <button class="tracker-menu-cancel" onclick="closeTrackerMenu()">Abbrechen</button>
