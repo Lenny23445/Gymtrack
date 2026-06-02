@@ -4093,7 +4093,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606021200';
+const APP_VERSION = 'gymtrack-v202606021230';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5990,7 +5990,7 @@ function renderTrackers() {
           <circle class="tracker-ring-bg" cx="${CX}" cy="${CY}" r="${R}"/>
           <circle class="tracker-ring-progress${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
             stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
-          <text class="tracker-ring-count" x="${CX}" y="${CY - 5}">${count}</text>
+          <text class="tracker-ring-count" x="${CX}" y="${CY - 5}">${Math.min(count, goal)}</text>
           <text class="tracker-ring-goal" x="${CX}" y="${CY + 9}">/${goal}×</text>
         </svg>
       </button>
@@ -6041,12 +6041,26 @@ function _showGoalStep(id, label) {
   const list = document.getElementById('tracker-menu-list');
   if (!list) return;
   list.innerHTML = `
-    <div style="padding:4px 16px 12px;color:var(--text2);font-size:13px">
+    <div style="padding:4px 16px 10px;color:var(--text2);font-size:13px">
       Wie oft pro Woche möchtest du <strong style="color:var(--text)">${label}</strong> machen?
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 14px">
       ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn" onclick="_selectGoal(${n})">${n}×</button>`).join('')}
+    </div>
+    <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
+      <input type="number" id="tracker-goal-num" class="tracker-custom-input" min="1" max="365"
+        placeholder="Andere Zahl …" style="flex:1;padding:12px 14px"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_selectGoalFromInput()}">
+      <button class="btn btn-acc" style="flex-shrink:0;padding:12px 18px;min-width:0"
+        onclick="_selectGoalFromInput()">OK</button>
     </div>`;
+  setTimeout(() => document.getElementById('tracker-goal-num')?.focus(), 80);
+}
+
+function _selectGoalFromInput() {
+  const val = parseInt(document.getElementById('tracker-goal-num')?.value, 10);
+  if (!val || val < 1) { document.getElementById('tracker-goal-num')?.focus(); return; }
+  _selectGoal(Math.min(val, 365));
 }
 
 function _selectGoal(goal) {
@@ -6093,9 +6107,13 @@ function addTracker(id, label, goal) {
 }
 
 function incrementTracker(id) {
+  const item = (S.trackerItems || []).find(i => i.id === id);
+  const goal = item?.goal || 1;
   const wk = getWeekKey();
   if (!S.trackerCounts[id]) S.trackerCounts[id] = {};
-  S.trackerCounts[id][wk] = (S.trackerCounts[id][wk] || 0) + 1;
+  const cur = S.trackerCounts[id][wk] || 0;
+  if (cur >= goal) return; // Ziel erreicht – nicht weiter zählen
+  S.trackerCounts[id][wk] = cur + 1;
   persist();
   haptic(10);
   _updateTrackerRing(id);
@@ -6124,7 +6142,7 @@ function _updateTrackerRing(id) {
     ring.classList.add('tapped');
     ring.addEventListener('animationend', () => ring.classList.remove('tapped'), { once: true });
   }
-  if (countEl) countEl.textContent = count;
+  if (countEl) countEl.textContent = Math.min(count, goal);
 }
 
 function removeTrackerPrompt(btn, id) {
@@ -6190,9 +6208,17 @@ function _changeTrackerGoal(id) {
     <div class="tracker-sheet-content">
       <div class="tracker-sheet-title">Ziel ändern: ${item.label}</div>
       <div class="tracker-menu-list" id="tracker-menu-list">
-        <div style="padding:4px 16px 12px;color:var(--text2);font-size:13px">Wie oft pro Woche?</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px">
+        <div style="padding:4px 16px 10px;color:var(--text2);font-size:13px">Wie oft pro Woche?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 14px">
           ${[1,2,3,4,5,6,7].map(n=>`<button class="tracker-goal-btn${(item.goal||1)===n?' selected':''}" onclick="_applyGoalChange('${id}',${n})">${n}×</button>`).join('')}
+        </div>
+        <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
+          <input type="number" id="tracker-goal-num" class="tracker-custom-input" min="1" max="365"
+            placeholder="Andere Zahl …" value="${(item.goal||1) > 7 ? (item.goal||1) : ''}"
+            style="flex:1;padding:12px 14px"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();_applyGoalFromInput('${id}')}">
+          <button class="btn btn-acc" style="flex-shrink:0;padding:12px 18px;min-width:0"
+            onclick="_applyGoalFromInput('${id}')">OK</button>
         </div>
       </div>
       <button class="tracker-menu-cancel" onclick="closeTrackerMenu()">Abbrechen</button>
@@ -6206,6 +6232,12 @@ function _applyGoalChange(id, goal) {
   if (item) { item.goal = goal; persist(); }
   closeTrackerMenu();
   renderTrackers();
+}
+
+function _applyGoalFromInput(id) {
+  const val = parseInt(document.getElementById('tracker-goal-num')?.value, 10);
+  if (!val || val < 1) { document.getElementById('tracker-goal-num')?.focus(); return; }
+  _applyGoalChange(id, Math.min(val, 365));
 }
 
 function trackerLongPress(btn, id) {
