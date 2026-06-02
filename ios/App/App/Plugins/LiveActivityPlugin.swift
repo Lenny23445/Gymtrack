@@ -23,7 +23,8 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "start",       returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "update",      returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "end",         returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "end",         returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "endAll",      returnType: CAPPluginReturnPromise)
     ]
     private var _currentActivity: Any?
 
@@ -38,6 +39,21 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func start(_ call: CAPPluginCall) {
         guard #available(iOS 16.1, *) else { call.resolve(["started": false]); return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { call.resolve(["started": false]); return }
+
+        // Bestehende Activity aus vorheriger Session wiederverwenden (App-Kill-Reconnect)
+        if let existing = Activity<GymTrackActivityAttributes>.activities.first {
+            _currentActivity = existing
+            call.resolve(["started": true, "activityId": existing.id])
+            return
+        }
+
+        // Alte Zombie-Activities bereinigen (sollte nicht vorkommen, aber sicher ist sicher)
+        Task {
+            for old in Activity<GymTrackActivityAttributes>.activities {
+                await old.end(dismissalPolicy: .immediate)
+            }
+        }
+
         let tsMs: Double = call.getDouble("startTimestamp") ?? (Date().timeIntervalSince1970 * 1000)
         let startDate = Date(timeIntervalSince1970: tsMs / 1000)
         let attrs = GymTrackActivityAttributes(
@@ -74,5 +90,17 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
             call.resolve(); return
         }
         Task { await activity.end(dismissalPolicy: .immediate); self._currentActivity = nil; call.resolve() }
+    }
+
+    // Alle laufenden Activities beenden (Zombie-Cleanup beim App-Start)
+    @objc func endAll(_ call: CAPPluginCall) {
+        guard #available(iOS 16.1, *) else { call.resolve(); return }
+        Task {
+            for activity in Activity<GymTrackActivityAttributes>.activities {
+                await activity.end(dismissalPolicy: .immediate)
+            }
+            self._currentActivity = nil
+            call.resolve()
+        }
     }
 }

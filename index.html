@@ -4093,7 +4093,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606011600';
+const APP_VERSION = 'gymtrack-v202606021200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -11452,9 +11452,11 @@ async function _onLogin(user) {
     const ref  = window.FB.userDocRef(user.uid);
     console.log('[GymTrack] ☁️ Lade Cloud-Daten…');
     const snap = await window.FB.getDoc(ref);
+    let _cloudHadData = false;
     if (snap.exists()) {
       // Cloud-Daten vorhanden → mergen
       const cloud  = snap.data();
+      _cloudHadData = (cloud.exercises||[]).length > 0 || (cloud.sessions||[]).length > 0;
       console.log('[GymTrack] ☁️ Cloud-Daten gefunden — merge mit lokal');
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
@@ -11475,6 +11477,12 @@ async function _onLogin(user) {
     renderExList();
     renderSettings();
     updateAccountUI();
+    // Sync-Bestätigung
+    const _exCount = (S.exercises||[]).length;
+    const _syncMsg = _cloudHadData
+      ? `☁️ ${_exCount} Übung${_exCount !== 1 ? 'en' : ''} aus der Cloud geladen`
+      : `☁️ Daten in der Cloud gesichert`;
+    setTimeout(() => showUpdateToast(_syncMsg, { autoHide: 3000 }), 400);
 
     // Live-Sync von anderen Geräten
     if (_fbUnsub) _fbUnsub();
@@ -12046,7 +12054,7 @@ async function doAppleSignIn() {
     await new Promise(r => setTimeout(r, 500));
     ASP = _cap('AppleSignInPlugin');
   }
-  if (!ASP) { alert('Sign in with Apple ist nur in der nativen App verfügbar.'); return; }
+  if (!ASP) { alert('Apple Sign In konnte nicht geladen werden.\nBitte starte die App neu und versuche es erneut.'); return; }
   if (!window.FB?.configured) { alert('⚙️ Firebase nicht konfiguriert.'); return; }
   try {
     const result = await ASP.authorize();
@@ -12115,7 +12123,18 @@ function renderAccountSheet() {
       <button class="btn btn-gray" onclick="doSignOut()" style="margin-top:8px">Abmelden</button>
     `;
   } else {
-    const cnt = (S.exercises||[]).length + ' Übungen · ' + (S.sessions||[]).length + ' Trainings';
+    const exCount  = (S.exercises||[]).length;
+    const sesCount = (S.sessions||[]).length;
+    const hasLocalData = exCount > 0 || sesCount > 0;
+    const cnt = exCount + ' Übungen · ' + sesCount + ' Trainings';
+    const syncHint = _isNative() && !hasLocalData
+      ? `<div style="background:rgba(255,160,0,.12);border:1px solid rgba(255,160,0,.25);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.5">
+          ℹ️ <b>Daten aus der Browser-Version übertragen?</b><br>
+          Öffne <b>gymtrack.app</b> im Browser, melde dich dort zuerst mit demselben Google-Konto an — dann werden deine Daten automatisch hier synchronisiert.
+        </div>`
+      : `<div style="background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
+          💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
+        </div>`;
     body.innerHTML = `
       <div class="gap"></div>
       <div style="text-align:center;padding:8px 0 20px">
@@ -12127,9 +12146,7 @@ function renderAccountSheet() {
           du die App löschst oder das Handy wechselst.
         </div>
       </div>
-      <div style="background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
-        💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
-      </div>
+      ${syncHint}
       <div id="gsi-btn-host" style="display:flex;justify-content:center;min-height:44px"></div>
       ${_isNative() ? `
       <div style="display:flex;justify-content:center;margin-top:10px">
@@ -12246,6 +12263,15 @@ if (_isNative()) {
 
   // Spotlight: Übungen beim Start indizieren
   setTimeout(_indexExercisesSpotlight, 2000);
+
+  // Dynamic Island: Zombie-Activities aus vorheriger Session bereinigen
+  // (kein aktives Training beim App-Start → alle laufenden Activities beenden)
+  setTimeout(() => {
+    if (!isWorkoutActive()) {
+      const LA = _cap('LiveActivityPlugin');
+      if (LA?.endAll) LA.endAll().catch(() => {});
+    }
+  }, 1000);
 
   // Spotlight-Deep-Link Handler (aus AppDelegate.swift → triggerJSEvent)
   window.addEventListener('spotlightOpen', (e) => {

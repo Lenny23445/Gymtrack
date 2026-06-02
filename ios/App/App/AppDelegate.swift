@@ -39,7 +39,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationDidEnterBackground(_ application: UIApplication) {}
     func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // Kein Overscroll-Bounce – verhindert weiße Ränder oben/unten beim Scrollen
+        DispatchQueue.main.async {
+            guard let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
+                  let wv = rootVC.bridge?.webView else { return }
+            wv.scrollView.bounces = false
+            wv.scrollView.alwaysBounceVertical = false
+        }
+    }
+
     func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
