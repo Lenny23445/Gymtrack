@@ -7,7 +7,7 @@
   },
   "ios": {
     "contentInset": "automatic",
-    "backgroundColor": "#f4f4f9",
+    "backgroundColor": "#cccae8",
 
     "allowsLinkPreview": false
   },

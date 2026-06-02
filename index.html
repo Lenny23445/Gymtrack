@@ -11943,19 +11943,101 @@ async function _handleGoogleCredential(response) {
   }
 }
 
-// Fallback (z.B. falls GIS-Button blockiert wird) — Redirect statt Popup (WKWebView-kompatibel)
+// ── Google Sign-In: PKCE OAuth via @capacitor/browser (für native WKWebView) ──
+const _GG_IOS_CLIENT = '404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv.apps.googleusercontent.com';
+const _GG_REDIRECT   = 'com.googleusercontent.apps.404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv:/oauth2redirect/google';
+let _googlePKCE = null;
+
+async function _pkceChallenge() {
+  const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return { verifier, challenge };
+}
+
 async function doGoogleSignIn() {
-  if (!window.FB || !window.FB.configured) {
+  if (!window.FB?.configured) {
     alert('⚙️ Firebase ist noch nicht konfiguriert.');
     return;
   }
-  console.log('[GymTrack] Fallback → signInWithRedirect');
-  try {
-    await window.FB.signInWithRedirect();
-  } catch (e) {
-    console.error('[GymTrack] ❌ Redirect-Login fehlgeschlagen:', e);
-    alert('❌ Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+  if (!_isNative()) {
+    // Web-PWA: Standard Redirect-Flow
+    console.log('[GymTrack] → signInWithRedirect');
+    try { await window.FB.signInWithRedirect(); }
+    catch(e) { alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
+    return;
   }
+  // Native: PKCE-OAuth via SFSafariViewController
+  const BROWSER = window.Capacitor?.Plugins?.Browser;
+  if (!BROWSER) { alert('❌ Browser-Plugin nicht verfügbar'); return; }
+  try {
+    const pkce  = await _pkceChallenge();
+    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map(b => b.toString(16).padStart(2,'0')).join('');
+    _googlePKCE = { verifier: pkce.verifier, nonce };
+    const url = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+      'client_id='            + encodeURIComponent(_GG_IOS_CLIENT) +
+      '&redirect_uri='        + encodeURIComponent(_GG_REDIRECT)   +
+      '&response_type=code'   +
+      '&scope=openid%20email%20profile' +
+      '&code_challenge='      + pkce.challenge +
+      '&code_challenge_method=S256' +
+      '&nonce='               + nonce;
+    console.log('[GymTrack] 🔑 Google PKCE → SFSafariViewController');
+    await BROWSER.open({ url });
+  } catch(e) {
+    console.error('[GymTrack] ❌ Google-Login fehlgeschlagen:', e);
+    alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
+  }
+}
+
+async function _handleGoogleOAuthCallback(rawUrl) {
+  const BROWSER = window.Capacitor?.Plugins?.Browser;
+  try { BROWSER?.close(); } catch(_) {}
+  try {
+    const u     = new URL(rawUrl);
+    const code  = u.searchParams.get('code');
+    const error = u.searchParams.get('error');
+    if (error) { if (error !== 'access_denied') alert('❌ Google: ' + error); return; }
+    if (!code || !_googlePKCE) return;
+    console.log('[GymTrack] 🔑 Google Code erhalten — tausche gegen Token...');
+    const resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id:     _GG_IOS_CLIENT,
+        redirect_uri:  _GG_REDIRECT,
+        grant_type:    'authorization_code',
+        code_verifier: _googlePKCE.verifier
+      })
+    });
+    const tok = await resp.json();
+    _googlePKCE = null;
+    if (tok.error) throw new Error(tok.error_description || tok.error);
+    if (!tok.id_token) throw new Error('Kein ID Token erhalten');
+    const cred = window.FB.googleCredential(tok.id_token);
+    await window.FB.signInWithCredential(cred);
+    console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');
+  } catch(e) {
+    _googlePKCE = null;
+    console.error('[GymTrack] ❌ Google OAuth Callback fehlgeschlagen:', e);
+    alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
+  }
+}
+
+function _setupAppUrlListener() {
+  const App = window.Capacitor?.Plugins?.App;
+  if (!App) return;
+  App.addListener('appUrlOpen', (data) => {
+    const url = data?.url || '';
+    if (url.startsWith('com.googleusercontent.apps.')) {
+      _handleGoogleOAuthCallback(url);
+    }
+  });
+  console.log('[GymTrack] 📱 appUrlOpen-Listener registriert');
 }
 
 async function doAppleSignIn() {
@@ -12155,6 +12237,9 @@ if (_isNative()) {
 
 // ── APPLE NATIVE FEATURES INITIALISIEREN ──────────────
 if (_isNative()) {
+  // Google OAuth Callback-Listener (appUrlOpen)
+  _setupAppUrlListener();
+
   // HealthKit
   _initHealthKit();
   updateHealthKitUI();
