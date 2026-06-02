@@ -4491,7 +4491,7 @@ function _relativeDate(iso) {
 let _liveActivityActive = false;
 function _startLiveActivity(workoutName, exerciseName, setsDone, totalSets) {
   const LA = _cap('LiveActivityPlugin'); if (!LA) return;
-  LA.start({ workoutName, exerciseName, setsDone, totalSets })
+  LA.start({ workoutName, exerciseName, setsDone, totalSets, startTimestamp: timerTs || Date.now() })
     .then(r => { _liveActivityActive = !!r?.started; })
     .catch(() => {});
 }

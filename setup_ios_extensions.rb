@@ -1,7 +1,4 @@
 #!/usr/bin/env ruby
-# Widget-Extension temporaer deaktiviert waehrend Crash-Diagnose
-exit 0
-
 # Fügt die GymTrackWidget-Extension zum Xcode-Projekt hinzu.
 # Wird von Codemagic vor dem Build ausgeführt.
 # Benötigt: gem install xcodeproj

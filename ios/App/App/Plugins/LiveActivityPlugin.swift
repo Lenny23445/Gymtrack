@@ -12,6 +12,7 @@ struct GymTrackActivityAttributes: ActivityAttributes {
         var isResting:    Bool
     }
     var workoutName: String
+    var startDate:   Date
 }
 
 @objc(LiveActivityPlugin)
@@ -37,7 +38,11 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func start(_ call: CAPPluginCall) {
         guard #available(iOS 16.1, *) else { call.resolve(["started": false]); return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { call.resolve(["started": false]); return }
-        let attrs = GymTrackActivityAttributes(workoutName: call.getString("workoutName") ?? "Training")
+        let tsMs: Double = call.getDouble("startTimestamp") ?? (Date().timeIntervalSince1970 * 1000)
+        let startDate = Date(timeIntervalSince1970: tsMs / 1000)
+        let attrs = GymTrackActivityAttributes(
+            workoutName: call.getString("workoutName") ?? "Training",
+            startDate: startDate)
         let state = GymTrackActivityAttributes.ContentState(
             exerciseName: call.getString("exerciseName") ?? "",
             setsDone: call.getInt("setsDone") ?? 0, totalSets: call.getInt("totalSets") ?? 0,

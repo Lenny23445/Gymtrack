@@ -12,6 +12,7 @@ struct GymTrackActivityAttributes: ActivityAttributes {
         var isResting:    Bool
     }
     var workoutName: String
+    var startDate:   Date
 }
 
 struct GymTrackLiveActivity: Widget {
@@ -33,40 +34,58 @@ struct GymTrackLiveActivity: Widget {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(context.state.isResting ? "Pause" : "Satz")
-                        .font(.caption2).foregroundColor(.secondary)
-                    Text(context.state.isResting
-                         ? "\(context.state.restSeconds)s"
-                         : "\(context.state.setsDone)/\(context.state.totalSets)")
-                        .font(.title2).bold()
-                        .foregroundColor(context.state.isResting ? .orange : .primary)
-                        .monospacedDigit()
+                    if context.state.isResting {
+                        Text("Pause")
+                            .font(.caption2).foregroundColor(.secondary)
+                        Text("\(context.state.restSeconds)s")
+                            .font(.title2).bold()
+                            .foregroundColor(.orange)
+                            .monospacedDigit()
+                    } else {
+                        Text("Dauer")
+                            .font(.caption2).foregroundColor(.secondary)
+                        Text(timerInterval: context.attributes.startDate...Date.distantFuture,
+                             countsDown: false)
+                            .font(.title2).bold()
+                            .monospacedDigit()
+                            .frame(width: 72, alignment: .trailing)
+                    }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            .widgetURL(URL(string: "gymtrack://workout"))
+
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: "dumbbell.fill")
-                        .foregroundColor(.accentColor)
-                        .font(.title3)
+                    HStack(spacing: 6) {
+                        Image(systemName: "dumbbell.fill")
+                            .foregroundColor(.accentColor)
+                            .font(.title3)
+                        Text(context.attributes.workoutName)
+                            .font(.caption2).foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text(context.state.isResting ? "Pause" : "Satz")
-                            .font(.caption2).foregroundColor(.secondary)
-                        Text(context.state.isResting
-                             ? "\(context.state.restSeconds)s"
-                             : "\(context.state.setsDone)/\(context.state.totalSets)")
-                            .font(.title3).bold()
-                            .foregroundColor(context.state.isResting ? .orange : .primary)
-                            .monospacedDigit()
+                        if context.state.isResting {
+                            Text("Pause")
+                                .font(.caption2).foregroundColor(.secondary)
+                            Text("\(context.state.restSeconds)s")
+                                .font(.title3).bold()
+                                .foregroundColor(.orange)
+                                .monospacedDigit()
+                        } else {
+                            Text("Satz \(context.state.setsDone)/\(context.state.totalSets)")
+                                .font(.caption2).foregroundColor(.secondary)
+                            Text(timerInterval: context.attributes.startDate...Date.distantFuture,
+                                 countsDown: false)
+                                .font(.title3).bold()
+                                .monospacedDigit()
+                        }
                     }
-                }
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.attributes.workoutName)
-                        .font(.caption).foregroundColor(.secondary)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(context.state.exerciseName)
@@ -76,17 +95,24 @@ struct GymTrackLiveActivity: Widget {
                 Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
                     .foregroundColor(context.state.isResting ? .orange : .accentColor)
             } compactTrailing: {
-                Text(context.state.isResting
-                     ? "\(context.state.restSeconds)s"
-                     : "\(context.state.setsDone)/\(context.state.totalSets)")
-                    .font(.caption).bold()
-                    .foregroundColor(context.state.isResting ? .orange : .primary)
-                    .monospacedDigit()
+                if context.state.isResting {
+                    Text("\(context.state.restSeconds)s")
+                        .font(.caption2).bold()
+                        .foregroundColor(.orange)
+                        .monospacedDigit()
+                } else {
+                    Text(timerInterval: context.attributes.startDate...Date.distantFuture,
+                         countsDown: false)
+                        .font(.caption2).bold()
+                        .monospacedDigit()
+                        .frame(width: 44)
+                }
             } minimal: {
                 Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
                     .foregroundColor(context.state.isResting ? .orange : .accentColor)
             }
             .keylineTint(.accentColor)
+            .widgetURL(URL(string: "gymtrack://workout"))
         }
     }
 }
