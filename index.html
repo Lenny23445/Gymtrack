@@ -4093,7 +4093,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606021300';
+const APP_VERSION = 'gymtrack-v202606021540';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12013,6 +12013,7 @@ async function doGoogleSignIn() {
     const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)))
       .map(b => b.toString(16).padStart(2,'0')).join('');
     _googlePKCE = { verifier: pkce.verifier, nonce };
+    try { sessionStorage.setItem('_gg_pkce', JSON.stringify(_googlePKCE)); } catch(_) {}
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?' +
       'client_id='            + encodeURIComponent(_GG_IOS_CLIENT) +
       '&redirect_uri='        + encodeURIComponent(_GG_REDIRECT)   +
@@ -12037,7 +12038,18 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     const code  = u.searchParams.get('code');
     const error = u.searchParams.get('error');
     if (error) { if (error !== 'access_denied') alert('❌ Google: ' + error); return; }
-    if (!code || !_googlePKCE) return;
+    if (!_googlePKCE) {
+      try {
+        const stored = sessionStorage.getItem('_gg_pkce');
+        if (stored) { _googlePKCE = JSON.parse(stored); console.log('[GymTrack] 🔑 PKCE-State aus sessionStorage wiederhergestellt'); }
+      } catch(_) {}
+    }
+    try { sessionStorage.removeItem('_gg_pkce'); } catch(_) {}
+    if (!code || !_googlePKCE) {
+      console.error('[GymTrack] ❌ PKCE-State verloren — Login kann nicht abgeschlossen werden');
+      alert('❌ Google-Login fehlgeschlagen: Interner State verloren.\nBitte erneut versuchen.');
+      return;
+    }
     console.log('[GymTrack] 🔑 Google Code erhalten — tausche gegen Token...');
     const resp = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',

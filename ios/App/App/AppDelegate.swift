@@ -8,10 +8,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Capacitor 8.x: ApplicationDelegateProxy hat KEINE didFinishLaunchingWithOptions-Methode
-        // (nur application(_:open:options:) weiter unten). Einfach true zurückgeben.
-        // Der frühere SIGABRT-Crash kam von @capacitor-firebase/authentication (Facebook SDK),
-        // nicht von dieser Zeile.
+        // Bounce-Fix beim Start: WebView braucht etwas Zeit zum Laden
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self._applyScrollFix() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self._applyScrollFix() }
         return true
     }
 
@@ -41,13 +40,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationWillEnterForeground(_ application: UIApplication) {}
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Kein Overscroll-Bounce – verhindert weiße Ränder oben/unten beim Scrollen
-        DispatchQueue.main.async {
-            guard let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
-                  let wv = rootVC.bridge?.webView else { return }
-            wv.scrollView.bounces = false
-            wv.scrollView.alwaysBounceVertical = false
-        }
+        _applyScrollFix()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self._applyScrollFix() }
+    }
+
+    private func _applyScrollFix() {
+        guard let rootVC = self.window?.rootViewController as? CAPBridgeViewController,
+              let wv = rootVC.bridge?.webView else { return }
+        wv.scrollView.bounces = false
+        wv.scrollView.alwaysBounceVertical = false
+        wv.scrollView.isScrollEnabled = false
     }
 
     func applicationWillTerminate(_ application: UIApplication) {}
