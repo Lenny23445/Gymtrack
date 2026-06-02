@@ -4453,6 +4453,13 @@ let persist = () => {
 // ── CAPACITOR NATIVE PLUGINS ───────────────────────────────
 const _isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform?.());
 const _cap = (name) => _isNative() ? window.Capacitor?.Plugins?.[name] : null;
+// iOS-Standalone-PWA (Homescreen): hier ist signInWithPopup blockiert → GIS nötig.
+// Alle anderen Web-Browser (Desktop/Android) nutzen das zuverlässige signInWithPopup.
+const _isIosStandalonePWA = () =>
+  (/iP(hone|ad|od)/.test(navigator.userAgent) ||
+   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+  (window.navigator.standalone === true ||
+   window.matchMedia?.('(display-mode: standalone)').matches);
 
 // Widget-Daten an iOS-Widget senden (debounced, non-blocking)
 let _widgetDebounce = null;
@@ -11421,6 +11428,7 @@ let _fbUnsub    = null;     // Unsubscribe-Fn für Firestore-Snapshot
 let _syncing    = false;    // Lock, damit Cloud-Update keinen erneuten Push triggert
 let _pushTimer  = null;     // Debounce-Timer für persist→cloud
 let _initialMergeDone = false;
+let _loginInProgress = false; // verhindert, dass die anonyme Auto-Anmeldung einen laufenden Google-Login stört
 
 // Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
 const _origPersist = persist;
@@ -11952,7 +11960,10 @@ function _initGoogleIdentity() {
 function _renderGisButton() {
   const host = document.getElementById('gsi-btn-host');
   if (!host) return;
-  if (_isNative()) {
+  // Native ODER normaler Web-Browser (Desktop/Android) → eigener Button.
+  // signInWithPopup ist dort der zuverlässigste Weg. Nur die iOS-Standalone-PWA
+  // braucht den GIS-Button, weil dort Popups blockiert sind.
+  if (_isNative() || !_isIosStandalonePWA()) {
     host.innerHTML = `<button onclick="doGoogleSignIn()" style="
       display:flex;align-items:center;gap:10px;
       background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:22px;
@@ -11992,6 +12003,7 @@ async function _handleGoogleCredential(response) {
     alert('⚙️ Firebase nicht konfiguriert.');
     return;
   }
+  _loginInProgress = true;
   try {
     const cred   = window.FB.googleCredential(response.credential);
     const result = await window.FB.signInWithCredential(cred);
@@ -12007,6 +12019,8 @@ async function _handleGoogleCredential(response) {
       console.error('[GymTrack] ❌ Redirect-Fallback ebenfalls fehlgeschlagen:', e2);
     }
     alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
+  } finally {
+    _loginInProgress = false;
   }
 }
 
@@ -12031,10 +12045,31 @@ async function doGoogleSignIn() {
     return;
   }
   if (!_isNative()) {
-    // Web-PWA: Standard Redirect-Flow
-    console.log('[GymTrack] → signInWithRedirect');
-    try { await window.FB.signInWithRedirect(); }
-    catch(e) { alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
+    // iOS-Standalone-PWA: Popup ist blockiert → GIS-Prompt verwenden.
+    if (_isIosStandalonePWA()) {
+      console.log('[GymTrack] → GIS-Prompt (iOS-PWA)');
+      try { window.google?.accounts?.id?.prompt(); }
+      catch(e) { alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
+      return;
+    }
+    // Desktop/Android-Web: signInWithPopup (zuverlässigster Weg, kein Redirect-Bug).
+    _loginInProgress = true;
+    try {
+      console.log('[GymTrack] → signInWithPopup');
+      await window.FB.signInWithPopup();
+    } catch(e) {
+      console.warn('[GymTrack] Popup-Login fehlgeschlagen:', e?.code || e);
+      // User hat das Fenster selbst geschlossen → still beenden
+      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
+      // Popup blockiert / nicht unterstützt → Redirect als Fallback
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') {
+        try { await window.FB.signInWithRedirect(); return; }
+        catch(e2) { alert('❌ Login fehlgeschlagen:\n' + (e2?.code||'') + '\n' + (e2?.message||e2)); return; }
+      }
+      alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
+    } finally {
+      _loginInProgress = false;
+    }
     return;
   }
   // Native: PKCE-OAuth via ASWebAuthenticationSession (kein SFSafariViewController)
@@ -12321,7 +12356,7 @@ function _initFirebaseListeners() {
 
   // Anonyme Auth nach 3s Auto-Login (für Analytics auch ohne Google-Login)
   setTimeout(() => {
-    if (!_fbUser && window.FB?.signInAnonymously) {
+    if (!_fbUser && !_loginInProgress && window.FB?.signInAnonymously) {
       window.FB.signInAnonymously().catch(e => {
         console.warn('[GymTrack] Anonyme Auth nicht verfügbar (in Firebase Console aktivieren):', e?.code || e?.message);
       });
