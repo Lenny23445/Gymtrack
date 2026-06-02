@@ -2125,6 +2125,78 @@ body.heute-editing .heute-edit-bar{display:flex}
 }
 .heatmap-legend .hm-cell{cursor:default}
 
+/* ── WOCHENÜBERSICHT (Kreise Mo–So) ── */
+.week-card{
+  padding:14px 12px;border-radius:18px;
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  box-shadow:var(--gl-shad),var(--gl-hi);
+  box-sizing:border-box;max-width:100%;cursor:pointer;
+  transition:transform .12s;
+}
+.week-card:active{transform:scale(.985)}
+.week-circles-row{display:flex;justify-content:space-between;gap:4px}
+.week-day{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0}
+.week-day-lbl{font-size:11px;color:var(--text2);font-weight:600}
+.week-dot{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;
+  background:rgba(128,128,128,.10);color:var(--text2);
+  border:2px solid transparent;box-sizing:border-box;
+}
+.week-dot.l1{background:rgba(var(--acc-rgb),.30);color:var(--text)}
+.week-dot.l2{background:rgba(var(--acc-rgb),.55);color:#fff}
+.week-dot.l3{background:rgba(var(--acc-rgb),.80);color:#fff}
+.week-dot.l4{background:var(--acc);color:#fff}
+.week-dot.today{border-color:var(--text)}
+.week-dot.future{opacity:.4}
+.week-card-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;font-size:12px;color:var(--text2);
+}
+.week-card-foot b{color:var(--text);font-weight:700}
+
+/* ── KALENDER-OVERLAY ── */
+.cal-card{
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(60px) saturate(200%);
+  -webkit-backdrop-filter:blur(60px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  border-radius:24px 24px 0 0;
+  width:calc(100% - 24px);max-width:440px;margin:0 auto;
+  max-height:88vh;display:flex;flex-direction:column;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -16px 56px rgba(0,0,0,.32);
+  animation:up .28s cubic-bezier(.32,1,.32,1);
+}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head-title{font-size:17px;font-weight:700}
+.cal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.cal-month{margin-bottom:18px}
+.cal-month-title{font-size:14px;font-weight:700;color:var(--text);margin:0 2px 8px}
+.cal-weekhdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-weekhdr span{text-align:center;font-size:10px;color:var(--text2);font-weight:600}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{
+  aspect-ratio:1;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--text2);
+  background:rgba(128,128,128,.07);
+}
+.cal-cell.empty{background:transparent}
+.cal-cell.l1{background:rgba(var(--acc-rgb),.30);color:var(--text)}
+.cal-cell.l2{background:rgba(var(--acc-rgb),.55);color:#fff}
+.cal-cell.l3{background:rgba(var(--acc-rgb),.80);color:#fff}
+.cal-cell.l4{background:var(--acc);color:#fff}
+.cal-cell.today{outline:2px solid var(--text);outline-offset:-2px}
+.cal-legend{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:6px;margin-top:10px;font-size:11px;color:var(--text2);
+}
+.cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px}
+
 /* ── MID-ADD FOOTER (Button unter Übungsliste im aktiven Training) ── */
 .mid-add-footer{
   flex-shrink:0;padding:10px 16px 16px;
@@ -2984,20 +3056,12 @@ body.heute-editing .heute-edit-bar{display:flex}
       </div>
     </div>
     <div>
-      <div class="s-title" id="heatmap-title">Aktivität · letzte 12 Monate</div>
-      <div class="heatmap-wrap">
-        <div class="heatmap-scroll">
-          <div id="heatmap-months" class="heatmap-months"></div>
-          <div class="heatmap-grid" id="heatmap-grid"></div>
-        </div>
-        <div class="heatmap-legend">
-          <span>weniger</span>
-          <div class="hm-cell"></div>
-          <div class="hm-cell l1"></div>
-          <div class="hm-cell l2"></div>
-          <div class="hm-cell l3"></div>
-          <div class="hm-cell l4"></div>
-          <span>mehr</span>
+      <div class="s-title" id="week-title">Diese Woche</div>
+      <div class="week-card" id="week-card" onclick="openCalendarOverlay()">
+        <div class="week-circles-row" id="week-circles-row"></div>
+        <div class="week-card-foot">
+          <span id="week-foot-info"></span>
+          <span>Kalender ansehen →</span>
         </div>
       </div>
     </div>
@@ -3057,6 +3121,32 @@ body.heute-editing .heute-edit-bar{display:flex}
             style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:10px;
                    padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
                    outline:none;cursor:pointer;flex-shrink:0;width:auto">
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Training</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Pausenintelligenz</div>
+            <div class="row-sub" id="smartrest-sub" style="white-space:normal;line-height:1.5;margin-top:2px">Wählt die Satzpause automatisch je nach Übung, Belastung & Gewicht</div>
+          </div>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="smartrest-toggle" onchange="toggleSmartRest(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
+        <div class="row" id="restsecs-row" style="display:none">
+          <div class="row-body">
+            <div class="row-title">Standard-Pause</div>
+            <div class="row-sub">Feste Satzpause in Sekunden</div>
+          </div>
+          <input type="number" id="restsecs-input" min="10" max="600" step="5" value="90"
+            onchange="setRestSecs(this.value)"
+            style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:10px;
+                   padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
+                   outline:none;cursor:pointer;flex-shrink:0;width:80px;text-align:center">
         </div>
       </div>
     </div>
@@ -4073,6 +4163,29 @@ body.heute-editing .heute-edit-bar{display:flex}
   </div>
 </div>
 
+<!-- OVERLAY: KALENDER (Trainingstage letzte Monate) -->
+<div class="ov ov-cal" id="ov-calendar" onclick="if(event.target===this)closeOv('ov-calendar')">
+  <div class="cal-card">
+    <div class="cal-head">
+      <div class="cal-head-title">Trainingskalender</div>
+      <button class="x-btn" onclick="closeOv('ov-calendar')">✕</button>
+    </div>
+    <div class="cal-weekhdr">
+      <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+    </div>
+    <div class="cal-scroll" id="cal-scroll"></div>
+    <div class="cal-legend">
+      <span>weniger</span>
+      <div class="cal-cell"></div>
+      <div class="cal-cell l1"></div>
+      <div class="cal-cell l2"></div>
+      <div class="cal-cell l3"></div>
+      <div class="cal-cell l4"></div>
+      <span>mehr</span>
+    </div>
+  </div>
+</div>
+
 <!-- OVERLAY: VOLUMEN VOLLBILD -->
 <div class="ov ov-vol" id="ov-volume" onclick="if(event.target===this)closeOv('ov-volume')">
   <div class="vol-card">
@@ -4436,6 +4549,8 @@ S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'no
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
 S.notifEnabled    = S.notifEnabled    || false;
 S.notifTime       = S.notifTime       || '08:00';
+S.restTimerSecs   = S.restTimerSecs   || 90;     // manuelle Standard-Satzpause
+S.smartRest       = S.smartRest !== undefined ? S.smartRest : true; // Pausenintelligenz an
 S.healthKitEnabled = S.healthKitEnabled || false;
 S.trackerItems  = S.trackerItems  || [];
 S.trackerCounts = S.trackerCounts || {};
@@ -4687,6 +4802,32 @@ function _scheduleWebNotifications() {
   });
 }
 
+function updateSmartRestUI() {
+  const toggle = document.getElementById('smartrest-toggle');
+  const row    = document.getElementById('restsecs-row');
+  const input  = document.getElementById('restsecs-input');
+  const sub    = document.getElementById('smartrest-sub');
+  if (!toggle) return;
+  toggle.checked = !!S.smartRest;
+  if (row)   row.style.display = S.smartRest ? 'none' : '';
+  if (input) input.value = S.restTimerSecs || 90;
+  if (sub)   sub.textContent = S.smartRest
+    ? 'Wählt die Satzpause automatisch je nach Übung, Belastung & Gewicht'
+    : 'Aus – es gilt die feste Standard-Pause';
+}
+function toggleSmartRest(checked) {
+  S.smartRest = !!checked;
+  persist();
+  updateSmartRestUI();
+  haptic(10);
+}
+function setRestSecs(val) {
+  const n = Math.max(10, Math.min(600, parseInt(val, 10) || 90));
+  S.restTimerSecs = n;
+  persist();
+  const input = document.getElementById('restsecs-input');
+  if (input) input.value = n;
+}
 function updateNotifUI() {
   const toggle  = document.getElementById('notif-toggle');
   const timeRow = document.getElementById('notif-time-row');
@@ -8666,7 +8807,7 @@ function renderStats() {
   renderStatsSummary();
   renderStatsOverallChart();
   renderFatigueMini();
-  renderHeatmap();
+  renderWeekCircles();
   renderStatsMuscleGroups();
   renderStatsExerciseList();
 }
@@ -9330,11 +9471,58 @@ function _attachSwipeToDelete() {
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
 let _restInt = null, _restSecs = 0;
-function startRestTimer() {
-  _restSecs = S.restTimerSecs || 90;
+/* ── PAUSENINTELLIGENZ ──────────────────────────────────────
+   Empfohlene Satzpause abhängig von Übung (Muskelgruppe),
+   Belastung (Wiederholungen) und Gewicht relativ zum Bestwert. */
+function smartRestSecs(ex, set) {
+  // Zeit-/Halte-Übungen: kurze feste Pause
+  if (ex?.targetType === 'time') return 60;
+
+  // Basis nach Muskelgruppe – große, mehrgelenkige Muskeln brauchen länger
+  const base = ({
+    beine: 150, ruecken: 150, brust: 120,
+    schultern: 90, arme: 75, core: 60
+  })[ex?.muscleGroup] ?? 90;
+
+  let secs = base;
+
+  // Wiederholungen des gerade beendeten Satzes:
+  // wenige Wdh = schwer/Kraft → mehr Pause; viele Wdh = Ausdauer → weniger
+  const reps = parseFloat(set?.r);
+  if (!isNaN(reps) && reps > 0) {
+    if (reps <= 5)       secs *= 1.30;
+    else if (reps <= 8)  secs *= 1.15;
+    else if (reps <= 12) secs *= 1.00;
+    else if (reps <= 15) secs *= 0.85;
+    else                 secs *= 0.75;
+  }
+
+  // Gewicht relativ zum bisherigen Bestwert dieser Übung (Intensitäts-Proxy)
+  const w = parseFloat(set?.w);
+  if (!isNaN(w) && w > 0 && ex?.id) {
+    let best = 0;
+    exHistory(ex.id).forEach(h => { const m = maxW(h.sets); if (m > best) best = m; });
+    if (best > 0) {
+      const ratio = w / best;
+      if (ratio >= 0.95)      secs *= 1.15;
+      else if (ratio >= 0.85) secs *= 1.05;
+      else if (ratio <= 0.60) secs *= 0.90;
+    }
+  }
+
+  secs = Math.round(secs / 5) * 5;          // auf 5s runden
+  return Math.max(45, Math.min(240, secs)); // sinnvolle Grenzen 45s–4min
+}
+
+function startRestTimer(ex, set) {
+  // Pausenintelligenz aktiv & Kontext vorhanden → empfohlene Pause, sonst manueller Standard
+  _restSecs = (S.smartRest && ex) ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
   clearInterval(_restInt);
   const bar = document.getElementById('rest-timer-bar');
   if (bar) bar.style.display = '';
+  // Label zeigt an, dass die Pause automatisch gewählt wurde
+  const lbl = bar?.querySelector('.rest-bar-lbl');
+  if (lbl) lbl.textContent = (S.smartRest && ex) ? 'Pause · Auto' : 'Pause';
   _updRest();
   _restInt = setInterval(() => {
     _restSecs--;
@@ -9371,7 +9559,7 @@ function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
   haptic(next ? 18 : 8);
-  if (next) startRestTimer(); else skipRest();
+  if (next) startRestTimer(exById(wkLogs[li].exerciseId), wkLogs[li].sets[si]); else skipRest();
   renderLogCards();
 }
 function addSet(li) {
@@ -10259,9 +10447,9 @@ const TOUR = [
     prep:()=> goTabId('uebungen')
   },
   {
-    target:'.heatmap-wrap',
+    target:'.week-card',
     title:'Statistik 📊',
-    body:'<b>Aktivitäts-Heatmap</b> — alle Trainingstage der letzten 12 Monate auf einen Blick. <b>Volumen-Verlauf</b> zeigt deinen Fortschritt als Chart. <b>1RM-Berechnung</b> (Maximalgewicht) per Epley-Formel. <b>Pro Muskelgruppe</b> — Schwachstellen erkennen & gezielt trainieren.',
+    body:'<b>Wochenübersicht</b> — Mo–So auf einen Blick, mit Häkchen für jeden Trainingstag. <b>Tippen</b> öffnet den Kalender der letzten Monate. <b>Volumen-Verlauf</b> zeigt deinen Fortschritt als Chart. <b>1RM-Berechnung</b> per Epley-Formel. <b>Pro Muskelgruppe</b> — Schwachstellen erkennen & gezielt trainieren.',
     prep:()=> goTabId('stats')
   },
   {
@@ -10593,73 +10781,97 @@ function _localDateKey(d) {
     + String(d.getMonth()+1).padStart(2,'0') + '-'
     + String(d.getDate()).padStart(2,'0');
 }
-function renderHeatmap(){
-  const grid = document.getElementById('heatmap-grid');
-  if (!grid) return;
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  // Map: lokales YYYY-MM-DD → summed volume (kg)
+// Map lokales YYYY-MM-DD → Tagesvolumen (kg), plus Quartil-Funktion für Stufen 1..4
+function _volMap() {
   const map = {};
   S.sessions.forEach(s => {
     const d = new Date(s.date); d.setHours(0,0,0,0);
     const k = _localDateKey(d);
-    const v = sessionVolume(s) || 1;
-    map[k] = (map[k]||0) + v;
+    map[k] = (map[k]||0) + (sessionVolume(s) || 1);
   });
-
-  // Quartile für Intensitätsstufen 1..4
   const active = Object.values(map).filter(v=>v>0).sort((a,b)=>a-b);
   const q = (p) => active.length ? active[Math.min(active.length-1, Math.floor(active.length*p))] : 0;
   const q1=q(.25), q2=q(.50), q3=q(.75);
+  const level = (v) => v<=0 ? 0 : (v>q3 ? 4 : v>q2 ? 3 : v>q1 ? 2 : 1);
+  return { map, level };
+}
 
-  // 52 Wochen: Mo der aktuellen Woche rückwärts
-  const dayOfWeekMon0 = (d) => (d.getDay()+6)%7; // Mo=0
-  const end = new Date(today);
-  end.setDate(today.getDate() + (6 - dayOfWeekMon0(today)));
-  const start = new Date(end);
-  start.setDate(end.getDate() - (52*7 - 1));
+const _DOW_MON0 = (d) => (d.getDay()+6)%7; // Mo=0 … So=6
+const _WD_LBL   = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 
-  // Monatsbeschriftungen (scrollen mit dem Grid, gleiche Zellenbreite wie .hm-cell)
-  const CELL = 9, GAP = 2, COL_W = CELL + GAP;
-  const numCols = Math.ceil(((end - start) / 86400000 + 1) / 7);
-  const monthsDiv = document.getElementById('heatmap-months');
-  const MONATE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  if (monthsDiv) {
-    let lastM = -1, mHtml = '';
-    const colCur = new Date(start);
-    for (let i = 0; i < numCols; i++) {
-      const m = colCur.getMonth();
-      const lbl = (m !== lastM) ? MONATE[m] : '';
-      if (m !== lastM) lastM = m;
-      mHtml += `<div class="hm-month-lbl" style="width:${CELL}px;${i > 0 ? 'margin-left:' + GAP + 'px' : ''}">${lbl}</div>`;
-      colCur.setDate(colCur.getDate() + 7);
-    }
-    monthsDiv.innerHTML = mHtml;
-  }
+// ── WOCHENÜBERSICHT (Kreise Mo–So der aktuellen Woche) ──
+function renderWeekCircles(){
+  const row = document.getElementById('week-circles-row');
+  if (!row) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { map, level } = _volMap();
 
-  // Zellen rendern
-  let html = '';
-  const cur = new Date(start);
-  while (cur <= end) {
-    const k = _localDateKey(cur);
+  // Montag dieser Woche
+  const mon = new Date(today);
+  mon.setDate(today.getDate() - _DOW_MON0(today));
+
+  let html = '', trained = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate()+i);
+    const k = _localDateKey(d);
     const v = map[k] || 0;
-    let cls = '';
-    if (v > 0) {
-      if (v > q3) cls = 'l4';
-      else if (v > q2) cls = 'l3';
-      else if (v > q1) cls = 'l2';
-      else cls = 'l1';
-    }
-    const isFuture = cur > today;
-    const isToday = cur.getTime() === today.getTime();
-    const title = isFuture ? '' : (_localDateKey(cur).split('-').reverse().join('.').slice(0,6) + (v>0?(' · '+fmtKg(v)):' · kein Training'));
-    html += `<div class="hm-cell ${cls}${isToday?' today':''}"${isFuture?' style="visibility:hidden"':''} title="${title}"></div>`;
-    cur.setDate(cur.getDate()+1);
+    const lvl = level(v);
+    if (v > 0) trained++;
+    const isToday  = d.getTime() === today.getTime();
+    const isFuture = d > today;
+    const cls = [v>0 ? 'l'+lvl : '', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
+    html += `<div class="week-day">
+      <div class="week-dot ${cls}">${v>0 ? '✓' : d.getDate()}</div>
+      <div class="week-day-lbl">${_WD_LBL[i]}</div>
+    </div>`;
   }
-  grid.innerHTML = html;
-  // Scroll zur aktuellen Woche (rechts = heute sichtbar)
-  const sc = grid.parentElement;
-  if (sc) sc.scrollLeft = sc.scrollWidth;
+  row.innerHTML = html;
+  const foot = document.getElementById('week-foot-info');
+  if (foot) foot.innerHTML = `<b>${trained}</b> ${trained===1?'Training':'Trainings'} diese Woche`;
+}
+
+// ── KALENDER-OVERLAY (letzte Monate) ──
+function openCalendarOverlay(){
+  haptic(8);
+  renderCalendar();
+  openOv('ov-calendar');
+}
+function renderCalendar(monthsBack = 12){
+  const wrap = document.getElementById('cal-scroll');
+  if (!wrap) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { map, level } = _volMap();
+  const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+  let html = '';
+  // Von neuestem (aktueller) Monat rückwärts
+  for (let mb = 0; mb < monthsBack; mb++) {
+    const ref = new Date(today.getFullYear(), today.getMonth() - mb, 1);
+    const year = ref.getFullYear(), month = ref.getMonth();
+    const first = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const lead = _DOW_MON0(first); // Leerzellen vor dem 1.
+
+    let cells = '';
+    for (let i = 0; i < lead; i++) cells += `<div class="cal-cell empty"></div>`;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month, day);
+      const k = _localDateKey(d);
+      const v = map[k] || 0;
+      const lvl = level(v);
+      const isToday  = d.getTime() === today.getTime();
+      const isFuture = d > today;
+      const cls = [v>0 ? 'l'+lvl : '', isToday?'today':''].filter(Boolean).join(' ');
+      const title = isFuture ? '' : (v>0 ? fmtKg(v) : 'kein Training');
+      cells += `<div class="cal-cell ${cls}"${isFuture?' style="opacity:.35"':''} title="${title}">${day}</div>`;
+    }
+    html += `<div class="cal-month">
+      <div class="cal-month-title">${MONATE[month]} ${year}</div>
+      <div class="cal-grid">${cells}</div>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+  wrap.scrollTop = 0;
 }
 
 // ── ÜBUNGS-BIBLIOTHEK (Standard-Übungen) ──────────────
@@ -12072,34 +12284,27 @@ async function doGoogleSignIn() {
     }
     return;
   }
-  // Native (Capacitor WKWebView): signInWithPopup zuerst versuchen.
-  // WKWebView unterstützt window.open() + window.opener nativ → Firebase Popup-Flow funktioniert.
-  // Falls Popup blockiert wird → PKCE via ASWebAuthenticationSession als Fallback.
+  // Native (Capacitor iOS): PKCE via ASWebAuthenticationSession ist der offizielle
+  // iOS-Weg (kein window.open/opener nötig). Bei jedem PKCE-Fehler automatisch
+  // signInWithPopup als Fallback versuchen.
   _loginInProgress = true;
   try {
-    console.log('[GymTrack] → signInWithPopup (native)');
-    await window.FB.signInWithPopup();
-  } catch(e) {
-    console.warn('[GymTrack] Popup (native) fehlgeschlagen:', e?.code || e);
-    if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
-    // Popup nicht unterstützt oder blockiert → PKCE-Fallback
-    if (e?.code === 'auth/popup-blocked' ||
-        e?.code === 'auth/operation-not-supported-in-this-environment' ||
-        e?.code === 'auth/internal-error') {
-      console.log('[GymTrack] → PKCE-Fallback (ASWebAuthenticationSession)');
-      await _doNativeGoogleSignInPKCE();
-      return;
-    }
-    alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
+    await _doNativeGoogleSignInPKCE();
   } finally {
     _loginInProgress = false;
   }
 }
 
-// PKCE-Fallback für native iOS (ASWebAuthenticationSession)
+// PKCE-Flow für native iOS (ASWebAuthenticationSession)
+// Bei Fehler → signInWithPopup als Fallback
 async function _doNativeGoogleSignInPKCE() {
   const GA = _cap('GoogleAuthPlugin');
-  if (!GA) { alert('❌ Google Auth Plugin nicht verfügbar'); return; }
+  if (!GA) {
+    // Kein Plugin → direkt Popup versuchen
+    console.warn('[GymTrack] GoogleAuthPlugin nicht verfügbar → Popup-Fallback');
+    await _doNativeGoogleSignInPopup();
+    return;
+  }
   try {
     const pkce  = await _pkceChallenge();
     const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)))
@@ -12114,18 +12319,32 @@ async function _doNativeGoogleSignInPKCE() {
       '&code_challenge_method=S256' +
       '&nonce='               + nonce;
     console.log('[GymTrack] 🔑 Google PKCE → ASWebAuthenticationSession');
-    window._ggTrace = ['1) Google geöffnet (PKCE/ASWebAuth)'];
+    window._ggTrace = ['1) PKCE gestartet'];
     const result = await GA.startAuth({ url, callbackScheme: _GG_CB_SCHEME });
-    window._ggTrace.push('2) Callback zurück: ' + (result?.url ? result.url.slice(0,90) : '(KEINE URL!)'));
+    window._ggTrace.push('2) Callback: ' + (result?.url ? result.url.slice(0,90) : '(KEINE URL)'));
     await _handleGoogleOAuthCallback(result.url);
   } catch(e) {
+    _googlePKCE = null;
+    // Abgebrochen vom User → still beenden
     if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) {
-      alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
-            '\n\n⚠️ ASWebAuthenticationSession: "cancelled"\n→ Das Browser-Fenster wurde geschlossen, BEVOR der Callback ankam.\nMögliche Ursachen: Redirect-URI stimmt nicht, oder du hast abgebrochen.');
+      console.log('[GymTrack] PKCE abgebrochen (User) → Popup-Fallback');
+      await _doNativeGoogleSignInPopup();
       return;
     }
-    console.error('[GymTrack] ❌ PKCE-Login fehlgeschlagen:', e);
-    alert('❌ Google-Login (PKCE) fehlgeschlagen:\n' + (e?.message||e));
+    // Anderer PKCE-Fehler → Popup-Fallback
+    console.warn('[GymTrack] PKCE-Fehler:', e?.message || e, '→ Popup-Fallback');
+    await _doNativeGoogleSignInPopup();
+  }
+}
+
+// Popup-Fallback für native iOS
+async function _doNativeGoogleSignInPopup() {
+  try {
+    console.log('[GymTrack] → signInWithPopup (native Fallback)');
+    await window.FB.signInWithPopup();
+  } catch(e) {
+    if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
+    alert('❌ Google-Login fehlgeschlagen.\n\nBitte versuche es erneut.\n\n(' + (e?.code || e?.message || e) + ')');
   }
 }
 
@@ -12399,6 +12618,7 @@ _initGoogleIdentity();
 
 // ── BENACHRICHTIGUNGEN INITIALISIEREN ─────────────────
 updateNotifUI();
+updateSmartRestUI();
 if (_isNative()) {
   scheduleWorkoutNotifications();
 } else {
