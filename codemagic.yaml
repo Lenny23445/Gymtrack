@@ -41,7 +41,9 @@ workflows:
       - name: Set build number
         script: |
           PLIST="ios/App/App/Info.plist"
+          WIDGET_PLIST="ios/App/GymTrackWidget/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$WIDGET_PLIST"
 
       - name: Build IPA
         script: |
