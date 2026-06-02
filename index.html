@@ -12072,7 +12072,32 @@ async function doGoogleSignIn() {
     }
     return;
   }
-  // Native: PKCE-OAuth via ASWebAuthenticationSession (kein SFSafariViewController)
+  // Native (Capacitor WKWebView): signInWithPopup zuerst versuchen.
+  // WKWebView unterstützt window.open() + window.opener nativ → Firebase Popup-Flow funktioniert.
+  // Falls Popup blockiert wird → PKCE via ASWebAuthenticationSession als Fallback.
+  _loginInProgress = true;
+  try {
+    console.log('[GymTrack] → signInWithPopup (native)');
+    await window.FB.signInWithPopup();
+  } catch(e) {
+    console.warn('[GymTrack] Popup (native) fehlgeschlagen:', e?.code || e);
+    if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
+    // Popup nicht unterstützt oder blockiert → PKCE-Fallback
+    if (e?.code === 'auth/popup-blocked' ||
+        e?.code === 'auth/operation-not-supported-in-this-environment' ||
+        e?.code === 'auth/internal-error') {
+      console.log('[GymTrack] → PKCE-Fallback (ASWebAuthenticationSession)');
+      await _doNativeGoogleSignInPKCE();
+      return;
+    }
+    alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
+  } finally {
+    _loginInProgress = false;
+  }
+}
+
+// PKCE-Fallback für native iOS (ASWebAuthenticationSession)
+async function _doNativeGoogleSignInPKCE() {
   const GA = _cap('GoogleAuthPlugin');
   if (!GA) { alert('❌ Google Auth Plugin nicht verfügbar'); return; }
   try {
@@ -12096,11 +12121,11 @@ async function doGoogleSignIn() {
   } catch(e) {
     if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) {
       alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
-            '\n\n⚠️ ASWebAuthenticationSession: "cancelled"\n→ Das Browser-Fenster wurde geschlossen, BEVOR der Callback ankam (Redirect-URI vom Google-Client passt nicht zum Schema, oder du hast abgebrochen).');
+            '\n\n⚠️ ASWebAuthenticationSession: "cancelled"\n→ Das Browser-Fenster wurde geschlossen, BEVOR der Callback ankam.\nMögliche Ursachen: Redirect-URI stimmt nicht, oder du hast abgebrochen.');
       return;
     }
-    console.error('[GymTrack] ❌ Google-Login fehlgeschlagen:', e);
-    alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
+    console.error('[GymTrack] ❌ PKCE-Login fehlgeschlagen:', e);
+    alert('❌ Google-Login (PKCE) fehlgeschlagen:\n' + (e?.message||e));
   }
 }
 
