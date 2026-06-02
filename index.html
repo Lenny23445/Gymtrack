@@ -11979,9 +11979,10 @@ async function _handleGoogleCredential(response) {
   }
 }
 
-// ── Google Sign-In: PKCE OAuth via @capacitor/browser (für native WKWebView) ──
-const _GG_IOS_CLIENT = '404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv.apps.googleusercontent.com';
-const _GG_REDIRECT   = 'com.googleusercontent.apps.404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv:/oauth2redirect/google';
+// ── Google Sign-In: PKCE OAuth via ASWebAuthenticationSession ──
+const _GG_IOS_CLIENT  = '404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv.apps.googleusercontent.com';
+const _GG_REDIRECT    = 'com.googleusercontent.apps.404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv:/oauth2redirect/google';
+const _GG_CB_SCHEME   = 'com.googleusercontent.apps.404501862861-bp9ren7aem7kn324urqo91ejk1mbpmhv';
 let _googlePKCE = null;
 
 async function _pkceChallenge() {
@@ -12005,15 +12006,14 @@ async function doGoogleSignIn() {
     catch(e) { alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
     return;
   }
-  // Native: PKCE-OAuth via SFSafariViewController
-  const BROWSER = window.Capacitor?.Plugins?.Browser;
-  if (!BROWSER) { alert('❌ Browser-Plugin nicht verfügbar'); return; }
+  // Native: PKCE-OAuth via ASWebAuthenticationSession (kein SFSafariViewController)
+  const GA = _cap('GoogleAuthPlugin');
+  if (!GA) { alert('❌ Google Auth Plugin nicht verfügbar'); return; }
   try {
     const pkce  = await _pkceChallenge();
     const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)))
       .map(b => b.toString(16).padStart(2,'0')).join('');
     _googlePKCE = { verifier: pkce.verifier, nonce };
-    try { sessionStorage.setItem('_gg_pkce', JSON.stringify(_googlePKCE)); } catch(_) {}
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?' +
       'client_id='            + encodeURIComponent(_GG_IOS_CLIENT) +
       '&redirect_uri='        + encodeURIComponent(_GG_REDIRECT)   +
@@ -12022,28 +12022,32 @@ async function doGoogleSignIn() {
       '&code_challenge='      + pkce.challenge +
       '&code_challenge_method=S256' +
       '&nonce='               + nonce;
-    console.log('[GymTrack] 🔑 Google PKCE → SFSafariViewController');
-    await BROWSER.open({ url });
+    console.log('[GymTrack] 🔑 Google PKCE → ASWebAuthenticationSession');
+    const result = await GA.startAuth({ url, callbackScheme: _GG_CB_SCHEME });
+    await _handleGoogleOAuthCallback(result.url);
   } catch(e) {
+    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
     console.error('[GymTrack] ❌ Google-Login fehlgeschlagen:', e);
     alert('❌ Google-Login fehlgeschlagen:\n' + (e?.message||e));
   }
 }
 
 async function _handleGoogleOAuthCallback(rawUrl) {
-  const BROWSER = window.Capacitor?.Plugins?.Browser;
-  try { BROWSER?.close(); } catch(_) {}
+  // ASWebAuthenticationSession schließt sich selbst — kein BROWSER.close() nötig
   try {
-    const u     = new URL(rawUrl);
-    const code  = u.searchParams.get('code');
-    const error = u.searchParams.get('error');
-    if (error) { if (error !== 'access_denied') alert('❌ Google: ' + error); return; }
-    if (!_googlePKCE) {
-      try {
-        const stored = sessionStorage.getItem('_gg_pkce');
-        if (stored) { _googlePKCE = JSON.parse(stored); console.log('[GymTrack] 🔑 PKCE-State aus sessionStorage wiederhergestellt'); }
-      } catch(_) {}
+    let code, error;
+    try {
+      const u = new URL(rawUrl);
+      code  = u.searchParams.get('code');
+      error = u.searchParams.get('error');
+    } catch(_) {
+      // Fallback: regex für Custom-URL-Scheme (com.googleusercontent.apps.xxx:/...)
+      const cm = rawUrl.match(/[?&]code=([^&]+)/);
+      const em = rawUrl.match(/[?&]error=([^&]+)/);
+      code  = cm ? decodeURIComponent(cm[1]) : null;
+      error = em ? decodeURIComponent(em[1]) : null;
     }
+    if (error) { if (error !== 'access_denied') alert('❌ Google: ' + error); return; }
     try { sessionStorage.removeItem('_gg_pkce'); } catch(_) {}
     if (!code || !_googlePKCE) {
       console.error('[GymTrack] ❌ PKCE-State verloren — Login kann nicht abgeschlossen werden');
