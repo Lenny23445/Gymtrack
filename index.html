@@ -2160,7 +2160,9 @@ body.heute-editing .heute-edit-bar{display:flex}
 
 /* ── KALENDER-OVERLAY ── */
 .cal-card{
-  background:var(--gl-bg-h);
+  /* Transparenz etwas reduziert: zweite Tönungsschicht über dem Glas */
+  background-color:var(--gl-bg-h);
+  background-image:linear-gradient(var(--gl-bg), var(--gl-bg));
   backdrop-filter:blur(60px) saturate(200%);
   -webkit-backdrop-filter:blur(60px) saturate(200%);
   border:1px solid var(--gl-bdr);
@@ -2173,14 +2175,14 @@ body.heute-editing .heute-edit-bar{display:flex}
 }
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-head-title{font-size:17px;font-weight:700}
-.cal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.cal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .cal-month{margin-bottom:18px}
 .cal-month-title{font-size:14px;font-weight:700;color:var(--text);margin:0 2px 8px}
 .cal-weekhdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .cal-weekhdr span{text-align:center;font-size:10px;color:var(--text2);font-weight:600}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:40px;gap:4px}
 .cal-cell{
-  aspect-ratio:1;border-radius:9px;
+  border-radius:9px;min-width:0;
   display:flex;align-items:center;justify-content:center;
   font-size:12px;color:var(--text2);
   background:rgba(128,128,128,.07);
@@ -4216,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606021540';
+const APP_VERSION = 'gymtrack-v202606022230';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4600,15 +4602,63 @@ function _updateWidgetData() {
       const weekSess = (S.sessions || []).filter(s => new Date(s.date) >= weekStart).length;
       const last     = S.sessions?.length ? S.sessions[S.sessions.length - 1] : null;
       const lastStr  = last ? _relativeDate(last.date) : '';
+      // Wochen-Kreise Mo–So: Intensitätslevel 0–4 je Tag + heutiger Index (0=Mo)
+      let weekDays = '0,0,0,0,0,0,0', todayIdx = 0;
+      try {
+        const t0 = new Date(); t0.setHours(0,0,0,0);
+        todayIdx = (t0.getDay()+6)%7;
+        const mon = new Date(t0); mon.setDate(t0.getDate()-todayIdx);
+        const { map, level } = _volMap();
+        const lv = [];
+        for (let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i);
+          lv.push(level(map[_localDateKey(d)]||0)); }
+        weekDays = lv.join(',');
+      } catch(e) {}
+      // Tracker-Ringe (max 4) als Snapshot für das interaktive Widget
+      let trackerJson = '{"weekKey":"","items":[]}';
+      try {
+        const wk = (typeof getWeekKey === 'function') ? getWeekKey() : '';
+        const items = (S.trackerItems || []).slice(0, 4).map(it => ({
+          id: it.id, label: it.label, goal: it.goal || 1,
+          count: Math.min((S.trackerCounts[it.id] || {})[wk] || 0, it.goal || 1)
+        }));
+        trackerJson = JSON.stringify({ weekKey: wk, items });
+      } catch(e) {}
       WDP.updateWidget({
         streakWeeks:   streak,
         todayPlan:     todayStr,
         totalSessions: (S.sessions||[]).length,
         weekSessions:  weekSess,
-        lastWorkout:   lastStr
+        lastWorkout:   lastStr,
+        weekDays:      weekDays,
+        todayIndex:    todayIdx,
+        trackerJson:   trackerJson
       }).then(() => WDP.reloadWidget()).catch(() => {});
     } catch(e) {}
   }, 800);
+}
+
+// Vom Home-Widget getätigte +1-Taps (App-Group-Deltas) in die App übernehmen
+async function _consumeWidgetDeltas() {
+  if (!_isNative()) return;
+  const WDP = _cap('WidgetDataPlugin');
+  if (!WDP || !WDP.getWidgetDeltas) return;
+  try {
+    const r = await WDP.getWidgetDeltas();
+    const deltas = JSON.parse(r?.deltas || '{}');
+    if (!deltas || !Object.keys(deltas).length) return;
+    const wk = (typeof getWeekKey === 'function') ? getWeekKey() : '';
+    let changed = false;
+    Object.entries(deltas).forEach(([id, n]) => {
+      const it = (S.trackerItems || []).find(i => i.id === id);
+      if (!it || !n) return;
+      if (!S.trackerCounts[id]) S.trackerCounts[id] = {};
+      const goal = it.goal || 1;
+      S.trackerCounts[id][wk] = Math.min(goal, (S.trackerCounts[id][wk] || 0) + n);
+      changed = true;
+    });
+    if (changed) { persist(); if (typeof renderTrackers === 'function') renderTrackers(); }
+  } catch(e) {}
 }
 function _relativeDate(iso) {
   const d = new Date(iso); const now = new Date();
@@ -4770,25 +4820,75 @@ function _buildNotifList() {
   return list;
 }
 
+// Wöchentlich wiederkehrende Erinnerungen je geplantem Trainingstag.
+// JS getDay(): 0=So..6=Sa  →  Capacitor weekday: 1=So..7=Sa
+function _buildWeeklyNotifList() {
+  const [h, m] = S.notifTime.split(':').map(Number);
+  const dayKeys  = ['sun','mon','tue','wed','thu','fri','sat']; // Index = getDay()
+  const dayNames = { mon:'Montag', tue:'Dienstag', wed:'Mittwoch', thu:'Donnerstag',
+                     fri:'Freitag', sat:'Samstag', sun:'Sonntag' };
+  const out = [];
+  for (let jsDay = 0; jsDay < 7; jsDay++) {
+    const key  = dayKeys[jsDay];
+    const plan = S.weekPlan?.[key];
+    if (!plan || plan.type === 'none') continue;
+    let label = 'Training';
+    if (plan.type === 'group' && plan.group) label = plan.group;
+    else if (plan.type === 'exercises' && plan.exIds?.length) {
+      const names = plan.exIds.map(id => S.exercises.find(e => e.id === id)?.name).filter(Boolean);
+      label = names.slice(0,2).join(', ') + (names.length > 2 ? ' +' + (names.length-2) : '');
+    }
+    out.push({ weekday: jsDay + 1, hour: h, minute: m, day: dayNames[key], label });
+  }
+  return out;
+}
+
 async function _scheduleNativeNotifications() {
   const LN = _cap('LocalNotifications'); if (!LN) return;
   try {
-    // Alle alten GymTrack-Notifs löschen
+    // Permission muss vorhanden sein (toggleNotif fragt beim Aktivieren an).
+    const perm = await LN.checkPermissions().catch(() => ({ display: 'prompt' }));
+    if (perm.display !== 'granted') return;
+
+    // Channel (Android; auf iOS ignoriert) – hohe Wichtigkeit für Banner & Ton
+    await LN.createChannel?.({
+      id: 'gymtrack-reminders', name: 'Trainings-Erinnerungen',
+      importance: 5, visibility: 1, sound: 'default'
+    }).catch(() => {});
+
+    // Alte GymTrack-Notifs (ID 1000–1999) entfernen
     const existing = await LN.getPending().catch(() => ({ notifications: [] }));
-    const gymIds   = existing.notifications.filter(n => n.id >= 1000 && n.id < 2000);
+    const gymIds   = existing.notifications
+      .filter(n => n.id >= 1000 && n.id < 2000)
+      .map(n => ({ id: n.id }));
     if (gymIds.length) await LN.cancel({ notifications: gymIds }).catch(() => {});
 
-    const list = _buildNotifList();
-    if (!list.length) return;
-    const notifs = list.map((item, i) => ({
-      id:       1000 + i,
-      title:    'Zeit fürs Training! 💪',
-      body:     item.day + ': ' + item.label,
-      schedule: { at: new Date(item.timestamp) },
-      sound:    null,
-      extra:    null,
-      channelId: 'gymtrack-reminders'
-    }));
+    const [h, m] = S.notifTime.split(':').map(Number);
+    const weekly = _buildWeeklyNotifList();
+    let notifs;
+    if (weekly.length) {
+      // Pro geplantem Tag eine WÖCHENTLICH WIEDERKEHRENDE Erinnerung
+      // → überlebt App-Schließen & Neustart, kein erneutes Planen nötig
+      notifs = weekly.map((it, i) => ({
+        id:       1000 + i,
+        title:    'Zeit fürs Training! 💪',
+        body:     it.day + ': ' + it.label,
+        schedule: { on: { weekday: it.weekday, hour: it.hour, minute: it.minute },
+                    repeats: true, allowWhileIdle: true },
+        sound:    'default',
+        channelId: 'gymtrack-reminders'
+      }));
+    } else {
+      // Kein Wochenplan hinterlegt → TÄGLICHE Erinnerung, damit der Schalter wirkt
+      notifs = [{
+        id:       1000,
+        title:    'Zeit fürs Training! 💪',
+        body:     'Bereit für deine heutige Einheit?',
+        schedule: { on: { hour: h, minute: m }, repeats: true, allowWhileIdle: true },
+        sound:    'default',
+        channelId: 'gymtrack-reminders'
+      }];
+    }
     await LN.schedule({ notifications: notifs });
   } catch(e) { console.warn('[GymTrack] Native Notification Schedule fehlgeschlagen:', e); }
 }
@@ -4839,8 +4939,15 @@ function updateNotifUI() {
   if (timeRow) timeRow.style.display = active ? '' : 'none';
   if (input) input.value = S.notifTime;
   if (!sub) return;
-  if (active) sub.textContent = 'Aktiv – Erinnerung täglich um ' + S.notifTime + ' Uhr';
-  else        sub.textContent = 'Erinnert dich an geplante Trainings';
+  if (active) {
+    const hasPlan = ['mon','tue','wed','thu','fri','sat','sun']
+      .some(k => S.weekPlan?.[k] && S.weekPlan[k].type !== 'none');
+    sub.textContent = hasPlan
+      ? 'Aktiv – an deinen Trainingstagen um ' + S.notifTime + ' Uhr'
+      : 'Aktiv – täglich um ' + S.notifTime + ' Uhr';
+  } else {
+    sub.textContent = 'Erinnert dich an geplante Trainings';
+  }
 }
 
 async function toggleNotif(checked) {
@@ -11873,7 +11980,10 @@ function analyticsStop() {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') _analyticsBeat();
-  else if (document.visibilityState === 'visible' && _fbUser && !_anaSessionRef) analyticsStart(_fbUser);
+  else if (document.visibilityState === 'visible') {
+    if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
+    _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
+  }
 });
 window.addEventListener('pagehide',     () => _analyticsBeat());
 window.addEventListener('beforeunload', () => _analyticsBeat());
@@ -12415,9 +12525,30 @@ function _setupAppUrlListener() {
     const url = data?.url || '';
     if (url.startsWith('com.googleusercontent.apps.')) {
       _handleGoogleOAuthCallback(url);
+    } else if (url.startsWith('gymtrack://')) {
+      _handleWidgetDeepLink(url);
     }
   });
   console.log('[GymTrack] 📱 appUrlOpen-Listener registriert');
+}
+
+// Deep-Link aus dem Home-Screen-Widget (z.B. gymtrack://day/2 = Mittwoch)
+function _handleWidgetDeepLink(url) {
+  try {
+    // Tracker-Ring im Widget angetippt (iOS-16-Fallback) → +1 in der App
+    const t = url.match(/^gymtrack:\/\/track\/([^/?#]+)/);
+    if (t) {
+      goTabId('heute');
+      if (typeof incrementTracker === 'function') incrementTracker(decodeURIComponent(t[1]));
+      return;
+    }
+    // Wochentag-Kreis angetippt → Statistik + Kalender öffnen
+    goTabId('stats');
+    setTimeout(() => { if (typeof renderStats === 'function') renderStats(); }, 0);
+    if (/^gymtrack:\/\/day\/\d+/.test(url)) {
+      setTimeout(() => { if (typeof openCalendarOverlay === 'function') openCalendarOverlay(); }, 120);
+    }
+  } catch(e) {}
 }
 
 async function doAppleSignIn() {
@@ -12629,6 +12760,9 @@ if (_isNative()) {
 if (_isNative()) {
   // Google OAuth Callback-Listener (appUrlOpen)
   _setupAppUrlListener();
+
+  // Im Home-Widget getätigte +1-Taps beim Start übernehmen
+  setTimeout(_consumeWidgetDeltas, 800);
 
   // HealthKit
   _initHealthKit();
