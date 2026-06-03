@@ -4218,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606031600';
+const APP_VERSION = 'gymtrack-v202606031700';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12490,18 +12490,33 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     _googlePKCE = null;
     window._ggTrace.push('4) Token-Tausch: ' + (tok.error ? ('FEHLER ' + tok.error) : (tok.id_token ? 'id_token erhalten' : 'KEIN id_token')));
     if (tok.error) throw new Error(tok.error_description || tok.error);
-    if (!tok.id_token) throw new Error('Kein ID Token erhalten');
-    // id_token allein kann fehlschlagen wenn sein aud-Claim die iOS-Client-ID enthält
-    // (statt der Web-Client-ID die Firebase erwartet). access_token als Fallback mitgeben.
-    const cred = window.FB.googleCredential(tok.id_token, tok.access_token || null);
-    await window.FB.signInWithCredential(cred);
-    window._ggTrace.push('5) signInWithCredential ok ✅');
+    if (!tok.id_token && !tok.access_token) throw new Error('Weder ID- noch Access-Token erhalten');
+    // Versuch 1: id_token (+access_token). Kann scheitern, wenn der aud-Claim des
+    // id_tokens die iOS-Client-ID ist und Firebase sie nicht akzeptiert.
+    // Versuch 2 (Fallback): NUR access_token → Firebase holt das Profil über Googles
+    // userinfo-Endpoint, ganz ohne aud-Prüfung. Das ist der zuverlässige Weg.
+    let signedIn = false;
+    if (tok.id_token) {
+      try {
+        await window.FB.signInWithCredential(window.FB.googleCredential(tok.id_token, tok.access_token || null));
+        signedIn = true;
+        window._ggTrace.push('5) signInWithCredential (id_token) ok ✅');
+      } catch (e1) {
+        window._ggTrace.push('5a) id_token abgelehnt (' + (e1?.code || e1?.message || e1) + ') → Fallback access_token');
+        console.warn('[GymTrack] id_token abgelehnt, versuche access_token:', e1?.code || e1);
+      }
+    }
+    if (!signedIn) {
+      if (!tok.access_token) throw new Error('id_token abgelehnt und kein access_token für Fallback');
+      await window.FB.signInWithCredential(window.FB.googleCredential(null, tok.access_token));
+      window._ggTrace.push('5b) signInWithCredential (access_token) ok ✅');
+    }
     console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');
   } catch(e) {
     _googlePKCE = null;
     console.error('[GymTrack] ❌ Google OAuth Callback fehlgeschlagen:', e);
     alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
-          '\n\n❌ Fehler: ' + (e?.message||e));
+          '\n\n❌ Fehler: ' + (e?.code ? e.code + ' — ' : '') + (e?.message||e));
   }
 }
 
