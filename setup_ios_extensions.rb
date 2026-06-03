@@ -15,6 +15,19 @@ MIN_IOS_VERSION = '16.1'
 
 project = Xcodeproj::Project.open(PROJECT_PATH)
 
+# ── App-Target: Entitlements IMMER erzwingen ─────────────────
+# Ohne CODE_SIGN_ENTITLEMENTS wird App/App.entitlements nie eingebettet →
+# "Sign in with Apple" fehlt in der fertigen App → AuthorizationError 1000.
+# Läuft vor dem early-exit, damit es bei jedem Build greift.
+app_target = project.targets.find { |t| t.name == 'App' }
+if app_target
+  app_target.build_configurations.each do |config|
+    config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+  end
+  project.save
+  puts '✅ App-Target CODE_SIGN_ENTITLEMENTS = App/App.entitlements gesetzt.'
+end
+
 # ── Extension schon da? ──────────────────────────────────────
 if project.targets.any? { |t| t.name == 'GymTrackWidget' }
   puts '✅ GymTrackWidget-Target bereits vorhanden – überspringe.'
