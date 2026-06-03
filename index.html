@@ -4218,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606031700';
+const APP_VERSION = 'gymtrack-v202606031800';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -11748,6 +11748,7 @@ let _syncing    = false;    // Lock, damit Cloud-Update keinen erneuten Push tri
 let _pushTimer  = null;     // Debounce-Timer für persist→cloud
 let _initialMergeDone = false;
 let _loginInProgress = false; // verhindert, dass die anonyme Auto-Anmeldung einen laufenden Google-Login stört
+let _onLoginUid = null;       // UID, für die _onLogin bereits läuft/lief (gegen Doppelausführung)
 
 // Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
 const _origPersist = persist;
@@ -11816,6 +11817,11 @@ function _mergeData(local, cloud) {
 }
 
 async function _onLogin(user) {
+  // Kann von onAuthStateChanged UND direkt nach signInWithCredential aufgerufen
+  // werden (Letzteres, weil onAuthStateChanged in der WKWebView nicht zuverlässig
+  // feuert). Pro UID nur einmal voll verarbeiten — sonst doppelter Sync/Toast.
+  if (_onLoginUid === user.uid) { _fbUser = user; updateAccountUI(); return; }
+  _onLoginUid = user.uid;
   console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid, user.isAnonymous ? '(anonym)' : '');
   _fbUser = user;
   updateAccountUI();
@@ -11902,6 +11908,7 @@ function _onLogout() {
   analyticsStop();
   if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
+  _onLoginUid = null;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   _initialMergeDone = false;
   updateAccountUI();
@@ -12495,23 +12502,25 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     // id_tokens die iOS-Client-ID ist und Firebase sie nicht akzeptiert.
     // Versuch 2 (Fallback): NUR access_token → Firebase holt das Profil über Googles
     // userinfo-Endpoint, ganz ohne aud-Prüfung. Das ist der zuverlässige Weg.
-    let signedIn = false;
+    let fbRes = null;
     if (tok.id_token) {
       try {
-        await window.FB.signInWithCredential(window.FB.googleCredential(tok.id_token, tok.access_token || null));
-        signedIn = true;
+        fbRes = await window.FB.signInWithCredential(window.FB.googleCredential(tok.id_token, tok.access_token || null));
         window._ggTrace.push('5) signInWithCredential (id_token) ok ✅');
       } catch (e1) {
         window._ggTrace.push('5a) id_token abgelehnt (' + (e1?.code || e1?.message || e1) + ') → Fallback access_token');
         console.warn('[GymTrack] id_token abgelehnt, versuche access_token:', e1?.code || e1);
       }
     }
-    if (!signedIn) {
+    if (!fbRes) {
       if (!tok.access_token) throw new Error('id_token abgelehnt und kein access_token für Fallback');
-      await window.FB.signInWithCredential(window.FB.googleCredential(null, tok.access_token));
+      fbRes = await window.FB.signInWithCredential(window.FB.googleCredential(null, tok.access_token));
       window._ggTrace.push('5b) signInWithCredential (access_token) ok ✅');
     }
     console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');
+    // onAuthStateChanged feuert in der WKWebView nicht zuverlässig → _onLogin direkt
+    // mit dem zurückgegebenen User antreiben (Guard verhindert Doppellauf).
+    if (fbRes?.user) _onLogin(fbRes.user);
   } catch(e) {
     _googlePKCE = null;
     console.error('[GymTrack] ❌ Google OAuth Callback fehlgeschlagen:', e);
@@ -12579,8 +12588,11 @@ async function doAppleSignIn() {
     if (!result?.identityToken) throw new Error('Kein Identity Token von Apple erhalten');
     // 3) Firebase bekommt idToken + rawNonce → hasht selbst und vergleicht.
     const cred = window.FB.appleCredential(result.identityToken, rawNonce);
-    await window.FB.signInWithCredential(cred);
+    const fbRes = await window.FB.signInWithCredential(cred);
     console.log('[GymTrack] ✅ Apple Sign In erfolgreich');
+    // onAuthStateChanged feuert in der WKWebView nicht zuverlässig → _onLogin
+    // direkt mit dem zurückgegebenen User antreiben (Guard verhindert Doppellauf).
+    if (fbRes?.user) _onLogin(fbRes.user);
   } catch(e) {
     if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
     console.error('[GymTrack] ❌ Apple Sign In fehlgeschlagen:', e);
@@ -12750,9 +12762,11 @@ function _initFirebaseListeners() {
   // Anonyme Auth nach 3s Auto-Login (für Analytics auch ohne Google-Login)
   setTimeout(() => {
     if (!_fbUser && !_loginInProgress && window.FB?.signInAnonymously) {
-      window.FB.signInAnonymously().catch(e => {
-        console.warn('[GymTrack] Anonyme Auth nicht verfügbar (in Firebase Console aktivieren):', e?.code || e?.message);
-      });
+      window.FB.signInAnonymously()
+        .then(res => { if (res?.user) _onLogin(res.user); })
+        .catch(e => {
+          console.warn('[GymTrack] Anonyme Auth nicht verfügbar (in Firebase Console aktivieren):', e?.code || e?.message);
+        });
     }
   }, 3000);
 }
