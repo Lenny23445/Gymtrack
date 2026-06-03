@@ -19,7 +19,7 @@
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, setPersistence }
+  import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
@@ -46,10 +46,16 @@
 
   if (CONFIGURED) {
     const app  = initializeApp(FIREBASE_CONFIG);
-    const auth = getAuth(app);
-    // WKWebView/Capacitor: IndexedDB hängt mit capacitor://localhost → localStorage erzwingen.
-    // Ohne das friert signInWithCredential lautlos ein (keine Resolve, kein Reject).
-    setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Firebase] setPersistence:', e));
+    // initializeAuth statt getAuth: setzt browserLocalPersistence BEVOR Firebase
+    // überhaupt IndexedDB anfasst. setPersistence(nach getAuth) war zu spät —
+    // es versuchte IndexedDB zu migrieren und hing dabei, was signInWithCredential
+    // blockierte. Mit initializeAuth wird IndexedDB nie initialisiert.
+    let auth;
+    try {
+      auth = initializeAuth(app, { persistence: browserLocalPersistence });
+    } catch(_) {
+      auth = getAuth(app); // bereits initialisiert (z.B. Hot-Reload)
+    }
     const db   = getFirestore(app);
     const rtdb = getDatabase(app);
     const provider = new GoogleAuthProvider();
@@ -4227,7 +4233,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606032000';
+const APP_VERSION = 'gymtrack-v202606032100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
