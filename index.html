@@ -59,7 +59,7 @@
     window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
     window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
     window.FB.signInAnonymously  = () => signInAnonymously(auth);
-    window.FB.googleCredential   = (idToken) => GoogleAuthProvider.credential(idToken);
+    window.FB.googleCredential   = (idToken, accessToken) => GoogleAuthProvider.credential(idToken, accessToken);
     window.FB.appleCredential    = (idToken) => { const p = new OAuthProvider('apple.com'); return p.credential({ idToken }); };
     window.FB.getRedirectResult  = () => getRedirectResult(auth);
     window.FB.signOut            = () => signOut(auth);
@@ -12491,7 +12491,9 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     window._ggTrace.push('4) Token-Tausch: ' + (tok.error ? ('FEHLER ' + tok.error) : (tok.id_token ? 'id_token erhalten' : 'KEIN id_token')));
     if (tok.error) throw new Error(tok.error_description || tok.error);
     if (!tok.id_token) throw new Error('Kein ID Token erhalten');
-    const cred = window.FB.googleCredential(tok.id_token);
+    // id_token allein kann fehlschlagen wenn sein aud-Claim die iOS-Client-ID enthält
+    // (statt der Web-Client-ID die Firebase erwartet). access_token als Fallback mitgeben.
+    const cred = window.FB.googleCredential(tok.id_token, tok.access_token || null);
     await window.FB.signInWithCredential(cred);
     window._ggTrace.push('5) signInWithCredential ok ✅');
     console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');

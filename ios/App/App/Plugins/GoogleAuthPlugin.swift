@@ -50,6 +50,11 @@ public class GoogleAuthPlugin: CAPPlugin, CAPBridgedPlugin {
 
 extension GoogleAuthPlugin: ASWebAuthenticationPresentationContextProviding {
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        bridge!.viewController!.view.window!
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let kw = scene.windows.first(where: { $0.isKeyWindow }) {
+            return kw
+        }
+        return bridge!.viewController!.view.window!
     }
 }

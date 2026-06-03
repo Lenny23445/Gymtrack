@@ -57,6 +57,13 @@ extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
 
 extension AppleSignInPlugin: ASAuthorizationControllerPresentationContextProviding {
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        bridge!.viewController!.view.window!
+        // Must return the KEY window — Sign In with Apple fails with error 1000 when
+        // a non-key window (e.g. the WKWebView window in Capacitor) is returned.
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let kw = scene.windows.first(where: { $0.isKeyWindow }) {
+            return kw
+        }
+        return bridge!.viewController!.view.window!
     }
 }
