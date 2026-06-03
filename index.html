@@ -649,6 +649,17 @@ body{
 }
 @keyframes up{from{transform:translateY(100%)}}
 
+/* Dark Mode: große Overlay-Flächen (Bottom-Sheets, Trainingskalender) dunkel
+   tönen statt hell — der weiße Glas-Tint über dem bunten Mesh wirkt sonst
+   ausgewaschen/hell und passt nicht zum Dunkelheitsmodus. */
+[data-theme="dark"] .sheet,
+[data-theme="dark"] .cal-card,
+[data-theme="dark"] .mus-card,
+[data-theme="dark"] .vol-card{
+  background-color:rgba(18,18,30,.66);
+  background-image:none;
+}
+
 .sh-handle{
   /* breites, unsichtbares Touch-Ziel */
   width:100%;height:28px;
@@ -1756,6 +1767,15 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .hw-quick:active{transform:scale(.97);opacity:.85}
 /* Erholungs-Widget */
 .hw-rec-list{display:flex;flex-direction:column;gap:9px}
+/* Verkleinert (sm): quadratische Erholungs-Batterie */
+.hw-rec-batt{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.hw-rec-batt .rec-batt-v{height:64px}
+.hw-rec-batt .rec-batt-v-pct{font-size:19px}
+/* „Diese Woche"-Widget (7-Tage-Trainingsübersicht) */
+.hw-week{cursor:pointer}
+.hw-week .week-circles-row{display:flex;justify-content:space-between;gap:4px;margin-bottom:10px}
+.hw-week-foot{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2)}
+.hw-week-foot b{color:var(--text);font-weight:700}
 .hw-rec-row{display:flex;align-items:center;gap:8px;cursor:pointer}
 .hw-rec-label{font-size:12px;font-weight:600;flex:0 0 72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hw-rec-bar{flex:1;height:6px;border-radius:4px;background:var(--g5);overflow:hidden}
@@ -1871,6 +1891,11 @@ body.heute-editing .heute-edit-bar{display:flex}
   flex-shrink:0;margin-bottom:10px;
 }
 .weight-left{flex-shrink:0;min-width:80px}
+/* Verkleinertes Gewicht-Widget: quadratisch, ohne Diagramm & Ziel-Block,
+   nur Gewicht + Verlaufs-Delta + Eintragen-Button. */
+.weight-card-sm{aspect-ratio:1;display:flex;flex-direction:column;justify-content:center}
+.weight-card-sm .weight-top-row{align-items:center;margin-bottom:0}
+.weight-card-sm .weight-left{flex:1}
 .weight-mini-wrap{
   flex:1;min-width:0;
   height:74px;
@@ -2876,13 +2901,28 @@ body.heute-editing .heute-edit-bar{display:flex}
 .prog-dot.up{background:#34c759}.prog-dot.down{background:#ff3b30}
 .prog-dot.same{background:#ff9500}.prog-dot.new{background:#c7c7cc}
 /* ── REST-TIMER BAR ─────────────────────────────────── */
-.rest-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(var(--acc-rgb),.1);border:1.5px solid rgba(var(--acc-rgb),.25);border-radius:16px;padding:11px 16px;margin:10px 0 4px;gap:10px}
-.rest-bar-lbl{font-size:13px;color:var(--text2)}
+/* Bleibt beim Scrollen oben sichtbar (sticky) und ist als gefüllter,
+   pulsierender Akzent-Balken deutlich prominenter — kein Hochscrollen nötig. */
+.rest-bar{
+  position:sticky;top:6px;z-index:6;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.97),rgba(var(--acc-rgb),.80));
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:16px;padding:11px 14px;margin:10px 0 12px;
+  color:#fff;
+  box-shadow:0 10px 30px rgba(var(--acc-rgb),.45),0 2px 10px rgba(0,0,0,.28);
+  animation:restPulse 1.7s ease-in-out infinite;
+}
+@keyframes restPulse{
+  0%,100%{box-shadow:0 10px 30px rgba(var(--acc-rgb),.42),0 2px 10px rgba(0,0,0,.28)}
+  50%    {box-shadow:0 10px 40px rgba(var(--acc-rgb),.80),0 2px 10px rgba(0,0,0,.28)}
+}
+.rest-bar-lbl{font-size:13px;font-weight:700;color:rgba(255,255,255,.92);flex-shrink:0}
 .rest-bar-controls{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
-.rest-bar-val{font-size:22px;font-weight:700;color:var(--acc);min-width:54px;text-align:center;letter-spacing:.5px}
-.rest-adj-btn{font-size:12px;font-weight:600;color:var(--acc);background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.25);border-radius:16px;padding:4px 10px;cursor:pointer}
-.rest-adj-btn:active{background:rgba(var(--acc-rgb),.22)}
-.rest-bar-skip{font-size:12px;font-weight:600;color:var(--acc);background:none;border:1px solid rgba(var(--acc-rgb),.3);border-radius:20px;padding:5px 13px;cursor:pointer}
+.rest-bar-val{font-size:26px;font-weight:800;color:#fff;min-width:62px;text-align:center;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.rest-adj-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:5px 10px;cursor:pointer}
+.rest-adj-btn:active{background:rgba(255,255,255,.32)}
+.rest-bar-skip{font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:5px 13px;cursor:pointer;flex-shrink:0}
 .last-train-tag{display:inline-block;font-size:11px;font-weight:600;background:rgba(var(--acc-rgb),.12);color:var(--acc);border:1px solid rgba(var(--acc-rgb),.25);border-radius:10px;padding:2px 8px;margin-left:8px;vertical-align:middle;white-space:nowrap}
 /* ── SESSION-NOTIZ ──────────────────────────────────── */
 .wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
@@ -4233,7 +4273,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606032359';
+const APP_VERSION = 'gymtrack-v202606032117';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5174,6 +5214,7 @@ function setGlass(on) {
    Layout in S.heuteLayout = [{type, size:'lg'|'sm'}, …]
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
+  {type:'weekcal', size:'lg'},
   {type:'woche',   size:'lg'},
   {type:'weight',  size:'lg'},
   {type:'history', size:'lg'},
@@ -5181,7 +5222,8 @@ const DEFAULT_HEUTE_LAYOUT = [
 ];
 
 const WIDGET_DEFS = {
-  woche:   {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochen-Tracker-Ringe',        sizes:['lg'],      build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
+  weekcal: {title:'Diese Woche',     icon:'🗓️', label:'Diese Woche',      desc:'Trainingswoche · 7 Tage',     sizes:['lg'],      build:hwWeekcal},
+  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['lg'],      build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['lg','sm'], build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],      build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
   train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['lg','sm'], build:()=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; Training starten</button>`},
@@ -5195,7 +5237,7 @@ const WIDGET_DEFS = {
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('⚖️','Gewicht','openWeightEntry()')},
   qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('🏃','Cardio','openKardio()')},
 };
-const WIDGET_PICK_ORDER = ['woche','weight','history','train','streak','volume','recovery','heatmap','muscles','onerm','qadd','qweight','qcardio'];
+const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight','qcardio'];
 
 let heuteEditMode = false;
 
@@ -5257,14 +5299,29 @@ function hwVolume(){
     ${_sparkline(vols.slice(-16))}
   </div>`;
 }
-function hwRecovery(){
+function hwRecovery(size){
   const mgRec = getMuscleGroupRecovery();
-  const rows = MUSCLE_GROUPS
+  const trained = MUSCLE_GROUPS
     .map(mg => ({mg, r: mgRec[mg.id] || {recPct:100,lastTs:null}}))
-    .filter(x => x.r.lastTs)
-    .sort((a,b)=>a.r.recPct-b.r.recPct)
-    .slice(0,5);
-  if (!rows.length) return `<div class="hw-card"><div class="hw-empty-mini">Alle Muskeln erholt 💪</div></div>`;
+    .filter(x => x.r.lastTs);
+  if (!trained.length) return `<div class="hw-card"><div class="hw-empty-mini">Alle Muskeln erholt 💪</div></div>`;
+
+  // Verkleinert (sm): kompaktes Quadrat mit Erholungs-Batterie (Gesamterholung)
+  if (size === 'sm'){
+    const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
+    const col = recoveryColor(pct);
+    const state = recoveryState(pct);
+    return `<div class="hw-card hw-rec-batt">
+      <div class="rec-batt-v-outer">
+        <div class="rec-batt-v-cap"></div>
+        <div class="rec-batt-v"><div class="rec-batt-v-fill" style="height:${pct}%;background:${col}"></div></div>
+      </div>
+      <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
+      <div class="rec-batt-v-lbl"><b>${state}</b></div>
+    </div>`;
+  }
+
+  const rows = trained.sort((a,b)=>a.r.recPct-b.r.recPct).slice(0,5);
   return `<div class="hw-card hw-rec-list">` + rows.map(({mg,r})=>{
     const col = recoveryColor(r.recPct);
     return `<div class="hw-rec-row" onclick="openMuscleGroupRecoveryDetail('${mg.id}')">
@@ -5299,6 +5356,27 @@ function hwHeatmap(){
     html += '</div>';
   }
   return `<div class="hw-card hw-hm-wrap">${html}</div>`;
+}
+function hwWeekcal(){
+  if (!S.sessions || !S.sessions.length)
+    return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Trainings diese Woche</div></div>`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { map, level } = _volMap();
+  const mon = new Date(today); mon.setDate(today.getDate() - _DOW_MON0(today));
+  let days = '', trained = 0;
+  for (let i=0;i<7;i++){
+    const d = new Date(mon); d.setDate(mon.getDate()+i);
+    const v = map[_localDateKey(d)] || 0;
+    if (v>0) trained++;
+    const isToday  = d.getTime()===today.getTime();
+    const isFuture = d>today;
+    const cls = [v>0?'l'+level(v):'', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
+    days += `<div class="week-day"><div class="week-dot ${cls}">${v>0?'✓':d.getDate()}</div><div class="week-day-lbl">${_WD_LBL[i]}</div></div>`;
+  }
+  return `<div class="hw-card hw-week" onclick="openCalendarOverlay()">
+    <div class="week-circles-row">${days}</div>
+    <div class="hw-week-foot"><span><b>${trained}</b> ${trained===1?'Training':'Trainings'} diese Woche</span><span>Kalender →</span></div>
+  </div>`;
 }
 function hwMuscles(){
   const tot = {}; let grand = 0;
@@ -5735,11 +5813,19 @@ function renderWeightCard() {
     deltaHtml  = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
   }
 
+  // Widget-Größe aus dem Wrapper lesen — bei „sm" (verkleinert) wird das
+  // schmale Diagramm komplett weggelassen, damit die Karte sauber aussieht.
+  const size = el.closest('.hw')?.dataset.size || 'lg';
+  const isSm = size === 'sm';
+
   const miniContent = log.length >= 2
     ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
     : `<div class="weight-mini-empty">${log.length===1 ? '1 Eintrag' : 'Noch kein Verlauf'}</div>`;
 
-  el.innerHTML = `<div class="weight-card-inner">
+  const miniWrap = isSm ? '' :
+    `<div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">${miniContent}</div>`;
+
+  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}">
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
@@ -5750,15 +5836,13 @@ function renderWeightCard() {
              <div class="weight-current-unit">${unit}</div>`
         }
       </div>
-      <div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">
-        ${miniContent}
-      </div>
+      ${miniWrap}
       <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
-    ${_buildGoalHtml(start, goal, cur, unit)}
+    ${isSm ? '' : _buildGoalHtml(start, goal, cur, unit)}
   </div>`;
 
-  requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
+  if (!isSm) requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
 }
 
 function openWeightChartFull() {
@@ -12700,6 +12784,15 @@ function _setupAppUrlListener() {
 // Deep-Link aus dem Home-Screen-Widget (z.B. gymtrack://day/2 = Mittwoch)
 function _handleWidgetDeepLink(url) {
   try {
+    // Live-Activity / Dynamic Island angetippt → zurück zum laufenden Training,
+    // also dorthin, wo man die App verlassen hat — NICHT zur Statistik.
+    if (/^gymtrack:\/\/workout/.test(url)) {
+      if (typeof isWorkoutActive === 'function' && isWorkoutActive()
+          && typeof resumeWorkout === 'function') {
+        resumeWorkout();
+      }
+      return; // sonst aktuellen Zustand/Tab unverändert lassen
+    }
     // Tracker-Ring im Widget angetippt (iOS-16-Fallback) → +1 in der App
     const t = url.match(/^gymtrack:\/\/track\/([^/?#]+)/);
     if (t) {

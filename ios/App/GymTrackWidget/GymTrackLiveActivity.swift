@@ -15,14 +15,40 @@ struct GymTrackActivityAttributes: ActivityAttributes {
     var startDate:   Date
 }
 
+/// Dynamisch bewegte Hantel für Dynamic Island & Lock Screen.
+/// iOS erlaubt in Live Activities keine freien Keyframe-Animationen — nur
+/// System-Symbol-Effekte laufen durch. Daher: `.rotate` (dreht sich, iOS 18+)
+/// mit `.pulse` als Fallback auf älteren Systemen.
+struct SpinningDumbbell: View {
+    var font: Font = .title2
+    private var icon: some View {
+        Image(systemName: "dumbbell.fill")
+            .font(font)
+            .foregroundColor(.accentColor)
+    }
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            icon.symbolEffect(.rotate, options: .repeating)   // dreht sich
+        } else if #available(iOS 17.0, *) {
+            icon.symbolEffect(.pulse, options: .repeating)    // pulsiert (Fallback)
+        } else {
+            icon                                              // iOS 16: statisch
+        }
+    }
+}
+
 struct GymTrackLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: GymTrackActivityAttributes.self) { context in
             // Lock Screen / Notification Banner
             HStack(spacing: 14) {
-                Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
-                    .font(.title2)
-                    .foregroundColor(context.state.isResting ? .orange : .accentColor)
+                if context.state.isResting {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.orange)
+                } else {
+                    SpinningDumbbell(font: .title2)
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(context.attributes.workoutName)
@@ -60,9 +86,7 @@ struct GymTrackLiveActivity: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
-                        Image(systemName: "dumbbell.fill")
-                            .foregroundColor(.accentColor)
-                            .font(.title3)
+                        SpinningDumbbell(font: .title3)
                         Text(context.attributes.workoutName)
                             .font(.caption2).foregroundColor(.secondary)
                             .lineLimit(1)
@@ -92,8 +116,12 @@ struct GymTrackLiveActivity: Widget {
                         .font(.headline).bold().lineLimit(1).padding(.bottom, 4)
                 }
             } compactLeading: {
-                Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
-                    .foregroundColor(context.state.isResting ? .orange : .accentColor)
+                if context.state.isResting {
+                    Image(systemName: "pause.circle.fill")
+                        .foregroundColor(.orange)
+                } else {
+                    SpinningDumbbell(font: .body)
+                }
             } compactTrailing: {
                 if context.state.isResting {
                     Text("\(context.state.restSeconds)s")
@@ -108,8 +136,12 @@ struct GymTrackLiveActivity: Widget {
                         .frame(width: 44)
                 }
             } minimal: {
-                Image(systemName: context.state.isResting ? "pause.circle.fill" : "dumbbell.fill")
-                    .foregroundColor(context.state.isResting ? .orange : .accentColor)
+                if context.state.isResting {
+                    Image(systemName: "pause.circle.fill")
+                        .foregroundColor(.orange)
+                } else {
+                    SpinningDumbbell(font: .body)
+                }
             }
             .keylineTint(.accentColor)
             .widgetURL(URL(string: "gymtrack://workout"))
