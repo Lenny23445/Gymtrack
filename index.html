@@ -4233,7 +4233,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606032100';
+const APP_VERSION = 'gymtrack-v202606032359';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -10543,48 +10543,164 @@ function goTabId(id) {
   goTab(id, tabs[idx]);
 }
 
+// ── TUTORIAL-SIMULATION MIT TESTDATEN ──────────────────
+// Während der Tour werden realistische Beispieldaten geladen, damit jede
+// Funktion (Streak, Tracker, Volumen, 1RM, Wochenplan …) befüllt sichtbar
+// ist. Die echten Nutzerdaten werden vorher gesichert und nach der Tour
+// 1:1 wiederhergestellt — es wird währenddessen NICHT persistiert.
+let _tourDemoActive = false;
+let _tourRealSnapshot = null;
+
+function _buildTourDemo(){
+  const mk = (name,e,mg,s,r,t) => ({ id:uid(), name, emoji:e, muscleGroup:mg,
+    targetSets:s, targetReps:r, targetWeight:0, targetType:t||'reps' });
+  const bench = mk('Bankdrücken','🏋️','brust',3,8);
+  const pull  = mk('Klimmzüge','🆙','ruecken',3,8);
+  const squat = mk('Kniebeugen','🦵','beine',3,8);
+  const ohp   = mk('Schulterdrücken','🏋️','schultern',3,8);
+  const curl  = mk('Bizeps-Curls (LH)','💪','arme',3,10);
+  const plank = mk('Plank','🪵','core',3,60,'time');
+  const exercises = [bench, pull, squat, ohp, curl, plank];
+
+  const now = new Date();
+  const sessions = [];
+  const set  = (w,r,type) => type ? { w, r:String(r), type } : { w, r:String(r) };
+  const eLog = (ex,sets) => ({ exerciseId:ex.id, sets });
+  const mkSess = (daysAgo, logs, dur) => {
+    const d = new Date(now); d.setDate(d.getDate()-daysAgo); d.setHours(18,30,0,0);
+    sessions.push({ id:uid(), date:d.toISOString(), duration:dur||3300, logs });
+  };
+  // 11 Wochen progressiver Verlauf (für Streak, Heatmap, Volumen-Trend, 1RM)
+  for (let wk = 10; wk >= 0; wk--){
+    const p = (10 - wk); // steigt 0 → 10
+    // Push-Tag
+    mkSess(wk*7 + 4, [
+      eLog(bench, [ set(40,10,'warmup'), set(60 + p*1.25, 8), set(60 + p*1.25, 8), set(60 + p*1.25, 7) ]),
+      eLog(ohp,   [ set(35 + p, 9), set(35 + p, 8), set(35 + p, 7) ]),
+      eLog(curl,  [ set(25 + p*0.5, 10), set(25 + p*0.5, 10), set(25 + p*0.5, 9) ]),
+    ], 3300);
+    // Pull-Tag
+    mkSess(wk*7 + 2, [
+      eLog(pull,  [ set(0,9), set(0,8), set(0,7) ]),
+      eLog(curl,  [ set(27 + p*0.5, 10), set(27 + p*0.5, 9) ]),
+      eLog(plank, [ set('',60), set('',75) ]),
+    ], 3000);
+    // Bein-Tag
+    mkSess(wk*7 + 0, [
+      eLog(squat, [ set(50,10,'warmup'), set(80 + p*2.5, 6, 'top'), set(75 + p*2.5, 8), set(75 + p*2.5, 8) ]),
+    ], 4200);
+  }
+
+  // Tracker-Ringe (Wochenziele)
+  const wk = getWeekKey();
+  const trackerItems  = [ { id:'gym', label:'Gym', goal:4 }, { id:'laufen', label:'Laufen', goal:3 }, { id:'fahrrad', label:'Fahrrad', goal:2 } ];
+  const trackerCounts = { gym:{ [wk]:3 }, laufen:{ [wk]:2 }, fahrrad:{ [wk]:1 } };
+
+  // Wochenplan (PPL-artig) mit den Demo-Übungen
+  const weekPlan = {
+    mon:{ type:'exercises', exIds:[bench.id, ohp.id, curl.id] },
+    tue:{ type:'none' },
+    wed:{ type:'exercises', exIds:[pull.id, curl.id, plank.id] },
+    thu:{ type:'none' },
+    fri:{ type:'exercises', exIds:[squat.id] },
+    sat:{ type:'none' },
+    sun:{ type:'none' },
+  };
+
+  // Körpergewicht-Verlauf (leichter Abwärtstrend)
+  const weightLog = [];
+  for (let i = 10; i >= 0; i--){
+    const d = new Date(now); d.setDate(d.getDate() - i*7);
+    weightLog.push({ date: d.toISOString().slice(0,10), weight: +(84 - (10 - i)*0.35).toFixed(1) });
+  }
+
+  return { exercises, sessions, trackerItems, trackerCounts, weekPlan,
+    weightLog, weightStart:84, weightGoal:78 };
+}
+
+function loadTourDemo(){
+  if (_tourDemoActive) return;
+  _tourRealSnapshot = JSON.parse(JSON.stringify(S));
+  const demo = _buildTourDemo();
+  Object.assign(S, demo);
+  S.heuteLayout = null; // Standard-Dashboard zeigen
+  _tourDemoActive = true;
+  try { invalidateFatigue(); invalidateRecovery(); } catch(e){}
+}
+
+function restoreTourDemo(){
+  if (!_tourDemoActive || !_tourRealSnapshot) return;
+  const snap = _tourRealSnapshot;
+  Object.keys(S).forEach(k => { if (!(k in snap)) delete S[k]; });
+  Object.assign(S, snap);
+  _tourRealSnapshot = null;
+  _tourDemoActive = false;
+  try { invalidateFatigue(); invalidateRecovery(); } catch(e){}
+}
+
 const TOUR = [
   {
     target:null,
     title:'Willkommen bei GymTrack! 💪',
-    body:'Ich zeige dir in <b>7 Schritten</b> alles, was die App kann. Tippe auf <b>Weiter</b> oder überspringe die Tour jederzeit.',
+    body:'Schön, dass du in der <b>Beta</b> dabei bist! Diese Tour zeigt dir in <b>10 Schritten</b> jede Funktion — mit geladenen <b>Beispieldaten</b>, damit du alles direkt in Aktion siehst. Deine echten Daten bleiben unberührt und sind nach der Tour wieder da. Tippe auf <b>Weiter</b> oder überspringe jederzeit oben rechts.',
     prep:()=> goTabId('heute')
   },
   {
-    target:'#heute-history-sec',
-    title:'Heute-Tab 🏠',
-    body:'<b>Streak-Counter</b> zählt deine Trainingswochen in Folge. <b>Tracker-Kreise</b> für Gym, Laufen, Cardio & mehr. <b>Letzte Trainings</b> — nach links wischen zum Löschen. <b>Vorschläge der Woche</b> zeigen, was als nächstes dran ist.',
+    target:'#heute-grid',
+    title:'Dein Dashboard „Heute" 🏠',
+    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, <b>vergrößern</b> oder neue <b>hinzufügen</b> — z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht/Cardio).',
+    hint:'Später: gedrückt halten zum Umbauen',
     prep:()=> goTabId('heute')
   },
   {
-    target:'#pg-heute .btn-acc',
+    target:'#tracker-row, #streak-badge-host',
+    title:'Streak & Wochen-Tracker 🔥',
+    body:'Oben rechts zählt der <b>Streak</b> deine Trainingswochen in Folge. Die <b>Tracker-Ringe</b> sind Wochenziele für beliebige Aktivitäten (Gym, Laufen, Fahrrad …): einmal <b>tippen = +1</b>, langes Drücken zum Bearbeiten. Hier siehst du z. B. „3 von 4 Gym-Einheiten" diese Woche.',
+    hint:'Tippen füllt den Ring',
+    prep:()=> goTabId('heute')
+  },
+  {
+    target:'#history-card, #weight-card',
+    title:'Letzte Trainings & Gewicht 📋',
+    body:'<b>Letzte Trainings</b> zeigt deine Einheiten — antippen für Details, <b>nach links wischen</b> zum Löschen. Das <b>Gewicht-Widget</b> trackt dein Körpergewicht mit <b>Start-, Ziel-</b> und Verlaufskurve. Beides aktualisiert sich automatisch nach jedem Eintrag.',
+    prep:()=> goTabId('heute')
+  },
+  {
+    target:'.heute-train-btn, #pg-heute .btn-acc',
     title:'Training & Cardio ▶',
-    body:'<b>Training starten:</b> Übungen wählen und Sätze loggen. <b>Live-Vergleich</b> zum letzten Mal direkt unter jedem Satz. <b>Satz-Typen:</b> Normal · Aufwärmen · Drop · Versagen. <b>Auto-Progression:</b> Gewichtsvorschlag wenn alle Ziel-Wdh geschafft. <b>Cardio-Timer</b> läuft auch im Hintergrund.',
+    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an<br>• <b>Cardio-Timer</b> läuft im Hintergrund weiter — auch bei geschlossener App.',
     prep:()=> goTabId('heute')
   },
   {
-    target:'.tabbar .tab:nth-child(3)',
-    title:'Übungen-Tab 💪',
-    body:'<b>60+ Standardübungen</b> direkt nutzbar — oder eigene anlegen mit Icon & Muskelgruppe. <b>Wochenplan</b> per Drag & Drop. <b>Fertige Vorlagen</b>: PPL, Upper-Lower, Full Body. <b>Filter</b> nach Muskeln / Push-Pull-Legs / Ober-Unter. <b>Suche</b> für schnelles Finden.',
+    target:'#ex-list',
+    title:'Übungen-Bibliothek 💪',
+    body:'<b>60+ Standardübungen</b> sofort einsatzbereit — oder leg <b>eigene Übungen</b> an mit Icon, Muskelgruppe, Zielsätzen/-wdh und Typ (Wiederholungen oder Zeit). Über die <b>Suche</b> und die <b>Filter</b> (Muskeln · Push-Pull-Legs · Ober-/Unterkörper) findest du alles in Sekunden.',
     prep:()=> goTabId('uebungen')
   },
   {
-    target:'.week-card',
-    title:'Statistik 📊',
-    body:'<b>Wochenübersicht</b> — Mo–So auf einen Blick, mit Häkchen für jeden Trainingstag. <b>Tippen</b> öffnet den Kalender der letzten Monate. <b>Volumen-Verlauf</b> zeigt deinen Fortschritt als Chart. <b>1RM-Berechnung</b> per Epley-Formel. <b>Pro Muskelgruppe</b> — Schwachstellen erkennen & gezielt trainieren.',
-    prep:()=> goTabId('stats')
+    target:'#ex-week-preview',
+    title:'Wochenplan & Vorlagen 📅',
+    body:'Plane deine Woche Mo–So: Übungen per <b>Drag & Drop</b> auf einen Tag ziehen oder ganze <b>Vorlagen</b> laden — <b>PPL</b>, <b>Upper/Lower</b>, <b>Full Body</b> u. a. Der Plan steuert die <b>Vorschläge</b>, die <b>Erinnerungen</b> und das iOS-Widget. Tippe auf die Vorschau, um den Plan zu öffnen.',
+    prep:()=> goTabId('uebungen')
   },
   {
-    target:'.tabbar .tab:nth-child(5)',
-    title:'Einstellungen ⚙️',
-    body:'<b>5 Themes:</b> Hell, Rosa, Dunkel, Blau, Grün. <b>Cloud-Sync</b> mit Google — Daten automatisch auf allen Geräten. <b>Erinnerungen</b> täglich zur Wunsch-Uhrzeit. <b>Daten exportieren</b> jederzeit per JSON.',
-    prep:()=> goTabId('settings')
+    union:['.stats-dual', '#week-card'],
+    pad:8,
+    title:'Statistik & Auswertung 📊',
+    body:'<b>Volumen-Verlauf</b>, <b>Erholungs-Anzeige</b> und <b>Wochenübersicht</b> (Tap öffnet den <b>Kalender</b>) auf einen Blick. Weiter unten findest du <b>Muskelgruppen</b> & <b>1RM-Bestwerte</b> (Epley) pro Übung.',
+    prep:()=> { goTabId('stats'); window.scrollTo(0, 0); }
   },
   {
     target:null,
-    title:'Du bist startklar! 🚀',
-    body:'<b>Sheets schließen:</b> Griff nach unten wischen. <b>Haptisches Feedback</b> bei wichtigen Aktionen. <b>Auto-Update:</b> Neue Funktionen kommen automatisch — beim nächsten Start gibt es ein Changelog-Pop-up. Viel Spaß beim Training!',
+    title:'iOS-Widgets & Apple-Integration 🍎',
+    body:'GymTrack ist tief in iOS integriert:<br>• <b>Home-Widget</b> mit Wochen-Kreisen & Tracker-Ringen — <b>+1 direkt im Widget</b>, ohne die App zu öffnen<br>• <b>Sperrbildschirm-Widget</b> mit deinem Streak<br>• <b>Dynamic Island & Live-Aktivität</b> beim Training: aktuelle Übung, Sätze & Pausen-Timer live<br>• <b>Apple Health:</b> Workouts & Gewicht synchron<br>• <b>Spotlight:</b> Übungen direkt aus der iOS-Suche<br>• <b>Anmeldung</b> mit Apple oder Google.',
     prep:()=> goTabId('heute')
+  },
+  {
+    target:'.tabbar .tab:last-child',
+    title:'Einstellungen — los geht\'s! 🚀',
+    body:'Mach die App zu deiner:<br>• <b>5 Themes</b> (Hell, Rosa, Dunkel, Blau, Grün)<br>• <b>Cloud-Sync</b> mit Google — Daten auf allen Geräten<br>• <b>Erinnerungen</b> zur Wunsch-Uhrzeit<br>• <b>Pausenintelligenz</b> & Standard-Satzpause<br>• <b>Einheiten</b> (kg/lbs) und <b>Datenexport</b> als JSON-Backup.<br><br>Das war\'s — viel Erfolg beim Training! 💪 (Die Beispieldaten verschwinden jetzt.)',
+    prep:()=> goTabId('settings')
   }
 ];
 
@@ -10596,6 +10712,8 @@ function startGuidedTour(){
   if (_tourActive) return;
   // Eventuell offene Bottom-Sheets schließen
   document.querySelectorAll('.ov.on').forEach(o => o.classList.remove('on'));
+  // Simulation: Beispieldaten laden, damit alle Funktionen befüllt sichtbar sind
+  loadTourDemo();
   _tourActive = true;
   _tourIdx = 0;
   ensureTourDom();
@@ -10652,7 +10770,13 @@ function positionTour(step){
     return r.width > 0 && r.height > 0;
   };
   let el = null;
-  if (step.target) {
+  let unionEls = null;
+  if (Array.isArray(step.union)) {
+    // Mehrere Elemente in EINEM Spotlight zusammenfassen
+    unionEls = step.union.map(s => document.querySelector(s)).filter(isVisibleEl);
+    el = unionEls[0] || null;
+    if (!unionEls.length) unionEls = null;
+  } else if (step.target) {
     const selectors = step.target.split(',').map(s => s.trim());
     for (const sel of selectors) {
       const cand = document.querySelector(sel);
@@ -10667,7 +10791,7 @@ function positionTour(step){
     return;
   }
 
-  if (!el || !step.target) {
+  if (!el || (!step.target && !unionEls)) {
     // Modal: gesamtes Veil
     const veilCss = 'position:fixed;z-index:1500;background:rgba(0,0,0,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:default';
     veilT.style.cssText = veilCss + ';left:0;top:0;right:0;bottom:0';
@@ -10680,15 +10804,32 @@ function positionTour(step){
   }
 
   // Sicht-Scroll
-  el.scrollIntoView({ block:'center', behavior:'smooth' });
+  if (unionEls) {
+    // Bereich direkt UNTER den Sticky-Header schieben (sonst überlappt die Überschrift)
+    const hdr = el.closest('.pg')?.querySelector('.hdr');
+    const offset = (hdr ? hdr.offsetHeight : 0) + 12;
+    window.scrollBy({ top: el.getBoundingClientRect().top - offset, behavior:'smooth' });
+  } else {
+    el.scrollIntoView({ block:'center', behavior:'smooth' });
+  }
 
   setTimeout(() => {
-    const rect = el.getBoundingClientRect();
     const pad = step.pad != null ? step.pad : 8;
-    const x = Math.max(2, rect.left - pad);
-    const y = Math.max(2, rect.top - pad);
-    const w = Math.min(W - x - 2, rect.width + 2*pad);
-    const h = Math.min(H - y - 2, rect.height + 2*pad);
+    let minX, minY, maxX, maxY;
+    if (unionEls) {
+      const rs = unionEls.map(e => e.getBoundingClientRect());
+      minX = Math.min(...rs.map(r => r.left));
+      minY = Math.min(...rs.map(r => r.top));
+      maxX = Math.max(...rs.map(r => r.right));
+      maxY = Math.max(...rs.map(r => r.bottom));
+    } else {
+      const rect = el.getBoundingClientRect();
+      minX = rect.left; minY = rect.top; maxX = rect.right; maxY = rect.bottom;
+    }
+    const x = Math.max(2, minX - pad);
+    const y = Math.max(2, minY - pad);
+    const w = Math.min(W - x - 2, (maxX - minX) + 2*pad);
+    const h = Math.min(H - y - 2, (maxY - minY) + 2*pad);
 
     const veilCss = 'position:fixed;z-index:1500;background:rgba(0,0,0,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:default';
     veilT.style.cssText = veilCss + `;left:0;top:0;right:0;height:${y}px`;
@@ -10785,6 +10926,8 @@ function endGuidedTour(){
   });
   const r = document.getElementById('tour-ring'); if (r) r.remove();
   const c = document.getElementById('tour-card'); if (c) c.remove();
+  // Simulation beenden: echte Nutzerdaten wiederherstellen, DANN erst persistieren
+  restoreTourDemo();
   S.welcomeShown = true;
   persist();
   goTabId('heute');
@@ -12357,6 +12500,7 @@ async function _handleGoogleCredential(response) {
     // Fallback: Redirect-Login (WKWebView-kompatibel — kein window.open() nötig)
     try {
       console.log('[GymTrack] Fallback → signInWithRedirect nach GIS-Fehler');
+      try { localStorage.setItem('gt_pendingRedirect','1'); } catch(_){}
       await window.FB.signInWithRedirect();
       return;
     } catch (e2) {
@@ -12407,8 +12551,8 @@ async function doGoogleSignIn() {
       if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
       // Popup blockiert / nicht unterstützt → Redirect als Fallback
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') {
-        try { await window.FB.signInWithRedirect(); return; }
-        catch(e2) { alert('❌ Login fehlgeschlagen:\n' + (e2?.code||'') + '\n' + (e2?.message||e2)); return; }
+        try { localStorage.setItem('gt_pendingRedirect','1'); await window.FB.signInWithRedirect(); return; }
+        catch(e2) { try{localStorage.removeItem('gt_pendingRedirect');}catch(_){} alert('❌ Login fehlgeschlagen:\n' + (e2?.code||'') + '\n' + (e2?.message||e2)); return; }
       }
       alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
     } finally {
@@ -12777,11 +12921,18 @@ function _initFirebaseListeners() {
   window.FB.getRedirectResult()
     .then(res => {
       if (res && res.user) console.log('[GymTrack] ✅ Redirect-Login erfolgreich:', res.user.email);
+      try { localStorage.removeItem('gt_pendingRedirect'); } catch(_){}
     })
     .catch(e => {
-      if (!e?.code || e.code === 'auth/no-auth-event') return; // kein Redirect ausstehend → normal
+      // War wirklich ein Redirect-Login angestoßen? (Flag wird vor signInWithRedirect gesetzt)
+      let pending = false;
+      try { pending = localStorage.getItem('gt_pendingRedirect') === '1'; localStorage.removeItem('gt_pendingRedirect'); } catch(_){}
+      // Beim passiven Startup-Check (kein ausstehender Redirect) wirft Firebase je nach
+      // Plattform 'auth/no-auth-event' oder 'auth/argument-error' — das ist KEIN Fehler.
+      if (!e?.code || e.code === 'auth/no-auth-event' || e.code === 'auth/argument-error') return;
       console.error('[GymTrack] ❌ Redirect-Result-Error:', e);
-      alert('❌ Login (Redirect) fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+      // Nur melden, wenn der Nutzer den Redirect-Login wirklich gestartet hatte
+      if (pending) alert('❌ Login (Redirect) fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
     });
   // Auth-State beobachten
   window.FB.onAuthStateChanged((user) => {
