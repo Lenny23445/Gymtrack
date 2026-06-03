@@ -60,7 +60,7 @@
     window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
     window.FB.signInAnonymously  = () => signInAnonymously(auth);
     window.FB.googleCredential   = (idToken, accessToken) => GoogleAuthProvider.credential(idToken, accessToken);
-    window.FB.appleCredential    = (idToken) => { const p = new OAuthProvider('apple.com'); return p.credential({ idToken }); };
+    window.FB.appleCredential    = (idToken, rawNonce) => { const p = new OAuthProvider('apple.com'); return p.credential(rawNonce ? { idToken, rawNonce } : { idToken }); };
     window.FB.getRedirectResult  = () => getRedirectResult(auth);
     window.FB.signOut            = () => signOut(auth);
     window.FB.onAuthStateChanged = (cb) => onAuthStateChanged(auth, cb);
@@ -4218,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606031200';
+const APP_VERSION = 'gymtrack-v202606031600';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12510,9 +12510,10 @@ function _setupAppUrlListener() {
   if (!App) return;
   App.addListener('appUrlOpen', (data) => {
     const url = data?.url || '';
-    if (url.startsWith('com.googleusercontent.apps.')) {
-      _handleGoogleOAuthCallback(url);
-    } else if (url.startsWith('gymtrack://')) {
+    // Google-OAuth-Callback NICHT hier behandeln: ASWebAuthenticationSession liefert
+    // die Callback-URL bereits über ihren eigenen Completion-Handler (die startAuth-Promise).
+    // Eine zweite Behandlung hier würde nur einen falschen "State verloren"-Fehler auslösen.
+    if (url.startsWith('gymtrack://')) {
       _handleWidgetDeepLink(url);
     }
   });
@@ -12538,6 +12539,12 @@ function _handleWidgetDeepLink(url) {
   } catch(e) {}
 }
 
+// SHA256 → Hex. Apple bekommt den Hash der Nonce, Firebase die rohe Nonce.
+async function _sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function doAppleSignIn() {
   let ASP = _cap('AppleSignInPlugin');
   if (!ASP && _isNative()) {
@@ -12546,16 +12553,25 @@ async function doAppleSignIn() {
   }
   if (!ASP) { alert('Apple Sign In konnte nicht geladen werden.\nBitte starte die App neu und versuche es erneut.'); return; }
   if (!window.FB?.configured) { alert('⚙️ Firebase nicht konfiguriert.'); return; }
+  _loginInProgress = true;
   try {
-    const result = await ASP.authorize();
-    if (!result?.identityToken) throw new Error('Kein Identity Token');
-    const cred = window.FB.appleCredential(result.identityToken);
+    // 1) Zufällige rawNonce erzeugen, deren SHA256-Hash an Apple schicken.
+    const rawNonce    = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const hashedNonce = await _sha256Hex(rawNonce);
+    // 2) Native Apple-Dialog — Apple bettet den Hash ins identityToken ein.
+    const result = await ASP.authorize({ nonce: hashedNonce });
+    if (!result?.identityToken) throw new Error('Kein Identity Token von Apple erhalten');
+    // 3) Firebase bekommt idToken + rawNonce → hasht selbst und vergleicht.
+    const cred = window.FB.appleCredential(result.identityToken, rawNonce);
     await window.FB.signInWithCredential(cred);
     console.log('[GymTrack] ✅ Apple Sign In erfolgreich');
   } catch(e) {
     if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
     console.error('[GymTrack] ❌ Apple Sign In fehlgeschlagen:', e);
-    alert('❌ Apple-Login fehlgeschlagen:\n' + (e?.message || e));
+    alert('❌ Apple-Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+  } finally {
+    _loginInProgress = false;
   }
 }
 

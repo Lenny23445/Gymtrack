@@ -19,6 +19,12 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]
+        // Firebase verlangt eine Nonce: JS schickt den SHA256-Hash der rawNonce hierher,
+        // Apple bettet ihn in das identityToken ein, Firebase vergleicht ihn mit der rawNonce.
+        // Ohne Nonce schlägt signInWithCredential mit auth/missing-or-invalid-nonce fehl.
+        if let nonce = call.getString("nonce"), !nonce.isEmpty {
+            request.nonce = nonce
+        }
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
@@ -36,10 +42,18 @@ extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
               let token = String(data: tokenData, encoding: .utf8) else {
             pendingCall?.reject("Credential konnte nicht gelesen werden"); pendingCall = nil; return
         }
-        pendingCall?.resolve(["identityToken": token, "user": credential.user,
+        var authCode = ""
+        if let codeData = credential.authorizationCode {
+            authCode = String(data: codeData, encoding: .utf8) ?? ""
+        }
+        pendingCall?.resolve([
+            "identityToken": token,
+            "authorizationCode": authCode,
+            "user": credential.user,
             "email": credential.email ?? "",
             "givenName": credential.fullName?.givenName ?? "",
-            "familyName": credential.fullName?.familyName ?? ""])
+            "familyName": credential.fullName?.familyName ?? ""
+        ])
         pendingCall = nil
     }
 
