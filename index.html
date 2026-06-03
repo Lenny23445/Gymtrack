@@ -19,7 +19,7 @@
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously }
+  import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, setPersistence }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
@@ -47,6 +47,9 @@
   if (CONFIGURED) {
     const app  = initializeApp(FIREBASE_CONFIG);
     const auth = getAuth(app);
+    // WKWebView/Capacitor: IndexedDB hängt mit capacitor://localhost → localStorage erzwingen.
+    // Ohne das friert signInWithCredential lautlos ein (keine Resolve, kein Reject).
+    setPersistence(auth, browserLocalPersistence).catch(e => console.warn('[Firebase] setPersistence:', e));
     const db   = getFirestore(app);
     const rtdb = getDatabase(app);
     const provider = new GoogleAuthProvider();
@@ -57,7 +60,13 @@
     window.FB.provider = provider;
     window.FB.signInWithPopup    = () => signInWithPopup(auth, provider);
     window.FB.signInWithRedirect = () => signInWithRedirect(auth, provider);
-    window.FB.signInWithCredential = (cred) => signInWithCredential(auth, cred);
+    // Timeout-Wrapper: signInWithCredential kann in WKWebView hängen wenn
+    // IndexedDB blockiert. Nach 20s wird ein verständlicher Fehler geworfen.
+    window.FB.signInWithCredential = (cred) => Promise.race([
+      signInWithCredential(auth, cred),
+      new Promise((_, rej) => setTimeout(() =>
+        rej(new Error('Firebase timeout (20s) — Netzwerk oder Persistenz-Problem')), 20000))
+    ]);
     window.FB.signInAnonymously  = () => signInAnonymously(auth);
     window.FB.googleCredential   = (idToken, accessToken) => GoogleAuthProvider.credential(idToken, accessToken);
     window.FB.appleCredential    = (idToken, rawNonce) => { const p = new OAuthProvider('apple.com'); return p.credential(rawNonce ? { idToken, rawNonce } : { idToken }); };
@@ -4218,7 +4227,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606031900';
+const APP_VERSION = 'gymtrack-v202606032000';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
