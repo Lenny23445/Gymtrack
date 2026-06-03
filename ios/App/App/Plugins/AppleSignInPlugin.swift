@@ -10,6 +10,9 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "authorize", returnType: CAPPluginReturnPromise)
     ]
     private var pendingCall: CAPPluginCall?
+    // Must be retained as instance var — ARC frees a local var before the sheet appears,
+    // causing the system to immediately dismiss it without calling any delegate method.
+    private var authController: ASAuthorizationController?
 
     @objc func authorize(_ call: CAPPluginCall) {
         pendingCall = call
@@ -19,6 +22,7 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
+        authController = controller
         DispatchQueue.main.async { controller.performRequests() }
     }
 }
@@ -26,6 +30,7 @@ public class AppleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
 extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
     public func authorizationController(controller: ASAuthorizationController,
                                         didCompleteWithAuthorization authorization: ASAuthorization) {
+        authController = nil
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
               let tokenData = credential.identityToken,
               let token = String(data: tokenData, encoding: .utf8) else {
@@ -39,6 +44,7 @@ extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
     }
 
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        authController = nil
         let nsErr = error as NSError
         if nsErr.domain == ASAuthorizationError.errorDomain && nsErr.code == 1001 {
             pendingCall?.reject("cancelled")

@@ -36,8 +36,12 @@ public class GoogleAuthPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve(["url": callbackURL.absoluteString])
             }
             session.presentationContextProvider = self
-            // false = shared Safari cookies → seamless login if user is already signed into Google
-            session.prefersEphemeralWebBrowserSession = false
+            // true = kein geteilter Safari-Cookie-Store → kein System-Consent-Dialog.
+            // false würde auf neueren iOS-Versionen einen "wants to use accounts.google.com"-Dialog
+            // zeigen, der bei Presentation-Konflikt mit WKWebView sofort auto-dismissed wird
+            // und die Session mit canceledLogin abbricht. Nutzer müssen einmal ihre
+            // Google-Credentials eingeben, aber der Flow läuft zuverlässig.
+            session.prefersEphemeralWebBrowserSession = true
             self.webAuthSession = session
             session.start()
         }

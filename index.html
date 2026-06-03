@@ -4218,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606022230';
+const APP_VERSION = 'gymtrack-v202606031200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12406,13 +12406,10 @@ async function doGoogleSignIn() {
 }
 
 // PKCE-Flow für native iOS (ASWebAuthenticationSession)
-// Bei Fehler → signInWithPopup als Fallback
 async function _doNativeGoogleSignInPKCE() {
   const GA = _cap('GoogleAuthPlugin');
   if (!GA) {
-    // Kein Plugin → direkt Popup versuchen
-    console.warn('[GymTrack] GoogleAuthPlugin nicht verfügbar → Popup-Fallback');
-    await _doNativeGoogleSignInPopup();
+    alert('⚠️ Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.');
     return;
   }
   try {
@@ -12435,26 +12432,14 @@ async function _doNativeGoogleSignInPKCE() {
     await _handleGoogleOAuthCallback(result.url);
   } catch(e) {
     _googlePKCE = null;
-    // Abgebrochen vom User → still beenden
+    // User hat abgebrochen → kein Alert nötig
     if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) {
-      console.log('[GymTrack] PKCE abgebrochen (User) → Popup-Fallback');
-      await _doNativeGoogleSignInPopup();
+      console.log('[GymTrack] Google PKCE: User hat abgebrochen');
       return;
     }
-    // Anderer PKCE-Fehler → Popup-Fallback
-    console.warn('[GymTrack] PKCE-Fehler:', e?.message || e, '→ Popup-Fallback');
-    await _doNativeGoogleSignInPopup();
-  }
-}
-
-// Popup-Fallback für native iOS
-async function _doNativeGoogleSignInPopup() {
-  try {
-    console.log('[GymTrack] → signInWithPopup (native Fallback)');
-    await window.FB.signInWithPopup();
-  } catch(e) {
-    if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') return;
-    alert('❌ Google-Login fehlgeschlagen.\n\nBitte versuche es erneut.\n\n(' + (e?.code || e?.message || e) + ')');
+    // Echter Fehler → anzeigen (signInWithPopup funktioniert nicht in WKWebView)
+    console.error('[GymTrack] PKCE-Fehler:', e?.message || e);
+    alert('❌ Google-Login fehlgeschlagen.\n\nBitte versuche es erneut.\n\n(' + (e?.message || e) + ')');
   }
 }
 
