@@ -4218,7 +4218,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606031800';
+const APP_VERSION = 'gymtrack-v202606031900';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12415,6 +12415,7 @@ async function doGoogleSignIn() {
 // PKCE-Flow für native iOS (ASWebAuthenticationSession)
 async function _doNativeGoogleSignInPKCE() {
   const GA = _cap('GoogleAuthPlugin');
+  _adbg('Google: plugin=' + (GA ? 'OK' : 'NULL'));
   if (!GA) {
     alert('⚠️ Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.');
     return;
@@ -12432,26 +12433,22 @@ async function _doNativeGoogleSignInPKCE() {
       '&code_challenge='      + pkce.challenge +
       '&code_challenge_method=S256' +
       '&nonce='               + nonce;
-    console.log('[GymTrack] 🔑 Google PKCE → ASWebAuthenticationSession');
     window._ggTrace = ['1) PKCE gestartet'];
+    _adbg('Google: startAuth →');
     const result = await GA.startAuth({ url, callbackScheme: _GG_CB_SCHEME });
-    window._ggTrace.push('2) Callback: ' + (result?.url ? result.url.slice(0,90) : '(KEINE URL)'));
+    _adbg('Google: callback=' + (result?.url ? 'OK' : 'NULL'));
+    window._ggTrace.push('2) Callback: ' + (result?.url ? result.url.slice(0,60) : '(KEINE URL)'));
     await _handleGoogleOAuthCallback(result.url);
   } catch(e) {
     _googlePKCE = null;
-    // User hat abgebrochen → kein Alert nötig
-    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) {
-      console.log('[GymTrack] Google PKCE: User hat abgebrochen');
-      return;
-    }
-    // Echter Fehler → anzeigen (signInWithPopup funktioniert nicht in WKWebView)
+    _adbg('Google PKCE ERR: ' + String(e?.message || e).slice(0, 70));
+    if (e?.message === 'cancelled') return;
     console.error('[GymTrack] PKCE-Fehler:', e?.message || e);
-    alert('❌ Google-Login fehlgeschlagen.\n\nBitte versuche es erneut.\n\n(' + (e?.message || e) + ')');
+    alert('❌ Google-Login:\n' + (e?.code || 'kein code') + '\n' + (e?.message || e));
   }
 }
 
 async function _handleGoogleOAuthCallback(rawUrl) {
-  // ASWebAuthenticationSession schließt sich selbst — kein BROWSER.close() nötig
   try {
     let code, error;
     try {
@@ -12459,29 +12456,24 @@ async function _handleGoogleOAuthCallback(rawUrl) {
       code  = u.searchParams.get('code');
       error = u.searchParams.get('error');
     } catch(_) {
-      // Fallback: regex für Custom-URL-Scheme (com.googleusercontent.apps.xxx:/...)
       const cm = rawUrl.match(/[?&]code=([^&]+)/);
       const em = rawUrl.match(/[?&]error=([^&]+)/);
       code  = cm ? decodeURIComponent(cm[1]) : null;
       error = em ? decodeURIComponent(em[1]) : null;
     }
+    _adbg('Google: code=' + (code ? 'OK' : 'NEIN') + ' err=' + (error || '-'));
     window._ggTrace = window._ggTrace || [];
-    window._ggTrace.push('3) code=' + (code?'ja':'NEIN') + ', error=' + (error||'-') + ', pkce=' + (_googlePKCE?'ja':'NEIN'));
+    window._ggTrace.push('3) code=' + (code?'ja':'NEIN') + ' error=' + (error||'-'));
     if (error) {
-      alert('🔎 Google-Login Diagnose:\n\n' + window._ggTrace.join('\n') +
-            '\n\n⚠️ Google hat "' + error + '" zurückgegeben.' +
-            (error === 'access_denied'
-              ? '\n→ Meist: OAuth-Zustimmungsbildschirm im "Testing"-Modus und dein Konto ist NICHT als Testnutzer eingetragen (oder App nicht veröffentlicht).'
-              : ''));
+      alert('Google Fehler: ' + error +
+        (error === 'access_denied' ? '\n→ Konto nicht als Testnutzer eingetragen (OAuth-Zustimmung).' : ''));
       return;
     }
-    try { sessionStorage.removeItem('_gg_pkce'); } catch(_) {}
     if (!code || !_googlePKCE) {
-      alert('🔎 Google-Login Diagnose:\n\n' + window._ggTrace.join('\n') +
-            '\n\n❌ Interner State verloren (code oder PKCE fehlt). Bitte erneut versuchen.');
+      alert('Google: State verloren.\n\nTrace:\n' + (window._ggTrace||[]).join('\n'));
       return;
     }
-    console.log('[GymTrack] 🔑 Google Code erhalten — tausche gegen Token...');
+    _adbg('Google: token-tausch →');
     const resp = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -12495,37 +12487,39 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     });
     const tok = await resp.json();
     _googlePKCE = null;
-    window._ggTrace.push('4) Token-Tausch: ' + (tok.error ? ('FEHLER ' + tok.error) : (tok.id_token ? 'id_token erhalten' : 'KEIN id_token')));
+    _adbg('Google: tok=' + (tok.error ? 'ERR:'+tok.error : (tok.id_token ? 'id_token' : '') + (tok.access_token ? '+access' : '')));
+    window._ggTrace.push('4) ' + (tok.error ? 'FEHLER ' + tok.error : tok.id_token ? 'id_token OK' : 'kein id_token'));
     if (tok.error) throw new Error(tok.error_description || tok.error);
     if (!tok.id_token && !tok.access_token) throw new Error('Weder ID- noch Access-Token erhalten');
-    // Versuch 1: id_token (+access_token). Kann scheitern, wenn der aud-Claim des
-    // id_tokens die iOS-Client-ID ist und Firebase sie nicht akzeptiert.
-    // Versuch 2 (Fallback): NUR access_token → Firebase holt das Profil über Googles
-    // userinfo-Endpoint, ganz ohne aud-Prüfung. Das ist der zuverlässige Weg.
     let fbRes = null;
     if (tok.id_token) {
       try {
+        _adbg('Google: signInWithCredential(id_token) →');
         fbRes = await window.FB.signInWithCredential(window.FB.googleCredential(tok.id_token, tok.access_token || null));
-        window._ggTrace.push('5) signInWithCredential (id_token) ok ✅');
+        _adbg('Google: id_token OK ✅');
+        window._ggTrace.push('5) id_token ok');
       } catch (e1) {
-        window._ggTrace.push('5a) id_token abgelehnt (' + (e1?.code || e1?.message || e1) + ') → Fallback access_token');
-        console.warn('[GymTrack] id_token abgelehnt, versuche access_token:', e1?.code || e1);
+        _adbg('Google: id_token ERR: ' + (e1?.code || String(e1?.message||e1).slice(0,50)));
+        window._ggTrace.push('5a) id_token abgelehnt: ' + (e1?.code || e1?.message));
       }
     }
     if (!fbRes) {
-      if (!tok.access_token) throw new Error('id_token abgelehnt und kein access_token für Fallback');
+      if (!tok.access_token) throw new Error('id_token abgelehnt + kein access_token');
+      _adbg('Google: signInWithCredential(access_token) →');
       fbRes = await window.FB.signInWithCredential(window.FB.googleCredential(null, tok.access_token));
-      window._ggTrace.push('5b) signInWithCredential (access_token) ok ✅');
+      _adbg('Google: access_token OK ✅');
+      window._ggTrace.push('5b) access_token ok');
     }
-    console.log('[GymTrack] ✅ Google Sign-In via PKCE erfolgreich');
-    // onAuthStateChanged feuert in der WKWebView nicht zuverlässig → _onLogin direkt
-    // mit dem zurückgegebenen User antreiben (Guard verhindert Doppellauf).
-    if (fbRes?.user) _onLogin(fbRes.user);
+    const user = fbRes?.user || window.FB.auth?.currentUser;
+    _adbg('Google: user=' + (user ? (user.email || user.uid) : 'NULL'));
+    if (user) _onLogin(user);
+    else _adbg('Google: ⚠️ kein User nach Login!');
   } catch(e) {
     _googlePKCE = null;
-    console.error('[GymTrack] ❌ Google OAuth Callback fehlgeschlagen:', e);
-    alert('🔎 Google-Login Diagnose:\n\n' + (window._ggTrace||[]).join('\n') +
-          '\n\n❌ Fehler: ' + (e?.code ? e.code + ' — ' : '') + (e?.message||e));
+    _adbg('Google CB ERR: ' + (e?.code || '') + ' ' + String(e?.message||e).slice(0, 60));
+    console.error('[GymTrack] ❌ Google OAuth Callback:', e);
+    alert('❌ Google:\n' + (e?.code || 'kein code') + '\n' + (e?.message || e) +
+          '\n\nTrace:\n' + (window._ggTrace||[]).join('\n'));
   }
 }
 
@@ -12569,34 +12563,56 @@ async function _sha256Hex(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Sichtbarer Debug-Toast — zeigt Auth-Schritte direkt auf dem Bildschirm.
+// Wird entfernt sobald der Fehler identifiziert und behoben ist.
+function _adbg(msg) {
+  console.log('[AuthDBG] ' + msg);
+  try {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;top:80px;left:0;right:0;z-index:99999;display:flex;justify-content:center;pointer-events:none;';
+    const pill = document.createElement('div');
+    pill.style.cssText = 'background:rgba(0,0,0,.88);color:#4f4;padding:6px 14px;border-radius:14px;font-size:12px;font-family:monospace;max-width:92vw;word-break:break-all;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    pill.textContent = msg;
+    wrap.appendChild(pill);
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 9000);
+  } catch(_) {}
+}
+
 async function doAppleSignIn() {
+  _adbg('Apple: start native=' + _isNative());
   let ASP = _cap('AppleSignInPlugin');
+  _adbg('Apple: plugin=' + (ASP ? 'OK' : 'NULL'));
   if (!ASP && _isNative()) {
     await new Promise(r => setTimeout(r, 500));
     ASP = _cap('AppleSignInPlugin');
+    _adbg('Apple: plugin(retry)=' + (ASP ? 'OK' : 'NULL'));
   }
-  if (!ASP) { alert('Apple Sign In konnte nicht geladen werden.\nBitte starte die App neu und versuche es erneut.'); return; }
+  if (!ASP) { alert('Apple Sign In nicht verfügbar.\n_isNative: ' + _isNative()); return; }
   if (!window.FB?.configured) { alert('⚙️ Firebase nicht konfiguriert.'); return; }
   _loginInProgress = true;
   try {
-    // 1) Zufällige rawNonce erzeugen, deren SHA256-Hash an Apple schicken.
-    const rawNonce    = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    const rawNonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
       .map(b => b.toString(16).padStart(2, '0')).join('');
     const hashedNonce = await _sha256Hex(rawNonce);
-    // 2) Native Apple-Dialog — Apple bettet den Hash ins identityToken ein.
+    _adbg('Apple: authorize() →');
     const result = await ASP.authorize({ nonce: hashedNonce });
+    _adbg('Apple: token=' + (result?.identityToken ? 'OK(' + result.identityToken.length + 'ch)' : 'NULL'));
     if (!result?.identityToken) throw new Error('Kein Identity Token von Apple erhalten');
-    // 3) Firebase bekommt idToken + rawNonce → hasht selbst und vergleicht.
     const cred = window.FB.appleCredential(result.identityToken, rawNonce);
+    _adbg('Apple: signInWithCredential →');
     const fbRes = await window.FB.signInWithCredential(cred);
-    console.log('[GymTrack] ✅ Apple Sign In erfolgreich');
-    // onAuthStateChanged feuert in der WKWebView nicht zuverlässig → _onLogin
-    // direkt mit dem zurückgegebenen User antreiben (Guard verhindert Doppellauf).
-    if (fbRes?.user) _onLogin(fbRes.user);
+    const user = fbRes?.user || window.FB.auth?.currentUser;
+    _adbg('Apple: user=' + (user ? (user.email || user.uid || 'anon') : 'NULL'));
+    if (user) _onLogin(user);
+    else _adbg('Apple: ⚠️ kein User — onAuthState-Fallback?');
   } catch(e) {
-    if (e?.message === 'cancelled' || e?.message?.includes('cancelled')) return;
+    _adbg('Apple ERR: ' + (e?.code || '') + ' | ' + String(e?.message || e).slice(0, 70));
+    // Nur exaktes 'cancelled' von unserem Swift-Plugin stumm schlucken.
+    // Alle anderen Fehler (inkl. Firebase-Fehler) immer anzeigen.
+    if (e?.message === 'cancelled') return;
     console.error('[GymTrack] ❌ Apple Sign In fehlgeschlagen:', e);
-    alert('❌ Apple-Login fehlgeschlagen:\n' + (e?.code || '') + '\n' + (e?.message || e));
+    alert('❌ Apple:\n' + (e?.code || 'kein code') + '\n' + (e?.message || String(e)));
   } finally {
     _loginInProgress = false;
   }
