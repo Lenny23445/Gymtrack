@@ -492,16 +492,48 @@ body{
 .erf-badge-sub{font-size:9.5px;color:var(--text2);line-height:1.2}
 .erf-badge-check{position:absolute;top:7px;right:7px;width:16px;height:16px;border-radius:50%;
   background:var(--acc);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
-.erf-kraft-row{padding:12px 16px;position:relative;z-index:1;border-top:1px solid var(--gl-bdr)}
+.erf-kraft-row{padding:12px 16px;position:relative;z-index:1;border-top:1px solid var(--gl-bdr);cursor:pointer;transition:background .15s}
 .erf-kraft-row:first-child{border-top:none}
-.erf-kraft-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
-.erf-kraft-name{font-size:14px;font-weight:700}
-.erf-kraft-delta{font-size:13px;font-weight:700;color:#34c759}
+.erf-kraft-row:active{background:var(--gl-bg-t)}
+.erf-kraft-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:8px}
+.erf-kraft-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px}
+.erf-chev{color:var(--text2);font-size:15px;font-weight:600;line-height:1}
+.erf-kraft-delta{font-size:13px;font-weight:700;color:#34c759;flex-shrink:0}
 .erf-kraft-delta.flat{color:var(--text2)}
-.erf-kraft-bar{height:8px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;position:relative}
-.erf-kraft-fill{height:100%;border-radius:6px;
-  background:linear-gradient(90deg,rgba(var(--acc-rgb),.55),var(--acc));transition:width .5s}
+.erf-kraft-bar{height:9px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;display:flex}
+.erf-kraft-base{height:100%;transition:width .55s cubic-bezier(.22,1,.36,1);
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.42),rgba(var(--acc-rgb),.62))}
+.erf-kraft-gain{height:100%;transition:width .55s cubic-bezier(.22,1,.36,1);
+  background:linear-gradient(90deg,#2fb24d,#41d869);box-shadow:0 0 9px rgba(52,199,89,.55)}
 .erf-kraft-sub{font-size:11px;color:var(--text2);margin-top:5px}
+.erf-kraft-sub b{color:var(--text)}
+.erf-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:0 2px 10px;font-size:11px;color:var(--text2)}
+.erf-legend-item{display:flex;align-items:center;gap:6px}
+.erf-legend-sw{width:14px;height:8px;border-radius:3px;flex-shrink:0}
+.erf-legend-sw.base{background:rgba(var(--acc-rgb),.55)}
+.erf-legend-sw.gain{background:#41d869}
+
+/* ── KRAFT-DETAIL (Sheet) ── */
+.kd-formula{font-size:12px;color:var(--text2);line-height:1.55;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:14px;padding:11px 13px;margin-bottom:16px}
+.kd-formula b{color:var(--text)}
+.kd-ex{padding:14px 0;border-top:1px solid var(--gl-bdr)}
+.kd-ex:first-child{border-top:none}
+.kd-ex-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px}
+.kd-ex-name{font-size:15px;font-weight:700}
+.kd-ex-delta{font-size:13px;font-weight:700;color:#34c759;flex-shrink:0}
+.kd-ex-delta.flat{color:var(--text2)}
+.kd-step{display:flex;align-items:center;gap:9px;font-size:13px;padding:3px 0}
+.kd-step-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.kd-step-dot.start{background:rgba(var(--acc-rgb),.65)}
+.kd-step-dot.best{background:#41d869}
+.kd-step-lbl{color:var(--text2);width:58px;flex-shrink:0}
+.kd-step-val{color:var(--text)}
+.kd-step-val b{color:var(--acc);font-weight:700}
+.kd-step-date{color:var(--text2);margin-left:auto;font-size:11px;flex-shrink:0;padding-left:8px}
+.kd-bar{height:8px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;display:flex;margin-top:10px}
+.kd-bar .b{height:100%;background:linear-gradient(90deg,rgba(var(--acc-rgb),.42),rgba(var(--acc-rgb),.62))}
+.kd-bar .g{height:100%;background:linear-gradient(90deg,#2fb24d,#41d869)}
 
 /* ── PLAN / WOCHENPLAN ── */
 .plan-day{
@@ -4340,6 +4372,18 @@ body.heute-editing .heute-edit-bar{display:flex}
   </div>
 </div>
 
+<!-- SHEET: KRAFTSTEIGERUNG DETAIL -->
+<div class="ov" id="ov-kraft" onclick="if(event.target===this)closeOv('ov-kraft')">
+  <div class="sheet" style="max-height:90vh;padding-bottom:calc(24px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="kd-title">Kraftaufbau</h2>
+      <button class="x-btn" onclick="closeOv('ov-kraft')">✕</button>
+    </div>
+    <div class="px" id="kd-body" style="padding-bottom:20px"></div>
+  </div>
+</div>
+
 <!-- OVERLAY: KALENDER (Trainingstage letzte Monate) -->
 <div class="ov ov-cal" id="ov-calendar" onclick="if(event.target===this)closeOv('ov-calendar')">
   <div class="cal-card">
@@ -4393,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606041425';
+const APP_VERSION = 'gymtrack-v202606041438';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -9277,28 +9321,41 @@ function renderErfolge() {
       Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.
     </div></div>`;
   } else {
+    // Balken auf gemeinsamer Skala (maxNow): gedämpftes Segment = Ausgangskraft,
+    // grünes Segment = Zuwachs. So ist der Zuwachs direkt als grüner Anteil erkennbar.
     kraftHtml = `<div class="card">` + kraft.map(k => {
       const delta = k.now - k.start;
-      const pct   = k.start > 0 ? (delta / k.start * 100) : (k.now > 0 ? 100 : 0);
-      const fill  = Math.max(6, Math.round(k.now / maxNow * 100));
+      const pct   = k.start > 0 ? (delta / k.start * 100) : 0;
       const up    = delta > 0.05;
-      const deltaTxt = up ? `▲ +${pct.toFixed(0)} %` : (delta < -0.05 ? `▼ ${pct.toFixed(0)} %` : '– neu');
-      return `<div class="erf-kraft-row">
+      const deltaTxt = up ? `▲ +${pct.toFixed(0)} %` : '±0 %';
+      const baseW = Math.round(k.start / maxNow * 100);
+      const gainW = up ? Math.round(delta / maxNow * 100) : 0;
+      return `<div class="erf-kraft-row" onclick="openKraftDetail('${k.mg.id}')">
         <div class="erf-kraft-top">
-          <span class="erf-kraft-name">${k.mg.label}</span>
+          <span class="erf-kraft-name">${k.mg.label}<span class="erf-chev">›</span></span>
           <span class="erf-kraft-delta${up ? '' : ' flat'}">${deltaTxt}</span>
         </div>
-        <div class="erf-kraft-bar"><div class="erf-kraft-fill" style="width:0" data-fill="${fill}"></div></div>
-        <div class="erf-kraft-sub">Start ${fmt1RM(k.start)} → jetzt <b>${fmt1RM(k.now)}</b> (geschätztes 1RM)</div>
+        <div class="erf-kraft-bar">
+          <div class="erf-kraft-base" style="width:0" data-w="${baseW}"></div>
+          <div class="erf-kraft-gain" style="width:0" data-w="${gainW}"></div>
+        </div>
+        <div class="erf-kraft-sub">Start ${fmt1RM(k.start)} → jetzt <b>${fmt1RM(k.now)}</b>${up ? ` · <b style="color:#41d869">+${fmt1RM(delta)}</b> Zuwachs` : ''}</div>
       </div>`;
     }).join('') + `</div>`;
   }
+
+  const kraftLegend = kraft.length ? `<div class="erf-legend">
+      <span class="erf-legend-item"><span class="erf-legend-sw base"></span>Ausgangskraft</span>
+      <span class="erf-legend-item"><span class="erf-legend-sw gain"></span>Zuwachs</span>
+      <span style="margin-left:auto">Tippen für Details ›</span>
+    </div>` : '';
 
   body.innerHTML = `
     <div class="erf-time-line">Gesamte Trainingszeit · <b>${_erfHours(totalTimeSec)}</b></div>
 
     <div>
       <div class="s-title">Kraftsteigerung pro Muskel</div>
+      ${kraftLegend}
       ${kraftHtml}
     </div>
 
@@ -9307,10 +9364,86 @@ function renderErfolge() {
       <div class="erf-badges">${badgesHtml}</div>
     </div>`;
 
-  // Kraft-Balken aus 0 hochwachsen lassen (nach dem ersten Paint)
+  // Balken-Segmente aus 0 hochwachsen lassen (nach dem ersten Paint)
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    body.querySelectorAll('.erf-kraft-fill').forEach(f => { f.style.width = (f.dataset.fill || 0) + '%'; });
+    body.querySelectorAll('.erf-kraft-base,.erf-kraft-gain').forEach(f => { f.style.width = (f.dataset.w || 0) + '%'; });
   }));
+}
+
+// Bester Satz (höchstes geschätztes 1RM) innerhalb einer Satz-Liste.
+function _bestSetOf(sets) {
+  let best = null, bestE = 0;
+  (sets || []).forEach(s => { const e = epley1RM(s.w, s.r); if (e > bestE) { bestE = e; best = s; } });
+  return best ? { set: best, oneRM: bestE } : null;
+}
+
+// Für eine Übung: Start-Satz (erste Einheit) + bester je erreichter Satz – passend zur Erfolge-Summe.
+function _exKraftDetail(exId) {
+  const hist = exHistory(exId);            // chronologisch: hist[0] = erste Einheit
+  if (!hist.length) return null;
+  const startB = _bestSetOf(hist[0].sets);
+  let bestEntry = null, bestE = 0;
+  hist.forEach(h => { const b = _bestSetOf(h.sets); if (b && b.oneRM > bestE) { bestE = b.oneRM; bestEntry = { date: h.date, set: b.set, oneRM: b.oneRM }; } });
+  if (!startB || !bestEntry) return null;
+  return { startEntry: { date: hist[0].date, set: startB.set, oneRM: startB.oneRM }, bestEntry };
+}
+
+// Detail-Sheet: zeigt nachvollziehbar, wie die Kraftsteigerung der Gruppe zustande kommt.
+function openKraftDetail(mgId) {
+  haptic(6);
+  const mg = MUSCLE_GROUPS.find(g => g.id === mgId);
+  if (!mg) return;
+  const rows = S.exercises
+    .filter(e => e.muscleGroup === mgId)
+    .map(e => ({ e, d: _exKraftDetail(e.id) }))
+    .filter(x => x.d)
+    .sort((a, b) => (b.d.bestEntry.oneRM - b.d.startEntry.oneRM) - (a.d.bestEntry.oneRM - a.d.startEntry.oneRM));
+
+  document.getElementById('kd-title').textContent = mg.label + ' — Kraftaufbau';
+  const body = document.getElementById('kd-body');
+
+  if (!rows.length) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text2);font-size:14px">Noch keine verwertbaren Sätze für diese Gruppe.</div>`;
+    openOv('ov-kraft');
+    return;
+  }
+
+  const start = rows.reduce((a, r) => a + r.d.startEntry.oneRM, 0);
+  const now   = rows.reduce((a, r) => a + r.d.bestEntry.oneRM, 0);
+  const gUp   = now - start > 0.05;
+  const gPct  = start > 0 ? (now - start) / start * 100 : 0;
+
+  body.innerHTML = `
+    <div class="kd-formula">
+      <b>So entsteht der Wert:</b> Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —
+      <b>Gewicht × (1 + Wdh ÷ 30)</b>. „Start" ist der beste Satz deiner <b>ersten Einheit</b> einer Übung,
+      „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:13px;color:var(--text2)">Gruppe gesamt</span>
+      <span style="font-size:16px;font-weight:800;color:${gUp ? '#41d869' : 'var(--text2)'}">${gUp ? '▲ +' + gPct.toFixed(0) + ' %' : '±0 %'}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:6px">Start ${fmt1RM(start)} → jetzt <b style="color:var(--text)">${fmt1RM(now)}</b></div>
+    ${rows.map(r => {
+      const s = r.d.startEntry, b = r.d.bestEntry;
+      const d = b.oneRM - s.oneRM;
+      const exUp = d > 0.05;
+      const p = s.oneRM > 0 ? d / s.oneRM * 100 : 0;
+      const maxv = Math.max(b.oneRM, 1);
+      const baseW = Math.round(Math.min(s.oneRM, b.oneRM) / maxv * 100);
+      const gainW = exUp ? Math.round(d / maxv * 100) : 0;
+      return `<div class="kd-ex">
+        <div class="kd-ex-head">
+          <span class="kd-ex-name">${r.e.name}</span>
+          <span class="kd-ex-delta${exUp ? '' : ' flat'}">${exUp ? '+' + p.toFixed(0) + ' %' : '±0 %'}</span>
+        </div>
+        <div class="kd-step"><span class="kd-step-dot start"></span><span class="kd-step-lbl">Start</span><span class="kd-step-val">${fmtWeight(s.set.w)} × ${s.set.r} → <b>${fmt1RM(s.oneRM)}</b></span><span class="kd-step-date">${dateShort(s.date)}</span></div>
+        <div class="kd-step"><span class="kd-step-dot best"></span><span class="kd-step-lbl">Bestwert</span><span class="kd-step-val">${fmtWeight(b.set.w)} × ${b.set.r} → <b>${fmt1RM(b.oneRM)}</b></span><span class="kd-step-date">${dateShort(b.date)}</span></div>
+        <div class="kd-bar"><div class="b" style="width:${baseW}%"></div><div class="g" style="width:${gainW}%"></div></div>
+      </div>`;
+    }).join('')}
+  `;
+  openOv('ov-kraft');
 }
 
 function renderStatsSummary() {
