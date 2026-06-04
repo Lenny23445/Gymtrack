@@ -3700,8 +3700,7 @@ body.heute-editing .heute-edit-bar{display:flex}
       <button class="x-btn" onclick="closeOv('ov-ex-lib')">✕</button>
     </div>
     <div class="ex-search-wrap" style="padding-top:4px">
-      <span class="ex-search-ico">🔍</span>
-      <input class="ex-search" id="lib-search" type="search" placeholder="Suchen…" oninput="renderExLibrary()" autocomplete="off">
+      <input class="ex-search no-ico" id="lib-search" type="search" placeholder="Suchen…" oninput="renderExLibrary()" autocomplete="off">
     </div>
     <div class="lib-cat-row" id="lib-cat-row"></div>
     <div class="lib-list" id="lib-list"></div>
@@ -3854,8 +3853,8 @@ body.heute-editing .heute-edit-bar{display:flex}
       <h2>Übung hinzufügen</h2>
       <button class="x-btn" onclick="closeOv('ov-mid-add')">✕</button>
     </div>
-    <div class="px" style="padding-bottom:8px;flex-shrink:0">
-      <input type="search" id="mid-add-search" class="srch-inp" placeholder="Übung suchen…"
+    <div class="ex-search-wrap" style="padding:0 12px 8px;flex-shrink:0">
+      <input type="search" id="mid-add-search" class="ex-search no-ico" placeholder="Übung suchen…"
              oninput="_midAddQ=this.value;renderMidAddList()" autocomplete="off">
     </div>
     <div id="mid-add-list" style="padding:0 8px;overflow-y:auto;flex:1;min-height:0"></div>
