@@ -407,6 +407,102 @@ body{
 .hdr-plus:active{transform:scale(.90);opacity:.80}
 .hdr-plus svg{color:#fff}
 
+/* ── HEADER ICON BUTTON (glass, secondary) ── */
+.hdr-icon-btn{
+  background:var(--gl-bg-t);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--gl-bdr);border-radius:50%;
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text);flex-shrink:0;padding:0;
+  box-shadow:var(--gl-shad);
+  transition:transform .15s,opacity .12s;
+  -webkit-appearance:none;appearance:none;
+}
+.hdr-icon-btn:active{transform:scale(.90);opacity:.8}
+.hdr-icon-btn svg{width:20px;height:20px}
+
+/* ── ERFOLGE PAGE ── */
+.erf-hero{
+  position:relative;text-align:center;
+  background:linear-gradient(150deg,rgba(var(--acc-rgb),.22),rgba(var(--acc-rgb),.06));
+  border:1px solid rgba(var(--acc-rgb),.25);border-radius:24px;
+  padding:24px 18px;overflow:hidden;box-shadow:var(--gl-shad)}
+.erf-hero::after{content:'';position:absolute;top:0;left:0;right:0;height:60%;
+  background:var(--sheen);pointer-events:none;border-radius:24px 24px 0 0}
+.erf-hero-ic{font-size:30px;line-height:1}
+.erf-hero-val{font-size:40px;font-weight:800;letter-spacing:-1px;margin-top:6px;position:relative;z-index:1}
+.erf-hero-lab{font-size:13px;color:var(--text2);margin-top:2px;position:relative;z-index:1}
+.erf-stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.erf-tile{text-align:center;background:var(--gl-bg-t);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 8px;box-shadow:var(--gl-shad)}
+.erf-tile-val{font-size:20px;font-weight:700}
+.erf-tile-lab{font-size:11px;color:var(--text2);margin-top:2px}
+.erf-badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.erf-badge{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:18px;
+  padding:14px 8px 12px;text-align:center;box-shadow:var(--gl-shad);
+  transition:transform .15s}
+.erf-badge:active{transform:scale(.95)}
+.erf-badge.locked{opacity:.45;filter:grayscale(.8)}
+.erf-badge-ic{line-height:1;
+  width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.28)}
+.erf-badge.locked .erf-badge-ic{background:var(--gl-bg-t);border-color:var(--gl-bdr)}
+.erf-badge-key{font-size:17px;font-weight:800;letter-spacing:-.5px;color:var(--acc)}
+.erf-badge.locked .erf-badge-key{color:var(--text2)}
+.erf-time-line{text-align:center;font-size:13px;color:var(--text2);margin-top:-2px}
+.erf-time-line b{color:var(--text);font-size:15px;font-weight:700}
+
+/* ── TAB-WECHSEL: INHALTE GESTAFFELT EINBLENDEN ── */
+@keyframes pg-content-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.pg.on .pad>*,
+.pg.on #heute-grid>*{animation:pg-content-in .5s cubic-bezier(.22,1,.36,1) both}
+.pg.on .pad>*:nth-child(1),.pg.on #heute-grid>*:nth-child(1){animation-delay:.03s}
+.pg.on .pad>*:nth-child(2),.pg.on #heute-grid>*:nth-child(2){animation-delay:.09s}
+.pg.on .pad>*:nth-child(3),.pg.on #heute-grid>*:nth-child(3){animation-delay:.15s}
+.pg.on .pad>*:nth-child(4),.pg.on #heute-grid>*:nth-child(4){animation-delay:.21s}
+.pg.on .pad>*:nth-child(5),.pg.on #heute-grid>*:nth-child(5){animation-delay:.27s}
+.pg.on .pad>*:nth-child(6),.pg.on #heute-grid>*:nth-child(6){animation-delay:.33s}
+.pg.on .pad>*:nth-child(n+7),.pg.on #heute-grid>*:nth-child(n+7){animation-delay:.39s}
+@media (prefers-reduced-motion: reduce){
+  .pg.on .pad>*,.pg.on #heute-grid>*{animation:none}
+}
+
+/* ── MEILENSTEIN-BELOHNUNG (Toast, ohne Emoji) ── */
+.mr-toast{position:fixed;left:50%;top:calc(var(--sat,0px) + 18px);transform:translate(-50%,-22px);
+  z-index:2000;opacity:0;pointer-events:none;
+  transition:opacity .38s cubic-bezier(.22,1,.36,1),transform .38s cubic-bezier(.22,1,.36,1)}
+.mr-toast.show{opacity:1;transform:translate(-50%,0)}
+.mr-card{display:flex;align-items:center;gap:13px;
+  background:var(--gl-bg-h);backdrop-filter:blur(60px) saturate(220%);-webkit-backdrop-filter:blur(60px) saturate(220%);
+  border:1px solid rgba(var(--acc-rgb),.35);border-radius:20px;padding:12px 18px 12px 12px;
+  box-shadow:0 12px 40px rgba(0,0,0,.35),0 0 0 4px rgba(var(--acc-rgb),.10),var(--gl-hi);
+  max-width:min(86vw,360px)}
+.mr-ring{width:48px;height:48px;flex-shrink:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(var(--acc-rgb),.16);border:1.5px solid var(--acc);
+  box-shadow:0 0 16px rgba(var(--acc-rgb),.5);animation:mr-pop .5s cubic-bezier(.34,1.56,.64,1) both}
+.mr-ring span{font-size:17px;font-weight:800;letter-spacing:-.5px;color:var(--acc)}
+@keyframes mr-pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.mr-lbl{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc)}
+.mr-name{font-size:16px;font-weight:800;letter-spacing:-.3px;color:var(--text);margin-top:1px}
+.erf-badge-name{font-size:11px;font-weight:700;line-height:1.25}
+.erf-badge-sub{font-size:9.5px;color:var(--text2);line-height:1.2}
+.erf-badge-check{position:absolute;top:7px;right:7px;width:16px;height:16px;border-radius:50%;
+  background:var(--acc);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.erf-kraft-row{padding:12px 16px;position:relative;z-index:1;border-top:1px solid var(--gl-bdr)}
+.erf-kraft-row:first-child{border-top:none}
+.erf-kraft-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.erf-kraft-name{font-size:14px;font-weight:700}
+.erf-kraft-delta{font-size:13px;font-weight:700;color:#34c759}
+.erf-kraft-delta.flat{color:var(--text2)}
+.erf-kraft-bar{height:8px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;position:relative}
+.erf-kraft-fill{height:100%;border-radius:6px;
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.55),var(--acc));transition:width .5s}
+.erf-kraft-sub{font-size:11px;color:var(--text2);margin-top:5px}
+
 /* ── PLAN / WOCHENPLAN ── */
 .plan-day{
   display:flex;align-items:center;gap:12px;padding:14px 16px;
@@ -3138,9 +3234,34 @@ body.heute-editing .heute-edit-bar{display:flex}
   </div>
 </div>
 
+<!-- PAGE: ERFOLGE -->
+<div class="pg" id="pg-erfolge">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div>
+        <h1>Erfolge</h1>
+        <div class="sub" id="erfolge-sub"></div>
+      </div>
+      <button class="hdr-icon-btn" onclick="openSettingsPage()" aria-label="Einstellungen">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:18px" id="erfolge-body"></div>
+</div>
+
 <!-- PAGE: EINSTELLUNGEN -->
 <div class="pg" id="pg-settings">
-  <div class="hdr"><h1>Einstellungen</h1></div>
+  <div class="hdr">
+    <div class="hdr-row">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hdr-icon-btn" onclick="closeSettingsPage()" aria-label="Zurück zu Erfolge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1>Einstellungen</h1>
+      </div>
+    </div>
+  </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
     <div id="install-section" style="display:none">
       <div class="s-title">App installieren</div>
@@ -3557,9 +3678,9 @@ body.heute-editing .heute-edit-bar{display:flex}
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5V9.2zm5.6-5h2.8V19h-2.8V4.2zm5.6 8H19V19h-2.8v-6.8z"/></svg>
     <span>Statistik</span>
   </button>
-  <button class="tab" onclick="goTab('settings',this)">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-    <span>Einstellungen</span>
+  <button class="tab" onclick="goTab('erfolge',this)">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5a2 2 0 0 0-2 2v2c0 1.66 1.34 3 3 3h.3a5.99 5.99 0 0 0 4.7 4.9V19H8v2h8v-2h-3v-2.1a5.99 5.99 0 0 0 4.7-4.9H18c1.66 0 3-1.34 3-3V7a2 2 0 0 0-2-2zM5 9V7h0l0 0V7h2v2.83A1 1 0 0 1 5 9zm14 0a1 1 0 0 1-2 .83V7h2v2z"/></svg>
+    <span>Erfolge</span>
   </button>
 </div>
 
@@ -4272,7 +4393,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606032117';
+const APP_VERSION = 'gymtrack-v202606041425';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4610,6 +4731,11 @@ S.smartRest       = S.smartRest !== undefined ? S.smartRest : true; // Pausenint
 S.healthKitEnabled = S.healthKitEnabled || false;
 S.trackerItems  = S.trackerItems  || [];
 S.trackerCounts = S.trackerCounts || {};
+// Erfolge: bereits erreichte Meilensteine merken. Bestehende Nutzer werden NICHT
+// rückwirkend gefeiert – ihre aktuell erfüllten Meilensteine gelten als „bekannt".
+if (!Array.isArray(S.erfAchieved)) {
+  S.erfAchieved = (S.sessions && S.sessions.length) ? _milestoneDoneKeys() : [];
+}
 S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
 S.weightStart   = S.weightStart   ?? null; // Startgewicht (einmalig)
 S.weightGoal    = S.weightGoal    ?? null; // Zielgewicht
@@ -5129,7 +5255,29 @@ function goTab(id, btn) {
   if (id === 'heute')     renderHome();
   if (id === 'uebungen')  renderExList();
   if (id === 'stats')     renderStats();
+  if (id === 'erfolge')   renderErfolge();
   if (id === 'settings')  renderSettings();
+}
+
+// ── ERFOLGE ↔ EINSTELLUNGEN (Sub-Page-Navigation, Tab bleibt "Erfolge") ──
+function openSettingsPage() {
+  haptic(6);
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  const pg = document.getElementById('pg-settings');
+  pg.style.animation = 'none'; pg.offsetHeight; pg.style.animation = '';
+  pg.classList.add('on');
+  document.querySelector('.app')?.scrollTo({top:0});
+  window.scrollTo(0,0);
+  renderSettings();
+}
+function closeSettingsPage() {
+  haptic(6);
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  const pg = document.getElementById('pg-erfolge');
+  pg.style.animation = 'none'; pg.offsetHeight; pg.style.animation = '';
+  pg.classList.add('on');
+  window.scrollTo(0,0);
+  renderErfolge();
 }
 
 function moveTabIndicator(activeTab) {
@@ -9017,6 +9165,154 @@ function renderStats() {
   renderStatsExerciseList();
 }
 
+// ── ERFOLGE (Meilensteine, Trainingszeit, Kraftsteigerung) ──
+function _erfHours(sec) {
+  const totalMin = Math.round((sec || 0) / 60);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  if (h <= 0) return m + ' min';
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+function _erfTotals() {
+  const sessions = S.sessions || [];
+  const totalTimeSec = sessions.reduce((a, s) => a + (s.duration || 0), 0);
+  const totalVol     = sessions.reduce((a, ses) => a + sessionVolume(ses), 0);
+  return { totalSessions: sessions.length, totalTimeSec, totalVol, totalHours: totalTimeSec / 3600 };
+}
+
+// Meilenstein-Definitionen – zentral, damit Anzeige & Belohnung identisch sind.
+function _milestoneDefs(t) {
+  t = t || _erfTotals();
+  const { totalSessions, totalVol, totalHours } = t;
+  return [
+    { key:'1',    name:'Erste Einheit',    done: totalSessions >= 1,   sub: totalSessions >= 1 ? 'Geschafft' : '0/1' },
+    { key:'10',   name:'10 Einheiten',     done: totalSessions >= 10,  sub: `${Math.min(totalSessions,10)}/10` },
+    { key:'25',   name:'25 Einheiten',     done: totalSessions >= 25,  sub: `${Math.min(totalSessions,25)}/25` },
+    { key:'50',   name:'50 Einheiten',     done: totalSessions >= 50,  sub: `${Math.min(totalSessions,50)}/50` },
+    { key:'100',  name:'100 Einheiten',    done: totalSessions >= 100, sub: `${Math.min(totalSessions,100)}/100` },
+    { key:'10h',  name:'10 Std. Training', done: totalHours >= 10,     sub: `${totalHours.toFixed(1).replace('.',',')}/10 h` },
+    { key:'50h',  name:'50 Std. Training', done: totalHours >= 50,     sub: `${totalHours.toFixed(0)}/50 h` },
+    { key:'10t',  name:'10 t Volumen',     done: totalVol >= 10000,    sub: `${(totalVol/1000).toFixed(1).replace('.',',')}/10 t` },
+    { key:'100t', name:'100 t Volumen',    done: totalVol >= 100000,   sub: `${(totalVol/1000).toFixed(0)}/100 t` },
+  ];
+}
+function _milestoneDoneKeys() {
+  return _milestoneDefs().filter(m => m.done).map(m => m.key);
+}
+
+// Belohnung: prüft auf neu erreichte Meilensteine, feiert mit Vibration + Toast.
+function checkMilestoneRewards() {
+  if (!Array.isArray(S.erfAchieved)) S.erfAchieved = [];
+  const newly = _milestoneDefs().filter(m => m.done && !S.erfAchieved.includes(m.key));
+  if (!newly.length) return;
+  S.erfAchieved.push(...newly.map(m => m.key));
+  persist();
+  newly.forEach((m, i) => setTimeout(() => showMilestoneReward(m), i * 2000));
+}
+
+function showMilestoneReward(m) {
+  haptic([0, 35, 55, 30, 80, 45]);   // Belohnungs-Vibrationsmuster
+  const el = document.createElement('div');
+  el.className = 'mr-toast';
+  el.innerHTML = `<div class="mr-card">
+      <div class="mr-ring"><span>${m.key}</span></div>
+      <div class="mr-txt">
+        <div class="mr-lbl">Meilenstein erreicht</div>
+        <div class="mr-name">${m.name}</div>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 420); }, 2600);
+}
+
+function renderErfolge() {
+  const sub  = document.getElementById('erfolge-sub');
+  const body = document.getElementById('erfolge-body');
+  if (!body) return;
+
+  const sessions      = S.sessions || [];
+  const totalSessions = sessions.length;
+  const totalTimeSec  = sessions.reduce((a, s) => a + (s.duration || 0), 0);
+  const totalSets     = sessions.reduce((a, ses) => a + ses.logs.reduce((b, l) => b + l.sets.length, 0), 0);
+  const totalVol      = sessions.reduce((a, ses) => a + sessionVolume(ses), 0);
+  const totalHours    = totalTimeSec / 3600;
+
+  if (sub) sub.textContent = totalSessions
+    ? `${totalSessions} Einheit${totalSessions !== 1 ? 'en' : ''} · ${_erfHours(totalTimeSec)} trainiert`
+    : 'Deine Ziele warten — leg los!';
+
+  // Hinweis: Auch ohne Daten wird die volle Struktur gezeigt (Meilensteine als Ziele).
+
+  // ── Meilensteine (ohne Emoji – Zahl/Einheit im Ring) ──
+  const milestones = _milestoneDefs({ totalSessions, totalVol, totalHours });
+  const unlocked = milestones.filter(m => m.done).length;
+
+  const badgesHtml = milestones.map(m => `
+    <div class="erf-badge${m.done ? '' : ' locked'}">
+      ${m.done ? '<div class="erf-badge-check">✓</div>' : ''}
+      <div class="erf-badge-ic"><span class="erf-badge-key">${m.key}</span></div>
+      <div class="erf-badge-name">${m.name}</div>
+      <div class="erf-badge-sub">${m.sub}</div>
+    </div>`).join('');
+
+  // ── Kraftsteigerung pro Muskelgruppe ──
+  const kraft = MUSCLE_GROUPS.map(mg => {
+    const exs = S.exercises.filter(e => e.muscleGroup === mg.id);
+    let start = 0, now = 0, hasData = false;
+    exs.forEach(e => {
+      const hist = exHistory(e.id);
+      if (!hist.length) return;
+      const best = exBest1RM(e.id);
+      if (best > 0) { start += setsBest1RM(hist[0].sets); now += best; hasData = true; }
+    });
+    return { mg, start, now, hasData };
+  }).filter(k => k.hasData && k.now > 0);
+
+  const maxNow = Math.max(...kraft.map(k => k.now), 1);
+
+  let kraftHtml;
+  if (!kraft.length) {
+    kraftHtml = `<div class="card"><div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
+      Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.
+    </div></div>`;
+  } else {
+    kraftHtml = `<div class="card">` + kraft.map(k => {
+      const delta = k.now - k.start;
+      const pct   = k.start > 0 ? (delta / k.start * 100) : (k.now > 0 ? 100 : 0);
+      const fill  = Math.max(6, Math.round(k.now / maxNow * 100));
+      const up    = delta > 0.05;
+      const deltaTxt = up ? `▲ +${pct.toFixed(0)} %` : (delta < -0.05 ? `▼ ${pct.toFixed(0)} %` : '– neu');
+      return `<div class="erf-kraft-row">
+        <div class="erf-kraft-top">
+          <span class="erf-kraft-name">${k.mg.label}</span>
+          <span class="erf-kraft-delta${up ? '' : ' flat'}">${deltaTxt}</span>
+        </div>
+        <div class="erf-kraft-bar"><div class="erf-kraft-fill" style="width:0" data-fill="${fill}"></div></div>
+        <div class="erf-kraft-sub">Start ${fmt1RM(k.start)} → jetzt <b>${fmt1RM(k.now)}</b> (geschätztes 1RM)</div>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  body.innerHTML = `
+    <div class="erf-time-line">Gesamte Trainingszeit · <b>${_erfHours(totalTimeSec)}</b></div>
+
+    <div>
+      <div class="s-title">Kraftsteigerung pro Muskel</div>
+      ${kraftHtml}
+    </div>
+
+    <div>
+      <div class="s-title">Meilensteine · ${unlocked}/${milestones.length}</div>
+      <div class="erf-badges">${badgesHtml}</div>
+    </div>`;
+
+  // Kraft-Balken aus 0 hochwachsen lassen (nach dem ersten Paint)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    body.querySelectorAll('.erf-kraft-fill').forEach(f => { f.style.width = (f.dataset.fill || 0) + '%'; });
+  }));
+}
+
 function renderStatsSummary() {
   const sub = document.getElementById('stats-sub');
   const el  = document.getElementById('stats-summary');
@@ -9826,6 +10122,7 @@ function finishWk() {
   showDone(newSession, prs);
   fireConfetti();
   renderHome();
+  checkMilestoneRewards();   // neu erreichte Meilensteine feiern (Vibration + Toast)
 }
 
 function cancelWk() {
@@ -10325,7 +10622,7 @@ let _dragTabW    = 0;
 let _dragIndW    = 0;
 let _swallowClick = false;
 
-const TAB_IDS = ['heute', 'uebungen', 'stats', 'settings'];
+const TAB_IDS = ['heute', 'uebungen', 'stats', 'erfolge'];
 
 function initTabDrag() {
   const bar = document.querySelector('.tabbar');
@@ -10618,7 +10915,7 @@ function haptic(ms) {
 
 // ── GEFÜHRTE TOUR ──────────────────────────────────────
 function goTabId(id) {
-  const map = { heute:0, uebungen:1, stats:2, settings:3 };
+  const map = { heute:0, uebungen:1, stats:2, erfolge:3, settings:3 };
   const idx = map[id];
   if (idx == null) return;
   const tabs = document.querySelectorAll('.tabbar .tab');
@@ -10783,7 +11080,7 @@ const TOUR = [
     target:'.tabbar .tab:last-child',
     title:'Einstellungen — los geht\'s! 🚀',
     body:'Mach die App zu deiner:<br>• <b>5 Themes</b> (Hell, Rosa, Dunkel, Blau, Grün)<br>• <b>Cloud-Sync</b> mit Google — Daten auf allen Geräten<br>• <b>Erinnerungen</b> zur Wunsch-Uhrzeit<br>• <b>Pausenintelligenz</b> & Standard-Satzpause<br>• <b>Einheiten</b> (kg/lbs) und <b>Datenexport</b> als JSON-Backup.<br><br>Das war\'s — viel Erfolg beim Training! 💪 (Die Beispieldaten verschwinden jetzt.)',
-    prep:()=> goTabId('settings')
+    prep:()=> goTabId('erfolge')
   }
 ];
 
