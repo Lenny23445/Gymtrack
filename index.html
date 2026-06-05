@@ -4437,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051055';
+const APP_VERSION = 'gymtrack-v202606051059';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -10832,6 +10832,52 @@ function initTabDrag() {
   }, true);
 }
 
+// ── PAGE SWIPE (horizontal wischen zwischen Tabs) ────────
+function initPageSwipe() {
+  let sx = 0, sy = 0, tracking = false;
+
+  document.addEventListener('touchstart', e => {
+    tracking = false;
+    if (document.querySelector('.ov.on')) return;
+    const t  = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (!el || el.closest('.tabbar') || el.closest('.ov')) return;
+    if (_hasHScrollParent(el)) return;
+    sx = t.clientX; sy = t.clientY; tracking = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const dx = Math.abs(e.touches[0].clientX - sx);
+    const dy = Math.abs(e.touches[0].clientY - sy);
+    if (dy > dx + 8) tracking = false;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    if (document.querySelector('.ov.on')) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 65 || Math.abs(dy) > Math.abs(dx) * 0.65) return;
+    const cur = TAB_IDS.findIndex(id => document.getElementById('pg-' + id)?.classList.contains('on'));
+    if (cur < 0) return;
+    const next = dx < 0 ? Math.min(cur + 1, TAB_IDS.length - 1) : Math.max(cur - 1, 0);
+    if (next === cur) return;
+    const tabs = [...document.querySelectorAll('.tabbar .tab')];
+    goTab(TAB_IDS[next], tabs[next]);
+  }, { passive: true });
+}
+
+function _hasHScrollParent(el) {
+  while (el && el !== document.body) {
+    const st = window.getComputedStyle(el);
+    if ((st.overflowX === 'scroll' || st.overflowX === 'auto') && el.scrollWidth > el.clientWidth) return true;
+    el = el.parentElement;
+  }
+  return false;
+}
+
 // ── CHANGELOG POPUP ─────────────────────────────────────
 // CHANGELOG-Keys sind STABIL (überleben Versionsbump). Es wird nur angezeigt,
 // was der User noch NICHT in S.seenChangelog hat. Reihenfolge: NEUESTE zuerst.
@@ -11992,6 +12038,7 @@ renderExList();
 initTabIndicator();
 initSheetSwipe();
 initTabDrag();
+initPageSwipe();
 
 // Beim allerersten App-Start Tutorial zeigen
 if (!S.welcomeShown) {
