@@ -1861,10 +1861,22 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .heute-train-btn{width:100%}
 
 /* ── HEUTE WIDGET-RASTER (anpassbar, iOS-Kontrollzentrum-Style) ── */
-#heute-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+#heute-grid{display:flex;flex-direction:column;gap:12px}
+.hw-row{display:flex;gap:12px;align-items:stretch}
+.hw-row>.hw{flex:1;min-width:0}
 .hw{position:relative;min-width:0}
-.hw-lg{grid-column:1 / -1}
-.hw-sm{grid-column:span 1}
+.hw-lg{}
+.hw-sm{}
+.hw-empty-slot{
+  flex:1;min-height:96px;border-radius:20px;
+  border:2px dashed rgba(var(--acc-rgb),.35);
+  background:rgba(var(--acc-rgb),.04);
+  display:none;align-items:center;justify-content:center;
+  color:rgba(var(--acc-rgb),.6);font-size:30px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:opacity .15s;
+}
+.hw-empty-slot:active{opacity:.5}
+.heute-pad.editing .hw-empty-slot{display:flex}
 .hw-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;padding-left:2px}
 .hw-content{min-width:0}
 .hw-content>.btn{margin:0}
@@ -1986,7 +1998,7 @@ body.heute-editing .heute-edit-bar{display:flex}
 .heute-edit-bar .eb-add{background:var(--gl-bg-h);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);color:var(--text);border:1px solid var(--gl-bdr)}
 .heute-edit-bar .eb-done{background:var(--acc);color:#fff;box-shadow:0 3px 14px rgba(var(--acc-rgb),.45)}
 .heute-grid-empty{
-  grid-column:1 / -1;text-align:center;color:var(--text2);
+  text-align:center;color:var(--text2);
   font-size:14px;padding:32px 10px;line-height:1.65;
 }
 /* Widget-Picker Sheet */
@@ -4437,7 +4449,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051400';
+const APP_VERSION = 'gymtrack-v202606051530';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5469,16 +5481,48 @@ function renderHeuteGrid(){
   if (!layout.length){
     grid.innerHTML = `<div class="heute-grid-empty">Keine Widgets.<br>Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.</div>`;
   } else {
-    grid.innerHTML = layout.map((w,i)=>{
+    // Group flat list into visual rows: lg → own row; sm → pair with next sm or get empty slot
+    const rows = [];
+    let i = 0;
+    while (i < layout.length) {
+      const w = layout[i];
       const def = WIDGET_DEFS[w.type];
       const size = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+      if (size === 'lg') {
+        rows.push({full:true, a:{w, i, size}});
+        i++;
+      } else {
+        const w2 = layout[i+1];
+        const def2 = w2 ? WIDGET_DEFS[w2.type] : null;
+        const size2 = def2 ? (def2.sizes.includes(w2.size) ? w2.size : def2.sizes[0]) : null;
+        if (def2 && size2 === 'sm') {
+          rows.push({full:false, a:{w, i, size}, b:{w:w2, i:i+1, size:size2}});
+          i += 2;
+        } else {
+          rows.push({full:false, a:{w, i, size}, b:null});
+          i++;
+        }
+      }
+    }
+    function _hwHtml(item){
+      const {w, i, size} = item;
+      const def = WIDGET_DEFS[w.type];
       const canResize = def.sizes.length > 1;
-      return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}">
+      return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}" data-idx="${i}">
         <div class="hw-badge hw-remove" onclick="removeWidget(${i})">−</div>
         ${canResize ? `<div class="hw-badge hw-resize" onclick="toggleWidgetSize(${i})">⤢</div>` : ''}
         ${def.title ? `<div class="hw-title">${def.title}</div>` : ''}
         <div class="hw-content">${def.build(size)}</div>
       </div>`;
+    }
+    grid.innerHTML = rows.map(row => {
+      if (row.full) {
+        return `<div class="hw-row">${_hwHtml(row.a)}</div>`;
+      } else {
+        const right = row.b ? _hwHtml(row.b)
+          : `<div class="hw-empty-slot" onclick="openWidgetPickerAt(${row.a.i})">＋</div>`;
+        return `<div class="hw-row">${_hwHtml(row.a)}${right}</div>`;
+      }
     }).join('');
   }
   layout.forEach(w => { const d = WIDGET_DEFS[w.type]; if (d && d.fill) { try { d.fill(); } catch(e){} } });
@@ -5649,11 +5693,22 @@ function toggleWidgetSize(i){
   w.size = def.sizes[(def.sizes.indexOf(cur)+1) % def.sizes.length];
   persist(); renderHeuteGrid();
 }
+let _pendingWidgetInsertAfter = null;
+
 function addWidget(type){
   if (!WIDGET_DEFS[type]) return;
   const L = _heuteLayout();
   if (L.some(w=>w.type===type)) return;
-  L.push({type, size: WIDGET_DEFS[type].sizes[0]});
+  const def = WIDGET_DEFS[type];
+  // When inserting into an empty slot, prefer sm if the widget supports it
+  let size = def.sizes[0];
+  let insertAt = L.length;
+  if (_pendingWidgetInsertAfter !== null) {
+    insertAt = _pendingWidgetInsertAfter + 1;
+    if (def.sizes.includes('sm')) size = 'sm';
+    _pendingWidgetInsertAfter = null;
+  }
+  L.splice(insertAt, 0, {type, size});
   persist();
   if (!heuteEditMode) enterEditMode();
   renderHeuteGrid();
@@ -5661,7 +5716,8 @@ function addWidget(type){
 }
 
 /* ── Widget-Picker (Bottom-Sheet) ── */
-function openWidgetPicker(){ renderWidgetPicker(); openOv('ov-widget-add'); }
+function openWidgetPicker(){ _pendingWidgetInsertAfter = null; renderWidgetPicker(); openOv('ov-widget-add'); }
+function openWidgetPickerAt(afterIdx){ _pendingWidgetInsertAfter = afterIdx; renderWidgetPicker(); openOv('ov-widget-add'); }
 function renderWidgetPicker(){
   const host = document.getElementById('widget-add-list');
   if (!host) return;
@@ -5695,7 +5751,7 @@ function _hOnDown(e){
   if (heuteEditMode){
     if (e.target.closest('.hw-badge')) return;
     if (!tile) return;
-    _hDrag = {tile, id:e.pointerId, sx:e.clientX, sy:e.clientY, started:false};
+    _hDrag = {tile, idx:parseInt(tile.dataset.idx||'-1'), id:e.pointerId, sx:e.clientX, sy:e.clientY, started:false, overEl:null};
     return;
   }
   if (e.target.closest('.tracker-ring-btn')) return; // hat eigenen Long-Press
@@ -5750,22 +5806,26 @@ function _hMoveDrag(e){
   g.style.display='none';
   const el = document.elementFromPoint(e.clientX, e.clientY);
   g.style.display='';
-  const grid = document.getElementById('heute-grid');
+  document.querySelectorAll('#heute-grid .hw-drop-hint').forEach(h=>h.classList.remove('hw-drop-hint'));
   const over = el && el.closest ? el.closest('.hw') : null;
-  if (over && over!==_hDrag.tile && over.parentNode===grid){
-    const r = over.getBoundingClientRect();
-    let before = e.clientY < r.top + r.height/2;
-    if (over.classList.contains('hw-sm') && e.clientY>=r.top && e.clientY<=r.bottom){
-      before = e.clientX < r.left + r.width/2;
-    }
-    grid.insertBefore(_hDrag.tile, before ? over : over.nextSibling);
+  if (over && over !== _hDrag.tile) {
+    over.classList.add('hw-drop-hint');
+    _hDrag.overEl = over;
+  } else {
+    _hDrag.overEl = null;
   }
 }
 function _hCommitOrder(){
-  const grid = document.getElementById('heute-grid');
-  if (!grid) return;
-  S.heuteLayout = [...grid.querySelectorAll('.hw')].map(el=>({type:el.dataset.type, size:el.dataset.size}));
-  persist();
+  document.querySelectorAll('#heute-grid .hw-drop-hint').forEach(h=>h.classList.remove('hw-drop-hint'));
+  if (_hDrag && _hDrag.overEl) {
+    const L = _heuteLayout();
+    const from = parseInt(_hDrag.tile.dataset.idx);
+    const to   = parseInt(_hDrag.overEl.dataset.idx);
+    if (!isNaN(from) && !isNaN(to) && from !== to) {
+      [L[from], L[to]] = [L[to], L[from]];
+      persist();
+    }
+  }
   renderHeuteGrid();
 }
 
@@ -11235,7 +11295,7 @@ const TOUR = [
   {
     target:null,
     title:'Willkommen bei GymTrack! 💪',
-    body:'Schön, dass du in der <b>Beta</b> dabei bist! Diese Tour zeigt dir in <b>10 Schritten</b> jede Funktion — mit geladenen <b>Beispieldaten</b>, damit du alles direkt in Aktion siehst. Deine echten Daten bleiben unberührt und sind nach der Tour wieder da. Tippe auf <b>Weiter</b> oder überspringe jederzeit oben rechts.',
+    body:'Schön, dass du in der <b>Beta</b> dabei bist! Diese Tour zeigt dir in <b>11 Schritten</b> jede Funktion — mit geladenen <b>Beispieldaten</b>, damit du alles direkt in Aktion siehst. Lehn dich zurück: Während der Tour ist nur die Tour selbst aktiv, du kannst also <b>nichts versehentlich ändern</b>. Deine echten Daten bleiben unberührt und sind nach der Tour wieder da. Tippe auf <b>Weiter</b> oder überspringe jederzeit oben rechts.',
     prep:()=> goTabId('heute')
   },
   {
@@ -11261,13 +11321,13 @@ const TOUR = [
   {
     target:'.heute-train-btn, #pg-heute .btn-acc',
     title:'Training & Cardio ▶',
-    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an<br>• <b>Cardio-Timer</b> läuft im Hintergrund weiter — auch bei geschlossener App.',
+    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Drehrad-Eingabe</b> im Apple-Stil für Gewicht & Wiederholungen (kg/lbs umschaltbar)<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an<br>• <b>Cardio-Timer</b> läuft im Hintergrund weiter — auch bei geschlossener App.',
     prep:()=> goTabId('heute')
   },
   {
     target:'#ex-list',
     title:'Übungen-Bibliothek 💪',
-    body:'<b>60+ Standardübungen</b> sofort einsatzbereit — oder leg <b>eigene Übungen</b> an mit Icon, Muskelgruppe, Zielsätzen/-wdh und Typ (Wiederholungen oder Zeit). Über die <b>Suche</b> und die <b>Filter</b> (Muskeln · Push-Pull-Legs · Ober-/Unterkörper) findest du alles in Sekunden.',
+    body:'<b>60+ Standardübungen</b> sofort einsatzbereit — oder leg <b>eigene Übungen</b> an mit Muskelgruppe, Zielsätzen/-wdh und Typ (Wiederholungen oder Zeit). Über die <b>Suche</b> und die <b>Filter</b> (Muskeln · Push-Pull-Legs · Ober-/Unterkörper) findest du alles in Sekunden. <b>Nach links wischen</b> zeigt den Löschen-Button.',
     prep:()=> goTabId('uebungen')
   },
   {
@@ -11279,9 +11339,16 @@ const TOUR = [
   {
     union:['.stats-dual', '#week-card'],
     pad:8,
-    title:'Statistik & Auswertung 📊',
-    body:'<b>Volumen-Verlauf</b>, <b>Erholungs-Anzeige</b> und <b>Wochenübersicht</b> (Tap öffnet den <b>Kalender</b>) auf einen Blick. Weiter unten findest du <b>Muskelgruppen</b> & <b>1RM-Bestwerte</b> (Epley) pro Übung.',
+    title:'Statistik: Verlauf & Erholung 📊',
+    body:'Oben siehst du auf einen Blick:<br>• <b>Volumen-Verlauf</b> — Tap öffnet die Vollbild-Ansicht<br>• <b>Erholung</b> als Akku-Anzeige — <b>seitlich wischen</b> wechselt zwischen den einzelnen Muskelgruppen und deiner <b>Gesamterholung in %</b><br>• <b>Diese Woche</b> mit Trainingskreisen — Tap öffnet den <b>Kalender</b>.',
     prep:()=> { goTabId('stats'); window.scrollTo(0, 0); }
+  },
+  {
+    union:['#stats-mg-list', '#stats-ex-list'],
+    pad:8,
+    title:'Statistik: Muskeln & Kraftwerte 💪',
+    body:'Weiter unten geht\'s ins Detail:<br>• <b>Muskelgruppen</b> — über den Umschalter nach <b>Muskeln</b>, <b>Push-Pull-Legs</b> oder <b>Ober-/Unterkörper</b> gruppiert, mit summierten Kraftwerten<br>• <b>Übungen</b> — per <b>Suche</b> finden und antippen für den <b>1RM-Verlauf</b> (geschätztes Einer-Maximum nach der Epley-Formel).',
+    prep:()=> { goTabId('stats'); }
   },
   {
     target:null,
@@ -11325,6 +11392,18 @@ function ensureTourDom(){
     d.className = 'tour-veil';
     document.body.appendChild(d);
   });
+  // Interaktions-Blocker: vollflächig, transparent, liegt ÜBER der ganzen App
+  // (auch über dem Spotlight-Loch) aber UNTER der Tour-Karte. Verhindert, dass
+  // man während der Tour versehentlich etwas antippt, löscht, verschiebt oder
+  // den Bearbeiten-Modus auslöst. Nur die Tour-Karte (z-index höher) bleibt aktiv.
+  const blocker = document.createElement('div');
+  blocker.id = 'tour-blocker';
+  blocker.style.cssText = 'position:fixed;inset:0;z-index:1501;background:transparent;touch-action:none';
+  const swallow = (e) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); };
+  ['touchstart','touchmove','touchend','touchcancel','pointerdown','pointerup','mousedown','mouseup','click','contextmenu','wheel'].forEach(evt =>
+    blocker.addEventListener(evt, swallow, {passive:false, capture:true})
+  );
+  document.body.appendChild(blocker);
   const ring = document.createElement('div');
   ring.id = 'tour-ring';
   ring.className = 'tour-ring';
@@ -11517,6 +11596,7 @@ function endGuidedTour(){
     const v = document.getElementById('tour-veil-' + s);
     if (v) v.remove();
   });
+  const blk = document.getElementById('tour-blocker'); if (blk) blk.remove();
   const r = document.getElementById('tour-ring'); if (r) r.remove();
   const c = document.getElementById('tour-card'); if (c) c.remove();
   // Simulation beenden: echte Nutzerdaten wiederherstellen, DANN erst persistieren
