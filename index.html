@@ -4127,22 +4127,6 @@ body.heute-editing .heute-edit-bar{display:flex}
   </div>
 </div>
 
-<!-- POPUP: CHANGELOG / WAS IST NEU -->
-<div class="ov" id="ov-changelog" onclick="if(event.target===this)dismissChangelog()" style="align-items:center;justify-content:center;padding:24px;z-index:2000">
-  <div class="changelog-card">
-    <div class="changelog-hero">
-      <div class="changelog-badge">✨ Was ist neu</div>
-      <div class="changelog-title">GymTrack Update</div>
-      <div class="changelog-version" id="changelog-version"></div>
-    </div>
-    <div class="changelog-summary" id="changelog-summary"></div>
-    <div class="changelog-scroll" id="changelog-scroll"></div>
-    <div class="changelog-footer">
-      <button class="btn btn-acc" onclick="dismissChangelog()">Alles klar! 👍</button>
-    </div>
-  </div>
-</div>
-
 <!-- OVERLAY: SATZ-TYP ERKLÄRUNG -->
 <div class="ov" id="ov-settype" onclick="if(event.target===this)closeOv('ov-settype')">
   <div class="sheet">
@@ -12147,11 +12131,7 @@ if (!Array.isArray(S.seenChangelog)) {
   persist();
 }
 
-// Changelog-Popup nur zeigen wenn es ECHT neue Keys gibt (Onboarding muss durch sein)
-if (S.welcomeShown) {
-  const pending = pendingChangelogKeys().filter(k => _clEntry(k).items.length);
-  if (pending.length) setTimeout(() => showChangelog(), 500);
-}
+// Changelog-Popup deaktiviert
 
 // ── PWA ICON + MANIFEST + SERVICE WORKER ──────────────
 (function pwaSetup(){
@@ -13519,7 +13499,7 @@ function renderAccountSheet() {
     `;
     return;
   }
-  if (_fbUser) {
+  if (_fbUser && !_fbUser.isAnonymous) {
     const u = _fbUser;
     const initials = (u.displayName || u.email || '?').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
     const photo = u.photoURL
@@ -13603,7 +13583,7 @@ function updateAccountUI() {
     title.textContent = 'Cloud-Sync (noch nicht eingerichtet)';
     if (sub) sub.textContent = 'Anleitung in CLAUDE.md';
     if (dataSub) dataSub.textContent = 'Alles gespeichert auf deinem Gerät';
-  } else if (_fbUser) {
+  } else if (_fbUser && !_fbUser.isAnonymous) {
     if (ico) ico.textContent = '✅';
     title.textContent = _fbUser.displayName || _fbUser.email || 'Angemeldet';
     if (sub) sub.textContent = 'Cloud-Sync aktiv – tippe für Details';
