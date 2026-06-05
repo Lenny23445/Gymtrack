@@ -4374,13 +4374,13 @@ body.heute-editing .heute-edit-bar{display:flex}
 
 <!-- SHEET: KRAFTSTEIGERUNG DETAIL -->
 <div class="ov" id="ov-kraft" onclick="if(event.target===this)closeOv('ov-kraft')">
-  <div class="sheet" style="max-height:90vh;padding-bottom:calc(24px + var(--sab))">
+  <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="kd-title">Kraftaufbau</h2>
       <button class="x-btn" onclick="closeOv('ov-kraft')">✕</button>
     </div>
-    <div class="px" id="kd-body" style="padding-bottom:20px"></div>
+    <div class="px" id="kd-body"></div>
   </div>
 </div>
 
@@ -4437,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606041438';
+const APP_VERSION = 'gymtrack-v202606051008';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12596,9 +12596,44 @@ let _anaSessionStart = null;
 let _anaHeartbeat    = null;
 const ANA_HEARTBEAT_MS = 60 * 1000;
 
+// ── MULTI-TAB LEADER LOCK ──────────────────────────────────────────────────
+// Nur der "Leader-Tab" sendet Heartbeats → verhindert Firestore-Spam bei
+// vielen offenen Tabs. Leader-Claim läuft nach 90 s ab; anderer Tab übernimmt.
+const _ANA_LEADER_KEY = 'gt_ana_leader';
+const _ANA_LEADER_TTL = 90000;           // 1,5× Heartbeat-Intervall
+const _ANA_TAB_ID     = '_' + Math.random().toString(36).slice(2, 10);
+
+function _tryClaimLead() {
+  try {
+    const raw  = localStorage.getItem(_ANA_LEADER_KEY);
+    const cur  = raw ? JSON.parse(raw) : null;
+    const now  = Date.now();
+    if (!cur || cur.id === _ANA_TAB_ID || (now - cur.ts) > _ANA_LEADER_TTL) {
+      localStorage.setItem(_ANA_LEADER_KEY, JSON.stringify({ id: _ANA_TAB_ID, ts: now }));
+      return true;
+    }
+    return false;
+  } catch { return true; } // Im Zweifel senden
+}
+function _renewLead() {
+  try { localStorage.setItem(_ANA_LEADER_KEY, JSON.stringify({ id: _ANA_TAB_ID, ts: Date.now() })); } catch {}
+}
+function _isLeader() {
+  try {
+    const cur = JSON.parse(localStorage.getItem(_ANA_LEADER_KEY) || 'null');
+    return !cur || cur.id === _ANA_TAB_ID || (Date.now() - cur.ts) > _ANA_LEADER_TTL;
+  } catch { return true; }
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 async function analyticsStart(user) {
   if (!user || !window.FB?.configured) return;
   if (_anaSessionRef) return; // schon getrackt
+  // Kein Leader → kein Heartbeat-Interval starten; nach 90 s erneut versuchen
+  if (!_tryClaimLead()) {
+    setTimeout(() => { if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser); }, _ANA_LEADER_TTL);
+    return;
+  }
   try {
     _anaSessionStart = Date.now();
     const userRef = window.FB.doc('analytics_users', user.uid);
@@ -12634,9 +12669,13 @@ async function analyticsStart(user) {
   }
 }
 
-async function _analyticsBeat() {
+async function _analyticsBeat(force = false) {
   if (!_anaSessionRef || !_anaSessionStart) return;
+  // Laufende Intervall-Beats nur senden wenn: Tab sichtbar UND dieser Tab Leader ist
+  if (!force && document.visibilityState !== 'visible') return;
+  if (!force && !_isLeader()) return;
   try {
+    _renewLead(); // Leader-Timestamp auffrischen
     const durSec = Math.floor((Date.now() - _anaSessionStart) / 1000);
     await window.FB.updateDoc(_anaSessionRef, {
       lastBeat: window.FB.serverTimestamp(),
@@ -12657,14 +12696,14 @@ function analyticsStop() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') _analyticsBeat();
+  if (document.visibilityState === 'hidden') _analyticsBeat(true); // finaler Beat: immer senden
   else if (document.visibilityState === 'visible') {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
   }
 });
-window.addEventListener('pagehide',     () => _analyticsBeat());
-window.addEventListener('beforeunload', () => _analyticsBeat());
+window.addEventListener('pagehide',     () => _analyticsBeat(true));
+window.addEventListener('beforeunload', () => _analyticsBeat(true));
 
 // ── ADMIN-MODUS ───────────────────────────────────────
 // 5× tap auf Version-Zeile (binnen 3s) → Admin-Modus aktivieren

@@ -80,30 +80,68 @@ S = {
 
 **Sync:** Login: lokal+Cloud merge → Upload · `persist()`: auto-push (800ms debounced) · Live: `onSnapshot` · Logout: Daten lokal erhalten · Neues Gerät: anmelden → alles aus Cloud.
 
-**Firestore Rules** (`ADMIN_UID` durch eigene UID ersetzen):
+**Firestore Rules** (`REPLACE_WITH_ADMIN_UID` durch eigene UID ersetzen):
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        // Erlaubte Felder (kein unbekannter Payload)
+        && request.resource.data.keys().hasOnly([
+             'exercises','sessions','theme','companion','companionOn',
+             'exFilterMode','wkFilterMode','statsFilterMode','welcomeShown',
+             'lastSeenVersion','lastSeenBuild','updatedAt','_serverTime',
+             'unitMode','weightHistory','trackerItems','trackerCounts',
+             'customSplits','planSplit','planMode','planGroups','planWeek',
+             'streak','streakLastDate','notifEnabled','notifTime',
+             'glass','adminUid','erfAchieved','weightGoal',
+             'smartRestEnabled','smartRest'
+           ])
+        // Max. 5000 Sessions und 500 Übungen (Kostendeckel)
+        && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
+        && (!('exercises' in request.resource.data) || request.resource.data.exercises.size() <= 500);
     }
     match /analytics_users/{userId} {
-      allow read:  if request.auth != null && request.auth.uid == "ADMIN_UID";
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+             'uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon'
+           ]);
     }
     match /analytics_sessions/{sid} {
-      allow read:   if request.auth != null && request.auth.uid == "ADMIN_UID";
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow read:   if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'uid','start','lastBeat','duration','isAnon'
+           ]);
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+             'uid','start','lastBeat','duration','isAnon'
+           ]);
     }
   }
 }
 ```
 
-**RTDB Rules** (`presence`, `ADMIN_UID` ersetzen):
+**RTDB Rules** (`REPLACE_WITH_ADMIN_UID` ersetzen):
 ```json
-{"rules":{"presence":{".read":"auth != null && auth.uid === 'ADMIN_UID'","$uid":{".write":"auth != null && auth.uid === $uid"}}}}
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null && auth.uid === 'GMm3AlNn1pVRL6cc76opBgnM9sr1'",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['online','lastChanged'])"
+      }
+    }
+  }
+}
 ```
 
 ## iOS / Capacitor – Architektur & Crash-Schutz
