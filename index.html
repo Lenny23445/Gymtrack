@@ -4437,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051059';
+const APP_VERSION = 'gymtrack-v202606051400';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -10073,8 +10073,15 @@ function _attachSwipeToDelete() {
       dx = 0; active = true; decided = false; dir = null;
       card.classList.add('is-swiping');
     };
+    const _resetCard = () => {
+      card.style.transform = '';
+      if (bg) bg.classList.remove('on');
+      card.classList.remove('is-swiping');
+    };
     const onMove = (e) => {
       if (!active) return;
+      // Tab-Wechsel hat Vorrang → Lösch-Swipe sofort abbrechen
+      if (window._tabSwipeActive) { active = false; _resetCard(); return; }
       const t = e.touches ? e.touches[0] : e;
       const ax = t.clientX - startX;
       const ay = t.clientY - startY;
@@ -10096,6 +10103,8 @@ function _attachSwipeToDelete() {
       if (!active) return;
       active = false;
       card.classList.remove('is-swiping');
+      // Tab-Wechsel hat Vorrang → nicht löschen
+      if (window._tabSwipeActive) { _resetCard(); return; }
       if (dir !== 'h') { card.style.transform = ''; if (bg) bg.classList.remove('on'); return; }
       const cw = card.offsetWidth || 1;
       const li = parseInt(card.dataset.li);
@@ -10838,6 +10847,7 @@ function initPageSwipe() {
 
   document.addEventListener('touchstart', e => {
     tracking = false;
+    window._tabSwipeActive = false;
     if (document.querySelector('.ov.on')) return;
     const t  = e.touches[0];
     const el = document.elementFromPoint(t.clientX, t.clientY);
@@ -10850,10 +10860,14 @@ function initPageSwipe() {
     if (!tracking) return;
     const dx = Math.abs(e.touches[0].clientX - sx);
     const dy = Math.abs(e.touches[0].clientY - sy);
-    if (dy > dx + 8) tracking = false;
+    if (dy > dx + 8) { tracking = false; return; }
+    // Sobald klar erkennbar ein Tab-Wechsel → Flag setzen, damit Lösch-Swipe abgebrochen wird
+    if (dx > 50 && dx > dy * 1.5) window._tabSwipeActive = true;
   }, { passive: true });
 
   document.addEventListener('touchend', e => {
+    const wasTabSwipe = window._tabSwipeActive;
+    window._tabSwipeActive = false;
     if (!tracking) return;
     tracking = false;
     if (document.querySelector('.ov.on')) return;
