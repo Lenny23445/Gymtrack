@@ -4437,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051051';
+const APP_VERSION = 'gymtrack-v202606051055';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -12560,12 +12560,15 @@ async function _onLogin(user) {
     renderExList();
     renderSettings();
     updateAccountUI();
-    // Sync-Bestätigung
-    const _exCount = (S.exercises||[]).length;
-    const _syncMsg = _cloudHadData
-      ? `☁️ ${_exCount} Übung${_exCount !== 1 ? 'en' : ''} aus der Cloud geladen`
-      : `☁️ Daten in der Cloud gesichert`;
-    setTimeout(() => showUpdateToast(_syncMsg, { autoHide: 3000 }), 400);
+    // Sync-Bestätigung — nur beim erstmaligen Verbinden zeigen
+    if (!localStorage.getItem('gt_synced_' + user.uid)) {
+      localStorage.setItem('gt_synced_' + user.uid, '1');
+      const _exCount = (S.exercises||[]).length;
+      const _syncMsg = _cloudHadData
+        ? `☁️ ${_exCount} Übung${_exCount !== 1 ? 'en' : ''} aus der Cloud geladen`
+        : `☁️ Konto verbunden`;
+      setTimeout(() => showUpdateToast(_syncMsg, { autoHide: 3000 }), 400);
+    }
 
     // Live-Sync von anderen Geräten
     if (_fbUnsub) _fbUnsub();
@@ -13303,20 +13306,8 @@ async function _sha256Hex(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Sichtbarer Debug-Toast — zeigt Auth-Schritte direkt auf dem Bildschirm.
-// Wird entfernt sobald der Fehler identifiziert und behoben ist.
 function _adbg(msg) {
   console.log('[AuthDBG] ' + msg);
-  try {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;top:80px;left:0;right:0;z-index:99999;display:flex;justify-content:center;pointer-events:none;';
-    const pill = document.createElement('div');
-    pill.style.cssText = 'background:rgba(0,0,0,.88);color:#4f4;padding:6px 14px;border-radius:14px;font-size:12px;font-family:monospace;max-width:92vw;word-break:break-all;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4);';
-    pill.textContent = msg;
-    wrap.appendChild(pill);
-    document.body.appendChild(wrap);
-    setTimeout(() => wrap.remove(), 9000);
-  } catch(_) {}
 }
 
 async function doAppleSignIn() {
