@@ -844,6 +844,9 @@ body{
 .f-in::placeholder{color:var(--text2)}
 .f-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .f-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.scheme-seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.scheme-desc{font-size:11px;color:var(--text2);margin-top:7px;line-height:1.35}
 .f-field{margin-bottom:16px}
 
 /* ── EMOJI GRID ── */
@@ -1028,6 +1031,8 @@ body{
 .set-hdr span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;letter-spacing:.4px}
 .set-row{display:grid;grid-template-columns:28px 1fr 1fr 30px 26px;gap:8px;align-items:center;padding:4px 0;transition:opacity .2s}
 .set-n{font-size:14px;font-weight:600;color:var(--text2);text-align:center;transition:opacity .2s}
+.set-pr-star{font-size:13px;line-height:1;display:inline-block;animation:prStarPop .5s ease}
+@keyframes prStarPop{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
 .set-row.done .set-n,.set-row.done .set-in{opacity:.38}
 .set-chk{
   width:26px;height:26px;border-radius:50%;border:2px solid var(--text2);
@@ -1860,26 +1865,61 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 }
 .heute-train-btn{width:100%}
 
-/* ── HEUTE WIDGET-RASTER (anpassbar, iOS-Kontrollzentrum-Style) ── */
-#heute-grid{display:flex;flex-direction:column;gap:12px}
-.hw-row{display:flex;gap:12px;align-items:stretch}
-.hw-row>.hw{flex:1;min-width:0}
-.hw{position:relative;min-width:0}
-.hw-lg{}
-.hw-sm{}
-.hw-empty-slot{
-  flex:1;min-height:96px;border-radius:20px;
-  border:2px dashed rgba(var(--acc-rgb),.35);
-  background:rgba(var(--acc-rgb),.04);
-  display:none;align-items:center;justify-content:center;
-  color:rgba(var(--acc-rgb),.6);font-size:30px;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:opacity .15s;
+/* ── HEUTE WIDGET-RASTER: 2-Spalten-Grid mit dichter Packung ──
+   Quadrat (sm) = 1 Spalte × 2 Einheiten · Rechteck (md) = 1 Spalte × 1 Einheit
+   · Groß (lg) = 2 Spalten × N Einheiten. So passen z. B. 2 Rechtecke neben ein Quadrat,
+   und es entstehen keine Lücken (grid-auto-flow: dense). */
+#heute-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-auto-rows:var(--hw-unit,78px);
+  grid-auto-flow:row dense;
+  gap:12px;
 }
-.hw-empty-slot:active{opacity:.5}
-.heute-pad.editing .hw-empty-slot{display:flex}
-.hw-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;padding-left:2px}
-.hw-content{min-width:0}
+.hw{position:relative;min-width:0;display:flex;flex-direction:column}
+.hw-sm{grid-column:span 1;grid-row:span 2}
+.hw-md{grid-column:span 1;grid-row:span 1}
+.hw-lg{grid-column:span 2;grid-row:span 2} /* row-span ggf. inline (lgRows) überschrieben */
+.hw-content{min-width:0;flex:1;display:flex;flex-direction:column;min-height:0}
 .hw-content>.btn{margin:0}
+/* Karte füllt immer ihre Rasterzelle → Form ergibt sich allein aus dem Grid */
+.hw-content>.hw-card,
+.hw-content>.hw-quick,
+.hw-content>.card,
+.hw-content>.tracker-row,
+.hw-content>.btn{height:100%;min-height:0}
+.hw-card,.hw-quick{display:flex;flex-direction:column;overflow:hidden}
+/* sm/md: Inhalt zentriert */
+.hw-sm .hw-card,.hw-md .hw-card{align-items:center;justify-content:center;text-align:center}
+.hw-md .hw-card{padding:10px 14px}
+.hw-sm .tracker-row,.hw-md .tracker-row{display:block;height:100%;overflow:visible;padding:0}
+.hw-sm .tracker-row>.hw-card,.hw-md .tracker-row>.hw-card{height:100%}
+/* Emoji-freie Stat-Kacheln (Zahl + Label) */
+.hw-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px;height:100%;width:100%}
+.hw-stat .hw-big{line-height:1.05}
+.hw-sm .hw-stat .hw-big{font-size:27px}
+.hw-md .hw-stat .hw-big{font-size:22px}
+.hw-md .hw-stat{gap:0}
+.hist-sm,.hist-md{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px;cursor:pointer;width:100%;height:100%}
+/* Mini-Wochenpunkte für „Diese Woche" (quadratisch) */
+.wk-mini-row{display:flex;gap:3px;margin:6px 0 2px;justify-content:center}
+.wk-mini-dot{width:8px;height:8px;border-radius:50%;background:var(--g5)}
+.wk-mini-dot.l1{background:rgba(var(--acc-rgb),.4)}
+.wk-mini-dot.l2{background:rgba(var(--acc-rgb),.6)}
+.wk-mini-dot.l3{background:rgba(var(--acc-rgb),.8)}
+.wk-mini-dot.l4{background:var(--acc)}
+.wk-mini-dot.today{outline:1.5px solid var(--acc);outline-offset:1px}
+.wk-mini-dot.future{opacity:.35}
+/* Gewicht-Widget im Raster: Karte füllt Zelle, kein aspect-ratio-Konflikt */
+.hw-content>#weight-card{display:flex;flex-direction:column}
+.hw #weight-card .weight-card-inner{flex:1;min-height:0;justify-content:center}
+.hw-sm #weight-card .weight-card-sm,
+.hw-md #weight-card .weight-card-md{aspect-ratio:auto!important}
+.hw-md #weight-card .weight-mini-wrap{display:none}
+/* Heatmap-Karte bleibt eine Spalten-Reihe (überschreibt .hw-card column) */
+.hw-content>.hw-hm-wrap{flex-direction:row}
+.hist-md .badge{margin-top:3px}
+.hw-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;padding-left:2px;flex:0 0 auto}
 .hw-card{
   background:var(--gl-bg);
   backdrop-filter:blur(42px) saturate(200%);
@@ -1951,8 +1991,21 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   -webkit-tap-highlight-color:transparent;
 }
 .hw-remove{top:-8px;left:-8px;background:#ff3b30;color:#fff}
-.hw-resize{top:-8px;right:-8px;background:rgba(90,90,98,.95);color:#fff;font-size:12px}
 .heute-pad.editing .hw-badge{display:flex}
+/* Resize-Griff (ziehen wie bei Apple, statt Tippen auf ein Symbol) */
+.hw-rsz{
+  position:absolute;right:-9px;bottom:-9px;width:28px;height:28px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;color:#fff;
+  background:rgba(60,60,67,.96);z-index:7;cursor:nwse-resize;
+  box-shadow:0 2px 7px rgba(0,0,0,.4);touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.hw-rsz svg{width:14px;height:14px;display:block}
+.heute-pad.editing .hw-rsz{display:flex}
+.hw.hw-resizing{animation:none!important;z-index:60}
+.hw.hw-resizing .hw-card,.hw.hw-resizing .hw-quick,.hw.hw-resizing .card{
+  box-shadow:0 14px 38px rgba(0,0,0,.32)!important;outline:2px solid var(--acc);outline-offset:1px
+}
 .heute-pad.editing .hw{
   touch-action:none;
   animation:hw-jiggle .28s ease-in-out infinite;
@@ -3804,15 +3857,24 @@ body.heute-editing .heute-edit-bar{display:flex}
             <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
           </div>
         </div>
-        <div class="f-row2">
+        <div class="f-row3">
           <div>
             <label class="f-label" style="font-size:10px">Sätze</label>
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
           </div>
-          <div>
-            <label class="f-label" id="in-reps-label" style="font-size:10px">Wdh</label>
-            <input class="f-in" type="number" id="in-reps" value="10" min="1" max="9999">
+          <div id="rep-min-wrap">
+            <label class="f-label" style="font-size:10px">Wdh von</label>
+            <input class="f-in" type="number" id="in-reps-min" value="8" min="1" max="9999">
           </div>
+          <div>
+            <label class="f-label" id="in-reps-label" style="font-size:10px">bis</label>
+            <input class="f-in" type="number" id="in-reps" value="12" min="1" max="9999">
+          </div>
+        </div>
+        <div id="scheme-row" style="margin-top:14px">
+          <label class="f-label" style="font-size:10px">Gewichts-Schema über die Sätze</label>
+          <div class="scheme-seg" id="scheme-seg"></div>
+          <div class="scheme-desc" id="scheme-desc"></div>
         </div>
       </div>
       <div class="f-field">
@@ -4433,7 +4495,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051530';
+const APP_VERSION = 'gymtrack-v202606052100';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5011,6 +5073,7 @@ let editId = null;
 let selEmoji = '🏋️';
 let selMuscle   = '';      // aktuell ausgewählt im Formular
 let selExType   = 'reps';  // 'reps' | 'time' im Übung-Formular
+let selScheme   = 'straight';  // Gewichts-Schema im Übung-Formular
 let exCatFilter = 'alle';  // Filter im Übungen-Tab
 let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
@@ -5270,6 +5333,170 @@ function maxW(sets) {
   return vals.length ? Math.max(...vals) : 0;
 }
 
+// ── WIEDERHOLUNGSBEREICH & SATZSCHEMA (Double Progression) ──
+const WEIGHT_SCHEMES = ['straight','ascending','pyramid','reverse'];
+const SCHEME_SHORT = { straight:'Gleich', ascending:'Aufsteigend', pyramid:'Pyramide', reverse:'Umgekehrt' };
+const SCHEME_DESC = {
+  straight:'Alle Arbeitssätze mit demselben Gewicht (Straight Sets).',
+  ascending:'Jeder Satz etwas schwerer — der letzte Satz ist der schwerste.',
+  pyramid:'Erst schwerer werden bis zur Mitte, danach wieder leichter.',
+  reverse:'Schwerster Satz zuerst, danach von Satz zu Satz leichter (Reverse Pyramid).'
+};
+const WARMUP_PCT = 0.50;       // Aufwärmgewicht = 50 % des Arbeitsgewichts
+const DROP_PCT   = 0.70;       // Drop-Satz = 70 % seines Schema-Gewichts
+
+function repRange(ex){
+  if(!ex) return { min:8, max:12 };
+  const max = ex.repMax != null ? ex.repMax : (ex.targetReps || 10);
+  const min = ex.repMin != null ? ex.repMin : max;
+  return { min: Math.min(min,max), max: Math.max(min,max) };
+}
+function repGoalStr(ex){
+  if(ex.targetType === 'time') return fmtSec(ex.targetReps);
+  const {min,max} = repRange(ex);
+  return min===max ? `${max} Wdh` : `${min}–${max} Wdh`;
+}
+function repGoalShort(ex){
+  if(ex.targetType === 'time') return fmtSec(ex.targetReps);
+  const {min,max} = repRange(ex);
+  return min===max ? `${max}` : `${min}–${max}`;
+}
+function roundToStep(w){
+  if(!isFinite(w) || w<=0) return 0;
+  const step = 1.25;
+  return Math.round(w/step)*step;
+}
+// Schema-Multiplikator bezogen auf das schwerste Arbeitsgewicht (=1.0)
+function schemeMult(scheme, i, n){
+  if(n<=1) return 1;
+  switch(scheme){
+    case 'ascending': return 1 - (n-1-i)*0.05;            // letzter Satz = schwerster
+    case 'reverse':   return 1 - i*0.05;                  // erster Satz = schwerster
+    case 'pyramid': { const mid=(n-1)/2; return 1 - Math.abs(i-mid)*0.05; }
+    default:          return 1;                           // straight
+  }
+}
+
+// Plant die Sätze fürs nächste Training: übernimmt die Satz-Typen aus der
+// letzten Einheit und berechnet pro Satz das Gewicht (Schema + Aufwärm-%).
+function buildPlannedSets(ex){
+  const isTime = ex.targetType === 'time';
+  const prev   = lastSessionSetsFor(ex.id);
+  let types = (prev && prev.length)
+    ? prev.map(s => s.type || 'normal')
+    : Array.from({length: ex.targetSets || 3}, () => 'normal');
+  if(!types.length) types = ['normal'];
+
+  const baseW  = getSuggestedWeight(ex);     // schwerstes Arbeitsgewicht (oder null)
+  const sugR   = String(getSuggestedReps(ex));
+  const scheme = ex.weightScheme || 'straight';
+
+  // Positionen der Arbeitssätze (ohne Aufwärmen) für die Schema-Verteilung
+  const workIdx = [];
+  types.forEach((t,i) => { if(t !== 'warmup') workIdx.push(i); });
+  const nW = workIdx.length || 1;
+
+  return types.map((t,i) => {
+    let w = '';
+    if(baseW != null){
+      if(t === 'warmup'){
+        w = String(roundToStep(baseW * WARMUP_PCT));
+      } else {
+        const pos  = Math.max(0, workIdx.indexOf(i));
+        let mult   = schemeMult(scheme, pos, nW);
+        if(t === 'drop') mult *= DROP_PCT;
+        w = String(roundToStep(baseW * mult));
+      }
+    } else if(prev && prev[i] && prev[i].w){
+      w = String(prev[i].w);
+    }
+    if(isTime) return { w, tElapsed:0, tRunning:false, tStart:null, type: t };
+    return { w, r: (t === 'warmup' ? '' : sugR), type: t };
+  });
+}
+
+// Einmalige Migration: feste Wdh-Zahl → sinnvoller Bereich + Standard-Schema
+function migrateExercises(){
+  let changed = false;
+  (S.exercises || []).forEach(ex => {
+    if(ex.targetType === 'time') return;     // Zeit-Übungen: kein Bereich/Schema
+    if(ex.repMax == null || ex.repMin == null){
+      const base = ex.targetReps || 10;
+      ex.repMax = base + 2;
+      ex.repMin = Math.max(1, base - 2);
+      ex.targetReps = ex.repMax;             // Ziel = oberes Bereich-Ende (Kompatibilität)
+      changed = true;
+    }
+    if(!ex.weightScheme){ ex.weightScheme = 'straight'; changed = true; }
+  });
+  if(changed) persist();
+}
+
+// ── LIVE-PR IM EINGABE-FENSTER ──────────────────────────────
+// Beste je gespeicherten Werte einer Übung (für sofortige PR-Erkennung).
+let _livePR = {};   // exId → { maxW, max1RM, repsAt } (Session-Lauf)
+function exBestStats(exId){
+  let maxW = 0, max1RM = 0; const repsAt = {};
+  for(const ps of (S.sessions || [])){
+    for(const pl of (ps.logs || [])){
+      if(pl.exerciseId !== exId) continue;
+      for(const s of (pl.sets || [])){
+        const w = parseFloat(s.w)||0, r = parseInt(s.r)||0;
+        if(!w || !r) continue;
+        if(w > maxW) maxW = w;
+        const o = w*(1+r/30); if(o > max1RM) max1RM = o;
+        const k = Math.round(w*4)/4; if(!repsAt[k] || r > repsAt[k]) repsAt[k] = r;
+      }
+    }
+  }
+  return { maxW, max1RM, repsAt };
+}
+// Prüft den gerade eingetragenen Satz gegen die Historie und feiert PRs sofort.
+function checkLiveSetPR(li, si){
+  const log = wkLogs[li]; if(!log) return;
+  const ex  = exById(log.exerciseId); if(!ex || ex.targetType === 'time') return;
+  const s   = log.sets[si]; if(!s) return;
+  const w = parseFloat(s.w)||0, r = parseInt(s.r)||0;
+  if(!w || !r) return;
+  const best = exBestStats(ex.id);
+  const seen = _livePR[ex.id] || (_livePR[ex.id] = { maxW:best.maxW, max1RM:best.max1RM, repsAt:{...best.repsAt} });
+  const o = w*(1+r/30);
+  const k = Math.round(w*4)/4;
+  // PR-Typ nach Priorität bestimmen (gegen die bisher gesehenen Bestwerte)
+  let pr = null;
+  if(best.maxW > 0 && w > seen.maxW){
+    pr = { label:'Neues Max-Gewicht', val: kgToDisp(w)+' '+unitLabel() };
+  } else if(best.max1RM > 0 && o > seen.max1RM + 0.5){
+    pr = { label:'Neues 1RM (geschätzt)', val: (Math.round(o*10)/10)+' '+unitLabel() };
+  } else {
+    const prev = seen.repsAt[k] || 0;
+    if(prev > 0 && r > prev){
+      pr = { label:'Reps-Bestleistung bei '+kgToDisp(w)+' '+unitLabel(), val: r+' Wdh' };
+    }
+  }
+  // Schwellen immer hochziehen → derselbe Satz feiert nur einmal (kein Kaskaden-PR)
+  seen.maxW       = Math.max(seen.maxW, w);
+  seen.max1RM     = Math.max(seen.max1RM, o);
+  seen.repsAt[k]  = Math.max(seen.repsAt[k] || 0, r);
+  if(pr){ s.pr = true; celebrateLivePR(pr); }
+}
+function celebrateLivePR(pr){
+  try { haptic([25,50,25]); } catch(_){}
+  try { fireConfetti(40); } catch(_){}
+  let host = document.getElementById('pr-burst-host');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'pr-burst-host';
+    host.className = 'pr-burst-host';
+    document.body.appendChild(host);
+  }
+  const el = document.createElement('div');
+  el.className = 'pr-burst';
+  el.innerHTML = '<div>🏆 PR!</div><div class="pr-burst-sub">' + pr.label + ': <b>' + pr.val + '</b></div>';
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
 // ── NAVIGATION ────────────────────────────────────────
 function isWorkoutActive() {
   const step2 = document.getElementById('wk-step2');
@@ -5422,27 +5649,32 @@ function setGlass(on) {
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
   {type:'weekcal', size:'lg'},
+  {type:'streak',  size:'sm'},
+  {type:'recovery',size:'sm'},
+  {type:'weight',  size:'md'},
+  {type:'train',   size:'md'},
   {type:'woche',   size:'lg'},
-  {type:'weight',  size:'lg'},
   {type:'history', size:'lg'},
-  {type:'train',   size:'lg'},
 ];
 
+/* Größen-Reihenfolge: sm (quadratisch) < md (kleine rechteckig) < lg (groß).
+   Jedes Widget unterstützt alle drei Formen; sizes ist aufsteigend sortiert. */
+const HW_RANK = {sm:0, md:1, lg:2};
 const WIDGET_DEFS = {
-  weekcal: {title:'Diese Woche',     icon:'🗓️', label:'Diese Woche',      desc:'Trainingswoche · 7 Tage',     sizes:['lg'],      build:hwWeekcal},
-  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['lg'],      build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
-  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['lg','sm'], build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
-  history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],      build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
-  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['lg','sm'], build:()=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; Training starten</button>`},
-  streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','lg'], build:hwStreak},
-  volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['lg'],      build:hwVolume},
-  recovery:{title:'Erholung',        icon:'🔋', label:'Erholung',          desc:'Muskel-Erholung',             sizes:['lg','sm'], build:hwRecovery},
-  heatmap: {title:'Aktivität',       icon:'🟩', label:'Aktivität',         desc:'Trainings-Heatmap',           sizes:['lg'],      build:hwHeatmap},
-  muscles: {title:'Muskelgruppen',   icon:'💪', label:'Muskelgruppen',     desc:'Volumen-Verteilung',          sizes:['lg'],      build:hwMuscles},
-  onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['lg','sm'], build:hwOneRM},
-  qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('➕','Übung','openNewEx(null)')},
-  qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('⚖️','Gewicht','openWeightEntry()')},
-  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','lg'], build:()=>hwQuick('🏃','Cardio','openKardio()')},
+  weekcal: {title:'Diese Woche',     icon:'🗓️', label:'Diese Woche',      desc:'Trainingswoche · 7 Tage',     sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
+  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
+  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
+  history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
+  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
+  streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},
+  volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['sm','md','lg'], lgRows:2, build:hwVolume},
+  recovery:{title:'Erholung',        icon:'🔋', label:'Erholung',          desc:'Muskel-Erholung',             sizes:['sm','md','lg'], lgRows:3, build:hwRecovery},
+  heatmap: {title:'Aktivität',       icon:'🟩', label:'Aktivität',         desc:'Trainings-Heatmap',           sizes:['sm','md','lg'], lgRows:2, build:hwHeatmap},
+  muscles: {title:'Muskelgruppen',   icon:'💪', label:'Muskelgruppen',     desc:'Volumen-Verteilung',          sizes:['sm','md','lg'], lgRows:3, build:hwMuscles},
+  onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['sm','md','lg'], lgRows:3, build:hwOneRM},
+  qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
+  qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
+  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Cardio','openKardio()',size)},
 };
 const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight','qcardio'];
 
@@ -5465,61 +5697,49 @@ function renderHeuteGrid(){
   if (!layout.length){
     grid.innerHTML = `<div class="heute-grid-empty">Keine Widgets.<br>Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.</div>`;
   } else {
-    // Group flat list into visual rows: lg → own row; sm → pair with next sm or get empty slot
-    const rows = [];
-    let i = 0;
-    while (i < layout.length) {
-      const w = layout[i];
-      const def = WIDGET_DEFS[w.type];
+    // Lineare Ausgabe — das CSS-Grid übernimmt Form & dichte Packung
+    grid.innerHTML = layout.map((w, i) => {
+      const def  = WIDGET_DEFS[w.type];
       const size = def.sizes.includes(w.size) ? w.size : def.sizes[0];
-      if (size === 'lg') {
-        rows.push({full:true, a:{w, i, size}});
-        i++;
-      } else {
-        const w2 = layout[i+1];
-        const def2 = w2 ? WIDGET_DEFS[w2.type] : null;
-        const size2 = def2 ? (def2.sizes.includes(w2.size) ? w2.size : def2.sizes[0]) : null;
-        if (def2 && size2 === 'sm') {
-          rows.push({full:false, a:{w, i, size}, b:{w:w2, i:i+1, size:size2}});
-          i += 2;
-        } else {
-          rows.push({full:false, a:{w, i, size}, b:null});
-          i++;
-        }
-      }
-    }
-    function _hwHtml(item){
-      const {w, i, size} = item;
-      const def = WIDGET_DEFS[w.type];
       const canResize = def.sizes.length > 1;
-      return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}" data-idx="${i}">
+      // lg darf je nach Inhalt mehrere Rastereinheiten hoch sein
+      const spanStyle = size === 'lg' ? ` style="grid-row:span ${def.lgRows||2}"` : '';
+      const titleHtml = (size === 'lg' && def.title) ? `<div class="hw-title">${def.title}</div>` : '';
+      return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}" data-idx="${i}"${spanStyle}>
         <div class="hw-badge hw-remove" onclick="removeWidget(${i})">−</div>
-        ${canResize ? `<div class="hw-badge hw-resize" onclick="toggleWidgetSize(${i})">⤢</div>` : ''}
-        ${def.title ? `<div class="hw-title">${def.title}</div>` : ''}
+        ${titleHtml}
         <div class="hw-content">${def.build(size)}</div>
+        ${canResize ? `<div class="hw-rsz" data-idx="${i}" aria-label="Größe ziehen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a1 1 0 0 1-1-1v-4"/><path d="M4 16 9 21"/><path d="M15 3h4a1 1 0 0 1 1 1v4"/><path d="M20 8 15 3"/></svg></div>` : ''}
       </div>`;
-    }
-    grid.innerHTML = rows.map(row => {
-      if (row.full) {
-        return `<div class="hw-row">${_hwHtml(row.a)}</div>`;
-      } else {
-        const right = row.b ? _hwHtml(row.b)
-          : `<div class="hw-empty-slot" onclick="openWidgetPickerAt(${row.a.i})">＋</div>`;
-        return `<div class="hw-row">${_hwHtml(row.a)}${right}</div>`;
-      }
     }).join('');
   }
+  _sizeHeuteGrid();
   layout.forEach(w => { const d = WIDGET_DEFS[w.type]; if (d && d.fill) { try { d.fill(); } catch(e){} } });
   attachHeuteGestures(grid);
 }
 
-/* ── Kompakte Widget-Renderer (nutzen vorhandene Compute-Helfer) ── */
-function hwStreak(){
+/* Rastereinheit so berechnen, dass ein Quadrat (2 Einheiten) wirklich quadratisch ist */
+function _sizeHeuteGrid(){
+  const grid = document.getElementById('heute-grid');
+  if (!grid) return;
+  const g = 12;
+  const w = grid.clientWidth;
+  if (!w) return;
+  const col  = (w - g) / 2;        // Spaltenbreite
+  const unit = (col - g) / 2;      // 2 Einheiten + 1 Lücke = Spaltenbreite ⇒ Quadrat
+  grid.style.setProperty('--hw-unit', unit + 'px');
+}
+window.addEventListener('resize', _sizeHeuteGrid);
+
+/* ── Kompakte Widget-Renderer · emoji-frei · Listen nur in lg, Stat in sm/md ── */
+function hwStreak(size){
   const st = calcStreak();
-  return `<div class="hw-card">
-    <div class="hw-big">${st.weeksThis?'🔥':'⏳'} ${st.weeks}</div>
-    <div class="hw-sub">Wochen-Streak${st.bestWeeks?` · Best ${st.bestWeeks}`:''}</div>
-  </div>`;
+  const sub = `Wochen-Streak${st.bestWeeks?` · Best ${st.bestWeeks}`:''}`;
+  const big = size === 'lg' ? ' style="font-size:36px"' : '';
+  return `<div class="hw-card"><div class="hw-stat">
+    <div class="hw-big"${big}>${st.weeks}</div>
+    <div class="hw-sub">${size==='sm'?'Wochen-Streak':sub}</div>
+  </div></div>`;
 }
 function _sparkline(arr){
   if (!arr || arr.length < 2) return '';
@@ -5527,12 +5747,20 @@ function _sparkline(arr){
   const pts = arr.map((v,i)=>`${(i/(arr.length-1)*100).toFixed(1)},${(30-((v-min)/rng)*28).toFixed(1)}`).join(' ');
   return `<svg class="hw-spark" viewBox="0 0 100 32" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
-function hwVolume(){
+function hwVolume(size){
   const sessions = [...S.sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const vols = sessions.map(sessionVolume).filter(v=>v>0);
-  if (!vols.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Trainings</div></div>`;
+  const vols = sessions.map(s=>sessionVolume(s)).filter(v=>v>0);
+  if (!vols.length) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Noch keine Trainings</div></div></div>`;
   const total = vols.reduce((a,b)=>a+b,0);
-  return `<div class="hw-card" onclick="openVolumeFull()">
+  if (size === 'sm') return `<div class="hw-card" onclick="openVolumeFull()"><div class="hw-stat">
+    <div class="hw-big" style="font-size:23px">${fmtKg(total)}</div>
+    <div class="hw-sub">Volumen</div>
+  </div></div>`;
+  if (size === 'md') return `<div class="hw-card" onclick="openVolumeFull()"><div class="hw-stat">
+    <div class="hw-big">${fmtKg(total)}</div>
+    <div class="hw-sub">Volumen</div>
+  </div></div>`;
+  return `<div class="hw-card" onclick="openVolumeFull()" style="justify-content:center">
     <div class="hw-big">${fmtKg(total)}</div>
     <div class="hw-sub">Gesamt-Volumen · ${S.sessions.length} Einheit${S.sessions.length!==1?'en':''}</div>
     ${_sparkline(vols.slice(-16))}
@@ -5543,9 +5771,9 @@ function hwRecovery(size){
   const trained = MUSCLE_GROUPS
     .map(mg => ({mg, r: mgRec[mg.id] || {recPct:100,lastTs:null}}))
     .filter(x => x.r.lastTs);
-  if (!trained.length) return `<div class="hw-card"><div class="hw-empty-mini">Alle Muskeln erholt 💪</div></div>`;
+  if (!trained.length) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Alle Muskeln erholt</div></div></div>`;
 
-  // Verkleinert (sm): kompaktes Quadrat mit Erholungs-Batterie (Gesamterholung)
+  // Quadrat (sm): Erholungs-Batterie (Gesamterholung) — wie gehabt
   if (size === 'sm'){
     const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
     const col = recoveryColor(pct);
@@ -5559,6 +5787,15 @@ function hwRecovery(size){
       <div class="rec-batt-v-lbl"><b>${state}</b></div>
     </div>`;
   }
+  // Rechteck (md): kompakte Gesamterholung als Zahl
+  if (size === 'md'){
+    const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
+    const col = recoveryColor(pct);
+    return `<div class="hw-card"><div class="hw-stat">
+      <div class="hw-big" style="color:${col}">${pct}%</div>
+      <div class="hw-sub">${recoveryState(pct)}</div>
+    </div></div>`;
+  }
 
   const rows = trained.sort((a,b)=>a.r.recPct-b.r.recPct).slice(0,5);
   return `<div class="hw-card hw-rec-list">` + rows.map(({mg,r})=>{
@@ -5570,8 +5807,8 @@ function hwRecovery(size){
     </div>`;
   }).join('') + `</div>`;
 }
-function hwHeatmap(){
-  if (!S.sessions.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Aktivität</div></div>`;
+function hwHeatmap(size){
+  if (!S.sessions.length) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Noch keine Aktivität</div></div></div>`;
   const map = {};
   S.sessions.forEach(s => { const k=_localDateKey(new Date(s.date)); map[k]=(map[k]||0)+(sessionVolume(s)||1); });
   const active = Object.values(map).filter(v=>v>0).sort((a,b)=>a-b);
@@ -5580,7 +5817,8 @@ function hwHeatmap(){
   const today = new Date(); today.setHours(0,0,0,0);
   const dow = (today.getDay()+6)%7;
   const end = new Date(today); end.setDate(today.getDate()+(6-dow));
-  const WEEKS = 14;
+  // sm=7 Wochen (quadratisch) · md=26 Wochen (flach & breit) · lg=14 Wochen
+  const WEEKS = size==='sm' ? 7 : size==='md' ? 26 : 14;
   const start = new Date(end); start.setDate(end.getDate()-(WEEKS*7-1));
   let html = '';
   for (let c=0;c<WEEKS;c++){
@@ -5596,13 +5834,13 @@ function hwHeatmap(){
   }
   return `<div class="hw-card hw-hm-wrap">${html}</div>`;
 }
-function hwWeekcal(){
+function hwWeekcal(size){
   if (!S.sessions || !S.sessions.length)
-    return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Trainings diese Woche</div></div>`;
+    return `<div class="hw-card${size==='sm'?' hw-stat-sm':''}"><div class="hw-empty-mini">Noch keine Trainings diese Woche</div></div>`;
   const today = new Date(); today.setHours(0,0,0,0);
   const { map, level } = _volMap();
   const mon = new Date(today); mon.setDate(today.getDate() - _DOW_MON0(today));
-  let days = '', trained = 0;
+  let days = '', trained = 0, dots = '';
   for (let i=0;i<7;i++){
     const d = new Date(mon); d.setDate(mon.getDate()+i);
     const v = map[_localDateKey(d)] || 0;
@@ -5611,13 +5849,23 @@ function hwWeekcal(){
     const isFuture = d>today;
     const cls = [v>0?'l'+level(v):'', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
     days += `<div class="week-day"><div class="week-dot ${cls}">${v>0?'✓':d.getDate()}</div><div class="week-day-lbl">${_WD_LBL[i]}</div></div>`;
+    dots += `<span class="wk-mini-dot ${cls}"></span>`;
   }
-  return `<div class="hw-card hw-week" onclick="openCalendarOverlay()">
+  if (size === 'sm') return `<div class="hw-card hw-week" onclick="openCalendarOverlay()"><div class="hw-stat">
+    <div class="hw-big">${trained}<span style="font-size:15px;color:var(--text2)">/7</span></div>
+    <div class="wk-mini-row">${dots}</div>
+    <div class="hw-sub">Diese Woche</div>
+  </div></div>`;
+  if (size === 'md') return `<div class="hw-card hw-week" onclick="openCalendarOverlay()" style="justify-content:center"><div class="hw-stat">
+    <div class="hw-big">${trained}<span style="font-size:15px;color:var(--text2)">/7</span></div>
+    <div class="wk-mini-row">${dots}</div>
+  </div></div>`;
+  return `<div class="hw-card hw-week" onclick="openCalendarOverlay()" style="justify-content:center">
     <div class="week-circles-row">${days}</div>
     <div class="hw-week-foot"><span><b>${trained}</b> ${trained===1?'Training':'Trainings'} diese Woche</span><span>Kalender →</span></div>
   </div>`;
 }
-function hwMuscles(){
+function hwMuscles(size){
   const tot = {}; let grand = 0;
   S.sessions.forEach(s => s.logs.forEach(l => {
     const ex = exById(l.exerciseId); if (!ex) return;
@@ -5625,27 +5873,44 @@ function hwMuscles(){
     const v = setsVolume(l.sets);
     tot[g] = (tot[g]||0)+v; grand += v;
   }));
-  if (!grand) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine Daten</div></div>`;
-  const rows = MUSCLE_GROUPS.map(mg=>({mg,v:tot[mg.id]||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,6);
+  if (!grand) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Noch keine Daten</div></div></div>`;
+  const all = MUSCLE_GROUPS.map(mg=>({mg,v:tot[mg.id]||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  if (size === 'sm' || size === 'md'){
+    const top = all[0];
+    return `<div class="hw-card"><div class="hw-stat">
+      <div class="hw-big">${Math.round(top.v/grand*100)}%</div>
+      <div class="hw-sub">${top.mg.label}</div>
+    </div></div>`;
+  }
+  const rows = all.slice(0,6);
   const max = rows[0].v || 1;
   return `<div class="hw-card">` + rows.map(({mg,v})=>`
     <div class="hw-mg-row">
-      <span class="hw-mg-label">${mg.emoji} ${mg.label}</span>
+      <span class="hw-mg-label">${mg.label}</span>
       <span class="hw-mg-bar"><span style="width:${Math.max(5,Math.round(v/max*100))}%"></span></span>
       <span class="hw-mg-val">${Math.round(v/grand*100)}%</span>
     </div>`).join('') + `</div>`;
 }
-function hwOneRM(){
-  const rows = (S.exercises||[]).map(ex=>({ex, orm:exBest1RM(ex.id)})).filter(x=>x.orm>0).sort((a,b)=>b.orm-a.orm).slice(0,5);
-  if (!rows.length) return `<div class="hw-card"><div class="hw-empty-mini">Noch keine 1RM-Daten</div></div>`;
+function hwOneRM(size){
+  const all = (S.exercises||[]).map(ex=>({ex, orm:exBest1RM(ex.id)})).filter(x=>x.orm>0).sort((a,b)=>b.orm-a.orm);
+  if (!all.length) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Noch keine 1RM-Daten</div></div></div>`;
+  if (size === 'sm' || size === 'md'){
+    const t = all[0];
+    return `<div class="hw-card"><div class="hw-stat">
+      <div class="hw-sub" style="max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.ex.name}</div>
+      <div class="hw-big" style="color:var(--acc)">${fmt1RM(t.orm)}</div>
+      <div class="hw-sub">1RM-Best</div>
+    </div></div>`;
+  }
+  const rows = all.slice(0,5);
   return `<div class="hw-card">` + rows.map(({ex,orm})=>`
     <div class="hw-orm-row">
-      <span class="hw-orm-name">${ex.emoji?ex.emoji+' ':''}${ex.name}</span>
+      <span class="hw-orm-name">${ex.name}</span>
       <span class="hw-orm-val">${fmt1RM(orm)}</span>
     </div>`).join('') + `</div>`;
 }
-function hwQuick(icon,label,fn){
-  return `<button class="hw-card hw-quick" onclick="${fn}"><span class="hw-quick-ico">${icon}</span><span class="hw-quick-lbl">${label}</span></button>`;
+function hwQuick(icon,label,fn,size){
+  return `<button class="hw-card hw-quick" onclick="${fn}"><div class="hw-stat"><span class="hw-quick-lbl">${label}</span></div></button>`;
 }
 
 /* ── Bearbeitungs-Modus ── */
@@ -5718,7 +5983,7 @@ function renderWidgetPicker(){
 }
 
 /* ── Gesten: Long-Press (Bearbeiten) + Drag & Drop (Umsortieren) ── */
-let _hlpTimer=null, _hlpStart=null, _hDrag=null;
+let _hlpTimer=null, _hlpStart=null, _hDrag=null, _hRsz=null;
 function attachHeuteGestures(grid){
   if (grid._gestBound) return;
   grid._gestBound = true;
@@ -5734,6 +5999,15 @@ function _hOnDown(e){
   const tile = e.target.closest('.hw');
   if (heuteEditMode){
     if (e.target.closest('.hw-badge')) return;
+    // Resize-Griff gezogen → Größe per Ziehen anpassen (statt Tippen)
+    const rsz = e.target.closest('.hw-rsz');
+    if (rsz){
+      _hRsz = {idx:parseInt(rsz.dataset.idx||'-1'), id:e.pointerId, sx:e.clientX, sy:e.clientY, moved:false};
+      const grid = document.getElementById('heute-grid');
+      try { grid.setPointerCapture(e.pointerId); } catch(_){}
+      e.preventDefault();
+      return;
+    }
     if (!tile) return;
     _hDrag = {tile, idx:parseInt(tile.dataset.idx||'-1'), id:e.pointerId, sx:e.clientX, sy:e.clientY, started:false, overEl:null};
     return;
@@ -5745,6 +6019,7 @@ function _hOnDown(e){
 }
 function _hOnMove(e){
   if (_hlpTimer && _hlpStart && Math.hypot(e.clientX-_hlpStart.x, e.clientY-_hlpStart.y) > 10) _hClearLP();
+  if (_hRsz && _hRsz.id===e.pointerId){ e.preventDefault(); _hResizeMove(e); return; }
   if (_hDrag && _hDrag.id===e.pointerId){
     if (!_hDrag.started){
       if (Math.hypot(e.clientX-_hDrag.sx, e.clientY-_hDrag.sy) < 8) return;
@@ -5756,6 +6031,7 @@ function _hOnMove(e){
 }
 function _hOnUp(e){
   _hClearLP();
+  if (_hRsz){ _hResizeEnd(); _hRsz = null; }
   if (_hDrag){
     if (_hDrag.started){
       if (_hDrag.ghost) _hDrag.ghost.remove();
@@ -5813,6 +6089,59 @@ function _hCommitOrder(){
   renderHeuteGrid();
 }
 
+/* ── Größe per Ziehen am Eck-Griff anpassen (Apple-Stil) ── */
+function _hDesiredSize(def, idx, cx, cy){
+  const grid = document.getElementById('heute-grid'); if (!grid) return null;
+  const gr   = grid.getBoundingClientRect();
+  const tile = grid.querySelector(`.hw[data-idx="${idx}"]`); if (!tile) return null;
+  const tr   = tile.getBoundingClientRect();
+  const g    = 12;
+  const col  = (gr.width - g) / 2;           // eine Spaltenbreite
+  const wWant = cx - tr.left;                // gewünschte Breite (ab Kachel-Links)
+  const hWant = cy - tr.top;                 // gewünschte Höhe  (ab Kachel-Oben)
+  // Breit (> ~1,3 Spalten) → groß (2 Spalten); sonst 1 Spalte → flach (md) oder hoch (sm)
+  let cand;
+  if (wWant > col * 1.3) cand = 'lg';
+  else cand = (hWant < col * 0.62) ? 'md' : 'sm';
+  if (def.sizes.includes(cand)) return cand;
+  // Auf nächstunterstützte Größe einrasten
+  let best = def.sizes[0], bd = 99;
+  def.sizes.forEach(s => { const d = Math.abs((HW_RANK[s]??0) - (HW_RANK[cand]??0)); if (d < bd){ bd = d; best = s; } });
+  return best;
+}
+function _hResizeMove(e){
+  const L = _heuteLayout(); const w = L[_hRsz.idx]; if (!w) return;
+  const def = WIDGET_DEFS[w.type]; if (!def) return;
+  if (!_hRsz.moved && Math.hypot(e.clientX-_hRsz.sx, e.clientY-_hRsz.sy) < 6) return;
+  _hRsz.moved = true;
+  const grid = document.getElementById('heute-grid');
+  let tile = grid && grid.querySelector(`.hw[data-idx="${_hRsz.idx}"]`);
+  if (tile) tile.classList.add('hw-resizing');
+  const want = _hDesiredSize(def, _hRsz.idx, e.clientX, e.clientY);
+  const cur  = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+  if (want && want !== cur){
+    w.size = want;
+    renderHeuteGrid();   // Kachel rastet auf neue Form ein
+    tile = grid && grid.querySelector(`.hw[data-idx="${_hRsz.idx}"]`);
+    if (tile) tile.classList.add('hw-resizing');
+    if (navigator.vibrate) navigator.vibrate(6);
+  }
+}
+function _hResizeEnd(){
+  document.querySelectorAll('#heute-grid .hw-resizing').forEach(t => t.classList.remove('hw-resizing'));
+  if (_hRsz && _hRsz.moved){
+    persist();
+  } else if (_hRsz){
+    // Reines Tippen auf den Griff → nächste Größe (Fallback/Entdeckbarkeit)
+    const L = _heuteLayout(); const w = L[_hRsz.idx]; const def = w && WIDGET_DEFS[w.type];
+    if (def && def.sizes.length > 1){
+      const cur = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+      w.size = def.sizes[(def.sizes.indexOf(cur)+1) % def.sizes.length];
+      persist(); renderHeuteGrid();
+    }
+  }
+}
+
 function renderHome() {
   const h = new Date().getHours();
   document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
@@ -5827,8 +6156,9 @@ let _compactHistOpen = false;
 function renderCompactHistory() {
   const el = document.getElementById('history-card');
   if (!el) return;
+  const size = el.closest('.hw')?.dataset.size || 'lg';
   if (!S.sessions.length) {
-    el.innerHTML = `<div style="padding:13px 16px;color:var(--text2);font-size:14px;position:relative;z-index:1">Noch kein Training</div>`;
+    el.innerHTML = `<div style="padding:13px 16px;color:var(--text2);font-size:14px;position:relative;z-index:1${size==='sm'?';text-align:center':''}">Noch kein Training</div>`;
     return;
   }
   const sessions = [...S.sessions].sort((a,b) => new Date(b.date)-new Date(a.date));
@@ -5837,6 +6167,17 @@ function renderCompactHistory() {
   const fmt   = s => new Date(s.date).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
   const sets  = s => s.logs.reduce((n,l)=>n+l.sets.length,0);
   const label = s => { const lbl = deriveTrainingLabel(s); return lbl ? `<span class="last-train-tag">${lbl}</span>` : ''; };
+
+  // Quadratisch (sm): nur die wichtigste Info — letztes Training kompakt
+  // Quadrat (sm) & Rechteck (md): kompakt — letzte Einheit (Sätze + Datum)
+  if (size === 'sm' || size === 'md') {
+    el.innerHTML = `<div class="hist-${size}" onclick="openSessDetail('${last.id}')">
+      <div class="hw-big" style="font-size:${size==='sm'?'26px':'22px'}">${sets(last)}</div>
+      <div class="hw-sub">Sätze</div>
+      <div class="hw-sub" style="margin-top:1px">${fmt(last)}</div>
+    </div>`;
+    return;
+  }
 
   // Sub-Zeilen mit Swipe-to-Delete
   const row = (s, border) => `
@@ -6072,15 +6413,17 @@ function renderWeightCard() {
   // schmale Diagramm komplett weggelassen, damit die Karte sauber aussieht.
   const size = el.closest('.hw')?.dataset.size || 'lg';
   const isSm = size === 'sm';
+  const isMd = size === 'md';
+  const compact = isSm || isMd; // sm & md: ohne Diagramm & Ziel-Block
 
   const miniContent = log.length >= 2
     ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
     : `<div class="weight-mini-empty">${log.length===1 ? '1 Eintrag' : 'Noch kein Verlauf'}</div>`;
 
-  const miniWrap = isSm ? '' :
+  const miniWrap = compact ? '' :
     `<div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">${miniContent}</div>`;
 
-  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}">
+  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}${isMd ? ' weight-card-md' : ''}">
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
@@ -6094,10 +6437,10 @@ function renderWeightCard() {
       ${miniWrap}
       <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
-    ${isSm ? '' : _buildGoalHtml(start, goal, cur, unit)}
+    ${compact ? '' : _buildGoalHtml(start, goal, cur, unit)}
   </div>`;
 
-  if (!isSm) requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
+  if (!compact) requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
 }
 
 function openWeightChartFull() {
@@ -6434,7 +6777,7 @@ function getSuggestion(ex) {
   // Eingebrochen → realistisches Wdh-Ziel vorschlagen
   const sum = mainSets.reduce((a,s) => a + parseInt(s.r||0), 0);
   const avg = Math.max(1, Math.round(sum / mainSets.length));
-  const gStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
+  const gStr = repGoalStr(ex);
   if (avg < ex.targetReps - 2) {
     return { type:'hold', icon:'', title:`${ex.name}: Wdh aufbauen`, text:`Zuletzt nur ~${avg} Wdh. Versuche ${avg} Wdh bei ${kgToDisp(lMaxW)} ${unitLabel()} sauber zu halten.` };
   }
@@ -6602,6 +6945,21 @@ function renderTrackers() {
   const row = document.getElementById('tracker-row');
   if (!row) return;
   const wk = getWeekKey();
+  // Quadrat (sm) & Rechteck (md): kompakte Zusammenfassung statt aller Ringe
+  const size = row.closest('.hw')?.dataset.size || 'lg';
+  if (size === 'sm' || size === 'md') {
+    const items = (S.trackerItems || []);
+    if (!items.length) {
+      row.innerHTML = `<div class="hw-card" onclick="openTrackerMenu()" style="cursor:pointer"><div class="hw-stat"><div class="hw-sub">Ziele<br>hinzufügen</div></div></div>`;
+      return;
+    }
+    const done = items.filter(it => ((S.trackerCounts[it.id]||{})[wk]||0) >= (it.goal||1)).length;
+    row.innerHTML = `<div class="hw-card"><div class="hw-stat">
+      <div class="hw-big">${done}<span style="font-size:15px;color:var(--text2)">/${items.length}</span></div>
+      <div class="hw-sub">Ziele erreicht</div>
+    </div></div>`;
+    return;
+  }
   const R = 26, CX = 32, CY = 32;
   const circ = +(2 * Math.PI * R).toFixed(1);
   const targets = [];
@@ -7098,7 +7456,7 @@ function renderExList() {
     const lw = last ? maxW(last.sets) : null;
     const mgLabel = ex.muscleGroup ? muscleLabel(ex.muscleGroup) : '';
     const days = exerciseDayLabels(ex.id);
-    const goalStr = ex.targetType==='time' ? fmtSec(ex.targetReps) : ex.targetReps+' Wdh';
+    const goalStr = repGoalStr(ex);
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+kgToDisp(lw)+' '+unitLabel() : ''}${days ? ' · 📅 '+days : ''}`;
     const _ps = exProgressStatus(ex.id);
     const _dot = _ps ? `<div class="prog-dot ${_ps}" title="${{up:'Fortschritt ↑',down:'Rückgang ↓',same:'Gleichstand →',new:'Erstes Training'}[_ps]}"></div>` : '';
@@ -7665,42 +8023,43 @@ function openProgressionInfo(exId) {
       exText = `
         <div style="background:rgba(var(--acc-rgb),.08);border:1px solid rgba(var(--acc-rgb),.24);border-radius:14px;padding:12px 14px;margin-bottom:14px">
           <div style="font-weight:700;margin-bottom:4px">${ex.name}</div>
-          <div style="color:var(--text2);font-size:13px">Vorschlag fürs nächste Mal: <b style="color:var(--acc)">${swDisp}</b> × <b style="color:var(--acc)">${sr||ex.targetReps} Wdh</b></div>
+          <div style="color:var(--text2);font-size:13px">Vorschlag fürs nächste Mal: <b style="color:var(--acc)">${swDisp}</b> × <b style="color:var(--acc)">${sr||repRange(ex).min} Wdh</b>${ex.targetType!=='time'?` <span style="opacity:.7">(Bereich ${repGoalStr(ex)})</span>`:''}</div>
+          ${ex.weightScheme && ex.weightScheme!=='straight' ? `<div style="margin-top:4px;font-size:12px;color:var(--text2)">Schema: <b>${SCHEME_SHORT[ex.weightScheme]}</b></div>` : ''}
           ${sug && sug.text ? `<div style="margin-top:6px;font-size:13px;color:var(--text2)">${sug.text}</div>` : ''}
         </div>`;
     }
   }
   body.innerHTML = exText + `
-    <p style="margin:0 0 10px"><b>1. Arbeitssätze zählen</b><br>
-    Nur <b>Normal-, Top- und Versagen-Sätze</b> fließen in die Progression ein. Aufwärmsätze (W) werden komplett ignoriert.</p>
-    <p style="margin:0 0 10px"><b>2. Satz-Typ macht den Unterschied</b><br>
-    <b>Arbeitssätze (Normal):</b> +2,5 ${unitLabel()} wenn alle Ziel-Wdh geschafft; ab 60 kg +5 ${unitLabel()} nach 2× in Folge.<br>
-    <b>Top-Satz (T):</b> Ein schwerer Maximalsatz (RPE 8–10). Steigerung in 2,5er-Schritten bis 100 kg, danach 5er.<br>
-    <b>Bis zum Versagen (F):</b> Gilt automatisch als Ziel-Wdh erreicht — harte Intensität zählt voll.</p>
-    <p style="margin:0 0 10px"><b>3. Stufenweise steigern</b><br>
-    Wer 2× hintereinander alles geschafft hat, bekommt direkt die größere Steigerung.</p>
-    <p style="margin:0 0 10px"><b>4. Wdh-Fokus statt Gewicht</b><br>
-    Schaffst du noch nicht alle Wdh, bleibt das Gewicht gleich — du baust Wdh auf, bis das Ziel sitzt.</p>
-    <p style="margin:0 0 10px"><b>5. Eingebrochen?</b><br>
-    Schaffst du deutlich weniger als das Ziel (z. B. 6 statt 10), schlägt GymTrack die letzte erreichte Wdh-Zahl als realistisches Ziel vor.</p>
-    <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Pro Übung auf das <b>i</b>-Symbol tippen — du siehst direkt, was als nächstes ansteht.</p>`;
+    <p style="margin:0 0 10px"><b>1. Wiederholungsbereich (Double Progression)</b><br>
+    Du arbeitest in einem Bereich, z. B. <b>6–12</b>. Schaffst du in <u>allen</u> Arbeitssätzen das obere Ende (12), steigt das Gewicht — und du startest nächstes Mal wieder unten im Bereich (6). Bis dahin baust du Satz für Satz Wiederholungen auf.</p>
+    <p style="margin:0 0 10px"><b>2. Arbeitssätze zählen</b><br>
+    Nur <b>Normal-, Top- und Versagen-Sätze</b> fließen in die Progression ein. <b>Aufwärmsätze (W)</b> werden ignoriert und bekommen automatisch ~50 % des Arbeitsgewichts.</p>
+    <p style="margin:0 0 10px"><b>3. Satz-Typen werden übernommen</b><br>
+    Deine Typen (Aufwärmen, Top, Drop …) und das Schema werden ins nächste Training derselben Übung automatisch vorbelegt.</p>
+    <p style="margin:0 0 10px"><b>4. Gewichts-Schema über die Sätze</b><br>
+    <b>Gleichbleibend:</b> alle gleich · <b>Aufsteigend:</b> letzter Satz am schwersten · <b>Pyramide:</b> hoch und wieder runter · <b>Umgekehrt:</b> schwerster Satz zuerst. GymTrack rechnet die Einzelgewichte pro Satz aus.</p>
+    <p style="margin:0 0 10px"><b>5. Top-Satz &amp; Versagen</b><br>
+    <b>Top-Satz (T):</b> ein schwerer Maximalsatz (RPE 8–10). <b>Bis zum Versagen (F):</b> gilt automatisch als oberes Bereich-Ende erreicht.</p>
+    <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert 🏆.</p>`;
   openOv('ov-prog-info');
 }
 
 // ── INTELLIGENTERE PROGRESSION: Reps-Vorschlag ─────────
 function getSuggestedReps(ex) {
+  const { min, max } = repRange(ex);
   const hist = exHistory(ex.id);
-  if (!hist.length) return ex.targetReps;
+  if (!hist.length) return min;          // Start am unteren Bereich-Ende
   const last = hist[hist.length-1];
   // Aufwärmsätze komplett ausschließen
   const validSets = _workSets(last.sets);
-  if (!validSets.length) return ex.targetReps;
-  const allReps = validSets.every(s => _repsOk(s, ex.targetReps));
-  if (allReps) return ex.targetReps;
-  // unter Ziel: avg-Wdh (gerundet) als realistisches Ziel
-  const sum = validSets.reduce((a,s) => a + parseInt(s.r||0), 0);
-  const avg = Math.max(1, Math.round(sum / validSets.length));
-  return avg;
+  if (!validSets.length) return min;
+  // Double Progression: oben im Bereich überall erreicht → Gewicht steigt,
+  // Wdh starten nächstes Mal wieder unten im Bereich.
+  const allTop = validSets.every(s => _repsOk(s, max));
+  if (allTop) return min;
+  // Noch im Bereich am Aufbauen → eine Wdh mehr anpeilen als der schwächste Satz.
+  const minReps = Math.min(...validSets.map(s => parseInt(s.r) || 0));
+  return Math.max(min, Math.min(max, minReps + 1));
 }
 
 // ── WHEEL PICKER ───────────────────────────────────────
@@ -7845,6 +8204,7 @@ function confirmWheel() {
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
+  try { checkLiveSetPR(li, si); } catch(_) {}
   renderLogCards();
 }
 
@@ -8028,9 +8388,11 @@ function openNewEx(exId) {
   selMuscle = '';
   selExDays = [];
   selExType = 'reps';
+  selScheme = 'straight';
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
-  document.getElementById('in-reps').value = '10';
+  document.getElementById('in-reps-min').value = '8';
+  document.getElementById('in-reps').value = '12';
   document.getElementById('del-ex-btn').style.display = 'none';
   document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
 
@@ -8040,15 +8402,23 @@ function openNewEx(exId) {
       selEmoji  = '';
       selMuscle = ex.muscleGroup || '';
       selExType = ex.targetType || 'reps';
+      selScheme = ex.weightScheme || 'straight';
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
-      document.getElementById('in-reps').value = ex.targetReps;
+      if (selExType === 'time') {
+        document.getElementById('in-reps').value = ex.targetReps;
+      } else {
+        const rr = repRange(ex);
+        document.getElementById('in-reps-min').value = rr.min;
+        document.getElementById('in-reps').value = rr.max;
+      }
       document.getElementById('del-ex-btn').style.display = '';
       document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
       selExDays = exerciseDays(exId);
     }
   }
   setExType(selExType);
+  renderSchemeSeg();
   renderMusclePicker();
   renderExDayPills();
   openOv('ov-ex');
@@ -8135,16 +8505,29 @@ function saveEx() {
   }
   document.getElementById('muscle-req-hint')?.classList.remove('show');
   const sets = parseInt(document.getElementById('in-sets').value)||3;
-  const reps = parseInt(document.getElementById('in-reps').value)||10;
+
+  // Wiederholungsbereich + Schema (nur bei Wdh-Übungen)
+  let reps, repMin = null, repMax = null, scheme = null;
+  if (selExType === 'time') {
+    reps = parseInt(document.getElementById('in-reps').value)||30;
+  } else {
+    repMin = parseInt(document.getElementById('in-reps-min').value)||8;
+    repMax = parseInt(document.getElementById('in-reps').value)||Math.max(repMin,12);
+    if (repMin > repMax) { const t = repMin; repMin = repMax; repMax = t; }
+    reps   = repMax;                 // Ziel = oberes Bereich-Ende (Kompatibilität)
+    scheme = WEIGHT_SCHEMES.includes(selScheme) ? selScheme : 'straight';
+  }
+  const patch = { name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps,
+                  targetType:selExType, repMin, repMax, weightScheme:scheme };
 
   let savedId;
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, {name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetType:selExType});
+    if (ex) Object.assign(ex, patch);
     savedId = editId;
   } else {
     savedId = uid();
-    S.exercises.push({id:savedId, name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps, targetWeight:0, targetType:selExType});
+    S.exercises.push({ id:savedId, targetWeight:0, ...patch });
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
@@ -8168,18 +8551,40 @@ function setExType(type) {
   const repsBtn = document.getElementById('ex-type-reps');
   const timeBtn = document.getElementById('ex-type-time');
   const lbl     = document.getElementById('in-reps-label');
+  const minWrap = document.getElementById('rep-min-wrap');
+  const schemeRow = document.getElementById('scheme-row');
   if (!repsBtn) return;
   if (type === 'time') {
     repsBtn.classList.remove('on'); timeBtn.classList.add('on');
     if (lbl) lbl.textContent = 'Sek';
+    if (minWrap) minWrap.style.display = 'none';
+    if (schemeRow) schemeRow.style.display = 'none';
     const inp = document.getElementById('in-reps');
-    if (inp && (inp.value === '10' || !inp.value)) inp.value = '30';
+    if (inp && (inp.value === '10' || inp.value === '12' || !inp.value)) inp.value = '30';
   } else {
     timeBtn.classList.remove('on'); repsBtn.classList.add('on');
-    if (lbl) lbl.textContent = 'Wdh';
+    if (lbl) lbl.textContent = 'bis';
+    if (minWrap) minWrap.style.display = '';
+    if (schemeRow) schemeRow.style.display = '';
     const inp = document.getElementById('in-reps');
-    if (inp && (inp.value === '30' || !inp.value)) inp.value = '10';
+    if (inp && (inp.value === '30' || !inp.value)) inp.value = '12';
   }
+}
+
+// ── GEWICHTS-SCHEMA PICKER ───────────────────────────
+function renderSchemeSeg() {
+  const seg = document.getElementById('scheme-seg');
+  if (!seg) return;
+  seg.innerHTML = WEIGHT_SCHEMES.map(k =>
+    `<button type="button" class="icat${selScheme===k?' on':''}" onclick="pickScheme('${k}')">${SCHEME_SHORT[k]}</button>`
+  ).join('');
+  const d = document.getElementById('scheme-desc');
+  if (d) d.textContent = SCHEME_DESC[selScheme] || '';
+}
+function pickScheme(k) {
+  selScheme = k;
+  haptic(6);
+  renderSchemeSeg();
 }
 
 // ── TIMER HELPERS ────────────────────────────────────
@@ -9898,7 +10303,7 @@ function renderWkPicker() {
     return `<div class="row tap" onclick="toggleEx('${ex.id}')">
       <div class="row-body">
         <div class="row-title">${ex.name}</div>
-        <div class="row-sub">Ziel: ${ex.targetSets}×${ex.targetType==='time'?fmtSec(ex.targetReps):ex.targetReps+' Wdh'}</div>
+        <div class="row-sub">Ziel: ${ex.targetSets}×${repGoalShort(ex)}${ex.targetType==='time'?'':' Wdh'}</div>
       </div>
       <div class="wk-chk${sel?' on':''}" id="wchk-${ex.id}">${sel?'✓':''}</div>
     </div>`;
@@ -9980,11 +10385,7 @@ function addExToActiveWorkout(exId) {
   const sw = getSuggestedWeight(ex);
   const defaultW = sw != null ? String(sw) : '';
   const defaultR = String(getSuggestedReps(ex));
-  const isTime = ex.targetType === 'time';
-  const makeset = () => isTime
-    ? {w:defaultW, tElapsed:0, tRunning:false, tStart:null}
-    : {w:defaultW, r:defaultR};
-  wkLogs.push({ exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) });
+  wkLogs.push({ exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: buildPlannedSets(ex) });
   closeOv('ov-mid-add');
   openOv('ov-wk');           // Workout-Sheet wieder öffnen
   updateWkMiniVisibility();
@@ -9999,16 +10400,13 @@ function addExToActiveWorkout(exId) {
 
 function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
+  _livePR = {};   // Live-PR-Tracker für neue Einheit zurücksetzen
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
     const defaultW = sw != null ? String(sw) : '';
     const defaultR = String(getSuggestedReps(ex));
-    const isTime = ex.targetType === 'time';
-    const makeset = () => isTime
-      ? {w:defaultW, tElapsed:0, tRunning:false, tStart:null}
-      : {w:defaultW, r:defaultR};
-    return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: Array.from({length:ex.targetSets}, makeset) };
+    return { exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: buildPlannedSets(ex) };
   });
   timerTs = Date.now();
   // Live Activity starten
@@ -10037,7 +10435,7 @@ function renderLogCards() {
   document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
-    const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${ex.targetReps}`;
+    const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${repGoalShort(ex)}`;
     const prevSets = lastSessionSetsFor(log.exerciseId);
     const displayName = log._overrideName || ex.name;
     return `<div class="ex-card" data-li="${li}">
@@ -10072,7 +10470,7 @@ function renderLogCards() {
           return `
         <div class="set-row${s.done?' done':''}">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
-          <div class="set-n">${si+1}</div>
+          <div class="set-n">${s.pr?'<span class="set-pr-star" title="Persönlicher Rekord!">🏆</span>':si+1}</div>
           <button class="set-type ${type}" onclick="openSetTypePopup(${li},${si})" title="${SET_TYPE_TITLE[type]} – tippen für Typ-Auswahl">${typeLabel||'•'}</button>
           <button class="set-in set-in-btn${s.w && s.w===log.sugW?' is-sug':''}" onclick="openWheel(${li},${si},'w')">${wDisp===''?'<span class="set-in-ph">–</span>':wDisp}</button>
           ${isTime
@@ -11925,10 +12323,17 @@ function pickExFromLibrary(filteredIdx, cat, q){
   // Werte ins Formular übernehmen
   document.getElementById('in-name').value = it.n;
   document.getElementById('in-sets').value = it.s;
-  document.getElementById('in-reps').value = it.r;
+  if (it.t === 'time') {
+    document.getElementById('in-reps').value = it.r;
+  } else {
+    document.getElementById('in-reps-min').value = Math.max(1, it.r - 2);
+    document.getElementById('in-reps').value = it.r + 2;
+  }
   selEmoji  = it.e;
   selMuscle = it.mg || '';
+  selScheme = 'straight';
   setExType(it.t === 'time' ? 'time' : 'reps');
+  renderSchemeSeg();
   renderEmoGrid();
   renderMusclePicker();
   closeOv('ov-ex-lib');
@@ -12039,10 +12444,14 @@ function applyTemplate(id){
         if (!ex) {
           const libItem = EX_LIBRARY.find(it => it.n === name);
           if (libItem) {
+            const isTimeLib = libItem.t === 'time';
             const newEx = {
               id: uid(), name: libItem.n, emoji: libItem.e, muscleGroup: libItem.mg || '',
               targetSets: libItem.s, targetReps: libItem.r, targetWeight: 0,
-              targetType: libItem.t === 'time' ? 'time' : 'reps'
+              targetType: isTimeLib ? 'time' : 'reps',
+              repMin: isTimeLib ? null : Math.max(1, libItem.r - 2),
+              repMax: isTimeLib ? null : libItem.r + 2,
+              weightScheme: isTimeLib ? null : 'straight'
             };
             S.exercises.push(newEx);
             ex = newEx;
@@ -12111,6 +12520,7 @@ function lastSessionSetsFor(exId){
 setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
+migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
 renderExList();
 initTabIndicator();
