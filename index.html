@@ -4437,7 +4437,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606051008';
+const APP_VERSION = 'gymtrack-v202606051051';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4952,8 +4952,28 @@ async function _initHealthKit() {
   const hkCard = document.getElementById('healthkit-card');
   if (hkCard) hkCard.style.display = '';
   if (S.healthKitEnabled) {
-    HK.requestHKPermissions().catch(() => {});
+    await HK.requestHKPermissions().catch(() => {});
+    _importWeightFromHealthKit();
   }
+}
+async function _importWeightFromHealthKit() {
+  if (!_isNative() || !S.healthKitEnabled) return;
+  const HK = _cap('HealthKitPlugin'); if (!HK) return;
+  try {
+    const res = await HK.getLatestWeight();
+    if (!res || res.weightKg == null) return;
+    const weightKg = +res.weightKg.toFixed(1);
+    const d = res.date ? new Date(res.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    S.weightLog = S.weightLog || [];
+    const existing = S.weightLog.find(e => e.date === d);
+    if (existing && existing.weight === weightKg) return;
+    if (existing) existing.weight = weightKg;
+    else S.weightLog.push({ date: d, weight: weightKg });
+    persist();
+    renderWeightCard();
+    const t = document.getElementById('update-toast');
+    if (t) { t.textContent = 'Gewicht aus Apple Health importiert'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+  } catch(e) {}
 }
 async function _saveWorkoutToHealthKit(session) {
   if (!_isNative() || !S.healthKitEnabled) return;
