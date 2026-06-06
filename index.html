@@ -11482,6 +11482,7 @@ function initPageSwipe() {
     const el = document.elementFromPoint(t.clientX, t.clientY);
     if (!el || el.closest('.tabbar') || el.closest('.ov')) return;
     if (_hasHScrollParent(el)) return;
+    if (el.closest('.ex-swipe-wrap, .last-swipe-inner, #log-cards, .wh-item')) return;
     sx = t.clientX; sy = t.clientY; tracking = true;
   }, { passive: true });
 
