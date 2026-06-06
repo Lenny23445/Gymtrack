@@ -1872,7 +1872,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 #heute-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  grid-auto-rows:var(--hw-unit,78px);
+  grid-auto-rows:minmax(var(--hw-unit,78px),auto);
   grid-auto-flow:row dense;
   gap:12px;
 }
@@ -2055,7 +2055,7 @@ body.heute-editing .heute-edit-bar{display:flex}
   font-size:14px;padding:32px 10px;line-height:1.65;
 }
 /* Widget-Picker Sheet */
-.widget-add-list{display:flex;flex-direction:column;padding:4px 0 12px}
+.widget-add-list{display:flex;flex-direction:column;padding:4px 0 calc(24px + var(--sab,0px))}
 .wa-row{
   display:flex;align-items:center;gap:13px;padding:13px 16px;
   cursor:pointer;border-bottom:1px solid var(--sep);transition:background .12s;
@@ -2259,6 +2259,11 @@ body.heute-editing .heute-edit-bar{display:flex}
 
 /* ── COMPACT HISTORY SWIPE ── */
 .ch-swipe-wrap{overflow:hidden}
+
+/* ── HISTORY-WIDGET: Höhe folgt Inhalt, kein festes Grid-Span ── */
+.hw[data-type="history"].hw-lg{grid-row:auto!important;align-self:start;height:auto}
+.hw[data-type="history"] .hw-content{flex:none}
+.hw[data-type="history"] .hw-content>.card{height:auto!important}
 
 /* ── WORKOUT CANCEL BUTTON ── */
 .wk-cancel-btn{
@@ -3857,13 +3862,14 @@ body.heute-editing .heute-edit-bar{display:flex}
             <button type="button" id="ex-type-time" onclick="setExType('time')">Zeit</button>
           </div>
         </div>
-        <div class="f-row3">
+        <div class="f-row3" style="align-items:end">
           <div>
             <label class="f-label" style="font-size:10px">Sätze</label>
             <input class="f-in" type="number" id="in-sets" value="3" min="1" max="20">
           </div>
           <div id="rep-min-wrap">
-            <label class="f-label" style="font-size:10px">Wdh von</label>
+            <span style="display:block;font-size:9px;font-weight:700;color:var(--acc);line-height:1.3;margin-bottom:4px">Wiederholungsbereich</span>
+            <label class="f-label" style="font-size:10px">von</label>
             <input class="f-in" type="number" id="in-reps-min" value="8" min="1" max="9999">
           </div>
           <div>
@@ -5664,7 +5670,7 @@ const WIDGET_DEFS = {
   weekcal: {title:'Diese Woche',     icon:'🗓️', label:'Diese Woche',      desc:'Trainingswoche · 7 Tage',     sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
-  history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
+  history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
   train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
   streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},
   volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['sm','md','lg'], lgRows:2, build:hwVolume},
@@ -5975,7 +5981,6 @@ function renderWidgetPicker(){
     const def = WIDGET_DEFS[type]; if (!def) return '';
     const added = L.some(w=>w.type===type);
     return `<div class="wa-row${added?' added':''}"${added?'':` onclick="addWidget('${type}')"`}>
-      <div class="wa-ico">${def.icon}</div>
       <div class="wa-body"><div class="wa-title">${def.label}</div><div class="wa-sub">${def.desc||''}</div></div>
       <div class="wa-act">${added?'✓':'＋'}</div>
     </div>`;
