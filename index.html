@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de" data-theme="dark" data-glass="on">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -1442,6 +1442,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 
 /* ── DACHSHUND ── */
 #dackel-lane{
+  display:none; /* Begleiter-Feature deaktiviert — nie sichtbar (verhindert kurzes Aufblitzen beim Laden) */
   position:fixed;
   bottom:calc(80px + var(--sab)); /* Füße auf der Leiste, auch mit iOS Safe Area */
   left:50%;
@@ -2054,25 +2055,59 @@ body.heute-editing .heute-edit-bar{display:flex}
   text-align:center;color:var(--text2);
   font-size:14px;padding:32px 10px;line-height:1.65;
 }
-/* Widget-Picker Sheet */
-.widget-add-list{display:flex;flex-direction:column;padding:4px 0 calc(24px + var(--sab,0px))}
-.wa-row{
-  display:flex;align-items:center;gap:13px;padding:13px 16px;
-  cursor:pointer;border-bottom:1px solid var(--sep);transition:background .12s;
+/* Widget-Picker Sheet · Apple-Style Galerie mit echten, gerenderten Vorschauen */
+.widget-add-list{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:18px 14px;align-items:start;
+  padding:6px 16px calc(24px + var(--sab,0px));
 }
-.wa-row:last-child{border-bottom:none}
-.wa-row:active{background:rgba(120,120,128,.08)}
-.wa-row.added{opacity:.45;cursor:default}
-.wa-ico{
-  font-size:22px;width:42px;height:42px;
+.wa-card{
+  display:flex;flex-direction:column;gap:10px;min-width:0;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.wa-card.span2{grid-column:span 2}
+.wa-card.added{cursor:default}
+.wa-stage{position:relative;transition:transform .14s cubic-bezier(.32,1,.32,1)}
+.wa-card:not(.added):active .wa-stage{transform:scale(.955)}
+.wa-card.added .wa-stage{opacity:.45}
+/* Mini-Raster, das die echte Heute-Anordnung 1:1 nachbildet */
+.wa-stage-grid{
+  display:grid;
+  grid-auto-rows:minmax(var(--hw-unit,78px),auto);
+  grid-auto-flow:row;gap:12px;
+}
+.wa-stage-grid.cols1{grid-template-columns:1fr}
+.wa-stage-grid.cols2{grid-template-columns:1fr 1fr}
+/* Vorschau-Kacheln sind nicht interaktiv – der ganze Card-Tap fügt hinzu */
+.wa-stage .hw{pointer-events:none}
+.wa-stage .hw-title{margin-bottom:6px}
+.wa-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 3px}
+.wa-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.wa-plus{
+  width:27px;height:27px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  background:var(--g5);border-radius:12px;flex-shrink:0;
+  font-size:17px;font-weight:700;line-height:1;
+  background:var(--acc);color:#fff;
+  box-shadow:0 2px 9px rgba(var(--acc-rgb),.42);
 }
-.wa-body{flex:1;min-width:0}
-.wa-title{font-size:15px;font-weight:700}
-.wa-sub{font-size:12px;color:var(--text2);margin-top:1px}
-.wa-act{font-size:20px;font-weight:700;color:var(--acc);flex-shrink:0;width:24px;text-align:center}
-.wa-row.added .wa-act{color:var(--green);font-size:16px}
+.wa-card.added .wa-plus{background:var(--green);box-shadow:none}
+.wa-card.added .wa-name{color:var(--text2)}
+/* S/M/L-Größenwahl – macht sichtbar, dass es jedes Widget in mehreren Größen gibt */
+.wa-sizes{
+  display:inline-flex;gap:2px;align-self:center;
+  background:var(--g5);border-radius:9px;padding:2px;
+}
+.wa-size-seg{
+  font-size:10.5px;font-weight:800;letter-spacing:.4px;
+  color:var(--text2);padding:3px 11px;border-radius:7px;line-height:1;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .14s,color .14s;
+}
+.wa-size-seg.on{background:var(--acc);color:#fff;box-shadow:0 2px 7px rgba(var(--acc-rgb),.42)}
+.wa-size-seg.wa-size-only{background:transparent;color:var(--text2);box-shadow:none;cursor:default}
+.wa-card.added .wa-sizes{opacity:.5}
+/* Während der Widget-Picker offen ist, die schwebende „＋ Widget / Fertig"-Leiste
+   ausblenden – sonst verdeckt sie die untersten Galerie-Kacheln. */
+body.wpick-open #heute-edit-bar{display:none!important}
 
 /* ── WEIGHT CARD: NEUE SEITE-AN-SEITE-LAYOUT ── */
 #heute-weight-sec .weight-card-inner{
@@ -4501,7 +4536,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606052100';
+const APP_VERSION = 'gymtrack-v202606061230';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4820,7 +4855,7 @@ let S = (() => {
 })();
 S.exercises  = S.exercises  || [];
 S.sessions   = S.sessions   || [];
-S.theme      = S.theme      || 'light';
+S.theme      = S.theme      || 'dark';   // Standard: Darkmode mit Glas
 S.glass      = S.glass !== undefined ? S.glass : true;
 S.companion   = S.companion   || 'dackel';
 S.companionOn = false; // Begleiter-Feature entfernt — immer aus
@@ -5625,6 +5660,7 @@ function openOv(id)  {
 function closeOv(id) {
   document.getElementById(id).classList.remove('on');
   if (id === 'ov-wk') updateWkMiniVisibility();
+  if (id === 'ov-widget-add') document.body.classList.remove('wpick-open');
 }
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
   if (e.target===o) { o.classList.remove('on'); if (o.id==='ov-wk') updateWkMiniVisibility(); }
@@ -5950,42 +5986,136 @@ function toggleWidgetSize(i){
 }
 let _pendingWidgetInsertAfter = null;
 
-function addWidget(type){
+function addWidget(type, size){
   if (!WIDGET_DEFS[type]) return;
   const L = _heuteLayout();
   if (L.some(w=>w.type===type)) return;
   const def = WIDGET_DEFS[type];
-  // When inserting into an empty slot, prefer sm if the widget supports it
-  let size = def.sizes[0];
+  // Im Picker gewählte Größe übernehmen, sonst Standard
+  let sz = (size && def.sizes.includes(size)) ? size : def.sizes[0];
   let insertAt = L.length;
   if (_pendingWidgetInsertAfter !== null) {
     insertAt = _pendingWidgetInsertAfter + 1;
-    if (def.sizes.includes('sm')) size = 'sm';
+    if (!size && def.sizes.includes('sm')) sz = 'sm';
     _pendingWidgetInsertAfter = null;
   }
-  L.splice(insertAt, 0, {type, size});
+  L.splice(insertAt, 0, {type, size: sz});
   persist();
   if (!heuteEditMode) enterEditMode();
   renderHeuteGrid();
   renderWidgetPicker();
 }
 
-/* ── Widget-Picker (Bottom-Sheet) ── */
-function openWidgetPicker(){ _pendingWidgetInsertAfter = null; renderWidgetPicker(); openOv('ov-widget-add'); }
-function openWidgetPickerAt(afterIdx){ _pendingWidgetInsertAfter = afterIdx; renderWidgetPicker(); openOv('ov-widget-add'); }
+/* ── Widget-Picker (Bottom-Sheet · Apple-Style Galerie) ── */
+function openWidgetPicker(){ _pendingWidgetInsertAfter = null; document.body.classList.add('wpick-open'); renderWidgetPicker(); openOv('ov-widget-add'); }
+function openWidgetPickerAt(afterIdx){ _pendingWidgetInsertAfter = afterIdx; document.body.classList.add('wpick-open'); renderWidgetPicker(); openOv('ov-widget-add'); }
+/* Galerie-Reihenfolge: erst die großen (span-2) „Feature"-Widgets, dann die
+   quadratischen/kleinen paarweise – so entstehen keine Lücken im 2er-Raster. */
+const WIDGET_GALLERY_ORDER = ['weekcal','woche','history','muscles','onerm','streak','volume','recovery','weight','train','qadd','qweight','qcardio'];
+/* Repräsentative Start-Größe je Widget (so wie es nachher real aussieht). */
+const WIDGET_PREVIEW_SIZE = {
+  weekcal:'lg', woche:'lg', history:'lg', muscles:'lg', onerm:'lg',
+  streak:'sm', volume:'sm', recovery:'sm', weight:'sm',
+  train:'md', qadd:'md', qweight:'md', qcardio:'md'
+};
+const _WA_SIZE_LBL = {sm:'S', md:'M', lg:'L'};
+let _waPickSize = {};   // je Typ aktuell im Picker gewählte Vorschau-Größe
+
+function _waSizeFor(type){
+  const def = WIDGET_DEFS[type]; if (!def) return 'sm';
+  let s = _waPickSize[type] || WIDGET_PREVIEW_SIZE[type];
+  if (!s || !def.sizes.includes(s)) s = def.sizes[def.sizes.length-1];
+  return s;
+}
+function setWaSize(type, size){
+  const def = WIDGET_DEFS[type];
+  if (!def || !def.sizes.includes(size)) return;
+  _waPickSize[type] = size;
+  // Nur diese eine Karte neu aufbauen → Scrollposition bleibt erhalten
+  const card = document.querySelector(`#widget-add-list .wa-card[data-type="${type}"]`);
+  if (!card){ renderWidgetPicker(); return; }
+  card.outerHTML = _waCardHTML(type);
+  const fresh = document.querySelector(`#widget-add-list .wa-card[data-type="${type}"]`);
+  if (fresh) _decorateWaCard(fresh);
+}
+
+/* HTML einer einzelnen Galerie-Karte: echte Vorschau + S/M/L-Wahl + Name */
+function _waCardHTML(type){
+  const def = WIDGET_DEFS[type]; if (!def) return '';
+  const added = getHeuteLayout().some(w=>w.type===type);
+  const size  = _waSizeFor(type);
+  const span2 = size === 'lg';
+  const titleHtml = (size === 'lg' && def.title) ? `<div class="hw-title">${def.title}</div>` : '';
+  const spanStyle = size === 'lg' ? ` style="grid-row:span ${def.lgRows||2}"` : '';
+  // Echte Widget-Markup; IDs entfernen, damit globale fill-Aufrufe weiterhin
+  // das echte Dashboard-Element treffen – nicht die Vorschau.
+  const inner = def.build(size).replace(/ id="(tracker-row|weight-card|history-card)"/g,'');
+  const name  = def.label || def.title || type;
+  // S/M/L-Umschalter – nur wenn das Widget mehrere Größen unterstützt
+  const sizeSel = def.sizes.length > 1
+    ? `<div class="wa-sizes">${def.sizes.map(s=>
+        `<span class="wa-size-seg${s===size?' on':''}" onclick="event.stopPropagation();setWaSize('${type}','${s}')">${_WA_SIZE_LBL[s]||s}</span>`
+      ).join('')}</div>`
+    : `<div class="wa-sizes"><span class="wa-size-seg on wa-size-only">${_WA_SIZE_LBL[size]||size}</span></div>`;
+  return `<div class="wa-card${span2?' span2':''}${added?' added':''}" data-type="${type}" data-size="${size}"${added?'':` onclick="addWidget('${type}','${size}')"`}>
+    <div class="wa-stage">
+      <div class="wa-stage-grid cols${span2?2:1}">
+        <div class="hw hw-${size}" data-type="${type}" data-size="${size}"${spanStyle}>
+          ${titleHtml}
+          <div class="hw-content">${inner}</div>
+        </div>
+      </div>
+    </div>
+    ${sizeSel}
+    <div class="wa-meta">
+      <span class="wa-name">${name}</span>
+      <span class="wa-plus">${added?'✓':'＋'}</span>
+    </div>
+  </div>`;
+}
+
+/* Vorschau einer Karte messen + (bei datengetriebenen Widgets) befüllen */
+function _decorateWaCard(card){
+  if (!card) return;
+  _sizeWaStage(card.querySelector('.wa-stage-grid'), card.dataset.size);
+  const def = WIDGET_DEFS[card.dataset.type];
+  if (def && def.fill){
+    const hw = card.querySelector('.hw');
+    const el = card.dataset.type==='woche' ? hw.querySelector('.tracker-row') : hw.querySelector('.card');
+    if (el){ try{ def.fill(el); }catch(e){} }
+  }
+}
+
 function renderWidgetPicker(){
   const host = document.getElementById('widget-add-list');
   if (!host) return;
-  const L = getHeuteLayout();
-  host.innerHTML = WIDGET_PICK_ORDER.map(type=>{
-    const def = WIDGET_DEFS[type]; if (!def) return '';
-    const added = L.some(w=>w.type===type);
-    return `<div class="wa-row${added?' added':''}"${added?'':` onclick="addWidget('${type}')"`}>
-      <div class="wa-body"><div class="wa-title">${def.label}</div><div class="wa-sub">${def.desc||''}</div></div>
-      <div class="wa-act">${added?'✓':'＋'}</div>
-    </div>`;
-  }).join('');
+  const order = WIDGET_GALLERY_ORDER.filter(t=>WIDGET_DEFS[t]);
+  WIDGET_PICK_ORDER.forEach(t=>{ if(!order.includes(t)) order.push(t); });
+  host.innerHTML = order.map(t=>_waCardHTML(t)).join('');
+  const decorate = ()=> host.querySelectorAll('.wa-card').forEach(_decorateWaCard);
+  // Zweimal: sofort + nächster Frame (Sheet hat beim Öffnen evtl. noch keine Breite)
+  requestAnimationFrame(()=>{ decorate(); requestAnimationFrame(decorate); });
 }
+
+/* Rastereinheit einer Vorschau so wählen, dass die Kachel real-proportional ist:
+   sm → Quadrat · md → flaches Rechteck · lg → volle Breite (2 Spalten). */
+function _sizeWaStage(stage, size){
+  if (!stage) return;
+  const gap = 12;
+  const w = stage.clientWidth;
+  if (!w) return;
+  let unit;
+  if (size === 'lg'){ const col = (w-gap)/2; unit = (col-gap)/2; }
+  else { unit = (w-gap)/2; }   // 1-Spalten-Bühne: 2 Einheiten + Lücke = Breite ⇒ Quadrat
+  stage.style.setProperty('--hw-unit', unit+'px');
+}
+window.addEventListener('resize', ()=>{
+  const ov = document.getElementById('ov-widget-add');
+  if (!ov || !ov.classList.contains('on')) return;
+  document.querySelectorAll('#widget-add-list .wa-card').forEach(card=>{
+    _sizeWaStage(card.querySelector('.wa-stage-grid'), card.dataset.size);
+  });
+});
 
 /* ── Gesten: Long-Press (Bearbeiten) + Drag & Drop (Umsortieren) ── */
 let _hlpTimer=null, _hlpStart=null, _hDrag=null, _hRsz=null;
@@ -6158,8 +6288,8 @@ function renderHome() {
 // Kompakte History für Heute-Tab (erweiterbar)
 let _compactHistOpen = false;
 
-function renderCompactHistory() {
-  const el = document.getElementById('history-card');
+function renderCompactHistory(el) {
+  el = el || document.getElementById('history-card');
   if (!el) return;
   const size = el.closest('.hw')?.dataset.size || 'lg';
   if (!S.sessions.length) {
@@ -6393,8 +6523,8 @@ function _buildMiniChart(log, goal, acc) {
   });
 }
 
-function renderWeightCard() {
-  const el = document.getElementById('weight-card');
+function renderWeightCard(el) {
+  el = el || document.getElementById('weight-card');
   if (!el) return;
 
   const log   = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
@@ -6946,8 +7076,8 @@ function getWeekKey() {
   return `${d.getFullYear()}-W${wk}`;
 }
 
-function renderTrackers() {
-  const row = document.getElementById('tracker-row');
+function renderTrackers(row) {
+  row = row || document.getElementById('tracker-row');
   if (!row) return;
   const wk = getWeekKey();
   // Quadrat (sm) & Rechteck (md): kompakte Zusammenfassung statt aller Ringe
@@ -11688,7 +11818,7 @@ const TOUR = [
   {
     target:'#heute-grid',
     title:'Dein Dashboard „Heute" 🏠',
-    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, <b>vergrößern</b> oder neue <b>hinzufügen</b> — z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht/Cardio).',
+    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, in <b>drei Größen</b> (S/M/L) <b>skalieren</b> oder über <b>＋ Widget</b> neue aus der <b>Galerie</b> hinzufügen — dort siehst du jede Kachel als <b>echte Vorschau</b> und wählst direkt die gewünschte Größe. Z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht/Cardio).',
     hint:'Später: gedrückt halten zum Umbauen',
     prep:()=> goTabId('heute')
   },
@@ -13090,7 +13220,7 @@ async function _onLogin(user) {
       console.log('[GymTrack] ☁️ Initial-Push ok');
     }
     // UI neu rendern
-    setTheme(S.theme || 'light');
+    setTheme(S.theme || 'dark');
     applyCompanion();
     renderHome();
     renderExList();
@@ -13116,7 +13246,7 @@ async function _onLogin(user) {
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
       _origPersist();
-      setTheme(S.theme || 'light');
+      setTheme(S.theme || 'dark');
       applyCompanion();
       renderHome();
       renderExList();
