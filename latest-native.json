@@ -1,0 +1,6 @@
+{
+  "version": "gymtrack-v202606061300",
+  "build": 80,
+  "notes": "Neue Version in TestFlight bereit",
+  "_hinweis": "version = APP_VERSION des aktuell in TestFlight verfuegbaren Builds. Erst bumpen, wenn der neue Build bei Apple durch und fuer Tester ladbar ist."
+}

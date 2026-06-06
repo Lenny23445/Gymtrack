@@ -2641,6 +2641,45 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 #update-toast.show{transform:translateX(-50%) translateY(0);}
 
+/* ── Native-App Update-Banner (TestFlight) ── */
+#native-update-bar{
+  position:fixed;left:50%;top:calc(var(--sat) + 10px);
+  transform:translateX(-50%) translateY(-160px);
+  width:calc(100% - 24px);max-width:430px;
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:18px;
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);
+  border:1px solid var(--gl-bdr);
+  box-shadow:0 10px 34px rgba(0,0,0,.28),var(--gl-hi);
+  z-index:9998;
+  transition:transform .4s cubic-bezier(.34,1.4,.64,1);
+}
+#native-update-bar.show{transform:translateX(-50%) translateY(0);}
+.nub-ico{
+  flex-shrink:0;width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--acc);color:#fff;
+}
+.nub-ico svg{width:21px;height:21px}
+.nub-txt{flex:1;min-width:0}
+.nub-title{font-size:15px;font-weight:700;line-height:1.15;white-space:nowrap}
+.nub-sub{font-size:12px;color:var(--text2);margin-top:1px;line-height:1.25}
+.nub-btn{
+  flex-shrink:0;border:none;font-family:inherit;cursor:pointer;
+  background:var(--acc);color:#fff;font-size:13px;font-weight:700;
+  padding:9px 14px;border-radius:11px;
+  box-shadow:0 3px 12px rgba(var(--acc-rgb),.4);
+  transition:opacity .12s,transform .12s;
+}
+.nub-btn:active{opacity:.8;transform:scale(.96)}
+.nub-x{
+  flex-shrink:0;border:none;background:var(--g5);color:var(--text2);
+  width:26px;height:26px;border-radius:50%;cursor:pointer;
+  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+}
+.nub-x:active{opacity:.7}
+
 /* ── CHANGELOG POPUP (Was ist neu) ── */
 .changelog-card{
   background:var(--gl-bg-h);
@@ -3236,6 +3275,19 @@ body.wpick-open #heute-edit-bar{display:none!important}
 <body>
 
 <div id="update-toast"></div>
+
+<!-- Native-App Update-Hinweis (nur iOS/TestFlight): erscheint, wenn eine neuere Version bereitsteht -->
+<div id="native-update-bar" role="dialog" aria-live="polite">
+  <div class="nub-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+  </div>
+  <div class="nub-txt">
+    <div class="nub-title">Update verfügbar</div>
+    <div class="nub-sub" id="nub-sub">Neue Version in TestFlight bereit</div>
+  </div>
+  <button class="nub-btn" onclick="openTestFlightUpdate()">Aktualisieren</button>
+  <button class="nub-x" onclick="dismissNativeUpdate()" aria-label="Später schließen">✕</button>
+</div>
 
 <!-- Fixed Mesh Gradient Background -->
 <div id="bg"></div>
@@ -4536,7 +4588,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606061230';
+const APP_VERSION = 'gymtrack-v202606061300';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -13038,8 +13090,82 @@ async function _runUpdateCheck() {
   } catch (e) { /* silent */ }
 }
 
-// Einmalig kurz nach Start – kein Check bei Hintergrund-/Vordergrund-Wechsel
-setTimeout(_runUpdateCheck, 1200);
+// Einmalig kurz nach Start.
+// Web/PWA: still automatisch aktualisieren (SW + Cache).
+// Native (iOS/TestFlight): Inhalte sind gebündelt – nicht selbst ladbar.
+// Stattdessen prüfen, ob eine neuere Version bereitsteht, und zum Update in
+// TestFlight auffordern.
+setTimeout(() => { if (_isNative()) _runNativeUpdateCheck(); else _runUpdateCheck(); }, 1200);
+
+// ── NATIVE UPDATE (TestFlight) ────────────────────────
+const TESTFLIGHT_URL     = 'https://testflight.apple.com/join/f8EzJFmc';
+const NATIVE_VERSION_URL = 'https://lenny23445.github.io/Gymtrack/latest-native.json';
+// Reine Versionsnummer (12-stelliger Zeitstempel) aus "gymtrack-vYYYYMMDDHHMM"
+const _verNum = v => { const m = String(v||'').match(/(\d{12})/); return m ? +m[1] : 0; };
+let _nativeUpdateInfo = null;
+
+async function _runNativeUpdateCheck(){
+  if (!_isNative() || !navigator.onLine) return;
+  try{
+    const r = await fetch(NATIVE_VERSION_URL + '?_=' + Date.now(), { cache:'no-store' });
+    if (!r.ok) return;
+    const data   = await r.json();
+    const latest = data && data.version;
+    if (!latest) return;
+    // Nur auffordern, wenn die bereitgestellte Version wirklich neuer ist
+    if (_verNum(latest) > _verNum(APP_VERSION)){
+      // „Später" gilt nur für genau diese Version, bis die App neu gestartet wird
+      let dismissed = '';
+      try { dismissed = sessionStorage.getItem('gt_upd_dismissed') || ''; } catch(_){}
+      if (dismissed === latest) return;
+      _nativeUpdateInfo = data;
+      _showNativeUpdateBar(data);
+    }
+  }catch(_){ /* still */ }
+}
+
+function _showNativeUpdateBar(data){
+  const bar = document.getElementById('native-update-bar');
+  if (!bar) return;
+  const sub = document.getElementById('nub-sub');
+  if (sub){
+    const note = data && data.notes;
+    sub.textContent = note ? note : 'Neue Version in TestFlight bereit';
+  }
+  bar.classList.add('show');
+}
+
+function openTestFlightUpdate(){
+  _openExternal(TESTFLIGHT_URL);
+}
+
+function dismissNativeUpdate(){
+  const bar = document.getElementById('native-update-bar');
+  if (bar) bar.classList.remove('show');
+  try{
+    if (_nativeUpdateInfo && _nativeUpdateInfo.version)
+      sessionStorage.setItem('gt_upd_dismissed', _nativeUpdateInfo.version);
+  }catch(_){}
+}
+
+// Externen Link öffnen – in der nativen App im System-Browser, damit der
+// TestFlight-Universal-Link die TestFlight-App öffnet.
+function _openExternal(url){
+  try{ if (window.open(url, '_system')) return; }catch(_){}
+  try{
+    const P = window.Capacitor && window.Capacitor.Plugins;
+    if (P && P.Browser && P.Browser.open){ P.Browser.open({ url }); return; }
+  }catch(_){}
+  try{ location.href = url; }catch(_){}
+}
+
+// Beim Zurückkehren in die App erneut prüfen (Tester starten oft nicht neu)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _isNative()) {
+    clearTimeout(_runNativeUpdateCheck._t);
+    _runNativeUpdateCheck._t = setTimeout(_runNativeUpdateCheck, 800);
+  }
+});
 
 async function checkForUpdate() {
   const title = document.getElementById('update-title');
