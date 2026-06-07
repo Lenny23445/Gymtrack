@@ -10,6 +10,7 @@ struct GymTrackActivityAttributes: ActivityAttributes {
         var totalSets:    Int
         var restSeconds:  Int
         var isResting:    Bool
+        var restEndsAt:   Date?   // Endzeitpunkt der Pause → nativer Live-Countdown (läuft bei geschlossener App weiter)
     }
     var workoutName: String
     var startDate:   Date
@@ -34,6 +35,29 @@ struct SpinningDumbbell: View {
         } else {
             icon                                              // iOS 16: statisch
         }
+    }
+}
+
+/// Pausen-Countdown. Nutzt nativen `Text(timerInterval:)`, der von iOS selbst
+/// jede Sekunde aktualisiert wird — auch wenn die App geschlossen/im Hintergrund ist.
+/// Fällt auf den zuletzt von JS gelieferten statischen Wert zurück, falls kein Enddatum vorliegt.
+struct RestCountdown: View {
+    let state: GymTrackActivityAttributes.ContentState
+    var font: Font = .title2
+    var width: CGFloat? = nil
+    var body: some View {
+        Group {
+            if let end = state.restEndsAt, end > Date() {
+                Text(timerInterval: Date()...end, countsDown: true)
+            } else {
+                Text("\(state.restSeconds)s")
+            }
+        }
+        .font(font).bold()
+        .foregroundColor(.orange)
+        .monospacedDigit()
+        .multilineTextAlignment(.trailing)
+        .frame(width: width, alignment: .trailing)
     }
 }
 
@@ -63,10 +87,7 @@ struct GymTrackLiveActivity: Widget {
                     if context.state.isResting {
                         Text("Pause")
                             .font(.caption2).foregroundColor(.secondary)
-                        Text("\(context.state.restSeconds)s")
-                            .font(.title2).bold()
-                            .foregroundColor(.orange)
-                            .monospacedDigit()
+                        RestCountdown(state: context.state, font: .title2, width: 72)
                     } else {
                         Text("Dauer")
                             .font(.caption2).foregroundColor(.secondary)
@@ -97,10 +118,7 @@ struct GymTrackLiveActivity: Widget {
                         if context.state.isResting {
                             Text("Pause")
                                 .font(.caption2).foregroundColor(.secondary)
-                            Text("\(context.state.restSeconds)s")
-                                .font(.title3).bold()
-                                .foregroundColor(.orange)
-                                .monospacedDigit()
+                            RestCountdown(state: context.state, font: .title3)
                         } else {
                             Text("Satz \(context.state.setsDone)/\(context.state.totalSets)")
                                 .font(.caption2).foregroundColor(.secondary)
@@ -124,10 +142,7 @@ struct GymTrackLiveActivity: Widget {
                 }
             } compactTrailing: {
                 if context.state.isResting {
-                    Text("\(context.state.restSeconds)s")
-                        .font(.caption2).bold()
-                        .foregroundColor(.orange)
-                        .monospacedDigit()
+                    RestCountdown(state: context.state, font: .caption2, width: 44)
                 } else {
                     Text(timerInterval: context.attributes.startDate...Date.distantFuture,
                          countsDown: false)
@@ -137,8 +152,8 @@ struct GymTrackLiveActivity: Widget {
                 }
             } minimal: {
                 if context.state.isResting {
-                    Image(systemName: "pause.circle.fill")
-                        .foregroundColor(.orange)
+                    // Live mitlaufende Pausensekunden (kompakt)
+                    RestCountdown(state: context.state, font: .caption2)
                 } else {
                     SpinningDumbbell(font: .body)
                 }

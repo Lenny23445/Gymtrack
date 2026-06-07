@@ -10,6 +10,7 @@ struct GymTrackActivityAttributes: ActivityAttributes {
         var totalSets:    Int
         var restSeconds:  Int
         var isResting:    Bool
+        var restEndsAt:   Date?   // Endzeitpunkt der Pause → nativer Live-Countdown (läuft bei geschlossener App weiter)
     }
     var workoutName: String
     var startDate:   Date
@@ -62,7 +63,7 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         let state = GymTrackActivityAttributes.ContentState(
             exerciseName: call.getString("exerciseName") ?? "",
             setsDone: call.getInt("setsDone") ?? 0, totalSets: call.getInt("totalSets") ?? 0,
-            restSeconds: 0, isResting: false)
+            restSeconds: 0, isResting: false, restEndsAt: nil)
         do {
             let activity = try Activity<GymTrackActivityAttributes>.request(
                 attributes: attrs, contentState: state, pushType: nil)
@@ -76,11 +77,14 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
               let activity = _currentActivity as? Activity<GymTrackActivityAttributes> else {
             call.resolve(); return
         }
+        let restEndMs = call.getDouble("restEndsAt") ?? 0
+        let restEnd: Date? = restEndMs > 0 ? Date(timeIntervalSince1970: restEndMs / 1000) : nil
         let newState = GymTrackActivityAttributes.ContentState(
             exerciseName: call.getString("exerciseName") ?? "",
             setsDone: call.getInt("setsDone") ?? 0, totalSets: call.getInt("totalSets") ?? 0,
             restSeconds: call.getInt("restSeconds") ?? 0,
-            isResting: call.getBool("isResting") ?? false)
+            isResting: call.getBool("isResting") ?? false,
+            restEndsAt: restEnd)
         Task { await activity.update(using: newState); call.resolve() }
     }
 

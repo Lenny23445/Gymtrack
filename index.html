@@ -889,6 +889,8 @@ body{
   border-color:var(--acc);
   box-shadow:0 2px 8px rgba(var(--acc-rgb),.32);
 }
+.icat-drag{cursor:grab;touch-action:pan-x;-webkit-user-select:none;user-select:none}
+.icat-drag:active{cursor:grabbing}
 
 /* ── FILTER-MODUS SWITCHER (iOS Segmented Control) ── */
 .fmode-wrap{
@@ -2782,6 +2784,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
   -webkit-tap-highlight-color:transparent;
 }
 .ex-row-del:active{opacity:.8}
+.ex-row-remove{font-size:13px;font-weight:600;line-height:1.1;text-align:center;padding:0 6px}
 
 .dnd-ghost{
   position:fixed;z-index:9999;pointer-events:none;
@@ -4588,7 +4591,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606061300';
+const APP_VERSION = 'gymtrack-v202606071233';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -4815,6 +4818,41 @@ function modeById(id) { return allModes().find(m => m.id === id) || allModes()[0
 function currentMode()  { return modeById(S.exFilterMode); }
 function currentGroup() { const m = currentMode(); return m.groups.find(g => g.id === exCatFilter) || m.groups[0]; }
 
+/* ── SPLIT-ZUGEHÖRIGKEIT (pro Modus, unabhängig) ──
+   Übungen tragen ex.groups = { [modeId]: [groupId,...] }. Fehlt der Eintrag
+   (Altdaten oder noch nicht migriert), wird aus ex.muscleGroup abgeleitet. */
+function _deriveGroupIds(ex, mode) {
+  return mode.groups
+    .filter(g => g.muscles && g.muscles.includes(ex.muscleGroup))
+    .map(g => g.id);
+}
+function exInGroup(ex, modeId, groupId) {
+  if (!ex) return false;
+  if (groupId === 'alle') return true;
+  const mode = modeById(modeId);
+  const explicit = ex.groups && ex.groups[modeId];
+  if (Array.isArray(explicit)) return explicit.includes(groupId);
+  // Fallback: aus muscleGroup ableiten
+  const g = mode.groups.find(g => g.id === groupId);
+  return !!(g && g.muscles && g.muscles.includes(ex.muscleGroup));
+}
+// groupId ist über alle Modi eindeutig → passenden Modus auflösen, dann prüfen
+function exInNamedGroup(ex, groupId) {
+  if (groupId === 'alle') return true;
+  for (const m of allModes()) {
+    if (m.groups.some(g => g.id === groupId)) return exInGroup(ex, m.id, groupId);
+  }
+  return false;
+}
+// Sichert, dass ex.groups für alle aktuellen Modi befüllt ist (Migration/Lazy)
+function ensureExGroups(ex) {
+  if (!ex.groups || typeof ex.groups !== 'object') ex.groups = {};
+  for (const m of allModes()) {
+    if (!Array.isArray(ex.groups[m.id])) ex.groups[m.id] = _deriveGroupIds(ex, m);
+  }
+  return ex.groups;
+}
+
 /* ── Einheiten (kg / lbs) ── */
 const LBS_PER_KG = 2.20462;
 function unitLabel() { return S.unitMode === 'lbs' ? 'lbs' : 'kg'; }
@@ -4916,6 +4954,9 @@ S.wkFilterMode = S.wkFilterMode || 'muskel';
 S.statsFilterMode = S.statsFilterMode || 'muskel';
 S.unitMode    = S.unitMode    || 'kg';   // 'kg' | 'lbs'
 S.customSplits = Array.isArray(S.customSplits) ? S.customSplits : []; // [{id,label,groups:[{id,label,muscles:[]}]}]
+// Split-Zugehörigkeit pro Übung migrieren: ex.groups = {modeId:[groupId,...]}.
+// Einmalig aus muscleGroup ableiten → bisheriges Verhalten bleibt erhalten, danach unabhängig editierbar.
+S.exercises.forEach(ex => ensureExGroups(ex));
 // Wochenplan: pro Tag {type:'none'|'group'|'exercises', group?:string, exIds?:string[]}
 S.weekPlan = S.weekPlan || { mon:{type:'none'}, tue:{type:'none'}, wed:{type:'none'}, thu:{type:'none'}, fri:{type:'none'}, sat:{type:'none'}, sun:{type:'none'} };
 ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => { if (!S.weekPlan[k]) S.weekPlan[k] = {type:'none'}; });
@@ -5052,10 +5093,10 @@ function _startLiveActivity(workoutName, exerciseName, setsDone, totalSets) {
     .then(r => { _liveActivityActive = !!r?.started; })
     .catch(() => {});
 }
-function _updateLiveActivity(exerciseName, setsDone, totalSets, restSeconds, isResting) {
+function _updateLiveActivity(exerciseName, setsDone, totalSets, restSeconds, isResting, restEndsAt) {
   if (!_liveActivityActive) return;
   const LA = _cap('LiveActivityPlugin'); if (!LA) return;
-  LA.update({ exerciseName, setsDone, totalSets, restSeconds: restSeconds||0, isResting: !!isResting })
+  LA.update({ exerciseName, setsDone, totalSets, restSeconds: restSeconds||0, isResting: !!isResting, restEndsAt: restEndsAt||0 })
     .catch(() => {});
 }
 function _endLiveActivity() {
@@ -5077,7 +5118,7 @@ function _syncLiveActivity() {
   const curLog = wkLogs.find(l => l.sets?.some(s => !s.done)) || wkLogs[wkLogs.length - 1];
   const exName = exById(curLog?.exerciseId)?.name || '';
   const resting = _restInt !== null && _restSecs > 0;
-  _updateLiveActivity(exName, doneSets, totalSets, resting ? _restSecs : 0, resting);
+  _updateLiveActivity(exName, doneSets, totalSets, resting ? _restSecs : 0, resting, resting ? _restEndTs : 0);
 }
 
 // ── SPOTLIGHT ─────────────────────────────────────────────
@@ -5416,7 +5457,7 @@ const exById = id => S.exercises.find(e => e.id === id);
 
 function exHistory(exId) {
   return S.sessions
-    .map(s => { const l = s.logs.find(l => l.exerciseId === exId); return l ? {date:s.date,sets:l.sets} : null; })
+    .map(s => { const l = s.logs.find(l => l.exerciseId === exId); return l ? {id:s.id, date:s.date, sets:l.sets} : null; })
     .filter(Boolean)
     .sort((a,b) => new Date(a.date) - new Date(b.date));
 }
@@ -7605,16 +7646,22 @@ function renderExList() {
 
   const filterBar = document.getElementById('ex-filter-bar');
   if (filterBar) {
-    filterBar.innerHTML = mode.groups.map(g =>
-      `<button class="icat${exCatFilter===g.id?' on':''}" onclick="setExCat('${g.id}')">${g.label}</button>`
-    ).join('');
+    filterBar.innerHTML = mode.groups.map(g => {
+      // 'alle' nur tap-bar; echte Gruppen tap (filtern) ODER ziehbar (in Wochentag)
+      if (g.id === 'alle') {
+        return `<button class="icat${exCatFilter===g.id?' on':''}" onclick="setExCat('${g.id}')">${g.label}</button>`;
+      }
+      return `<button class="icat icat-drag${exCatFilter===g.id?' on':''}"
+        onmousedown="filterChipPointerDown(event,'${g.id}','${g.label}')"
+        ontouchstart="filterChipPointerDown(event,'${g.id}','${g.label}')">${g.label}</button>`;
+    }).join('');
   }
 
   // Übungen filtern: aktive Gruppe → muscles=null = alle, sonst Übungen mit muscleGroup in Liste
   const grp = currentGroup();
-  let filtered = !grp.muscles
+  let filtered = grp.id === 'alle'
     ? S.exercises
-    : S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup));
+    : S.exercises.filter(ex => exInGroup(ex, mode.id, grp.id));
 
   // Such-Filter
   if (exSearchText) {
@@ -7637,6 +7684,8 @@ function renderExList() {
     return;
   }
 
+  // Bei aktivem Gruppen-Filter: Swipe entfernt nur aus dieser Gruppe (Übung bleibt global).
+  const inGroupView = grp.id !== 'alle';
   el.innerHTML = `<div class="card">${filtered.map(ex => {
     const hist = exHistory(ex.id);
     const last = hist.length ? hist[hist.length-1] : null;
@@ -7647,6 +7696,9 @@ function renderExList() {
     const rowSub = `${mgLabel ? mgLabel+' · ' : ''}Ziel: ${ex.targetSets}×${goalStr}${lw ? ' · '+kgToDisp(lw)+' '+unitLabel() : ''}${days ? ' · 📅 '+days : ''}`;
     const _ps = exProgressStatus(ex.id);
     const _dot = _ps ? `<div class="prog-dot ${_ps}" title="${{up:'Fortschritt ↑',down:'Rückgang ↓',same:'Gleichstand →',new:'Erstes Training'}[_ps]}"></div>` : '';
+    const delBtn = inGroupView
+      ? `<div class="ex-row-del ex-row-remove" onclick="removeExFromGroup('${ex.id}')">Entfernen</div>`
+      : `<div class="ex-row-del" onclick="deleteExDirect('${ex.id}')">🗑</div>`;
     return `<div class="ex-swipe-wrap">
       <div class="ex-swipe-inner">
         <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
@@ -7654,7 +7706,7 @@ function renderExList() {
           <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
           ${_dot}<div class="chev">›</div>
         </div>
-        <div class="ex-row-del" onclick="deleteExDirect('${ex.id}')">🗑</div>
+        ${delBtn}
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -7675,6 +7727,21 @@ function setExFilterMode(mode) {
   persist();
   renderExList();
 }
+
+// Übung nur aus der aktuell gefilterten Gruppe entfernen (bleibt global + in anderen Splits)
+function removeExFromGroup(exId) {
+  const ex = exById(exId);
+  const mode = currentMode();
+  const grp = currentGroup();
+  if (!ex || grp.id === 'alle') return;
+  ensureExGroups(ex);
+  ex.groups[mode.id] = (ex.groups[mode.id] || []).filter(id => id !== grp.id);
+  persist();
+  renderExList();
+  _dndToast(`${ex.name} aus ${grp.label} entfernt`);
+  haptic(12);
+}
+
 
 // ── WOCHENPLAN ────────────────────────────────────────
 const DAYS = [
@@ -7930,6 +7997,40 @@ function splitDragStart(e, splitId, label, emoji) {
   document.addEventListener('mouseup',   _dndOnEnd);
 }
 
+// Filter-Pill im Übungen-Tab: Tap = filtern, vertikaler Zug = Split in Wochentag legen.
+// Eigener Handler (statt direkt splitDragStart) wegen Tap/Drag/Scroll-Unterscheidung.
+function filterChipPointerDown(e, groupId, label) {
+  const startX = e.touches ? e.touches[0].clientX : e.clientX;
+  const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  let started = false, moved = false;
+  function move(ev) {
+    if (started) return;
+    const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    const dx = Math.abs(x - startX), dy = Math.abs(y - startY);
+    if (dy > 8 && dy > dx) {            // vertikal → Drag starten
+      started = true; cleanup();
+      splitDragStart(ev, groupId, label, '');
+    } else if (dx > 8) {                // horizontal → natives Scrollen der Pill-Leiste
+      moved = true; cleanup();
+    }
+  }
+  function up(ev) {
+    cleanup();
+    if (!started && !moved) { if (ev.cancelable) ev.preventDefault(); setExCat(groupId); }
+  }
+  function cleanup() {
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('touchend', up);
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+  }
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('touchend', up, {passive:false});
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
 function _dndMoveGhost(x, y) {
   if (!_dndGhost) return;
   _dndGhost.style.left = (x - 110) + 'px';
@@ -8023,7 +8124,7 @@ function _dndDrop(exId, dayKey) {
 
 function _dndDropSplit(splitId, dayKey) {
   let label = splitId;
-  for (const m of GROUP_MODES) {
+  for (const m of allModes()) {
     const g = m.groups.find(g => g.id === splitId);
     if (g) { label = g.label; break; }
   }
@@ -8710,11 +8811,24 @@ function saveEx() {
   let savedId;
   if (editId) {
     const ex = exById(editId);
-    if (ex) Object.assign(ex, patch);
+    if (ex) {
+      Object.assign(ex, patch);
+      // Primär-Muskel geändert → nur Muskel-Modus-Zugehörigkeit neu ableiten,
+      // PPL/Ober-Unter/Custom-Memberships bleiben unangetastet.
+      ensureExGroups(ex);
+      ex.groups.muskel = _deriveGroupIds(ex, modeById('muskel'));
+    }
     savedId = editId;
   } else {
     savedId = uid();
-    S.exercises.push({ id:savedId, targetWeight:0, ...patch });
+    const newEx = { id:savedId, targetWeight:0, ...patch };
+    ensureExGroups(newEx); // Zugehörigkeit aus muscleGroup ableiten
+    // Wird bei aktivem Gruppen-Filter im Übungen-Tab angelegt → dieser Gruppe zuordnen
+    if (exCatFilter && exCatFilter !== 'alle') {
+      const mId = currentMode().id;
+      if (!newEx.groups[mId].includes(exCatFilter)) newEx.groups[mId].push(exCatFilter);
+    }
+    S.exercises.push(newEx);
   }
   syncExerciseToDays(savedId, selExDays);
   persist();
@@ -8942,12 +9056,13 @@ function openDet(exId) {
       const w = maxW(h.sets);
       const totalR = h.sets.reduce((s,set)=>s+(parseInt(set.r)||0),0);
       const e1rm = setsBest1RM(h.sets);
-      return `<div class="row">
+      const clickAttr = h.id ? ` tap" onclick="openSessFromDet('${h.id}')"` : '"';
+      return `<div class="row${clickAttr}>
         <div class="row-body">
           <div class="row-title">${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'})}</div>
           <div class="row-sub">${h.sets.length} Sätze · Max ${w} kg · ${totalR} Wdh · 1RM ${fmt1RM(e1rm)}</div>
         </div>
-        <span class="badge b-acc">${w} kg</span>
+        <span class="badge b-acc">${w} kg</span>${h.id ? '<div class="chev">›</div>' : ''}
       </div>`;
     }).join('');
   }
@@ -9047,6 +9162,8 @@ function renderDetChart(hist) {
 }
 
 function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
+// Aus dem Übungs-Detail eine vergangene Einheit öffnen
+function openSessFromDet(sesId) { closeOv('ov-det'); setTimeout(()=>openSessDetail(sesId),120); }
 
 // ── STATISTIK ─────────────────────────────────────────
 function setsVolume(sets) {
@@ -10194,7 +10311,7 @@ function renderStatsMuscleGroups() {
   const groups = mode.groups.filter(g => g.muscles && g.muscles.length);
 
   const rows = groups.map(g => {
-    const exIds = S.exercises.filter(e => g.muscles.includes(e.muscleGroup)).map(e => e.id);
+    const exIds = S.exercises.filter(e => exInGroup(e, mode.id, g.id)).map(e => e.id);
     const vol = S.sessions.reduce((sum, ses) => sum + sessionVolume(ses, exIds), 0);
     let best1rm = 0;
     exIds.forEach(id => { const e = exBest1RM(id); if (e > best1rm) best1rm = e; });
@@ -10280,7 +10397,7 @@ function openGroupStat(groupId) {
   mgStatId = groupId;
   document.getElementById('mg-stat-title').textContent = g.label;
 
-  const exIds = S.exercises.filter(e => g.muscles.includes(e.muscleGroup)).map(e => e.id);
+  const exIds = S.exercises.filter(e => exInGroup(e, mode.id, g.id)).map(e => e.id);
   const sessions = [...S.sessions]
     .map(s => ({date: s.date, vol: sessionVolume(s, exIds)}))
     .filter(s => s.vol > 0)
@@ -10312,7 +10429,7 @@ function openGroupStat(groupId) {
 
   // Übungen dieser Gruppe
   const exEl = document.getElementById('mg-stat-ex');
-  const exs  = S.exercises.filter(e => g.muscles.includes(e.muscleGroup));
+  const exs  = S.exercises.filter(e => exInGroup(e, mode.id, g.id));
   if (!exs.length) {
     exEl.innerHTML = `<div style="padding:14px;color:var(--text2);font-size:14px">Keine Übungen in dieser Gruppe.</div>`;
   } else {
@@ -10394,10 +10511,10 @@ function openWorkout() {
     wkExIds = todayPlan.exIds.filter(id => S.exercises.some(ex => ex.id === id));
     if (wkExIds.length) planHintText = '📅 ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
   } else if (todayPlan.type === 'group' && todayPlan.group) {
-    for (const m of GROUP_MODES) {
+    for (const m of allModes()) {
       const g = m.groups.find(g => g.id === todayPlan.group);
       if (g && g.muscles) {
-        wkExIds = S.exercises.filter(ex => g.muscles.includes(ex.muscleGroup)).map(ex => ex.id);
+        wkExIds = S.exercises.filter(ex => exInGroup(ex, m.id, g.id)).map(ex => ex.id);
         if (wkExIds.length) planHintText = '📅 ' + g.label + ' aus deinem Wochenplan vorausgewählt';
         break;
       }
@@ -10441,8 +10558,8 @@ function setWkCat(id) {
   wkCatFilter = id;
   const grp = wkGroup();
   // Gruppe antippen → alle Übungen dieser Gruppe automatisch auswählen
-  if (grp.muscles) {
-    wkExIds = S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup)).map(ex => ex.id);
+  if (grp.id !== 'alle') {
+    wkExIds = S.exercises.filter(ex => exInGroup(ex, wkMode().id, grp.id)).map(ex => ex.id);
   } else {
     wkExIds = []; // "Alle" → Auswahl zurücksetzen
   }
@@ -10462,9 +10579,9 @@ function setWkFilterMode(mode) {
 
 function renderWkPicker() {
   const grp = wkGroup();
-  const filtered = !grp.muscles
+  const filtered = grp.id === 'alle'
     ? S.exercises
-    : S.exercises.filter(ex => grp.muscles.includes(ex.muscleGroup));
+    : S.exercises.filter(ex => exInGroup(ex, wkMode().id, grp.id));
 
   const title = document.getElementById('wk-step1-title');
   if (title) title.textContent = wkCatFilter === 'alle'
@@ -10762,7 +10879,7 @@ function _attachSwipeToDelete() {
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
-let _restInt = null, _restSecs = 0;
+let _restInt = null, _restSecs = 0, _restEndTs = 0;
 /* ── PAUSENINTELLIGENZ ──────────────────────────────────────
    Empfohlene Satzpause abhängig von Übung (Muskelgruppe),
    Belastung (Wiederholungen) und Gewicht relativ zum Bestwert. */
@@ -10809,6 +10926,7 @@ function smartRestSecs(ex, set) {
 function startRestTimer(ex, set) {
   // Pausenintelligenz aktiv & Kontext vorhanden → empfohlene Pause, sonst manueller Standard
   _restSecs = (S.smartRest && ex) ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
+  _restEndTs = Date.now() + _restSecs * 1000; // Endzeitpunkt für native Live-Activity-Countdown
   clearInterval(_restInt);
   const bar = document.getElementById('rest-timer-bar');
   if (bar) bar.style.display = '';
@@ -10843,6 +10961,7 @@ function skipRest() {
 function adjustRest(delta) {
   _restSecs = Math.max(0, _restSecs + delta);
   if (_restSecs <= 0) { skipRest(); return; }
+  _restEndTs = Date.now() + _restSecs * 1000;
   _updRest();
   haptic(8);
   _syncLiveActivity();
