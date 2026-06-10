@@ -11,7 +11,8 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "requestHKPermissions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveWorkout",          returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveWeight",           returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getLatestWeight",      returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getLatestWeight",      returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getLatestHeartRate",   returnType: CAPPluginReturnPromise)
     ]
     private lazy var healthStore = HKHealthStore()
 
@@ -26,7 +27,10 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
         ]
-        let read: Set<HKObjectType> = [HKObjectType.quantityType(forIdentifier: .bodyMass)!]
+        let read: Set<HKObjectType> = [
+            HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+            HKObjectType.quantityType(forIdentifier: .heartRate)!
+        ]
         healthStore.requestAuthorization(toShare: write, read: read) { success, error in
             if let error = error { call.reject(error.localizedDescription) }
             else { call.resolve(["granted": success]) }
@@ -72,6 +76,21 @@ public class HealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
         let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
             guard let s = samples?.first as? HKQuantitySample else { call.resolve(["weightKg": NSNull()]); return }
             call.resolve(["weightKg": s.quantity.doubleValue(for: .gramUnit(with: .kilo)),
+                          "date": s.endDate.timeIntervalSince1970 * 1000])
+        }
+        healthStore.execute(query)
+    }
+
+    @objc func getLatestHeartRate(_ call: CAPPluginCall) {
+        guard HKHealthStore.isHealthDataAvailable() else { call.reject("HealthKit nicht verfuegbar"); return }
+        let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        // Nur Samples der letzten 10 Minuten — aeltere Werte sind im Training nutzlos
+        let from = Date().addingTimeInterval(-600)
+        let pred = HKQuery.predicateForSamples(withStart: from, end: nil, options: [])
+        let query = HKSampleQuery(sampleType: type, predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+            guard let s = samples?.first as? HKQuantitySample else { call.resolve(["bpm": NSNull()]); return }
+            call.resolve(["bpm": s.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())),
                           "date": s.endDate.timeIntervalSince1970 * 1000])
         }
         healthStore.execute(query)

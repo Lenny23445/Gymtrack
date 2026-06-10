@@ -376,6 +376,43 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 .rr-btn:active{transform:scale(.9);background:rgba(var(--acc-rgb),.15)}
 .rr-val{min-width:34px;text-align:center;font-size:18px;font-weight:700;color:var(--text)}
 
+/* ── PLATE CALCULATOR (im Gewichts-Wheel) ── */
+#plate-calc{margin:4px 20px 14px;padding:11px 13px;border-radius:16px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+.pc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pc-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px}
+.pc-bar-seg{display:flex;gap:4px}
+.pc-bar-seg button{border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text2);
+  font-family:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9px;cursor:pointer;
+  transition:background .15s,color .15s}
+.pc-bar-seg button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.pc-plates{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+.pc-plate{display:inline-flex;align-items:center;justify-content:center;
+  padding:6px 10px;border-radius:10px;font-size:13px;font-weight:800;color:#fff;
+  background:linear-gradient(150deg,var(--acc),var(--acc2));
+  box-shadow:0 2px 8px rgba(var(--acc-rgb),.35)}
+.pc-plate.sm{opacity:.85;font-size:12px;padding:5px 8px}
+.pc-msg{font-size:12.5px;color:var(--text2)}
+.pc-rest{font-size:11px;color:var(--text2);width:100%;margin-top:2px}
+
+/* ── HERZFREQUENZ IM TRAINING ── */
+.wk-hr{font-size:12.5px;font-weight:700;color:var(--red);margin-top:3px;
+  display:flex;align-items:center;gap:4px}
+.wk-hr b{font-size:14px;font-variant-numeric:tabular-nums}
+
+/* ── SUPERSET ── */
+.ex-card.ss-linked{border-color:rgba(var(--acc-rgb),.45);
+  box-shadow:0 0 0 1px rgba(var(--acc-rgb),.25),var(--gl-shad)}
+.ss-badge{display:inline-flex;align-items:center;gap:3px;
+  font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--acc);background:rgba(var(--acc-rgb),.13);
+  border:1px solid rgba(var(--acc-rgb),.25);
+  padding:2px 7px;border-radius:8px;flex-shrink:0}
+.ex-card.ss-linked + .ex-card.ss-linked{margin-top:-6px}
+.ss-connector{display:flex;justify-content:center;margin:-4px 0}
+.ss-connector span{width:2.5px;height:14px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.55),rgba(var(--acc-rgb),.25))}
+
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
@@ -672,20 +709,39 @@ body{
   position:fixed;bottom:calc(18px + var(--sab));
   left:50%;transform:translateX(-50%);
   width:calc(100% - 40px);max-width:390px;
-  background:var(--gl-bg-h);
-  backdrop-filter:blur(110px) saturate(260%);
-  -webkit-backdrop-filter:blur(110px) saturate(260%);
+  background:var(--gl-bg);
+  backdrop-filter:blur(34px) saturate(175%);
+  -webkit-backdrop-filter:blur(34px) saturate(175%);
   border:1px solid var(--gl-bdr);
   border-radius:52px;
-  box-shadow:var(--gl-shad-lg),var(--gl-hi);
+  box-shadow:var(--gl-shad-lg),
+             inset 0 1px 1px rgba(255,255,255,.30),
+             inset 0 -10px 22px rgba(255,255,255,.045);
   display:flex;z-index:1000;padding:5px;
   transition:background .4s;
   overflow:hidden;
 }
+[data-glass="off"] .tabbar{box-shadow:var(--gl-shad-lg),var(--gl-hi)}
 .tabbar::after{
   content:'';position:absolute;top:0;left:0;right:0;height:52%;
   background:var(--sheen);pointer-events:none;border-radius:52px;
 }
+/* Glas-Blase: Randlicht oben links + zarter Reflex unten rechts (wie eine echte Linse) */
+.tabbar::before{
+  content:'';position:absolute;inset:0;border-radius:52px;padding:1.2px;
+  background:linear-gradient(165deg,
+    rgba(255,255,255,.60) 0%,rgba(255,255,255,.14) 26%,
+    transparent 52%,rgba(255,255,255,.22) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:2;
+}
+[data-theme="dark"] .tabbar::before{
+  background:linear-gradient(165deg,
+    rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 26%,
+    transparent 52%,rgba(255,255,255,.12) 100%);
+}
+[data-glass="off"] .tabbar::before{display:none}
 .tab{
   flex:1;display:flex;flex-direction:column;align-items:center;
   padding:9px 4px 10px;gap:3px;cursor:pointer;border:none;
@@ -697,8 +753,9 @@ body{
 .tab.on{
   color:var(--acc);
 }
-.tab svg{width:22px;height:22px;will-change:transform}
+.tab svg{width:22px;height:22px;will-change:transform;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
+.tab:active svg{transform:scale(.85) translateY(1px)}
 @keyframes tab-ic-pop{
   0%  {transform:scale(1)    translateY(0)}
   35% {transform:scale(.80)  translateY(2px)}
@@ -1444,12 +1501,13 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   top:5px;left:5px;
   height:calc(100% - 10px);
   width:80px; /* updated by JS */
-  background:rgba(255,255,255,0.38);
-  backdrop-filter:blur(22px) saturate(200%) brightness(1.18);
-  -webkit-backdrop-filter:blur(22px) saturate(200%) brightness(1.18);
+  background:rgba(255,255,255,0.30);
+  backdrop-filter:blur(14px) saturate(190%) brightness(1.24);
+  -webkit-backdrop-filter:blur(14px) saturate(190%) brightness(1.24);
   border-radius:46px;
-  border:1px solid rgba(255,255,255,0.65);
+  border:1px solid rgba(255,255,255,0.75);
   box-shadow:0 4px 18px rgba(0,0,0,.10),
+             0 0 16px rgba(var(--acc-rgb),.20),
              inset 0 1px 0 rgba(255,255,255,.85),
              inset 0 -1px 4px rgba(255,255,255,.30);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1),
@@ -1470,7 +1528,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 [data-theme="dark"] #tab-indicator{
   background:rgba(80,80,110,0.40);
   border:1px solid rgba(255,255,255,0.22);
-  box-shadow:0 4px 18px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22);
+  box-shadow:0 4px 18px rgba(0,0,0,.30),0 0 18px rgba(var(--acc-rgb),.28),inset 0 1px 0 rgba(255,255,255,.22);
 }
 [data-theme="blau"] #tab-indicator{
   background:rgba(210,232,255,0.42);
@@ -1490,6 +1548,16 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
   background:var(--sheen);border-radius:46px;pointer-events:none;
 }
+/* Specular-Highlight: macht aus dem Indikator eine gewölbte Glasblase */
+#tab-indicator::before{
+  content:'';position:absolute;top:2px;left:12%;right:12%;height:44%;
+  border-radius:46px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.50),rgba(255,255,255,0));
+}
+[data-theme="dark"] #tab-indicator::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,0));
+}
+[data-glass="off"] #tab-indicator::before{display:none}
 
 /* ── PAGE TRANSITION (liquid glass bloom) ── */
 @keyframes pg-in{
@@ -2742,9 +2810,10 @@ body.wpick-open #heute-edit-bar{display:none!important}
   border:1px solid var(--gl-bdr);
   box-shadow:0 10px 34px rgba(0,0,0,.28),var(--gl-hi);
   z-index:9998;
-  transition:transform .4s cubic-bezier(.34,1.4,.64,1);
+  visibility:hidden;pointer-events:none;
+  transition:transform .4s cubic-bezier(.34,1.4,.64,1),visibility 0s .4s;
 }
-#native-update-bar.show{transform:translateX(-50%) translateY(0);}
+#native-update-bar.show{transform:translateX(-50%) translateY(0);visibility:visible;pointer-events:auto;transition:transform .4s cubic-bezier(.34,1.4,.64,1)}
 .nub-ico{
   flex-shrink:0;width:40px;height:40px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
@@ -4234,6 +4303,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
           <div>
             <div class="timer-l">Trainingszeit</div>
             <div class="timer-v" id="timer-v">00:00</div>
+            <div class="wk-hr" id="wk-hr" style="display:none">❤️ <b>--</b> bpm</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="wk-cancel-btn" onclick="cancelWk()">Abbrechen</button>
@@ -4250,7 +4320,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
           <button class="rest-bar-skip" onclick="skipRest()">✕</button>
         </div>
         <div id="log-cards"></div>
-        <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2"></textarea>
+        <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
         <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
         <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
         <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
@@ -4476,6 +4546,13 @@ body.wpick-open #heute-edit-bar{display:none!important}
     <div class="wheel-wrap" id="wheel-wrap">
       <!-- Wheel cols inserted by JS -->
     </div>
+    <div id="plate-calc" style="display:none">
+      <div class="pc-head">
+        <span class="pc-title">🏋️ Scheiben pro Seite</span>
+        <div class="pc-bar-seg" id="pc-bar-seg"></div>
+      </div>
+      <div class="pc-plates" id="pc-plates"></div>
+    </div>
     <div class="px" style="padding-bottom:18px">
       <button class="btn btn-acc" onclick="confirmWheel()">Übernehmen</button>
     </div>
@@ -4496,6 +4573,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
         <input id="ex-edit-name" class="f-in" type="text" maxlength="40">
       </div>
       <button class="btn btn-acc" onclick="applyExRename()" style="margin-bottom:14px">Namen speichern</button>
+
+      <div id="ss-section" style="margin-bottom:14px">
+        <button class="btn btn-gray" id="ss-btn" onclick="toggleSuperset()">🔗 Superset mit nächster Übung</button>
+        <div id="ss-hint" style="font-size:11px;color:var(--text2);margin-top:6px;text-align:center;line-height:1.4"></div>
+      </div>
 
       <div id="ex-edit-reprange" style="margin-bottom:14px">
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px;letter-spacing:.3px;text-transform:uppercase">Ziel: Sätze & Wiederholungen</div>
@@ -4725,7 +4807,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606101000';
+const APP_VERSION = 'gymtrack-v202606101751';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5301,6 +5383,38 @@ async function _importWeightFromHealthKit() {
     if (t) { t.textContent = 'Gewicht aus Apple Health importiert'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
   } catch(e) {}
 }
+/* ── HERZFREQUENZ (Apple Watch via HealthKit) ──────────────
+   Zeigt im aktiven Training den letzten Puls-Wert aus Apple Health.
+   Die Watch schreibt kontinuierlich, wenn auf ihr ein Workout läuft —
+   sonst kommen Samples nur alle paar Minuten. Werte älter als 10 min
+   filtert schon der native Plugin-Code aus. */
+let _hrInt = null;
+async function _pollHeartRate() {
+  const HK = _cap('HealthKitPlugin');
+  const el = document.getElementById('wk-hr');
+  if (!HK || !el || typeof HK.getLatestHeartRate !== 'function') return;
+  try {
+    const r = await HK.getLatestHeartRate();
+    if (r && r.bpm) {
+      el.querySelector('b').textContent = Math.round(r.bpm);
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  } catch(_) { el.style.display = 'none'; }
+}
+function _startHrPolling() {
+  if (!_isNative() || !S.healthKitEnabled) return;
+  clearInterval(_hrInt);
+  _pollHeartRate();
+  _hrInt = setInterval(_pollHeartRate, 15000);
+}
+function _stopHrPolling() {
+  clearInterval(_hrInt); _hrInt = null;
+  const el = document.getElementById('wk-hr');
+  if (el) el.style.display = 'none';
+}
+
 async function _saveWorkoutToHealthKit(session) {
   if (!_isNative() || !S.healthKitEnabled) return;
   const HK = _cap('HealthKitPlugin'); if (!HK) return;
@@ -8611,6 +8725,7 @@ function renderWheel() {
           c.idx = idx;
           list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
           hapticTick();
+          if (_wheelCtx?.isWeight) _renderPlateCalc(false);
         }
       };
 
@@ -8655,6 +8770,7 @@ function renderWheel() {
       list.addEventListener('pointerdown', () => { isTouching = true; }, {passive: true});
       window.addEventListener('pointerup',   () => { isTouching = false; startScrollEndPoll(); }, {passive: true});
     });
+    _renderPlateCalc();
   }, 30);
 }
 function confirmWheel() {
@@ -8676,6 +8792,87 @@ function confirmWheel() {
   renderLogCards();
 }
 
+/* ── PLATE CALCULATOR ───────────────────────────────────
+   Zeigt unter dem Gewichts-Wheel live, welche Scheiben pro
+   Seite auf die Langhantel müssen. Stangengewicht wählbar. */
+const PC_PLATES_KG  = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
+const PC_PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
+function _pcBars() { return S.unitMode === 'lbs' ? [45, 35, 0] : [20, 15, 10, 0]; }
+function _pcCurBar() {
+  const bars = _pcBars();
+  return bars.includes(S.plateBar) ? S.plateBar : bars[0];
+}
+function pcSetBar(b) {
+  S.plateBar = b;
+  persist();
+  hapticTick();
+  _renderPlateCalc(true);
+}
+function _wheelCurDisp() {
+  const c = _wheelCtx;
+  if (!c || !c.isWeight) return 0;
+  return (c.cols[0].values[c.cols[0].idx] || 0) + (c.cols[1].values[c.cols[1].idx] || 0);
+}
+function _renderPlateCalc(withSeg) {
+  const box = document.getElementById('plate-calc');
+  if (!box) return;
+  if (!_wheelCtx || !_wheelCtx.isWeight) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  if (withSeg !== false) {
+    const seg = document.getElementById('pc-bar-seg');
+    const cur = _pcCurBar();
+    if (seg) seg.innerHTML = _pcBars().map(b =>
+      `<button class="${b === cur ? 'on' : ''}" onclick="pcSetBar(${b})">${b === 0 ? 'ohne' : b}</button>`).join('');
+  }
+  const out = document.getElementById('pc-plates');
+  if (!out) return;
+  const fmtP = v => String(v).replace('.', ',');
+  const total = _wheelCurDisp();
+  const bar = _pcCurBar();
+  const u = unitLabel();
+  if (!total) { out.innerHTML = '<span class="pc-msg">Wähle ein Gewicht …</span>'; return; }
+  if (bar > 0 && total < bar) {
+    out.innerHTML = `<span class="pc-msg">Leichter als die ${bar}-${u}-Stange — Kurzhantel oder Maschine?</span>`;
+    return;
+  }
+  const perSide = (total - bar) / 2;
+  if (perSide <= 0) { out.innerHTML = '<span class="pc-msg">Nur die Stange — keine Scheiben nötig</span>'; return; }
+  const plates = S.unitMode === 'lbs' ? PC_PLATES_LBS : PC_PLATES_KG;
+  const counts = new Map();
+  let rest = perSide;
+  plates.forEach(p => { while (rest >= p - 1e-9) { counts.set(p, (counts.get(p) || 0) + 1); rest -= p; } });
+  rest = Math.round(rest * 100) / 100;
+  out.innerHTML =
+    [...counts].map(([p, n]) => `<span class="pc-plate${p < 5 ? ' sm' : ''}">${n > 1 ? n + '×' : ''}${fmtP(p)}</span>`).join('') +
+    (rest > 0 ? `<span class="pc-rest">+ ${fmtP(rest)} ${u} pro Seite nicht steckbar (kleinste Scheibe ${fmtP(plates[plates.length - 1])} ${u})</span>` : '');
+}
+
+/* ── SUPERSET ───────────────────────────────────────────
+   Zwei benachbarte Übungen koppeln: im Wechsel ausführen,
+   die Satzpause startet erst, wenn beide Übungen den Satz
+   mit gleicher Nummer abgehakt haben. */
+function toggleSuperset() {
+  const li = _exEditLi;
+  if (li == null) return;
+  const log = wkLogs[li];
+  if (!log) return;
+  if (log.ssGroup) {
+    const g = log.ssGroup;
+    wkLogs.forEach(l => { if (l.ssGroup === g) delete l.ssGroup; });
+    _dndToast('Superset gelöst');
+  } else {
+    const nx = wkLogs[li + 1];
+    if (!nx || nx.ssGroup) return;
+    const g = 'ss' + Date.now();
+    log.ssGroup = g;
+    nx.ssGroup = g;
+    _dndToast('🔗 Superset erstellt');
+  }
+  haptic(12);
+  closeOv('ov-ex-edit');
+  renderLogCards();
+}
+
 // ── ÜBUNG IM TRAINING BEARBEITEN (umbenennen / ersetzen) ──
 let _exEditLi = null;
 function openExEditMenu(li) {
@@ -8684,6 +8881,23 @@ function openExEditMenu(li) {
   const ex = exById(log.exerciseId); if (!ex) return;
   document.getElementById('ex-edit-title').textContent = ex.name;
   document.getElementById('ex-edit-name').value = log._overrideName || ex.name;
+  // Superset-Button konfigurieren
+  const ssSec = document.getElementById('ss-section');
+  const ssBtn = document.getElementById('ss-btn');
+  const ssHint = document.getElementById('ss-hint');
+  const _exDispName = l => l._overrideName || exById(l.exerciseId)?.name || 'Übung';
+  if (log.ssGroup) {
+    ssSec.style.display = '';
+    ssBtn.textContent = '🔗 Superset lösen';
+    const partner = wkLogs.find((l, i) => i !== li && l.ssGroup === log.ssGroup);
+    ssHint.textContent = partner ? `Gekoppelt mit „${_exDispName(partner)}"` : '';
+  } else if (li < wkLogs.length - 1 && !wkLogs[li + 1].ssGroup) {
+    ssSec.style.display = '';
+    ssBtn.textContent = `🔗 Superset mit „${_exDispName(wkLogs[li + 1])}"`;
+    ssHint.textContent = 'Beide Übungen im Wechsel — die Pause startet erst, wenn beide ihren Satz beendet haben.';
+  } else {
+    ssSec.style.display = 'none';
+  }
   // Wdh-Bereich-Editor: bei Zeit-Übungen ausblenden
   const rrBox = document.getElementById('ex-edit-reprange');
   if (ex.targetType === 'time') {
@@ -10966,16 +11180,64 @@ function startActive() {
       0, totalS
     );
   }
+  _startWkTimer();
+  _startHrPolling();
+  document.getElementById('wk-step1').style.display = 'none';
+  document.getElementById('wk-step2').style.display = '';
+  document.getElementById('wk-title').textContent = 'Aktives Training';
+  renderLogCards();
+}
+
+function _startWkTimer() {
+  clearInterval(timerInt);
   timerInt = setInterval(()=>{
     const e = Math.floor((Date.now()-timerTs)/1000);
     const str = String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
     const tv = document.getElementById('timer-v'); if (tv) tv.textContent = str;
     const mv = document.getElementById('wk-mini-v'); if (mv) mv.textContent = str;
   },1000);
-  document.getElementById('wk-step1').style.display = 'none';
-  document.getElementById('wk-step2').style.display = '';
-  document.getElementById('wk-title').textContent = 'Aktives Training';
+}
+
+/* ── AKTIVES TRAINING ÜBERLEBT APP-NEUSTART ─────────────────
+   iOS beendet die App gern im Hintergrund (App-Wechsel, Sperrbildschirm,
+   lange Pause im Gym). Der komplette Workout-Zustand wird deshalb bei
+   jeder Änderung in localStorage gesichert und beim Start wiederhergestellt. */
+const _AWK_KEY = 'gt_active_wk';
+function _saveActiveWk() {
+  try {
+    if (!timerTs || !wkLogs.length) return;
+    localStorage.setItem(_AWK_KEY, JSON.stringify({
+      logs: wkLogs, exIds: wkExIds, ts: timerTs,
+      note: document.getElementById('wk-note')?.value || ''
+    }));
+  } catch(_) {}
+}
+function _clearActiveWk() { try { localStorage.removeItem(_AWK_KEY); } catch(_) {} }
+function _restoreActiveWk() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(_AWK_KEY) || 'null'); } catch(_) {}
+  if (!saved || !Array.isArray(saved.logs) || !saved.logs.length || !saved.ts) return;
+  // Älter als 8 h → vermutlich vergessen, still verwerfen
+  if (Date.now() - saved.ts > 8 * 3600 * 1000) { _clearActiveWk(); return; }
+  const logs = saved.logs.filter(l => l && exById(l.exerciseId));
+  if (!logs.length) { _clearActiveWk(); return; }
+  wkLogs  = logs;
+  wkExIds = Array.isArray(saved.exIds) && saved.exIds.length ? saved.exIds : logs.map(l => l.exerciseId);
+  timerTs = saved.ts;
+  // Laufende Zeit-Satz-Timer pausieren — der Neustart hat sie beendet
+  wkLogs.forEach(l => (l.sets || []).forEach(s => {
+    if (s.tRunning) { s.tElapsed = s.tElapsed || 0; s.tRunning = false; s.tStart = null; }
+  }));
+  const s1 = document.getElementById('wk-step1'), s2 = document.getElementById('wk-step2');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = '';
+  const t = document.getElementById('wk-title'); if (t) t.textContent = 'Aktives Training';
+  const note = document.getElementById('wk-note'); if (note) note.value = saved.note || '';
+  _startWkTimer();
+  _startHrPolling();
   renderLogCards();
+  updateWkMiniVisibility();
+  setTimeout(() => showUpdateToast('💪 Laufendes Training wiederhergestellt', { autoHide: 3200 }), 700);
 }
 
 function renderLogCards() {
@@ -10985,11 +11247,15 @@ function renderLogCards() {
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${repGoalShort(ex)}`;
     const prevSets = lastSessionSetsFor(log.exerciseId);
     const displayName = log._overrideName || ex.name;
-    return `<div class="ex-card" data-li="${li}">
+    const ssLinked = !!log.ssGroup;
+    const ssConnector = ssLinked && li > 0 && wkLogs[li-1].ssGroup === log.ssGroup
+      ? '<div class="ss-connector"><span></span></div>' : '';
+    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}" data-li="${li}">
       <div class="ex-card-swipe-bg"><span>🗑 Entfernen</span></div>
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
+        ${ssLinked ? '<span class="ss-badge">🔗 SS</span>' : ''}
         <span class="ex-goal-tap" style="font-size:13px;color:var(--text2)" onclick="openExEditMenu(${li})">Ziel: ${goalLabel} ›</span>
         <button class="ex-info-btn" onclick="openProgressionInfo('${log.exerciseId}')" title="Progression erklären" aria-label="Progression erklären">i</button>
       </div>
@@ -11036,6 +11302,7 @@ function renderLogCards() {
     </div>`;
   }).join('');
   _attachSwipeToDelete();
+  _saveActiveWk();
 }
 
 /* ── SWIPE-TO-DELETE (Übung im aktiven Training nach links wischen) ──
@@ -11121,7 +11388,7 @@ function _attachSwipeToDelete() {
   });
 }
 
-function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; }
+function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; _saveActiveWk(); }
 let _restInt = null, _restSecs = 0, _restEndTs = 0;
 /* ── PAUSENINTELLIGENZ ──────────────────────────────────────
    Empfohlene Satzpause abhängig von Übung (Muskelgruppe),
@@ -11221,7 +11488,23 @@ function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
   haptic(next ? 18 : 8);
-  if (next) startRestTimer(exById(wkLogs[li].exerciseId), wkLogs[li].sets[si]); else skipRest();
+  if (next) {
+    const log = wkLogs[li];
+    if (log.ssGroup) {
+      // Superset: Pause erst, wenn ALLE gekoppelten Übungen Satz Nr. si fertig haben
+      const partners = wkLogs.filter(l => l.ssGroup === log.ssGroup);
+      const allDone = partners.every(p => !p.sets[si] || p.sets[si].done);
+      if (allDone) {
+        startRestTimer(exById(log.exerciseId), log.sets[si]);
+      } else {
+        skipRest();
+        const nextP = partners.find(p => p.sets[si] && !p.sets[si].done);
+        if (nextP) _dndToast('🔗 Weiter mit ' + (nextP._overrideName || exById(nextP.exerciseId)?.name || 'Partner-Übung'));
+      }
+    } else {
+      startRestTimer(exById(log.exerciseId), log.sets[si]);
+    }
+  } else skipRest();
   renderLogCards();
 }
 function addSet(li) {
@@ -11265,6 +11548,9 @@ function finishWk() {
   _endLiveActivity();
   _saveWorkoutToHealthKit(_newSess);
   haptic([20,40,20]);
+  _stopHrPolling();
+  _clearActiveWk();
+  timerTs = null;
   wkLogs = [];
   wkExIds = [];
   closeOv('ov-wk');
@@ -11293,6 +11579,9 @@ function cancelWk() {
   clearInterval(setTimerInt); setTimerInt = null;
   skipRest();
   if (document.getElementById('wk-note')) document.getElementById('wk-note').value = '';
+  _stopHrPolling();
+  _clearActiveWk();
+  timerTs = null;
   wkLogs = [];
   wkExIds = [];
   closeOv('ov-wk');
@@ -13128,6 +13417,7 @@ initTabIndicator();
 initSheetSwipe();
 initTabDrag();
 initPageSwipe();
+_restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 
 // Beim allerersten App-Start Tutorial zeigen
 if (!S.welcomeShown) {
@@ -13674,6 +13964,8 @@ async function _pushToCloud() {
   if (!_fbUser || !window.FB || !window.FB.configured) return;
   try {
     const ref = window.FB.userDocRef(_fbUser.uid);
+    // WICHTIG: Jedes Feld hier muss auch im hasOnly() der Firestore-Rules stehen,
+    // sonst lehnt Firestore den KOMPLETTEN Push ab (permission-denied).
     const payload = {
       exercises: S.exercises || [],
       sessions:  S.sessions  || [],
@@ -13682,8 +13974,21 @@ async function _pushToCloud() {
       companionOn: S.companionOn,
       exFilterMode: S.exFilterMode,
       wkFilterMode: S.wkFilterMode,
+      statsFilterMode: S.statsFilterMode || 'muskel',
+      unitMode:  S.unitMode || 'kg',
+      glass:     S.glass !== false,
       welcomeShown: S.welcomeShown,
       heuteLayout: S.heuteLayout || null,
+      weekPlan:  S.weekPlan || null,
+      customSplits: S.customSplits || [],
+      trackerItems: S.trackerItems || [],
+      trackerCounts: S.trackerCounts || {},
+      erfAchieved: S.erfAchieved || [],
+      weightLog:   S.weightLog || [],
+      weightStart: S.weightStart ?? null,
+      weightGoal:  S.weightGoal ?? null,
+      restTimerSecs: S.restTimerSecs || 90,
+      smartRest:  S.smartRest !== false,
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
@@ -13710,6 +14015,14 @@ function _mergeData(local, cloud) {
     const key = (s.date || '') + '|' + exIds;
     if (!sesMap.has(key)) sesMap.set(key, s);
   });
+  // Gewichtsverlauf: Union per Datum (Cloud gewinnt bei gleichem Tag)
+  const wlMap = new Map();
+  [...(local.weightLog || []), ...(cloud.weightLog || [])].forEach(e => {
+    if (e && e.date) wlMap.set(e.date, e);
+  });
+  // Strukturierte Felder (Plan, Splits, Tracker): neuerer Stand gewinnt
+  const cloudNewer = (cloud.updatedAt || 0) >= (local.updatedAt || 0);
+  const pick = (a, b) => cloudNewer ? (a ?? b) : (b ?? a); // a=cloud, b=local
   return {
     exercises: [...exMap.values()],
     sessions:  [...sesMap.values()].sort((a,b) => new Date(a.date) - new Date(b.date)),
@@ -13718,8 +14031,21 @@ function _mergeData(local, cloud) {
     companionOn:  cloud.companionOn  ?? local.companionOn,
     exFilterMode: cloud.exFilterMode ?? local.exFilterMode,
     wkFilterMode: cloud.wkFilterMode ?? local.wkFilterMode,
+    statsFilterMode: cloud.statsFilterMode ?? local.statsFilterMode,
+    unitMode:     cloud.unitMode     ?? local.unitMode,
+    glass:        cloud.glass        ?? local.glass,
     welcomeShown: cloud.welcomeShown ?? local.welcomeShown,
     heuteLayout:  cloud.heuteLayout  ?? local.heuteLayout ?? null,
+    weekPlan:     pick(cloud.weekPlan,     local.weekPlan),
+    customSplits: pick(cloud.customSplits, local.customSplits) || [],
+    trackerItems: pick(cloud.trackerItems, local.trackerItems) || [],
+    trackerCounts: pick(cloud.trackerCounts, local.trackerCounts) || {},
+    erfAchieved:  [...new Set([...(cloud.erfAchieved || []), ...(local.erfAchieved || [])])],
+    weightLog:    [...wlMap.values()].sort((a,b) => a.date < b.date ? -1 : 1),
+    weightStart:  cloud.weightStart  ?? local.weightStart ?? null,
+    weightGoal:   cloud.weightGoal   ?? local.weightGoal ?? null,
+    restTimerSecs: cloud.restTimerSecs ?? local.restTimerSecs,
+    smartRest:    cloud.smartRest    ?? local.smartRest,
     updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
   };
 }
@@ -13834,13 +14160,13 @@ function _onLogout() {
 let _anaSessionRef   = null;
 let _anaSessionStart = null;
 let _anaHeartbeat    = null;
-const ANA_HEARTBEAT_MS = 60 * 1000;
+const ANA_HEARTBEAT_MS = 120 * 1000; // 120 s — halbiert die Firestore-Schreibkosten
 
 // ── MULTI-TAB LEADER LOCK ──────────────────────────────────────────────────
 // Nur der "Leader-Tab" sendet Heartbeats → verhindert Firestore-Spam bei
 // vielen offenen Tabs. Leader-Claim läuft nach 90 s ab; anderer Tab übernimmt.
 const _ANA_LEADER_KEY = 'gt_ana_leader';
-const _ANA_LEADER_TTL = 90000;           // 1,5× Heartbeat-Intervall
+const _ANA_LEADER_TTL = 180000;          // 1,5× Heartbeat-Intervall
 const _ANA_TAB_ID     = '_' + Math.random().toString(36).slice(2, 10);
 
 function _tryClaimLead() {
@@ -13866,8 +14192,10 @@ function _isLeader() {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
+let _anaDisabled = false; // nach permission-denied nicht erneut versuchen (verhindert Retry-Spam)
 async function analyticsStart(user) {
   if (!user || !window.FB?.configured) return;
+  if (_anaDisabled) return;
   if (_anaSessionRef) return; // schon getrackt
   // Kein Leader → kein Heartbeat-Interval starten; nach 90 s erneut versuchen
   if (!_tryClaimLead()) {
@@ -13905,6 +14233,7 @@ async function analyticsStart(user) {
     _anaHeartbeat = setInterval(_analyticsBeat, ANA_HEARTBEAT_MS);
     console.log('[GymTrack] 📊 Analytics-Session gestartet', isAnon ? '(anonym)' : '(Google)');
   } catch (e) {
+    if ((e?.code || '') === 'permission-denied') _anaDisabled = true; // Rules blocken → kein Retry
     console.warn('[GymTrack] Analytics-Start fehlgeschlagen (vermutlich Firestore-Rules):', e?.code || e?.message || e);
   }
 }

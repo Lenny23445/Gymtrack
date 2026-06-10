@@ -39,7 +39,7 @@ S = {
 ```
 
 ## Features
-Übungen + Muskelgruppen-Filter · Training starten/loggen, Gewichtsvorschläge · 1RM (Epley) + Chart · Statistik Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets Swipe-to-dismiss · 4 Themes · Dackel-Begleiter · Auto-Update (sw.js-Direktvergleich) · Changelog-Popup · Cardio-Timer + SW-Notification · Cloud-Sync Firebase.
+Übungen + Muskelgruppen-Filter · Training starten/loggen, Gewichtsvorschläge · 1RM (Epley) + Chart · Statistik Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets Swipe-to-dismiss · 4 Themes · Dackel-Begleiter · Auto-Update (sw.js-Direktvergleich) · Changelog-Popup · Cardio-Timer + SW-Notification · Cloud-Sync Firebase · Aktives Training überlebt App-Neustart (localStorage `gt_active_wk`, Restore via `_restoreActiveWk()` im INIT, 8h-TTL) · Supersätze (`log.ssGroup`, Pause erst wenn alle Partner Satz N fertig) · Plate Calculator im Gewichts-Wheel (`_renderPlateCalc`, Stange via `S.plateBar`, nur lokal) · Herzfrequenz im Training (HealthKitPlugin `getLatestHeartRate`, JS-Polling 15 s via `_startHrPolling`, nur nativ).
 
 ## Code-Muster
 
@@ -98,7 +98,8 @@ service cloud.firestore {
              'customSplits','planSplit','planMode','planGroups','planWeek',
              'streak','streakLastDate','notifEnabled','notifTime',
              'glass','adminUid','erfAchieved','weightGoal',
-             'smartRestEnabled','smartRest'
+             'smartRestEnabled','smartRest',
+             'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs'
            ])
         // Max. 5000 Sessions und 500 Übungen (Kostendeckel)
         && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
