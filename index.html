@@ -332,6 +332,50 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 [data-glass="off"] .tabbar::after,[data-glass="off"] .hdr::after{display:none}
 [data-glass="off"] *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
 
+/* ── Querformat-Sperre: Hinweis nur auf Smartphones im Landscape ── */
+#rotate-lock{
+  display:none;position:fixed;inset:0;z-index:99999;
+  background:var(--bg,#0c0c12);color:var(--text,#fff);
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;text-align:center;padding:32px;
+}
+#rotate-lock .rl-txt{font-size:17px;font-weight:700;max-width:280px;line-height:1.4}
+@media (orientation:landscape) and (max-height:500px){
+  #rotate-lock{display:flex}
+}
+
+/* ── Split-Erstellen: Erklärung + Vorlagen ── */
+.cs-intro{
+  background:rgba(var(--acc-rgb),.08);
+  border:1px solid rgba(var(--acc-rgb),.18);
+  border-radius:14px;padding:12px 14px;margin-bottom:14px;
+  font-size:13px;line-height:1.5;color:var(--text2);
+}
+.cs-intro-t{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.cs-presets{display:flex;flex-wrap:wrap;gap:8px}
+.cs-preset-btn{
+  flex:1;min-width:130px;padding:11px 12px;border-radius:12px;
+  border:1px solid var(--gl-bdr);background:var(--inp-bg);
+  color:var(--text);font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;transition:transform .15s,background .2s;
+}
+.cs-preset-btn:active{transform:scale(.96);background:rgba(var(--acc-rgb),.12)}
+
+/* ── Wdh-Bereich anpassen (im Training) ── */
+.ex-goal-tap{cursor:pointer;white-space:nowrap}
+.ex-goal-tap:active{opacity:.6}
+.rr-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.rr-lbl{font-size:14px;color:var(--text);font-weight:600}
+.rr-stepper{display:flex;align-items:center;gap:14px}
+.rr-btn{
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--gl-bdr);
+  background:var(--inp-bg);color:var(--text);font-size:22px;line-height:1;
+  font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s,background .2s;
+}
+.rr-btn:active{transform:scale(.9);background:rgba(var(--acc-rgb),.15)}
+.rr-val{min-width:34px;text-align:center;font-size:18px;font-weight:700;color:var(--text)}
+
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
@@ -1400,10 +1444,14 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   top:5px;left:5px;
   height:calc(100% - 10px);
   width:80px; /* updated by JS */
-  background:rgba(255,255,255,0.96);
+  background:rgba(255,255,255,0.38);
+  backdrop-filter:blur(22px) saturate(200%) brightness(1.18);
+  -webkit-backdrop-filter:blur(22px) saturate(200%) brightness(1.18);
   border-radius:46px;
-  border:1px solid rgba(255,255,255,0.95);
-  box-shadow:0 4px 20px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,1);
+  border:1px solid rgba(255,255,255,0.65);
+  box-shadow:0 4px 18px rgba(0,0,0,.10),
+             inset 0 1px 0 rgba(255,255,255,.85),
+             inset 0 -1px 4px rgba(255,255,255,.30);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1),
              width .42s cubic-bezier(.34,1.56,.64,1);
   pointer-events:none;
@@ -1411,25 +1459,33 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   will-change:transform,width;
   overflow:hidden;
 }
+[data-glass="off"] #tab-indicator{
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
 [data-theme="rosa"] #tab-indicator{
-  background:rgba(255,240,250,0.96);
-  border:1px solid rgba(255,200,235,0.90);
+  background:rgba(255,240,250,0.42);
+  border:1px solid rgba(255,200,235,0.70);
 }
 [data-theme="dark"] #tab-indicator{
-  background:rgba(55,55,80,0.95);
-  border:1px solid rgba(255,255,255,0.12);
-  box-shadow:0 4px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.10);
+  background:rgba(80,80,110,0.40);
+  border:1px solid rgba(255,255,255,0.22);
+  box-shadow:0 4px 18px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22);
 }
 [data-theme="blau"] #tab-indicator{
-  background:rgba(210,232,255,0.96);
-  border:1px solid rgba(120,180,255,0.80);
-  box-shadow:0 4px 20px rgba(0,80,200,.14),inset 0 1px 0 rgba(255,255,255,.90);
+  background:rgba(210,232,255,0.42);
+  border:1px solid rgba(120,180,255,0.65);
+  box-shadow:0 4px 18px rgba(0,80,200,.12),inset 0 1px 0 rgba(255,255,255,.75);
 }
 [data-theme="grün"] #tab-indicator{
-  background:rgba(210,248,220,0.96);
-  border:1px solid rgba(100,200,130,0.80);
-  box-shadow:0 4px 20px rgba(0,120,50,.14),inset 0 1px 0 rgba(255,255,255,.90);
+  background:rgba(210,248,220,0.42);
+  border:1px solid rgba(100,200,130,0.65);
+  box-shadow:0 4px 18px rgba(0,120,50,.12),inset 0 1px 0 rgba(255,255,255,.75);
 }
+[data-glass="off"][data-theme="rosa"] #tab-indicator{background:rgba(255,240,250,0.96)}
+[data-glass="off"][data-theme="dark"] #tab-indicator{background:rgba(55,55,80,0.95)}
+[data-glass="off"][data-theme="blau"] #tab-indicator{background:rgba(210,232,255,0.96)}
+[data-glass="off"][data-theme="grün"] #tab-indicator{background:rgba(210,248,220,0.96)}
 #tab-indicator::after{
   content:'';position:absolute;top:0;left:0;right:0;height:55%;
   background:var(--sheen);border-radius:46px;pointer-events:none;
@@ -2030,6 +2086,25 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   pointer-events:none;transition:none;animation:none!important;
 }
 .hw-drop-hint{outline:2px dashed var(--acc);outline-offset:3px;border-radius:20px}
+/* Live-Resize-Frame: folgt dem Finger beim Ziehen (Apple-Stil) */
+.hw-rsz-frame{
+  position:fixed;z-index:9998;pointer-events:none;
+  border-radius:20px;
+  border:2.5px solid var(--acc);
+  background:rgba(var(--acc-rgb),.10);
+  box-shadow:0 10px 34px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.25);
+  transition:box-shadow .18s ease, background .18s ease;
+}
+.hw-rsz-frame.snap{
+  background:rgba(var(--acc-rgb),.22);
+  box-shadow:0 14px 40px rgba(var(--acc-rgb),.4),inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.hw.hw-snap-in{animation:hw-snap-in .3s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes hw-snap-in{
+  0%  {transform:scale(.9)}
+  60% {transform:scale(1.04)}
+  100%{transform:scale(1)}
+}
 /* Edit-Bar */
 .heute-edit-bar{
   display:none;
@@ -2052,6 +2127,7 @@ body.heute-editing .heute-edit-bar{display:flex}
 }
 .heute-edit-bar button:active{opacity:.75}
 .heute-edit-bar .eb-add{background:var(--gl-bg-h);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);color:var(--text);border:1px solid var(--gl-bdr)}
+.heute-edit-bar .eb-clear{background:rgba(255,59,48,.14);color:#ff3b30;border:1px solid rgba(255,59,48,.30);box-shadow:none;font-size:14px}
 .heute-edit-bar .eb-done{background:var(--acc);color:#fff;box-shadow:0 3px 14px rgba(var(--acc-rgb),.45)}
 .heute-grid-empty{
   text-align:center;color:var(--text2);
@@ -2468,6 +2544,17 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .cal-cell.l3{background:rgba(var(--acc-rgb),.80);color:#fff}
 .cal-cell.l4{background:var(--acc);color:#fff}
 .cal-cell.today{outline:2px solid var(--text);outline-offset:-2px}
+.cal-cell.has-sess{cursor:pointer}
+.cal-cell.has-sess:active{transform:scale(.9)}
+.cal-month-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cal-day-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 9px;border-radius:9px;font-size:11.5px;
+  background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.22);
+  color:var(--text);cursor:pointer;transition:transform .12s,background .2s;
+}
+.cal-day-chip b{color:var(--acc)}
+.cal-day-chip:active{transform:scale(.95);background:rgba(var(--acc-rgb),.2)}
 .cal-legend{
   display:flex;align-items:center;justify-content:flex-end;
   gap:6px;margin-top:10px;font-size:11px;color:var(--text2);
@@ -3276,6 +3363,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 </style>
 </head>
 <body>
+
+<div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
 
 <div id="update-toast"></div>
 
@@ -4163,6 +4252,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
         <div id="log-cards"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2"></textarea>
         <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
+        <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
+        <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
       </div>
     </div>
   </div>
@@ -4405,6 +4496,36 @@ body.wpick-open #heute-edit-bar{display:none!important}
         <input id="ex-edit-name" class="f-in" type="text" maxlength="40">
       </div>
       <button class="btn btn-acc" onclick="applyExRename()" style="margin-bottom:14px">Namen speichern</button>
+
+      <div id="ex-edit-reprange" style="margin-bottom:14px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;letter-spacing:.3px;text-transform:uppercase">Ziel: Sätze & Wiederholungen</div>
+        <div class="rr-row">
+          <span class="rr-lbl">Sätze</span>
+          <div class="rr-stepper">
+            <button class="rr-btn" onclick="rrAdjust('sets',-1)">−</button>
+            <span class="rr-val" id="rr-sets">3</span>
+            <button class="rr-btn" onclick="rrAdjust('sets',1)">+</button>
+          </div>
+        </div>
+        <div class="rr-row">
+          <span class="rr-lbl">Wdh von</span>
+          <div class="rr-stepper">
+            <button class="rr-btn" onclick="rrAdjust('min',-1)">−</button>
+            <span class="rr-val" id="rr-min">8</span>
+            <button class="rr-btn" onclick="rrAdjust('min',1)">+</button>
+          </div>
+        </div>
+        <div class="rr-row">
+          <span class="rr-lbl">Wdh bis</span>
+          <div class="rr-stepper">
+            <button class="rr-btn" onclick="rrAdjust('max',-1)">−</button>
+            <span class="rr-val" id="rr-max">12</span>
+            <button class="rr-btn" onclick="rrAdjust('max',1)">+</button>
+          </div>
+        </div>
+        <button class="btn btn-acc" onclick="applyRepRange()" style="margin-top:4px">Bereich speichern</button>
+      </div>
+
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase">Durch andere Übung ersetzen</div>
       <div id="ex-edit-replace-list" style="max-height:280px;overflow:auto;border:1px solid var(--gl-bdr);border-radius:14px"></div>
     </div>
@@ -4420,11 +4541,24 @@ body.wpick-open #heute-edit-bar{display:none!important}
       <button class="x-btn" onclick="closeOv('ov-custom-split')">✕</button>
     </div>
     <div class="px" style="padding-bottom:18px">
-      <div class="f-field">
-        <label class="f-label">Name des Splits</label>
+      <div class="cs-intro">
+        <div class="cs-intro-t">Was ist ein Split?</div>
+        Ein Split ist dein <b>Trainingsplan</b>: Du teilst dein Training in <b>Tage/Gruppen</b> auf
+        (z.&nbsp;B. „Push" = Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die
+        <b>Muskelgruppen</b> zu, die an dem Tag drankommen. Beim Training filterst du dann
+        bequem nach diesen Gruppen.
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin:2px 0 6px;letter-spacing:.3px;text-transform:uppercase">Schnell-Vorlage</div>
+      <div class="cs-presets">
+        <button class="cs-preset-btn" onclick="csPreset('ppl')">Push / Pull / Legs</button>
+        <button class="cs-preset-btn" onclick="csPreset('oberunter')">Ober- / Unterkörper</button>
+        <button class="cs-preset-btn" onclick="csPreset('gk')">Ganzkörper</button>
+      </div>
+      <div class="f-field" style="margin-top:12px">
+        <label class="f-label">1. Name des Splits</label>
         <input id="cs-name" class="f-in" type="text" placeholder="z. B. Mein PPL+" maxlength="32">
       </div>
-      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;letter-spacing:.3px;text-transform:uppercase">Gruppen</div>
+      <div style="font-size:12px;color:var(--text2);margin:6px 0 8px;letter-spacing:.3px;text-transform:uppercase">2. Deine Trainings-Gruppen</div>
       <div id="cs-groups" style="display:flex;flex-direction:column;gap:10px"></div>
       <button class="btn btn-gray btn-sm" onclick="csAddGroup()" style="margin-top:10px">+ Gruppe hinzufügen</button>
       <div style="height:14px"></div>
@@ -4591,7 +4725,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606071233';
+const APP_VERSION = 'gymtrack-v202606101000';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5809,7 +5943,7 @@ const WIDGET_DEFS = {
   onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['sm','md','lg'], lgRows:3, build:hwOneRM},
   qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
-  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Cardio','openKardio()',size)},
+  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('',size==='sm'?'Cardio':'Cardio-Timer starten','openKardio()',size)},
 };
 const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight','qcardio'];
 
@@ -6045,7 +6179,8 @@ function hwOneRM(size){
     </div>`).join('') + `</div>`;
 }
 function hwQuick(icon,label,fn,size){
-  return `<button class="hw-card hw-quick" onclick="${fn}"><div class="hw-stat"><span class="hw-quick-lbl">${label}</span></div></button>`;
+  const ic = icon ? `<span class="hw-quick-ico">${icon}</span>` : '';
+  return `<button class="hw-card hw-quick" onclick="${fn}"><div class="hw-stat">${ic}<span class="hw-quick-lbl">${label}</span></div></button>`;
 }
 
 /* ── Bearbeitungs-Modus ── */
@@ -6068,6 +6203,14 @@ function removeWidget(i){
   const L = _heuteLayout();
   if (i<0 || i>=L.length) return;
   L.splice(i,1);
+  persist(); renderHeuteGrid();
+}
+function clearAllWidgets(){
+  const L = _heuteLayout();
+  if (!L.length) return;
+  if (!confirm('Wirklich alle Widgets von der Startseite entfernen?')) return;
+  L.length = 0;
+  haptic && haptic(20);
   persist(); renderHeuteGrid();
 }
 function toggleWidgetSize(i){
@@ -6230,8 +6373,24 @@ function _hOnDown(e){
     // Resize-Griff gezogen → Größe per Ziehen anpassen (statt Tippen)
     const rsz = e.target.closest('.hw-rsz');
     if (rsz){
-      _hRsz = {idx:parseInt(rsz.dataset.idx||'-1'), id:e.pointerId, sx:e.clientX, sy:e.clientY, moved:false};
+      const idx = parseInt(rsz.dataset.idx||'-1');
       const grid = document.getElementById('heute-grid');
+      const tile = grid && grid.querySelector(`.hw[data-idx="${idx}"]`);
+      _hRsz = {idx, id:e.pointerId, sx:e.clientX, sy:e.clientY, moved:false, tile};
+      if (tile){
+        const tr = tile.getBoundingClientRect();
+        _hRsz.tr = tr;
+        const L = _heuteLayout();
+        _hRsz.lastWant = (L[idx] && L[idx].size) || null;
+        // Kontinuierliches Resize-Frame, das dem Finger folgt (Apple-Stil)
+        const f = document.createElement('div');
+        f.className = 'hw-rsz-frame';
+        f.style.left = tr.left+'px'; f.style.top = tr.top+'px';
+        f.style.width = tr.width+'px'; f.style.height = tr.height+'px';
+        document.body.appendChild(f);
+        _hRsz.frame = f;
+        tile.classList.add('hw-resizing');
+      }
       try { grid.setPointerCapture(e.pointerId); } catch(_){}
       e.preventDefault();
       return;
@@ -6339,34 +6498,55 @@ function _hDesiredSize(def, idx, cx, cy){
 }
 function _hResizeMove(e){
   const L = _heuteLayout(); const w = L[_hRsz.idx]; if (!w) return;
-  const def = WIDGET_DEFS[w.type]; if (!def) return;
+  const def = WIDGET_DEFS[w.type]; if (!def || !_hRsz.frame) return;
   if (!_hRsz.moved && Math.hypot(e.clientX-_hRsz.sx, e.clientY-_hRsz.sy) < 6) return;
   _hRsz.moved = true;
+
   const grid = document.getElementById('heute-grid');
-  let tile = grid && grid.querySelector(`.hw[data-idx="${_hRsz.idx}"]`);
-  if (tile) tile.classList.add('hw-resizing');
+  const gr   = grid.getBoundingClientRect();
+  const tr   = _hRsz.tr;
+  const g    = 12;
+  const unit = parseFloat(getComputedStyle(grid).getPropertyValue('--hw-unit')) || 78;
+  const col  = (gr.width - g) / 2;
+
+  // Frame folgt dem Finger kontinuierlich (mit sinnvollen Grenzen) → echtes Ziehen
+  const minW = col * 0.5, maxW = gr.right - tr.left;
+  const minH = unit * 0.8, maxH = unit * 4 + g * 3;
+  const wWant = Math.max(minW, Math.min(maxW, e.clientX - tr.left));
+  const hWant = Math.max(minH, Math.min(maxH, e.clientY - tr.top));
+  _hRsz.frame.style.width  = wWant + 'px';
+  _hRsz.frame.style.height = hWant + 'px';
+
+  // Welche diskrete Größe würde einrasten? → nur Vorschau + Haptik bei Wechsel
   const want = _hDesiredSize(def, _hRsz.idx, e.clientX, e.clientY);
-  const cur  = def.sizes.includes(w.size) ? w.size : def.sizes[0];
-  if (want && want !== cur){
-    w.size = want;
-    renderHeuteGrid();   // Kachel rastet auf neue Form ein
-    tile = grid && grid.querySelector(`.hw[data-idx="${_hRsz.idx}"]`);
-    if (tile) tile.classList.add('hw-resizing');
-    if (navigator.vibrate) navigator.vibrate(6);
+  if (want && want !== _hRsz.lastWant){
+    _hRsz.lastWant = want;
+    _hRsz.frame.classList.add('snap');
+    setTimeout(()=>_hRsz.frame && _hRsz.frame.classList.remove('snap'), 180);
+    hapticTick();
   }
 }
 function _hResizeEnd(){
+  if (_hRsz && _hRsz.frame) _hRsz.frame.remove();
   document.querySelectorAll('#heute-grid .hw-resizing').forEach(t => t.classList.remove('hw-resizing'));
-  if (_hRsz && _hRsz.moved){
-    persist();
-  } else if (_hRsz){
-    // Reines Tippen auf den Griff → nächste Größe (Fallback/Entdeckbarkeit)
-    const L = _heuteLayout(); const w = L[_hRsz.idx]; const def = w && WIDGET_DEFS[w.type];
-    if (def && def.sizes.length > 1){
-      const cur = def.sizes.includes(w.size) ? w.size : def.sizes[0];
-      w.size = def.sizes[(def.sizes.indexOf(cur)+1) % def.sizes.length];
+  if (!_hRsz) return;
+  const L = _heuteLayout(); const w = L[_hRsz.idx]; const def = w && WIDGET_DEFS[w.type];
+  if (!def || def.sizes.length <= 1){ return; }
+  const cur = def.sizes.includes(w.size) ? w.size : def.sizes[0];
+  if (_hRsz.moved){
+    // Auf die beim Ziehen ermittelte Zielgröße einrasten (animiert)
+    const target = _hRsz.lastWant && def.sizes.includes(_hRsz.lastWant) ? _hRsz.lastWant : cur;
+    if (target !== cur){
+      w.size = target;
       persist(); renderHeuteGrid();
+      const tile = document.querySelector(`#heute-grid .hw[data-idx="${_hRsz.idx}"]`);
+      if (tile){ tile.classList.add('hw-snap-in'); setTimeout(()=>tile.classList.remove('hw-snap-in'), 320); }
+      haptic && haptic(10);
     }
+  } else {
+    // Reines Tippen auf den Griff → nächste Größe (Entdeckbarkeit)
+    w.size = def.sizes[(def.sizes.indexOf(cur)+1) % def.sizes.length];
+    persist(); renderHeuteGrid();
   }
 }
 
@@ -8430,7 +8610,7 @@ function renderWheel() {
         if (idx !== c.idx) {
           c.idx = idx;
           list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
-          if (typeof haptic === 'function') haptic(4);
+          hapticTick();
         }
       };
 
@@ -8504,6 +8684,16 @@ function openExEditMenu(li) {
   const ex = exById(log.exerciseId); if (!ex) return;
   document.getElementById('ex-edit-title').textContent = ex.name;
   document.getElementById('ex-edit-name').value = log._overrideName || ex.name;
+  // Wdh-Bereich-Editor: bei Zeit-Übungen ausblenden
+  const rrBox = document.getElementById('ex-edit-reprange');
+  if (ex.targetType === 'time') {
+    rrBox.style.display = 'none';
+  } else {
+    rrBox.style.display = '';
+    const { min, max } = repRange(ex);
+    _rrEdit = { sets: ex.targetSets || 3, min, max };
+    _renderRepRange();
+  }
   // Ersatz-Liste
   const list = document.getElementById('ex-edit-replace-list');
   const usedIds = wkLogs.map(l => l.exerciseId);
@@ -8519,6 +8709,37 @@ function openExEditMenu(li) {
     </div>`;
   }).filter(Boolean).join('') || '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Keine weiteren Übungen verfügbar.</div>';
   openOv('ov-ex-edit');
+}
+let _rrEdit = { sets:3, min:8, max:12 };
+function _renderRepRange() {
+  document.getElementById('rr-sets').textContent = _rrEdit.sets;
+  document.getElementById('rr-min').textContent  = _rrEdit.min;
+  document.getElementById('rr-max').textContent  = _rrEdit.max;
+}
+function rrAdjust(which, delta) {
+  if (which === 'sets') _rrEdit.sets = Math.max(1, Math.min(20, _rrEdit.sets + delta));
+  if (which === 'min')  _rrEdit.min  = Math.max(1, Math.min(100, _rrEdit.min + delta));
+  if (which === 'max')  _rrEdit.max  = Math.max(1, Math.min(100, _rrEdit.max + delta));
+  // Min/Max konsistent halten
+  if (_rrEdit.min > _rrEdit.max) {
+    if (which === 'min') _rrEdit.max = _rrEdit.min;
+    else _rrEdit.min = _rrEdit.max;
+  }
+  hapticTick();
+  _renderRepRange();
+}
+function applyRepRange() {
+  if (_exEditLi == null) return;
+  const log = wkLogs[_exEditLi]; if (!log) return;
+  const ex = exById(log.exerciseId); if (!ex) return;
+  ex.targetSets = _rrEdit.sets;
+  ex.repMin = _rrEdit.min;
+  ex.repMax = _rrEdit.max;
+  ex.targetReps = _rrEdit.max; // Ziel = oberes Ende (Kompatibilität)
+  persist();
+  haptic && haptic(8);
+  closeOv('ov-ex-edit');
+  renderLogCards();
 }
 function applyExRename() {
   if (_exEditLi == null) return;
@@ -8582,6 +8803,28 @@ function openCustomSplitEdit(splitId) {
 }
 function csAddGroup() {
   _csEdit.groups.push({ id: uid(), label:'', muscles:[] });
+  renderCsGroups();
+}
+function csPreset(kind) {
+  const G = (label, muscles) => ({ id: uid(), label, muscles });
+  const presets = {
+    ppl: { name:'Push / Pull / Legs', groups:[
+      G('Push', ['brust','schultern','arme']),
+      G('Pull', ['ruecken','arme']),
+      G('Legs', ['beine','core']),
+    ]},
+    oberunter: { name:'Ober- / Unterkörper', groups:[
+      G('Oberkörper', ['brust','ruecken','schultern','arme']),
+      G('Unterkörper', ['beine','core']),
+    ]},
+    gk: { name:'Ganzkörper', groups:[
+      G('Ganzkörper', ['brust','ruecken','schultern','arme','beine','core']),
+    ]},
+  };
+  const p = presets[kind]; if (!p) return;
+  _csEdit.groups = JSON.parse(JSON.stringify(p.groups));
+  const nameInp = document.getElementById('cs-name');
+  if (nameInp && !nameInp.value.trim()) nameInp.value = p.name;
   renderCsGroups();
 }
 function csDelGroup(gid) {
@@ -10747,7 +10990,7 @@ function renderLogCards() {
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
-        <span style="font-size:13px;color:var(--text2)">Ziel: ${goalLabel}</span>
+        <span class="ex-goal-tap" style="font-size:13px;color:var(--text2)" onclick="openExEditMenu(${li})">Ziel: ${goalLabel} ›</span>
         <button class="ex-info-btn" onclick="openProgressionInfo('${log.exerciseId}')" title="Progression erklären" aria-label="Progression erklären">i</button>
       </div>
       <div class="ex-body">
@@ -10934,17 +11177,25 @@ function startRestTimer(ex, set) {
   const lbl = bar?.querySelector('.rest-bar-lbl');
   if (lbl) lbl.textContent = (S.smartRest && ex) ? 'Pause · Auto' : 'Pause';
   _updRest();
+  // Anzeige aus dem absoluten Endzeitpunkt (_restEndTs) ableiten — exакt dieselbe
+  // Quelle wie die native Dynamic Island, exakt. So bleiben App und Island synchron, auch
+  // wenn setInterval im Hintergrund gedrosselt wird oder ein Tick verspätet feuert.
+  let _lastShown = -1;
   _restInt = setInterval(() => {
-    _restSecs--;
-    _updRest();
-    if (_restSecs <= 0) {
+    const remaining = Math.max(0, Math.round((_restEndTs - Date.now()) / 1000));
+    _restSecs = remaining;
+    if (remaining !== _lastShown) {
+      _updRest();
+      _lastShown = remaining;
+      _syncLiveActivity(); // nur bei Sekundenwechsel an die Dynamic Island pushen
+    }
+    if (remaining <= 0) {
       clearInterval(_restInt); _restInt = null;
       const b = document.getElementById('rest-timer-bar');
       if (b) b.style.display = 'none';
       haptic([30,50,30]);
     }
-    _syncLiveActivity();
-  }, 1000);
+  }, 250);
   _syncLiveActivity();
 }
 function _updRest() {
@@ -11875,6 +12126,20 @@ function haptic(ms) {
   } catch(e) {}
 }
 
+// Feiner „Klick" pro Walzen-Wert (wie Apple Picker). selectionChanged feuert
+// ein präzises haptisches Tick — anders als selectionStart, das nur einmal startet.
+function hapticTick() {
+  try {
+    const H = _cap('Haptics');
+    if (H) {
+      if (H.selectionChanged) H.selectionChanged();
+      else H.impact?.({ style: 'LIGHT' });
+    } else if (navigator.vibrate) {
+      navigator.vibrate(7);
+    }
+  } catch(e) {}
+}
+
 // ── GEFÜHRTE TOUR ──────────────────────────────────────
 function goTabId(id) {
   const map = { heute:0, uebungen:1, stats:2, erfolge:3, settings:3 };
@@ -12462,6 +12727,11 @@ function openCalendarOverlay(){
   haptic(8);
   renderCalendar();
   openOv('ov-calendar');
+  // Erst nach dem Einblenden ans Ende scrollen → aktueller Monat steht unten sichtbar
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const wrap = document.getElementById('cal-scroll');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  }));
 }
 function renderCalendar(monthsBack = 12){
   const wrap = document.getElementById('cal-scroll');
@@ -12470,9 +12740,24 @@ function renderCalendar(monthsBack = 12){
   const { map, level } = _volMap();
   const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
+  // Sessions nach lokalem Datums-Key gruppieren → {label, sesId} pro Trainingstag
+  const sessByDay = {};
+  (S.sessions || []).forEach(s => {
+    const d = new Date(s.date); d.setHours(0,0,0,0);
+    const k = _localDateKey(d);
+    if (!sessByDay[k]) sessByDay[k] = [];
+    sessByDay[k].push(s);
+  });
+  const dayInfo = (k) => {
+    const arr = sessByDay[k];
+    if (!arr || !arr.length) return null;
+    const s = arr[0];
+    return { sesId: s.id, label: deriveTrainingLabel(s) || 'Training' };
+  };
+
   let html = '';
-  // Von neuestem (aktueller) Monat rückwärts
-  for (let mb = 0; mb < monthsBack; mb++) {
+  // Chronologisch: ältester Monat zuerst (oben), aktueller Monat zuletzt (unten)
+  for (let mb = monthsBack - 1; mb >= 0; mb--) {
     const ref = new Date(today.getFullYear(), today.getMonth() - mb, 1);
     const year = ref.getFullYear(), month = ref.getMonth();
     const first = new Date(year, month, 1);
@@ -12480,6 +12765,7 @@ function renderCalendar(monthsBack = 12){
     const lead = _DOW_MON0(first); // Leerzellen vor dem 1.
 
     let cells = '';
+    const trainedDays = [];
     for (let i = 0; i < lead; i++) cells += `<div class="cal-cell empty"></div>`;
     for (let day = 1; day <= daysInMonth; day++) {
       const d = new Date(year, month, day);
@@ -12488,17 +12774,25 @@ function renderCalendar(monthsBack = 12){
       const lvl = level(v);
       const isToday  = d.getTime() === today.getTime();
       const isFuture = d > today;
-      const cls = [v>0 ? 'l'+lvl : '', isToday?'today':''].filter(Boolean).join(' ');
-      const title = isFuture ? '' : (v>0 ? fmtKg(v) : 'kein Training');
-      cells += `<div class="cal-cell ${cls}"${isFuture?' style="opacity:.35"':''} title="${title}">${day}</div>`;
+      const info = dayInfo(k);
+      const cls = [v>0 ? 'l'+lvl : '', isToday?'today':'', info?'has-sess':''].filter(Boolean).join(' ');
+      const title = isFuture ? '' : (info ? info.label + ' · ' + fmtKg(v) : (v>0 ? fmtKg(v) : 'kein Training'));
+      const tap = info ? ` onclick="openSessDetail('${info.sesId}')"` : '';
+      cells += `<div class="cal-cell ${cls}"${isFuture?' style="opacity:.35"':''} title="${title}"${tap}>${day}</div>`;
+      if (info) trainedDays.push(`<span class="cal-day-chip" onclick="openSessDetail('${info.sesId}')"><b>${day}.</b> ${info.label}</span>`);
     }
+    const dayList = trainedDays.length
+      ? `<div class="cal-month-list">${trainedDays.join('')}</div>`
+      : '';
     html += `<div class="cal-month">
       <div class="cal-month-title">${MONATE[month]} ${year}</div>
       <div class="cal-grid">${cells}</div>
+      ${dayList}
     </div>`;
   }
   wrap.innerHTML = html;
-  wrap.scrollTop = 0;
+  // Ans Ende scrollen → aktueller Monat steht unten sichtbar
+  wrap.scrollTop = wrap.scrollHeight;
 }
 
 // ── ÜBUNGS-BIBLIOTHEK (Standard-Übungen) ──────────────
@@ -12947,6 +13241,17 @@ if (!Array.isArray(S.seenChangelog)) {
     const ml=document.querySelector('link[rel="manifest"]');
     if(ml) ml.href=URL.createObjectURL(blob);
   }catch(e){}
+
+  /* ── Hochformat erzwingen (Web/PWA) ── */
+  function _lockPortrait(){
+    try{
+      const o = screen.orientation;
+      if (o && typeof o.lock === 'function') o.lock('portrait').catch(()=>{});
+    }catch(e){}
+  }
+  _lockPortrait();
+  window.addEventListener('orientationchange', _lockPortrait);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _lockPortrait(); });
 
   /* ── PWA Install Prompt (Android) ── */
   let _installPrompt = null;
