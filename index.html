@@ -377,16 +377,22 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 .rr-val{min-width:34px;text-align:center;font-size:18px;font-weight:700;color:var(--text)}
 
 /* ── PLATE CALCULATOR (im Gewichts-Wheel) ── */
+/* Feste Höhe: das Bottom-Sheet ist unten verankert und würde sonst beim
+   Wechsel der Scheibenanzahl in der Höhe springen → Rad flackert. Fixe Höhe +
+   interner Scroll hält Sheet & Rad ruhig, egal wie viele Scheiben angezeigt werden. */
 #plate-calc{margin:4px 20px 14px;padding:11px 13px;border-radius:16px;
-  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);min-height:80px}
-.pc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
+  height:112px;display:flex;flex-direction:column;overflow:hidden}
+.pc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-shrink:0}
 .pc-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px}
 .pc-bar-seg{display:flex;gap:4px}
 .pc-bar-seg button{border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text2);
   font-family:inherit;font-size:11px;font-weight:700;padding:4px 9px;border-radius:9px;cursor:pointer;
   transition:background .15s,color .15s}
 .pc-bar-seg button.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.pc-plates{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+.pc-plates{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;align-content:flex-start;
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pc-plates::-webkit-scrollbar{display:none}
 .pc-plate{display:inline-flex;align-items:center;justify-content:center;
   padding:6px 10px;border-radius:10px;font-size:13px;font-weight:800;color:#fff;
   background:linear-gradient(150deg,var(--acc),var(--acc2));
@@ -4822,7 +4828,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606110722';
+const APP_VERSION = 'gymtrack-v202606110740';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -8755,6 +8761,7 @@ function renderWheel() {
           list.scrollTo({top: target, behavior: 'smooth'});
         }
         c.idx = idx;
+        hapticSelEnd(); // Rad steht still → Selection-Session beenden
       };
 
       const startScrollEndPoll = () => {
@@ -8782,11 +8789,11 @@ function renderWheel() {
         startScrollEndPoll();
       }, {passive: true});
 
-      list.addEventListener('touchstart', () => { isTouching = true; }, {passive: true});
+      list.addEventListener('touchstart', () => { isTouching = true; hapticSelStart(); }, {passive: true});
       list.addEventListener('touchend',   () => { isTouching = false; startScrollEndPoll(); }, {passive: true});
       list.addEventListener('touchcancel',() => { isTouching = false; startScrollEndPoll(); }, {passive: true});
       // Pointer für Maus / Desktop
-      list.addEventListener('pointerdown', () => { isTouching = true; }, {passive: true});
+      list.addEventListener('pointerdown', () => { isTouching = true; hapticSelStart(); }, {passive: true});
       window.addEventListener('pointerup',   () => { isTouching = false; startScrollEndPoll(); }, {passive: true});
     });
     _renderPlateCalc();
@@ -12445,14 +12452,34 @@ function haptic(ms) {
   } catch(e) {}
 }
 
-// Feiner „Klick" pro Walzen-Wert (wie Apple Picker). selectionChanged feuert
-// ein präzises haptisches Tick — anders als selectionStart, das nur einmal startet.
+// Feiner „Klick" pro Walzen-Wert (wie Apple Picker).
+// WICHTIG (iOS): selectionChanged() feuert nur, wenn vorher selectionStart()
+// den Feedback-Generator erzeugt hat — sonst ist er nil und es passiert NICHTS.
+// Darum wird beim Anfassen des Rades hapticSelStart() aufgerufen und beim
+// Stillstand hapticSelEnd(). Ein Flag merkt sich, ob die Session läuft.
+let _hapticSelActive = false;
+function hapticSelStart() {
+  try {
+    const H = _cap('Haptics');
+    if (H && H.selectionStart) { H.selectionStart(); _hapticSelActive = true; }
+  } catch(e) {}
+}
+function hapticSelEnd() {
+  try {
+    const H = _cap('Haptics');
+    if (H && H.selectionEnd) H.selectionEnd();
+  } catch(e) {}
+  _hapticSelActive = false;
+}
 function hapticTick() {
   try {
     const H = _cap('Haptics');
     if (H) {
+      // Falls noch keine Session läuft (z. B. Inertia-Scroll ohne Touch) →
+      // lazy starten, damit selectionChanged auch wirklich klackt.
+      if (!_hapticSelActive && H.selectionStart) { H.selectionStart(); _hapticSelActive = true; }
       if (H.selectionChanged) H.selectionChanged();
-      else H.impact?.({ style: 'LIGHT' });
+      else if (H.impact) H.impact({ style: 'LIGHT' });
     } else if (navigator.vibrate) {
       navigator.vibrate(7);
     }
