@@ -378,7 +378,7 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 
 /* ── PLATE CALCULATOR (im Gewichts-Wheel) ── */
 #plate-calc{margin:4px 20px 14px;padding:11px 13px;border-radius:16px;
-  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);min-height:80px}
 .pc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .pc-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px}
 .pc-bar-seg{display:flex;gap:4px}
@@ -704,65 +704,82 @@ body{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
 .wk-prev-l.empty{color:var(--text2);font-weight:400;opacity:.55}
 
-/* ── TABBAR — FLOATING LIQUID GLASS PILL ── */
+/* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
   position:fixed;bottom:calc(18px + var(--sab));
   left:50%;transform:translateX(-50%);
   width:calc(100% - 40px);max-width:390px;
-  background:var(--gl-bg);
-  backdrop-filter:blur(34px) saturate(175%);
-  -webkit-backdrop-filter:blur(34px) saturate(175%);
-  border:1px solid var(--gl-bdr);
-  border-radius:52px;
-  box-shadow:var(--gl-shad-lg),
-             inset 0 1px 1px rgba(255,255,255,.30),
-             inset 0 -10px 22px rgba(255,255,255,.045);
-  display:flex;z-index:1000;padding:5px;
+  background:rgba(255,255,255,0.26);
+  backdrop-filter:blur(50px) saturate(180%) brightness(1.08);
+  -webkit-backdrop-filter:blur(50px) saturate(180%) brightness(1.08);
+  border:1px solid rgba(255,255,255,0.40);
+  border-radius:999px;
+  box-shadow:0 10px 40px rgba(0,0,0,.12),0 2px 10px rgba(0,0,0,.06),
+             inset 0 1.5px 0 rgba(255,255,255,.60),
+             inset 0 -1px 1px rgba(0,0,0,.02);
+  display:flex;z-index:1000;padding:7px;
   transition:background .4s;
   overflow:hidden;
 }
-[data-glass="off"] .tabbar{box-shadow:var(--gl-shad-lg),var(--gl-hi)}
-.tabbar::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:52%;
-  background:var(--sheen);pointer-events:none;border-radius:52px;
+[data-glass="off"] .tabbar{
+  background:rgba(245,245,247,.92);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:0 2px 24px rgba(0,0,0,.10),var(--gl-hi);
 }
-/* Glas-Blase: Randlicht oben links + zarter Reflex unten rechts (wie eine echte Linse) */
+[data-theme="dark"] .tabbar{
+  background:rgba(32,32,36,0.62);
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 10px 40px rgba(0,0,0,.40),0 2px 10px rgba(0,0,0,.25),
+             inset 0 1px 0 rgba(255,255,255,.10);
+}
+.tabbar::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:46%;
+  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 100%);
+  pointer-events:none;border-radius:999px 999px 0 0;
+}
+[data-theme="dark"] .tabbar::after{
+  background:linear-gradient(180deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,0) 100%);
+}
+[data-glass="off"] .tabbar::after{display:none}
+/* iOS 26: Glaslinsen-Randlicht – Lichtkanal oben + subtiler Reflex unten */
 .tabbar::before{
-  content:'';position:absolute;inset:0;border-radius:52px;padding:1.2px;
-  background:linear-gradient(165deg,
-    rgba(255,255,255,.60) 0%,rgba(255,255,255,.14) 26%,
-    transparent 52%,rgba(255,255,255,.22) 100%);
+  content:'';position:absolute;inset:0;border-radius:999px;padding:1px;
+  background:linear-gradient(160deg,
+    rgba(255,255,255,.70) 0%,rgba(255,255,255,.18) 30%,
+    transparent 55%,rgba(255,255,255,.22) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
   pointer-events:none;z-index:2;
 }
 [data-theme="dark"] .tabbar::before{
-  background:linear-gradient(165deg,
-    rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 26%,
-    transparent 52%,rgba(255,255,255,.12) 100%);
+  background:linear-gradient(160deg,
+    rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 30%,
+    transparent 55%,rgba(255,255,255,.10) 100%);
 }
 [data-glass="off"] .tabbar::before{display:none}
 .tab{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:9px 4px 10px;gap:3px;cursor:pointer;border:none;
+  padding:8px 4px 9px;gap:2px;cursor:pointer;border:none;
   background:none;color:var(--text2);
-  transition:color .22s,background .22s;
-  font-family:inherit;border-radius:46px;
+  transition:color .22s,opacity .22s;
+  font-family:inherit;border-radius:22px;
   position:relative;z-index:1;
+  opacity:0.55;
 }
 .tab.on{
   color:var(--acc);
+  opacity:1;
 }
-.tab svg{width:22px;height:22px;will-change:transform;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+.tab svg{width:22px;height:22px;will-change:transform;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
-.tab:active svg{transform:scale(.85) translateY(1px)}
+.tab:active svg{transform:scale(.82) translateY(1px)}
 @keyframes tab-ic-pop{
   0%  {transform:scale(1)    translateY(0)}
-  35% {transform:scale(.80)  translateY(2px)}
-  68% {transform:scale(1.13) translateY(-2px)}
+  30% {transform:scale(.80)  translateY(2px)}
+  65% {transform:scale(1.14) translateY(-2.5px)}
   100%{transform:scale(1)    translateY(0)}
 }
-.tab.on svg{animation:tab-ic-pop .36s cubic-bezier(.34,1.56,.64,1) both}
+.tab.on svg{animation:tab-ic-pop .40s cubic-bezier(.34,1.56,.64,1) both}
 
 /* ── GLASS CARD ── */
 .card{
@@ -1495,69 +1512,55 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .pad{padding:16px 20px}
 .px{padding:0 20px}
 
-/* ── TAB INDICATOR (sliding liquid glass pill) ── */
+/* ── TAB INDICATOR — APPLE-STYLE SELECTED PILL (flach & clean) ── */
 #tab-indicator{
   position:absolute;
-  top:5px;left:5px;
-  height:calc(100% - 10px);
+  top:6px;left:6px;
+  height:calc(100% - 12px);
   width:80px; /* updated by JS */
-  background:rgba(255,255,255,0.30);
-  backdrop-filter:blur(14px) saturate(190%) brightness(1.24);
-  -webkit-backdrop-filter:blur(14px) saturate(190%) brightness(1.24);
-  border-radius:46px;
-  border:1px solid rgba(255,255,255,0.75);
-  box-shadow:0 4px 18px rgba(0,0,0,.10),
-             0 0 16px rgba(var(--acc-rgb),.20),
-             inset 0 1px 0 rgba(255,255,255,.85),
-             inset 0 -1px 4px rgba(255,255,255,.30);
+  background:rgba(255,255,255,0.66);
+  backdrop-filter:blur(8px) saturate(140%);
+  -webkit-backdrop-filter:blur(8px) saturate(140%);
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.55);
+  box-shadow:0 1px 3px rgba(0,0,0,.08),
+             0 4px 12px rgba(0,0,0,.06);
   transition:transform .42s cubic-bezier(.34,1.56,.64,1),
              width .42s cubic-bezier(.34,1.56,.64,1);
   pointer-events:none;
   z-index:1;
   will-change:transform,width;
-  overflow:hidden;
 }
-[data-glass="off"] #tab-indicator{
-  background:rgba(255,255,255,0.96);
-  backdrop-filter:none;-webkit-backdrop-filter:none;
+/* Identisch neutrales Pill auf allen hellen Themes – nur Icon+Text tragen Akzent */
+[data-theme="rosa"] #tab-indicator,
+[data-theme="blau"] #tab-indicator,
+[data-theme="grün"] #tab-indicator,
+[data-theme="light"] #tab-indicator{
+  background:rgba(255,255,255,0.66);
+  border:1px solid rgba(255,255,255,0.55);
+  box-shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.06);
 }
-[data-theme="rosa"] #tab-indicator{
-  background:rgba(255,240,250,0.42);
-  border:1px solid rgba(255,200,235,0.70);
-}
+/* Dark-Mode: sauberes, leicht erhelltes Pill – kein matschiger Ton */
 [data-theme="dark"] #tab-indicator{
-  background:rgba(80,80,110,0.40);
-  border:1px solid rgba(255,255,255,0.22);
-  box-shadow:0 4px 18px rgba(0,0,0,.30),0 0 18px rgba(var(--acc-rgb),.28),inset 0 1px 0 rgba(255,255,255,.22);
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 1px 3px rgba(0,0,0,.30),0 4px 12px rgba(0,0,0,.22);
 }
-[data-theme="blau"] #tab-indicator{
-  background:rgba(210,232,255,0.42);
-  border:1px solid rgba(120,180,255,0.65);
-  box-shadow:0 4px 18px rgba(0,80,200,.12),inset 0 1px 0 rgba(255,255,255,.75);
+/* Glass-off: deckende Pills */
+[data-glass="off"] #tab-indicator{
+  background:rgba(255,255,255,1);
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  border:1px solid rgba(0,0,0,.04);
+  box-shadow:0 1px 4px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.06);
 }
-[data-theme="grün"] #tab-indicator{
-  background:rgba(210,248,220,0.42);
-  border:1px solid rgba(100,200,130,0.65);
-  box-shadow:0 4px 18px rgba(0,120,50,.12),inset 0 1px 0 rgba(255,255,255,.75);
+[data-glass="off"][data-theme="rosa"] #tab-indicator{background:rgba(255,255,255,1)}
+[data-glass="off"][data-theme="blau"] #tab-indicator{background:rgba(255,255,255,1)}
+[data-glass="off"][data-theme="grün"] #tab-indicator{background:rgba(255,255,255,1)}
+[data-glass="off"][data-theme="dark"] #tab-indicator{
+  background:rgba(72,72,82,0.98);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 1px 4px rgba(0,0,0,.35);
 }
-[data-glass="off"][data-theme="rosa"] #tab-indicator{background:rgba(255,240,250,0.96)}
-[data-glass="off"][data-theme="dark"] #tab-indicator{background:rgba(55,55,80,0.95)}
-[data-glass="off"][data-theme="blau"] #tab-indicator{background:rgba(210,232,255,0.96)}
-[data-glass="off"][data-theme="grün"] #tab-indicator{background:rgba(210,248,220,0.96)}
-#tab-indicator::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:55%;
-  background:var(--sheen);border-radius:46px;pointer-events:none;
-}
-/* Specular-Highlight: macht aus dem Indikator eine gewölbte Glasblase */
-#tab-indicator::before{
-  content:'';position:absolute;top:2px;left:12%;right:12%;height:44%;
-  border-radius:46px;pointer-events:none;
-  background:linear-gradient(180deg,rgba(255,255,255,.50),rgba(255,255,255,0));
-}
-[data-theme="dark"] #tab-indicator::before{
-  background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,0));
-}
-[data-glass="off"] #tab-indicator::before{display:none}
 
 /* ── PAGE TRANSITION (liquid glass bloom) ── */
 @keyframes pg-in{
@@ -4131,6 +4134,18 @@ body.wpick-open #heute-edit-bar{display:none!important}
           <div class="scheme-desc" id="scheme-desc"></div>
         </div>
       </div>
+      <div class="f-field" id="plate-toggle-row" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label class="f-label" style="margin-bottom:0">Scheiben-Rechner im Training</label>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="in-show-plates" onchange="selShowPlates=this.checked">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:5px">
+          Zeigt beim Gewicht-Rad, welche Scheiben pro Seite aufzustecken sind — für Langhantel-Übungen.
+        </div>
+      </div>
       <div class="f-field">
         <label class="f-label">Wochentag(e) für diese Übung</label>
         <div class="day-pill-row" id="ex-day-pills"></div>
@@ -4548,7 +4563,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
     </div>
     <div id="plate-calc" style="display:none">
       <div class="pc-head">
-        <span class="pc-title">🏋️ Scheiben pro Seite</span>
+        <span class="pc-title">Scheiben pro Seite</span>
         <div class="pc-bar-seg" id="pc-bar-seg"></div>
       </div>
       <div class="pc-plates" id="pc-plates"></div>
@@ -4807,7 +4822,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606101751';
+const APP_VERSION = 'gymtrack-v202606110722';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -8718,6 +8733,7 @@ function renderWheel() {
       let scrollEndPoll = null;
       let lastTop = list.scrollTop;
       let stillCount = 0;
+      let _pcRaf = null;
 
       const updateHighlight = () => {
         const idx = Math.max(0, Math.min(c.values.length-1, Math.round(list.scrollTop / 44)));
@@ -8725,7 +8741,10 @@ function renderWheel() {
           c.idx = idx;
           list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
           hapticTick();
-          if (_wheelCtx?.isWeight) _renderPlateCalc(false);
+          if (_wheelCtx?.isWeight) {
+            cancelAnimationFrame(_pcRaf);
+            _pcRaf = requestAnimationFrame(() => _renderPlateCalc(false));
+          }
         }
       };
 
@@ -8817,6 +8836,8 @@ function _renderPlateCalc(withSeg) {
   const box = document.getElementById('plate-calc');
   if (!box) return;
   if (!_wheelCtx || !_wheelCtx.isWeight) { box.style.display = 'none'; return; }
+  const _pcEx = _wheelCtx.li != null ? exById(wkLogs[_wheelCtx.li]?.exerciseId) : null;
+  if (_pcEx && !_pcEx.showPlateCalc) { box.style.display = 'none'; return; }
   box.style.display = '';
   if (withSeg !== false) {
     const seg = document.getElementById('pc-bar-seg');
@@ -9126,6 +9147,7 @@ function renderWeekPreview() {
 
 // ── NEW / EDIT EXERCISE ───────────────────────────────
 let selExDays = []; // Wochentage, die im Übung-Modal ausgewählt sind
+let selShowPlates = false;
 
 function openNewEx(exId) {
   editId = exId;
@@ -9134,6 +9156,7 @@ function openNewEx(exId) {
   selExDays = [];
   selExType = 'reps';
   selScheme = 'straight';
+  selShowPlates = false;
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps-min').value = '8';
@@ -9148,6 +9171,7 @@ function openNewEx(exId) {
       selMuscle = ex.muscleGroup || '';
       selExType = ex.targetType || 'reps';
       selScheme = ex.weightScheme || 'straight';
+      selShowPlates = ex.showPlateCalc === true;
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       if (selExType === 'time') {
@@ -9166,6 +9190,8 @@ function openNewEx(exId) {
   renderSchemeSeg();
   renderMusclePicker();
   renderExDayPills();
+  const spCb = document.getElementById('in-show-plates');
+  if (spCb) spCb.checked = selShowPlates;
   openOv('ov-ex');
 }
 
@@ -9263,7 +9289,8 @@ function saveEx() {
     scheme = WEIGHT_SCHEMES.includes(selScheme) ? selScheme : 'straight';
   }
   const patch = { name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps,
-                  targetType:selExType, repMin, repMax, weightScheme:scheme };
+                  targetType:selExType, repMin, repMax, weightScheme:scheme,
+                  showPlateCalc: selExType !== 'time' ? selShowPlates : false };
 
   let savedId;
   if (editId) {
@@ -9312,11 +9339,13 @@ function setExType(type) {
   const minWrap = document.getElementById('rep-min-wrap');
   const schemeRow = document.getElementById('scheme-row');
   if (!repsBtn) return;
+  const plateRow = document.getElementById('plate-toggle-row');
   if (type === 'time') {
     repsBtn.classList.remove('on'); timeBtn.classList.add('on');
     if (lbl) lbl.textContent = 'Sek';
     if (minWrap) minWrap.style.display = 'none';
     if (schemeRow) schemeRow.style.display = 'none';
+    if (plateRow) plateRow.style.display = 'none';
     const inp = document.getElementById('in-reps');
     if (inp && (inp.value === '10' || inp.value === '12' || !inp.value)) inp.value = '30';
   } else {
@@ -9324,6 +9353,7 @@ function setExType(type) {
     if (lbl) lbl.textContent = 'bis';
     if (minWrap) minWrap.style.display = '';
     if (schemeRow) schemeRow.style.display = '';
+    if (plateRow) plateRow.style.display = '';
     const inp = document.getElementById('in-reps');
     if (inp && (inp.value === '30' || !inp.value)) inp.value = '12';
   }
