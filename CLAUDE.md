@@ -95,7 +95,7 @@ service cloud.firestore {
              'exFilterMode','wkFilterMode','statsFilterMode','welcomeShown',
              'lastSeenVersion','lastSeenBuild','updatedAt','_serverTime',
              'unitMode','weightHistory','trackerItems','trackerCounts',
-             'customSplits','planSplit','planMode','planGroups','planWeek',
+             'customSplits','workoutPresets','planSplit','planMode','planGroups','planWeek',
              'streak','streakLastDate','notifEnabled','notifTime',
              'glass','adminUid','erfAchieved','weightGoal',
              'smartRestEnabled','smartRest',

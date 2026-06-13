@@ -1273,6 +1273,66 @@ body{
   font-size:12px;font-weight:600;color:var(--text2);
   text-align:center;margin-top:6px;letter-spacing:.4px;text-transform:uppercase;
 }
+/* ── Wheel: Direkt-Eingabe (zusätzlich zum Rad) ── */
+.wheel-typein-row{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:14px 20px 0;padding:8px 12px;border-radius:12px;
+  background:var(--g5);
+}
+.wheel-typein-row .wheel-typein-lbl{font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap}
+.wheel-typein-inp{
+  width:96px;text-align:center;border:none;background:var(--card);
+  border-radius:9px;padding:8px 6px;font-family:inherit;font-size:18px;
+  font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;
+  outline:1.5px solid transparent;transition:outline-color .15s;
+}
+.wheel-typein-inp:focus{outline-color:var(--acc)}
+.wheel-typein-unit{font-size:14px;font-weight:600;color:var(--text2);min-width:26px}
+/* ── Workout-Presets (Trainingspläne) ── */
+.wk-preset-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.wk-preset-new{
+  border:none;background:rgba(var(--acc-rgb),.12);color:var(--acc);
+  border-radius:10px;padding:6px 12px;font-family:inherit;font-size:13px;
+  font-weight:700;cursor:pointer;transition:transform .12s,background .15s;
+}
+.wk-preset-new:active{transform:scale(.95);background:rgba(var(--acc-rgb),.2)}
+.wk-preset-grid{display:flex;flex-direction:column;gap:8px}
+.wk-preset-card{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;
+  background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:14px;
+  cursor:pointer;transition:border-color .15s,background .15s,transform .12s;
+}
+.wk-preset-card:active{transform:scale(.985)}
+.wk-preset-card.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.08)}
+.wk-preset-card .wkp-body{flex:1;min-width:0}
+.wk-preset-card .wkp-name{font-size:16px;font-weight:700;color:var(--text)}
+.wk-preset-card .wkp-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.wk-preset-card .wkp-edit{
+  background:var(--g5);border:none;border-radius:9px;width:32px;height:32px;
+  font-size:14px;color:var(--text2);cursor:pointer;flex-shrink:0;
+}
+.wk-preset-card .wkp-edit:active{opacity:.6}
+.wk-preset-card .wkp-chk{
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--gl-bdr);
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  font-size:13px;flex-shrink:0;transition:background .15s,border-color .15s;
+}
+.wk-preset-card.on .wkp-chk{background:var(--acc);border-color:var(--acc)}
+.wk-preset-empty{
+  padding:16px;text-align:center;color:var(--text2);font-size:13px;
+  background:var(--g5);border-radius:14px;line-height:1.45;
+}
+.preset-ex-row{display:flex;align-items:center;gap:10px;padding:11px 10px;cursor:pointer;border-radius:12px}
+.preset-ex-row:active{background:var(--g5)}
+.preset-ex-row .pex-body{flex:1;min-width:0}
+.preset-ex-row .pex-name{font-size:15px;font-weight:600;color:var(--text)}
+.preset-ex-row .pex-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.preset-ex-row .pex-chk{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--gl-bdr);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;
+  flex-shrink:0;transition:background .15s,border-color .15s;
+}
+.preset-ex-row.on .pex-chk{background:var(--acc);border-color:var(--acc)}
 .unit-toggle{display:inline-flex;background:var(--g5);border-radius:10px;padding:2px;gap:1px}
 .unit-toggle button{
   border:none;background:transparent;border-radius:8px;padding:6px 12px;
@@ -4339,23 +4399,32 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
-      <!-- Filter-Modus (Muskeln / Push-Pull-Legs / Ober-Unter) -->
-      <div class="fmode-wrap" id="wk-mode-switch" style="margin-top:4px"></div>
-      <!-- Körperpartien-Filter -->
-      <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
-      <div class="px">
-        <div class="wk-cardio-card" onclick="openKardio()">
+      <!-- Start-Button oben für schnellen Workflow -->
+      <div class="px" style="padding-top:6px">
+        <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten ▶</button>
+        <div id="wk-plan-hint" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20);border-radius:12px;font-size:13px;color:var(--acc);font-weight:600"></div>
+        <!-- Presets / Trainingspläne (primär) -->
+        <div class="wk-preset-head">
+          <span class="s-title" style="padding:0;margin:0">Deine Pläne</span>
+          <button class="wk-preset-new" onclick="openPresetEdit(null)">＋ Plan</button>
+        </div>
+        <div id="wk-presets" class="wk-preset-grid"></div>
+        <div class="wk-cardio-card" onclick="openKardio()" style="margin-top:12px">
           <div class="wk-cardio-body">
             <div class="wk-cardio-title">Cardio</div>
             <div class="wk-cardio-sub">Timer starten – läuft im Hintergrund</div>
           </div>
           <div class="wk-cardio-chev">›</div>
         </div>
-        <div class="s-title" id="wk-step1-title">Welche Übungen heute?</div>
-        <div id="wk-plan-hint" style="display:none;margin-bottom:10px;padding:10px 12px;background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20);border-radius:12px;font-size:13px;color:var(--acc);font-weight:600"></div>
+      </div>
+      <!-- Einzelauswahl / Filter (sekundär) -->
+      <div class="s-title" style="padding-top:8px">Oder einzeln wählen</div>
+      <div class="fmode-wrap" id="wk-mode-switch" style="margin-top:4px"></div>
+      <div class="icon-cat-scroll" id="wk-filter-bar" style="padding:4px 20px 12px"></div>
+      <div class="px">
+        <div class="s-title" id="wk-step1-title" style="padding-top:0">Welche Übungen heute?</div>
         <div class="card" id="wk-picker"></div>
         <div class="gap"></div>
-        <button class="btn btn-acc" id="wk-start-btn" onclick="startActive()">Training starten ▶</button>
       </div>
     </div>
     <!-- step 2: log -->
@@ -4387,6 +4456,31 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
         <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
         <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: TRAININGSPLAN / PRESET ANLEGEN -->
+<div class="ov" id="ov-preset" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-preset')">
+  <div class="sheet" style="max-height:90vh;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
+    <div class="sh-handle" style="flex-shrink:0"></div>
+    <div class="sh-head" style="flex-shrink:0">
+      <h2 id="preset-title">Neuer Plan</h2>
+      <button class="x-btn" onclick="closeOv('ov-preset')">✕</button>
+    </div>
+    <div class="px" style="flex-shrink:0">
+      <label class="f-label">Name des Plans</label>
+      <input id="preset-name" class="f-in" placeholder="z. B. Oberkörper 1" maxlength="40" autocomplete="off">
+      <div class="s-title" style="padding:14px 0 6px">Übungen wählen <span id="preset-count" style="color:var(--acc);font-weight:700"></span></div>
+    </div>
+    <div class="ex-search-wrap" style="padding:0 20px 8px;flex-shrink:0">
+      <input type="search" id="preset-search" class="ex-search no-ico" placeholder="Übung suchen…"
+             oninput="renderPresetExList()" autocomplete="off">
+    </div>
+    <div id="preset-ex-list" style="padding:0 12px;overflow-y:auto;flex:1;min-height:0"></div>
+    <div class="px" style="flex-shrink:0;padding-top:10px;padding-bottom:16px">
+      <button class="btn btn-acc" onclick="savePreset()">Speichern</button>
+      <button class="btn btn-danger btn-sm" id="preset-delete-btn" onclick="deletePreset()" style="display:none;margin-top:8px">Plan löschen</button>
     </div>
   </div>
 </div>
@@ -4607,6 +4701,12 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
     </div>
     <div class="wheel-wrap" id="wheel-wrap">
       <!-- Wheel cols inserted by JS -->
+    </div>
+    <div class="wheel-typein-row" id="wheel-typein-row">
+      <span class="wheel-typein-lbl">oder eintippen</span>
+      <input type="text" inputmode="decimal" id="wheel-typein" class="wheel-typein-inp"
+             oninput="wheelTypeIn(this.value)" placeholder="—" autocomplete="off">
+      <span class="wheel-typein-unit" id="wheel-typein-unit"></span>
     </div>
     <div id="plate-calc" style="display:none">
       <div class="pc-head">
@@ -4890,7 +4990,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606131000';
+const APP_VERSION = 'gymtrack-v202606131900';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5253,6 +5353,7 @@ S.wkFilterMode = S.wkFilterMode || 'muskel';
 S.statsFilterMode = S.statsFilterMode || 'muskel';
 S.unitMode    = S.unitMode    || 'kg';   // 'kg' | 'lbs'
 S.customSplits = Array.isArray(S.customSplits) ? S.customSplits : []; // [{id,label,groups:[{id,label,muscles:[]}]}]
+S.workoutPresets = Array.isArray(S.workoutPresets) ? S.workoutPresets : []; // [{id,name,exIds:[]}] – fertige Trainingspläne fürs Schnellstart
 // Split-Zugehörigkeit pro Übung migrieren: ex.groups = {modeId:[groupId,...]}.
 // Einmalig aus muscleGroup ableiten → bisheriges Verhalten bleibt erhalten, danach unabhängig editierbar.
 S.exercises.forEach(ex => ensureExGroups(ex));
@@ -8779,7 +8880,16 @@ function openWheel(li, si, field) {
       ]
     };
   }
+  _wheelCtx.typed = null;
   renderWheel();
+  // Direkt-Eingabe vorbereiten: aktuellen Wert vorbelegen, Einheit anzeigen
+  const tIn = document.getElementById('wheel-typein');
+  const tUnit = document.getElementById('wheel-typein-unit');
+  if (tUnit) tUnit.textContent = isW ? unitLabel() : 'Wdh';
+  if (tIn) {
+    const v = _wheelDispVal();
+    tIn.value = v ? String(v).replace('.', ',') : '';
+  }
   openOv('ov-wheel');
 }
 function renderWheel() {
@@ -8820,6 +8930,9 @@ function renderWheel() {
           c.idx = idx;
           list.querySelectorAll('.wheel-item').forEach((el,i) => el.classList.toggle('center', i === idx));
           hapticTick();
+          // Nutzer dreht am Rad → getippter Wert verwirft sich, Eingabefeld folgt
+          if (_wheelCtx) _wheelCtx.typed = null;
+          _syncTypeInDisplay();
           if (_wheelCtx?.isWeight) {
             cancelAnimationFrame(_pcRaf);
             _pcRaf = requestAnimationFrame(() => _renderPlateCalc(false));
@@ -8872,17 +8985,64 @@ function renderWheel() {
     _renderPlateCalc();
   }, 30);
 }
+// Aktueller Anzeigewert (Rad oder getippt) in Anzeige-Einheit
+function _wheelDispVal() {
+  const c = _wheelCtx;
+  if (!c) return 0;
+  if (c.typed != null) return c.typed;
+  if (c.isWeight) return (c.cols[0].values[c.cols[0].idx] || 0) + (c.cols[1].values[c.cols[1].idx] || 0);
+  return c.cols[0].values[c.cols[0].idx] || 0;
+}
+// Rad-Position ohne Scroll-Listener-Nebenwirkung setzen
+function _wheelSetIdx(ci, idx) {
+  const c = _wheelCtx?.cols[ci]; if (!c) return;
+  c.idx = idx;
+  const list = document.getElementById('wheel-list-' + ci);
+  if (list) {
+    list.scrollTo({ top: idx * 44, behavior: 'auto' });
+    list.querySelectorAll('.wheel-item').forEach((el, i) => el.classList.toggle('center', i === idx));
+  }
+}
+// Eingabefeld an aktuelle Rad-Position angleichen (nicht während aktivem Tippen)
+function _syncTypeInDisplay() {
+  const inp = document.getElementById('wheel-typein');
+  if (!inp || !_wheelCtx) return;
+  if (document.activeElement === inp) return;
+  const v = _wheelDispVal();
+  inp.value = v ? String(v).replace('.', ',') : '';
+}
+// Direkt eingetippter Wert → Rad nachführen + Scheiben-Rechner aktualisieren
+function wheelTypeIn(raw) {
+  const c = _wheelCtx; if (!c) return;
+  const s = String(raw).replace(',', '.').trim();
+  if (s === '') { c.typed = null; return; }
+  let n = parseFloat(s);
+  if (isNaN(n) || n < 0) { c.typed = null; return; }
+  c.typed = n;
+  if (c.isWeight) {
+    const maxV = c.cols[0].values.length - 1;
+    _wheelSetIdx(0, Math.max(0, Math.min(maxV, Math.floor(n))));
+    const fracVal = Math.round((n - Math.floor(n)) * 100) / 100;
+    let fi = 0, best = 1e9;
+    c.cols[1].values.forEach((fv, i) => { const d = Math.abs(fv - fracVal); if (d < best) { best = d; fi = i; } });
+    _wheelSetIdx(1, fi);
+    _renderPlateCalc(false);
+  } else {
+    const maxV = c.cols[0].values.length - 1;
+    _wheelSetIdx(0, Math.max(0, Math.min(maxV, Math.round(n))));
+  }
+}
 function confirmWheel() {
   if (!_wheelCtx) { closeOv('ov-wheel'); return; }
   const { li, si, field, cols, isWeight } = _wheelCtx;
   let value;
   if (isWeight) {
-    const whole = cols[0].values[cols[0].idx];
-    const frac  = cols[1].values[cols[1].idx];
-    const disp  = whole + frac;
+    const disp = _wheelCtx.typed != null ? _wheelCtx.typed
+               : (cols[0].values[cols[0].idx] + cols[1].values[cols[1].idx]);
     value = disp ? Number(dispToKg(disp)) : '';
   } else {
-    value = String(cols[0].values[cols[0].idx]);
+    const reps = _wheelCtx.typed != null ? Math.round(_wheelCtx.typed) : cols[0].values[cols[0].idx];
+    value = String(reps);
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
   if (typeof haptic === 'function') haptic(12);
@@ -11217,6 +11377,7 @@ function openWorkout() {
   document.getElementById('wk-step1').style.display = '';
   document.getElementById('wk-step2').style.display = 'none';
   document.getElementById('wk-title').textContent = 'Training';
+  renderWkPresets();
   renderWkFilterBar();
   renderWkPicker();
   openOv('ov-wk');
@@ -11255,6 +11416,7 @@ function setWkCat(id) {
   }
   renderWkFilterBar();
   renderWkPicker();
+  renderWkPresets();
 }
 
 function setWkFilterMode(mode) {
@@ -11304,6 +11466,13 @@ function renderWkPicker() {
   }).join('');
 }
 
+function _updWkStartBtn() {
+  const btn = document.getElementById('wk-start-btn');
+  if (btn) btn.textContent = wkExIds.length
+    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
+    : 'Training starten ▶';
+}
+
 function toggleEx(id) {
   const idx = wkExIds.indexOf(id);
   const chk = document.getElementById('wchk-'+id);
@@ -11314,11 +11483,132 @@ function toggleEx(id) {
     wkExIds.push(id);
     if (chk) { chk.classList.add('on'); chk.textContent = '✓'; }
   }
-  // Start-Button-Text aktualisieren
-  const btn = document.getElementById('wk-start-btn');
-  if (btn) btn.textContent = wkExIds.length
-    ? '▶  ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' starten'
-    : 'Training starten ▶';
+  _updWkStartBtn();
+  renderWkPresets(); // Preset-Markierung anpassen, falls Auswahl abweicht
+}
+
+/* ── WORKOUT-PRESETS (Trainingspläne) ─────────────────────
+   S.workoutPresets = [{id, name, exIds:[]}]. Schnellstart: Plan
+   antippen → alle enthaltenen Übungen auf einmal vorausgewählt. */
+function _presetExIdsExisting(p) {
+  return (p.exIds || []).filter(id => S.exercises.some(ex => ex.id === id));
+}
+function _presetIsActive(p) {
+  const ids = _presetExIdsExisting(p);
+  if (!ids.length || ids.length !== wkExIds.length) return false;
+  return ids.every(id => wkExIds.includes(id));
+}
+function renderWkPresets() {
+  const host = document.getElementById('wk-presets');
+  if (!host) return;
+  const presets = S.workoutPresets || [];
+  if (!presets.length) {
+    host.innerHTML = `<div class="wk-preset-empty">
+      Noch keine Pläne. Mit <b>＋ Plan</b> stellst du z. B. „Oberkörper 1" aus deinen Übungen zusammen und startest ihn künftig mit einem Tipp.
+    </div>`;
+    return;
+  }
+  host.innerHTML = presets.map(p => {
+    const cnt = _presetExIdsExisting(p).length;
+    const on  = _presetIsActive(p);
+    return `<div class="wk-preset-card${on?' on':''}" onclick="applyPreset('${p.id}')">
+      <div class="wkp-body">
+        <div class="wkp-name">${p.name}</div>
+        <div class="wkp-sub">${cnt} Übung${cnt!==1?'en':''}</div>
+      </div>
+      <button class="wkp-edit" onclick="event.stopPropagation();openPresetEdit('${p.id}')" aria-label="Plan bearbeiten">✎</button>
+      <div class="wkp-chk">${on?'✓':''}</div>
+    </div>`;
+  }).join('');
+}
+function applyPreset(id) {
+  const p = (S.workoutPresets || []).find(x => x.id === id);
+  if (!p) return;
+  const ids = _presetExIdsExisting(p);
+  if (!ids.length) { _dndToast('Plan enthält keine vorhandenen Übungen'); return; }
+  if (_presetIsActive(p)) {
+    wkExIds = []; // erneutes Tippen → Auswahl aufheben
+  } else {
+    wkExIds = ids.slice();
+  }
+  haptic(12);
+  // Hinweis-Banner ausblenden, Filter-Auswahl auf "alle" lassen
+  const hint = document.getElementById('wk-plan-hint');
+  if (hint) hint.style.display = 'none';
+  _updWkStartBtn();
+  renderWkPresets();
+  renderWkPicker();
+}
+
+let _presetEditId = null;
+let _presetSel = new Set();
+function openPresetEdit(id) {
+  if (!S.exercises.length) { alert('Lege zuerst Übungen an!'); return; }
+  _presetEditId = id;
+  const p = id ? (S.workoutPresets || []).find(x => x.id === id) : null;
+  _presetSel = new Set(p ? _presetExIdsExisting(p) : wkExIds.slice()); // neu: aktuelle Auswahl übernehmen
+  document.getElementById('preset-title').textContent = p ? 'Plan bearbeiten' : 'Neuer Plan';
+  document.getElementById('preset-name').value = p ? p.name : '';
+  const sInp = document.getElementById('preset-search'); if (sInp) sInp.value = '';
+  const delBtn = document.getElementById('preset-delete-btn');
+  if (delBtn) delBtn.style.display = p ? '' : 'none';
+  renderPresetExList();
+  openOv('ov-preset');
+}
+function renderPresetExList() {
+  const list = document.getElementById('preset-ex-list');
+  if (!list) return;
+  const q = (document.getElementById('preset-search')?.value || '').toLowerCase().trim();
+  const items = S.exercises.filter(ex => !q || ex.name.toLowerCase().includes(q));
+  const cnt = document.getElementById('preset-count');
+  if (cnt) cnt.textContent = _presetSel.size ? '· ' + _presetSel.size : '';
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:18px;text-align:center;color:var(--text2);font-size:14px">Keine Übung gefunden.</div>`;
+    return;
+  }
+  list.innerHTML = items.map(ex => {
+    const on = _presetSel.has(ex.id);
+    return `<div class="preset-ex-row${on?' on':''}" onclick="togglePresetEx('${ex.id}')">
+      <div class="pex-body">
+        <div class="pex-name">${ex.name}</div>
+        <div class="pex-sub">${ex.muscleGroup||''}</div>
+      </div>
+      <div class="pex-chk">${on?'✓':''}</div>
+    </div>`;
+  }).join('');
+}
+function togglePresetEx(id) {
+  if (_presetSel.has(id)) _presetSel.delete(id); else _presetSel.add(id);
+  hapticTick();
+  renderPresetExList();
+}
+function savePreset() {
+  const name = (document.getElementById('preset-name')?.value || '').trim();
+  if (!name) { alert('Gib dem Plan einen Namen.'); return; }
+  if (!_presetSel.size) { alert('Wähle mindestens eine Übung.'); return; }
+  // Reihenfolge wie in der Übungsliste beibehalten
+  const exIds = S.exercises.filter(ex => _presetSel.has(ex.id)).map(ex => ex.id);
+  if (!Array.isArray(S.workoutPresets)) S.workoutPresets = [];
+  if (_presetEditId) {
+    const i = S.workoutPresets.findIndex(x => x.id === _presetEditId);
+    if (i >= 0) S.workoutPresets[i] = { id: _presetEditId, name, exIds };
+  } else {
+    S.workoutPresets.push({ id: uid(), name, exIds });
+  }
+  persist();
+  haptic(18);
+  closeOv('ov-preset');
+  renderWkPresets();
+}
+function deletePreset() {
+  if (!_presetEditId) return;
+  const p = (S.workoutPresets || []).find(x => x.id === _presetEditId);
+  if (!confirm('Plan „' + (p?.name || '') + '" löschen?')) return;
+  S.workoutPresets = (S.workoutPresets || []).filter(x => x.id !== _presetEditId);
+  persist();
+  haptic(18);
+  closeOv('ov-preset');
+  renderWkPresets();
 }
 
 /* ── ÜBUNG MITTEN IM TRAINING HINZUFÜGEN ─────────────── */
@@ -11394,6 +11684,7 @@ function addExToActiveWorkout(exId) {
 
 function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
+  _ensureRestNotifPermission(); // Pause-Ende-Signal darf im Hintergrund feuern
   _livePR = {};   // Live-PR-Tracker für neue Einheit zurücksetzen
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
@@ -11666,10 +11957,51 @@ function smartRestSecs(ex, set) {
   return Math.max(45, Math.min(240, secs)); // sinnvolle Grenzen 45s–4min
 }
 
+// ── Pause-Ende-Signal im Hintergrund ──────────────────
+// In-App feuert haptic() beim Erreichen von 0. Im Hintergrund drosselt iOS
+// setInterval → der Tick kommt nicht zuverlässig. Darum planen wir zusätzlich
+// eine lokale Notification (Banner + Ton + Vibration) auf den Endzeitpunkt.
+// Wird die Pause vorzeitig beendet/verlängert oder läuft sie in der offenen App
+// aus, canceln wir die Notification wieder, damit kein doppeltes Signal kommt.
+const REST_NOTIF_ID = 2500;
+let _restNotifPermAsked = false;
+async function _ensureRestNotifPermission() {
+  const LN = _cap('LocalNotifications'); if (!LN || _restNotifPermAsked) return;
+  _restNotifPermAsked = true;
+  try {
+    const perm = await LN.checkPermissions().catch(() => ({ display: 'prompt' }));
+    if (perm.display === 'prompt' || perm.display === 'prompt-with-rationale') {
+      await LN.requestPermissions().catch(() => {});
+    }
+    await LN.createChannel?.({
+      id: 'gymtrack-reminders', name: 'Trainings-Erinnerungen',
+      importance: 5, visibility: 1, sound: 'default'
+    }).catch(() => {});
+  } catch (e) {}
+}
+function _scheduleRestEndNotif(atTs) {
+  const LN = _cap('LocalNotifications'); if (!LN) return;
+  try {
+    LN.schedule({ notifications: [{
+      id: REST_NOTIF_ID,
+      title: 'Pause vorbei 💪',
+      body: 'Weiter geht’s – nächster Satz!',
+      schedule: { at: new Date(atTs), allowWhileIdle: true },
+      sound: 'default',
+      channelId: 'gymtrack-reminders'
+    }]}).catch(() => {});
+  } catch (e) {}
+}
+function _cancelRestEndNotif() {
+  const LN = _cap('LocalNotifications'); if (!LN) return;
+  try { LN.cancel({ notifications: [{ id: REST_NOTIF_ID }] }).catch(() => {}); } catch (e) {}
+}
+
 function startRestTimer(ex, set) {
   // Pausenintelligenz aktiv & Kontext vorhanden → empfohlene Pause, sonst manueller Standard
   _restSecs = (S.smartRest && ex) ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
   _restEndTs = Date.now() + _restSecs * 1000; // Endzeitpunkt für native Live-Activity-Countdown
+  _scheduleRestEndNotif(_restEndTs); // Hintergrund-Signal planen
   clearInterval(_restInt);
   const bar = document.getElementById('rest-timer-bar');
   if (bar) bar.style.display = '';
@@ -11693,6 +12025,7 @@ function startRestTimer(ex, set) {
       clearInterval(_restInt); _restInt = null;
       const b = document.getElementById('rest-timer-bar');
       if (b) b.style.display = 'none';
+      _cancelRestEndNotif(); // App war offen → in-App-Signal reicht, Banner unterdrücken
       haptic([30,50,30]);
     }
   }, 250);
@@ -11707,12 +12040,14 @@ function skipRest() {
   clearInterval(_restInt); _restInt = null;
   const b = document.getElementById('rest-timer-bar');
   if (b) b.style.display = 'none';
+  _cancelRestEndNotif();
   _syncLiveActivity();
 }
 function adjustRest(delta) {
   _restSecs = Math.max(0, _restSecs + delta);
   if (_restSecs <= 0) { skipRest(); return; }
   _restEndTs = Date.now() + _restSecs * 1000;
+  _scheduleRestEndNotif(_restEndTs); // verschobenes Ende neu planen (überschreibt gleiche ID)
   _updRest();
   haptic(8);
   _syncLiveActivity();
@@ -14234,6 +14569,7 @@ async function _pushToCloud() {
       heuteLayout: S.heuteLayout || null,
       weekPlan:  S.weekPlan || null,
       customSplits: S.customSplits || [],
+      workoutPresets: S.workoutPresets || [],
       trackerItems: S.trackerItems || [],
       trackerCounts: S.trackerCounts || {},
       erfAchieved: S.erfAchieved || [],
@@ -14291,6 +14627,7 @@ function _mergeData(local, cloud) {
     heuteLayout:  cloud.heuteLayout  ?? local.heuteLayout ?? null,
     weekPlan:     pick(cloud.weekPlan,     local.weekPlan),
     customSplits: pick(cloud.customSplits, local.customSplits) || [],
+    workoutPresets: pick(cloud.workoutPresets, local.workoutPresets) || [],
     trackerItems: pick(cloud.trackerItems, local.trackerItems) || [],
     trackerCounts: pick(cloud.trackerCounts, local.trackerCounts) || {},
     erfAchieved:  [...new Set([...(cloud.erfAchieved || []), ...(local.erfAchieved || [])])],
