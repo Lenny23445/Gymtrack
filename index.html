@@ -400,6 +400,22 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 .pc-plate.sm{opacity:.85;font-size:12px;padding:5px 8px}
 .pc-msg{font-size:12.5px;color:var(--text2)}
 .pc-rest{font-size:11px;color:var(--text2);width:100%;margin-top:2px}
+.pc-cfg-btn{border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text2);
+  font-size:13px;line-height:1;padding:5px 7px;border-radius:9px;cursor:pointer;flex-shrink:0}
+.plate-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.plate-chip{border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text2);
+  font-family:inherit;font-size:13px;font-weight:700;padding:11px 4px;border-radius:12px;cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s,opacity .15s;opacity:.5}
+.plate-chip.on{background:linear-gradient(150deg,var(--acc),var(--acc2));border-color:transparent;
+  color:#fff;opacity:1;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
+/* Übungs-Bild: Picker im Formular + Thumbnail in der Liste */
+.ex-img-pick{display:flex;align-items:center;gap:12px}
+.ex-img-thumb{width:64px;height:64px;border-radius:14px;flex-shrink:0;cursor:pointer;
+  background-size:cover;background-position:center;background-color:var(--inp-bg);
+  border:1px solid var(--gl-bdr);display:flex;align-items:center;justify-content:center;
+  color:var(--text2);font-size:26px;font-weight:300}
+.ex-row-img{width:38px;height:38px;border-radius:9px;flex-shrink:0;margin-right:4px;
+  background-size:cover;background-position:center;background-color:var(--inp-bg)}
 
 /* ── HERZFREQUENZ IM TRAINING ── */
 .wk-hr{font-size:12.5px;font-weight:700;color:var(--red);margin-top:3px;
@@ -426,7 +442,8 @@ html,body{height:100%;overscroll-behavior:none}
 *{-webkit-touch-callout:none}
 body *:not(input):not(textarea):not([contenteditable]){-webkit-user-select:none;user-select:none}
 /* Gradient NUR in #bg (position:fixed) – html/body nur Farb-Fallback für Overscroll */
-html{background-color:#cccae8}
+html{background-color:#cccae8;scrollbar-width:none;-ms-overflow-style:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 html[data-theme="rosa"]{background-color:#f4d8ec}
 html[data-theme="dark"]{background-color:#020208}
 html[data-theme="blau"]{background-color:#b8d4f8}
@@ -438,6 +455,7 @@ body{
   position:relative;
   -webkit-font-smoothing:antialiased;
   background:transparent;
+  scrollbar-width:none;-ms-overflow-style:none;
 }
 
 /* Fixed gradient background */
@@ -541,6 +559,12 @@ body{
 .erf-badge.locked .erf-badge-key{color:var(--text2)}
 .erf-time-line{text-align:center;font-size:13px;color:var(--text2);margin-top:-2px}
 .erf-time-line b{color:var(--text);font-size:15px;font-weight:700}
+.erf-period-seg{display:flex;gap:4px;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
+  border-radius:14px;padding:4px}
+.erf-period-seg button{flex:1;border:none;background:transparent;color:var(--text2);
+  font-family:inherit;font-size:13px;font-weight:700;padding:8px 4px;border-radius:10px;cursor:pointer;
+  transition:background .18s,color .18s}
+.erf-period-seg button.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
 
 /* ── TAB-WECHSEL: INHALTE GESTAFFELT EINBLENDEN ── */
 @keyframes pg-content-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -3048,6 +3072,10 @@ body.wpick-open #heute-edit-bar{display:none!important}
   animation:wkMiniIn .28s cubic-bezier(.32,1,.32,1);
 }
 #wk-mini.on{display:flex}
+/* Wenn das Banner läuft: Header-Inhalt nach unten schieben, damit das Banner
+   nichts überdeckt. Der Header-Hintergrund (Glas) zieht bis nach oben durch,
+   sodass kein blanker Hintergrund hinter dem Banner sichtbar wird. */
+body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 @keyframes wkMiniIn{from{opacity:0;transform:translateY(-12px)}}
 .wk-mini-dot{
   width:10px;height:10px;border-radius:50%;
@@ -4103,6 +4131,19 @@ body.wpick-open #heute-edit-bar{display:none!important}
         <label class="f-label">Name</label>
         <input class="f-in" type="text" id="in-name" placeholder="z. B. Bankdrücken" maxlength="32">
       </div>
+      <div class="f-field">
+        <label class="f-label">Bild (optional)</label>
+        <div class="ex-img-pick">
+          <div class="ex-img-thumb" id="ex-img-thumb" onclick="document.getElementById('ex-img-file').click()">
+            <span id="ex-img-ph">＋</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <button type="button" class="btn btn-gray btn-sm" onclick="document.getElementById('ex-img-file').click()">Bild wählen</button>
+            <button type="button" class="btn btn-danger btn-sm" id="ex-img-del" style="display:none" onclick="clearExImg()">Entfernen</button>
+          </div>
+          <input type="file" id="ex-img-file" accept="image/*" style="display:none" onchange="onExImgPick(event)">
+        </div>
+      </div>
     </div>
     <!-- Muskelgruppe oder Split -->
     <div class="px" style="padding-bottom:4px">
@@ -4570,12 +4611,33 @@ body.wpick-open #heute-edit-bar{display:none!important}
     <div id="plate-calc" style="display:none">
       <div class="pc-head">
         <span class="pc-title">Scheiben pro Seite</span>
-        <div class="pc-bar-seg" id="pc-bar-seg"></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="pc-bar-seg" id="pc-bar-seg"></div>
+          <button type="button" class="pc-cfg-btn" onclick="openPlatesSheet()" aria-label="Verfügbare Scheiben wählen">⚙︎</button>
+        </div>
       </div>
       <div class="pc-plates" id="pc-plates"></div>
     </div>
     <div class="px" style="padding-bottom:18px">
       <button class="btn btn-acc" onclick="confirmWheel()">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: VERFÜGBARE SCHEIBEN -->
+<div class="ov" id="ov-plates" style="z-index:1004" onclick="if(event.target===this)closeOv('ov-plates')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Verfügbare Scheiben</h2>
+      <button class="x-btn" onclick="closeOv('ov-plates')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5">
+        Wähle, welche Scheiben es in deinem Studio gibt. Der Rechner schlägt dann nur noch Scheiben vor, die du wirklich hast.
+      </div>
+      <div class="plate-grid" id="plates-grid"></div>
+      <button class="btn btn-gray btn-sm" onclick="resetPlates()" style="margin-top:16px">Alle Scheiben aktivieren</button>
     </div>
   </div>
 </div>
@@ -4828,7 +4890,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606110740';
+const APP_VERSION = 'gymtrack-v202606131000';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5909,8 +5971,18 @@ function updateWkMiniVisibility() {
   const mini = document.getElementById('wk-mini');
   if (!mini) return;
   const ovOpen = document.getElementById('ov-wk')?.classList.contains('on');
-  if (isWorkoutActive() && !ovOpen) mini.classList.add('on');
-  else mini.classList.remove('on');
+  const show = isWorkoutActive() && !ovOpen;
+  mini.classList.toggle('on', show);
+  document.body.classList.toggle('wk-active', show);
+  if (show) {
+    // Tatsächliche Banner-Unterkante messen → genau so viel Platz freihalten
+    requestAnimationFrame(() => {
+      const r = mini.getBoundingClientRect();
+      document.body.style.setProperty('--wk-clear', Math.round(r.bottom + 8) + 'px');
+    });
+  } else {
+    document.body.style.removeProperty('--wk-clear');
+  }
 }
 function resumeWorkout() {
   haptic(8);
@@ -8018,6 +8090,7 @@ function renderExList() {
       <div class="ex-swipe-inner">
         <div class="row tap ex-row" data-exid="${ex.id}" onclick="exRowClick(this,'${ex.id}')">
           <div class="ex-drag-handle" onmousedown="exDragStart(event,'${ex.id}')" ontouchstart="exDragStart(event,'${ex.id}')">⠿</div>
+          ${ex.img ? `<div class="ex-row-img" style="background-image:url(${ex.img})"></div>` : ''}
           <div class="row-body"><div class="row-title">${ex.name}</div><div class="row-sub">${rowSub}</div></div>
           ${_dot}<div class="chev">›</div>
         </div>
@@ -8823,6 +8896,46 @@ function confirmWheel() {
    Seite auf die Langhantel müssen. Stangengewicht wählbar. */
 const PC_PLATES_KG  = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
 const PC_PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
+// Verfügbare Scheiben im Studio (lokal, nicht in Cloud). Default: alle vorhanden.
+function _allPlates() { return S.unitMode === 'lbs' ? PC_PLATES_LBS : PC_PLATES_KG; }
+function _plateUnitKey() { return S.unitMode === 'lbs' ? 'lbs' : 'kg'; }
+function _availPlates() {
+  const all = _allPlates();
+  const sel = S.availablePlates && S.availablePlates[_plateUnitKey()];
+  if (!Array.isArray(sel)) return all;                 // nichts gewählt → alle
+  const filtered = all.filter(p => sel.includes(p));
+  return filtered.length ? filtered : all;             // nie komplett leer
+}
+function togglePlate(p) {
+  const u = _plateUnitKey();
+  if (!S.availablePlates) S.availablePlates = {};
+  if (!Array.isArray(S.availablePlates[u])) S.availablePlates[u] = _allPlates().slice();
+  const i = S.availablePlates[u].indexOf(p);
+  if (i < 0) S.availablePlates[u].push(p); else S.availablePlates[u].splice(i, 1);
+  persist();
+  hapticTick();
+  _renderPlatesSheet();
+  _renderPlateCalc(false);
+}
+function resetPlates() {
+  const u = _plateUnitKey();
+  if (S.availablePlates) delete S.availablePlates[u];
+  persist();
+  hapticTick();
+  _renderPlatesSheet();
+  _renderPlateCalc(false);
+}
+function openPlatesSheet() { _renderPlatesSheet(); openOv('ov-plates'); haptic(8); }
+function _renderPlatesSheet() {
+  const host = document.getElementById('plates-grid');
+  if (!host) return;
+  const u = _plateUnitKey();
+  const sel = (S.availablePlates && Array.isArray(S.availablePlates[u])) ? S.availablePlates[u] : _allPlates();
+  const fmtP = v => String(v).replace('.', ',');
+  host.innerHTML = _allPlates().map(p =>
+    `<button type="button" class="plate-chip${sel.includes(p) ? ' on' : ''}" onclick="togglePlate(${p})">${fmtP(p)}<br><span style="font-size:9px;opacity:.8">${u}</span></button>`
+  ).join('');
+}
 function _pcBars() { return S.unitMode === 'lbs' ? [45, 35, 0] : [20, 15, 10, 0]; }
 function _pcCurBar() {
   const bars = _pcBars();
@@ -8865,7 +8978,7 @@ function _renderPlateCalc(withSeg) {
   }
   const perSide = (total - bar) / 2;
   if (perSide <= 0) { out.innerHTML = '<span class="pc-msg">Nur die Stange — keine Scheiben nötig</span>'; return; }
-  const plates = S.unitMode === 'lbs' ? PC_PLATES_LBS : PC_PLATES_KG;
+  const plates = _availPlates();
   const counts = new Map();
   let rest = perSide;
   plates.forEach(p => { while (rest >= p - 1e-9) { counts.set(p, (counts.get(p) || 0) + 1); rest -= p; } });
@@ -9164,6 +9277,7 @@ function openNewEx(exId) {
   selExType = 'reps';
   selScheme = 'straight';
   selShowPlates = false;
+  selExImg = null;
   document.getElementById('in-name').value = '';
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps-min').value = '8';
@@ -9179,6 +9293,7 @@ function openNewEx(exId) {
       selExType = ex.targetType || 'reps';
       selScheme = ex.weightScheme || 'straight';
       selShowPlates = ex.showPlateCalc === true;
+      selExImg = ex.img || null;
       document.getElementById('in-name').value = ex.name;
       document.getElementById('in-sets').value = ex.targetSets;
       if (selExType === 'time') {
@@ -9199,6 +9314,7 @@ function openNewEx(exId) {
   renderExDayPills();
   const spCb = document.getElementById('in-show-plates');
   if (spCb) spCb.checked = selShowPlates;
+  _renderExImgPreview();
   openOv('ov-ex');
 }
 
@@ -9234,6 +9350,48 @@ function renderEmoGrid() {
 }
 function pickNoIcon() { selEmoji = ''; renderEmoGrid(); }
 function pickEmo(e) { selEmoji = e; renderEmoGrid(); }
+
+// ── ÜBUNGS-BILD: auswählen, verkleinern, als Data-URL speichern ──
+let selExImg = null;
+function onExImgPick(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 220;
+      let w = img.width, h = img.height;
+      if (w >= h) { if (w > max) { h = Math.round(h * max / w); w = max; } }
+      else        { if (h > max) { w = Math.round(w * max / h); h = max; } }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      selExImg = cv.toDataURL('image/jpeg', 0.6);
+      _renderExImgPreview();
+    };
+    img.onerror = () => alert('Bild konnte nicht geladen werden.');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function clearExImg() { selExImg = null; _renderExImgPreview(); }
+function _renderExImgPreview() {
+  const thumb = document.getElementById('ex-img-thumb');
+  const ph    = document.getElementById('ex-img-ph');
+  const del   = document.getElementById('ex-img-del');
+  if (!thumb) return;
+  if (selExImg) {
+    thumb.style.backgroundImage = `url(${selExImg})`;
+    if (ph)  ph.style.display  = 'none';
+    if (del) del.style.display = '';
+  } else {
+    thumb.style.backgroundImage = '';
+    if (ph)  ph.style.display  = '';
+    if (del) del.style.display = 'none';
+  }
+}
 
 function renderMusclePicker() {
   const el = document.getElementById('muscle-picker');
@@ -9297,7 +9455,8 @@ function saveEx() {
   }
   const patch = { name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps,
                   targetType:selExType, repMin, repMax, weightScheme:scheme,
-                  showPlateCalc: selExType !== 'time' ? selShowPlates : false };
+                  showPlateCalc: selExType !== 'time' ? selShowPlates : false,
+                  img: selExImg || null };
 
   let savedId;
   if (editId) {
@@ -10484,6 +10643,22 @@ function _erfHours(sec) {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
+// Zeitraum-Filter für die Erfolge-Seite: Cutoff-Zeitstempel (0 = Gesamt/kein Filter)
+function _erfCutoff(period) {
+  const now = new Date();
+  const d = new Date(now);
+  if (period === 'week')  { d.setDate(d.getDate() - 7);          return d.getTime(); }
+  if (period === 'month') { d.setMonth(d.getMonth() - 1);        return d.getTime(); }
+  if (period === 'year')  { d.setFullYear(d.getFullYear() - 1);  return d.getTime(); }
+  return 0; // Gesamt
+}
+function setErfPeriod(p) {
+  S.erfPeriod = p;
+  persist();
+  hapticTick();
+  renderErfolge();
+}
+
 function _erfTotals() {
   const sessions = S.sessions || [];
   const totalTimeSec = sessions.reduce((a, s) => a + (s.duration || 0), 0);
@@ -10567,15 +10742,24 @@ function renderErfolge() {
       <div class="erf-badge-sub">${m.sub}</div>
     </div>`).join('');
 
-  // ── Kraftsteigerung pro Muskelgruppe ──
+  // ── Zeitraum-Filter (Woche / Monat / Jahr / Gesamt) ──
+  const period = S.erfPeriod || 'all';
+  const cutoff = _erfCutoff(period);
+  const perSessions = cutoff ? sessions.filter(s => new Date(s.date).getTime() >= cutoff) : sessions;
+  const perTimeSec  = perSessions.reduce((a, s) => a + (s.duration || 0), 0);
+
+  // ── Kraftsteigerung pro Muskelgruppe (innerhalb des Zeitraums) ──
   const kraft = MUSCLE_GROUPS.map(mg => {
     const exs = S.exercises.filter(e => e.muscleGroup === mg.id);
     let start = 0, now = 0, hasData = false;
     exs.forEach(e => {
-      const hist = exHistory(e.id);
+      let hist = exHistory(e.id);
+      if (cutoff) hist = hist.filter(h => new Date(h.date).getTime() >= cutoff);
       if (!hist.length) return;
-      const best = exBest1RM(e.id);
-      if (best > 0) { start += setsBest1RM(hist[0].sets); now += best; hasData = true; }
+      const startB = setsBest1RM(hist[0].sets);
+      let best = 0;
+      hist.forEach(h => { const b = setsBest1RM(h.sets); if (b > best) best = b; });
+      if (best > 0) { start += startB; now += best; hasData = true; }
     });
     return { mg, start, now, hasData };
   }).filter(k => k.hasData && k.now > 0);
@@ -10584,8 +10768,11 @@ function renderErfolge() {
 
   let kraftHtml;
   if (!kraft.length) {
+    const emptyMsg = period === 'all'
+      ? 'Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.'
+      : 'In diesem Zeitraum gibt es noch nicht genug Trainings für eine Auswertung. Wähle einen längeren Zeitraum.';
     kraftHtml = `<div class="card"><div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
-      Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.
+      ${emptyMsg}
     </div></div>`;
   } else {
     // Balken auf gemeinsamer Skala (maxNow): gedämpftes Segment = Ausgangskraft,
@@ -10617,8 +10804,17 @@ function renderErfolge() {
       <span style="margin-left:auto">Tippen für Details ›</span>
     </div>` : '';
 
+  const periodLbl = { week:'Diese Woche', month:'Dieser Monat', year:'Dieses Jahr', all:'Gesamt' }[period];
+
   body.innerHTML = `
-    <div class="erf-time-line">Gesamte Trainingszeit · <b>${_erfHours(totalTimeSec)}</b></div>
+    <div class="erf-period-seg">
+      <button class="${period==='week' ?'on':''}" onclick="setErfPeriod('week')">Woche</button>
+      <button class="${period==='month'?'on':''}" onclick="setErfPeriod('month')">Monat</button>
+      <button class="${period==='year' ?'on':''}" onclick="setErfPeriod('year')">Jahr</button>
+      <button class="${period==='all'  ?'on':''}" onclick="setErfPeriod('all')">Gesamt</button>
+    </div>
+
+    <div class="erf-time-line">${periodLbl} · Trainingszeit · <b>${_erfHours(perTimeSec)}</b> · ${perSessions.length} Einheit${perSessions.length!==1?'en':''}</div>
 
     <div>
       <div class="s-title">Kraftsteigerung pro Muskel</div>
@@ -12178,7 +12374,7 @@ function initPageSwipe() {
     const el = document.elementFromPoint(t.clientX, t.clientY);
     if (!el || el.closest('.tabbar') || el.closest('.ov')) return;
     if (_hasHScrollParent(el)) return;
-    if (el.closest('.ex-swipe-wrap, .last-swipe-inner, #log-cards, .wh-item')) return;
+    if (el.closest('.ex-swipe-wrap, .last-swipe-inner, #log-cards, .wh-item, #rec-box')) return;
     sx = t.clientX; sy = t.clientY; tracking = true;
   }, { passive: true });
 
