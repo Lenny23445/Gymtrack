@@ -19,9 +19,9 @@
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
-  import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence }
+  import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, deleteUser }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
   import { getDatabase, ref as dbRef, onValue, onDisconnect, set as dbSet, get as dbGet, serverTimestamp as rtdbServerTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
@@ -84,6 +84,8 @@
     window.FB.setDoc             = setDoc;
     window.FB.updateDoc          = updateDoc;
     window.FB.addDoc             = addDoc;
+    window.FB.deleteDoc          = deleteDoc;
+    window.FB.deleteUser         = () => deleteUser(auth.currentUser);
     window.FB.collection         = (path) => collection(db, path);
     window.FB.doc                = (path, id) => doc(db, path, id);
     window.FB.query              = query;
@@ -3922,6 +3924,18 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
         </div>
       </div>
     </div>
+    <div>
+      <div class="s-title">Rechtliches</div>
+      <div class="card">
+        <div class="row tap" onclick="_openExternal('https://lenny23445.github.io/Gymtrack/privacy.html')">
+          <div class="row-body">
+            <div class="row-title">Datenschutzerklärung</div>
+            <div class="row-sub">Wie deine Daten verwendet werden</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4990,7 +5004,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606131900';
+const APP_VERSION = 'gymtrack-v202606161200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -13122,6 +13136,7 @@ function restoreTourDemo(){
   try { invalidateFatigue(); invalidateRecovery(); } catch(e){}
 }
 
+
 const TOUR = [
   {
     target:null,
@@ -14644,7 +14659,12 @@ async function _onLogin(user) {
   // Kann von onAuthStateChanged UND direkt nach signInWithCredential aufgerufen
   // werden (Letzteres, weil onAuthStateChanged in der WKWebView nicht zuverlässig
   // feuert). Pro UID nur einmal voll verarbeiten — sonst doppelter Sync/Toast.
-  if (_onLoginUid === user.uid) { _fbUser = user; updateAccountUI(); return; }
+  if (_onLoginUid === user.uid) {
+    _fbUser = user; updateAccountUI();
+    // Re-Auth zur Konto-Löschung abgeschlossen → jetzt löschen
+    if (_pendingDelete && !user.isAnonymous) { _pendingDelete = false; _runAccountDeletion(); }
+    return;
+  }
   _onLoginUid = user.uid;
   console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid, user.isAnonymous ? '(anonym)' : '');
   _fbUser = user;
@@ -15491,6 +15511,55 @@ async function doSignOut() {
   try { await window.FB.signOut(); } catch(e) { console.warn(e); }
 }
 
+// ── Konto endgültig löschen (Apple App Store Guideline 5.1.1(v)) ──
+let _pendingDelete = false;
+
+async function doDeleteAccount() {
+  if (!window.FB || !window.FB.configured || !_fbUser || _fbUser.isAnonymous) return;
+  if (!confirm('⚠️ Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.')) return;
+  if (!confirm('Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?')) return;
+  await _runAccountDeletion();
+}
+
+async function _runAccountDeletion() {
+  const user = window.FB.auth && window.FB.auth.currentUser;
+  if (!user) return;
+  try {
+    // 1. Cloud-Daten löschen
+    try { await window.FB.deleteDoc(window.FB.userDocRef(user.uid)); } catch(e) { console.warn('[GymTrack] Doc-Delete:', e); }
+    try { if (window.FB.stopPresence) window.FB.stopPresence(user.uid); } catch(e) {}
+    // 2. Auth-User löschen
+    await window.FB.deleteUser();
+    // 3. Lokale Daten löschen + Neustart
+    _pendingDelete = false;
+    _finishAccountWipe();
+  } catch(e) {
+    if (e && e.code === 'auth/requires-recent-login') {
+      // Firebase verlangt frische Anmeldung → Re-Auth, danach automatisch löschen
+      _pendingDelete = true;
+      alert('Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.');
+      const pid = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || '';
+      try {
+        if (pid === 'apple.com' && _isNative()) await doAppleSignIn();
+        else await doGoogleSignIn();
+      } catch(err) { console.warn('[GymTrack] Re-Auth:', err); }
+    } else {
+      console.error('[GymTrack] Konto-Löschung fehlgeschlagen:', e);
+      alert('❌ Löschen fehlgeschlagen:\n' + (e && e.code || '') + '\n' + (e && e.message || e));
+      _pendingDelete = false;
+    }
+  }
+}
+
+function _finishAccountWipe() {
+  try {
+    localStorage.removeItem('ft4');
+    Object.keys(localStorage).filter(k => k.indexOf('gt_') === 0).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
+  alert('✅ Dein Konto und alle Daten wurden gelöscht.');
+  location.reload();
+}
+
 function openAccountSheet() {
   renderAccountSheet();
   openOv('ov-account');
@@ -15537,6 +15606,8 @@ function renderAccountSheet() {
         Wenn du die App löschst, kannst du dich einfach wieder anmelden und alles ist da.
       </div>
       <button class="btn btn-gray" onclick="doSignOut()" style="margin-top:8px">Abmelden</button>
+      <button onclick="doDeleteAccount()" style="width:100%;margin-top:14px;background:none;border:none;color:#ff453a;font-size:14px;font-weight:600;font-family:inherit;padding:10px;cursor:pointer">Konto löschen</button>
+      <div style="color:var(--text2);font-size:12px;text-align:center;padding:2px 16px 0;line-height:1.45">Löscht dein Konto und alle Cloud-Daten unwiderruflich.</div>
     `;
   } else {
     const exCount  = (S.exercises||[]).length;
