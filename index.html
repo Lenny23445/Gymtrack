@@ -1654,6 +1654,10 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   box-shadow:0 1px 4px rgba(0,0,0,.35);
 }
 
+/* ── Scrollbalken global ausblenden (iOS-Look, kein Balken rechts) ── */
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
+
 /* ── PAGE TRANSITION (liquid glass bloom) ── */
 @keyframes pg-in{
   from{opacity:0;transform:translateY(12px) scale(.97);filter:blur(5px)}
@@ -3455,7 +3459,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rest-bar-skip{font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:5px 13px;cursor:pointer;flex-shrink:0}
 .last-train-tag{display:inline-block;font-size:11px;font-weight:600;background:rgba(var(--acc-rgb),.12);color:var(--acc);border:1px solid rgba(var(--acc-rgb),.25);border-radius:10px;padding:2px 8px;margin-left:8px;vertical-align:middle;white-space:nowrap}
 /* ── SESSION-NOTIZ ──────────────────────────────────── */
-.wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:14px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
+.wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:16px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
 .wk-note-inp:focus{border-color:var(--acc)}
 /* ── ERHOLUNG SLIDER ────────────────────────────────── */
 .rec-slider-wrap{flex:1;min-height:0;overflow:hidden;position:relative}
@@ -5004,7 +5008,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606161500';
+const APP_VERSION = 'gymtrack-v202606161800';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
