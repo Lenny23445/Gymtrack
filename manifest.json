@@ -1,6 +1,6 @@
 {
-  "name": "GymTrack",
-  "short_name": "GymTrack",
+  "name": "MyGymTrack",
+  "short_name": "MyGymTrack",
   "description": "Dein persönlicher Fitness-Tracker",
   "start_url": "./index.html",
   "scope": "./",

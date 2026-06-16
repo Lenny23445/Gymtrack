@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
-<title>GymTrack</title>
+<title>MyGymTrack</title>
 <!-- PWA / iOS Homescreen -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GymTrack">
+<meta name="apple-mobile-web-app-title" content="MyGymTrack">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#007AFF">
-<meta name="application-name" content="GymTrack">
+<meta name="application-name" content="MyGymTrack">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -3854,7 +3854,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
         <div class="row tap" onclick="openProgressionInfo()">
           <div class="row-body">
             <div class="row-title">Ausführliche Erklärung</div>
-            <div class="row-sub" style="white-space:normal;line-height:1.45">Wie GymTrack dein nächstes Gewicht und deine Wdh vorschlägt</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.45">Wie MyGymTrack dein nächstes Gewicht und deine Wdh vorschlägt</div>
           </div>
           <div class="chev">›</div>
         </div>
@@ -5004,7 +5004,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606161200';
+const APP_VERSION = 'gymtrack-v202606161500';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -8793,7 +8793,7 @@ function openFeedback() {
 function sendFeedback() {
   const msg = (document.getElementById('fb-msg').value || '').trim();
   if (!msg) { alert('Bitte schreibe eine Nachricht.'); return; }
-  const subject = encodeURIComponent('GymTrack Feedback');
+  const subject = encodeURIComponent('MyGymTrack Feedback');
   const ver = (typeof APP_VERSION === 'string' ? APP_VERSION : '?');
   const body = encodeURIComponent(msg + '\n\n— — — — —\nApp: ' + ver + '\nDevice: ' + (navigator.userAgent||'?'));
   window.location.href = `mailto:wolterlenny362@gmail.com?subject=${subject}&body=${body}`;
@@ -8828,7 +8828,7 @@ function openProgressionInfo(exId) {
     <p style="margin:0 0 10px"><b>3. Satz-Typen werden übernommen</b><br>
     Deine Typen (Aufwärmen, Top, Drop …) und das Schema werden ins nächste Training derselben Übung automatisch vorbelegt.</p>
     <p style="margin:0 0 10px"><b>4. Gewichts-Schema über die Sätze</b><br>
-    <b>Gleichbleibend:</b> alle gleich · <b>Aufsteigend:</b> letzter Satz am schwersten · <b>Pyramide:</b> hoch und wieder runter · <b>Umgekehrt:</b> schwerster Satz zuerst. GymTrack rechnet die Einzelgewichte pro Satz aus.</p>
+    <b>Gleichbleibend:</b> alle gleich · <b>Aufsteigend:</b> letzter Satz am schwersten · <b>Pyramide:</b> hoch und wieder runter · <b>Umgekehrt:</b> schwerster Satz zuerst. MyGymTrack rechnet die Einzelgewichte pro Satz aus.</p>
     <p style="margin:0 0 10px"><b>5. Top-Satz &amp; Versagen</b><br>
     <b>Top-Satz (T):</b> ein schwerer Maximalsatz (RPE 8–10). <b>Bis zum Versagen (F):</b> gilt automatisch als oberes Bereich-Ende erreicht.</p>
     <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert 🏆.</p>`;
@@ -12325,7 +12325,7 @@ async function _shareWk() {
   ctx.beginPath(); ctx.roundRect(0,0,W,H,0); ctx.fill();
   // Logo + Datum
   ctx.fillStyle='#fff'; ctx.font='bold 26px -apple-system,sans-serif';
-  ctx.fillText('GymTrack 💪', 24, 44);
+  ctx.fillText('MyGymTrack 💪', 24, 44);
   const dateStr = new Date(ses.date).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   ctx.font='15px -apple-system,sans-serif'; ctx.fillStyle='rgba(255,255,255,.75)';
   ctx.fillText(dateStr, 24, 68);
@@ -12352,15 +12352,15 @@ async function _shareWk() {
   ctx.fillStyle='#fff'; ctx.font='bold 14px -apple-system,sans-serif';
   ctx.fillText(`${ses.logs.length} Übungen  ·  ${sets} Sätze  ·  ${fmtKg(vol)} Vol${durMin?' · '+durMin+' min':''}`, 28, H-40);
   ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='11px -apple-system,sans-serif';
-  ctx.fillText('Made with GymTrack', 28, H-22);
+  ctx.fillText('Made with MyGymTrack', 28, H-22);
   // Teilen
   const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
   const file = new File([blob],'gymtrack-workout.png',{type:'image/png'});
   try {
     if (navigator.share && navigator.canShare?.({files:[file]}))
-      await navigator.share({files:[file], title:'GymTrack Workout'});
+      await navigator.share({files:[file], title:'MyGymTrack Workout'});
     else if (navigator.share)
-      await navigator.share({title:'GymTrack Workout', text: ses.logs.map(l=>{const ex=exById(l.exerciseId);const w=maxW(l.sets);return `• ${ex?.name}: ${l.sets.length} Sätze${w?' · Max '+kgToDisp(w)+' kg':''}`;}).join('\n')});
+      await navigator.share({title:'MyGymTrack Workout', text: ses.logs.map(l=>{const ex=exById(l.exerciseId);const w=maxW(l.sets);return `• ${ex?.name}: ${l.sets.length} Sätze${w?' · Max '+kgToDisp(w)+' kg':''}`;}).join('\n')});
     else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='gymtrack-workout.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
   } catch(e) { if(e.name!=='AbortError') console.warn('Share:',e); }
 }
@@ -12539,7 +12539,7 @@ function exportData() {
   if (navigator.share && navigator.canShare) {
     const file = new File([data], filename, {type:'application/json'});
     if (navigator.canShare({files:[file]})) {
-      navigator.share({files:[file], title:'GymTrack Backup'}).catch(()=>{});
+      navigator.share({files:[file], title:'MyGymTrack Backup'}).catch(()=>{});
       return;
     }
   }
@@ -12830,7 +12830,7 @@ function dismissChangelog() {
 const TUTORIAL_STEPS = [
   {
     emoji:'💪',
-    title:'Willkommen bei GymTrack!',
+    title:'Willkommen bei MyGymTrack!',
     sub:'Die App in 7 Schritten kennenlernen — jederzeit überspringbar.',
     features:[
       { ico:'⏱️', title:'Schnelle Tour', sub:'Alle Features auf einen Blick.' },
@@ -13140,7 +13140,7 @@ function restoreTourDemo(){
 const TOUR = [
   {
     target:null,
-    title:'Willkommen bei GymTrack! 💪',
+    title:'Willkommen bei MyGymTrack! 💪',
     body:'Schön, dass du in der <b>Beta</b> dabei bist! Diese Tour zeigt dir in <b>11 Schritten</b> jede Funktion — mit geladenen <b>Beispieldaten</b>, damit du alles direkt in Aktion siehst. Lehn dich zurück: Während der Tour ist nur die Tour selbst aktiv, du kannst also <b>nichts versehentlich ändern</b>. Deine echten Daten bleiben unberührt und sind nach der Tour wieder da. Tippe auf <b>Weiter</b> oder überspringe jederzeit oben rechts.',
     prep:()=> goTabId('heute')
   },
@@ -13199,7 +13199,7 @@ const TOUR = [
   {
     target:null,
     title:'iOS-Widgets & Apple-Integration 🍎',
-    body:'GymTrack ist tief in iOS integriert:<br>• <b>Home-Widget</b> mit Wochen-Kreisen & Tracker-Ringen — <b>+1 direkt im Widget</b>, ohne die App zu öffnen<br>• <b>Sperrbildschirm-Widget</b> mit deinem Streak<br>• <b>Dynamic Island & Live-Aktivität</b> beim Training: aktuelle Übung, Sätze & Pausen-Timer live<br>• <b>Apple Health:</b> Workouts & Gewicht synchron<br>• <b>Spotlight:</b> Übungen direkt aus der iOS-Suche<br>• <b>Anmeldung</b> mit Apple oder Google.',
+    body:'MyGymTrack ist tief in iOS integriert:<br>• <b>Home-Widget</b> mit Wochen-Kreisen & Tracker-Ringen — <b>+1 direkt im Widget</b>, ohne die App zu öffnen<br>• <b>Sperrbildschirm-Widget</b> mit deinem Streak<br>• <b>Dynamic Island & Live-Aktivität</b> beim Training: aktuelle Übung, Sätze & Pausen-Timer live<br>• <b>Apple Health:</b> Workouts & Gewicht synchron<br>• <b>Spotlight:</b> Übungen direkt aus der iOS-Suche<br>• <b>Anmeldung</b> mit Apple oder Google.',
     prep:()=> goTabId('heute')
   },
   {
@@ -14116,8 +14116,8 @@ if (!Array.isArray(S.seenChangelog)) {
   /* ── Inject dynamic manifest with inline icons ── */
   try{
     const manifest={
-      name:'GymTrack',
-      short_name:'GymTrack',
+      name:'MyGymTrack',
+      short_name:'MyGymTrack',
       description:'Dein persönlicher Fitness-Tracker',
       start_url:'./index.html',
       scope:'./',
