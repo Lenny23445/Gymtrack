@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymTrack – Dein smartes Trainingstagebuch</title>
+<meta name="description" content="GymTrack ist dein smartes Trainingstagebuch fürs iPhone: Workouts loggen, Gewichtsvorschläge, 1RM-Statistiken, Cloud-Sync und Apple Health.">
+<link rel="icon" href="../icon-192.png">
+<meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a84ff" media="(prefers-color-scheme: dark)">
+<style>
+  :root{
+    --acc:#007AFF; --acc-press:#0066d6;
+    --bg:#f2f3f7; --card:#ffffff; --card-bdr:rgba(0,0,0,.07);
+    --text:#1c1c1e; --text2:#5c5c62;
+    --tint:rgba(0,122,255,.10);
+    --shadow:0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --acc:#0a84ff; --acc-press:#3b9bff;
+      --bg:#000000; --card:#1c1c1e; --card-bdr:rgba(255,255,255,.10);
+      --text:#f5f5f7; --text2:#a1a1a8;
+      --tint:rgba(10,132,255,.18);
+      --shadow:0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  a{color:var(--acc)}
+  :focus-visible{outline:3px solid var(--acc);outline-offset:3px;border-radius:8px}
+
+  /* ── HERO ── */
+  header{
+    position:relative;overflow:hidden;text-align:center;color:#fff;
+    padding:88px 22px 96px;
+    background:radial-gradient(120% 120% at 50% -10%,#5AC8FA 0%,#007AFF 48%,#0051d5 100%);
+  }
+  header .icon{
+    width:104px;height:104px;border-radius:24px;display:block;margin:0 auto 22px;
+    box-shadow:0 16px 40px rgba(0,0,0,.3);
+  }
+  header h1{font-size:clamp(40px,9vw,60px);font-weight:800;letter-spacing:-1.5px;line-height:1}
+  header .tag{font-size:clamp(17px,4.5vw,21px);font-weight:600;margin-top:14px;opacity:.97}
+  header .pitch{max-width:520px;margin:18px auto 0;font-size:16px;opacity:.92;line-height:1.55}
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;margin-top:30px;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.38);
+    color:#fff;font-weight:600;padding:13px 24px;border-radius:30px;font-size:15px;
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  }
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:#30d158;box-shadow:0 0 0 4px rgba(48,209,88,.25)}
+
+  /* ── SECTIONS ── */
+  section{padding:56px 0 0}
+  section:last-of-type{padding-bottom:8px}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
+  h2{font-size:clamp(26px,5vw,32px);font-weight:800;letter-spacing:-.5px;margin-bottom:24px}
+
+  /* ── FEATURE GRID ── */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:460px){.grid{grid-template-columns:1fr}}
+  .feat{
+    background:var(--card);border:1px solid var(--card-bdr);border-radius:20px;
+    padding:24px 22px;box-shadow:var(--shadow);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  @media(hover:hover){.feat:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.10)}}
+  .feat .ic{
+    width:50px;height:50px;border-radius:14px;background:var(--tint);color:var(--acc);
+    display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+  }
+  .feat .ic svg{width:26px;height:26px}
+  .feat h3{font-size:17px;font-weight:700;margin-bottom:5px}
+  .feat p{font-size:14.5px;color:var(--text2);line-height:1.5}
+
+  /* ── CARD BLOCKS ── */
+  .block{
+    background:var(--card);border:1px solid var(--card-bdr);border-radius:22px;
+    padding:30px;box-shadow:var(--shadow);
+  }
+  .block p{color:var(--text2);font-size:16px;margin-bottom:14px}
+  .block p:last-child{margin-bottom:0}
+  .block .name{color:var(--text);font-weight:700;font-size:17px}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+    background:var(--acc);color:#fff;font-weight:600;font-size:16px;
+    padding:14px 26px;border-radius:26px;text-decoration:none;
+    transition:background .18s ease, transform .12s ease;
+  }
+  @media(hover:hover){.btn:hover{background:var(--acc-press)}}
+  .btn:active{transform:scale(.97)}
+  .btn svg{width:18px;height:18px}
+  .mail-link{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:19px;text-decoration:none;margin-top:4px}
+  .mail-link svg{width:20px;height:20px}
+
+  footer{
+    text-align:center;color:var(--text2);font-size:13.5px;
+    padding:56px 22px 44px;line-height:1.9;margin-top:48px;
+    border-top:1px solid var(--card-bdr);
+  }
+  footer .links a{color:var(--text2);text-decoration:none;font-weight:500}
+  footer .links a:hover{color:var(--acc)}
+  footer .sep{opacity:.4;margin:0 8px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="icon" src="../icon-192.png" alt="GymTrack App-Icon">
+  <h1>GymTrack</h1>
+  <p class="tag">Dein smartes Trainingstagebuch</p>
+  <p class="pitch">Workouts loggen, Fortschritt sehen, stärker werden – einfach und ohne Schnickschnack. Direkt auf deinem iPhone.</p>
+  <span class="badge"><span class="dot"></span>Bald im App Store</span>
+</header>
+
+<div class="wrap">
+
+  <section aria-labelledby="funktionen">
+    <p class="eyebrow">Was die App kann</p>
+    <h2 id="funktionen">Funktionen</h2>
+    <div class="grid">
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8v8M7 6v12M17 6v12M20 8v8M7 12h10"/></svg></div>
+        <h3>Training loggen</h3>
+        <p>Übungen, Sätze, Gewichte & Wiederholungen in Sekunden erfasst.</p>
+      </div>
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>Gewichtsvorschläge</h3>
+        <p>Automatische Progression – die App schlägt dein nächstes Gewicht vor.</p>
+      </div>
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg></div>
+        <h3>1RM &amp; Statistiken</h3>
+        <p>Maximalkraft-Schätzung, Verlaufskurven und Muskelgruppen-Auswertung.</p>
+      </div>
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></div>
+        <h3>Cloud-Sync</h3>
+        <p>Optionaler Login – deine Daten sicher auf all deinen Geräten.</p>
+      </div>
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
+        <h3>Apple Health</h3>
+        <p>Körpergewicht und Workouts nahtlos mit Apple Health verbunden.</p>
+      </div>
+
+      <div class="feat">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".6" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".6" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".6" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.83-.44-1.12-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.66h1.99c3.05 0 5.56-2.51 5.56-5.56C21.97 6.01 17.46 2 12 2Z"/></svg></div>
+        <h3>Themes &amp; Begleiter</h3>
+        <p>Vier Designs und ein animierter Begleiter für die Extra-Motivation.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section aria-labelledby="support">
+    <p class="eyebrow">Hilfe &amp; Kontakt</p>
+    <h2 id="support">Support</h2>
+    <div class="block">
+      <p>Fragen, Bugs oder Wünsche? Schreib mir direkt – ich antworte so schnell ich kann.</p>
+      <a class="mail-link" href="mailto:wolterlenny362@gmail.com">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m3 6 9 6 9-6"/></svg>
+        wolterlenny362@gmail.com
+      </a>
+    </div>
+  </section>
+
+  <section aria-labelledby="datenschutz">
+    <p class="eyebrow">Deine Daten</p>
+    <h2 id="datenschutz">Datenschutz</h2>
+    <div class="block">
+      <p>Deine Trainingsdaten gehören dir. Wir verkaufen nichts und nutzen keine Daten für Werbung. Alle Details findest du in der Datenschutzerklärung.</p>
+      <a class="btn" href="../privacy.html">
+        Datenschutzerklärung öffnen
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <section aria-labelledby="impressum">
+    <p class="eyebrow">Anbieterkennzeichnung</p>
+    <h2 id="impressum">Impressum</h2>
+    <div class="block">
+      <p>Angaben gemäß § 5 TMG:</p>
+      <p>
+        <span class="name">Lenny Wolter</span><br>
+        Lincolnstr. 27a<br>
+        10315 Berlin<br>
+        <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a>
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="links">
+    <a href="../privacy.html">Datenschutz</a><span class="sep">·</span>
+    <a href="#impressum">Impressum</a><span class="sep">·</span>
+    <a href="mailto:wolterlenny362@gmail.com">Kontakt</a>
+  </div>
+  © 2026 Lenny Wolter · GymTrack
+</footer>
+
+</body>
+</html>
