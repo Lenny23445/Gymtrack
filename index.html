@@ -4767,7 +4767,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606171600';
+const APP_VERSION = 'gymtrack-v202606171800';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6149,13 +6149,21 @@ function hwRecovery(size){
     </div></div>`;
   }
 
+  // Liste (lg): identisches Design wie die Erholung im Statistik-Tab (rec-row + Akku-Balken)
   const rows = trained.sort((a,b)=>a.r.recPct-b.r.recPct).slice(0,5);
-  return `<div class="hw-card hw-rec-list">` + rows.map(({mg,r})=>{
+  return `<div class="hw-card rec-list-mini" style="gap:0">` + rows.map(({mg,r})=>{
     const col = recoveryColor(r.recPct);
-    return `<div class="hw-rec-row" onclick="openMuscleGroupRecoveryDetail('${mg.id}')">
-      <span class="hw-rec-label">${mg.label}</span>
-      <span class="hw-rec-bar"><span style="width:${Math.max(4,r.recPct)}%;background:${col}"></span></span>
-      <span class="hw-rec-val">${r.recPct}%</span>
+    const sub = recoveryState(r.recPct) + ' · ' + fmtLastTraining(r.lastTs);
+    const emptyCls = r.recPct < 15 ? ' is-empty' : '';
+    return `<div class="rec-row" onclick="openMuscleGroupRecoveryDetail('${mg.id}')">
+      <div class="rec-row-body">
+        <div class="rec-row-title">${mg.label}</div>
+        <div class="rec-row-sub">${sub}</div>
+      </div>
+      <div class="rec-batt${emptyCls}">
+        <div class="rec-batt-fill" style="width:${Math.max(4,r.recPct)}%;background:${col};color:${col}"></div>
+        <div class="rec-batt-val">${r.recPct}%</div>
+      </div>
     </div>`;
   }).join('') + `</div>`;
 }
