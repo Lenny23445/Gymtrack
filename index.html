@@ -1743,61 +1743,6 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   transform-origin:50% 100%;
   animation:dackel-wag .68s ease-in-out infinite;
 }
-/* ── KARDIO TIMER ── */
-.krd-body{display:flex;flex-direction:column;align-items:center;gap:18px;padding:0 20px 28px}
-.krd-ring-wrap{position:relative;width:210px;height:210px}
-.krd-ring-wrap svg{transform:rotate(-90deg)}
-.krd-ring-bg{fill:none;stroke:var(--gl-bg);stroke-width:14}
-.krd-ring-fg{fill:none;stroke:var(--acc);stroke-width:14;stroke-linecap:round;
-  stroke-dasharray:534.07;stroke-dashoffset:0;
-  transition:stroke-dashoffset .95s linear}
-@keyframes krd-wrap-glow{
-  0%,100%{box-shadow:0 0 8px 3px rgba(var(--acc-rgb),.25)}
-  50%    {box-shadow:0 0 26px 9px rgba(var(--acc-rgb),.55)}
-}
-@keyframes krd-dot-orbit{
-  from{stroke-dashoffset:0}
-  to  {stroke-dashoffset:-534.07}
-}
-@keyframes krd-ring-breathe{
-  0%,100%{stroke-width:14}
-  50%    {stroke-width:17}
-}
-.krd-ring-dot{fill:none;stroke:rgba(255,255,255,.8);stroke-width:14;stroke-linecap:round;
-  stroke-dasharray:48 486.07;stroke-dashoffset:0;opacity:0}
-.krd-ring-wrap.running{
-  border-radius:50%;
-  animation:krd-wrap-glow 2.2s ease-in-out infinite;
-}
-.krd-ring-wrap.running .krd-ring-fg{
-  animation:krd-ring-breathe 2.2s ease-in-out infinite;
-}
-.krd-ring-wrap.running .krd-ring-dot{
-  opacity:1;
-  animation:krd-dot-orbit 3s linear infinite;
-}
-.krd-time{position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:4px}
-.krd-digits{font-size:48px;font-weight:700;letter-spacing:3px;
-  font-variant-numeric:tabular-nums;line-height:1}
-.krd-lbl{font-size:11px;font-weight:600;text-transform:uppercase;
-  letter-spacing:1px;opacity:.45}
-.krd-presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.krd-chip{background:var(--gl-bg);border:1.5px solid var(--gl-bdr2);
-  color:var(--text);border-radius:20px;padding:7px 16px;
-  font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
-  transition:background .15s,border-color .15s,color .15s}
-.krd-chip.on{background:rgba(var(--acc-rgb),.15);border-color:var(--acc);color:var(--acc)}
-.krd-chip:active{opacity:.7}
-.krd-adj{display:flex;align-items:center;gap:20px}
-.krd-adj-btn{width:44px;height:44px;border-radius:50%;background:var(--gl-bg);
-  border:1.5px solid var(--gl-bdr2);color:var(--acc);
-  font-size:24px;font-weight:300;font-family:inherit;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:opacity .15s}
-.krd-adj-btn:active{opacity:.5}
-.krd-adj-val{font-size:17px;font-weight:700;min-width:72px;text-align:center}
-.krd-btns{display:flex;gap:10px;width:100%}
-.krd-btns .btn{flex:1;min-height:52px}
 /* ── WELCOME / ONBOARDING ── */
 .welcome-hero{
   display:flex;flex-direction:column;align-items:center;
@@ -3322,27 +3267,6 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 }
 .ex-card-swipe-bg.on{opacity:1}
 
-/* Cardio-Karte im Training-Start */
-.wk-cardio-card{
-  background:linear-gradient(135deg,rgba(255,149,0,.18),rgba(255,59,48,.10));
-  border:1px solid rgba(255,149,0,.32);
-  border-radius:16px;padding:14px 16px;
-  display:flex;align-items:center;gap:12px;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:transform .12s,opacity .15s;
-  margin-bottom:12px;
-}
-.wk-cardio-card:active{transform:scale(.98);opacity:.85}
-.wk-cardio-ico{
-  flex:0 0 44px;height:44px;border-radius:12px;
-  background:rgba(255,149,0,.20);border:1px solid rgba(255,149,0,.35);
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-}
-.wk-cardio-body{flex:1;min-width:0}
-.wk-cardio-title{font-size:15px;font-weight:700;color:var(--text)}
-.wk-cardio-sub{font-size:12px;color:var(--text2);margin-top:1px}
-.wk-cardio-chev{color:#ff9500;font-size:22px;font-weight:300;flex-shrink:0}
-
 /* ── MUSKEL-DETAIL-OVERLAY ── */
 .ov.ov-mus{
   align-items:center;justify-content:center;
@@ -4427,13 +4351,6 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
           <button class="wk-preset-new" onclick="openPresetEdit(null)">＋ Plan</button>
         </div>
         <div id="wk-presets" class="wk-preset-grid"></div>
-        <div class="wk-cardio-card" onclick="openKardio()" style="margin-top:12px">
-          <div class="wk-cardio-body">
-            <div class="wk-cardio-title">Cardio</div>
-            <div class="wk-cardio-sub">Timer starten – läuft im Hintergrund</div>
-          </div>
-          <div class="wk-cardio-chev">›</div>
-        </div>
       </div>
       <!-- Einzelauswahl / Filter (sekundär) -->
       <div class="s-title" style="padding-top:8px">Oder einzeln wählen</div>
@@ -4852,45 +4769,6 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   </div>
 </div>
 
-<div class="ov" id="ov-kardio" onclick="if(event.target===this)closeKardio()">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head">
-      <h2>🏃 Cardio Timer</h2>
-      <button class="x-btn" onclick="closeKardio()">✕</button>
-    </div>
-    <div class="krd-body">
-      <div class="krd-ring-wrap">
-        <svg width="210" height="210" viewBox="0 0 210 210">
-          <circle class="krd-ring-bg" cx="105" cy="105" r="85"/>
-          <circle class="krd-ring-fg" id="krd-ring" cx="105" cy="105" r="85"/>
-          <circle class="krd-ring-dot" cx="105" cy="105" r="85"/>
-        </svg>
-        <div class="krd-time">
-          <div class="krd-digits" id="krd-display">20:00</div>
-          <div class="krd-lbl" id="krd-lbl">Dauer wählen</div>
-        </div>
-      </div>
-      <div class="krd-presets" id="krd-presets">
-        <button class="krd-chip" onclick="krdPickMins(10)">10 min</button>
-        <button class="krd-chip on" onclick="krdPickMins(20)">20 min</button>
-        <button class="krd-chip" onclick="krdPickMins(30)">30 min</button>
-        <button class="krd-chip" onclick="krdPickMins(45)">45 min</button>
-        <button class="krd-chip" onclick="krdPickMins(60)">60 min</button>
-      </div>
-      <div class="krd-adj" id="krd-adj">
-        <button class="krd-adj-btn" onclick="krdAdjust(-1)">−</button>
-        <div class="krd-adj-val" id="krd-adj-val">20 min</div>
-        <button class="krd-adj-btn" onclick="krdAdjust(+1)">+</button>
-      </div>
-      <div class="krd-btns">
-        <button class="btn btn-acc" id="krd-start-btn" onclick="krdToggle()">▶&nbsp; Starten</button>
-        <button class="btn btn-gray" id="krd-reset-btn" onclick="krdReset()" style="display:none;flex:0;padding:14px 20px">↺</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- OVERLAY: STREAK DETAIL -->
 <div class="ov ov-streak-detail" id="ov-streak" onclick="if(event.target===this)closeOv('ov-streak')">
   <div class="streak-detail-card">
@@ -5008,7 +4886,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606161800';
+const APP_VERSION = 'gymtrack-v202606171200';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6113,7 +5991,6 @@ function goTab(id, btn) {
   // Close all open overlays before switching tabs
   document.querySelectorAll('.ov.on').forEach(ov => {
     if (ov.id === 'ov-icons') closeIconPicker();
-    else if (ov.id === 'ov-kardio') closeKardio();
     else closeOv(ov.id);
   });
   updateWkMiniVisibility();
@@ -6269,9 +6146,8 @@ const WIDGET_DEFS = {
   onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['sm','md','lg'], lgRows:3, build:hwOneRM},
   qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
-  qcardio: {title:'',                icon:'⏱️', label:'Cardio-Timer',      desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('',size==='sm'?'Cardio':'Cardio-Timer starten','openKardio()',size)},
 };
-const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight','qcardio'];
+const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
@@ -6573,12 +6449,12 @@ function openWidgetPicker(){ _pendingWidgetInsertAfter = null; document.body.cla
 function openWidgetPickerAt(afterIdx){ _pendingWidgetInsertAfter = afterIdx; document.body.classList.add('wpick-open'); renderWidgetPicker(); openOv('ov-widget-add'); }
 /* Galerie-Reihenfolge: erst die großen (span-2) „Feature"-Widgets, dann die
    quadratischen/kleinen paarweise – so entstehen keine Lücken im 2er-Raster. */
-const WIDGET_GALLERY_ORDER = ['weekcal','woche','history','muscles','onerm','streak','volume','recovery','weight','train','qadd','qweight','qcardio'];
+const WIDGET_GALLERY_ORDER = ['weekcal','woche','history','muscles','onerm','streak','volume','recovery','weight','train','qadd','qweight'];
 /* Repräsentative Start-Größe je Widget (so wie es nachher real aussieht). */
 const WIDGET_PREVIEW_SIZE = {
   weekcal:'lg', woche:'lg', history:'lg', muscles:'lg', onerm:'lg',
   streak:'sm', volume:'sm', recovery:'sm', weight:'sm',
-  train:'md', qadd:'md', qweight:'md', qcardio:'md'
+  train:'md', qadd:'md', qweight:'md'
 };
 const _WA_SIZE_LBL = {sm:'S', md:'M', lg:'L'};
 let _waPickSize = {};   // je Typ aktuell im Picker gewählte Vorschau-Größe
@@ -12854,13 +12730,12 @@ const TUTORIAL_STEPS = [
   },
   {
     emoji:'▶️',
-    title:'Training & Cardio',
+    title:'Training',
     sub:'Sätze loggen wie ein Profi.',
     features:[
       { ico:'👀', title:'Live-Vergleich', sub:'Unter jedem Satz: dein Ergebnis vom letzten Mal.' },
       { ico:'🏷️', title:'Satz-Typen', sub:'Normal · Aufwärmen · Drop-Set · Bis Versagen.' },
-      { ico:'⬆️', title:'Auto-Progression', sub:'Gewichtsvorschlag wenn alle Ziel-Wdh geschafft.' },
-      { ico:'🏃', title:'Cardio-Timer', sub:'Mit Hintergrund-Benachrichtigung — auch bei geschlossener App.' }
+      { ico:'⬆️', title:'Auto-Progression', sub:'Gewichtsvorschlag wenn alle Ziel-Wdh geschafft.' }
     ]
   },
   {
@@ -13151,7 +13026,7 @@ const TOUR = [
   {
     target:'#heute-grid',
     title:'Dein Dashboard „Heute" 🏠',
-    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, in <b>drei Größen</b> (S/M/L) <b>skalieren</b> oder über <b>＋ Widget</b> neue aus der <b>Galerie</b> hinzufügen — dort siehst du jede Kachel als <b>echte Vorschau</b> und wählst direkt die gewünschte Größe. Z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht/Cardio).',
+    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, in <b>drei Größen</b> (S/M/L) <b>skalieren</b> oder über <b>＋ Widget</b> neue aus der <b>Galerie</b> hinzufügen — dort siehst du jede Kachel als <b>echte Vorschau</b> und wählst direkt die gewünschte Größe. Z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht).',
     hint:'Später: gedrückt halten zum Umbauen',
     prep:()=> goTabId('heute')
   },
@@ -13170,8 +13045,8 @@ const TOUR = [
   },
   {
     target:'.heute-train-btn, #pg-heute .btn-acc',
-    title:'Training & Cardio ▶',
-    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Drehrad-Eingabe</b> im Apple-Stil für Gewicht & Wiederholungen (kg/lbs umschaltbar)<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an<br>• <b>Cardio-Timer</b> läuft im Hintergrund weiter — auch bei geschlossener App.',
+    title:'Training ▶',
+    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Drehrad-Eingabe</b> im Apple-Stil für Gewicht & Wiederholungen (kg/lbs umschaltbar)<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an.',
     prep:()=> goTabId('heute')
   },
   {
@@ -14213,163 +14088,6 @@ function _handleWaitingWorker(worker) {
   try { sessionStorage.setItem('gt_just_updated', '1'); } catch (_) {}
   worker.postMessage({ type: 'SKIP_WAITING' });
 }
-
-// ── KARDIO TIMER ──────────────────────────────────────
-const KRD_CIRC = 2 * Math.PI * 85; // ≈ 534.07
-let krdTotal   = 20 * 60;
-let krdRemain  = 20 * 60;
-let krdRunning = false;
-let krdTick    = null;
-
-function openKardio() {
-  if (krdRemain === 0) krdReset(); // nach Ablauf: frisch starten
-  krdRender();
-  openOv('ov-kardio');
-}
-
-function closeKardio() { if (krdRunning) krdPause(); closeOv('ov-kardio'); }
-
-function krdPickMins(m) {
-  if (krdRunning) return;
-  krdTotal = krdRemain = m * 60;
-  document.querySelectorAll('.krd-chip').forEach(b =>
-    b.classList.toggle('on', parseInt(b.textContent) === m));
-  document.getElementById('krd-adj-val').textContent = m + ' min';
-  krdRender();
-}
-
-function krdAdjust(d) {
-  if (krdRunning) return;
-  const m = Math.min(120, Math.max(1, Math.round(krdRemain / 60) + d));
-  krdTotal = krdRemain = m * 60;
-  document.querySelectorAll('.krd-chip').forEach(b =>
-    b.classList.toggle('on', parseInt(b.textContent) === m));
-  document.getElementById('krd-adj-val').textContent = m + ' min';
-  krdRender();
-}
-
-function krdToggle() {
-  if (krdRemain <= 0) { krdReset(); return; }
-  krdRunning ? krdPause() : krdStart();
-}
-
-function _swPost(msg) {
-  if (navigator.serviceWorker && navigator.serviceWorker.controller)
-    navigator.serviceWorker.controller.postMessage(msg);
-}
-
-function krdStart() {
-  krdRunning = true;
-  document.querySelector('.krd-ring-wrap').classList.add('running');
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-  const endTime = Date.now() + krdRemain * 1000;
-  localStorage.setItem('krdEnd', String(endTime));
-  _swPost({ type: 'SCHEDULE_CARDIO', endTime });
-  document.getElementById('krd-start-btn').innerHTML = '⏸&nbsp; Pause';
-  document.getElementById('krd-reset-btn').style.display = '';
-  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
-  p.style.opacity = '.35'; p.style.pointerEvents = 'none';
-  a.style.opacity = '.35'; a.style.pointerEvents = 'none';
-  document.getElementById('krd-lbl').textContent = 'noch';
-  krdTick = setInterval(() => {
-    krdRemain = Math.max(0, krdRemain - 1);
-    krdRender();
-    if (krdRemain === 0) { clearInterval(krdTick); krdRunning = false; krdDone(); }
-  }, 1000);
-}
-
-function krdPause() {
-  krdRunning = false;
-  document.querySelector('.krd-ring-wrap').classList.remove('running');
-  clearInterval(krdTick);
-  localStorage.removeItem('krdEnd');
-  _swPost({ type: 'CANCEL_CARDIO' });
-  document.getElementById('krd-start-btn').innerHTML = '▶&nbsp; Weiter';
-  document.getElementById('krd-lbl').textContent = 'pausiert';
-}
-
-function krdReset() {
-  krdRunning = false;
-  const rw = document.querySelector('.krd-ring-wrap');
-  if (rw) rw.classList.remove('running');
-  clearInterval(krdTick);
-  localStorage.removeItem('krdEnd');
-  _swPost({ type: 'CANCEL_CARDIO' });
-  krdRemain = krdTotal;
-  const sb = document.getElementById('krd-start-btn');
-  const rb = document.getElementById('krd-reset-btn');
-  if (sb) sb.innerHTML = '▶&nbsp; Starten';
-  if (rb) rb.style.display = 'none';
-  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
-  if (p) { p.style.opacity = ''; p.style.pointerEvents = ''; }
-  if (a) { a.style.opacity = ''; a.style.pointerEvents = ''; }
-  const lbl = document.getElementById('krd-lbl');
-  if (lbl) lbl.textContent = 'Dauer wählen';
-  const mins = Math.round(krdTotal / 60);
-  const av = document.getElementById('krd-adj-val');
-  if (av) av.textContent = mins + ' min';
-  document.querySelectorAll('.krd-chip').forEach(b =>
-    b.classList.toggle('on', parseInt(b.textContent) === mins));
-  krdRender();
-}
-
-function krdDone() {
-  const rw = document.querySelector('.krd-ring-wrap');
-  if (rw) rw.classList.remove('running');
-  localStorage.removeItem('krdEnd');
-  const disp = document.getElementById('krd-display');
-  const lbl  = document.getElementById('krd-lbl');
-  const sb   = document.getElementById('krd-start-btn');
-  const rb   = document.getElementById('krd-reset-btn');
-  if (disp) disp.textContent = '🎉';
-  if (lbl)  lbl.textContent  = 'Geschafft!';
-  if (sb)   sb.innerHTML     = '↺&nbsp; Nochmal';
-  if (rb)   rb.style.display = 'none';
-  const p = document.getElementById('krd-presets'), a = document.getElementById('krd-adj');
-  if (p) { p.style.opacity = ''; p.style.pointerEvents = ''; }
-  if (a) { a.style.opacity = ''; a.style.pointerEvents = ''; }
-  if (navigator.vibrate) navigator.vibrate([200, 100, 300]);
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: 'CARDIO_DONE' });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('Cardio geschafft!', { body: 'Dein Timer ist abgelaufen. Super Leistung! 💪', tag: 'cardio-done' });
-  }
-}
-
-function krdRender() {
-  const disp = document.getElementById('krd-display');
-  const ring = document.getElementById('krd-ring');
-  if (disp) {
-    const m = Math.floor(krdRemain / 60), s = krdRemain % 60;
-    disp.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-  }
-  if (ring) ring.style.strokeDashoffset = KRD_CIRC * (1 - (krdTotal > 0 ? krdRemain / krdTotal : 1));
-}
-
-/* Wenn App aus Hintergrund zurückkommt: Timer anhand gespeicherter Endzeit nachkorrigieren */
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
-  const endStr = localStorage.getItem('krdEnd');
-  if (!endStr) return;
-  const remaining = Math.round((parseInt(endStr) - Date.now()) / 1000);
-  if (remaining <= 0) {
-    clearInterval(krdTick);
-    krdRunning = false;
-    krdRemain = 0;
-    krdRender();
-    krdDone();
-  } else if (krdRunning) {
-    clearInterval(krdTick);
-    krdRemain = remaining;
-    localStorage.setItem('krdEnd', String(Date.now() + remaining * 1000));
-    krdRender();
-    krdTick = setInterval(() => {
-      krdRemain = Math.max(0, krdRemain - 1);
-      krdRender();
-      if (krdRemain === 0) { clearInterval(krdTick); krdRunning = false; krdDone(); }
-    }, 1000);
-  }
-});
 
 // ── APP UPDATE ────────────────────────────────────────
 // Primär: Direkter Versions-Check beim App-Start (unabhängig von SW-Events)
