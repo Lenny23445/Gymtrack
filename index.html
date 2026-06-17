@@ -4886,7 +4886,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606171200';
+const APP_VERSION = 'gymtrack-v202606171400';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -11655,7 +11655,6 @@ function _restoreActiveWk() {
   _startHrPolling();
   renderLogCards();
   updateWkMiniVisibility();
-  setTimeout(() => showUpdateToast('💪 Laufendes Training wiederhergestellt', { autoHide: 3200 }), 700);
 }
 
 function renderLogCards() {
@@ -13019,73 +13018,34 @@ function restoreTourDemo(){
 const TOUR = [
   {
     target:null,
-    title:'Willkommen bei MyGymTrack! 💪',
-    body:'Schön, dass du in der <b>Beta</b> dabei bist! Diese Tour zeigt dir in <b>11 Schritten</b> jede Funktion — mit geladenen <b>Beispieldaten</b>, damit du alles direkt in Aktion siehst. Lehn dich zurück: Während der Tour ist nur die Tour selbst aktiv, du kannst also <b>nichts versehentlich ändern</b>. Deine echten Daten bleiben unberührt und sind nach der Tour wieder da. Tippe auf <b>Weiter</b> oder überspringe jederzeit oben rechts.',
+    title:'Willkommen! 👋',
+    body:'Kurze Tour durch die Basics — tippe auf Weiter.',
     prep:()=> goTabId('heute')
   },
   {
     target:'#heute-grid',
-    title:'Dein Dashboard „Heute" 🏠',
-    body:'Der Heute-Tab ist ein <b>frei zusammenstellbares Dashboard</b> aus Widgets. <b>Lange gedrückt halten</b> aktiviert den Bearbeiten-Modus: Widgets <b>verschieben</b>, in <b>drei Größen</b> (S/M/L) <b>skalieren</b> oder über <b>＋ Widget</b> neue aus der <b>Galerie</b> hinzufügen — dort siehst du jede Kachel als <b>echte Vorschau</b> und wählst direkt die gewünschte Größe. Z. B. Streak, Volumen, Erholung, Aktivitäts-Heatmap, 1RM-Bestwerte, Gewicht oder Schnellzugriffe (Übung/Gewicht).',
-    hint:'Später: gedrückt halten zum Umbauen',
-    prep:()=> goTabId('heute')
-  },
-  {
-    target:'#tracker-row, #streak-badge-host',
-    title:'Streak & Wochen-Tracker 🔥',
-    body:'Oben rechts zählt der <b>Streak</b> deine Trainingswochen in Folge. Die <b>Tracker-Ringe</b> sind Wochenziele für beliebige Aktivitäten (Gym, Laufen, Fahrrad …): einmal <b>tippen = +1</b>, langes Drücken zum Bearbeiten. Hier siehst du z. B. „3 von 4 Gym-Einheiten" diese Woche.',
-    hint:'Tippen füllt den Ring',
-    prep:()=> goTabId('heute')
-  },
-  {
-    target:'#history-card, #weight-card',
-    title:'Letzte Trainings & Gewicht 📋',
-    body:'<b>Letzte Trainings</b> zeigt deine Einheiten — antippen für Details, <b>nach links wischen</b> zum Löschen. Das <b>Gewicht-Widget</b> trackt dein Körpergewicht mit <b>Start-, Ziel-</b> und Verlaufskurve. Beides aktualisiert sich automatisch nach jedem Eintrag.',
+    title:'Dein Dashboard 🏠',
+    body:'Deine Startseite. Lange drücken, um Widgets umzubauen.',
+    hint:'Gedrückt halten',
     prep:()=> goTabId('heute')
   },
   {
     target:'.heute-train-btn, #pg-heute .btn-acc',
     title:'Training ▶',
-    body:'Tippe auf <b>Training starten</b>, wähle Übungen und logge Sätze. Highlights:<br>• <b>Live-Vergleich</b> zum letzten Mal unter jedem Satz<br>• <b>Drehrad-Eingabe</b> im Apple-Stil für Gewicht & Wiederholungen (kg/lbs umschaltbar)<br>• <b>Satz-Typen:</b> Normal · Aufwärmen · Top · Drop · Versagen<br>• <b>Auto-Progression:</b> Gewichtsvorschlag, wenn alle Ziel-Wdh geschafft<br>• <b>Pausenintelligenz:</b> Satzpause passt sich automatisch an Muskel & Intensität an.',
+    body:'Hier startest du dein Training und loggst deine Sätze.',
     prep:()=> goTabId('heute')
-  },
-  {
-    target:'#ex-list',
-    title:'Übungen-Bibliothek 💪',
-    body:'<b>60+ Standardübungen</b> sofort einsatzbereit — oder leg <b>eigene Übungen</b> an mit Muskelgruppe, Zielsätzen/-wdh und Typ (Wiederholungen oder Zeit). Über die <b>Suche</b> und die <b>Filter</b> (Muskeln · Push-Pull-Legs · Ober-/Unterkörper) findest du alles in Sekunden. <b>Nach links wischen</b> zeigt den Löschen-Button.',
-    prep:()=> goTabId('uebungen')
   },
   {
     target:'#ex-week-preview',
-    title:'Wochenplan & Vorlagen 📅',
-    body:'Plane deine Woche Mo–So: Übungen per <b>Drag & Drop</b> auf einen Tag ziehen oder ganze <b>Vorlagen</b> laden — <b>PPL</b>, <b>Upper/Lower</b>, <b>Full Body</b> u. a. Der Plan steuert die <b>Vorschläge</b>, die <b>Erinnerungen</b> und das iOS-Widget. Tippe auf die Vorschau, um den Plan zu öffnen.',
+    title:'Übungen & Plan 💪',
+    body:'Alle Übungen und dein Wochenplan.',
     prep:()=> goTabId('uebungen')
   },
   {
-    union:['.stats-dual', '#week-card'],
-    pad:8,
-    title:'Statistik: Verlauf & Erholung 📊',
-    body:'Oben siehst du auf einen Blick:<br>• <b>Volumen-Verlauf</b> — Tap öffnet die Vollbild-Ansicht<br>• <b>Erholung</b> als Akku-Anzeige — <b>seitlich wischen</b> wechselt zwischen den einzelnen Muskelgruppen und deiner <b>Gesamterholung in %</b><br>• <b>Diese Woche</b> mit Trainingskreisen — Tap öffnet den <b>Kalender</b>.',
+    target:'.stats-dual, #pg-stats .hdr',
+    title:'Fortschritt 📊',
+    body:'Statistiken und Erfolge im Blick. Viel Erfolg! 💪',
     prep:()=> { goTabId('stats'); window.scrollTo(0, 0); }
-  },
-  {
-    union:['#stats-mg-list', '#stats-ex-list'],
-    pad:8,
-    title:'Statistik: Muskeln & Kraftwerte 💪',
-    body:'Weiter unten geht\'s ins Detail:<br>• <b>Muskelgruppen</b> — über den Umschalter nach <b>Muskeln</b>, <b>Push-Pull-Legs</b> oder <b>Ober-/Unterkörper</b> gruppiert, mit summierten Kraftwerten<br>• <b>Übungen</b> — per <b>Suche</b> finden und antippen für den <b>1RM-Verlauf</b> (geschätztes Einer-Maximum nach der Epley-Formel).',
-    prep:()=> { goTabId('stats'); }
-  },
-  {
-    target:null,
-    title:'iOS-Widgets & Apple-Integration 🍎',
-    body:'MyGymTrack ist tief in iOS integriert:<br>• <b>Home-Widget</b> mit Wochen-Kreisen & Tracker-Ringen — <b>+1 direkt im Widget</b>, ohne die App zu öffnen<br>• <b>Sperrbildschirm-Widget</b> mit deinem Streak<br>• <b>Dynamic Island & Live-Aktivität</b> beim Training: aktuelle Übung, Sätze & Pausen-Timer live<br>• <b>Apple Health:</b> Workouts & Gewicht synchron<br>• <b>Spotlight:</b> Übungen direkt aus der iOS-Suche<br>• <b>Anmeldung</b> mit Apple oder Google.',
-    prep:()=> goTabId('heute')
-  },
-  {
-    target:'.tabbar .tab:last-child',
-    title:'Einstellungen — los geht\'s! 🚀',
-    body:'Mach die App zu deiner:<br>• <b>5 Themes</b> (Hell, Rosa, Dunkel, Blau, Grün)<br>• <b>Cloud-Sync</b> mit Google — Daten auf allen Geräten<br>• <b>Erinnerungen</b> zur Wunsch-Uhrzeit<br>• <b>Pausenintelligenz</b> & Standard-Satzpause<br>• <b>Einheiten</b> (kg/lbs) und <b>Datenexport</b> als JSON-Backup.<br><br>Das war\'s — viel Erfolg beim Training! 💪 (Die Beispieldaten verschwinden jetzt.)',
-    prep:()=> goTabId('erfolge')
   }
 ];
 
@@ -13224,9 +13184,25 @@ function positionTour(step){
       minX = rect.left; minY = rect.top; maxX = rect.right; maxY = rect.bottom;
     }
     const x = Math.max(2, minX - pad);
-    const y = Math.max(2, minY - pad);
+    let   y = Math.max(2, minY - pad);
     const w = Math.min(W - x - 2, (maxX - minX) + 2*pad);
-    const h = Math.min(H - y - 2, (maxY - minY) + 2*pad);
+    let   h = Math.min(H - y - 2, (maxY - minY) + 2*pad);
+
+    // Platz für die Tour-Karte reservieren, damit sie den Spotlight NIE überdeckt.
+    // Großen Spotlight ggf. kürzen und die Karte auf die freie Seite legen.
+    const reserve = Math.min(300, Math.round(H * 0.42));
+    const minH = 70;
+    let side;
+    if (y + h / 2 <= H * 0.5) {
+      side = 'below';
+      const maxBottom = H - reserve - pad;
+      if (y + h > maxBottom) h = Math.max(minH, maxBottom - y);
+    } else {
+      side = 'above';
+      const minTop = reserve + pad;
+      if (y < minTop) { h = Math.max(minH, h - (minTop - y)); y = minTop; }
+      if (y + h > H - 2) h = H - 2 - y;
+    }
 
     const veilCss = 'position:fixed;z-index:1500;background:rgba(0,0,0,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:default';
     veilT.style.cssText = veilCss + `;left:0;top:0;right:0;height:${y}px`;
@@ -13243,7 +13219,7 @@ function positionTour(step){
     ring.style.width  = w + 'px';
     ring.style.height = h + 'px';
 
-    renderTourCard(step, { x, y, w, h });
+    renderTourCard(step, { x, y, w, h, side });
   }, 320);
 }
 
@@ -13281,19 +13257,19 @@ function renderTourCard(step, rect){
     let top;
     if (!rect) {
       top = Math.max(20, (H - cardH) / 2);
-    } else if (rect.y + rect.h + pad + cardH < H - 20) {
-      top = rect.y + rect.h + pad;
-    } else if (rect.y - pad - cardH > 20) {
+    } else if (rect.side === 'above') {
       top = rect.y - pad - cardH;
     } else {
-      // Kein Platz → mittig in dem Bereich, der frei ist
-      top = Math.max(16, Math.min(H - cardH - 16, 80));
+      top = rect.y + rect.h + pad;
     }
+    top = Math.max(16, Math.min(H - cardH - 16, top));
     card.style.left   = '16px';
     card.style.right  = '16px';
     card.style.top    = top + 'px';
     card.style.margin = 'auto';
     card.style.maxWidth = '360px';
+    card.style.maxHeight = (H - 32) + 'px';
+    card.style.overflowY = 'auto';
   });
 }
 
