@@ -64,6 +64,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>GymTrack braucht die Kamera, um Fotos für deine Übungen aufzunehmen.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GymTrack braucht Zugriff auf deine Fotos, um Bilder für deine Übungen auszuwählen.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GymTrack speichert exportierte Workout-Bilder in deiner Fotomediathek.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>GymTrack liest dein Körpergewicht aus Apple Health.</string>
 	<key>NSHealthUpdateUsageDescription</key>
