@@ -4770,7 +4770,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606181900';
+const APP_VERSION = 'gymtrack-v202606182142';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5424,6 +5424,9 @@ let exCatFilter = 'alle';  // Filter im Übungen-Tab
 let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
+// Plan, aus dem das aktuelle Training gestartet wurde: {type:'preset',id} | {type:'week',dayKey} | null.
+// Wird am Ende genutzt, um optional die im Training geänderte Übungsliste in den Plan zu übernehmen.
+let _activePlanSrc = null;
 let timerInt = null, timerTs = null;
 let setTimerInt = null;
 let detId = null;
@@ -7939,8 +7942,8 @@ function renderExList() {
 
   // Such-Filter
   if (exSearchText) {
-    const q = exSearchText.toLowerCase();
-    filtered = filtered.filter(ex => (ex.name||'').toLowerCase().includes(q));
+    const q = _normSearch(exSearchText);
+    filtered = filtered.filter(ex => _normSearch(ex.name).includes(q));
   }
 
   sub.textContent = filtered.length ? filtered.length+' Übung'+(filtered.length!==1?'en':'') : '';
@@ -8833,7 +8836,7 @@ function confirmWheel() {
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
-  try { checkLiveSetPR(li, si); } catch(_) {}
+  // PR-Feier NICHT hier — erst wenn der Satz per Häkchen bestätigt wird (toggleSetDone).
   renderLogCards();
 }
 
@@ -10997,8 +11000,8 @@ function renderStatsExerciseList() {
   });
   // Such-Filter
   if (statsExSearchText) {
-    const q = statsExSearchText.toLowerCase();
-    sorted = sorted.filter(ex => (ex.name||'').toLowerCase().includes(q));
+    const q = _normSearch(statsExSearchText);
+    sorted = sorted.filter(ex => _normSearch(ex.name).includes(q));
   }
   if (!sorted.length) {
     el.innerHTML = `<div style="padding:18px;color:var(--text2);font-size:14px;text-align:center;position:relative;z-index:1">
@@ -11139,13 +11142,17 @@ function openWorkout() {
   wkExIds = [];
   wkLogs  = [];
   wkCatFilter = 'alle';
+  _activePlanSrc = null;
 
   // Heutige Übungen aus dem Wochenplan vorauswählen
   let planHintText = '';
   const todayPlan = planFor(todayKey());
   if (todayPlan.type === 'exercises' && Array.isArray(todayPlan.exIds) && todayPlan.exIds.length) {
     wkExIds = todayPlan.exIds.filter(id => S.exercises.some(ex => ex.id === id));
-    if (wkExIds.length) planHintText = '📅 ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
+    if (wkExIds.length) {
+      planHintText = '📅 ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
+      _activePlanSrc = { type:'week', dayKey: todayKey() };
+    }
   } else if (todayPlan.type === 'group' && todayPlan.group) {
     for (const m of allModes()) {
       const g = m.groups.find(g => g.id === todayPlan.group);
@@ -11193,6 +11200,7 @@ function renderWkFilterBar() {
 
 function setWkCat(id) {
   wkCatFilter = id;
+  _activePlanSrc = null; // manuelle Gruppen-Auswahl → kein gespeicherter Plan als Quelle
   const grp = wkGroup();
   // Gruppe antippen → alle Übungen dieser Gruppe automatisch auswählen
   if (grp.id !== 'alle') {
@@ -11210,6 +11218,7 @@ function setWkFilterMode(mode) {
   S.wkFilterMode = mode;
   wkCatFilter = 'alle';
   wkExIds = [];
+  _activePlanSrc = null;
   persist();
   renderWkFilterBar();
   renderWkPicker();
@@ -11314,8 +11323,10 @@ function applyPreset(id) {
   if (!ids.length) { _dndToast('Plan enthält keine vorhandenen Übungen'); return; }
   if (_presetIsActive(p)) {
     wkExIds = []; // erneutes Tippen → Auswahl aufheben
+    _activePlanSrc = null;
   } else {
     wkExIds = ids.slice();
+    _activePlanSrc = { type:'preset', id: p.id };
   }
   haptic(12);
   // Hinweis-Banner ausblenden, Filter-Auswahl auf "alle" lassen
@@ -11344,8 +11355,8 @@ function openPresetEdit(id) {
 function renderPresetExList() {
   const list = document.getElementById('preset-ex-list');
   if (!list) return;
-  const q = (document.getElementById('preset-search')?.value || '').toLowerCase().trim();
-  const items = S.exercises.filter(ex => !q || ex.name.toLowerCase().includes(q));
+  const q = _normSearch((document.getElementById('preset-search')?.value || '').trim());
+  const items = S.exercises.filter(ex => !q || _normSearch(ex.name).includes(q));
   const cnt = document.getElementById('preset-count');
   if (cnt) cnt.textContent = _presetSel.size ? '· ' + _presetSel.size : '';
   if (!items.length) {
@@ -11427,12 +11438,17 @@ function openMidAddExercise() {
   openOv('ov-mid-add');
   setTimeout(() => { const inp2 = document.getElementById('mid-add-search'); if (inp2) inp2.focus(); }, 200);
 }
+// Suche unempfindlich gegen Groß/Klein UND Umlaute/Akzente:
+// "u" findet "Überzüge", "ruck" findet "Rückenheber", "ss"↔"ß".
+function _normSearch(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ß/g,'ss');
+}
 function renderMidAddList() {
   const list = document.getElementById('mid-add-list');
   if (!list) return;
-  const q = _midAddQ.toLowerCase();
+  const q = _normSearch(_midAddQ);
   const activeIds = new Set((wkLogs || []).map(l => l.exerciseId));
-  const exs = (S.exercises || []).filter(ex => !q || ex.name.toLowerCase().includes(q));
+  const exs = (S.exercises || []).filter(ex => !q || _normSearch(ex.name).includes(q));
   if (!exs.length) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2)">Keine Übungen gefunden</div>';
     return;
@@ -11516,9 +11532,13 @@ const _AWK_KEY = 'gt_active_wk';
 function _saveActiveWk() {
   try {
     if (!timerTs || !wkLogs.length) return;
+    const restActive = _restInt !== null && _restEndTs > Date.now();
     localStorage.setItem(_AWK_KEY, JSON.stringify({
       logs: wkLogs, exIds: wkExIds, ts: timerTs,
-      note: document.getElementById('wk-note')?.value || ''
+      note: document.getElementById('wk-note')?.value || '',
+      planSrc: _activePlanSrc || null,            // Quelle für „Plan übernehmen?"
+      restEndTs: restActive ? _restEndTs : 0,     // laufende Pause übersteht App-Neustart
+      restSmart: restActive ? _restSmart : false
     }));
   } catch(_) {}
 }
@@ -11543,10 +11563,18 @@ function _restoreActiveWk() {
   if (s2) s2.style.display = '';
   const t = document.getElementById('wk-title'); if (t) t.textContent = 'Aktives Training';
   const note = document.getElementById('wk-note'); if (note) note.value = saved.note || '';
+  _activePlanSrc = saved.planSrc || null;
   _startWkTimer();
   _startHrPolling();
   renderLogCards();
   updateWkMiniVisibility();
+  // Laufende Satzpause wiederherstellen, falls sie beim Neustart noch nicht abgelaufen war
+  if (saved.restEndTs && saved.restEndTs > Date.now()) {
+    _restSmart = !!saved.restSmart;
+    _restEndTs = saved.restEndTs;
+    _restSecs  = Math.max(0, Math.round((_restEndTs - Date.now()) / 1000));
+    _beginRestCountdown();
+  }
 }
 
 function renderLogCards() {
@@ -11698,7 +11726,7 @@ function _attachSwipeToDelete() {
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; _saveActiveWk(); }
-let _restInt = null, _restSecs = 0, _restEndTs = 0;
+let _restInt = null, _restSecs = 0, _restEndTs = 0, _restSmart = false;
 /* ── PAUSENINTELLIGENZ ──────────────────────────────────────
    Empfohlene Satzpause abhängig von Übung (Muskelgruppe),
    Belastung (Wiederholungen) und Gewicht relativ zum Bestwert. */
@@ -11784,15 +11812,22 @@ function _cancelRestEndNotif() {
 
 function startRestTimer(ex, set) {
   // Pausenintelligenz aktiv & Kontext vorhanden → empfohlene Pause, sonst manueller Standard
-  _restSecs = (S.smartRest && ex) ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
+  _restSmart = !!(S.smartRest && ex);
+  _restSecs = _restSmart ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
   _restEndTs = Date.now() + _restSecs * 1000; // Endzeitpunkt für native Live-Activity-Countdown
   _scheduleRestEndNotif(_restEndTs); // Hintergrund-Signal planen
+  _beginRestCountdown();
+  _saveActiveWk(); // Endzeitpunkt sichern → übersteht App-Neustart (s. _restoreActiveWk)
+}
+// Startet/zeigt die Anzeige aus dem absoluten Endzeitpunkt (_restEndTs). Wird sowohl
+// beim normalen Start als auch beim Wiederherstellen nach App-Neustart genutzt.
+function _beginRestCountdown() {
   clearInterval(_restInt);
   const bar = document.getElementById('rest-timer-bar');
   if (bar) bar.style.display = '';
   // Label zeigt an, dass die Pause automatisch gewählt wurde
   const lbl = bar?.querySelector('.rest-bar-lbl');
-  if (lbl) lbl.textContent = (S.smartRest && ex) ? 'Pause · Auto' : 'Pause';
+  if (lbl) lbl.textContent = _restSmart ? 'Pause · Auto' : 'Pause';
   _updRest();
   // Anzeige aus dem absoluten Endzeitpunkt (_restEndTs) ableiten — exакt dieselbe
   // Quelle wie die native Dynamic Island, exakt. So bleiben App und Island synchron, auch
@@ -11812,6 +11847,7 @@ function startRestTimer(ex, set) {
       if (b) b.style.display = 'none';
       _cancelRestEndNotif(); // App war offen → in-App-Signal reicht, Banner unterdrücken
       haptic([30,50,30]);
+      _saveActiveWk(); // beendete Pause sichern, damit sie beim Neustart nicht wiederkehrt
     }
   }, 250);
   _syncLiveActivity();
@@ -11827,6 +11863,7 @@ function skipRest() {
   if (b) b.style.display = 'none';
   _cancelRestEndNotif();
   _syncLiveActivity();
+  _saveActiveWk(); // übersprungene Pause sichern
 }
 function adjustRest(delta) {
   _restSecs = Math.max(0, _restSecs + delta);
@@ -11836,12 +11873,15 @@ function adjustRest(delta) {
   _updRest();
   haptic(8);
   _syncLiveActivity();
+  _saveActiveWk(); // verschobenes Pausen-Ende sichern
 }
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
   haptic(next ? 18 : 8);
   if (next) {
+    // Satz jetzt bestätigt → erst jetzt auf PR prüfen und ggf. feiern.
+    try { checkLiveSetPR(li, si); } catch(_) {}
     const log = wkLogs[li];
     if (log.ssGroup) {
       // Superset: Pause erst, wenn ALLE gekoppelten Übungen Satz Nr. si fertig haben
@@ -11878,6 +11918,35 @@ function delSet(li,si) {
   _syncLiveActivity();
 }
 
+/* Übungen, die im Training ersetzt/hinzugefügt wurden, bleiben zunächst nur für
+   diese Einheit. Weicht die tatsächliche Übungsliste vom Quell-Plan ab, fragen wir
+   am Ende, ob der Plan dauerhaft übernommen werden soll. Die Trainingsdaten selbst
+   sind davon unabhängig (werden in finishWk so oder so gespeichert). */
+function _maybeUpdatePlanFromSession(valid) {
+  const src = _activePlanSrc;
+  if (!src) return;
+  let planObj = null, planName = '';
+  if (src.type === 'preset') {
+    planObj = (S.workoutPresets || []).find(x => x.id === src.id);
+    if (planObj) planName = '„' + planObj.name + '"';
+  } else if (src.type === 'week') {
+    const wp = S.weekPlan && S.weekPlan[src.dayKey];
+    if (wp && wp.type === 'exercises') { planObj = wp; planName = 'dein Tagesplan'; }
+  }
+  if (!planObj) return;
+  const planIds = (planObj.exIds || []).filter(id => S.exercises.some(ex => ex.id === id));
+  const sessIds = [];
+  valid.forEach(l => { if (l.exerciseId && !sessIds.includes(l.exerciseId)) sessIds.push(l.exerciseId); });
+  // Reihenfolge egal — nur ob sich die Menge der Übungen unterscheidet
+  const sameSet = sessIds.length === planIds.length && sessIds.every(id => planIds.includes(id));
+  if (sameSet) return;
+  if (confirm('Du hast die Übungen in diesem Training geändert.\n\nSoll ' + (planName || 'der Plan') +
+              ' dauerhaft mit diesen Übungen aktualisiert werden?\n\n(Deine Trainingsdaten werden so oder so gespeichert.)')) {
+    planObj.exIds = sessIds.slice();
+    persist();
+  }
+}
+
 function finishWk() {
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
@@ -11898,6 +11967,9 @@ function finishWk() {
   const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
   S.sessions.push(_newSess);
   persist();
+  // Optional geänderte Übungsliste in den Quell-Plan übernehmen (fragt nur bei Abweichung)
+  try { _maybeUpdatePlanFromSession(valid); } catch(_) {}
+  _activePlanSrc = null;
   _endLiveActivity();
   _saveWorkoutToHealthKit(_newSess);
   haptic([20,40,20]);
@@ -11927,6 +11999,7 @@ function finishWk() {
 
 function cancelWk() {
   if (!confirm('Training abbrechen? Eingetragene Daten werden verworfen.')) return;
+  _activePlanSrc = null;
   _endLiveActivity();
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
