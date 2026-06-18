@@ -2519,6 +2519,9 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .week-card-foot b{color:var(--text);font-weight:700}
 
 /* ── KALENDER-OVERLAY ── */
+/* Über die schwebende Tabbar (z-index 1000) heben, sonst verdeckt die Leiste
+   die untersten Kalender-Zeilen + die Legende ("weniger/mehr"). */
+.ov-cal{z-index:1002}
 .cal-card{
   /* Transparenz etwas reduziert: zweite Tönungsschicht über dem Glas */
   background-color:var(--gl-bg-h);
@@ -4767,7 +4770,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606181000';
+const APP_VERSION = 'gymtrack-v202606181900';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -13643,6 +13646,18 @@ async function _pushToCloud() {
   }
 }
 
+// Listen mit stabilen ids verlustfrei vereinen (Pläne/Splits): nie eine Seite
+// komplett verwerfen. Bei id-Kollision gewinnt die neuere Seite. Verhindert,
+// dass ein leeres Cloud-Array lokale Pläne überschreibt (Daten-Verlust nach Login).
+function _mergeById(cloud, local, cloudNewer) {
+  const m = new Map();
+  const first  = cloudNewer ? (local || []) : (cloud || []);
+  const second = cloudNewer ? (cloud || []) : (local || []);
+  first.forEach(x  => { if (x && x.id) m.set(x.id, x); });
+  second.forEach(x => { if (x && x.id) m.set(x.id, x); });
+  return [...m.values()];
+}
+
 // Merge: kombiniere local + cloud verlustfrei
 function _mergeData(local, cloud) {
   const exMap = new Map();
@@ -13682,8 +13697,8 @@ function _mergeData(local, cloud) {
     welcomeShown: cloud.welcomeShown ?? local.welcomeShown,
     heuteLayout:  cloud.heuteLayout  ?? local.heuteLayout ?? null,
     weekPlan:     pick(cloud.weekPlan,     local.weekPlan),
-    customSplits: pick(cloud.customSplits, local.customSplits) || [],
-    workoutPresets: pick(cloud.workoutPresets, local.workoutPresets) || [],
+    customSplits:   _mergeById(cloud.customSplits,   local.customSplits,   cloudNewer),
+    workoutPresets: _mergeById(cloud.workoutPresets, local.workoutPresets, cloudNewer),
     trackerItems: pick(cloud.trackerItems, local.trackerItems) || [],
     trackerCounts: pick(cloud.trackerCounts, local.trackerCounts) || {},
     erfAchieved:  [...new Set([...(cloud.erfAchieved || []), ...(local.erfAchieved || [])])],
