@@ -2041,6 +2041,12 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .hw-orm-row:first-child{border-top:none;padding-top:0}
 .hw-orm-name{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hw-orm-val{font-size:13px;font-weight:800;color:var(--acc);flex-shrink:0}
+/* Trainingspläne-Widget */
+.hw-plan-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid var(--sep);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hw-plan-row:first-child{border-top:none;padding-top:2px}
+.hw-plan-row:active{opacity:.55}
+.hw-plan-name{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-plan-meta{font-size:12px;font-weight:800;color:var(--acc);flex-shrink:0}
 /* Heatmap-Widget */
 .hw-hm-wrap{display:flex;gap:2px;justify-content:space-between}
 .hw-hm-col{display:flex;flex-direction:column;gap:2px;flex:1}
@@ -4296,6 +4302,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
       <input type="search" id="preset-search" class="ex-search no-ico" placeholder="Übung suchen…"
              oninput="renderPresetExList()" autocomplete="off">
     </div>
+    <div style="padding:0 20px 8px;flex-shrink:0">
+      <button class="btn btn-gray btn-sm" onclick="openNewExFromPreset()">＋ Neue Übung erstellen</button>
+    </div>
     <div id="preset-ex-list" style="padding:0 12px;overflow-y:auto;flex:1;min-height:0"></div>
     <div class="px" style="flex-shrink:0;padding-top:10px;padding-bottom:16px">
       <button class="btn btn-acc" onclick="savePreset()">Speichern</button>
@@ -4770,7 +4779,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606182142';
+const APP_VERSION = 'gymtrack-v202606190555';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6033,8 +6042,9 @@ const WIDGET_DEFS = {
   onerm:   {title:'1RM-Bestwerte',   icon:'📈', label:'1RM-Bestwerte',     desc:'Top-Übungen (Epley)',         sizes:['sm','md','lg'], lgRows:3, build:hwOneRM},
   qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
+  plans:   {title:'Deine Trainingspläne', icon:'📋', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
 };
-const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','streak','volume','recovery','muscles','onerm','qadd','qweight'];
+const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
@@ -6278,6 +6288,43 @@ function hwOneRM(size){
 function hwQuick(icon,label,fn,size){
   const ic = icon ? `<span class="hw-quick-ico">${icon}</span>` : '';
   return `<button class="hw-card hw-quick" onclick="${fn}"><div class="hw-stat">${ic}<span class="hw-quick-lbl">${label}</span></div></button>`;
+}
+function hwPlans(size){
+  const presets = (S.workoutPresets||[]).filter(p => _presetExIdsExisting(p).length);
+  if (!presets.length) return `<div class="hw-card" onclick="openWorkout()"><div class="hw-stat"><div class="hw-empty-mini">Noch keine Pläne</div></div></div>`;
+  // sm/md: kompakte Übersicht → öffnet die Plan-Auswahl
+  if (size === 'sm' || size === 'md'){
+    return `<div class="hw-card" onclick="openWorkout()"><div class="hw-stat">
+      <div class="hw-big">${presets.length}</div>
+      <div class="hw-sub">${presets.length===1?'Plan':'Pläne'}</div>
+    </div></div>`;
+  }
+  // lg: Pläne einzeln antippbar → direkt starten
+  const rows = presets.slice(0,5);
+  return `<div class="hw-card">` + rows.map(p=>{
+    const cnt = _presetExIdsExisting(p).length;
+    return `<div class="hw-plan-row" onclick="startPresetDirect('${p.id}')">
+      <span class="hw-plan-name">${p.name}</span>
+      <span class="hw-plan-meta">${cnt} ▸</span>
+    </div>`;
+  }).join('') + `</div>`;
+}
+// Plan aus dem Widget heraus sofort starten (ohne Zwischenschritt)
+function startPresetDirect(id){
+  if (heuteEditMode) return;                 // im Bearbeiten-Modus nicht starten
+  if (isWorkoutActive()){ openWorkout(); return; } // läuft schon → nur anzeigen
+  const p = (S.workoutPresets||[]).find(x=>x.id===id);
+  if (!p) return;
+  const ids = _presetExIdsExisting(p);
+  if (!ids.length){ alert('Plan enthält keine vorhandenen Übungen'); return; }
+  wkExIds = ids.slice();
+  wkLogs  = [];
+  wkCatFilter = 'alle';
+  _activePlanSrc = { type:'preset', id: p.id };
+  const hint = document.getElementById('wk-plan-hint');
+  if (hint) hint.style.display = 'none';
+  openOv('ov-wk');
+  startActive();   // direkt ins aktive Training
 }
 
 /* ── Bearbeitungs-Modus ── */
@@ -9440,8 +9487,15 @@ function saveEx() {
   if (_midAddPending && !editId) {
     _midAddPending = false;
     addExToActiveWorkout(savedId);
+  } else if (_presetAddPending && !editId) {
+    // Aus dem Plan-Editor heraus → neue Übung direkt im Plan auswählen
+    _presetAddPending = false;
+    _presetSel.add(savedId);
+    openOv('ov-preset');
+    renderPresetExList();
   } else {
     _midAddPending = false;
+    _presetAddPending = false;
   }
 }
 
@@ -11411,12 +11465,21 @@ function deletePreset() {
 /* ── ÜBUNG MITTEN IM TRAINING HINZUFÜGEN ─────────────── */
 let _midAddQ = '';
 let _midAddPending = false; // true = neue Übung nach Speichern direkt ins Training
+let _presetAddPending = false; // true = neue Übung nach Speichern direkt in den Plan übernehmen
 
 function openNewExFromWorkout() {
   _midAddPending = true;
   closeOv('ov-mid-add');
   closeOv('ov-wk');          // Workout temp. verbergen (ov-ex liegt im DOM davor → würde sonst dahinter verschwinden)
   updateWkMiniVisibility();  // Mini-Indikator erscheint oben
+  openNewEx(null);
+}
+
+// Aus dem Plan-Editor heraus eine komplett neue Übung anlegen.
+// Nach dem Speichern wird sie automatisch im Plan ausgewählt.
+function openNewExFromPreset() {
+  _presetAddPending = true;
+  closeOv('ov-preset');
   openNewEx(null);
 }
 
@@ -11427,6 +11490,10 @@ function onCloseExOverlay() {
   if (_midAddPending) {
     _midAddPending = false;
     if (isWorkoutActive()) { openOv('ov-wk'); updateWkMiniVisibility(); }
+  } else if (_presetAddPending) {
+    _presetAddPending = false;
+    openOv('ov-preset');          // Plan-Editor wieder einblenden
+    renderPresetExList();
   }
 }
 
