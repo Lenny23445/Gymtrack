@@ -940,7 +940,7 @@ body{
 
 .sh-handle{
   /* breites, unsichtbares Touch-Ziel */
-  width:100%;height:28px;
+  width:100%;height:28px;flex-shrink:0;   /* in Flex-Column-Cards nicht schrumpfen */
   display:flex;align-items:center;justify-content:center;
   margin:0;padding:0;
   position:relative;z-index:1;
@@ -1211,11 +1211,15 @@ body{
   border-color:var(--acc);
   box-shadow:0 0 0 2px rgba(var(--acc-rgb),.16);
 }
+/* Vorgeschlagener (nicht eingetragener) Wert: bewusst blass + gestrichelt,
+   damit klar ist, dass es nur ein Vorschlag ist – nicht selbst eingetragen. */
 .set-in.is-sug{
-  color:var(--acc);
-  font-weight:600;
-  background:rgba(var(--acc-rgb),.08);
-  border-color:rgba(var(--acc-rgb),.25);
+  color:var(--text2);
+  font-weight:400;
+  opacity:.45;
+  background:transparent;
+  border-style:dashed;
+  border-color:var(--gl-bdr);
 }
 .set-in-btn{
   cursor:pointer;-webkit-tap-highlight-color:transparent;
@@ -2538,7 +2542,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
   border-radius:24px 24px 0 0;
   width:calc(100% - 24px);max-width:440px;margin:0 auto;
   max-height:88vh;display:flex;flex-direction:column;
-  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  padding:4px 16px calc(16px + env(safe-area-inset-bottom));
   box-shadow:0 -16px 56px rgba(0,0,0,.32);
   animation:up .28s cubic-bezier(.32,1,.32,1);
 }
@@ -2748,45 +2752,47 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 #update-toast.show{transform:translateX(-50%) translateY(0);}
 
-/* ── Native-App Update-Banner (TestFlight) ── */
+/* ── Native-App Update-Banner (App Store) ── */
 #native-update-bar{
   position:fixed;left:50%;top:calc(var(--sat) + 10px);
-  transform:translateX(-50%) translateY(-160px);
-  width:calc(100% - 24px);max-width:430px;
-  display:flex;align-items:center;gap:12px;
-  padding:12px 14px;border-radius:18px;
+  transform:translateX(-50%) translateY(-180px);
+  width:calc(100% - 20px);max-width:440px;
+  display:flex;align-items:center;gap:11px;
+  padding:12px 13px;border-radius:22px;
   background:var(--gl-bg-h);
   backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);
   border:1px solid var(--gl-bdr);
-  box-shadow:0 10px 34px rgba(0,0,0,.28),var(--gl-hi);
+  box-shadow:0 12px 38px rgba(0,0,0,.30),var(--gl-hi);
   z-index:9998;
   visibility:hidden;pointer-events:none;
-  transition:transform .4s cubic-bezier(.34,1.4,.64,1),visibility 0s .4s;
+  transition:transform .42s cubic-bezier(.34,1.4,.64,1),visibility 0s .42s;
 }
-#native-update-bar.show{transform:translateX(-50%) translateY(0);visibility:visible;pointer-events:auto;transition:transform .4s cubic-bezier(.34,1.4,.64,1)}
+#native-update-bar.show{transform:translateX(-50%) translateY(0);visibility:visible;pointer-events:auto;transition:transform .42s cubic-bezier(.34,1.4,.64,1)}
+/* App-Icon im App-Store-Stil */
 .nub-ico{
-  flex-shrink:0;width:40px;height:40px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--acc);color:#fff;
+  flex-shrink:0;width:50px;height:50px;border-radius:12px;
+  object-fit:cover;display:block;
+  box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 0 0 .5px rgba(255,255,255,.14);
 }
-.nub-ico svg{width:21px;height:21px}
-.nub-txt{flex:1;min-width:0}
-.nub-title{font-size:15px;font-weight:700;line-height:1.15;white-space:nowrap}
-.nub-sub{font-size:12px;color:var(--text2);margin-top:1px;line-height:1.25}
+.nub-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.nub-title{font-size:15px;font-weight:700;line-height:1.2;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nub-sub{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Blauer App-Store-Pill-Button */
 .nub-btn{
   flex-shrink:0;border:none;font-family:inherit;cursor:pointer;
-  background:var(--acc);color:#fff;font-size:13px;font-weight:700;
-  padding:9px 14px;border-radius:11px;
-  box-shadow:0 3px 12px rgba(var(--acc-rgb),.4);
-  transition:opacity .12s,transform .12s;
+  background:rgba(120,120,128,.18);color:#0a84ff;
+  font-size:11.5px;font-weight:800;letter-spacing:.2px;text-transform:uppercase;
+  padding:8px 13px;border-radius:100px;
+  transition:background .12s,transform .12s;
 }
-.nub-btn:active{opacity:.8;transform:scale(.96)}
+.nub-btn:active{background:rgba(120,120,128,.30);transform:scale(.95)}
 .nub-x{
-  flex-shrink:0;border:none;background:var(--g5);color:var(--text2);
-  width:26px;height:26px;border-radius:50%;cursor:pointer;
-  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;border:none;background:transparent;color:var(--text2);
+  width:18px;height:18px;border-radius:50%;cursor:pointer;opacity:.5;
+  font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  margin-left:-2px;padding:0;
 }
-.nub-x:active{opacity:.7}
+.nub-x:active{opacity:.85}
 
 /* ── CHANGELOG POPUP (Was ist neu) ── */
 .changelog-card{
@@ -3370,16 +3376,14 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 
 <div id="update-toast"></div>
 
-<!-- Native-App Update-Hinweis (nur iOS/TestFlight): erscheint, wenn eine neuere Version bereitsteht -->
+<!-- Native-App Update-Hinweis (nur iOS/App Store): erscheint, wenn eine neuere Version bereitsteht -->
 <div id="native-update-bar" role="dialog" aria-live="polite">
-  <div class="nub-ico" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-  </div>
+  <img class="nub-ico" src="icon-192.png" alt="MyGymTrack" width="54" height="54">
   <div class="nub-txt">
-    <div class="nub-title">Update verfügbar</div>
-    <div class="nub-sub" id="nub-sub">Neue Version in TestFlight bereit</div>
+    <div class="nub-title">MyGymTrack</div>
+    <div class="nub-sub" id="nub-sub">Neue Version im App Store verfügbar</div>
   </div>
-  <button class="nub-btn" onclick="openTestFlightUpdate()">Aktualisieren</button>
+  <button class="nub-btn" onclick="openAppStoreUpdate()">Aktualisieren</button>
   <button class="nub-x" onclick="dismissNativeUpdate()" aria-label="Später schließen">✕</button>
 </div>
 
@@ -4665,6 +4669,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 <!-- OVERLAY: STREAK DETAIL -->
 <div class="ov ov-streak-detail" id="ov-streak" onclick="if(event.target===this)closeOv('ov-streak')">
   <div class="streak-detail-card">
+    <div class="sh-handle"></div>
     <div class="strd-head">
       <span style="font-size:17px;font-weight:700">🔥 Streak</span>
       <button class="x-btn" onclick="closeOv('ov-streak')">✕</button>
@@ -4703,6 +4708,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 <!-- OVERLAY: MUSKEL DETAIL -->
 <div class="ov ov-mus" id="ov-muscle" onclick="if(event.target===this)closeOv('ov-muscle')">
   <div class="mus-card">
+    <div class="sh-handle"></div>
     <div class="mus-head">
       <div style="flex:1;min-width:0">
         <div class="mus-title" id="mus-title">Muskel</div>
@@ -4729,6 +4735,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 <!-- OVERLAY: KALENDER (Trainingstage letzte Monate) -->
 <div class="ov ov-cal" id="ov-calendar" onclick="if(event.target===this)closeOv('ov-calendar')">
   <div class="cal-card">
+    <div class="sh-handle"></div>
     <div class="cal-head">
       <div class="cal-head-title">Trainingskalender</div>
       <button class="x-btn" onclick="closeOv('ov-calendar')">✕</button>
@@ -4752,6 +4759,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 <!-- OVERLAY: VOLUMEN VOLLBILD -->
 <div class="ov ov-vol" id="ov-volume" onclick="if(event.target===this)closeOv('ov-volume')">
   <div class="vol-card">
+    <div class="sh-handle"></div>
     <div class="vol-head">
       <div style="font-size:17px;font-weight:700">Trainingsvolumen</div>
       <button class="x-btn" onclick="closeOv('ov-volume')">✕</button>
@@ -4779,7 +4787,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606190555';
+const APP_VERSION = 'gymtrack-v202606211357';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5700,7 +5708,6 @@ const SCHEME_DESC = {
   pyramid:'Erst schwerer werden bis zur Mitte, danach wieder leichter.',
   reverse:'Schwerster Satz zuerst, danach von Satz zu Satz leichter (Reverse Pyramid).'
 };
-const WARMUP_PCT = 0.50;       // Aufwärmgewicht = 50 % des Arbeitsgewichts
 const DROP_PCT   = 0.70;       // Drop-Satz = 70 % seines Schema-Gewichts
 
 function repRange(ex){
@@ -5756,15 +5763,15 @@ function buildPlannedSets(ex){
 
   return types.map((t,i) => {
     let w = '';
-    if(baseW != null){
-      if(t === 'warmup'){
-        w = String(roundToStep(baseW * WARMUP_PCT));
-      } else {
-        const pos  = Math.max(0, workIdx.indexOf(i));
-        let mult   = schemeMult(scheme, pos, nW);
-        if(t === 'drop') mult *= DROP_PCT;
-        w = String(roundToStep(baseW * mult));
-      }
+    if(t === 'warmup'){
+      // Aufwärmgewicht frei wählbar – nicht mehr automatisch berechnen,
+      // nur das zuletzt genutzte Aufwärmgewicht als Startwert vorbelegen.
+      if(prev && prev[i] && prev[i].w) w = String(prev[i].w);
+    } else if(baseW != null){
+      const pos  = Math.max(0, workIdx.indexOf(i));
+      let mult   = schemeMult(scheme, pos, nW);
+      if(t === 'drop') mult *= DROP_PCT;
+      w = String(roundToStep(baseW * mult));
     } else if(prev && prev[i] && prev[i].w){
       w = String(prev[i].w);
     }
@@ -8646,7 +8653,7 @@ function openProgressionInfo(exId) {
     <p style="margin:0 0 10px"><b>1. Wiederholungsbereich (Double Progression)</b><br>
     Du arbeitest in einem Bereich, z. B. <b>6–12</b>. Schaffst du in <u>allen</u> Arbeitssätzen das obere Ende (12), steigt das Gewicht — und du startest nächstes Mal wieder unten im Bereich (6). Bis dahin baust du Satz für Satz Wiederholungen auf.</p>
     <p style="margin:0 0 10px"><b>2. Arbeitssätze zählen</b><br>
-    Nur <b>Normal-, Top- und Versagen-Sätze</b> fließen in die Progression ein. <b>Aufwärmsätze (W)</b> werden ignoriert und bekommen automatisch ~50 % des Arbeitsgewichts.</p>
+    Nur <b>Normal-, Top- und Versagen-Sätze</b> fließen in die Progression ein. <b>Aufwärmsätze (W)</b> werden ignoriert — ihr Gewicht wählst du frei (zuletzt genutztes wird vorbelegt).</p>
     <p style="margin:0 0 10px"><b>3. Satz-Typen werden übernommen</b><br>
     Deine Typen (Aufwärmen, Top, Drop …) und das Schema werden ins nächste Training derselben Übung automatisch vorbelegt.</p>
     <p style="margin:0 0 10px"><b>4. Gewichts-Schema über die Sätze</b><br>
@@ -12490,8 +12497,9 @@ function importData() {
 // ── SHEET SWIPE-TO-DISMISS ────────────────────────────
 function initSheetSwipe() {
   document.querySelectorAll('.ov').forEach(ov => {
-    const sheet  = ov.querySelector('.sheet');
-    const handle = sheet && sheet.querySelector('.sh-handle');
+    if (ov.id === 'ov-done') return;                       // Vollbild-Abschluss – kein Sheet
+    const sheet  = ov.firstElementChild;                   // Karte/Sheet (egal welche CSS-Klasse)
+    const handle = sheet && sheet.querySelector(':scope > .sh-handle');
     if (!sheet || !handle) return;
 
     let sy = 0, ly = 0, dragging = false, hasMoved = false;
@@ -13594,34 +13602,61 @@ async function _runUpdateCheck() {
 
 // Einmalig kurz nach Start.
 // Web/PWA: still automatisch aktualisieren (SW + Cache).
-// Native (iOS/TestFlight): Inhalte sind gebündelt – nicht selbst ladbar.
-// Stattdessen prüfen, ob eine neuere Version bereitsteht, und zum Update in
-// TestFlight auffordern.
+// Native (iOS/App Store): Inhalte sind gebündelt – nicht selbst ladbar.
+// Stattdessen prüfen, ob eine neuere Version bereitsteht, und zum Update im
+// App Store auffordern.
 setTimeout(() => { if (_isNative()) _runNativeUpdateCheck(); else _runUpdateCheck(); }, 1200);
 
-// ── NATIVE UPDATE (TestFlight) ────────────────────────
-const TESTFLIGHT_URL     = 'https://testflight.apple.com/join/f8EzJFmc';
-const NATIVE_VERSION_URL = 'https://lenny23445.github.io/Gymtrack/latest-native.json';
-// Reine Versionsnummer (12-stelliger Zeitstempel) aus "gymtrack-vYYYYMMDDHHMM"
-const _verNum = v => { const m = String(v||'').match(/(\d{12})/); return m ? +m[1] : 0; };
+// ── NATIVE UPDATE (App Store) ─────────────────────────
+// Vollautomatisch über Apples offizielle iTunes-Lookup-API: vergleicht die
+// live im App Store stehende Version mit der installierten App-Version.
+// Kein manuelles Pflegen einer Versions-Datei nötig.
+const APP_STORE_ID       = '6775434876';
+const APP_STORE_URL      = 'https://apps.apple.com/app/id' + APP_STORE_ID;
+const ITUNES_LOOKUP_URL  = 'https://itunes.apple.com/lookup?id=' + APP_STORE_ID;
 let _nativeUpdateInfo = null;
+
+// Semver-Vergleich "1.0.2" vs "1.0.10" → 1 wenn a>b, -1 wenn a<b, sonst 0
+function _cmpVer(a, b){
+  const pa = String(a||'').split('.').map(n => parseInt(n,10) || 0);
+  const pb = String(b||'').split('.').map(n => parseInt(n,10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++){
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+// Installierte Marketing-Version (CFBundleShortVersionString) via @capacitor/app
+async function _installedVersion(){
+  try{
+    const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (A && A.getInfo){ const info = await A.getInfo(); return info && info.version; }
+  }catch(_){}
+  return null;
+}
 
 async function _runNativeUpdateCheck(){
   if (!_isNative() || !navigator.onLine) return;
   try{
-    const r = await fetch(NATIVE_VERSION_URL + '?_=' + Date.now(), { cache:'no-store' });
+    const installed = await _installedVersion();
+    if (!installed) return;
+    const r = await fetch(ITUNES_LOOKUP_URL + '&_=' + Date.now(), { cache:'no-store' });
     if (!r.ok) return;
-    const data   = await r.json();
-    const latest = data && data.version;
+    const data = await r.json();
+    const app  = data && data.results && data.results[0];
+    const latest = app && app.version;
     if (!latest) return;
-    // Nur auffordern, wenn die bereitgestellte Version wirklich neuer ist
-    if (_verNum(latest) > _verNum(APP_VERSION)){
+    // Nur auffordern, wenn die App-Store-Version wirklich neuer ist als die installierte
+    if (_cmpVer(latest, installed) > 0){
       // „Später" gilt nur für genau diese Version, bis die App neu gestartet wird
       let dismissed = '';
       try { dismissed = sessionStorage.getItem('gt_upd_dismissed') || ''; } catch(_){}
       if (dismissed === latest) return;
-      _nativeUpdateInfo = data;
-      _showNativeUpdateBar(data);
+      _nativeUpdateInfo = { version: latest, notes: 'Version ' + latest };
+      _showNativeUpdateBar(_nativeUpdateInfo);
     }
   }catch(_){ /* still */ }
 }
@@ -13632,13 +13667,14 @@ function _showNativeUpdateBar(data){
   const sub = document.getElementById('nub-sub');
   if (sub){
     const note = data && data.notes;
-    sub.textContent = note ? note : 'Neue Version in TestFlight bereit';
+    sub.textContent = note ? note : 'Neue Version im App Store verfügbar';
   }
   bar.classList.add('show');
 }
 
-function openTestFlightUpdate(){
-  _openExternal(TESTFLIGHT_URL);
+function openAppStoreUpdate(){
+  // Universal-Link öffnet auf iOS direkt die App-Store-App auf der Produktseite
+  _openExternal(APP_STORE_URL);
 }
 
 function dismissNativeUpdate(){
@@ -13651,7 +13687,7 @@ function dismissNativeUpdate(){
 }
 
 // Externen Link öffnen – in der nativen App im System-Browser, damit der
-// TestFlight-Universal-Link die TestFlight-App öffnet.
+// App-Store-Universal-Link die App-Store-App öffnet.
 function _openExternal(url){
   try{ if (window.open(url, '_system')) return; }catch(_){}
   try{
