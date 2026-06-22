@@ -4819,7 +4819,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606221626';
+const APP_VERSION = 'gymtrack-v202606221642';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5808,7 +5808,13 @@ function buildPlannedSets(ex){
       w = String(prev[i].w);
     }
     if(isTime) return { w, tElapsed:0, tRunning:false, tStart:null, type: t };
-    return { w, r: (t === 'warmup' ? '' : sugR), type: t };
+    // Wdh nur vorbelegen, wenn es Kontext gibt (Gewicht für diesen Satz ODER
+    // frühere Wdh-Daten dieser Übung). Sonst bleibt ein frischer Satz KOMPLETT
+    // leer — sonst sah er fertig aus (Wdh gefüllt, Gewicht leer) und wurde blind
+    // abgehakt → Einheit ohne Gewicht gespeichert (keine Statistik, keine PR).
+    const hasPrevReps = !!(prev && prev[i] && (prev[i].r || prev[i].r === 0) && String(prev[i].r) !== '');
+    const r = (t === 'warmup') ? '' : ((w !== '' || hasPrevReps) ? sugR : '');
+    return { w, r, type: t };
   });
 }
 
