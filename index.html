@@ -1239,6 +1239,15 @@ body{
   flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;
 }
 .ex-info-btn:active{transform:scale(.92)}
+.ex-swap-btn{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(var(--acc-rgb),.14);
+  border:1px solid rgba(var(--acc-rgb),.3);
+  color:var(--acc);font-size:14px;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;line-height:1;
+}
+.ex-swap-btn:active{transform:scale(.92) rotate(-30deg)}
 /* ── Wheel-Picker (Apple-Style) ── */
 .wheel-wrap{
   display:flex;justify-content:center;gap:14px;padding:8px 20px 16px;
@@ -2050,7 +2059,16 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .hw-plan-row:first-child{border-top:none;padding-top:2px}
 .hw-plan-row:active{opacity:.55}
 .hw-plan-name{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hw-plan-meta{font-size:12px;font-weight:800;color:var(--acc);flex-shrink:0}
+.hw-plan-meta{font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0}
+.hw-plan-start{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:3px;
+  font-size:12px;font-weight:700;font-family:inherit;color:#fff;
+  background:linear-gradient(135deg,#34C759,#2aa84a);
+  border:none;border-radius:999px;padding:6px 12px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;box-shadow:0 1px 4px rgba(52,199,89,.35);
+}
+.hw-plan-start:active{transform:scale(.94)}
+.hw-plan-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 /* Heatmap-Widget */
 .hw-hm-wrap{display:flex;gap:2px;justify-content:space-between}
 .hw-hm-col{display:flex;flex-direction:column;gap:2px;flex:1}
@@ -4623,8 +4641,22 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
         <button class="btn btn-acc" onclick="applyRepRange()" style="margin-top:4px">Bereich speichern</button>
       </div>
 
-      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase">Durch andere Übung ersetzen</div>
-      <div id="ex-edit-replace-list" style="max-height:280px;overflow:auto;border:1px solid var(--gl-bdr);border-radius:14px"></div>
+      <button class="btn btn-gray" onclick="openExSwap(_exEditLi)" style="margin-top:2px">⇄ Durch andere Übung ersetzen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: ÜBUNG TAUSCHEN (Schnell-Ersetzen im aktiven Training) -->
+<div class="ov" id="ov-ex-swap" onclick="if(event.target===this)closeOv('ov-ex-swap')">
+  <div class="sheet" style="max-height:86vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="ex-swap-title">Übung tauschen</h2>
+      <button class="x-btn" onclick="closeOv('ov-ex-swap')">✕</button>
+    </div>
+    <div class="px" style="padding-bottom:18px">
+      <input class="ex-search no-ico" id="ex-swap-search" type="search" placeholder="Übung suchen…" oninput="renderExSwapList(this.value)" autocomplete="off">
+      <div id="ex-swap-list" style="max-height:62vh;overflow:auto;margin-top:10px;border:1px solid var(--gl-bdr);border-radius:14px"></div>
     </div>
   </div>
 </div>
@@ -4787,7 +4819,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606211357';
+const APP_VERSION = 'gymtrack-v202606221626';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -6312,7 +6344,10 @@ function hwPlans(size){
     const cnt = _presetExIdsExisting(p).length;
     return `<div class="hw-plan-row" onclick="startPresetDirect('${p.id}')">
       <span class="hw-plan-name">${p.name}</span>
-      <span class="hw-plan-meta">${cnt} ▸</span>
+      <span class="hw-plan-right">
+        <span class="hw-plan-meta">${cnt} Üb.</span>
+        <button class="hw-plan-start" onclick="event.stopPropagation();startPresetDirect('${p.id}')">▶ Start</button>
+      </span>
     </div>`;
   }).join('') + `</div>`;
 }
@@ -7255,7 +7290,15 @@ function _repsOk(s, target) {
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
   if (!hist.length) return ex.targetWeight ? Number(ex.targetWeight) : null;
-  const last = hist[hist.length-1];
+  // Jüngste Einheit mit echtem Arbeitsgewicht suchen — nicht stur die allerletzte.
+  // Sonst „vergisst" die App das Gewicht dauerhaft, sobald einmal eine Einheit
+  // ohne Gewicht (nur Wdh) gespeichert wurde → nie wieder ein Vorschlag, keine PR.
+  let lastIdx = -1;
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if (_workSets(hist[i].sets).length) { lastIdx = i; break; }
+  }
+  if (lastIdx < 0) return ex.targetWeight ? Number(ex.targetWeight) : null;
+  const last = hist[lastIdx];
 
   const workSets = _workSets(last.sets);
   if (!workSets.length) return null;
@@ -7275,16 +7318,22 @@ function getSuggestedWeight(ex) {
   const stepBig   = topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5);
   const stepSmall = 2.5;
 
-  if (hist.length >= 2) {
-    const prev    = hist[hist.length-2];
-    const pWork   = _workSets(prev.sets);
-    const pJob    = pWork.filter(s => (s.type||'normal') !== 'top');
-    const pMain   = pJob.length ? pJob : pWork.filter(s => s.type === 'top');
-    if (pMain.length) {
-      const pAllReps = pMain.every(s => _repsOk(s, ex.targetReps));
-      const pMax     = maxW(pMain);
-      if (allReps && allSets && pAllReps && lMaxW === pMax) {
-        return lMaxW + stepBig;
+  if (lastIdx >= 1) {
+    // vorletzte Einheit MIT Arbeitsgewicht (vor lastIdx)
+    let prevIdx = -1;
+    for (let i = lastIdx - 1; i >= 0; i--) {
+      if (_workSets(hist[i].sets).length) { prevIdx = i; break; }
+    }
+    if (prevIdx >= 0) {
+      const pWork   = _workSets(hist[prevIdx].sets);
+      const pJob    = pWork.filter(s => (s.type||'normal') !== 'top');
+      const pMain   = pJob.length ? pJob : pWork.filter(s => s.type === 'top');
+      if (pMain.length) {
+        const pAllReps = pMain.every(s => _repsOk(s, ex.targetReps));
+        const pMax     = maxW(pMain);
+        if (allReps && allSets && pAllReps && lMaxW === pMax) {
+          return lMaxW + stepBig;
+        }
       }
     }
   }
@@ -9052,21 +9101,45 @@ function openExEditMenu(li) {
     _rrEdit = { sets: ex.targetSets || 3, min, max };
     _renderRepRange();
   }
-  // Ersatz-Liste
-  const list = document.getElementById('ex-edit-replace-list');
-  const usedIds = wkLogs.map(l => l.exerciseId);
-  list.innerHTML = S.exercises.map(other => {
-    if (other.id === log.exerciseId) return '';
-    const inUse = usedIds.includes(other.id);
-    return `<div class="row tap${inUse?' is-disabled':''}" onclick="${inUse?'':`replaceExInWorkout('${other.id}')`}">
-      <div class="row-body">
-        <div class="row-title">${other.name}${inUse?' <span style=\"color:var(--text2);font-size:11px\">(schon im Training)</span>':''}</div>
-        <div class="row-sub">${other.muscleGroup ? muscleLabel(other.muscleGroup) : ''}</div>
-      </div>
-      <div class="chev">›</div>
-    </div>`;
-  }).filter(Boolean).join('') || '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Keine weiteren Übungen verfügbar.</div>';
   openOv('ov-ex-edit');
+}
+
+// ── ÜBUNG TAUSCHEN (Schnell-Ersetzen) ──
+// Direkt von der Übungskarte aus erreichbar (⇄) ODER aus dem Bearbeiten-Sheet.
+// Behält Position + bereits eingetragene Sätze, tauscht nur die Übung aus.
+function openExSwap(li) {
+  if (li == null || !wkLogs[li]) return;
+  _exEditLi = li;
+  const ex = exById(wkLogs[li].exerciseId);
+  const t = document.getElementById('ex-swap-title');
+  if (t) t.textContent = ex ? `„${ex.name}" tauschen` : 'Übung tauschen';
+  const s = document.getElementById('ex-swap-search');
+  if (s) s.value = '';
+  closeOv('ov-ex-edit');           // falls aus dem Bearbeiten-Sheet geöffnet
+  renderExSwapList('');
+  openOv('ov-ex-swap');
+}
+function renderExSwapList(query) {
+  const list = document.getElementById('ex-swap-list');
+  if (list == null || _exEditLi == null || !wkLogs[_exEditLi]) return;
+  const curId   = wkLogs[_exEditLi].exerciseId;
+  const usedIds = wkLogs.map(l => l.exerciseId);
+  const q = _normSearch(query || '');
+  const items = S.exercises
+    .filter(other => other.id !== curId)
+    .filter(other => !q || _normSearch(other.name).includes(q))
+    .map(other => {
+      const inUse = usedIds.includes(other.id);
+      return `<div class="row tap${inUse?' is-disabled':''}" onclick="${inUse?'':`replaceExInWorkout('${other.id}')`}">
+        <div class="row-body">
+          <div class="row-title">${other.name}${inUse?' <span style="color:var(--text2);font-size:11px">(schon im Training)</span>':''}</div>
+          <div class="row-sub">${other.muscleGroup ? muscleLabel(other.muscleGroup) : ''}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+    });
+  list.innerHTML = items.join('') ||
+    '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">Keine passende Übung gefunden.</div>';
 }
 let _rrEdit = { sets:3, min:8, max:12 };
 function _renderRepRange() {
@@ -9127,7 +9200,10 @@ function replaceExInWorkout(newExId) {
   const sw = getSuggestedWeight(newEx);
   log.sugW = sw != null ? String(sw) : '';
   log.sugR = String(newEx.targetReps);
+  closeOv('ov-ex-swap');
   closeOv('ov-ex-edit');
+  haptic(12);
+  _dndToast('Übung getauscht');
   renderLogCards();
 }
 
@@ -11668,7 +11744,7 @@ function renderLogCards() {
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
         ${ssLinked ? '<span class="ss-badge">🔗 SS</span>' : ''}
         <span class="ex-goal-tap" style="font-size:13px;color:var(--text2)" onclick="openExEditMenu(${li})">Ziel: ${goalLabel} ›</span>
-        <button class="ex-info-btn" onclick="openProgressionInfo('${log.exerciseId}')" title="Progression erklären" aria-label="Progression erklären">i</button>
+        <button class="ex-swap-btn" onclick="openExSwap(${li})" title="Übung tauschen" aria-label="Übung tauschen">⇄</button>
       </div>
       <div class="ex-body">
         <div class="set-hdr"><span></span><span></span><span>TYP</span><span>${unitLabel().toUpperCase()}</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
@@ -13359,6 +13435,12 @@ function pickSetType(type){
 function lastSessionSetsFor(exId){
   const hist = exHistory(exId);
   if (!hist.length) return null;
+  // Jüngste Einheit MIT echtem Arbeitsgewicht bevorzugen, damit „letztes Mal"
+  // und die Vorbelegung wieder Gewicht zeigen — auch wenn die allerletzte
+  // Einheit versehentlich ohne Gewicht gespeichert wurde.
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if ((hist[i].sets || []).some(s => parseFloat(s.w) > 0)) return hist[i].sets;
+  }
   return hist[hist.length-1].sets || null;
 }
 
@@ -13862,16 +13944,20 @@ function _mergeData(local, cloud) {
   return {
     exercises: [...exMap.values()],
     sessions:  [...sesMap.values()].sort((a,b) => new Date(a.date) - new Date(b.date)),
-    theme:        cloud.theme        ?? local.theme,
-    companion:    cloud.companion    ?? local.companion,
-    companionOn:  cloud.companionOn  ?? local.companionOn,
-    exFilterMode: cloud.exFilterMode ?? local.exFilterMode,
-    wkFilterMode: cloud.wkFilterMode ?? local.wkFilterMode,
-    statsFilterMode: cloud.statsFilterMode ?? local.statsFilterMode,
-    unitMode:     cloud.unitMode     ?? local.unitMode,
-    glass:        cloud.glass        ?? local.glass,
-    welcomeShown: cloud.welcomeShown ?? local.welcomeShown,
-    heuteLayout:  cloud.heuteLayout  ?? local.heuteLayout ?? null,
+    // Skalare Einstellungen: recency-aware (pick) statt ?? — sonst überschreibt
+    // ein ÄLTERER Cloud-Wert eine neuere lokale Änderung, die noch nicht
+    // hochgeladen wurde (App vor dem 800ms-Push geschlossen). Genau das ließ
+    // z.B. die Standard-Satzpause "nach zweimal Schließen" wieder verschwinden.
+    theme:        pick(cloud.theme,        local.theme),
+    companion:    pick(cloud.companion,    local.companion),
+    companionOn:  pick(cloud.companionOn,  local.companionOn),
+    exFilterMode: pick(cloud.exFilterMode, local.exFilterMode),
+    wkFilterMode: pick(cloud.wkFilterMode, local.wkFilterMode),
+    statsFilterMode: pick(cloud.statsFilterMode, local.statsFilterMode),
+    unitMode:     pick(cloud.unitMode,     local.unitMode),
+    glass:        pick(cloud.glass,        local.glass),
+    welcomeShown: cloud.welcomeShown || local.welcomeShown,
+    heuteLayout:  pick(cloud.heuteLayout,  local.heuteLayout) ?? null,
     weekPlan:     pick(cloud.weekPlan,     local.weekPlan),
     customSplits:   _mergeById(cloud.customSplits,   local.customSplits,   cloudNewer),
     workoutPresets: _mergeById(cloud.workoutPresets, local.workoutPresets, cloudNewer),
@@ -13879,10 +13965,10 @@ function _mergeData(local, cloud) {
     trackerCounts: pick(cloud.trackerCounts, local.trackerCounts) || {},
     erfAchieved:  [...new Set([...(cloud.erfAchieved || []), ...(local.erfAchieved || [])])],
     weightLog:    [...wlMap.values()].sort((a,b) => a.date < b.date ? -1 : 1),
-    weightStart:  cloud.weightStart  ?? local.weightStart ?? null,
-    weightGoal:   cloud.weightGoal   ?? local.weightGoal ?? null,
-    restTimerSecs: cloud.restTimerSecs ?? local.restTimerSecs,
-    smartRest:    cloud.smartRest    ?? local.smartRest,
+    weightStart:  pick(cloud.weightStart,  local.weightStart) ?? null,
+    weightGoal:   pick(cloud.weightGoal,   local.weightGoal) ?? null,
+    restTimerSecs: pick(cloud.restTimerSecs, local.restTimerSecs),
+    smartRest:    pick(cloud.smartRest,    local.smartRest),
     updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
   };
 }
