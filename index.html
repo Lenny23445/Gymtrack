@@ -4819,12 +4819,20 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606221642';
+const APP_VERSION = 'gymtrack-v202606240001';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-06-24-recovery-bodyweight': {
+    label: '24.06.2026 · Erholung zählt jetzt auch Bodyweight-Training',
+    items: [
+      '🔋 Fix: Nach dem Training sank die Muskel-Erholung nicht, wenn Sätze ohne Gewicht geloggt wurden (Klimmzüge, Dips, Liegestütze, Wdh-only, Widget-Schnellstart)',
+      '💪 Bodyweight-Sätze ermüden den Muskel jetzt real — die Erholungs-Batterie fällt korrekt und füllt sich über die Zeit wieder auf',
+      '⚖️ Synthetische Last nutzt dein zuletzt geloggtes Körpergewicht; Volumen-, PR- und 1RM-Statistik bleiben unverändert (echtes Gewicht)',
+    ]
+  },
   'cl-2026-05-29-settings-cleanup': {
     label: '29.05.2026 · Einstellungen aufgeräumt + Statistik-Suche',
     items: [
@@ -10085,6 +10093,31 @@ function setLoad(s) {
   return w * r * setTypeMul(s.type);
 }
 
+/* Implizites Körpergewicht für gewichtslose Sätze (Bodyweight-Übungen).
+   Nimmt das zuletzt geloggte Körpergewicht, sonst Default. */
+function _impliedBodyweight() {
+  const wl = S.weightLog || [];
+  if (wl.length) {
+    const last = [...wl].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    const w = parseFloat(last && last.weight);
+    if (w > 0) return w;
+  }
+  return 75;
+}
+
+/* Last für die Ermüdungs-/Erholungsberechnung.
+   Anders als setLoad zählen hier auch Sätze OHNE Gewicht (Klimmzüge, Dips,
+   Liegestütze, Wdh-only): Bodyweight-Training ermüdet den Muskel real, darf
+   also die Erholung senken. Synthetisches Gewicht = anteiliges Körpergewicht.
+   Volumen-/PR-/1RM-Statistik nutzt weiterhin setLoad (echtes Gewicht). */
+function setFatigueLoad(s) {
+  const r = parseInt(s.r) || 0;
+  if (!r) return 0;
+  const w = parseFloat(s.w) || 0;
+  const eff = w > 0 ? w : _impliedBodyweight() * 0.6;
+  return eff * r * setTypeMul(s.type);
+}
+
 /* Berechnet aktuellen Ermüdungs-% pro Muskel (cached) */
 let _fatigueCache = null;
 function invalidateFatigue() { _fatigueCache = null; }
@@ -10112,7 +10145,7 @@ function computeFatigueAll() {
       const weights = exerciseMuscleWeights(ex);
       const ids = Object.keys(weights);
       if (!ids.length) continue;
-      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      const exVol = (log.sets || []).reduce((s,set)=>s+setFatigueLoad(set), 0);
       if (exVol <= 0) continue;
 
       for (const id of ids) {
@@ -10205,7 +10238,7 @@ function _personalNormLoad(muscleId) {
       const weights = exerciseMuscleWeights(ex);
       const w = weights[muscleId];
       if (!w) continue;
-      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      const exVol = (log.sets || []).reduce((s,set)=>s+setFatigueLoad(set), 0);
       sesLoad += exVol * w;
     }
     if (sesLoad > best) best = sesLoad;
@@ -10233,7 +10266,7 @@ function getRecovery() {
       const weights = exerciseMuscleWeights(ex);
       const ids = Object.keys(weights);
       if (!ids.length) continue;
-      const exVol = (log.sets || []).reduce((s,set)=>s+setLoad(set), 0);
+      const exVol = (log.sets || []).reduce((s,set)=>s+setFatigueLoad(set), 0);
       if (exVol <= 0) continue;
       for (const id of ids) {
         const w = weights[id];
@@ -10335,7 +10368,7 @@ function getExerciseRecovery() {
       if (!ts) continue;
       const log = (ses.logs || []).find(l => l.exerciseId === ex.id);
       if (!log) continue;
-      const sesLoad = (log.sets || []).reduce((s, set) => s + setLoad(set), 0);
+      const sesLoad = (log.sets || []).reduce((s, set) => s + setFatigueLoad(set), 0);
       if (sesLoad <= 0) continue;
 
       // Peak für persönliche Norm (ohne set-type-Bonus → roher Volume-Peak)
