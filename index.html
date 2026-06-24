@@ -4819,12 +4819,20 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606240001';
+const APP_VERSION = 'gymtrack-v202606240002';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-06-24-widget-start-flow': {
+    label: '24.06.2026 · Plan-Widget startet wie der normale Trainingsstart',
+    items: [
+      '📋 Plan aus dem Widget öffnet jetzt zuerst die Übungs-Auswahl — du kannst Übungen prüfen, hinzufügen oder abwählen',
+      '▶️ Erst der finale „Training starten"-Button führt ins aktive Training (vorher sprang das Widget direkt rein)',
+      '✅ Identischer Ablauf wie beim normalen Trainingsstart, inkl. Plan-Hinweis und Vorauswahl',
+    ]
+  },
   'cl-2026-06-24-recovery-bodyweight': {
     label: '24.06.2026 · Erholung zählt jetzt auch Bodyweight-Training',
     items: [
@@ -6365,7 +6373,9 @@ function hwPlans(size){
     </div>`;
   }).join('') + `</div>`;
 }
-// Plan aus dem Widget heraus sofort starten (ohne Zwischenschritt)
+// Plan aus dem Widget heraus starten → öffnet wie der normale Flow zuerst die
+// Übungs-Auswahl (Step 1) mit den Plan-Übungen vorausgewählt. Erst der finale
+// „Training starten"-Button führt ins aktive Training.
 function startPresetDirect(id){
   if (heuteEditMode) return;                 // im Bearbeiten-Modus nicht starten
   if (isWorkoutActive()){ openWorkout(); return; } // läuft schon → nur anzeigen
@@ -6377,10 +6387,20 @@ function startPresetDirect(id){
   wkLogs  = [];
   wkCatFilter = 'alle';
   _activePlanSrc = { type:'preset', id: p.id };
+
+  // Plan-Hinweis wie beim Wochenplan anzeigen
   const hint = document.getElementById('wk-plan-hint');
-  if (hint) hint.style.display = 'none';
+  const hintText = '📋 ' + p.name + ' · ' + ids.length + ' Übung' + (ids.length !== 1 ? 'en' : '') + ' vorausgewählt';
+  if (hint) { hint.style.display = ''; hint.textContent = hintText; }
+
+  // Step 1 (Auswahl/Prüfen) zeigen — identisch zum normalen openWorkout()
+  document.getElementById('wk-step1').style.display = '';
+  document.getElementById('wk-step2').style.display = 'none';
+  document.getElementById('wk-title').textContent = 'Training';
+  renderWkPresets();
+  renderWkFilterBar();
+  renderWkPicker();
   openOv('ov-wk');
-  startActive();   // direkt ins aktive Training
 }
 
 /* ── Bearbeitungs-Modus ── */
