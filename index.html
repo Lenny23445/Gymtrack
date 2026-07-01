@@ -1248,6 +1248,16 @@ body{
   flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;line-height:1;
 }
 .ex-swap-btn:active{transform:scale(.92) rotate(-30deg)}
+.ex-chart-btn{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(var(--acc-rgb),.14);
+  border:1px solid rgba(var(--acc-rgb),.3);
+  color:var(--acc);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;padding:0;-webkit-tap-highlight-color:transparent;line-height:1;
+}
+.ex-chart-btn svg{width:15px;height:15px;stroke:var(--acc);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.ex-chart-btn:active{transform:scale(.92)}
 /* ── Wheel-Picker (Apple-Style) ── */
 .wheel-wrap{
   display:flex;justify-content:center;gap:14px;padding:8px 20px 16px;
@@ -3716,12 +3726,19 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
         </div>
         <div class="row"><div class="row-body">
           <div class="row-title">Gewicht erhöhen</div>
-          <div class="row-sub" style="white-space:normal;line-height:1.45">Wenn du 2× alle Ziel-Wdh schaffst → +2,5 kg (leicht) / +5 kg (schwer)</div>
+          <div class="row-sub" style="white-space:normal;line-height:1.45">Wenn du alle Sätze am oberen Bereichsende schaffst → Gewicht steigt, Wdh starten wieder unten.</div>
         </div></div>
         <div class="row"><div class="row-body">
           <div class="row-title">Wdh-Fokus</div>
           <div class="row-sub" style="white-space:normal;line-height:1.45">Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren</div>
         </div></div>
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Standard-Steigerung</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.45">Gewichts-Schritt für alle Übungen ohne eigenen Wert. Leer = automatisch (+2,5 kg leicht / +5 kg schwer).</div>
+          </div>
+          <input class="f-in" id="in-progstep-global" type="number" step="0.25" min="0" placeholder="Auto" inputmode="decimal" style="width:82px;text-align:center;flex:none" onchange="setGlobalProgStep(this.value)">
+        </div>
       </div>
     </div>
     <div>
@@ -3800,7 +3817,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet" style="max-height:92vh;padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>📊 App-Statistiken</h2>
+      <h2>App-Statistiken</h2>
       <button class="x-btn" onclick="closeOv('ov-admin-stats')">✕</button>
     </div>
     <div class="px" style="padding-bottom:20px">
@@ -4110,6 +4127,13 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
           <div class="scheme-seg" id="scheme-seg"></div>
           <div class="scheme-desc" id="scheme-desc"></div>
         </div>
+        <div id="progstep-row" style="margin-top:14px">
+          <label class="f-label" style="font-size:10px">Gewichts-Steigerung bei vollem Wdh-Bereich (<span class="progstep-unit">kg</span>)</label>
+          <input class="f-in" type="number" id="in-progstep" step="0.25" min="0" placeholder="Standard" inputmode="decimal">
+          <div style="font-size:11px;color:var(--text2);margin-top:5px">
+            Um wie viel das Gewicht steigt, sobald du alle Sätze am oberen Bereichsende schaffst. Leer = globaler Standard.
+          </div>
+        </div>
       </div>
       <div class="f-field" id="plate-toggle-row" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -4142,7 +4166,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet" style="max-height:92vh">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>📅 Wochenplan</h2>
+      <h2>Wochenplan</h2>
       <button class="x-btn" onclick="closeOv('ov-plan')">✕</button>
     </div>
     <div class="px" style="padding-bottom:6px">
@@ -4169,7 +4193,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>📚 Übungs-Bibliothek</h2>
+      <h2>Übungs-Bibliothek</h2>
       <button class="x-btn" onclick="closeOv('ov-ex-lib')">✕</button>
     </div>
     <div class="ex-search-wrap" style="padding-top:4px">
@@ -4185,7 +4209,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>🗂️ Trainingsplan-Vorlagen</h2>
+      <h2>Trainingsplan-Vorlagen</h2>
       <button class="x-btn" onclick="closeOv('ov-plan-tpl')">✕</button>
     </div>
     <div class="tpl-warn">
@@ -4372,7 +4396,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
       <div class="s-title">Letzte Einheiten</div>
       <div class="card" id="det-hist"></div>
       <div class="gap" style="height:12px"></div>
-      <button class="btn btn-gray btn-sm" style="width:auto;display:inline-block;padding:10px 20px" onclick="editDet()">✏️ Bearbeiten</button>
+      <button class="btn btn-gray btn-sm" style="width:auto;display:inline-block;padding:10px 20px" onclick="editDet()">Bearbeiten</button>
     </div>
   </div>
 </div>
@@ -4506,7 +4530,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>✉️ Feedback senden</h2>
+      <h2>Feedback senden</h2>
       <button class="x-btn" onclick="closeOv('ov-feedback')">✕</button>
     </div>
     <div class="px" style="padding-bottom:18px">
@@ -4531,7 +4555,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2>📈 So funktioniert Progression</h2>
+      <h2>So funktioniert Progression</h2>
       <button class="x-btn" onclick="closeOv('ov-prog-info')">✕</button>
     </div>
     <div class="px" style="padding-bottom:18px">
@@ -4608,7 +4632,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
       <button class="btn btn-acc" onclick="applyExRename()" style="margin-bottom:14px">Namen speichern</button>
 
       <div id="ss-section" style="margin-bottom:14px">
-        <button class="btn btn-gray" id="ss-btn" onclick="toggleSuperset()">🔗 Superset mit nächster Übung</button>
+        <button class="btn btn-gray" id="ss-btn" onclick="toggleSuperset()">Superset mit nächster Übung</button>
         <div id="ss-hint" style="font-size:11px;color:var(--text2);margin-top:6px;text-align:center;line-height:1.4"></div>
       </div>
 
@@ -4656,7 +4680,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
     </div>
     <div class="px" style="padding-bottom:18px">
       <input class="ex-search no-ico" id="ex-swap-search" type="search" placeholder="Übung suchen…" oninput="renderExSwapList(this.value)" autocomplete="off">
-      <div id="ex-swap-list" style="max-height:62vh;overflow:auto;margin-top:10px;border:1px solid var(--gl-bdr);border-radius:14px"></div>
+      <div id="ex-swap-list" style="max-height:56vh;overflow:auto;margin-top:10px;border:1px solid var(--gl-bdr);border-radius:14px"></div>
+      <button class="btn btn-gray" onclick="openNewExFromSwap()" style="margin-top:12px">＋ Neue Übung erstellen</button>
     </div>
   </div>
 </div>
@@ -4703,7 +4728,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <div class="streak-detail-card">
     <div class="sh-handle"></div>
     <div class="strd-head">
-      <span style="font-size:17px;font-weight:700">🔥 Streak</span>
+      <span style="font-size:17px;font-weight:700">Streak</span>
       <button class="x-btn" onclick="closeOv('ov-streak')">✕</button>
     </div>
     <div class="strd-hero">
@@ -4819,7 +4844,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202606240002';
+const APP_VERSION = 'gymtrack-v202607010001';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5838,6 +5863,7 @@ function buildPlannedSets(ex){
 function migrateExercises(){
   let changed = false;
   (S.exercises || []).forEach(ex => {
+    if(_healExMuscleGroup(ex)) changed = true;   // Muskelgruppe für Erholung sicherstellen (auch Zeit-Übungen)
     if(ex.targetType === 'time') return;     // Zeit-Übungen: kein Bereich/Schema
     if(ex.repMax == null || ex.repMin == null){
       const base = ex.targetReps || 10;
@@ -7321,6 +7347,15 @@ function _repsOk(s, target) {
   return s.type === 'fail' || parseInt(s.r) >= target;
 }
 
+// Steigerungs-Schritt (kg) beim Erreichen des Wdh-Bereichs.
+// Priorität: pro Übung (ex.progStep) → global (S.progStepDefault) → null (Auto-Fallback).
+// Werte werden intern in kg gespeichert.
+function progStepFor(ex) {
+  if (ex && ex.progStep != null && ex.progStep !== '' && isFinite(ex.progStep) && Number(ex.progStep) > 0) return Number(ex.progStep);
+  if (S.progStepDefault != null && S.progStepDefault !== '' && isFinite(S.progStepDefault) && Number(S.progStepDefault) > 0) return Number(S.progStepDefault);
+  return null;
+}
+
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
   if (!hist.length) return ex.targetWeight ? Number(ex.targetWeight) : null;
@@ -7348,9 +7383,11 @@ function getSuggestedWeight(ex) {
   const allReps = mainSets.every(s => _repsOk(s, ex.targetReps));
   const allSets = mainSets.length >= (topOnly ? 1 : ex.targetSets);
 
+  // Konfigurierbarer Steigerungs-Schritt (pro Übung > global > Auto-Fallback).
   // Top-Satz: kleinere Stufen bis 100 kg (präzisere Intensitätssteuerung)
-  const stepBig   = topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5);
-  const stepSmall = 2.5;
+  const cfgStep   = progStepFor(ex);
+  const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
+  const stepSmall = cfgStep != null ? cfgStep : 2.5;
 
   if (lastIdx >= 1) {
     // vorletzte Einheit MIT Arbeitsgewicht (vor lastIdx)
@@ -7392,8 +7429,9 @@ function getSuggestion(ex) {
   const allReps = mainSets.every(s => _repsOk(s, ex.targetReps));
   const allSets = mainSets.length >= (topOnly ? 1 : ex.targetSets);
 
-  const stepBig   = topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5);
-  const stepSmall = 2.5;
+  const cfgStep   = progStepFor(ex);
+  const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
+  const stepSmall = cfgStep != null ? cfgStep : 2.5;
 
   if (hist.length >= 2) {
     const prev   = hist[hist.length-2];
@@ -9395,6 +9433,9 @@ function openNewEx(exId) {
   document.getElementById('in-sets').value = '3';
   document.getElementById('in-reps-min').value = '8';
   document.getElementById('in-reps').value = '12';
+  const psIn = document.getElementById('in-progstep');
+  if (psIn) psIn.value = '';
+  document.querySelectorAll('.progstep-unit').forEach(u => u.textContent = unitLabel());
   document.getElementById('del-ex-btn').style.display = 'none';
   document.getElementById('ex-sheet-title').textContent = 'Übung hinzufügen';
 
@@ -9415,6 +9456,7 @@ function openNewEx(exId) {
         const rr = repRange(ex);
         document.getElementById('in-reps-min').value = rr.min;
         document.getElementById('in-reps').value = rr.max;
+        if (psIn) psIn.value = (ex.progStep != null && ex.progStep !== '') ? String(kgToDisp(ex.progStep)) : '';
       }
       document.getElementById('del-ex-btn').style.display = '';
       document.getElementById('ex-sheet-title').textContent = 'Übung bearbeiten';
@@ -9566,8 +9608,14 @@ function saveEx() {
     reps   = repMax;                 // Ziel = oberes Bereich-Ende (Kompatibilität)
     scheme = WEIGHT_SCHEMES.includes(selScheme) ? selScheme : 'straight';
   }
+  // Gewichts-Steigerung (Eingabe in Anzeige-Einheit → intern kg). Leer/0 = globaler Standard.
+  let progStep = null;
+  if (selExType !== 'time') {
+    const psRaw = (document.getElementById('in-progstep')?.value || '').replace(',', '.').trim();
+    if (psRaw !== '') { const n = dispToKg(parseFloat(psRaw)); if (isFinite(n) && n > 0) progStep = n; }
+  }
   const patch = { name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps,
-                  targetType:selExType, repMin, repMax, weightScheme:scheme,
+                  targetType:selExType, repMin, repMax, weightScheme:scheme, progStep,
                   showPlateCalc: selExType !== 'time' ? selShowPlates : false,
                   img: selExImg || null };
 
@@ -9601,7 +9649,17 @@ function saveEx() {
   renderHome();
 
   // Wenn aus aktivem Training heraus aufgerufen → neue Übung direkt hinzufügen
-  if (_midAddPending && !editId) {
+  if (_swapAddPending && !editId) {
+    // Aus dem Tausch-Menü → neue Übung ersetzt den getauschten Slot
+    _swapAddPending = false;
+    if (isWorkoutActive() && _exEditLi != null && wkLogs[_exEditLi]) {
+      replaceExInWorkout(savedId);
+      openOv('ov-wk');
+      updateWkMiniVisibility();
+    } else {
+      addExToActiveWorkout(savedId);
+    }
+  } else if (_midAddPending && !editId) {
     _midAddPending = false;
     addExToActiveWorkout(savedId);
   } else if (_presetAddPending && !editId) {
@@ -9613,6 +9671,7 @@ function saveEx() {
   } else {
     _midAddPending = false;
     _presetAddPending = false;
+    _swapAddPending = false;
   }
 }
 
@@ -9808,7 +9867,7 @@ function openDet(exId) {
   detId = exId;
   const ex = exById(exId);
   if (!ex) return;
-  document.getElementById('det-title').textContent = ex.emoji+' '+ex.name;
+  document.getElementById('det-title').textContent = (ex.emoji ? ex.emoji+' ' : '')+ex.name;
 
   const sug = getSuggestion(ex);
   document.getElementById('det-sug').innerHTML = sug
@@ -10087,6 +10146,34 @@ const MUSCLES_BY_MG = MUSCLES.reduce((acc, m) => {
 /* Übung → Verteilung der Last auf Muskeln (Summe = 1.0)
    Heuristik: 1) Schlagwort-Treffer im Namen
               2) Sonst gleichmäßig auf alle Muskeln der Hauptgruppe */
+// Kanonische Muskelgruppen (brust/ruecken/beine/arme/schultern/core)
+const _CANON_MG = new Set(MUSCLE_GROUPS.map(g => g.id));
+
+/* Löst die kanonischen Muskelgruppen-ids einer Übung robust auf — auch wenn
+   ex.muscleGroup fehlt, englisch ist oder eine PPL-/Ober-Unter-/Split-Gruppe.
+   Ohne diese Auflösung fielen falsch getaggte Übungen komplett aus der
+   Erholungs-Berechnung heraus (Muskel blieb „erholt", letztes Datum veraltet). */
+function _resolveMgIds(ex) {
+  if (!ex) return [];
+  // 1) muscleGroup ist bereits eine kanonische Gruppe
+  if (_CANON_MG.has(ex.muscleGroup)) return [ex.muscleGroup];
+  // 2) abgeleitete Muskel-Modus-Zugehörigkeit (immer kanonische ids)
+  const gm = (ex.groups && Array.isArray(ex.groups.muskel))
+    ? ex.groups.muskel.filter(id => _CANON_MG.has(id)) : [];
+  if (gm.length) return [...new Set(gm)];
+  // 3) muscleGroup ist eine Gruppen-id aus PPL/Ober-Unter/Custom → auf kanonische mg mappen
+  if (ex.muscleGroup) {
+    for (const m of allModes()) {
+      const g = m.groups.find(g => g.id === ex.muscleGroup);
+      if (g && g.muscles) {
+        const canon = g.muscles.filter(id => _CANON_MG.has(id));
+        if (canon.length) return [...new Set(canon)];
+      }
+    }
+  }
+  return [];
+}
+
 function exerciseMuscleWeights(ex) {
   if (!ex) return {};
   const name = String(ex.name || '').toLowerCase();
@@ -10098,11 +10185,31 @@ function exerciseMuscleWeights(ex) {
     const w = 1 / hits.length;
     return hits.reduce((acc, id) => { acc[id] = w; return acc; }, {});
   }
-  // Fallback: über MUSCLE_GROUPS verteilen
-  const list = MUSCLES_BY_MG[ex.muscleGroup] || [];
+  // Fallback: kanonische Muskelgruppen robust auflösen → gleichmäßig auf Muskeln verteilen
+  const list = _resolveMgIds(ex).flatMap(id => MUSCLES_BY_MG[id] || []);
   if (!list.length) return {};
   const w = 1 / list.length;
   return list.reduce((acc, m) => { acc[m.id] = w; return acc; }, {});
+}
+
+/* Heilt eine fehlende/uneindeutige muscleGroup zu einer kanonischen Gruppe, damit
+   die Erholung IMMER korrekt zugeordnet wird. Reihenfolge: Namens-Schlagworte →
+   Gruppen-/Split-Auflösung. Gibt true zurück, wenn etwas geändert wurde. */
+function _healExMuscleGroup(ex) {
+  if (!ex || _CANON_MG.has(ex.muscleGroup)) return false;
+  // 1) Häufigste Hauptgruppe aus den Namens-Schlagworten
+  const name = String(ex.name || '').toLowerCase();
+  const tally = {};
+  for (const m of MUSCLES) if (m.kw.some(k => name.includes(k))) tally[m.mg] = (tally[m.mg] || 0) + 1;
+  let best = null, bestN = 0;
+  for (const mg in tally) if (tally[mg] > bestN) { best = mg; bestN = tally[mg]; }
+  // 2) Sonst über Gruppen-/Split-Zugehörigkeit auflösen
+  if (!best) best = _resolveMgIds(ex)[0] || null;
+  if (!best || best === ex.muscleGroup) return false;
+  ex.muscleGroup = best;
+  ensureExGroups(ex);
+  ex.groups.muskel = _deriveGroupIds(ex, modeById('muskel'));
+  return true;
 }
 
 /* Last eines einzelnen Satzes (in kg-reps-Äquivalent) */
@@ -11608,12 +11715,23 @@ function deletePreset() {
 let _midAddQ = '';
 let _midAddPending = false; // true = neue Übung nach Speichern direkt ins Training
 let _presetAddPending = false; // true = neue Übung nach Speichern direkt in den Plan übernehmen
+let _swapAddPending = false; // true = neue Übung nach Speichern direkt in den getauschten Slot
 
 function openNewExFromWorkout() {
   _midAddPending = true;
   closeOv('ov-mid-add');
   closeOv('ov-wk');          // Workout temp. verbergen (ov-ex liegt im DOM davor → würde sonst dahinter verschwinden)
   updateWkMiniVisibility();  // Mini-Indikator erscheint oben
+  openNewEx(null);
+}
+
+// Aus dem Tausch-Menü heraus eine komplett neue Übung anlegen.
+// Nach dem Speichern ersetzt sie die aktuell getauschte Übung (behält Slot + Sätze).
+function openNewExFromSwap() {
+  _swapAddPending = true;    // _exEditLi (Ziel-Slot) bleibt erhalten
+  closeOv('ov-ex-swap');
+  closeOv('ov-wk');
+  updateWkMiniVisibility();
   openNewEx(null);
 }
 
@@ -11629,8 +11747,9 @@ function openNewExFromPreset() {
    Wenn aus aktivem Training heraus geöffnet → Workout wieder einblenden. */
 function onCloseExOverlay() {
   closeOv('ov-ex');
-  if (_midAddPending) {
+  if (_midAddPending || _swapAddPending) {
     _midAddPending = false;
+    _swapAddPending = false;
     if (isWorkoutActive()) { openOv('ov-wk'); updateWkMiniVisibility(); }
   } else if (_presetAddPending) {
     _presetAddPending = false;
@@ -11801,8 +11920,9 @@ function renderLogCards() {
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${displayName} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
-        ${ssLinked ? '<span class="ss-badge">🔗 SS</span>' : ''}
+        ${ssLinked ? '<span class="ss-badge">SS</span>' : ''}
         <span class="ex-goal-tap" style="font-size:13px;color:var(--text2)" onclick="openExEditMenu(${li})">Ziel: ${goalLabel} ›</span>
+        <button class="ex-chart-btn" onclick="openDet('${log.exerciseId}')" title="Verlauf & Diagramm" aria-label="Verlauf & Diagramm"><svg viewBox="0 0 24 24"><polyline points="3,17 9,11 13,15 21,6"/><polyline points="15,6 21,6 21,12"/></svg></button>
         <button class="ex-swap-btn" onclick="openExSwap(${li})" title="Übung tauschen" aria-label="Übung tauschen">⇄</button>
       </div>
       <div class="ex-body">
@@ -12582,6 +12702,21 @@ function renderSettings() {
   document.querySelectorAll('[data-unit-btn]').forEach(b => {
     b.classList.toggle('on', b.dataset.unitBtn === (S.unitMode||'kg'));
   });
+  // Globale Steigerung (in Anzeige-Einheit)
+  const gps = document.getElementById('in-progstep-global');
+  if (gps) gps.value = (S.progStepDefault != null && S.progStepDefault !== '') ? String(kgToDisp(S.progStepDefault)) : '';
+}
+
+// Globaler Gewichts-Steigerungs-Schritt (Eingabe in Anzeige-Einheit → intern kg).
+// Bewusst NICHT in der Cloud (Firestore-hasOnly-Regeln) — reine Geräte-Einstellung.
+function setGlobalProgStep(v) {
+  const raw = String(v || '').replace(',', '.').trim();
+  if (raw === '') { S.progStepDefault = null; }
+  else { const n = dispToKg(parseFloat(raw)); S.progStepDefault = (isFinite(n) && n > 0) ? n : null; }
+  persist();
+  const gps = document.getElementById('in-progstep-global');
+  if (gps) gps.value = (S.progStepDefault != null) ? String(kgToDisp(S.progStepDefault)) : '';
+  if (typeof renderSuggestions === 'function' && document.getElementById('sug-list')) renderSuggestions();
 }
 
 // ── BACKUP: EXPORT ────────────────────────────────────
