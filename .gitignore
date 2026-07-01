@@ -12,3 +12,6 @@ provisioning_b64.txt
 ios_distribution_*.cer
 *.p8
 
+
+# lokale App-Store-Build-Artefakte (Mac)
+.appstore-build/
