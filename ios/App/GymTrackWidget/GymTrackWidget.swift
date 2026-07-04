@@ -22,18 +22,47 @@ struct WidgetData {
     var todayIndex:    Int     // 0=Mo … 6=So
     var trackers:      [TrackerItem]
 
+    // Montag der aktuellen Woche als "YYYY-MM-DD" (lokale Zeitzone, Mo=Wochenstart)
+    static func currentWeekStartKey(_ now: Date = Date()) -> String {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 2 // Montag
+        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)) ?? now
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = .current
+        return f.string(from: start)
+    }
+
     static func fromDefaults() -> WidgetData {
         let d = UserDefaults(suiteName: appGroup)
         let raw = d?.string(forKey: "gymtrack.weekDays") ?? "0,0,0,0,0,0,0"
         var levels = raw.split(separator: ",").map { Int($0) ?? 0 }
         while levels.count < 7 { levels.append(0) }
+
+        // "Heute" IMMER live berechnen — der gespeicherte Snapshot veraltet um
+        // Mitternacht, wenn die App nicht geöffnet wird (0=Mo … 6=So).
+        let liveTodayIdx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+
+        // Wochenwechsel: Snapshot stammt aus einer früheren Woche → Kreise/Zähler
+        // gehören zur ALTEN Woche und dürfen nicht als "diese Woche" erscheinen.
+        let storedWeekKey = d?.string(forKey: "gymtrack.weekStartKey") ?? ""
+        let isSameWeek = storedWeekKey.isEmpty || storedWeekKey == currentWeekStartKey()
+
+        // Tagesplan aus dem 7-Tage-Snapshot für den LIVE-Tag lesen
+        var todayPlan = d?.string(forKey: "gymtrack.todayPlan") ?? ""
+        if let plansRaw = d?.string(forKey: "gymtrack.plansJson")?.data(using: .utf8),
+           let plans = try? JSONSerialization.jsonObject(with: plansRaw) as? [String],
+           plans.count == 7 {
+            todayPlan = plans[liveTodayIdx]
+        }
+
         return WidgetData(
             streakWeeks:  d?.integer(forKey: "gymtrack.streakWeeks")   ?? 0,
-            todayPlan:    d?.string(forKey:  "gymtrack.todayPlan")     ?? "",
-            weekSessions: d?.integer(forKey: "gymtrack.weekSessions")  ?? 0,
+            todayPlan:    todayPlan,
+            weekSessions: isSameWeek ? (d?.integer(forKey: "gymtrack.weekSessions") ?? 0) : 0,
             lastWorkout:  d?.string(forKey:  "gymtrack.lastWorkout")   ?? "",
-            weekDays:     Array(levels.prefix(7)),
-            todayIndex:   d?.integer(forKey: "gymtrack.todayIndex")    ?? 0,
+            weekDays:     isSameWeek ? Array(levels.prefix(7)) : [0,0,0,0,0,0,0],
+            todayIndex:   liveTodayIdx,
             trackers:     WidgetData.loadTrackers(d)
         )
     }
@@ -127,9 +156,14 @@ struct GymTrackProvider: TimelineProvider {
         completion(GymTrackEntry(date: Date(), data: context.isPreview ? .placeholder : .fromDefaults()))
     }
     func getTimeline(in context: Context, completion: @escaping (Timeline<GymTrackEntry>) -> Void) {
-        let entry = GymTrackEntry(date: Date(), data: .fromDefaults())
-        let next  = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        let now   = Date()
+        let entry = GymTrackEntry(date: now, data: .fromDefaults())
+        let halfHour = Calendar.current.date(byAdding: .minute, value: 30, to: now)!
+        // Kurz nach Mitternacht neu laden, damit "Heute"-Plan und Wochen-Kreise
+        // auch ohne App-Öffnung auf den neuen Tag umspringen.
+        let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0, minute: 1),
+                                                 matchingPolicy: .nextTime) ?? halfHour
+        completion(Timeline(entries: [entry], policy: .after(min(halfHour, midnight))))
     }
 }
 

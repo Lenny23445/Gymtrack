@@ -41,6 +41,17 @@ S = {
 ## Features
 Übungen + Muskelgruppen-Filter · Training starten/loggen, Gewichtsvorschläge · 1RM (Epley) + Chart · Statistik Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets Swipe-to-dismiss · 4 Themes · Dackel-Begleiter · Auto-Update (sw.js-Direktvergleich) · Changelog-Popup · Cardio-Timer + SW-Notification · Cloud-Sync Firebase · Aktives Training überlebt App-Neustart (localStorage `gt_active_wk`, Restore via `_restoreActiveWk()` im INIT, 8h-TTL) · Supersätze (`log.ssGroup`, Pause erst wenn alle Partner Satz N fertig) · Plate Calculator im Gewichts-Wheel (`_renderPlateCalc`, Stange via `S.plateBar`, nur lokal) · Herzfrequenz im Training (HealthKitPlugin `getLatestHeartRate`, JS-Polling 15 s via `_startHrPolling`, nur nativ).
 
+## Sicherheit & wichtige Invarianten
+
+- **XSS:** Alle frei eingegebenen Texte (Übungsnamen, Plan-/Split-Namen, Tracker-Labels, Notizen) MÜSSEN beim `innerHTML`-Rendern durch `esc()` (Function-Declaration nahe `maxW()`). Daten wandern per Cloud-Sync → sonst Stored XSS. Bei jedem neuen `innerHTML`-Template mit User-Text `esc(...)` verwenden.
+- **Progression (Double Progression):** Aufwärmsätze zählen NICHT zum Satz-Soll. In `getSuggestedWeight` / `getSuggestion` / `getSuggestedReps` gilt `allSets = mainSets.length >= targetSets - warmups`. Gewichts-Erhöhung und Wdh-Reset auf Bereichsanfang passieren immer gemeinsam (sonst Rückschritt).
+- **Overlay-Stacking im Training:** `WK_SUB_SHEETS` (in `openOv`/`closeOv`) verdrängt `ov-wk` statt zu stapeln (kein „Fenster in Fenster"); beim Schließen des letzten Untersheets kommt `ov-wk` zurück. `ov-wheel`/`ov-settype` sind bewusst NICHT drin — sie liegen als Picker ÜBER dem Training. `goTab` setzt `_suppressWkRestore`, damit beim Tab-Wechsel nichts aufpoppt.
+
+## Widget-Sync (iOS)
+
+- `_updateWidgetData(immediate)` → `_pushWidgetData()`: `immediate=true` bei `visibilitychange:hidden` + `pagehide` (iOS friert JS ein → 800ms-Debounce würde nie feuern). Zusätzlich Flush bei Kaltstart (`setTimeout 1500`) und beim Sichtbarwerden.
+- App sendet 7-Tage-Pläne (`plansJson`) + `weekStartKey`. Das Widget (`GymTrackWidget.swift`, `fromDefaults()`) berechnet „Heute"-Index und Wochenzugehörigkeit LIVE — so springen Tagesplan/Kreise auch ohne App-Öffnung um Mitternacht um. Timeline reloadet 30-min + kurz nach Mitternacht. Neue Widget-Keys müssen in `WidgetDataPlugin.updateWidget` gespeichert werden.
+
 ## Code-Muster
 
 **Neues Bottom Sheet:**

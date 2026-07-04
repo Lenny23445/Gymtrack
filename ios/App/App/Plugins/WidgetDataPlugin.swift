@@ -32,6 +32,8 @@ public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.set(call.getString("lastWorkout") ?? "", forKey: "gymtrack.lastWorkout")
         defaults.set(call.getString("weekDays")    ?? "0,0,0,0,0,0,0", forKey: "gymtrack.weekDays")
         defaults.set(call.getInt("todayIndex")     ?? 0,  forKey: "gymtrack.todayIndex")
+        defaults.set(call.getString("weekStartKey") ?? "", forKey: "gymtrack.weekStartKey")
+        defaults.set(call.getString("plansJson")   ?? "[]", forKey: "gymtrack.plansJson")
         defaults.set(call.getString("trackerJson") ?? "{\"weekKey\":\"\",\"items\":[]}", forKey: "gymtrack.trackerJson")
         defaults.set(Date().timeIntervalSince1970,         forKey: "gymtrack.lastUpdated")
         call.resolve()
