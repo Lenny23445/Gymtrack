@@ -10,14 +10,21 @@
 - `GymTrack-Update.ps1` (`C:\Users\wolte\Desktop\`) — bumpt Version, git add/commit/push
 
 ## Deploy / Versionsbump
-Manueller Bump — **immer .NET, NIE `Get-Content`/`Set-Content`** (BOM + Mojibake):
+
+**Nach JEDER App-Änderung immer beides (Standard-Workflow, Mac):**
+1. Version bumpen: `APP_VERSION` in index.html == `CACHE` in sw.js (`gymtrack-vJJJJMMTTNNNN`)
+2. **Nativ lokal:** `npm run build && npx cap sync ios` → aktualisiert `www/` + `ios/App/App/public/` (Xcode/Codemagic bauen daraus)
+3. **Web parallel:** `git add` (nur geänderte Dateien) + `git commit` auf `main`; `git push origin main` → GitHub Pages deployt ~1 Min. Falls Push-Auth fehlt: committen und User Bescheid geben.
+
+`www/` ist gitignored — Codemagic baut es selbst (npm build → cap sync → setup_ios_extensions.rb).
+
+Legacy (Windows-PC): Bump **immer .NET, NIE `Get-Content`/`Set-Content`** (BOM + Mojibake):
 ```powershell
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 $html = [System.IO.File]::ReadAllText($path, $utf8NoBom)
 $html = $html -replace "gymtrack-v\d+", "gymtrack-v$version"
 [System.IO.File]::WriteAllText($path, $html, $utf8NoBom)
 ```
-`APP_VERSION` in index.html muss immer mit `CACHE` in sw.js übereinstimmen.
 
 ## Architektur (index.html: CSS → HTML → JS)
 
