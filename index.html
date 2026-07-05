@@ -765,7 +765,7 @@ body{
              inset 0 1px 0 rgba(255,255,255,.10);
 }
 .tabbar::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:46%;
+  content:'';position:absolute;top:0;left:0;right:0;height:44%;
   background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 100%);
   pointer-events:none;border-radius:999px 999px 0 0;
 }
@@ -1899,9 +1899,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   font-variant-numeric:tabular-nums;
 }
 .streak-badge .streak-fire{
-  font-size:15px;line-height:1;
-  filter:drop-shadow(0 1px 4px rgba(255,149,0,.55));
-  animation:streak-pulse 2.4s ease-in-out infinite;
+  font-size:15px;line-height:1;display:inline-flex;align-items:center;
 }
 .streak-badge.cold{
   background:linear-gradient(135deg,rgba(120,140,170,.10),rgba(120,140,170,.05));
@@ -1921,7 +1919,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .streak-detail-card{background:var(--gl-bg-h);backdrop-filter:blur(60px) saturate(200%);-webkit-backdrop-filter:blur(60px) saturate(200%);border:1px solid var(--gl-bdr);border-radius:28px 28px 0 0;width:100%;max-width:430px;padding-bottom:calc(32px + var(--sab));animation:up .28s cubic-bezier(.32,1,.32,1)}
 .strd-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--sep)}
 .strd-hero{display:flex;flex-direction:column;align-items:center;padding:22px 20px 16px;gap:4px}
-.strd-fire{font-size:52px;filter:drop-shadow(0 4px 12px rgba(255,149,0,.45));animation:streak-pulse 2.4s ease-in-out infinite;display:block}
+.strd-fire{font-size:52px;display:flex;justify-content:center}
 .strd-weeks{font-size:48px;font-weight:800;line-height:1;background:linear-gradient(135deg,#ff9500,#ff3b30);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .strd-label{font-size:14px;color:var(--text2);font-weight:500}
 .strd-hist-wrap{padding:14px 20px 6px}
@@ -2486,8 +2484,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .heatmap-wrap{
   padding:12px 10px;border-radius:18px;
   background:var(--gl-bg);border:1px solid var(--gl-bdr);
-  backdrop-filter:blur(40px) saturate(180%);
-  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  backdrop-filter:blur(90px) saturate(240%);
+  -webkit-backdrop-filter:blur(90px) saturate(240%);
   box-shadow:var(--gl-shad),var(--gl-hi);
   overflow:hidden;position:relative;
   box-sizing:border-box;max-width:100%;
@@ -2527,8 +2525,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .week-card{
   padding:14px 12px;border-radius:18px;
   background:var(--gl-bg);border:1px solid var(--gl-bdr);
-  backdrop-filter:blur(40px) saturate(180%);
-  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  backdrop-filter:blur(90px) saturate(240%);
+  -webkit-backdrop-filter:blur(90px) saturate(240%);
   box-shadow:var(--gl-shad),var(--gl-hi);
   box-sizing:border-box;max-width:100%;cursor:pointer;
   transition:transform .12s;
@@ -3396,6 +3394,82 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .done-share-btn:active{background:rgba(255,255,255,.16)}
 .done-ok-btn{flex:1;background:linear-gradient(135deg,#007AFF 0%,#0051d6 100%);color:#fff;border:none;border-radius:16px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 28px rgba(0,90,255,.48);transition:opacity .15s;-webkit-tap-highlight-color:transparent;letter-spacing:-.2px}
 .done-ok-btn:active{opacity:.82}
+
+/* ═══════════════════════════════════════════════════
+   GLASS 2.0 — LEBENDIGE DETAILS (additiver Layer)
+   Flamme · Batterie-Laden · Ringe · Ziffern
+   ═══════════════════════════════════════════════════ */
+
+/* ── ANIMIERTE FLAMME (SVG, ersetzt 🔥 in Badge + Streak-Sheet) ── */
+.fl{display:inline-flex;position:relative;line-height:0;vertical-align:middle}
+.fl svg{display:block;overflow:visible}
+.fl .fl-outer{transform-origin:50% 94%;animation:fl-outer 1.9s ease-in-out infinite}
+.fl .fl-inner{transform-origin:50% 92%;animation:fl-inner 1.25s ease-in-out infinite}
+.fl .fl-core{transform-origin:50% 90%;animation:fl-core .95s ease-in-out infinite}
+@keyframes fl-outer{
+  0%,100%{transform:scaleY(1) scaleX(1) rotate(-1.6deg)}
+  28%{transform:scaleY(1.07) scaleX(.965) rotate(1.1deg)}
+  55%{transform:scaleY(.955) scaleX(1.03) rotate(-.6deg)}
+  78%{transform:scaleY(1.05) scaleX(.98) rotate(1.7deg)}
+}
+@keyframes fl-inner{
+  0%,100%{transform:scaleY(1) rotate(1.4deg)}
+  35%{transform:scaleY(1.11) scaleX(.94) rotate(-1.8deg)}
+  70%{transform:scaleY(.93) scaleX(1.05) rotate(1deg)}
+}
+@keyframes fl-core{
+  0%,100%{transform:scaleY(1);opacity:.95}
+  45%{transform:scaleY(1.16) scaleX(.9);opacity:.75}
+  75%{transform:scaleY(.9) scaleX(1.06);opacity:1}
+}
+.streak-badge .fl{filter:drop-shadow(0 1px 5px rgba(255,149,0,.55))}
+.streak-badge.cold .fl{filter:grayscale(.75) opacity(.6)}
+.streak-badge.cold .fl .fl-outer,.streak-badge.cold .fl .fl-inner,.streak-badge.cold .fl .fl-core{animation:none}
+.strd-fire .fl{filter:drop-shadow(0 5px 16px rgba(255,149,0,.50))}
+/* Funken steigen nur in der großen Detail-Flamme auf */
+.fl-ember{position:absolute;left:50%;bottom:18%;width:4px;height:4px;border-radius:50%;
+  background:radial-gradient(circle,#FFD60A 0%,#FF9500 70%);opacity:0;pointer-events:none;
+  animation:fl-ember 2.7s ease-out infinite}
+.fl-ember:nth-child(2){animation-delay:.9s;margin-left:-9px;width:3px;height:3px}
+.fl-ember:nth-child(3){animation-delay:1.8s;margin-left:7px;width:3px;height:3px}
+@keyframes fl-ember{
+  0%{opacity:0;transform:translate(0,0) scale(1)}
+  10%{opacity:.95}
+  100%{opacity:0;transform:translate(var(--ember-x,5px),-46px) scale(.3)}
+}
+
+/* ── MUSKEL-AKKU: Lade-Animation + Glas-Glanz (Logik/Farben unverändert) ── */
+.rec-batt-fill{
+  position:relative;overflow:hidden;
+  transform-origin:left center;
+  animation:batt-charge .9s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes batt-charge{from{transform:scaleX(.04)}}
+.rec-batt-fill::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.08) 48%,rgba(0,0,0,.06) 100%);
+  pointer-events:none;
+}
+.rec-batt.is-empty .rec-batt-fill{
+  animation:batt-charge .9s cubic-bezier(.22,1,.36,1) both,batt-low 2s ease-in-out 1.1s infinite;
+}
+@keyframes batt-low{0%,100%{opacity:1}50%{opacity:.5}}
+/* Großer senkrechter Akku lädt von unten */
+.rec-batt-v-fill{transform-origin:50% 100%;animation:batt-charge-v .9s cubic-bezier(.22,1,.36,1) both}
+@keyframes batt-charge-v{from{transform:scaleY(.05)}}
+
+/* ── WOCHENZIEL-RINGE: weiches Aufziehen ── */
+.tracker-ring-progress{transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)}
+
+/* ── ZAHLEN: tabellarische Ziffern für ruhiges Layout ── */
+.hw-big,.erf-hero-val,.erf-tile-val,.strd-weeks,.rec-batt-val,.rec-batt-v-pct,
+.done-stat-val,.hw-orm-val{font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion:reduce){
+  .fl .fl-outer,.fl .fl-inner,.fl .fl-core,.fl-ember,
+  .rec-batt-fill,.rec-batt-v-fill{animation:none!important}
+  .tracker-ring-progress{transition:none}
+}
 </style>
 </head>
 <body>
@@ -4844,7 +4918,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607040001';
+const APP_VERSION = 'gymtrack-v202607050001';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5252,6 +5326,67 @@ let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
   _updateWidgetData();
 };
+
+// ── GLASS 2.0: CHART-DESIGN (globale Defaults + weiche Verläufe) ──
+if (window.Chart) {
+  const C = window.Chart;
+  C.defaults.font.family = "-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif";
+  C.defaults.font.size = 11;
+  C.defaults.font.weight = '600';
+  C.defaults.animation.duration = 850;
+  C.defaults.animation.easing = 'easeOutQuart';
+  C.defaults.elements.line.borderCapStyle = 'round';
+  C.defaults.elements.line.borderJoinStyle = 'round';
+  C.defaults.elements.bar.borderRadius = 7;
+  C.defaults.elements.bar.borderSkipped = false;
+  C.defaults.plugins.tooltip.backgroundColor = 'rgba(24,24,32,.88)';
+  C.defaults.plugins.tooltip.titleFont = {size:11, weight:'600'};
+  C.defaults.plugins.tooltip.bodyFont = {size:13, weight:'700'};
+  C.defaults.plugins.tooltip.cornerRadius = 10;
+  C.defaults.plugins.tooltip.padding = 10;
+  C.defaults.plugins.tooltip.displayColors = false;
+  C.defaults.plugins.legend.labels.boxWidth = 8;
+  C.defaults.plugins.legend.labels.usePointStyle = true;
+  C.defaults.interaction = { mode: 'index', intersect: false };
+  C.defaults.elements.point.hitRadius = 14;
+  C.defaults.elements.point.hoverRadius = 5;
+}
+// Vertikaler Akzent-Verlauf als Flächenfüllung unter Linien-Charts
+function _accFill(canvas, hex, aTop) {
+  try {
+    const ctx = canvas.getContext('2d');
+    const h = canvas.clientHeight || canvas.height || 220;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, hex + (aTop || '3D'));
+    g.addColorStop(.55, hex + '14');
+    g.addColorStop(1, hex + '00');
+    return g;
+  } catch(e) { return hex + '22'; }
+}
+
+// ── GLASS 2.0: ANIMIERTE FLAMME (ersetzt 🔥 in Streak-Badge + Detail) ──
+// Eindeutige Gradient-IDs pro Instanz: url(#…) auf ein SVG in einem
+// display:none-Tab (z. B. Badge im versteckten Heute-Tab) rendert sonst schwarz.
+let _flameN = 0;
+function _flameSVG(px, embers) {
+  const w = px, h = Math.round(px * 1.18);
+  const u = 'flg' + (_flameN++);
+  return `<span class="fl" style="width:${w}px;height:${h}px">` +
+    (embers ? `<i class="fl-ember" style="--ember-x:6px"></i><i class="fl-ember" style="--ember-x:-7px"></i><i class="fl-ember" style="--ember-x:3px"></i>` : '') +
+    `<svg viewBox="0 0 24 28" width="${w}" height="${h}" aria-hidden="true">
+      <defs>
+        <linearGradient id="${u}A" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFB340"/><stop offset=".55" stop-color="#FF7A00"/><stop offset="1" stop-color="#FF3B30"/>
+        </linearGradient>
+        <linearGradient id="${u}B" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFE066"/><stop offset="1" stop-color="#FF9500"/>
+        </linearGradient>
+      </defs>
+      <path class="fl-outer" fill="url(#${u}A)" d="M12 1.5c.6 3.4-1 5.6-2.9 7.8C7 11.7 4.8 14 4.8 17.4c0 4.8 3.3 8.6 7.2 8.6s7.2-3.8 7.2-8.6c0-2.6-1.2-4.6-2.5-6.5-.5-.8-1.6-.7-2 .2-.3.7-.7 1.3-1.3 1.7.5-3.9-1.5-8.3-1.4-11.3z"/>
+      <path class="fl-inner" fill="url(#${u}B)" d="M12 9.2c.3 2-.6 3.3-1.7 4.6-1.1 1.4-2.3 2.8-2.3 4.8 0 3 2 5.4 4 5.4s4-2.4 4-5.4c0-1.6-.7-2.9-1.5-4.1-.3-.5-1-.4-1.2.1-.2.4-.4.8-.8 1.1.3-2.4-.7-4.7-.5-6.5z"/>
+      <ellipse class="fl-core" fill="#FFF7E0" cx="12" cy="21.6" rx="2.3" ry="3"/>
+    </svg></span>`;
+}
 
 // ── CAPACITOR NATIVE PLUGINS ───────────────────────────────
 const _isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform?.());
@@ -7016,11 +7151,13 @@ function _cXT(n) {
 }
 // Punkt-Radius: bei vielen Punkten kleiner, über 40 unsichtbar
 function _cPR(n) {
-  return n <= 8 ? 5 : n <= 15 ? 3 : n <= 30 ? 2 : 1;
+  // Glass 2.0: ab ~12 Punkten reine Linie — ruhiger, Tooltip-Hit-Radius bleibt
+  return n <= 8 ? 4 : n <= 12 ? 3 : 0;
 }
 // Standard Y-Achse
 function _cYT(cb) {
-  return { grid: { color: 'rgba(120,120,128,.10)' }, ticks: { font: { size: 10 }, color: '#8e8e93', callback: cb } };
+  return { grid: { color: 'rgba(120,120,128,.08)' }, border: { display: false },
+           ticks: { font: { size: 10 }, color: 'rgba(140,140,150,.85)', callback: cb, maxTicksLimit: 5 } };
 }
 
 // ── KÖRPERGEWICHT ──────────────────────────────────────
@@ -7080,7 +7217,7 @@ function _buildMiniChart(log, goal, acc) {
   _weightMiniChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: { labels: pts.map(() => ''), datasets: [{
-      data, borderColor: acc, backgroundColor: acc + '18',
+      data, borderColor: acc, backgroundColor: _accFill(canvas, acc, '30'),
       fill: true, tension: .4, pointRadius: 0, borderWidth: 2
     }, ...goalDs]},
     options: {
@@ -7177,7 +7314,7 @@ function openWeightChartFull() {
     _weightFullChart = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: pts.map(p => new Date(p.date).toLocaleDateString('de-DE',{day:'numeric',month:'short'})),
-        datasets: [{ data, borderColor: acc, backgroundColor: acc+'22',
+        datasets: [{ data, borderColor: acc, backgroundColor: _accFill(canvas, acc),
           fill: true, tension: .4, pointBackgroundColor: acc,
           pointRadius: _cPR(data.length), pointHoverRadius: 7, borderWidth: 2.5
         }, ...goalDs]},
@@ -10018,7 +10155,7 @@ function renderDet1rmChart(hist) {
       labels: pts.map(p=>p.x),
       datasets:[{
         data: pts.map(p=>p.y),
-        borderColor: acc, backgroundColor: acc+'22',
+        borderColor: acc, backgroundColor: _accFill(canvas, acc),
         fill:true, tension:.4, pointBackgroundColor:acc,
         pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
       }]
@@ -10041,13 +10178,14 @@ function renderDetChart(hist) {
   if (detChart) { detChart.destroy(); detChart = null; }
   if (!pts.length) return;
   const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
-  detChart = new Chart(document.getElementById('det-chart').getContext('2d'), {
+  const detCv = document.getElementById('det-chart');
+  detChart = new Chart(detCv.getContext('2d'), {
     type:'line',
     data:{
       labels: pts.map(p=>p.x),
       datasets:[{
         data: pts.map(p=>p.y),
-        borderColor: acc, backgroundColor: acc+'22',
+        borderColor: acc, backgroundColor: _accFill(detCv, acc),
         fill:true, tension:.4, pointBackgroundColor:acc,
         pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
       }]
@@ -10930,7 +11068,7 @@ function openVolumeFull() {
         labels: pts.map(p=>p.x),
         datasets:[{
           data: pts.map(p=>p.y),
-          borderColor: acc, backgroundColor: acc+'22',
+          borderColor: acc, backgroundColor: _accFill(canvas, acc),
           fill:true, tension:.4, pointBackgroundColor:acc,
           pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
         }]
@@ -11277,7 +11415,7 @@ function renderStatsOverallChart() {
       labels: pts.map(p=>p.x),
       datasets:[{
         data: pts.map(p=>p.y),
-        borderColor: acc, backgroundColor: acc+'22',
+        borderColor: acc, backgroundColor: _accFill(canvas, acc),
         fill:true, tension:.4, pointBackgroundColor:acc,
         pointRadius:_cPR(pts.length), pointHoverRadius:5, borderWidth:2
       }]
@@ -11484,7 +11622,7 @@ function renderMgStatChart(sessions) {
       labels: sessions.map(s => dateShort(s.date)),
       datasets:[{
         data: sessions.map(s => s.vol),
-        borderColor: acc, backgroundColor: acc+'22',
+        borderColor: acc, backgroundColor: _accFill(canvas, acc),
         fill:true, tension:.4, pointBackgroundColor:acc,
         pointRadius:_cPR(sessions.length), pointHoverRadius:7, borderWidth:2.5
       }]
@@ -13197,13 +13335,13 @@ function renderStreak(){
     ? st.weeks + ' Wochen in Folge trainiert'
     : 'Trainiere diese Woche, damit die Serie nicht reißt';
   host.innerHTML = `<div class="streak-badge${cold}" title="${tip}" onclick="openStreakDetail()" style="cursor:pointer">
-    <span class="streak-fire">${st.weeksThis?'🔥':'⏳'}</span>
+    <span class="streak-fire">${st.weeksThis?_flameSVG(15):'⏳'}</span>
     <span>${st.weeks}</span>
   </div>`;
 }
 function openStreakDetail() {
   const st = calcStreak();
-  document.getElementById('strd-fire').textContent = st.weeksThis ? '🔥' : '⏳';
+  document.getElementById('strd-fire').innerHTML = st.weeksThis ? _flameSVG(46, true) : '⏳';
   document.getElementById('strd-weeks').textContent = st.weeks;
   document.getElementById('strd-label').textContent = st.weeks === 1 ? 'Woche in Folge' : 'Wochen in Folge';
   document.getElementById('strd-this-week').innerHTML = st.weeksThis
