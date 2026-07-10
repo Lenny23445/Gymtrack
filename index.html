@@ -3568,6 +3568,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* ── FREUNDE-TAB (HIG: Karten, Glass, sanfte Animationen) ── */
 .fr-card{position:relative;display:flex;align-items:center;gap:14px;background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));border:1px solid var(--gl-bdr);border-radius:20px;padding:15px 16px;margin-bottom:12px;cursor:pointer;transition:transform .22s var(--spring),border-color .25s,box-shadow .25s;animation:fr-in .4s var(--ease) both}
 [data-glass="off"] .fr-card{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+.fr-card.noanim{animation:none}
 .fr-card:active{transform:scale(.975)}
 @keyframes fr-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .fr-card.live{border-color:rgba(48,209,88,.55);animation:fr-in .4s var(--ease) both,fr-pulse 2.6s ease-in-out 0.4s infinite}
@@ -5187,7 +5188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607100005';
+const APP_VERSION = 'gymtrack-v202607100006';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -14330,7 +14331,7 @@ function renderOb(){
 // Follow-Modell: Wessen Code du eingibst, den siehst du.
 // ═══════════════════════════════════════════════════════
 let _socTab = 'friends', _socMetric = 'vol', _socPushT = null;
-let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null;
+let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null, _frListDrawn = false;
 let _socCache = null, _socCacheTs = 0;
 let _socMap = null, _socMarkers = [], _leafP = null;
 let _socEditing = false, _socTmp = null, _socSearchT = null, _socHits = [];
@@ -14579,6 +14580,7 @@ function _updateFrBadges(){
 }
 async function _renderFrOverview(body){
   body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
+  _frListDrawn = false;   /* Einblend-Animation nur beim ersten Aufbau, nicht bei Live-Updates */
   _initFrPull(body);
   _loadRequests().then(r => _renderFrReqs(r.inc));
   await _loadProfiles();
@@ -14641,7 +14643,9 @@ function _renderFrList(){
   }
   const rank = p => (p.live && p.live.on ? 2 : 0) + (_frPresence[p.uid] ? 1 : 0);
   friends.sort((a,b) => rank(b) - rank(a) || (b.lastWk||0) - (a.lastWk||0));
-  el.innerHTML = friends.map((p,i) => _frCardHTML(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('');
+  const anim = !_frListDrawn; _frListDrawn = true;
+  el.innerHTML = friends.map((p,i) => _frCardHTML(p).replace('class="fr-card',
+    anim ? `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card` : 'class="fr-card noanim')).join('');
 }
 /* Pull-to-Refresh */
 let _ptrY = null, _ptrOn = false;
@@ -14950,11 +14954,12 @@ const _FEED_EMOJIS = ['💪','🔥','👏','❤️'];
 function _feedItemHTML(a, compact){
   const me = a.uid === _fbUser?.uid;
   const name = me ? 'Du' : (a.name || 'Athlet');
+  const hat = me ? 'hast' : 'hat';
   let txt;
-  if (a.type === 'pr') txt = `<b>${esc(name)}</b> hat einen neuen Rekord aufgestellt: <b>${esc(a.prName||'')}</b> ${esc(a.prVal||'')}`;
-  else if (a.type === 'streak') txt = `<b>${esc(name)}</b> hat eine <b>${a.streak}-Wochen-Streak</b> erreicht`;
+  if (a.type === 'pr') txt = `<b>${esc(name)}</b> ${hat} einen neuen Rekord aufgestellt: <b>${esc(a.prName||'')}</b> ${esc(a.prVal||'')}`;
+  else if (a.type === 'streak') txt = `<b>${esc(name)}</b> ${hat} eine <b>${a.streak}-Wochen-Streak</b> erreicht`;
   else {
-    txt = `<b>${esc(name)}</b> hat ${a.mg ? 'ein <b>' + esc(a.mg) + '-Training' : 'ein <b>Training'}</b> beendet${a.dur ? ' · ' + a.dur + ' Min.' : ''}`;
+    txt = `<b>${esc(name)}</b> ${hat} ${a.mg ? 'ein <b>' + esc(a.mg) + '-Training' : 'ein <b>Training'}</b> beendet${a.dur ? ' · ' + a.dur + ' Min.' : ''}`;
     if (a.prs && a.prs.length) txt += `<br>Neue${a.prs.length>1?'':'r'} Rekord${a.prs.length>1?'e':''}: <b>${a.prs.map(esc).join(', ')}</b>`;
     if ((a.week||0) >= 4) txt += `<br>Bereits <b>${a.week}× diese Woche</b> trainiert`;
   }
