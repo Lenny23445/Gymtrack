@@ -5188,7 +5188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607100007';
+const APP_VERSION = 'gymtrack-v202607100008';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -14480,8 +14480,8 @@ function renderFriendsTab(){
   }
   if (!_fbUser || _fbUser.isAnonymous) {
     body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
-      <div style="font-size:16px;font-weight:700">Anmelden für die Community</div>
-      <div class="soc-empty" style="padding:0">Melde dich an, damit Freunde dich finden und du Live-Status, Feed und Rangliste siehst.</div>
+      <div style="font-size:16px;font-weight:700">Freunde hinzufügen</div>
+      <div class="soc-empty" style="padding:0">Füge Freunde hinzu, um deren Live-Status, Feed und Rangliste zu sehen — dafür meldest du dich einmal kurz an.</div>
       <button class="btn btn-acc" style="max-width:260px" onclick="openAccountSheet()">Jetzt anmelden</button></div>`;
     return;
   }
