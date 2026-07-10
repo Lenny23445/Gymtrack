@@ -5188,7 +5188,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607100006';
+const APP_VERSION = 'gymtrack-v202607100007';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -14515,7 +14515,6 @@ function _socFmtVal(v){
   if (_socMetric === 'ses' || _socMetric === 'monat') return v + '×';
   return v + ' Wo.';
 }
-const _CHALLENGE_GOAL = 12; // Workouts pro Monat
 async function _renderSocBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
@@ -14536,17 +14535,6 @@ async function _renderSocBoard(body){
   const hint = _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
              : _socMetric==='monat'  ? 'Monats-Ranking — zählt Trainings im ' + new Date().toLocaleDateString('de-DE',{month:'long'}) + '.'
              : 'Rangliste zählt die aktuelle Woche (Mo–So).';
-  // Challenge: 12 Workouts im Monat
-  const mrows = profs.map(p => ({ name:p.name, me:p.uid===_fbUser.uid, v:(p.month && p.month.key===_monthKey()) ? (p.month.ses||0) : 0 }))
-    .sort((a,b) => b.v - a.v);
-  const challenge = `<div class="frp-sec">Challenge · ${_CHALLENGE_GOAL} Workouts im Monat</div>
-    <div class="frp-vs">${mrows.map(r => `
-      <div class="frp-vs-row">
-        <span class="frp-vs-name">${r.me?'Du':esc(r.name||'')}</span>
-        <div class="frp-vs-bar"><div class="frp-vs-fill" style="width:${Math.min(100, r.v/_CHALLENGE_GOAL*100)}%${r.v>=_CHALLENGE_GOAL?';background:#30d158':''}"></div></div>
-        <span class="frp-vs-v">${r.v}</span>
-      </div>`).join('')}
-    </div>`;
   el.innerHTML = rows.map((p,i) => `
     <div class="soc-row${p.uid===_fbUser.uid?' me':''}">
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
@@ -14557,7 +14545,7 @@ async function _renderSocBoard(body){
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
     </div>`).join('') +
-    `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>` + challenge;
+    `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>`;
 }
 /* ── Freunde-Übersicht (Karten mit Live-Status) ── */
 const _FLAME_MINI = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2s5 4.6 5 9.8A5.2 5.2 0 0 1 12 17a5.2 5.2 0 0 1-5-5.2C7 6.6 12 2 12 2z"/></svg>';
@@ -14860,15 +14848,6 @@ function _socLevel(total){
   if (total >= 25)  return 'Bronze';
   return 'Einsteiger';
 }
-function _socBadgesFor(p){
-  const b = [];
-  if ((p.streak||0) >= 12)      b.push('Eisern · 12+ Wochen Streak');
-  else if ((p.streak||0) >= 4)  b.push('Konstant · 4+ Wochen Streak');
-  if ((p.stats?.total||0) >= 100) b.push('Century · 100 Workouts');
-  if ((p.week?.ses||0) >= 4 && p.week?.key === getWeekKey()) b.push('Powerwoche · 4+ Trainings');
-  if ((p.month?.ses||0) >= _CHALLENGE_GOAL && p.month?.key === _monthKey()) b.push('Challenge geschafft');
-  return b;
-}
 async function openFrProfile(uid){
   haptic(8);
   const p = (_socCache||[]).find(x => x.uid === uid); if (!p) return;
@@ -14881,7 +14860,6 @@ async function openFrProfile(uid){
   const meW = _weekStats().ses;
   const maxV = Math.max(wses, meW, 1);
   const favH = (st && st.favH != null) ? (st.favH + '–' + ((st.favH+2)%24) + ' Uhr') : null;
-  const badges = _socBadgesFor(p);
   const stats = [
     [String(p.streak||0) + ' Wo.', 'Trainings-Streak'],
     [st ? String(st.total) : '–', 'Workouts gesamt'],
@@ -14904,8 +14882,6 @@ async function openFrProfile(uid){
     <div class="frp-grid">${stats.map(s => `<div class="frp-stat"><div class="frp-stat-v">${s[0]}</div><div class="frp-stat-l">${s[1]}</div></div>`).join('')}</div>
     ${st && st.topMg && st.topMg.length ? `<div class="frp-sec">Lieblings-Muskelgruppen</div>
       <div class="frp-badges">${st.topMg.map(m => `<span class="frp-badge">${esc(m)}</span>`).join('')}</div>` : ''}
-    ${badges.length ? `<div class="frp-sec">Abzeichen</div>
-      <div class="frp-badges">${badges.map(b => `<span class="frp-badge">${_FLAME_MINI}${b}</span>`).join('')}</div>` : ''}
     <div class="frp-sec">Diese Woche · Du vs. ${esc((p.name||'').split(' ')[0])}</div>
     <div class="frp-vs">
       <div class="frp-vs-row"><span class="frp-vs-name">Du</span><div class="frp-vs-bar"><div class="frp-vs-fill" style="width:${meW/maxV*100}%"></div></div><span class="frp-vs-v">${meW}</span></div>
