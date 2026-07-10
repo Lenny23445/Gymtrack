@@ -18,6 +18,15 @@
 
 `www/` ist gitignored — Codemagic baut es selbst (npm build → cap sync → setup_ios_extensions.rb).
 
+### Trigger-Wort „Hochladen" (STANDING AUTHORIZATION)
+Sagt der User **„Hochladen"** (o.ä., z.B. „lade hoch"), sofort **ohne Rückfrage** ausführen:
+```
+./BUILD-FUER-APPSTORE.command
+```
+Macht komplett automatisch: npm build → cap sync → Widget-Extension/Entitlements → Version+Build-Nummer hochzählen → Archiv bauen → mit Apple-Distribution-Zertifikat signieren → Upload zu App Store Connect/TestFlight. Dauert einige Minuten — im Hintergrund laufen lassen (`run_in_background`), Ergebnis (Version, Build-Nummer, ARCHIVE/EXPORT SUCCEEDED) danach melden.
+Vorher kurz prüfen: `security find-identity -v -p codesigning` zeigt "Apple Distribution: ... (4XU2X547J2)" — wenn das fehlt, Upload wird scheitern, dann User Bescheid geben statt einfach zu starten.
+Das ist etwas anderes als der normale Deploy-Workflow oben (der synct nur lokal für Xcode + pushed die Web-Version) — „Hochladen" löst den VOLLEN signierten Store-Upload aus, einmalig vom User autorisiert am 2026-07-05.
+
 Legacy (Windows-PC): Bump **immer .NET, NIE `Get-Content`/`Set-Content`** (BOM + Mojibake):
 ```powershell
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
@@ -41,12 +50,15 @@ S = {
   sessions:[],   // {date, exercises:[{id, sets}]}
   theme:'light', companion:'dackel', companionOn:true,
   exFilterMode, wkFilterMode, statsFilterMode, // 'muskel'|'ppl'|'oberunter'
-  welcomeShown, lastSeenVersion, updatedAt
+  welcomeShown, lastSeenVersion, updatedAt,
+  onboarded, userName, obGoal, obExp, obFreq,  // Onboarding ('muskel'|'kraft'|'abnehmen'|'fit', 'neu'|'mittel'|'profi', 2–6)
+  socialOn, friendCode, friends:[uid],         // Community (Follow-Modell)
+  gymName, gymLat, gymLng                      // eigenes Gym für die Karte
 }
 ```
 
 ## Features
-Übungen + Muskelgruppen-Filter · Training starten/loggen, Gewichtsvorschläge · 1RM (Epley) + Chart · Statistik Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets Swipe-to-dismiss · 4 Themes · Dackel-Begleiter · Auto-Update (sw.js-Direktvergleich) · Changelog-Popup · Cardio-Timer + SW-Notification · Cloud-Sync Firebase · Aktives Training überlebt App-Neustart (localStorage `gt_active_wk`, Restore via `_restoreActiveWk()` im INIT, 8h-TTL) · Supersätze (`log.ssGroup`, Pause erst wenn alle Partner Satz N fertig) · Plate Calculator im Gewichts-Wheel (`_renderPlateCalc`, Stange via `S.plateBar`, nur lokal) · Herzfrequenz im Training (HealthKitPlugin `getLatestHeartRate`, JS-Polling 15 s via `_startHrPolling`, nur nativ).
+Übungen + Muskelgruppen-Filter · Training starten/loggen, Gewichtsvorschläge · 1RM (Epley) + Chart · Statistik Modus-Switcher (Muskeln/PPL/Ober-Unter) · Bottom Sheets Swipe-to-dismiss · 4 Themes · Dackel-Begleiter · Auto-Update (sw.js-Direktvergleich) · Changelog-Popup · Cardio-Timer + SW-Notification · Cloud-Sync Firebase · Aktives Training überlebt App-Neustart (localStorage `gt_active_wk`, Restore via `_restoreActiveWk()` im INIT, 8h-TTL) · Supersätze (`log.ssGroup`, Pause erst wenn alle Partner Satz N fertig) · Plate Calculator im Gewichts-Wheel (`_renderPlateCalc`, Stange via `S.plateBar`, nur lokal) · Herzfrequenz im Training (HealthKitPlugin `getLatestHeartRate`, JS-Polling 15 s via `_startHrPolling`, nur nativ) · Onboarding für neue User (`maybeStartOnboarding` im INIT, Fullscreen `#ob-screen`, JS-gerendert via `renderOb`, Plan-Empfehlung aus `PLAN_TEMPLATES` via `_applyTemplateCore`, Flag `S.onboarded`) · Community = eigener 5. Tab „Freunde" (`#pg-freunde`, `renderFriendsTab`, Segmente Freunde/Feed/Rangliste/Karte): Freundeskarten mit Live-Status („trainiert gerade", `profile.live` aus `isWorkoutActive()`+`timerTs`, Push-Hooks in `startActive`/`finishWk`/`cancelWk`), Online-Dot via RTDB-Presence (`FB.rtdbWatch`), onSnapshot-Live-Updates (`_frStartLive`/`_frStopLive` — Stop beim Tab-Wechsel!), Pull-to-Refresh; Freundesprofil-Sheet (`openFrProfile`: Level, Stats, Badges, Wochen-Vergleich, PRs); Activity-Feed (`profiles/{uid}/activities` Subcollection, Emoji-Reaktionen via reactions-Map, Rules erlauben Fremd-Update NUR auf `reactions`); Freundschaftsanfragen (`requests`-Collection: pending→accepted, Absender löst ein + löscht), Suche (Name-Präfix + Code), QR (`qrcodejs` lazy, Deep-Link `?add=CODE`), Blockieren (`S.blocked`, lokal); Privatsphäre `S.privacy` {gym,live,lastWk,stats,prs,feed} filtert `_pushSocialProfile`-Payload; Gamification: Monats-Ranking (`profile.month`), Challenge 12 Workouts/Monat, Badges. Opt-in via `S.socialOn`; Karte = Leaflet lazy + Carto + Nominatim; Heute-Widget `social`. **Wichtig:** Rules unten (profiles inkl. activities, requests, RTDB-presence-read) müssen in der Firebase-Konsole stehen + neue Keys im users-hasOnly — sonst permission-denied beim KOMPLETTEN users-Push.
 
 ## Sicherheit & wichtige Invarianten
 
@@ -117,11 +129,51 @@ service cloud.firestore {
              'streak','streakLastDate','notifEnabled','notifTime',
              'glass','adminUid','erfAchieved','weightGoal',
              'smartRestEnabled','smartRest',
-             'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs'
+             'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs',
+             'onboarded','userName','obGoal','obExp','obFreq',
+             'socialOn','friendCode','friends','gymName','gymLat','gymLng'
            ])
         // Max. 5000 Sessions und 500 Übungen (Kostendeckel)
         && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
         && (!('exercises' in request.resource.data) || request.resource.data.exercises.size() <= 500);
+    }
+    // Community: öffentliches Opt-in-Profil (Rangliste/Freunde/Gym-Karte).
+    // Lesen: jeder Angemeldete (nötig für Code-Lookup + Freunde-Ranglisten).
+    match /profiles/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+             'name','code','photo','gymName','gymLat','gymLng',
+             'week','month','streak','lastWk','live','stats','friends','updatedAt'
+           ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 30
+        && (!('friends' in request.resource.data) || request.resource.data.friends.size() <= 100);
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Activity-Feed: jeder schreibt nur eigene Aktivitäten; Freunde dürfen
+      // AUSSCHLIESSLICH das reactions-Feld ändern (Emoji-Reaktionen/Likes).
+      match /activities/{aid} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+      }
+    }
+    // Freundschaftsanfragen (senden → annehmen/ablehnen; Absender räumt akzeptierte auf)
+    match /requests/{rid} {
+      allow read: if request.auth != null
+        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['from','to','fromName','fromCode','ts','status']);
+      allow update: if request.auth != null
+        && resource.data.to == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if request.auth != null
+        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
     match /analytics_users/{userId} {
       allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
@@ -153,7 +205,7 @@ service cloud.firestore {
 {
   "rules": {
     "presence": {
-      ".read": "auth != null && auth.uid === 'GMm3AlNn1pVRL6cc76opBgnM9sr1'",
+      ".read": "auth != null",
       "$uid": {
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "newData.hasChildren(['online','lastChanged'])"

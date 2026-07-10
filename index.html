@@ -97,6 +97,8 @@
     window.FB.serverTimestamp    = serverTimestamp;
     window.FB.Timestamp          = Timestamp;
     window.FB.rtdbGet            = (path) => dbGet(dbRef(rtdb, path));
+    // Live-Beobachtung (z.B. Presence der Freunde) — gibt Unsubscribe zurück
+    window.FB.rtdbWatch          = (path, cb) => onValue(dbRef(rtdb, path), cb);
 
     // ── Presence (Realtime DB onDisconnect — kein Heartbeat) ──
     window.FB.startPresence = (user) => {
@@ -144,183 +146,155 @@
    iOS 26 LIQUID GLASS — FitTrack
    ═══════════════════════════════════════════════════ */
 
+/* ── DESIGN TOKENS (Radius · Spacing · Motion · Glas) ── */
+:root{
+  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  /* Zentrale Glas-Blur-Stufen — appweit konsistent.
+     sm = kleine Chips/Inputs · md = Karten · lg = Header/Sheets/Floating */
+  --gl-blur-sm:22px; --gl-blur:36px; --gl-blur-lg:54px;
+  --gl-sat:180%;
+}
+
 /* ── THEMES ── */
 [data-theme="light"] {
   --acc:#007AFF; --acc2:#5AC8FA; --acc-rgb:0,122,255;
-  --text:#1c1c1e; --text2:rgba(60,60,67,.55);
+  --text:#1d1d1f; --text2:rgba(60,60,67,.60);
   --green:#34C759; --orange:#FF9500; --red:#FF3B30;
-  --soft:rgba(0,122,255,.12);
+  --soft:rgba(0,122,255,.10);
+  --bg:#f2f2f6; --card:#ffffff; --seg-on:#ffffff;
+  /* Neutrales Licht — sanfte weiße Glanzflächen, kein Farbstich (Glas hat trotzdem etwas zum Brechen) */
   --mesh:
-    radial-gradient(ellipse 130% 110% at -8% -8%,rgba(100,40,255,.88) 0%,transparent 48%),
-    radial-gradient(ellipse 110% 100% at 110% 110%,rgba(0,180,255,.82) 0%,transparent 48%),
-    radial-gradient(ellipse 90% 80% at 68% -2%,rgba(255,40,130,.68) 0%,transparent 44%),
-    radial-gradient(ellipse 80% 95% at 12% 95%,rgba(30,200,110,.60) 0%,transparent 44%),
-    radial-gradient(ellipse 90% 90% at 50% 50%,rgba(140,80,240,.42) 0%,transparent 60%),
-    #cccae8;
-  --gl-bg:rgba(255,255,255,.22); --gl-bg-h:rgba(255,255,255,.38);
-  --gl-bg-t:rgba(255,255,255,.12);
-  --gl-bdr:rgba(0,0,0,.07); --gl-bdr2:rgba(0,0,0,.05);
-  --gl-shad:0 8px 40px rgba(0,0,0,.16),0 2px 10px rgba(0,0,0,.10);
-  --gl-shad-lg:0 24px 64px rgba(0,0,0,.22),0 8px 24px rgba(0,0,0,.12);
-  --gl-hi:inset 0 0 0 0 transparent;
-  --sheen:transparent;
-  --sep:rgba(0,0,0,.10);
-  --inp-bg:rgba(255,255,255,.78); --inp-focus:rgba(255,255,255,.95);
-  --g5:rgba(0,0,0,.07); --g6:rgba(255,255,255,.40);
+    radial-gradient(circle at 12% -4%,rgba(255,255,255,.70) 0%,transparent 48%),
+    radial-gradient(circle at 92% 4%,rgba(255,255,255,.55) 0%,transparent 46%),
+    radial-gradient(circle at 50% 110%,rgba(120,120,128,.06) 0%,transparent 54%),
+    #f2f2f6;
+  /* Halbtransparente Glasflächen (echter Blur wirkt) */
+  --gl-bg:rgba(255,255,255,.50); --gl-bg-h:rgba(255,255,255,.66);
+  --gl-bg-t:rgba(255,255,255,.36);
+  --gl-bdr:rgba(255,255,255,.60); --gl-bdr2:rgba(0,0,0,.05);
+  --gl-shad:0 2px 8px rgba(0,0,0,.05),0 14px 34px rgba(0,0,0,.08);
+  --gl-shad-lg:0 6px 18px rgba(0,0,0,.08),0 26px 60px rgba(0,0,0,.13);
+  /* Lichtkante oben + feiner Innenrand = Glaslinsen-Look */
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.22);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.40) 0%,rgba(255,255,255,.06) 58%,transparent 100%);
+  --sep:rgba(60,60,67,.10);
+  --inp-bg:rgba(255,255,255,.44); --inp-focus:rgba(255,255,255,.72);
+  --g5:rgba(120,120,128,.10); --g6:rgba(255,255,255,.60);
 }
 [data-theme="rosa"] {
   --acc:#E91E8C; --acc2:#F48FB1; --acc-rgb:233,30,140;
-  --text:#1a0818; --text2:rgba(100,20,60,.55);
+  --text:#1d1d1f; --text2:rgba(60,60,67,.60);
   --green:#2DB562; --orange:#F57C00; --red:#E53935;
-  --soft:rgba(233,30,140,.10);
+  --soft:rgba(233,30,140,.09);
+  --bg:#f4e7ef; --card:#ffffff; --seg-on:#ffffff;
   --mesh:
-    radial-gradient(ellipse 120% 100% at -5% -5%,rgba(255,55,150,.72) 0%,transparent 50%),
-    radial-gradient(ellipse 100% 90% at 108% 108%,rgba(255,130,195,.64) 0%,transparent 50%),
-    radial-gradient(ellipse 80% 70% at 65% 0%,rgba(200,0,100,.52) 0%,transparent 46%),
-    radial-gradient(ellipse 70% 85% at 15% 92%,rgba(255,180,220,.44) 0%,transparent 46%),
-    #f4d8ec;
-  --gl-bg:rgba(255,245,252,.24); --gl-bg-h:rgba(255,240,250,.40);
-  --gl-bg-t:rgba(255,230,246,.12);
-  --gl-bdr:rgba(200,30,100,.07); --gl-bdr2:rgba(200,30,100,.05);
-  --gl-shad:0 6px 32px rgba(180,0,100,.09),0 2px 8px rgba(180,0,100,.06);
-  --gl-shad-lg:0 16px 56px rgba(180,0,100,.16),0 6px 20px rgba(180,0,100,.09);
-  --gl-hi:inset 0 0 0 0 transparent;
-  --sheen:transparent;
-  --sep:rgba(200,30,100,.09);
-  --inp-bg:rgba(255,245,252,.76); --inp-focus:rgba(255,240,250,.97);
-  --g5:rgba(200,80,140,.09); --g6:rgba(255,240,250,.55);
+    radial-gradient(circle at 10% -4%,rgba(233,30,140,.15) 0%,transparent 46%),
+    radial-gradient(circle at 96% 6%,rgba(255,130,195,.16) 0%,transparent 44%),
+    radial-gradient(circle at 50% 108%,rgba(200,60,150,.12) 0%,transparent 52%),
+    #f4e7ef;
+  --gl-bg:rgba(255,255,255,.50); --gl-bg-h:rgba(255,255,255,.66);
+  --gl-bg-t:rgba(255,255,255,.36);
+  --gl-bdr:rgba(255,255,255,.60); --gl-bdr2:rgba(200,30,100,.05);
+  --gl-shad:0 2px 8px rgba(120,20,70,.06),0 14px 34px rgba(120,20,70,.10);
+  --gl-shad-lg:0 6px 18px rgba(120,20,70,.10),0 26px 60px rgba(120,20,70,.15);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.22);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.40) 0%,rgba(255,255,255,.06) 58%,transparent 100%);
+  --sep:rgba(90,50,70,.10);
+  --inp-bg:rgba(255,255,255,.44); --inp-focus:rgba(255,255,255,.72);
+  --g5:rgba(150,110,130,.10); --g6:rgba(255,255,255,.60);
 }
 [data-theme="dark"] {
   --acc:#0A84FF; --acc2:#64D2FF; --acc-rgb:10,132,255;
-  --text:#fff; --text2:rgba(235,235,245,.55);
+  --text:#f5f5f7; --text2:rgba(235,235,245,.62);
   --green:#30D158; --orange:#FF9F0A; --red:#FF453A;
   --soft:rgba(10,132,255,.18);
+  --bg:#050508; --card:#17171b; --seg-on:#5a5a5e;
+  /* Blobs dezenter und tiefer — Farbe schimmert, ohne die Flächen grau-blau zu waschen */
   --mesh:
-    radial-gradient(ellipse 140% 120% at -8% -8%,rgba(70,30,220,1) 0%,transparent 56%),
-    radial-gradient(ellipse 120% 110% at 110% 110%,rgba(0,140,255,.95) 0%,transparent 56%),
-    radial-gradient(ellipse 100% 90% at 68% -2%,rgba(170,30,110,.88) 0%,transparent 52%),
-    radial-gradient(ellipse 90% 105% at 12% 95%,rgba(0,175,120,.75) 0%,transparent 52%),
-    radial-gradient(ellipse 80% 80% at 50% 50%,rgba(80,40,200,.62) 0%,transparent 72%),
-    #020208;
-  --gl-bg:rgba(255,255,255,.10); --gl-bg-h:rgba(255,255,255,.16);
-  --gl-bg-t:rgba(255,255,255,.06);
-  --gl-bdr:rgba(255,255,255,.08); --gl-bdr2:rgba(255,255,255,.05);
-  --gl-shad:0 8px 32px rgba(0,0,0,.60),0 2px 8px rgba(0,0,0,.40);
-  --gl-shad-lg:0 20px 60px rgba(0,0,0,.75),0 6px 20px rgba(0,0,0,.50);
-  --gl-hi:inset 0 0 0 0 transparent;
-  --sheen:transparent;
-  --sep:rgba(255,255,255,.12);
-  --inp-bg:rgba(255,255,255,.10); --inp-focus:rgba(255,255,255,.20);
-  --g5:rgba(255,255,255,.12); --g6:rgba(255,255,255,.07);
+    radial-gradient(circle at 10% -4%,rgba(10,132,255,.15) 0%,transparent 44%),
+    radial-gradient(circle at 96% 6%,rgba(100,210,255,.09) 0%,transparent 42%),
+    radial-gradient(circle at 50% 110%,rgba(94,92,230,.14) 0%,transparent 50%),
+    #050508;
+  /* Tiefes, fast neutrales Glas — satter OLED-Look statt milchigem Grau-Blau */
+  --gl-bg:rgba(28,29,36,.66); --gl-bg-h:rgba(32,33,41,.82);
+  --gl-bg-t:rgba(255,255,255,.05);
+  --gl-bdr:rgba(255,255,255,.085); --gl-bdr2:rgba(255,255,255,.05);
+  --gl-shad:0 1px 2px rgba(0,0,0,.50),0 16px 40px rgba(0,0,0,.55);
+  --gl-shad-lg:0 4px 14px rgba(0,0,0,.55),0 28px 68px rgba(0,0,0,.68);
+  /* Schmale Lichtkante oben — Tiefe kommt aus Licht + Schatten, nicht aus dickem Rand */
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.03);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.055) 0%,rgba(255,255,255,.012) 55%,transparent 100%);
+  --sep:rgba(255,255,255,.08);
+  --inp-bg:rgba(118,118,128,.22); --inp-focus:rgba(118,118,128,.34);
+  --g5:rgba(118,118,128,.18); --g6:rgba(255,255,255,.06);
 }
 [data-theme="blau"] {
   --acc:#0055CC; --acc2:#4D9FFF; --acc-rgb:0,85,204;
-  --text:#001233; --text2:rgba(0,18,51,.52);
+  --text:#12203a; --text2:rgba(30,45,75,.60);
   --green:#00875A; --orange:#E68900; --red:#D93025;
-  --soft:rgba(0,85,204,.12);
+  --soft:rgba(0,85,204,.09);
+  --bg:#e4eef8; --card:#ffffff; --seg-on:#ffffff;
   --mesh:
-    radial-gradient(ellipse 120% 100% at -5% -5%,rgba(0,100,255,.72) 0%,transparent 50%),
-    radial-gradient(ellipse 100% 90% at 108% 108%,rgba(0,180,255,.64) 0%,transparent 50%),
-    radial-gradient(ellipse 80% 70% at 65% 0%,rgba(0,60,200,.52) 0%,transparent 46%),
-    radial-gradient(ellipse 70% 85% at 15% 92%,rgba(100,200,255,.44) 0%,transparent 46%),
-    #b8d4f8;
-  --gl-bg:rgba(220,238,255,.24); --gl-bg-h:rgba(210,232,255,.40);
-  --gl-bg-t:rgba(210,232,255,.12);
-  --gl-bdr:rgba(0,60,180,.07); --gl-bdr2:rgba(0,60,180,.05);
-  --gl-shad:0 6px 32px rgba(0,60,180,.12),0 2px 8px rgba(0,60,180,.08);
-  --gl-shad-lg:0 16px 56px rgba(0,60,180,.20),0 6px 20px rgba(0,60,180,.12);
-  --gl-hi:inset 0 0 0 0 transparent;
-  --sheen:transparent;
-  --sep:rgba(0,80,200,.10);
-  --inp-bg:rgba(220,238,255,.76); --inp-focus:rgba(210,232,255,.97);
-  --g5:rgba(0,80,200,.09); --g6:rgba(210,232,255,.55);
+    radial-gradient(circle at 10% -4%,rgba(0,85,204,.16) 0%,transparent 46%),
+    radial-gradient(circle at 96% 6%,rgba(77,159,255,.17) 0%,transparent 44%),
+    radial-gradient(circle at 50% 108%,rgba(0,120,220,.13) 0%,transparent 52%),
+    #e4eef8;
+  --gl-bg:rgba(255,255,255,.50); --gl-bg-h:rgba(255,255,255,.66);
+  --gl-bg-t:rgba(255,255,255,.36);
+  --gl-bdr:rgba(255,255,255,.62); --gl-bdr2:rgba(0,60,180,.05);
+  --gl-shad:0 2px 8px rgba(0,40,120,.06),0 14px 34px rgba(0,40,120,.10);
+  --gl-shad-lg:0 6px 18px rgba(0,40,120,.10),0 26px 60px rgba(0,40,120,.15);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.78),inset 0 0 0 1px rgba(255,255,255,.24);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.06) 58%,transparent 100%);
+  --sep:rgba(30,60,110,.10);
+  --inp-bg:rgba(255,255,255,.44); --inp-focus:rgba(255,255,255,.72);
+  --g5:rgba(100,130,170,.10); --g6:rgba(255,255,255,.60);
 }
 [data-theme="grün"] {
   --acc:#28A745; --acc2:#48D368; --acc-rgb:40,167,69;
-  --text:#0d1f0f; --text2:rgba(20,60,25,.52);
+  --text:#14241a; --text2:rgba(35,60,45,.62);
   --green:#1DB954; --orange:#E68900; --red:#D93025;
-  --soft:rgba(40,167,69,.12);
+  --soft:rgba(40,167,69,.09);
+  --bg:#e6f4ea; --card:#ffffff; --seg-on:#ffffff;
   --mesh:
-    radial-gradient(ellipse 120% 100% at -5% -5%,rgba(0,180,80,.70) 0%,transparent 50%),
-    radial-gradient(ellipse 100% 90% at 108% 108%,rgba(100,220,130,.62) 0%,transparent 50%),
-    radial-gradient(ellipse 80% 70% at 65% 0%,rgba(0,140,60,.50) 0%,transparent 46%),
-    radial-gradient(ellipse 70% 85% at 15% 92%,rgba(180,255,200,.42) 0%,transparent 46%),
-    #c0e8c4;
-  --gl-bg:rgba(225,252,232,.24); --gl-bg-h:rgba(212,248,220,.40);
-  --gl-bg-t:rgba(212,248,220,.12);
-  --gl-bdr:rgba(40,120,60,.07); --gl-bdr2:rgba(40,120,60,.05);
-  --gl-shad:0 6px 32px rgba(0,100,40,.10),0 2px 8px rgba(0,100,40,.07);
-  --gl-shad-lg:0 16px 56px rgba(0,100,40,.18),0 6px 20px rgba(0,100,40,.12);
-  --gl-hi:inset 0 0 0 0 transparent;
-  --sheen:transparent;
-  --sep:rgba(40,140,70,.10);
-  --inp-bg:rgba(225,252,232,.76); --inp-focus:rgba(210,248,220,.97);
-  --g5:rgba(40,140,70,.09); --g6:rgba(210,248,220,.55);
+    radial-gradient(circle at 10% -4%,rgba(40,167,69,.15) 0%,transparent 46%),
+    radial-gradient(circle at 96% 6%,rgba(100,220,130,.16) 0%,transparent 44%),
+    radial-gradient(circle at 50% 108%,rgba(20,150,80,.12) 0%,transparent 52%),
+    #e6f4ea;
+  --gl-bg:rgba(255,255,255,.50); --gl-bg-h:rgba(255,255,255,.66);
+  --gl-bg-t:rgba(255,255,255,.36);
+  --gl-bdr:rgba(255,255,255,.62); --gl-bdr2:rgba(40,120,60,.05);
+  --gl-shad:0 2px 8px rgba(0,80,30,.06),0 14px 34px rgba(0,80,30,.10);
+  --gl-shad-lg:0 6px 18px rgba(0,80,30,.10),0 26px 60px rgba(0,80,30,.15);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.78),inset 0 0 0 1px rgba(255,255,255,.24);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.06) 58%,transparent 100%);
+  --sep:rgba(45,90,60,.10);
+  --inp-bg:rgba(255,255,255,.44); --inp-focus:rgba(255,255,255,.72);
+  --g5:rgba(100,150,115,.10); --g6:rgba(255,255,255,.60);
 }
 
-/* ── GLASS EFFECT OFF ── */
-html[data-glass="off"]{background-color:#f4f4f9}
-html[data-glass="off"][data-theme="rosa"]{background-color:#fff0f8}
-html[data-glass="off"][data-theme="dark"]{background-color:#060609}
-html[data-glass="off"][data-theme="blau"]{background-color:#d6eaff}
-html[data-glass="off"][data-theme="grün"]{background-color:#e8f5e9}
-/* #bg zeigt originales sanftes Gradient pro Theme */
-html[data-glass="off"] #bg{background:
-  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(110,60,255,.22) 0%,transparent 52%),
-  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,190,255,.18) 0%,transparent 52%),
-  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(255,55,140,.13) 0%,transparent 48%),
-  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(50,210,120,.10) 0%,transparent 48%),
-  #f4f4f9}
-html[data-glass="off"][data-theme="rosa"] #bg{background:
-  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(255,55,150,.26) 0%,transparent 52%),
-  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(255,130,195,.20) 0%,transparent 52%),
-  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(200,0,100,.16) 0%,transparent 48%),
-  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(255,180,220,.14) 0%,transparent 48%),
-  #fff0f8}
-html[data-glass="off"][data-theme="dark"] #bg{background:
-  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(80,40,225,.55) 0%,transparent 52%),
-  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,148,255,.42) 0%,transparent 52%),
-  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(180,38,118,.38) 0%,transparent 48%),
-  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(0,185,130,.24) 0%,transparent 48%),
-  #060609}
-html[data-glass="off"][data-theme="blau"] #bg{background:
-  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,100,255,.30) 0%,transparent 52%),
-  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(0,180,255,.22) 0%,transparent 52%),
-  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,60,200,.18) 0%,transparent 48%),
-  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(100,200,255,.16) 0%,transparent 48%),
-  #d6eaff}
-html[data-glass="off"][data-theme="grün"] #bg{background:
-  radial-gradient(ellipse 110% 90% at -5% -5%,rgba(0,180,80,.28) 0%,transparent 52%),
-  radial-gradient(ellipse 90% 80% at 105% 105%,rgba(100,220,130,.22) 0%,transparent 52%),
-  radial-gradient(ellipse 75% 65% at 62% 2%,rgba(0,140,60,.18) 0%,transparent 48%),
-  radial-gradient(ellipse 65% 80% at 18% 88%,rgba(180,255,200,.16) 0%,transparent 48%),
-  #e8f5e9}
+/* ── GLASS EFFECT OFF ──
+   Hintergrund bleibt das ruhige Theme-Gradient (#bg nutzt --mesh).
+   Nur Flächen werden deckend und Blur wird abgeschaltet. */
 [data-glass="off"]{
-  --gl-bg:rgba(255,255,255,.96);--gl-bg-h:rgba(255,255,255,.99);--gl-bg-t:rgba(255,255,255,.80);
-  --gl-bdr:rgba(0,0,0,.09);--gl-bdr2:rgba(0,0,0,.06);
-  --gl-shad:0 2px 10px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
-  --gl-shad-lg:0 8px 24px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.06);
-  --gl-hi:inset 0 1px 0 rgba(255,255,255,.8);
-  --sheen:transparent;--sep:rgba(60,60,67,.12);
-  --inp-bg:rgba(255,255,255,.90);--inp-focus:rgba(255,255,255,.99);--g5:rgba(120,120,128,.10);
-}
-[data-glass="off"][data-theme="rosa"]{
-  --gl-bg:rgba(255,248,254,.97);--gl-bg-h:rgba(255,248,254,.99);
-  --gl-bdr:rgba(200,30,100,.09);--sep:rgba(200,30,100,.10);--inp-bg:rgba(255,248,254,.92);
+  --gl-bg:#ffffff;--gl-bg-h:#ffffff;--gl-bg-t:rgba(255,255,255,.85);
+  --gl-bdr:rgba(0,0,0,.06);--gl-bdr2:rgba(0,0,0,.04);
+  --gl-shad:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
+  --gl-shad-lg:0 2px 8px rgba(0,0,0,.06),0 16px 40px rgba(0,0,0,.10);
+  --gl-hi:inset 0 0 0 0 transparent;
+  --sheen:transparent;--sep:rgba(60,60,67,.10);
+  --inp-bg:rgba(120,120,128,.08);--inp-focus:rgba(120,120,128,.13);--g5:rgba(120,120,128,.10);
 }
 [data-glass="off"][data-theme="dark"]{
-  --gl-bg:rgba(22,22,36,.97);--gl-bg-h:rgba(14,14,28,.99);--gl-bg-t:rgba(22,22,36,.80);
-  --gl-bdr:rgba(255,255,255,.10);--gl-bdr2:rgba(255,255,255,.06);
-  --sheen:transparent;--gl-hi:inset 0 0 0 0 transparent;
-  --sep:rgba(255,255,255,.08);--inp-bg:rgba(255,255,255,.07);--inp-focus:rgba(255,255,255,.13);--g5:rgba(255,255,255,.12);
-}
-[data-glass="off"][data-theme="blau"]{
-  --gl-bg:rgba(240,248,255,.97);--gl-bg-h:rgba(240,248,255,.99);
-  --gl-bdr:rgba(0,100,220,.10);--sep:rgba(0,80,200,.10);--inp-bg:rgba(240,248,255,.92);
-}
-[data-glass="off"][data-theme="grün"]{
-  --gl-bg:rgba(240,255,244,.97);--gl-bg-h:rgba(240,255,244,.99);
-  --gl-bdr:rgba(40,140,70,.10);--sep:rgba(40,140,70,.10);--inp-bg:rgba(240,255,244,.92);
+  --gl-bg:#17171b;--gl-bg-h:#1e1e23;--gl-bg-t:rgba(23,23,27,.85);
+  --gl-bdr:rgba(255,255,255,.07);--gl-bdr2:rgba(255,255,255,.045);
+  --gl-shad:0 1px 2px rgba(0,0,0,.40),0 10px 28px rgba(0,0,0,.35);
+  --gl-shad-lg:0 3px 10px rgba(0,0,0,.45),0 22px 52px rgba(0,0,0,.50);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.07);
+  --sep:rgba(255,255,255,.08);--inp-bg:rgba(118,118,128,.22);--inp-focus:rgba(118,118,128,.32);--g5:rgba(118,118,128,.18);
 }
 [data-glass="off"] .card,[data-glass="off"] .ex-card,[data-glass="off"] .companion-card,
 [data-glass="off"] .sheet,[data-glass="off"] .hdr,[data-glass="off"] .tabbar,
@@ -397,8 +371,8 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 .pc-plates::-webkit-scrollbar{display:none}
 .pc-plate{display:inline-flex;align-items:center;justify-content:center;
   padding:6px 10px;border-radius:10px;font-size:13px;font-weight:800;color:#fff;
-  background:linear-gradient(150deg,var(--acc),var(--acc2));
-  box-shadow:0 2px 8px rgba(var(--acc-rgb),.35)}
+  background:var(--acc);
+  box-shadow:0 1px 4px rgba(var(--acc-rgb),.22)}
 .pc-plate.sm{opacity:.85;font-size:12px;padding:5px 8px}
 .pc-msg{font-size:12.5px;color:var(--text2)}
 .pc-rest{font-size:11px;color:var(--text2);width:100%;margin-top:2px}
@@ -408,8 +382,8 @@ html[data-glass="off"][data-theme="grün"] #bg{background:
 .plate-chip{border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text2);
   font-family:inherit;font-size:13px;font-weight:700;padding:11px 4px;border-radius:12px;cursor:pointer;
   transition:background .15s,color .15s,border-color .15s,opacity .15s;opacity:.5}
-.plate-chip.on{background:linear-gradient(150deg,var(--acc),var(--acc2));border-color:transparent;
-  color:#fff;opacity:1;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
+.plate-chip.on{background:var(--acc);border-color:transparent;
+  color:#fff;opacity:1;box-shadow:0 1px 4px rgba(var(--acc-rgb),.22)}
 /* Übungs-Bild: Picker im Formular + Thumbnail in der Liste */
 .ex-img-pick{display:flex;align-items:center;gap:12px}
 .ex-img-thumb{width:64px;height:64px;border-radius:14px;flex-shrink:0;cursor:pointer;
@@ -444,12 +418,12 @@ html,body{height:100%;overscroll-behavior:none}
 *{-webkit-touch-callout:none}
 body *:not(input):not(textarea):not([contenteditable]){-webkit-user-select:none;user-select:none}
 /* Gradient NUR in #bg (position:fixed) – html/body nur Farb-Fallback für Overscroll */
-html{background-color:#cccae8;scrollbar-width:none;-ms-overflow-style:none}
+html{background-color:#f2f2f6;scrollbar-width:none;-ms-overflow-style:none}
 html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
-html[data-theme="rosa"]{background-color:#f4d8ec}
-html[data-theme="dark"]{background-color:#020208}
-html[data-theme="blau"]{background-color:#b8d4f8}
-html[data-theme="grün"]{background-color:#c0e8c4}
+html[data-theme="rosa"]{background-color:#f4e7ef}
+html[data-theme="dark"]{background-color:#050508}
+html[data-theme="blau"]{background-color:#e4eef8}
+html[data-theme="grün"]{background-color:#e6f4ea}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
   color:var(--text);
@@ -480,8 +454,8 @@ body{
 /* ── GLASS HEADER ── */
 .hdr{
   background:var(--gl-bg);
-  backdrop-filter:blur(90px) saturate(240%);
-  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   padding:calc(var(--sat) + 16px) 20px 56px;
   position:sticky;top:0;z-index:100;
   transition:background .4s;
@@ -494,13 +468,13 @@ body{
   background:var(--sheen);pointer-events:none;
 }
 .hdr-row{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
-.hdr h1{font-size:34px;font-weight:700;letter-spacing:-.5px}
-.hdr .sub{font-size:13px;color:var(--text2);margin-top:2px}
+.hdr h1{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.hdr .sub{font-size:14px;color:var(--text2);margin-top:3px;letter-spacing:-.01em}
 .hdr-plus{
   background:var(--acc);border:none;border-radius:50%;
   width:36px;height:36px;display:flex;align-items:center;justify-content:center;
   cursor:pointer;color:#fff;font-size:20px;flex-shrink:0;
-  box-shadow:0 4px 14px rgba(var(--acc-rgb),.45),0 1px 4px rgba(var(--acc-rgb),.3);
+  box-shadow:0 1px 3px rgba(var(--acc-rgb),.25),0 4px 12px rgba(var(--acc-rgb),.25);
   transition:transform .15s,opacity .12s;
   position:relative;
   padding:0;line-height:1;
@@ -532,8 +506,8 @@ body{
 /* ── ERFOLGE PAGE ── */
 .erf-hero{
   position:relative;text-align:center;
-  background:linear-gradient(150deg,rgba(var(--acc-rgb),.22),rgba(var(--acc-rgb),.06));
-  border:1px solid rgba(var(--acc-rgb),.25);border-radius:24px;
+  background:linear-gradient(150deg,rgba(var(--acc-rgb),.12),rgba(var(--acc-rgb),.04));
+  border:1px solid rgba(var(--acc-rgb),.15);border-radius:24px;
   padding:24px 18px;overflow:hidden;box-shadow:var(--gl-shad)}
 .erf-hero::after{content:'';position:absolute;top:0;left:0;right:0;height:60%;
   background:var(--sheen);pointer-events:none;border-radius:24px 24px 0 0}
@@ -590,8 +564,8 @@ body{
 .mr-toast.show{opacity:1;transform:translate(-50%,0)}
 .mr-card{display:flex;align-items:center;gap:13px;
   background:var(--gl-bg-h);backdrop-filter:blur(60px) saturate(220%);-webkit-backdrop-filter:blur(60px) saturate(220%);
-  border:1px solid rgba(var(--acc-rgb),.35);border-radius:20px;padding:12px 18px 12px 12px;
-  box-shadow:0 12px 40px rgba(0,0,0,.35),0 0 0 4px rgba(var(--acc-rgb),.10),var(--gl-hi);
+  border:1px solid rgba(var(--acc-rgb),.30);border-radius:20px;padding:12px 18px 12px 12px;
+  box-shadow:var(--gl-shad-lg),0 0 0 4px rgba(var(--acc-rgb),.07);
   max-width:min(86vw,360px)}
 .mr-ring{width:48px;height:48px;flex-shrink:0;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -738,17 +712,16 @@ body{
 
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
-  position:fixed;bottom:calc(18px + var(--sab));
+  position:fixed;bottom:calc(6px + var(--sab));
   left:50%;transform:translateX(-50%);
   width:calc(100% - 40px);max-width:390px;
-  background:rgba(255,255,255,0.26);
-  backdrop-filter:blur(50px) saturate(180%) brightness(1.08);
-  -webkit-backdrop-filter:blur(50px) saturate(180%) brightness(1.08);
-  border:1px solid rgba(255,255,255,0.40);
+  background:rgba(255,255,255,0.55);
+  backdrop-filter:blur(40px) saturate(180%);
+  -webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.55);
   border-radius:999px;
-  box-shadow:0 10px 40px rgba(0,0,0,.12),0 2px 10px rgba(0,0,0,.06),
-             inset 0 1.5px 0 rgba(255,255,255,.60),
-             inset 0 -1px 1px rgba(0,0,0,.02);
+  box-shadow:0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05),
+             inset 0 1px 0 rgba(255,255,255,.70);
   display:flex;z-index:1000;padding:7px;
   transition:background .4s;
   overflow:hidden;
@@ -759,10 +732,10 @@ body{
   box-shadow:0 2px 24px rgba(0,0,0,.10),var(--gl-hi);
 }
 [data-theme="dark"] .tabbar{
-  background:rgba(32,32,36,0.62);
-  border-color:rgba(255,255,255,.12);
-  box-shadow:0 10px 40px rgba(0,0,0,.40),0 2px 10px rgba(0,0,0,.25),
-             inset 0 1px 0 rgba(255,255,255,.10);
+  background:rgba(22,22,27,0.74);
+  border-color:rgba(255,255,255,.09);
+  box-shadow:0 8px 32px rgba(0,0,0,.50),0 2px 8px rgba(0,0,0,.30),
+             inset 0 1px 0 rgba(255,255,255,.08);
 }
 .tabbar::after{
   content:'';position:absolute;top:0;left:0;right:0;height:44%;
@@ -816,9 +789,9 @@ body{
 /* ── GLASS CARD ── */
 .card{
   background:var(--gl-bg);
-  backdrop-filter:blur(48px) saturate(180%);
-  -webkit-backdrop-filter:blur(48px) saturate(180%);
-  border-radius:20px;
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  border-radius:var(--r-lg);
   border:1px solid var(--gl-bdr);
   box-shadow:var(--gl-shad),var(--gl-hi);
   overflow:hidden;
@@ -832,8 +805,8 @@ body{
 
 /* ── SECTION TITLE ── */
 .s-title{
-  font-size:12px;font-weight:700;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.85px;
+  font-size:13px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.06em;
   margin-bottom:10px;padding-left:2px;
 }
 
@@ -849,11 +822,11 @@ body{
 .row.tap{cursor:pointer}
 .row.tap:active{background:rgba(120,120,128,.08)}
 .ico{
-  width:46px;height:46px;border-radius:14px;font-size:26px;
+  width:46px;height:46px;border-radius:var(--r-md);font-size:26px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  background:var(--gl-bg-t);
-  border:1px solid var(--gl-bdr);
-  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  background:var(--g5);
+  border:1px solid var(--gl-bdr2);
+  box-shadow:none;
 }
 .row-body{flex:1;min-width:0}
 .row-title{font-size:16px;font-weight:600}
@@ -876,14 +849,14 @@ body{
 .btn:active{transform:scale(.97);opacity:.84}
 
 .btn-acc{
-  background:linear-gradient(148deg,var(--acc) 0%,var(--acc2) 100%);
+  background:var(--acc);
   color:#fff;
-  box-shadow:0 6px 22px rgba(var(--acc-rgb),.38),0 2px 6px rgba(var(--acc-rgb),.22);
+  box-shadow:0 1px 2px rgba(var(--acc-rgb),.20),0 6px 16px rgba(var(--acc-rgb),.22);
 }
 .btn-gray{
   background:var(--gl-bg);
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   color:var(--text);
   box-shadow:var(--gl-shad),var(--gl-hi);
@@ -908,9 +881,9 @@ body{
 .ov.on{display:flex}
 .sheet{
   background:var(--gl-bg-h);
-  backdrop-filter:blur(120px) saturate(265%);
-  -webkit-backdrop-filter:blur(120px) saturate(265%);
-  border-radius:28px 28px 0 0;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
   border:1px solid var(--gl-bdr);
   border-bottom:none;
   width:100%;max-height:92vh;
@@ -934,7 +907,7 @@ body{
 [data-theme="dark"] .cal-card,
 [data-theme="dark"] .mus-card,
 [data-theme="dark"] .vol-card{
-  background-color:rgba(18,18,30,.66);
+  background-color:rgba(24,25,31,.88);
   background-image:none;
 }
 
@@ -978,10 +951,8 @@ body{
 }
 .f-in{
   background:var(--inp-bg);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
   border:1px solid var(--gl-bdr);
-  border-radius:14px;padding:14px 16px;
+  border-radius:var(--r-md);padding:14px 16px;
   font-size:17px;font-family:inherit;width:100%;
   outline:none;color:var(--text);
   transition:background .2s,border-color .2s,box-shadow .2s;
@@ -1004,9 +975,7 @@ body{
 .emo-btn{
   width:100%;aspect-ratio:1;border-radius:14px;
   border:1.5px solid transparent;
-  background:var(--gl-bg-t);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  background:var(--g5);
   font-size:22px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .15s;
@@ -1068,9 +1037,9 @@ body{
 }
 .fmode-btn:active{transform:scale(.96)}
 .fmode-btn.on{
-  background:var(--gl-bg);
+  background:var(--seg-on);
   color:var(--text);
-  box-shadow:0 1px 3px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04);
+  box-shadow:0 1px 3px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.03);
 }
 .fmode-btn.fmode-add{flex:0 0 auto;padding:8px 10px;color:var(--acc);font-size:16px;font-weight:700;line-height:1}
 .fmode-edit{margin-left:6px;opacity:.55;font-size:11px;font-weight:600;cursor:pointer;display:inline-block;padding:0 2px}
@@ -1090,8 +1059,8 @@ body{
 }
 .companion-card{
   background:var(--gl-bg);
-  backdrop-filter:blur(48px) saturate(180%);
-  -webkit-backdrop-filter:blur(48px) saturate(180%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1.5px solid var(--gl-bdr);
   border-radius:20px;padding:18px 12px 14px;
   text-align:center;cursor:pointer;
@@ -1147,8 +1116,8 @@ body{
 /* ── WORKOUT LOG CARDS ── */
 .ex-card{
   background:var(--gl-bg);
-  backdrop-filter:blur(48px) saturate(180%);
-  -webkit-backdrop-filter:blur(48px) saturate(180%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:20px;overflow:hidden;
   margin-bottom:12px;
@@ -1198,8 +1167,6 @@ body{
 .set-chk.done svg{opacity:1}
 .set-in{
   background:var(--inp-bg);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
   border:1px solid var(--gl-bdr);
   border-radius:12px;padding:10px 4px;
   font-size:16px;font-family:inherit;text-align:center;
@@ -1385,13 +1352,13 @@ body{
   font-family:inherit;cursor:pointer;background:transparent;color:var(--text2);
   transition:background .15s,color .15s;
 }
-.ex-type-seg button.on{background:var(--gl-bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.10)}
+.ex-type-seg button.on{background:var(--seg-on);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 
 /* ── TIMER BAR ── */
 .timer-bar{
   background:var(--gl-bg);
-  backdrop-filter:blur(42px) saturate(200%);
-  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:20px;padding:16px;
   display:flex;align-items:center;justify-content:space-between;
@@ -1407,11 +1374,11 @@ body{
 .timer-l{font-size:11px;color:var(--text2);margin-bottom:2px;position:relative;z-index:1}
 
 /* ── AKTIVES WORKOUT: Glaslook + bessere Lesbarkeit (Theme-korrekte Farbbasis) ── */
-:root       {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(255,255,255,.82)}
-[data-theme="rosa"] {--wk-card-bg:rgba(255,235,248,.52); --wk-inp-bg:rgba(255,235,248,.82)}
-[data-theme="dark"] {--wk-card-bg:rgba(28,28,46,.72);    --wk-inp-bg:rgba(255,255,255,.13)}
-[data-theme="blau"] {--wk-card-bg:rgba(210,232,255,.52); --wk-inp-bg:rgba(210,232,255,.82)}
-[data-theme="grün"] {--wk-card-bg:rgba(212,248,220,.52); --wk-inp-bg:rgba(212,248,220,.82)}
+:root       {--wk-card-bg:rgba(255,255,255,.80); --wk-inp-bg:rgba(120,120,128,.09)}
+[data-theme="rosa"] {--wk-card-bg:rgba(255,255,255,.80); --wk-inp-bg:rgba(150,110,130,.09)}
+[data-theme="dark"] {--wk-card-bg:rgba(23,23,27,.86);    --wk-inp-bg:rgba(118,118,128,.22)}
+[data-theme="blau"] {--wk-card-bg:rgba(255,255,255,.80); --wk-inp-bg:rgba(100,130,170,.09)}
+[data-theme="grün"] {--wk-card-bg:rgba(255,255,255,.80); --wk-inp-bg:rgba(100,150,115,.10)}
 html:not([data-glass="off"]) #wk-step2 .ex-card{background:var(--wk-card-bg)}
 html:not([data-glass="off"]) #wk-step2 .timer-bar{background:var(--wk-card-bg)}
 html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
@@ -1572,15 +1539,15 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 
 /* ── BADGE ── */
 .badge{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:700;white-space:nowrap}
-.b-acc{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
-.b-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(52,199,89,.3)}
-.b-orange{background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(255,149,0,.3)}
+.b-acc{background:var(--acc);color:#fff;box-shadow:0 1px 4px rgba(var(--acc-rgb),.22)}
+.b-green{background:var(--green);color:#fff;box-shadow:0 1px 4px rgba(52,199,89,.22)}
+.b-orange{background:var(--orange);color:#fff;box-shadow:0 1px 4px rgba(255,149,0,.22)}
 
 /* ── CHART BOX ── */
 .chart-box{
   background:var(--gl-bg);
-  backdrop-filter:blur(42px) saturate(200%);
-  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:20px;padding:16px;
   box-shadow:var(--gl-shad),var(--gl-hi);
@@ -1593,7 +1560,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 
 /* ── PROGRESS BAR ── */
 .pbar{background:var(--g5);border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
-.pbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.pbar-fill{height:100%;border-radius:4px;background:var(--acc);transition:width .6s var(--spring)}
 
 /* ── THEME ROWS ── */
 .theme-row{
@@ -1603,7 +1570,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 }
 .theme-row:active{background:rgba(120,120,128,.07)}
 .theme-row:last-child{border-bottom:none}
-.theme-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.theme-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.10)}
 .theme-name{flex:1;font-size:16px;font-weight:600}
 .theme-chk{color:var(--acc);font-size:18px;font-weight:700}
 
@@ -1677,6 +1644,38 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   box-shadow:0 1px 4px rgba(0,0,0,.35);
 }
 
+/* ── TAB-LEISTE: IMMER Apple-Glas (Campus-Look), unabhängig vom Glas-Schalter ──
+   Nur die schwebende Bottom-Leiste; der Rest der App folgt weiter data-glass. */
+html[data-glass] .tabbar{
+  background:rgba(255,255,255,0.55)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(180%)!important;
+  backdrop-filter:blur(40px) saturate(180%)!important;
+  border:1px solid rgba(255,255,255,0.55)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05),
+             inset 0 1px 0 rgba(255,255,255,.70)!important;
+}
+html[data-glass][data-theme="dark"] .tabbar{
+  background:rgba(28,28,30,0.68)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.40),0 2px 8px rgba(0,0,0,.25),
+             inset 0 1px 0 rgba(255,255,255,.08)!important;
+}
+html[data-glass] .tabbar::after{display:block!important}
+html[data-glass] .tabbar::before{display:block!important}
+/* Auswahl-Pill (Campus-Style) auch bei „Glas aus" im Glas-Look halten */
+#tab-indicator{
+  background:rgba(255,255,255,0.92)!important;
+  -webkit-backdrop-filter:blur(8px) saturate(140%)!important;
+  backdrop-filter:blur(8px) saturate(140%)!important;
+  border:1px solid rgba(0,0,0,0.03)!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.06)!important;
+}
+[data-theme="dark"] #tab-indicator{
+  background:rgba(255,255,255,0.14)!important;
+  border:1px solid rgba(255,255,255,0.10)!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.30),0 4px 12px rgba(0,0,0,.22)!important;
+}
+
 /* ── Scrollbalken global ausblenden (iOS-Look, kein Balken rechts) ── */
 *{scrollbar-width:none;-ms-overflow-style:none}
 *::-webkit-scrollbar{width:0;height:0;display:none}
@@ -1692,7 +1691,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 #dackel-lane{
   display:none; /* Begleiter-Feature deaktiviert — nie sichtbar (verhindert kurzes Aufblitzen beim Laden) */
   position:fixed;
-  bottom:calc(80px + var(--sab)); /* Füße auf der Leiste, auch mit iOS Safe Area */
+  bottom:calc(68px + var(--sab)); /* Füße auf der Leiste, auch mit iOS Safe Area */
   left:50%;
   transform:translateX(-50%);
   width:calc(100% - 52px);
@@ -2011,8 +2010,8 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .hw-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;padding-left:2px;flex:0 0 auto}
 .hw-card{
   background:var(--gl-bg);
-  backdrop-filter:blur(42px) saturate(200%);
-  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);border-radius:20px;padding:15px;
   box-shadow:var(--gl-shad),var(--gl-hi);
   position:relative;overflow:hidden;
@@ -2027,7 +2026,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   width:100%;border:none;font-family:inherit;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
   min-height:96px;text-align:center;
-  background:var(--gl-bg);backdrop-filter:blur(42px) saturate(200%);-webkit-backdrop-filter:blur(42px) saturate(200%);
+  background:var(--gl-bg);backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);border-radius:20px;
   box-shadow:var(--gl-shad),var(--gl-hi);
 }
@@ -2071,9 +2070,9 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .hw-plan-start{
   flex-shrink:0;display:inline-flex;align-items:center;gap:3px;
   font-size:12px;font-weight:700;font-family:inherit;color:#fff;
-  background:linear-gradient(135deg,#34C759,#2aa84a);
+  background:var(--green);
   border:none;border-radius:999px;padding:6px 12px;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;box-shadow:0 1px 4px rgba(52,199,89,.35);
+  -webkit-tap-highlight-color:transparent;box-shadow:0 1px 4px rgba(52,199,89,.25);
 }
 .hw-plan-start:active{transform:scale(.94)}
 .hw-plan-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -2156,7 +2155,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   position:fixed;
   left:50%;transform:translateX(-50%);
   width:calc(100% - 40px);max-width:390px;
-  bottom:calc(18px + var(--sab) + 64px + 10px); /* über der Tabbar */
+  bottom:calc(6px + var(--sab) + 64px + 10px); /* über der Tabbar */
   gap:10px;
   z-index:1100;
 }
@@ -2456,8 +2455,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 .ex-search{
   width:100%;background:var(--inp-bg);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid var(--gl-bdr);border-radius:14px;
+  border:1px solid var(--gl-bdr);border-radius:var(--r-md);
   padding:11px 14px 11px 38px;font-size:15px;font-family:inherit;
   outline:none;color:var(--text);
   transition:background .15s,border-color .15s,box-shadow .15s;
@@ -2484,8 +2482,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .heatmap-wrap{
   padding:12px 10px;border-radius:18px;
   background:var(--gl-bg);border:1px solid var(--gl-bdr);
-  backdrop-filter:blur(90px) saturate(240%);
-  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   box-shadow:var(--gl-shad),var(--gl-hi);
   overflow:hidden;position:relative;
   box-sizing:border-box;max-width:100%;
@@ -2525,8 +2523,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .week-card{
   padding:14px 12px;border-radius:18px;
   background:var(--gl-bg);border:1px solid var(--gl-bdr);
-  backdrop-filter:blur(90px) saturate(240%);
-  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   box-shadow:var(--gl-shad),var(--gl-hi);
   box-sizing:border-box;max-width:100%;cursor:pointer;
   transition:transform .12s;
@@ -2823,8 +2821,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 /* ── CHANGELOG POPUP (Was ist neu) ── */
 .changelog-card{
   background:var(--gl-bg-h);
-  backdrop-filter:blur(90px) saturate(240%);
-  -webkit-backdrop-filter:blur(90px) saturate(240%);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:28px;
   width:100%;max-width:380px;
@@ -2846,11 +2844,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 .changelog-badge{
   display:inline-flex;align-items:center;gap:6px;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  background:var(--acc);
   color:#fff;border-radius:20px;
   padding:6px 16px;font-size:13px;font-weight:700;
   letter-spacing:.2px;margin-bottom:14px;
-  box-shadow:0 4px 14px rgba(var(--acc-rgb),.38);
+  box-shadow:0 2px 8px rgba(var(--acc-rgb),.25);
 }
 .changelog-title{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
 .changelog-version{font-size:13px;color:var(--text2);margin-top:2px}
@@ -2866,9 +2864,8 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .changelog-list li:last-child{border-bottom:none}
 .changelog-dot{
   width:8px;height:8px;border-radius:50%;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  background:var(--acc);
   flex-shrink:0;margin-top:5px;
-  box-shadow:0 1px 4px rgba(var(--acc-rgb),.4);
 }
 .changelog-footer{padding:16px 20px calc(18px + var(--sab));position:relative;z-index:1}
 .changelog-scroll{max-height:60vh;overflow-y:auto;position:relative;z-index:1}
@@ -3049,8 +3046,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 }
 .stats-mini-box{
   background:var(--gl-bg);
-  backdrop-filter:blur(42px) saturate(200%);
-  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:20px;
   padding:12px 12px 10px;
@@ -3086,8 +3083,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* ── MUSKEL-AKKU-LISTE ── */
 .rec-list{
   background:var(--gl-bg);
-  backdrop-filter:blur(42px) saturate(200%);
-  -webkit-backdrop-filter:blur(42px) saturate(200%);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
   border:1px solid var(--gl-bdr);
   border-radius:20px;
   padding:6px 4px;
@@ -3108,7 +3105,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-list-mini::-webkit-scrollbar{width:4px}
 .rec-list-mini::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
 .rec-list-mini .rec-row{padding:7px 8px;gap:8px;border-radius:10px}
-.rec-list-mini .rec-row + .rec-row{border-top-color:rgba(255,255,255,.04)}
+.rec-list-mini .rec-row + .rec-row{border-top-color:var(--sep)}
 .rec-list-mini .rec-row-title{font-size:12px;line-height:1.2}
 .rec-list-mini .rec-row-sub{font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-list-mini .rec-batt{flex:0 0 42px;height:18px;border-width:1.5px;padding:1.5px}
@@ -3121,16 +3118,16 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   transition:background .15s;
 }
 .rec-row:active{background:rgba(var(--acc-rgb),.08)}
-.rec-row + .rec-row{border-top:1px solid rgba(255,255,255,.06)}
+.rec-row + .rec-row{border-top:1px solid var(--sep)}
 .rec-row-body{flex:1;min-width:0}
 .rec-row-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.15}
 .rec-row-sub{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
 .rec-batt{
   position:relative;flex:0 0 64px;height:26px;
-  border-radius:6px;
+  border-radius:7px;
   border:2px solid var(--text2);
   padding:2px;
-  background:rgba(0,0,0,.18);
+  background:var(--g5);
   display:flex;align-items:center;
 }
 .rec-batt::after{
@@ -3470,6 +3467,170 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   .rec-batt-fill,.rec-batt-v-fill{animation:none!important}
   .tracker-ring-progress{transition:none}
 }
+
+/* ── ONBOARDING (Ersteinrichtung) ────────────────────── */
+#ob-screen{position:fixed;inset:0;z-index:1400;background:var(--bg);display:none;flex-direction:column}
+#ob-screen.on{display:flex}
+.ob-top{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sat) + 14px) 20px 4px;min-height:42px}
+.ob-dots{display:flex;gap:6px}
+.ob-dot{width:7px;height:7px;border-radius:4px;background:var(--sep);transition:all .3s var(--ease)}
+.ob-dot.on{background:var(--acc);width:22px}
+.ob-skip{background:none;border:none;color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;padding:8px 0 8px 12px;cursor:pointer}
+.ob-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 22px 16px;display:flex;flex-direction:column}
+.ob-step{animation:ob-in .38s var(--ease) both}
+@keyframes ob-in{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.ob-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:9vh 4px 16px}
+.ob-hero-icon{width:96px;height:96px;border-radius:26px;background:linear-gradient(135deg,#5B3FFD,var(--acc));display:flex;align-items:center;justify-content:center;box-shadow:0 18px 44px -12px rgba(var(--acc-rgb),.55);animation:welcome-pop .6s var(--spring)}
+.ob-hero-icon svg{width:50px;height:50px}
+.ob-hero-logo{width:104px;height:104px;border-radius:24px;box-shadow:0 18px 44px -12px rgba(var(--acc-rgb),.55);animation:welcome-pop .6s var(--spring)}
+.ob-h1{font-size:28px;font-weight:800;letter-spacing:-.5px;margin:22px 0 10px;color:var(--text)}
+.ob-sub{font-size:15px;color:var(--text2);line-height:1.55;max-width:300px}
+.ob-q{font-size:23px;font-weight:800;letter-spacing:-.4px;margin:12px 0 4px;color:var(--text)}
+.ob-qsub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:16px}
+.ob-opts{display:flex;flex-direction:column;gap:10px}
+.ob-opt{display:flex;align-items:center;gap:14px;text-align:left;width:100%;background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:16px;padding:14px 15px;font-family:inherit;cursor:pointer;transition:border-color .18s,background .18s;color:var(--text)}
+.ob-opt.on{border-color:var(--acc);background:var(--soft)}
+.ob-opt-ico{width:40px;height:40px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--acc)}
+.ob-opt-ico svg{width:21px;height:21px}
+.ob-opt-title{font-size:16px;font-weight:700}
+.ob-opt-sub{font-size:13px;color:var(--text2);margin-top:2px;line-height:1.4}
+.ob-freq{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.ob-freq button{aspect-ratio:1;border-radius:15px;border:1.5px solid var(--gl-bdr);background:var(--card);font-family:inherit;font-size:20px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .18s,background .18s,border-color .18s,color .18s}
+.ob-freq button.on{border-color:var(--acc);background:var(--acc);color:#fff;transform:scale(1.07)}
+.ob-freq-lbl{text-align:center;font-size:12.5px;color:var(--text2);margin-top:10px}
+.ob-name-in{width:100%;background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:16px;padding:16px;font-size:17px;font-weight:600;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box}
+.ob-name-in:focus{border-color:var(--acc)}
+.ob-tpl{width:100%;border:1.5px solid var(--gl-bdr);border-radius:16px;background:var(--card);padding:14px 15px;text-align:left;font-family:inherit;color:var(--text);cursor:pointer;transition:border-color .18s,background .18s}
+.ob-tpl.on{border-color:var(--acc);background:var(--soft)}
+.ob-tpl-badge{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;background:var(--acc);border-radius:7px;padding:3px 8px;margin-bottom:8px;letter-spacing:.4px;text-transform:uppercase}
+.ob-tpl-title{font-size:15.5px;font-weight:700}
+.ob-tpl-desc{font-size:12.5px;color:var(--text2);line-height:1.45;margin-top:3px}
+.ob-tpl-days{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+.ob-day-chip{font-size:11px;font-weight:700;color:var(--acc);background:var(--soft);border-radius:7px;padding:3px 7px}
+.ob-foot{padding:10px 22px calc(var(--sab) + 16px);display:flex;flex-direction:column;gap:6px}
+.ob-ghost{background:none;border:none;color:var(--text2);font-size:14.5px;font-weight:600;font-family:inherit;padding:12px;cursor:pointer;width:100%}
+.ob-done-ring{width:92px;height:92px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;animation:welcome-pop .6s var(--spring);color:var(--acc)}
+.ob-done-ring svg{width:46px;height:46px}
+
+/* ── COMMUNITY (Freunde · Rangliste · Karte) ─────────── */
+#ov-social .sheet{height:92vh;max-height:92vh;display:flex;flex-direction:column}
+#soc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))}
+.soc-gate{text-align:center;padding:34px 18px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.soc-gate-ico{width:64px;height:64px;border-radius:20px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.soc-gate-ico svg{width:30px;height:30px}
+.soc-code-card{background:var(--soft);border:1.5px dashed rgba(var(--acc-rgb),.45);border-radius:18px;padding:18px;text-align:center;margin-bottom:14px}
+.soc-code{font-size:32px;font-weight:800;letter-spacing:7px;color:var(--acc);font-variant-numeric:tabular-nums;user-select:all}
+.soc-code-btns{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.soc-code-btns button{background:var(--card);border:1px solid var(--gl-bdr);border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;color:var(--acc);font-family:inherit;cursor:pointer}
+.soc-add-row{display:flex;gap:8px;margin-bottom:16px}
+.soc-add-row input{flex:1;background:var(--inp-bg);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:12px 14px;font-size:16px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);font-family:inherit;outline:none;min-width:0}
+.soc-add-row input:focus{border-color:var(--acc)}
+.soc-add-row button{background:var(--acc);color:#fff;border:none;border-radius:14px;padding:0 18px;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0}
+.soc-row{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:14px}
+.soc-row.me{background:var(--soft)}
+.soc-ava{width:42px;height:42px;border-radius:50%;background:rgba(var(--acc-rgb),.14);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14.5px;flex-shrink:0;letter-spacing:.5px}
+.soc-rank{width:24px;text-align:center;font-weight:800;color:var(--text2);font-size:15px;flex-shrink:0}
+.soc-rank.top{color:var(--acc)}
+.soc-name{font-size:15.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.soc-sub{font-size:12.5px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.soc-val{font-size:15px;font-weight:800;color:var(--text);flex-shrink:0;font-variant-numeric:tabular-nums}
+.soc-chips{display:flex;gap:8px;margin:2px 0 12px}
+.soc-chip{background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;color:var(--text2);font-family:inherit;cursor:pointer}
+.soc-chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.soc-x{background:none;border:none;color:var(--text2);font-size:17px;padding:8px;cursor:pointer;flex-shrink:0;font-family:inherit}
+.soc-empty{text-align:center;color:var(--text2);font-size:14px;line-height:1.55;padding:26px 16px}
+/* ── Gym-Karte: große, immersive Vollflächen-Map (Höhe wird per JS gesetzt) ── */
+.soc-map-wrap{position:relative;margin:2px -20px 0;border-radius:24px;overflow:hidden}
+#social-map{width:100%;height:340px;background:var(--soft);position:relative;z-index:1}
+/* Schwebende Info-/Aktionskarte unten auf der Karte */
+.soc-map-foot{position:absolute;left:12px;right:12px;bottom:12px;z-index:600;
+  background:var(--gl-bg-h);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid var(--gl-bdr);border-radius:20px;box-shadow:0 10px 34px rgba(0,0,0,.24);padding:5px 12px}
+[data-theme="dark"] .soc-map-foot{background:rgba(28,28,30,.74)}
+.soc-foot-hint{font-size:13px;color:var(--text2);text-align:center;line-height:1.4;margin:8px 4px 10px}
+/* Schwebendes Such-Overlay oben (nur im Bearbeiten-Modus) */
+.soc-map-search{position:absolute;left:12px;right:12px;top:12px;z-index:600;display:none}
+.soc-map-search.on{display:block}
+.soc-map-search .f-in{box-shadow:0 8px 26px rgba(0,0,0,.22);border:1px solid var(--gl-bdr)}
+/* „Mein Standort"-Knopf */
+.soc-map-loc{position:absolute;right:14px;bottom:118px;z-index:600;width:46px;height:46px;border-radius:50%;
+  background:var(--gl-bg-h);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--gl-bdr);box-shadow:0 6px 20px rgba(0,0,0,.22);
+  display:flex;align-items:center;justify-content:center;color:var(--acc);cursor:pointer;transition:transform .15s}
+.soc-map-loc:active{transform:scale(.9)}
+.gym-pin{width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;border:2.5px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.35);letter-spacing:.3px}
+.gym-pin.me{background:#1d1d1f}
+[data-theme="dark"] .gym-pin.me{background:#fff;color:#111;border-color:var(--acc)}
+.soc-search-res{background:var(--card);border:1px solid var(--gl-bdr);border-radius:14px;margin-top:8px;overflow:hidden}
+.soc-search-res button{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--sep);padding:11px 13px;font-size:13.5px;color:var(--text);font-family:inherit;cursor:pointer;line-height:1.35}
+.soc-search-res button:last-child{border-bottom:none}
+
+/* ── FREUNDE-TAB (HIG: Karten, Glass, sanfte Animationen) ── */
+.fr-card{position:relative;display:flex;align-items:center;gap:14px;background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));border:1px solid var(--gl-bdr);border-radius:20px;padding:15px 16px;margin-bottom:12px;cursor:pointer;transition:transform .22s var(--spring),border-color .25s,box-shadow .25s;animation:fr-in .4s var(--ease) both}
+[data-glass="off"] .fr-card{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+.fr-card:active{transform:scale(.975)}
+@keyframes fr-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fr-card.live{border-color:rgba(48,209,88,.55);animation:fr-in .4s var(--ease) both,fr-pulse 2.6s ease-in-out 0.4s infinite}
+@keyframes fr-pulse{0%,100%{box-shadow:0 0 0 3px rgba(48,209,88,.07)}50%{box-shadow:0 0 0 8px rgba(48,209,88,.14)}}
+.fr-ava-wrap{position:relative;flex-shrink:0}
+.fr-ava{width:54px;height:54px;border-radius:50%;background:rgba(var(--acc-rgb),.14);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;letter-spacing:.5px;overflow:hidden}
+.fr-ava img{width:100%;height:100%;object-fit:cover}
+.fr-ava.lg{width:78px;height:78px;font-size:26px}
+.fr-dot{position:absolute;right:0;bottom:0;width:14px;height:14px;border-radius:50%;background:#8e8e93;border:2.5px solid var(--card)}
+.fr-dot.on{background:#30d158}
+.fr-name{font-size:16.5px;font-weight:700;letter-spacing:-.2px;color:var(--text);display:flex;align-items:center;gap:7px;min-width:0}
+.fr-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr-sub{font-size:13px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.fr-live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(48,209,88,.14);color:#30d158;font-size:12px;font-weight:800;border-radius:9px;padding:3.5px 9px;letter-spacing:.2px;flex-shrink:0}
+.fr-live-dot{width:7px;height:7px;border-radius:50%;background:#30d158;animation:fr-blink 1.6s ease-in-out infinite}
+@keyframes fr-blink{0%,100%{opacity:1}50%{opacity:.35}}
+.fr-pills{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.fr-pill{display:inline-flex;align-items:center;gap:5px;background:var(--soft);color:var(--text);font-size:12px;font-weight:700;border-radius:9px;padding:4px 9px}
+.fr-pill svg{width:12px;height:12px}
+.fr-pill.fire{color:#ff9f0a;background:rgba(255,159,10,.13)}
+.fr-chev{flex-shrink:0;color:var(--text2);opacity:.55}
+.fr-empty-hero{text-align:center;padding:40px 22px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.fr-req-card{background:var(--soft);border:1.5px solid rgba(var(--acc-rgb),.3);border-radius:20px;padding:14px 16px;margin-bottom:12px;animation:fr-in .4s var(--ease) both}
+.fr-req-head{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.fr-req-row{display:flex;align-items:center;gap:12px;padding:6px 0}
+.fr-req-btns{display:flex;gap:8px;flex-shrink:0}
+.fr-req-btns button{border:none;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer}
+.fr-req-ok{background:var(--acc);color:#fff}
+.fr-req-no{background:var(--inp-bg);color:var(--text2)}
+.fr-ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:13px;font-weight:600;transition:height .25s var(--ease)}
+.fr-spin{width:18px;height:18px;border:2.5px solid var(--sep);border-top-color:var(--acc);border-radius:50%;animation:fr-rot .8s linear infinite;margin-right:8px}
+@keyframes fr-rot{to{transform:rotate(360deg)}}
+/* Freundes-Profil-Sheet */
+.frp-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0 16px}
+.frp-level{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--soft);color:var(--acc);font-size:12.5px;font-weight:800;border-radius:10px;padding:5px 11px;letter-spacing:.4px;text-transform:uppercase}
+.frp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.frp-stat{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:13px 14px}
+.frp-stat-v{font-size:19px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+.frp-stat-l{font-size:12px;color:var(--text2);font-weight:600;margin-top:2px}
+.frp-sec{font-size:12.5px;font-weight:800;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin:16px 0 8px}
+.frp-badges{display:flex;gap:8px;flex-wrap:wrap}
+.frp-badge{display:inline-flex;align-items:center;gap:6px;background:var(--soft);color:var(--acc);font-size:12.5px;font-weight:700;border-radius:11px;padding:7px 11px}
+.frp-badge svg{width:14px;height:14px}
+.frp-vs{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px}
+.frp-vs-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.frp-vs-row:last-child{margin-bottom:0}
+.frp-vs-name{width:64px;font-size:12.5px;font-weight:700;color:var(--text2);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frp-vs-bar{flex:1;height:10px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
+.frp-vs-fill{height:100%;border-radius:5px;background:var(--acc);transition:width .7s var(--ease)}
+.frp-vs-v{width:30px;text-align:right;font-size:13px;font-weight:800;color:var(--text)}
+/* Activity-Feed */
+.feed-item{display:flex;gap:12px;background:var(--card);border:1px solid var(--gl-bdr);border-radius:18px;padding:13px 14px;margin-bottom:10px;animation:fr-in .4s var(--ease) both}
+.feed-txt{font-size:14px;color:var(--text);line-height:1.45;min-width:0}
+.feed-txt b{font-weight:700}
+.feed-time{font-size:12px;color:var(--text2);margin-top:3px}
+.feed-reacts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.feed-react{border:1px solid var(--gl-bdr);background:var(--inp-bg);border-radius:14px;padding:4px 10px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--text2);font-weight:700;transition:transform .18s var(--spring),background .18s,border-color .18s}
+.feed-react:active{transform:scale(1.2)}
+.feed-react.on{background:var(--soft);border-color:rgba(var(--acc-rgb),.4);color:var(--acc)}
+/* Privatsphäre / QR */
+.priv-hint{font-size:13px;color:var(--text2);line-height:1.5;padding:2px 4px 12px}
+#fr-qr{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:18px;width:fit-content;margin:0 auto 6px}
+.fradd-sec{font-size:12.5px;font-weight:800;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin:18px 0 8px}
 </style>
 </head>
 <body>
@@ -3640,6 +3801,32 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 </div>
 
 <!-- PAGE: EINSTELLUNGEN -->
+<div class="pg" id="pg-freunde">
+  <div class="hdr">
+    <div class="hdr-row">
+      <h1>Freunde</h1>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="hdr-icon-btn" onclick="openPrivacySheet()" aria-label="Privatsphäre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3.5v5.1c0 5-3.4 9.6-8 11.4-4.6-1.8-8-6.4-8-11.4V5.5L12 2z"/></svg>
+        </button>
+        <button class="hdr-icon-btn" onclick="openFrAdd()" aria-label="Freund hinzufügen" style="position:relative">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8" r="3.6"/><path d="M2.5 20c0-3.3 3.2-5.4 7-5.4 1.2 0 2.4.2 3.4.6"/><path d="M18.5 13.5v6M15.5 16.5h6"/></svg>
+          <span id="fr-add-badge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px;text-align:center">0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="pad">
+    <div class="soc-chips" id="fr-seg" style="margin-bottom:14px">
+      <button class="soc-chip on" data-t="friends" onclick="setSocTab('friends')">Freunde</button>
+      <button class="soc-chip" data-t="feed" onclick="setSocTab('feed')">Feed</button>
+      <button class="soc-chip" data-t="board" onclick="setSocTab('board')">Rangliste</button>
+      <button class="soc-chip" data-t="map" onclick="setSocTab('map')">Karte</button>
+    </div>
+    <div id="fr-body"></div>
+  </div>
+</div>
+
 <div class="pg" id="pg-settings">
   <div class="hdr">
     <div class="hdr-row">
@@ -3730,6 +3917,46 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
             <input type="checkbox" id="hk-toggle" onchange="toggleHealthKit(this.checked)">
             <span class="tgl-track"></span>
           </label>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="s-title">Community</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Community aktivieren</div>
+            <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:2px">Rangliste, Freunde &amp; Gym-Karte — dein Name und deine Wochen-Statistik werden für Freunde sichtbar</div>
+          </div>
+          <label class="tgl" onclick="event.stopPropagation()">
+            <input type="checkbox" id="soc-toggle" onchange="toggleSocial(this.checked)">
+            <span class="tgl-track"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Dein Name</div>
+            <div class="row-sub">Sichtbar für Freunde in der Rangliste</div>
+          </div>
+          <input type="text" id="soc-name-input" maxlength="30" placeholder="Name" autocomplete="off"
+            onchange="setSocialName(this.value)"
+            style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:10px;
+                   padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
+                   outline:none;flex-shrink:0;width:130px;text-align:right">
+        </div>
+        <div class="row" onclick="openSocial()" style="cursor:pointer">
+          <div class="row-body">
+            <div class="row-title">Freunde &amp; Rangliste</div>
+            <div class="row-sub" id="soc-sub">Code teilen, Freunde vergleichen</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="row" onclick="openPrivacySheet()" style="cursor:pointer">
+          <div class="row-body">
+            <div class="row-title">Privatsphäre</div>
+            <div class="row-sub">Was deine Freunde sehen dürfen</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </div>
     </div>
@@ -3954,8 +4181,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 <!-- OVERLAY: GEWICHTSVERLAUF VOLLBILD -->
 <div class="ov" id="ov-weight-chart-full">
   <div style="
-    background:var(--gl-bg-h);backdrop-filter:blur(90px) saturate(240%);
-    -webkit-backdrop-filter:blur(90px) saturate(240%);
+    background:var(--gl-bg-h);backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+    -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
     border-radius:28px 28px 0 0;border:1px solid var(--gl-bdr);border-bottom:none;
     width:100%;height:72vh;display:flex;flex-direction:column;
     box-shadow:0 -8px 48px rgba(0,0,0,.18);animation:up .28s cubic-bezier(.32,1,.32,1);
@@ -4085,6 +4312,11 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   <button class="tab" onclick="goTab('stats',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5V9.2zm5.6-5h2.8V19h-2.8V4.2zm5.6 8H19V19h-2.8v-6.8z"/></svg>
     <span>Statistik</span>
+  </button>
+  <button class="tab" onclick="goTab('freunde',this)" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.05 0-8 1.53-8 4.57V20h16v-2.43C17 14.53 12.05 13 9 13zm8.2-2.16a4 4 0 0 0 0-7.68 5.98 5.98 0 0 1 0 7.68zM18.9 13.5c1.9 1 3.1 2.4 3.1 4.07V20h-2v-2.43c0-1.6-.4-2.9-1.1-4.07z"/></svg>
+    <span>Freunde</span>
+    <span id="fr-tab-badge" style="display:none;position:absolute;top:6px;right:18%;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px">0</span>
   </button>
   <button class="tab" onclick="goTab('erfolge',this)">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5a2 2 0 0 0-2 2v2c0 1.66 1.34 3 3 3h.3a5.99 5.99 0 0 0 4.7 4.9V19H8v2h8v-2h-3v-2.1a5.99 5.99 0 0 0 4.7-4.9H18c1.66 0 3-1.34 3-3V7a2 2 0 0 0-2-2zM5 9V7h0l0 0V7h2v2.83A1 1 0 0 1 5 9zm14 0a1 1 0 0 1-2 .83V7h2v2z"/></svg>
@@ -4899,6 +5131,43 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   </div>
 </div>
 
+<!-- ═══ ONBOARDING: ERSTEINRICHTUNG (JS-gerendert) ═══ -->
+<div id="ob-screen"></div>
+
+<!-- ═══ COMMUNITY-SHEETS: FREUND HINZUFÜGEN · PROFIL · PRIVATSPHÄRE ═══ -->
+<div class="ov" id="ov-fradd" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fradd')">
+  <div class="sheet" style="max-height:90vh;display:flex;flex-direction:column">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Freund hinzufügen</h2>
+      <button class="x-btn" onclick="closeOv('ov-fradd')">✕</button>
+    </div>
+    <div id="fradd-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))"></div>
+  </div>
+</div>
+
+<div class="ov" id="ov-frprofile" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-frprofile')">
+  <div class="sheet" style="height:92vh;max-height:92vh;display:flex;flex-direction:column">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="frp-title">Profil</h2>
+      <button class="x-btn" onclick="closeOv('ov-frprofile')">✕</button>
+    </div>
+    <div id="frp-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))"></div>
+  </div>
+</div>
+
+<div class="ov" id="ov-privacy" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-privacy')">
+  <div class="sheet" style="max-height:88vh">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2>Privatsphäre</h2>
+      <button class="x-btn" onclick="closeOv('ov-privacy')">✕</button>
+    </div>
+    <div id="priv-body"></div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────
 /* ── ICON-BIBLIOTHEK ── */
@@ -4918,7 +5187,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607050001';
+const APP_VERSION = 'gymtrack-v202607100005';
 
 /* ── CHANGELOG (neue Einträge oben hinzufügen bei jedem Update) ── */
 const CHANGELOG = {
@@ -5321,6 +5590,14 @@ S.weightStart   = S.weightStart   ?? null; // Startgewicht (einmalig)
 S.weightGoal    = S.weightGoal    ?? null; // Zielgewicht
 // heuteLayout: null = Default-Layout verwenden
 if (S.heuteLayout !== undefined && !Array.isArray(S.heuteLayout)) S.heuteLayout = null;
+// Onboarding + Community
+S.onboarded = S.onboarded || false;
+S.userName  = S.userName  || '';
+S.socialOn  = S.socialOn  || false;
+S.friends   = Array.isArray(S.friends) ? S.friends : []; // UIDs der Freunde
+S.blocked   = Array.isArray(S.blocked) ? S.blocked : []; // blockierte UIDs (nur lokal)
+// Privatsphäre: was Freunde sehen dürfen (alles einzeln schaltbar)
+S.privacy = Object.assign({ gym:true, live:true, lastWk:true, stats:true, prs:false, feed:true }, S.privacy || {});
 
 let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
@@ -6164,8 +6441,10 @@ function goTab(id, btn) {
   if (id === 'heute')     renderHome();
   if (id === 'uebungen')  renderExList();
   if (id === 'stats')     renderStats();
+  if (id === 'freunde')   renderFriendsTab();
   if (id === 'erfolge')   renderErfolge();
   if (id === 'settings')  renderSettings();
+  if (id !== 'freunde')   _frStopLive();   // Live-Listener nur solange Freunde-Tab offen
 }
 
 // ── ERFOLGE ↔ EINSTELLUNGEN (Sub-Page-Navigation, Tab bleibt "Erfolge") ──
@@ -6189,6 +6468,12 @@ function closeSettingsPage() {
   renderErfolge();
 }
 
+// Zuletzt FESTGESCHRIEBENE Blob-Geometrie (Ziel, nicht Live-Rect!). Wird als
+// „von" für die Stretch-Animation genutzt. Live-Rect lesen war der Bug: mitten
+// in der Feder-Animation ist die Rect gedehnt → schnelles Tippen kompoundierte
+// den Stretch, Bubble driftete/wurde überbreit statt zentriert.
+let _indX = null, _indW = null;
+const _IND_SPRING = 'transform .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
 function moveTabIndicator(activeTab) {
   const bar = document.querySelector('.tabbar');
   const ind = document.getElementById('tab-indicator');
@@ -6196,36 +6481,49 @@ function moveTabIndicator(activeTab) {
 
   const barRect = bar.getBoundingClientRect();
   const tabRect = activeTab.getBoundingClientRect();
-  const newX    = tabRect.left - barRect.left - 5;
+  if (!tabRect.width) return;                       // Layout noch nicht bereit
+  // -7 = Border (1px) + CSS left (6px): so sitzt die Pill exakt mittig auf dem Tab.
+  const newX    = tabRect.left - barRect.left - 7;
   const newW    = tabRect.width;
 
-  // Read current *rendered* position (works even mid-transition)
-  const curRect = ind.getBoundingClientRect();
-  const curX    = curRect.left - barRect.left - 5;
-  const curW    = curRect.width;
-
-  if (Math.abs(newX - curX) < 4) {
-    ind.style.width     = newW + 'px';
-    ind.style.transform = `translateX(${newX}px)`;
+  // Erste Platzierung: ohne Animation setzen und festschreiben.
+  if (_indX == null) {
+    ind.style.transition = 'none';
+    ind.style.width      = newW + 'px';
+    ind.style.transform  = `translateX(${newX}px)`;
+    ind.offsetHeight;                               // Reflow → Startzustand fixieren
+    _indX = newX; _indW = newW;
     return;
   }
 
-  // Stretch geometry: blob bridges from current edge to target edge
+  const curX = _indX, curW = _indW;
+
+  // Winzige Bewegung: nur sauber einrasten (kein Stretch).
+  if (Math.abs(newX - curX) < 4) {
+    ind.style.transition = _IND_SPRING;
+    ind.style.width      = newW + 'px';
+    ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
+    _indX = newX; _indW = newW;
+    return;
+  }
+
+  // Liquid-Blob: von der zuletzt festgeschriebenen Kante zur Zielkante dehnen.
   const goRight  = newX > curX;
   const stretchX = goRight ? curX  : newX;
   const stretchW = goRight ? (newX + newW - curX) : (curX + curW - newX);
 
-  // Phase 1: instantly snap to stretched shape (liquid blob elongates)
+  // Phase 1: sofort in gestreckte Form (kein Transition), Layout committen.
   ind.style.transition = 'none';
   ind.style.transform  = `translateX(${stretchX}px) scaleY(.96)`;
   ind.style.width      = `${stretchW}px`;
+  ind.offsetHeight;                                 // Reflow erzwingen (deterministisch, kein rAF)
 
-  // Phase 2: spring-snap to final position (two rAFs = browser commits layout first)
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    ind.style.transition = 'transform .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
-    ind.style.width      = `${newW}px`;
-    ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
-  }));
+  // Phase 2: mit Feder zur finalen Position zusammenziehen.
+  ind.style.transition = _IND_SPRING;
+  ind.style.width      = `${newW}px`;
+  ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
+
+  _indX = newX; _indW = newW;                       // Ziel festschreiben (nicht Live-Rect!)
 }
 
 function initTabIndicator() {
@@ -6317,8 +6615,9 @@ const WIDGET_DEFS = {
   qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
   plans:   {title:'Deine Trainingspläne', icon:'📋', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
+  social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
 };
-const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','streak','volume','recovery','muscles','onerm','qadd','qweight'];
+const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
@@ -12044,6 +12343,7 @@ function startActive() {
   }
   _startWkTimer();
   _startHrPolling();
+  _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
   document.getElementById('wk-title').textContent = 'Aktives Training';
@@ -12532,6 +12832,7 @@ function finishWk() {
   fireConfetti();
   renderHome();
   checkMilestoneRewards();   // neu erreichte Meilensteine feiern (Vibration + Toast)
+  _socAfterWorkout(newSession, prs);  // Community: Stats-Push + Activity-Feed + Live-Status aus
 }
 
 function cancelWk() {
@@ -12550,6 +12851,7 @@ function cancelWk() {
   closeOv('ov-wk');
   updateWkMiniVisibility();
   renderHome();
+  _pushSocialSoon();   // Community: Live-Status wieder aus
 }
 
 function fireConfetti(count = 90) {
@@ -12906,6 +13208,7 @@ function renderSettings() {
     S.exercises.length+' Übungen · '+S.sessions.length+' Trainings gespeichert';
   updateCompanionSettingsRow();
   updateAdminUI();
+  updateSocialUI();
   // Unit-Toggle aktuellen Stand anzeigen
   document.querySelectorAll('[data-unit-btn]').forEach(b => {
     b.classList.toggle('on', b.dataset.unitBtn === (S.unitMode||'kg'));
@@ -13051,7 +13354,7 @@ let _dragTabW    = 0;
 let _dragIndW    = 0;
 let _swallowClick = false;
 
-const TAB_IDS = ['heute', 'uebungen', 'stats', 'erfolge'];
+const TAB_IDS = ['heute', 'uebungen', 'stats', 'freunde', 'erfolge'];
 
 function initTabDrag() {
   const bar = document.querySelector('.tabbar');
@@ -13078,6 +13381,7 @@ function initTabDrag() {
     const maxX   = _dragBarRect.width - 5 - _dragIndW;
     const posX   = Math.max(minX, Math.min(maxX, x - _dragIndW / 2));
     ind.style.transform = `translateX(${posX}px)`;
+    _indX = posX; _indW = _dragIndW;   // festgeschriebene Geometrie mitführen → sauberer Stretch beim Loslassen
 
     const idx = Math.max(0, Math.min(_dragTabs.length - 1, Math.floor(x / _dragTabW)));
     _dragTabs.forEach((t, i) => t.classList.toggle('on', i === idx));
@@ -13274,7 +13578,7 @@ function hapticTick() {
 }
 
 function goTabId(id) {
-  const map = { heute:0, uebungen:1, stats:2, erfolge:3, settings:3 };
+  const map = { heute:0, uebungen:1, stats:2, freunde:3, erfolge:4, settings:4 };
   const idx = map[id];
   if (idx == null) return;
   const tabs = document.querySelectorAll('.tabbar .tab');
@@ -13756,6 +14060,18 @@ function applyTemplate(id){
   if (!tpl) return;
   if (!confirm('Aktuellen Wochenplan überschreiben mit „'+tpl.title+'"?')) return;
   haptic(20);
+  _applyTemplateCore(tpl);
+  closeOv('ov-plan-tpl');
+  renderPlanList();
+  renderExList();
+  renderHome();
+  // Toast
+  const t = document.getElementById('update-toast');
+  if (t) { t.textContent = '✓ Plan übernommen: ' + tpl.title; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
+}
+
+// Kern der Plan-Übernahme — auch vom Onboarding genutzt (ohne Confirm/Toast/Sheet)
+function _applyTemplateCore(tpl){
   // Neuer Plan: Library-Übungen ggf. anlegen, IDs auflösen
   const newPlan = {};
   Object.entries(tpl.days).forEach(([dayKey, def]) => {
@@ -13792,13 +14108,6 @@ function applyTemplate(id){
   S.weekPlan = newPlan;
   persist();
   scheduleWorkoutNotifications();
-  closeOv('ov-plan-tpl');
-  renderPlanList();
-  renderExList();
-  renderHome();
-  // Toast
-  const t = document.getElementById('update-toast');
-  if (t) { t.textContent = '✓ Plan übernommen: ' + tpl.title; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
 }
 
 // ── SET-TYPEN (normal / warmup / top / drop / fail) ─────────
@@ -13846,6 +14155,1124 @@ function lastSessionSetsFor(exId){
   return hist[hist.length-1].sets || null;
 }
 
+// ═══════════════════════════════════════════════════════
+// ONBOARDING — ERSTEINRICHTUNG (Ziel, Erfahrung, Frequenz, Plan)
+// ═══════════════════════════════════════════════════════
+const _OB_SVG = {
+  dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg>',
+  trend:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
+  bar:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg>',
+  flame:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2.6 3.6 5 6 5 9.4A5.4 5.4 0 0 1 12 18a5.4 5.4 0 0 1-5-5.6C7 9 9.4 6.6 12 3z"/><path d="M12 18c-1.4 0-2.5-1.1-2.5-2.6 0-1.5 1.2-2.7 2.5-4 1.3 1.3 2.5 2.5 2.5 4 0 1.5-1.1 2.6-2.5 2.6z"/></svg>',
+  heart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9-8.8C1.8 8.5 3.5 5 6.7 5c2 0 3.3 1.1 4.3 2.6C12 6.1 13.3 5 15.3 5c3.2 0 4.9 3.5 3.7 6.2-2 4.3-7 8.8-7 8.8z"/></svg>',
+  check:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  users:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+};
+const OB_GOALS = [
+  {id:'muskel',   t:'Muskeln aufbauen',   s:'Mehr Masse, bessere Form',        ico:_OB_SVG.trend},
+  {id:'kraft',    t:'Stärker werden',     s:'Mehr Gewicht auf der Stange',     ico:_OB_SVG.bar},
+  {id:'abnehmen', t:'Abnehmen',           s:'Kalorien verbrennen, definieren', ico:_OB_SVG.flame},
+  {id:'fit',      t:'Fit & gesund bleiben', s:'Regelmäßig in Bewegung',        ico:_OB_SVG.heart},
+];
+const OB_EXPS = [
+  {id:'neu',    t:'Anfänger',        s:'Unter 1 Jahr Training'},
+  {id:'mittel', t:'Fortgeschritten', s:'1–3 Jahre Training'},
+  {id:'profi',  t:'Profi',           s:'Über 3 Jahre Training'},
+];
+let _ob = null;
+
+function maybeStartOnboarding(){
+  if (S.onboarded || S.welcomeShown) return;
+  if ((S.sessions||[]).length || (S.exercises||[]).length) { S.onboarded = true; persist(); return; }
+  startOnboarding();
+}
+function startOnboarding(){
+  _ob = { step:0, name:'', goal:null, exp:null, freq:null, tpl:null, applied:false };
+  renderOb();
+  document.getElementById('ob-screen').classList.add('on');
+}
+function skipOnboarding(){ haptic(6); _obClose(); }
+function _obClose(){
+  S.onboarded = true; S.welcomeShown = true;
+  persist();
+  const el = document.getElementById('ob-screen');
+  if (el){
+    el.style.transition = 'opacity .32s'; el.style.opacity = '0';
+    setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
+  }
+  _ob = null;
+  renderHome(); renderExList();
+}
+function obFinish(){
+  haptic(15);
+  _obClose();
+}
+function obFinishCloud(){
+  haptic(15);
+  _obClose();
+  setTimeout(()=>{ try{ openAccountSheet(); }catch(_){} }, 420);
+}
+function _obRecTpl(){
+  const f = _ob.freq || 3, e = _ob.exp || 'neu';
+  if (f <= 3) return e === 'neu' ? 'fullbody3' : 'ppl3';
+  if (f <= 5) return 'upperlower';
+  return e === 'profi' ? 'arnold' : 'ppl6';
+}
+function obPickGoal(id){ _ob.goal = id; haptic(8); renderOb(); setTimeout(()=>{ if(_ob && _ob.step===2) obNext(); }, 280); }
+function obPickExp(id){ _ob.exp = id; haptic(8); renderOb(); setTimeout(()=>{ if(_ob && _ob.step===3) obNext(); }, 280); }
+function obPickFreq(n){ _ob.freq = n; haptic(8); _ob.tpl = null; renderOb(); }
+function obPickTpl(id){ _ob.tpl = id; haptic(8); renderOb(); }
+function obBack(){ if(!_ob || _ob.step===0) return; haptic(6); _ob.step--; renderOb(); }
+function obNext(){
+  if (!_ob) return;
+  const s = _ob.step;
+  if (s === 1) _ob.name = (document.getElementById('ob-name')?.value || '').trim().slice(0,30);
+  if (s === 2 && !_ob.goal) return;
+  if (s === 3 && !_ob.exp)  return;
+  if (s === 4 && !_ob.freq) return;
+  if (s === 5) {
+    const tpl = PLAN_TEMPLATES.find(t => t.id === (_ob.tpl || _obRecTpl()));
+    if (tpl) { _applyTemplateCore(tpl); _ob.applied = true; }
+    _obSaveAnswers();
+  }
+  haptic(10);
+  _ob.step = s + 1;
+  renderOb();
+}
+function obSkipPlan(){
+  _ob.applied = false;
+  _obSaveAnswers();
+  haptic(8);
+  _ob.step = 6;
+  renderOb();
+}
+function _obSaveAnswers(){
+  if (_ob.name) S.userName = _ob.name;
+  S.obGoal = _ob.goal || null;
+  S.obExp  = _ob.exp  || null;
+  S.obFreq = _ob.freq || null;
+  persist();
+}
+function _obStepHTML(s){
+  if (s === 0) return `<div class="ob-hero">
+      <img class="ob-hero-logo" src="icon-192.png" alt="MyGymTrack">
+      <div class="ob-h1">Willkommen bei MyGymTrack</div>
+      <div class="ob-sub">Dein Trainings-Tagebuch mit Gewichtsvorschlägen, Plänen, Statistiken und Freunde-Rangliste. In einer Minute eingerichtet.</div>
+    </div>`;
+  if (s === 1) return `<div class="ob-q">Wie heißt du?</div>
+    <div class="ob-qsub">Optional — wird in der Freunde-Rangliste angezeigt.</div>
+    <input class="ob-name-in" id="ob-name" maxlength="30" placeholder="Dein Vorname" value="${esc(_ob.name)}" autocomplete="given-name">`;
+  if (s === 2) return `<div class="ob-q">Was ist dein Ziel?</div>
+    <div class="ob-qsub">Hilft uns, dir die richtigen Vorschläge zu machen.</div>
+    <div class="ob-opts">${OB_GOALS.map(g => `
+      <button class="ob-opt${_ob.goal===g.id?' on':''}" onclick="obPickGoal('${g.id}')">
+        <div class="ob-opt-ico">${g.ico}</div>
+        <div><div class="ob-opt-title">${g.t}</div><div class="ob-opt-sub">${g.s}</div></div>
+      </button>`).join('')}</div>`;
+  if (s === 3) return `<div class="ob-q">Wie viel Erfahrung hast du?</div>
+    <div class="ob-qsub">Bestimmt, welcher Trainingsplan zu dir passt.</div>
+    <div class="ob-opts">${OB_EXPS.map(e => `
+      <button class="ob-opt${_ob.exp===e.id?' on':''}" onclick="obPickExp('${e.id}')">
+        <div><div class="ob-opt-title">${e.t}</div><div class="ob-opt-sub">${e.s}</div></div>
+      </button>`).join('')}</div>`;
+  if (s === 4) return `<div class="ob-q">Wie oft pro Woche willst du trainieren?</div>
+    <div class="ob-qsub">Realistisch bleiben — lieber konstant 3× als geplant 6×.</div>
+    <div class="ob-freq">${[2,3,4,5,6].map(n => `
+      <button class="${_ob.freq===n?'on':''}" onclick="obPickFreq(${n})">${n}</button>`).join('')}</div>
+    <div class="ob-freq-lbl">Tage pro Woche</div>`;
+  if (s === 5) {
+    const rec = _obRecTpl();
+    if (!_ob.tpl) _ob.tpl = rec;
+    const order = [...PLAN_TEMPLATES].sort((a,b) => (a.id===rec?-1:0) - (b.id===rec?-1:0));
+    return `<div class="ob-q">Dein Startplan</div>
+      <div class="ob-qsub">Basierend auf deinen Angaben. Übungen und Tage kannst du jederzeit anpassen.</div>
+      <div class="ob-opts">${order.map(t => {
+        const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
+        return `<button class="ob-tpl${t.id===_ob.tpl?' on':''}" onclick="obPickTpl('${t.id}')">
+          ${t.id===rec?'<span class="ob-tpl-badge">Empfohlen für dich</span>':''}
+          <div class="ob-tpl-title">${t.title}</div>
+          <div class="ob-tpl-desc">${t.desc}</div>
+          <div class="ob-tpl-days">${days.map(d=>`<span class="ob-day-chip">${d}</span>`).join('')}</div>
+        </button>`; }).join('')}</div>`;
+  }
+  return `<div class="ob-hero" style="padding-top:12vh">
+      <div class="ob-done-ring">${_OB_SVG.check}</div>
+      <div class="ob-h1">Alles bereit${_ob.name ? ', ' + esc(_ob.name) : ''}!</div>
+      <div class="ob-sub">${_ob.applied
+        ? 'Dein Wochenplan ist eingerichtet — du findest ihn im Heute-Tab. Zeit für dein erstes Training.'
+        : 'Leg direkt los: Erstelle Übungen oder starte dein erstes Training im Heute-Tab.'}</div>
+    </div>`;
+}
+function renderOb(){
+  const el = document.getElementById('ob-screen');
+  if (!el || !_ob) return;
+  const s = _ob.step;
+  const canNext = !(s===2 && !_ob.goal) && !(s===3 && !_ob.exp) && !(s===4 && !_ob.freq);
+  const primary = s===0 ? 'Los geht’s' : s===5 ? 'Plan übernehmen' : s===6 ? 'Los geht’s' : 'Weiter';
+  const foot = s === 6
+    ? `<button class="btn btn-acc" onclick="obFinish()">${primary}</button>
+       <button class="ob-ghost" onclick="obFinishCloud()">Daten in der Cloud sichern</button>`
+    : `<button class="btn btn-acc" onclick="obNext()" ${canNext?'':'disabled style="opacity:.45"'}>${primary}</button>
+       ${s===0 ? '<button class="ob-ghost" onclick="skipOnboarding()">Ohne Einrichtung starten — alles selbst anlegen</button>' : ''}
+       ${s===5 ? '<button class="ob-ghost" onclick="obSkipPlan()">Ohne Plan starten</button>' : ''}`;
+  el.innerHTML = `
+    <div class="ob-top">
+      ${s>0 && s<6 ? `<button class="hdr-icon-btn" onclick="obBack()" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>` : '<div style="width:38px"></div>'}
+      <div class="ob-dots">${Array.from({length:7},(_,i)=>`<div class="ob-dot${i===s?' on':''}"></div>`).join('')}</div>
+      ${s<6 ? '<button class="ob-skip" onclick="skipOnboarding()">Überspringen</button>' : '<div style="width:38px"></div>'}
+    </div>
+    <div class="ob-body"><div class="ob-step">${_obStepHTML(s)}</div></div>
+    <div class="ob-foot">${foot}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// COMMUNITY — FREUNDE · RANGLISTE · GYM-KARTE
+// Firestore-Collection profiles/{uid} (öffentliches Opt-in-Profil).
+// Follow-Modell: Wessen Code du eingibst, den siehst du.
+// ═══════════════════════════════════════════════════════
+let _socTab = 'friends', _socMetric = 'vol', _socPushT = null;
+let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null;
+let _socCache = null, _socCacheTs = 0;
+let _socMap = null, _socMarkers = [], _leafP = null;
+let _socEditing = false, _socTmp = null, _socSearchT = null, _socHits = [];
+
+function _socReady(){ return !!(window.FB && window.FB.configured && _fbUser && !_fbUser.isAnonymous); }
+function _socCode(){
+  if (!S.friendCode) {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    S.friendCode = Array.from({length:6}, () => abc[Math.floor(Math.random()*abc.length)]).join('');
+    persist();
+  }
+  return S.friendCode;
+}
+function _socInitials(name){
+  return esc((name||'?').trim().split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase() || '?');
+}
+function _weekStats(){
+  const mon = new Date(); mon.setHours(0,0,0,0); mon.setDate(mon.getDate() - ((mon.getDay()+6)%7));
+  let vol = 0, ses = 0;
+  (S.sessions||[]).forEach(s => {
+    const d = new Date(s.date);
+    if (d >= mon) { ses++; try { vol += sessionVolume(s); } catch(_){} }
+  });
+  return { key: getWeekKey(), vol: Math.round(vol), ses };
+}
+function _monthStats(){
+  const key = _monthKey();
+  let ses = 0, vol = 0;
+  (S.sessions||[]).forEach(s => {
+    const d = new Date(s.date);
+    if (d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') === key) {
+      ses++; try { vol += sessionVolume(s); } catch(_){}
+    }
+  });
+  return { key, ses, vol: Math.round(vol) };
+}
+function _socOwnStats(){
+  const ses = S.sessions || [];
+  const last30 = ses.slice(-30);
+  const avgDur = last30.length ? Math.round(last30.reduce((a,s) => a + (s.duration||0), 0) / last30.length / 60) : 0;
+  const hours = {};
+  ses.slice(-60).forEach(s => { const h = new Date(s.date).getHours(); hours[h] = (hours[h]||0) + 1; });
+  const fav = Object.entries(hours).sort((a,b) => b[1] - a[1])[0];
+  const mg = {};
+  last30.forEach(s => (s.logs||[]).forEach(l => {
+    const ex = exById(l.exerciseId);
+    if (ex?.muscleGroup) mg[ex.muscleGroup] = (mg[ex.muscleGroup]||0) + setsVolume(l.sets);
+  }));
+  const topMg = Object.entries(mg).sort((a,b) => b[1] - a[1]).slice(0,2).map(([id]) => muscleLabel(id));
+  let prs = [];
+  if (S.privacy?.prs) {
+    prs = (S.exercises||[])
+      .map(e => ({ n: e.name.slice(0,24), w: exBest1RM(e.id) || 0 }))
+      .filter(p => p.w > 0)
+      .sort((a,b) => b.w - a.w)
+      .slice(0,3);
+  }
+  return { total: ses.length, avgDur, favH: fav ? +fav[0] : null, topMg, prs };
+}
+async function _pushSocialProfile(){
+  if (!S.socialOn || !_socReady()) return;
+  let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
+  const w = _weekStats();
+  const P = S.privacy || {};
+  const liveOn = P.live && typeof isWorkoutActive === 'function' && isWorkoutActive() && timerTs;
+  const lastSess = (S.sessions||[])[(S.sessions||[]).length - 1];
+  const payload = {
+    name: (S.userName || _fbUser.displayName || 'Athlet').slice(0,30),
+    code: _socCode(),
+    photo: _fbUser.photoURL || null,
+    gymName: P.gym ? (S.gymName || null) : null,
+    gymLat:  P.gym ? (S.gymLat  ?? null) : null,
+    gymLng:  P.gym ? (S.gymLng  ?? null) : null,
+    week: { key: w.key, vol: w.vol, ses: w.ses },
+    month: _monthStats(),
+    streak,
+    lastWk: (P.lastWk && lastSess) ? new Date(lastSess.date).getTime() : null,
+    live: liveOn ? { on:true, start:timerTs, gym: P.gym ? (S.gymName || null) : null } : null,
+    stats: P.stats ? _socOwnStats() : null,
+    friends: S.friends || [],
+    updatedAt: Date.now()
+  };
+  try {
+    await window.FB.setDoc(window.FB.doc('profiles', _fbUser.uid), payload, { merge:false });
+  } catch(e) { console.warn('[GymTrack] Community-Push fehlgeschlagen:', e?.code || e); }
+}
+function _pushSocialSoon(){ clearTimeout(_socPushT); _socPushT = setTimeout(_pushSocialProfile, 1500); }
+
+function toggleSocial(on){
+  S.socialOn = !!on;
+  persist();
+  if (on) { _socCode(); _pushSocialProfile(); }
+  else if (_socReady()) {
+    try { window.FB.deleteDoc(window.FB.doc('profiles', _fbUser.uid)); } catch(_){}
+    _socCache = null;
+  }
+  updateSocialUI();
+}
+function setSocialName(v){
+  S.userName = (v||'').trim().slice(0,30);
+  persist();
+  _pushSocialSoon();
+  updateSocialUI();
+}
+function updateSocialUI(){
+  const t = document.getElementById('soc-toggle'); if (t) t.checked = !!S.socialOn;
+  const n = document.getElementById('soc-name-input'); if (n && document.activeElement !== n) n.value = S.userName || '';
+  const sub = document.getElementById('soc-sub');
+  if (sub) sub.textContent = S.socialOn
+    ? 'Dein Code: ' + _socCode() + (S.gymName ? ' · ' + S.gymName : '')
+    : 'Erst Community aktivieren';
+}
+
+function openSocial(){
+  haptic(8);
+  goTabId('freunde');
+}
+function setSocTab(t){ _socTab = t; haptic(6); if (t !== 'friends') _frStopLive(); renderFriendsTab(); }
+function setSocMetric(m){ _socMetric = m; haptic(6); renderFriendsTab(); }
+
+async function _loadProfiles(force){
+  if (!force && _socCache && Date.now() - _socCacheTs < 60000) return _socCache;
+  const ids = [...(S.friends||[])];
+  const my = _fbUser?.uid;
+  if (my && !ids.includes(my)) ids.unshift(my);
+  const out = [];
+  await Promise.all(ids.map(async id => {
+    try {
+      const snap = await window.FB.getDoc(window.FB.doc('profiles', id));
+      if (snap.exists()) out.push({ uid:id, ...snap.data() });
+    } catch(_){}
+  }));
+  _socCache = out; _socCacheTs = Date.now();
+  return out;
+}
+
+function renderFriendsTab(){
+  const body = document.getElementById('fr-body'); if (!body) return;
+  document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
+  _updateFrBadges();
+  if (!window.FB || !window.FB.configured) {
+    body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
+      <div style="font-size:16px;font-weight:700">Cloud nicht eingerichtet</div>
+      <div class="soc-empty" style="padding:0">Für die Community wird Firebase benötigt — Anleitung in der CLAUDE.md.</div></div>`;
+    return;
+  }
+  if (!_fbUser || _fbUser.isAnonymous) {
+    body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
+      <div style="font-size:16px;font-weight:700">Anmelden für die Community</div>
+      <div class="soc-empty" style="padding:0">Melde dich an, damit Freunde dich finden und du Live-Status, Feed und Rangliste siehst.</div>
+      <button class="btn btn-acc" style="max-width:260px" onclick="openAccountSheet()">Jetzt anmelden</button></div>`;
+    return;
+  }
+  if (!S.socialOn) {
+    body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
+      <div style="font-size:16px;font-weight:700">Community ist aus</div>
+      <div class="soc-empty" style="padding:0">Aktiviere die Community für Freunde, Live-Status, Feed und Rangliste. Was andere sehen dürfen, bestimmst du in der Privatsphäre.</div>
+      <button class="btn btn-acc" style="max-width:260px" onclick="toggleSocial(true);renderFriendsTab()">Aktivieren</button></div>`;
+    return;
+  }
+  // QR-Deep-Link (?add=CODE) einlösen
+  try {
+    const pend = sessionStorage.getItem('gt_addCode');
+    if (pend) { sessionStorage.removeItem('gt_addCode'); setTimeout(()=>openFrAdd(pend), 250); }
+  } catch(_){}
+  if (_socTab === 'feed')  return _renderFeed(body);
+  if (_socTab === 'board') return _renderSocBoard(body);
+  if (_socTab === 'map')   return _renderSocMapTab(body);
+  return _renderFrOverview(body);
+}
+
+function _monthKey(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function _socVal(p, wk){
+  if (_socMetric === 'streak') return p.streak || 0;
+  if (_socMetric === 'monat') return (p.month && p.month.key === _monthKey()) ? (p.month.ses || 0) : 0;
+  if (!p.week || p.week.key !== wk) return 0;
+  return _socMetric === 'vol' ? (p.week.vol || 0) : (p.week.ses || 0);
+}
+function _socFmtVal(v){
+  if (_socMetric === 'vol') return fmtKg(v);
+  if (_socMetric === 'ses' || _socMetric === 'monat') return v + '×';
+  return v + ' Wo.';
+}
+const _CHALLENGE_GOAL = 12; // Workouts pro Monat
+async function _renderSocBoard(body){
+  body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
+      <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
+      <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
+      <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
+      <button class="soc-chip${_socMetric==='streak'?' on':''}" onclick="setSocMetric('streak')">Streak</button>
+    </div>
+    <div id="soc-board"><div class="soc-empty">Lade Rangliste…</div></div>`;
+  try { await _pushSocialProfile(); } catch(_){}
+  const profs = await _loadProfiles(true);
+  const el = document.getElementById('soc-board'); if (!el) return;
+  if (profs.length <= 1) {
+    el.innerHTML = `<div class="soc-empty">Noch niemand zum Vergleichen.<br>Füge oben rechts Freunde hinzu.</div>`;
+    return;
+  }
+  const wk = getWeekKey();
+  const rows = profs.map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a,b) => b._v - a._v);
+  const hint = _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
+             : _socMetric==='monat'  ? 'Monats-Ranking — zählt Trainings im ' + new Date().toLocaleDateString('de-DE',{month:'long'}) + '.'
+             : 'Rangliste zählt die aktuelle Woche (Mo–So).';
+  // Challenge: 12 Workouts im Monat
+  const mrows = profs.map(p => ({ name:p.name, me:p.uid===_fbUser.uid, v:(p.month && p.month.key===_monthKey()) ? (p.month.ses||0) : 0 }))
+    .sort((a,b) => b.v - a.v);
+  const challenge = `<div class="frp-sec">Challenge · ${_CHALLENGE_GOAL} Workouts im Monat</div>
+    <div class="frp-vs">${mrows.map(r => `
+      <div class="frp-vs-row">
+        <span class="frp-vs-name">${r.me?'Du':esc(r.name||'')}</span>
+        <div class="frp-vs-bar"><div class="frp-vs-fill" style="width:${Math.min(100, r.v/_CHALLENGE_GOAL*100)}%${r.v>=_CHALLENGE_GOAL?';background:#30d158':''}"></div></div>
+        <span class="frp-vs-v">${r.v}</span>
+      </div>`).join('')}
+    </div>`;
+  el.innerHTML = rows.map((p,i) => `
+    <div class="soc-row${p.uid===_fbUser.uid?' me':''}">
+      <span class="soc-rank${i===0?' top':''}">${i+1}</span>
+      <div class="soc-ava">${p.photo?`<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">`:_socInitials(p.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="soc-name">${esc(p.name||'')}${p.uid===_fbUser.uid?' (du)':''}</div>
+        <div class="soc-sub">${p.gymName ? esc(p.gymName) : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum')}</div>
+      </div>
+      <span class="soc-val">${_socFmtVal(p._v)}</span>
+    </div>`).join('') +
+    `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>` + challenge;
+}
+/* ── Freunde-Übersicht (Karten mit Live-Status) ── */
+const _FLAME_MINI = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2s5 4.6 5 9.8A5.2 5.2 0 0 1 12 17a5.2 5.2 0 0 1-5-5.2C7 6.6 12 2 12 2z"/></svg>';
+function _timeAgo(ts){
+  if (!ts) return '';
+  const d = Date.now() - ts;
+  if (d < 60000) return 'gerade eben';
+  const m = Math.floor(d/60000); if (m < 60) return 'vor ' + m + ' Min.';
+  const h = Math.floor(m/60);    if (h < 24) return 'vor ' + h + ' Std.';
+  const days = Math.floor(h/24); if (days === 1) return 'gestern';
+  if (days < 7) return 'vor ' + days + ' Tagen';
+  const w = Math.floor(days/7);  return w === 1 ? 'vor 1 Woche' : 'vor ' + w + ' Wochen';
+}
+function _updateFrBadges(){
+  const n = _frReqCount || 0;
+  ['fr-tab-badge','fr-add-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; }
+  });
+}
+async function _renderFrOverview(body){
+  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
+  _initFrPull(body);
+  _loadRequests().then(r => _renderFrReqs(r.inc));
+  await _loadProfiles();
+  _renderFrList();
+  _frStartLive();
+}
+function _renderFrReqs(inc){
+  const host = document.getElementById('fr-req-host'); if (!host) return;
+  if (!inc || !inc.length) { host.innerHTML = ''; return; }
+  host.innerHTML = `<div class="fr-req-card">
+    <div class="fr-req-head">${inc.length} Freundschaftsanfrage${inc.length>1?'n':''}</div>
+    ${inc.map(r => `<div class="fr-req-row">
+      <div class="fr-ava" style="width:40px;height:40px;font-size:14px">${_socInitials(r.fromName)}</div>
+      <div style="flex:1;min-width:0"><div class="fr-name"><span>${esc(r.fromName||'')}</span></div></div>
+      <div class="fr-req-btns">
+        <button class="fr-req-ok" onclick="acceptRequest('${r.id}','${r.from}')">Annehmen</button>
+        <button class="fr-req-no" onclick="declineRequest('${r.id}')">Ablehnen</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+function _frCardHTML(p){
+  const live = !!(p.live && p.live.on);
+  const online = live || !!_frPresence[p.uid];
+  const wk = getWeekKey();
+  const wses = (p.week && p.week.key === wk) ? (p.week.ses || 0) : 0;
+  const ava = p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name);
+  let sub;
+  if (live) {
+    const mins = Math.max(1, Math.round((Date.now() - (p.live.start || Date.now())) / 60000));
+    sub = `<span class="fr-live-badge"><span class="fr-live-dot"></span>Trainiert gerade · seit ${mins < 60 ? mins + ' Min.' : Math.floor(mins/60) + ' Std. ' + (mins%60) + ' Min.'}</span>`;
+    if (p.live.gym) sub += `<div class="fr-sub" style="margin-top:5px">${esc(p.live.gym)}</div>`;
+  } else {
+    sub = `<div class="fr-sub">${p.lastWk ? 'Training ' + _timeAgo(p.lastWk) : 'Noch kein Training'}${p.gymName ? ' · ' + esc(p.gymName) : ''}</div>`;
+  }
+  return `<div class="fr-card${live?' live':''}" onclick="openFrProfile('${p.uid}')">
+    <div class="fr-ava-wrap"><div class="fr-ava">${ava}</div><div class="fr-dot${online?' on':''}"></div></div>
+    <div style="flex:1;min-width:0">
+      <div class="fr-name"><span>${esc(p.name||'')}</span></div>
+      ${sub}
+      <div class="fr-pills">
+        <span class="fr-pill">${wses}× diese Woche</span>
+        ${p.streak ? `<span class="fr-pill fire">${_FLAME_MINI}${p.streak} Wo.</span>` : ''}
+      </div>
+    </div>
+    <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </div>`;
+}
+function _renderFrList(){
+  const el = document.getElementById('fr-list'); if (!el) return;
+  const friends = (_socCache||[]).filter(p => p.uid !== _fbUser?.uid && !(S.blocked||[]).includes(p.uid));
+  if (!friends.length) {
+    el.innerHTML = `<div class="fr-empty-hero">
+      <div class="soc-gate-ico">${_OB_SVG.users}</div>
+      <div style="font-size:17px;font-weight:700">Noch keine Freunde</div>
+      <div class="soc-empty" style="padding:0">Füge Freunde hinzu und seht gegenseitig Live-Status, Trainings und Ranglisten.</div>
+      <button class="btn btn-acc" style="max-width:240px" onclick="openFrAdd()">Freund hinzufügen</button>
+    </div>`;
+    return;
+  }
+  const rank = p => (p.live && p.live.on ? 2 : 0) + (_frPresence[p.uid] ? 1 : 0);
+  friends.sort((a,b) => rank(b) - rank(a) || (b.lastWk||0) - (a.lastWk||0));
+  el.innerHTML = friends.map((p,i) => _frCardHTML(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('');
+}
+/* Pull-to-Refresh */
+let _ptrY = null, _ptrOn = false;
+function _initFrPull(body){
+  body.ontouchstart = e => { _ptrY = (window.scrollY <= 0) ? e.touches[0].clientY : null; _ptrOn = false; };
+  body.ontouchmove = e => {
+    if (_ptrY == null) return;
+    const dy = e.touches[0].clientY - _ptrY;
+    const ptr = document.getElementById('fr-ptr'); if (!ptr) return;
+    if (dy > 70 && !_ptrOn) { _ptrOn = true; ptr.style.height = '44px'; ptr.innerHTML = '<span class="fr-spin"></span>Aktualisieren…'; haptic(8); }
+  };
+  body.ontouchend = async () => {
+    if (_ptrOn) {
+      _socCache = null; _feedCache = null;
+      await _renderFrOverview(document.getElementById('fr-body'));
+    }
+    _ptrY = null; _ptrOn = false;
+  };
+}
+/* ── Live-Updates (Firestore onSnapshot + RTDB-Presence) ── */
+function _frStartLive(){
+  _frStopLive();
+  if (!_socReady() || !S.socialOn) return;
+  (S.friends||[]).slice(0,50).forEach(uid => {
+    try {
+      const un = window.FB.onSnapshot(window.FB.doc('profiles', uid), snap => {
+        if (!snap.exists()) return;
+        const d = { uid, ...snap.data() };
+        const i = (_socCache||[]).findIndex(p => p.uid === uid);
+        if (i >= 0) _socCache[i] = d; else (_socCache = _socCache||[]).push(d);
+        if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+      });
+      _frSubs.push(un);
+    } catch(_){}
+    try {
+      const un2 = window.FB.rtdbWatch('presence/' + uid, snap => {
+        const v = snap && snap.val();
+        _frPresence[uid] = !!(v && v.online);
+        if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+      });
+      _frSubs.push(un2);
+    } catch(_){}
+  });
+  _frTimer = setInterval(() => {   // „seit X Min." / „vor X Min." aktuell halten
+    if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+  }, 60000);
+}
+function _frStopLive(){
+  _frSubs.forEach(u => { try { u(); } catch(_){} });
+  _frSubs = [];
+  if (_frTimer) { clearInterval(_frTimer); _frTimer = null; }
+}
+/* ── Freundschaftsanfragen ── */
+async function _loadRequests(){
+  if (!_socReady()) return { inc: [] };
+  const inc = [];
+  try {
+    const q = window.FB.query(window.FB.collection('requests'),
+      window.FB.where('to','==',_fbUser.uid), window.FB.where('status','==','pending'));
+    (await window.FB.getDocs(q)).forEach(d => {
+      const r = { id:d.id, ...d.data() };
+      if ((S.blocked||[]).includes(r.from)) window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{});
+      else inc.push(r);
+    });
+  } catch(_){}
+  try { // Vom Gegenüber angenommene eigene Anfragen einlösen
+    const q2 = window.FB.query(window.FB.collection('requests'),
+      window.FB.where('from','==',_fbUser.uid), window.FB.where('status','==','accepted'));
+    const snap = await window.FB.getDocs(q2);
+    let added = false;
+    for (const d of snap.docs) {
+      const to = d.data().to;
+      if (!S.friends.includes(to)) { S.friends.push(to); added = true; }
+      window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{});
+    }
+    if (added) { persist(); _pushSocialSoon(); _socCache = null; }
+  } catch(_){}
+  _frReqCount = inc.length;
+  _updateFrBadges();
+  return { inc };
+}
+async function acceptRequest(id, from){
+  haptic(15);
+  if (!S.friends.includes(from)) S.friends.push(from);
+  persist(); _pushSocialSoon(); _socCache = null;
+  try { await window.FB.updateDoc(window.FB.doc('requests', id), { status:'accepted' }); } catch(_){}
+  _frReqCount = Math.max(0, _frReqCount - 1); _updateFrBadges();
+  renderFriendsTab();
+}
+async function declineRequest(id){
+  haptic(8);
+  try { await window.FB.deleteDoc(window.FB.doc('requests', id)); } catch(_){}
+  _frReqCount = Math.max(0, _frReqCount - 1); _updateFrBadges();
+  renderFriendsTab();
+}
+async function _sendRequest(toUid, toName){
+  if (toUid === _fbUser.uid) { alert('Das bist du selbst.'); return; }
+  if (S.friends.includes(toUid)) { alert('Ihr seid schon Freunde.'); return; }
+  if ((S.blocked||[]).includes(toUid)) { alert('Dieser Nutzer ist blockiert.'); return; }
+  try {
+    await window.FB.addDoc(window.FB.collection('requests'), {
+      from:_fbUser.uid, to:toUid,
+      fromName:(S.userName || _fbUser.displayName || 'Athlet').slice(0,30),
+      fromCode:_socCode(), ts:Date.now(), status:'pending'
+    });
+    haptic(15);
+    alert('Anfrage an ' + toName + ' gesendet.');
+  } catch(e) { alert('Anfrage fehlgeschlagen: ' + (e?.code || e?.message || e)); }
+}
+function removeFriend(uid){
+  if (!confirm('Freund aus deiner Liste entfernen?')) return;
+  S.friends = (S.friends||[]).filter(x => x !== uid);
+  persist(); _pushSocialSoon();
+  _socCache = null;
+  closeOv('ov-frprofile');
+  renderFriendsTab();
+}
+function blockUser(uid){
+  if (!confirm('Nutzer blockieren? Er kann dir keine Anfragen mehr senden und verschwindet aus deiner Liste.')) return;
+  S.blocked = S.blocked || [];
+  if (!S.blocked.includes(uid)) S.blocked.push(uid);
+  S.friends = (S.friends||[]).filter(x => x !== uid);
+  persist(); _pushSocialSoon();
+  _socCache = null;
+  closeOv('ov-frprofile');
+  renderFriendsTab();
+}
+/* ── Freund hinzufügen (Suche · Code · QR · Anfragen) ── */
+let _frSearchT = null;
+function openFrAdd(prefill){
+  haptic(8);
+  const body = document.getElementById('fradd-body'); if (!body) return;
+  body.innerHTML = `
+    <div class="soc-add-row" style="margin-top:4px">
+      <input id="fradd-q" placeholder="Name oder Code suchen" autocomplete="off" spellcheck="false"
+        style="letter-spacing:normal;text-transform:none;font-weight:600"
+        oninput="frSearchInput(this.value)" value="${esc(prefill||'')}">
+    </div>
+    <div id="fradd-res"></div>
+    <div class="fradd-sec">Dein Code</div>
+    <div class="soc-code-card" style="margin-bottom:0">
+      <div class="soc-code">${_socCode()}</div>
+      <div class="soc-code-btns">
+        <button onclick="copyFriendCode(this)">Kopieren</button>
+        <button onclick="shareFriendCode()">Teilen</button>
+        <button onclick="showFrQR()">QR-Code</button>
+      </div>
+      <div id="fr-qr-host" style="margin-top:14px"></div>
+    </div>`;
+  openOv('ov-fradd');
+  if (prefill) frSearchInput(prefill);
+}
+function frSearchInput(v){
+  clearTimeout(_frSearchT);
+  const q = (v||'').trim();
+  const res = document.getElementById('fradd-res');
+  if (q.length < 2) { if (res) res.innerHTML = ''; return; }
+  _frSearchT = setTimeout(() => frSearch(q), 380);
+}
+async function frSearch(q){
+  const res = document.getElementById('fradd-res'); if (!res) return;
+  res.innerHTML = `<div class="soc-empty" style="padding:12px"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Suche…</div>`;
+  const hits = new Map();
+  try { // Code exakt
+    if (/^[A-Z2-9]{6}$/.test(q.toUpperCase())) {
+      const qc = window.FB.query(window.FB.collection('profiles'), window.FB.where('code','==',q.toUpperCase()), window.FB.limit(1));
+      (await window.FB.getDocs(qc)).forEach(d => hits.set(d.id, { uid:d.id, ...d.data() }));
+    }
+  } catch(_){}
+  try { // Name-Präfix
+    const qn = window.FB.query(window.FB.collection('profiles'),
+      window.FB.where('name','>=',q), window.FB.where('name','<=',q+''), window.FB.limit(8));
+    (await window.FB.getDocs(qn)).forEach(d => hits.set(d.id, { uid:d.id, ...d.data() }));
+  } catch(_){}
+  const list = [...hits.values()].filter(p => p.uid !== _fbUser.uid && !(S.blocked||[]).includes(p.uid));
+  if (!list.length) { res.innerHTML = '<div class="soc-empty" style="padding:12px">Niemanden gefunden. Tipp: 6-stelliger Code funktioniert immer.</div>'; return; }
+  res.innerHTML = list.map(p => {
+    const isFriend = S.friends.includes(p.uid);
+    return `<div class="soc-row">
+      <div class="fr-ava" style="width:42px;height:42px;font-size:14px">${p.photo?`<img src="${esc(p.photo)}" alt="">`:_socInitials(p.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="soc-name">${esc(p.name||'')}</div>
+        <div class="soc-sub">${p.gymName ? esc(p.gymName) : 'Code ' + esc(p.code||'')}</div>
+      </div>
+      ${isFriend
+        ? '<span class="fr-pill">Befreundet</span>'
+        : `<button class="fr-req-ok" style="border:none;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer" onclick="_sendRequest('${p.uid}','${esc(p.name||'')}')">Anfragen</button>`}
+    </div>`;
+  }).join('');
+}
+function _loadQRLib(){
+  if (window.QRCode) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+async function showFrQR(){
+  const host = document.getElementById('fr-qr-host'); if (!host) return;
+  host.innerHTML = '<div class="soc-empty" style="padding:8px">QR lädt…</div>';
+  try { await _loadQRLib(); } catch(_) { host.innerHTML = '<div class="soc-empty" style="padding:8px">QR offline nicht verfügbar</div>'; return; }
+  host.innerHTML = '<div id="fr-qr"></div><div class="soc-empty" style="padding:8px 0 0;font-size:12.5px">Mit der iPhone-Kamera scannen — öffnet MyGymTrack mit deinem Code.</div>';
+  new QRCode(document.getElementById('fr-qr'), { text:'https://lenny23445.github.io/Gymtrack/?add=' + _socCode(), width:150, height:150, correctLevel:QRCode.CorrectLevel.M });
+}
+/* ── Freundes-Profil ── */
+function _socLevel(total){
+  if (total >= 300) return 'Elite';
+  if (total >= 150) return 'Gold';
+  if (total >= 75)  return 'Silber';
+  if (total >= 25)  return 'Bronze';
+  return 'Einsteiger';
+}
+function _socBadgesFor(p){
+  const b = [];
+  if ((p.streak||0) >= 12)      b.push('Eisern · 12+ Wochen Streak');
+  else if ((p.streak||0) >= 4)  b.push('Konstant · 4+ Wochen Streak');
+  if ((p.stats?.total||0) >= 100) b.push('Century · 100 Workouts');
+  if ((p.week?.ses||0) >= 4 && p.week?.key === getWeekKey()) b.push('Powerwoche · 4+ Trainings');
+  if ((p.month?.ses||0) >= _CHALLENGE_GOAL && p.month?.key === _monthKey()) b.push('Challenge geschafft');
+  return b;
+}
+async function openFrProfile(uid){
+  haptic(8);
+  const p = (_socCache||[]).find(x => x.uid === uid); if (!p) return;
+  const t = document.getElementById('frp-title'); if (t) t.textContent = p.name || 'Profil';
+  const body = document.getElementById('frp-body'); if (!body) return;
+  const live = !!(p.live && p.live.on);
+  const st = p.stats || null;
+  const wk = getWeekKey();
+  const wses = (p.week && p.week.key === wk) ? (p.week.ses||0) : 0;
+  const meW = _weekStats().ses;
+  const maxV = Math.max(wses, meW, 1);
+  const favH = (st && st.favH != null) ? (st.favH + '–' + ((st.favH+2)%24) + ' Uhr') : null;
+  const badges = _socBadgesFor(p);
+  const stats = [
+    [String(p.streak||0) + ' Wo.', 'Trainings-Streak'],
+    [st ? String(st.total) : '–', 'Workouts gesamt'],
+    [String(wses) + '×', 'Diese Woche'],
+    [st && st.avgDur ? st.avgDur + ' Min.' : '–', 'Ø Trainingsdauer'],
+    [favH || '–', 'Häufigste Zeit'],
+    [p.lastWk ? _timeAgo(p.lastWk) : '–', 'Letztes Training'],
+  ];
+  body.innerHTML = `
+    <div class="frp-hero">
+      <div class="fr-ava-wrap">
+        <div class="fr-ava lg">${p.photo?`<img src="${esc(p.photo)}" alt="">`:_socInitials(p.name)}</div>
+        <div class="fr-dot${live||_frPresence[uid]?' on':''}" style="width:17px;height:17px"></div>
+      </div>
+      <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}</div>
+      ${p.gymName ? `<div class="fr-sub" style="justify-content:center">${esc(p.gymName)}</div>` : ''}
+      <div class="frp-level">${_socLevel(st?.total||0)}</div>
+      ${live ? `<div style="margin-top:10px"><span class="fr-live-badge"><span class="fr-live-dot"></span>Trainiert gerade${p.live.gym?' · '+esc(p.live.gym):''}</span></div>` : ''}
+    </div>
+    <div class="frp-grid">${stats.map(s => `<div class="frp-stat"><div class="frp-stat-v">${s[0]}</div><div class="frp-stat-l">${s[1]}</div></div>`).join('')}</div>
+    ${st && st.topMg && st.topMg.length ? `<div class="frp-sec">Lieblings-Muskelgruppen</div>
+      <div class="frp-badges">${st.topMg.map(m => `<span class="frp-badge">${esc(m)}</span>`).join('')}</div>` : ''}
+    ${badges.length ? `<div class="frp-sec">Abzeichen</div>
+      <div class="frp-badges">${badges.map(b => `<span class="frp-badge">${_FLAME_MINI}${b}</span>`).join('')}</div>` : ''}
+    <div class="frp-sec">Diese Woche · Du vs. ${esc((p.name||'').split(' ')[0])}</div>
+    <div class="frp-vs">
+      <div class="frp-vs-row"><span class="frp-vs-name">Du</span><div class="frp-vs-bar"><div class="frp-vs-fill" style="width:${meW/maxV*100}%"></div></div><span class="frp-vs-v">${meW}</span></div>
+      <div class="frp-vs-row"><span class="frp-vs-name">${esc((p.name||'').split(' ')[0])}</span><div class="frp-vs-bar"><div class="frp-vs-fill" style="width:${wses/maxV*100}%;background:#30d158"></div></div><span class="frp-vs-v">${wses}</span></div>
+    </div>
+    ${st && st.prs && st.prs.length ? `<div class="frp-sec">Persönliche Rekorde</div>
+      <div class="frp-vs">${st.prs.map(pr => `<div class="frp-vs-row"><span class="frp-vs-name" style="width:auto;flex:1">${esc(pr.n)}</span><span class="frp-vs-v" style="width:auto">${fmtWeight(pr.w)}</span></div>`).join('')}</div>` : ''}
+    <div class="frp-sec">Aktivität</div>
+    <div id="frp-feed"><div class="soc-empty" style="padding:10px">Lade…</div></div>
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="btn btn-gray" style="flex:1" onclick="removeFriend('${uid}')">Entfernen</button>
+      <button class="btn btn-gray" style="flex:1;color:#ff453a" onclick="blockUser('${uid}')">Blockieren</button>
+    </div>`;
+  openOv('ov-frprofile');
+  _loadFeedFor(uid).then(items => {
+    const el = document.getElementById('frp-feed'); if (!el) return;
+    el.innerHTML = items.length
+      ? items.slice(0,5).map(a => _feedItemHTML(a, true)).join('')
+      : '<div class="soc-empty" style="padding:10px">Noch keine Aktivitäten.</div>';
+  });
+}
+/* ── Activity-Feed ── */
+async function _loadFeedFor(uid){
+  try {
+    const q = window.FB.query(window.FB.collection('profiles/' + uid + '/activities'),
+      window.FB.orderBy('ts','desc'), window.FB.limit(6));
+    const snap = await window.FB.getDocs(q);
+    const out = [];
+    snap.forEach(d => out.push({ id:d.id, uid, ...d.data() }));
+    return out;
+  } catch(_) { return []; }
+}
+async function _loadFeed(force){
+  if (!force && _feedCache && Date.now() - (_feedCache.ts||0) < 60000) return _feedCache.items;
+  const ids = [...(S.friends||[])];
+  if (_fbUser) ids.unshift(_fbUser.uid);
+  const items = [];
+  await Promise.all(ids.slice(0,30).map(async uid => {
+    (await _loadFeedFor(uid)).forEach(a => items.push(a));
+  }));
+  items.sort((a,b) => (b.ts||0) - (a.ts||0));
+  _feedCache = { ts: Date.now(), items: items.slice(0,30) };
+  return _feedCache.items;
+}
+const _FEED_EMOJIS = ['💪','🔥','👏','❤️'];
+function _feedItemHTML(a, compact){
+  const me = a.uid === _fbUser?.uid;
+  const name = me ? 'Du' : (a.name || 'Athlet');
+  let txt;
+  if (a.type === 'pr') txt = `<b>${esc(name)}</b> hat einen neuen Rekord aufgestellt: <b>${esc(a.prName||'')}</b> ${esc(a.prVal||'')}`;
+  else if (a.type === 'streak') txt = `<b>${esc(name)}</b> hat eine <b>${a.streak}-Wochen-Streak</b> erreicht`;
+  else {
+    txt = `<b>${esc(name)}</b> hat ${a.mg ? 'ein <b>' + esc(a.mg) + '-Training' : 'ein <b>Training'}</b> beendet${a.dur ? ' · ' + a.dur + ' Min.' : ''}`;
+    if (a.prs && a.prs.length) txt += `<br>Neue${a.prs.length>1?'':'r'} Rekord${a.prs.length>1?'e':''}: <b>${a.prs.map(esc).join(', ')}</b>`;
+    if ((a.week||0) >= 4) txt += `<br>Bereits <b>${a.week}× diese Woche</b> trainiert`;
+  }
+  const my = a.reactions && a.reactions[_fbUser?.uid];
+  const counts = {};
+  Object.values(a.reactions||{}).forEach(e => counts[e] = (counts[e]||0) + 1);
+  const reacts = compact ? '' : `<div class="feed-reacts">${_FEED_EMOJIS.map(e =>
+    `<button class="feed-react${my===e?' on':''}" onclick="event.stopPropagation();toggleReaction('${a.uid}','${a.id}','${e}')">${e}${counts[e]?' '+counts[e]:''}</button>`).join('')}</div>`;
+  return `<div class="feed-item">
+    <div class="fr-ava" style="width:40px;height:40px;font-size:13px;flex-shrink:0">${_socInitials(a.name)}</div>
+    <div style="flex:1;min-width:0">
+      <div class="feed-txt">${txt}</div>
+      <div class="feed-time">${_timeAgo(a.ts)}</div>
+      ${reacts}
+    </div>
+  </div>`;
+}
+async function _renderFeed(body){
+  body.innerHTML = '<div id="feed-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Feed…</div></div>';
+  const items = await _loadFeed();
+  const el = document.getElementById('feed-list'); if (!el) return;
+  el.innerHTML = items.length
+    ? items.map(a => _feedItemHTML(a)).join('')
+    : '<div class="soc-empty">Noch keine Aktivitäten.<br>Beende ein Training — es erscheint automatisch im Feed deiner Freunde.</div>';
+}
+async function toggleReaction(uid, aid, emo){
+  if (!_socReady()) return;
+  haptic(10);
+  const item = (_feedCache?.items||[]).find(x => x.id === aid && x.uid === uid);
+  const cur = item?.reactions?.[_fbUser.uid];
+  const next = { ...(item?.reactions||{}) };
+  if (cur === emo) delete next[_fbUser.uid]; else next[_fbUser.uid] = emo;
+  if (item) item.reactions = next;
+  const host = document.getElementById('feed-list');
+  if (host && _socTab === 'feed') host.innerHTML = (_feedCache?.items||[]).map(a => _feedItemHTML(a)).join('');
+  try { await window.FB.updateDoc(window.FB.doc('profiles/' + uid + '/activities', aid), { reactions: next }); } catch(_){}
+}
+/* ── Aktivitäten schreiben (nach Training) ── */
+async function _socLogActivity(sess, prs){
+  if (!S.socialOn || !S.privacy?.feed || !_socReady()) return;
+  const mgCount = {};
+  (sess.logs||[]).forEach(l => {
+    const ex = exById(l.exerciseId);
+    if (ex?.muscleGroup) mgCount[ex.muscleGroup] = (mgCount[ex.muscleGroup]||0) + 1;
+  });
+  const top = Object.entries(mgCount).sort((a,b) => b[1] - a[1])[0];
+  let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
+  const act = {
+    type:'workout',
+    name:(S.userName || _fbUser.displayName || 'Athlet').slice(0,30),
+    ts:Date.now(),
+    dur:Math.round((sess.duration||0)/60),
+    mg: top ? muscleLabel(top[0]) : null,
+    prs: (S.privacy?.prs && prs && prs.length) ? prs.slice(0,3).map(p => (p.exName||'').slice(0,28)).filter(Boolean) : [],
+    week:_weekStats().ses,
+    streak,
+    reactions:{}
+  };
+  try { await window.FB.addDoc(window.FB.collection('profiles/' + _fbUser.uid + '/activities'), act); }
+  catch(e) { console.warn('[GymTrack] Activity-Push:', e?.code || e); }
+}
+function _socAfterWorkout(sess, prs){
+  _pushSocialSoon();
+  _socLogActivity(sess, prs);
+}
+/* ── Privatsphäre ── */
+const PRIV_DEFS = [
+  { k:'gym',    t:'Aktuelles Gym anzeigen',        s:'Gym-Name und Position auf der Karte' },
+  { k:'live',   t:'Live-Trainingsstatus anzeigen',  s:'„Trainiert gerade" inkl. Dauer' },
+  { k:'lastWk', t:'Letztes Training anzeigen',      s:'„vor 2 Stunden", „gestern" …' },
+  { k:'stats',  t:'Trainingsstatistiken anzeigen',  s:'Workouts, Ø Dauer, Lieblingszeit, Muskelgruppen' },
+  { k:'prs',    t:'Persönliche Rekorde anzeigen',   s:'Deine Top-3-1RM-Werte' },
+  { k:'feed',   t:'Aktivitätsfeed anzeigen',        s:'Beendete Trainings im Feed der Freunde' },
+];
+function openPrivacySheet(){
+  haptic(8);
+  const body = document.getElementById('priv-body'); if (!body) return;
+  body.innerHTML = `<div class="priv-hint">Du bestimmst, was Freunde sehen. Name, Wochen-Trainingszahl und Streak sind Teil der Rangliste, solange die Community aktiv ist.</div>
+    <div class="card">${PRIV_DEFS.map(d => `
+      <div class="row">
+        <div class="row-body">
+          <div class="row-title">${d.t}</div>
+          <div class="row-sub" style="white-space:normal;line-height:1.4">${d.s}</div>
+        </div>
+        <label class="tgl" onclick="event.stopPropagation()">
+          <input type="checkbox" ${S.privacy?.[d.k] ? 'checked' : ''} onchange="setPriv('${d.k}', this.checked)">
+          <span class="tgl-track"></span>
+        </label>
+      </div>`).join('')}
+    </div>`;
+  openOv('ov-privacy');
+}
+function setPriv(k, on){
+  S.privacy = S.privacy || {};
+  S.privacy[k] = !!on;
+  persist();
+  _pushSocialSoon();
+  haptic(8);
+}
+function copyFriendCode(btn){
+  try { navigator.clipboard.writeText(_socCode()); } catch(_){}
+  haptic(10);
+  if (btn) { const t = btn.textContent; btn.textContent = 'Kopiert'; setTimeout(()=>btn.textContent = t, 1200); }
+}
+function shareFriendCode(){
+  const txt = 'Füg mich in MyGymTrack hinzu — mein Freundes-Code: ' + _socCode();
+  if (navigator.share) navigator.share({ text: txt }).catch(()=>{});
+  else copyFriendCode(null);
+}
+
+/* ── Gym-Karte (Leaflet, lazy vom CDN) ── */
+function _loadLeaflet(){
+  if (window.L) return Promise.resolve();
+  if (_leafP) return _leafP;
+  _leafP = new Promise((res, rej) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = () => res();
+    s.onerror = () => { _leafP = null; rej(new Error('Leaflet nicht erreichbar')); };
+    document.head.appendChild(s);
+  });
+  return _leafP;
+}
+async function _renderSocMapTab(body){
+  body.innerHTML = `<div class="soc-map-wrap">
+      <div id="social-map"><div class="soc-empty" style="height:100%;display:flex;align-items:center;justify-content:center">Karte lädt…</div></div>
+      <div class="soc-map-search" id="soc-map-search"></div>
+      <button class="soc-map-loc" id="soc-map-loc" onclick="socLocateMe()" aria-label="Mein Standort">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2"/></svg>
+      </button>
+      <div class="soc-map-foot" id="soc-map-foot"></div>
+    </div>`;
+  _sizeSocMap();
+  _renderSocMapFoot();
+  _renderSocMapSearch();
+  try { await _loadLeaflet(); } catch(_) {
+    const m = document.getElementById('social-map');
+    if (m) m.innerHTML = '<div class="soc-empty" style="height:100%;display:flex;align-items:center;justify-content:center">Karte konnte nicht geladen werden — bist du offline?</div>';
+    return;
+  }
+  _initSocMap();
+}
+// Karte füllt den Bildschirm bis knapp über die Tabbar; pg-Bottom-Padding wird
+// neutralisiert, damit die große Karte nicht scrollt.
+function _sizeSocMap(){
+  const el   = document.getElementById('social-map');
+  const wrap = el && el.closest('.soc-map-wrap');
+  const bar  = document.querySelector('.tabbar');
+  if (!el || !wrap || !bar) return;
+  const top    = el.getBoundingClientRect().top;
+  const barTop = bar.getBoundingClientRect().top;
+  const h = Math.max(340, Math.round(barTop - top - 14));
+  el.style.height = h + 'px';
+  const pg  = el.closest('.pg');
+  const pad = pg ? parseFloat(getComputedStyle(pg).paddingBottom) || 0 : 0;
+  wrap.style.marginBottom = (14 - pad) + 'px';
+  if (_socMap) { try { _socMap.invalidateSize(); } catch(_){} }
+}
+window.addEventListener('resize', () => { if (document.getElementById('social-map')) _sizeSocMap(); });
+function socLocateMe(){
+  if (!_socMap || !navigator.geolocation) { alert('Standort nicht verfügbar.'); return; }
+  haptic(6);
+  navigator.geolocation.getCurrentPosition(
+    p => { try { _socMap.setView([p.coords.latitude, p.coords.longitude], 14); } catch(_){} },
+    _ => alert('Standort nicht verfügbar — Ortungsdienste erlauben?'),
+    { enableHighAccuracy:true, timeout:8000, maximumAge:60000 }
+  );
+}
+function _renderSocMapSearch(){
+  const s = document.getElementById('soc-map-search'); if (!s) return;
+  if (_socEditing) {
+    s.classList.add('on');
+    s.innerHTML = `
+      <input class="f-in" id="soc-gym-q" placeholder="Gym suchen (Name, Stadt)" autocomplete="off"
+        value="${esc(_socTmp?.name || '')}" oninput="socGymSearchInput(this.value)">
+      <div id="soc-gym-res"></div>`;
+  } else {
+    s.classList.remove('on');
+    s.innerHTML = '';
+  }
+}
+function _renderSocMapFoot(){
+  const f = document.getElementById('soc-map-foot'); if (!f) return;
+  if (_socEditing) {
+    f.innerHTML = `
+      <div class="soc-foot-hint">Tippe auf die Karte oder such oben dein Gym</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gray" style="flex:1" onclick="socCancelGym()">Abbrechen</button>
+        <button class="btn btn-acc" style="flex:1" onclick="socSaveGym()">Speichern</button>
+      </div>`;
+  } else {
+    f.innerHTML = `
+      <div class="row" style="padding:8px 4px">
+        <div class="row-body">
+          <div class="row-title">${S.gymName ? esc(S.gymName) : 'Kein Gym festgelegt'}</div>
+          <div class="row-sub" style="white-space:normal;line-height:1.4">${S.gymName ? 'Dein Gym — für Freunde auf der Karte sichtbar' : 'Zeig deinen Freunden, wo du trainierst'}</div>
+        </div>
+        <button class="btn btn-acc" style="width:auto;padding:10px 16px;font-size:14px;flex-shrink:0" onclick="socEditGym()">${S.gymName ? 'Ändern' : 'Festlegen'}</button>
+      </div>`;
+  }
+}
+function _gymPin(initials, me){
+  return L.divIcon({ className:'', html:`<div class="gym-pin${me?' me':''}">${initials}</div>`, iconSize:[34,34], iconAnchor:[17,17] });
+}
+function _initSocMap(){
+  const el = document.getElementById('social-map');
+  if (!el || !window.L) return;
+  el.innerHTML = '';
+  if (_socMap) { try { _socMap.remove(); } catch(_){} _socMap = null; }
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  _socMap = L.map(el, { zoomControl:false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/' + (dark?'dark_all':'light_all') + '/{z}/{x}/{y}{r}.png',
+    { maxZoom:19, attribution:'&copy; OpenStreetMap &copy; CARTO' }).addTo(_socMap);
+  _socMap.on('click', e => {
+    if (!_socEditing) return;
+    _socTmp = { lat:e.latlng.lat, lng:e.latlng.lng, name:_socTmp?.name || S.gymName || '' };
+    _drawSocMarkers();
+  });
+  _drawSocMarkers(true);
+  setTimeout(() => { _sizeSocMap(); try { _socMap.invalidateSize(); } catch(_){} }, 260);
+  _loadProfiles().then(() => _drawSocMarkers());
+}
+function _drawSocMarkers(fit){
+  if (!_socMap || !window.L) return;
+  _socMarkers.forEach(m => { try { _socMap.removeLayer(m); } catch(_){} });
+  _socMarkers = [];
+  const pts = [];
+  const mine = (_socEditing && _socTmp) ? _socTmp
+    : (S.gymLat != null && S.gymLng != null ? { lat:S.gymLat, lng:S.gymLng, name:S.gymName } : null);
+  if (mine) {
+    const m = L.marker([mine.lat, mine.lng], { icon:_gymPin('DU', true) }).addTo(_socMap)
+      .bindPopup(`<b>Du</b>${mine.name ? '<br>' + esc(mine.name) : ''}`);
+    _socMarkers.push(m); pts.push([mine.lat, mine.lng]);
+  }
+  (_socCache||[]).forEach(p => {
+    if (p.uid === _fbUser?.uid || p.gymLat == null || p.gymLng == null) return;
+    const m = L.marker([p.gymLat, p.gymLng], { icon:_gymPin(_socInitials(p.name), false) }).addTo(_socMap)
+      .bindPopup(`<b>${esc(p.name||'')}</b>${p.gymName ? '<br>' + esc(p.gymName) : ''}`);
+    _socMarkers.push(m); pts.push([p.gymLat, p.gymLng]);
+  });
+  if (fit) {
+    if (pts.length) _socMap.fitBounds(pts, { padding:[40,40], maxZoom:14 });
+    else _socMap.setView([51.16, 10.45], 5); // Deutschland-Übersicht
+  }
+}
+function socEditGym(){
+  haptic(8);
+  _socEditing = true;
+  _socTmp = (S.gymLat != null) ? { lat:S.gymLat, lng:S.gymLng, name:S.gymName } : null;
+  _renderSocMapFoot(); _renderSocMapSearch();
+}
+function socCancelGym(){
+  _socEditing = false; _socTmp = null;
+  _renderSocMapFoot(); _renderSocMapSearch(); _drawSocMarkers();
+}
+function socSaveGym(){
+  if (!_socTmp) { alert('Erst Standort wählen — Karte antippen oder Gym suchen.'); return; }
+  const nameIn = document.getElementById('soc-gym-q');
+  S.gymName = ((nameIn && nameIn.value.trim()) || _socTmp.name || 'Mein Gym').slice(0,40);
+  S.gymLat = _socTmp.lat; S.gymLng = _socTmp.lng;
+  _socEditing = false; _socTmp = null;
+  persist(); _pushSocialSoon(); updateSocialUI();
+  _renderSocMapFoot(); _renderSocMapSearch(); _drawSocMarkers(true);
+  haptic(15);
+}
+function socGymSearchInput(v){
+  clearTimeout(_socSearchT);
+  const q = (v||'').trim();
+  const res = document.getElementById('soc-gym-res');
+  if (q.length < 3) { if (res) res.innerHTML = ''; return; }
+  _socSearchT = setTimeout(() => socGymSearch(q), 450);
+}
+async function socGymSearch(q){
+  const res = document.getElementById('soc-gym-res'); if (!res) return;
+  res.innerHTML = '<div class="soc-empty" style="padding:10px">Suche…</div>';
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q));
+    const js = await r.json();
+    if (!Array.isArray(js) || !js.length) { res.innerHTML = '<div class="soc-empty" style="padding:10px">Nichts gefunden</div>'; return; }
+    _socHits = js;
+    res.innerHTML = '<div class="soc-search-res">' + js.map((h,i) =>
+      `<button onclick="socPickHit(${i})">${esc((h.display_name||'').split(',').slice(0,3).join(','))}</button>`).join('') + '</div>';
+  } catch(_) { res.innerHTML = '<div class="soc-empty" style="padding:10px">Suche fehlgeschlagen</div>'; }
+}
+function socPickHit(i){
+  const h = _socHits[i]; if (!h) return;
+  _socTmp = { lat:+h.lat, lng:+h.lon, name:(h.display_name||'').split(',')[0].trim().slice(0,40) };
+  const q = document.getElementById('soc-gym-q'); if (q) q.value = _socTmp.name;
+  const res = document.getElementById('soc-gym-res'); if (res) res.innerHTML = '';
+  _drawSocMarkers();
+  if (_socMap) _socMap.setView([_socTmp.lat, _socTmp.lng], 15);
+  haptic(8);
+}
+
+/* ── Heute-Widget: Rangliste ── */
+function hwSocial(size){
+  if (!S.socialOn) {
+    return `<button class="btn btn-acc heute-train-btn" onclick="openSocial()">${size==='sm'?'Freunde':'Community entdecken'}</button>`;
+  }
+  const wk = getWeekKey();
+  const rows = (_socCache||[])
+    .map(p => ({ ...p, _v: (p.week && p.week.key === wk) ? (p.week.vol||0) : 0 }))
+    .sort((a,b) => b._v - a._v)
+    .slice(0, size==='sm' ? 2 : 3);
+  if (!rows.length) return `<div class="soc-empty" style="padding:12px 6px;cursor:pointer" onclick="openSocial()">Tippen für Rangliste &amp; Freunde</div>`;
+  return `<div style="cursor:pointer" onclick="openSocial()">` + rows.map((p,i) => `
+    <div class="soc-row" style="padding:5px 2px">
+      <span class="soc-rank${i===0?' top':''}" style="width:18px;font-size:13px">${i+1}</span>
+      <div class="soc-ava" style="width:28px;height:28px;font-size:10.5px">${_socInitials(p.name)}</div>
+      <div style="flex:1;min-width:0"><div class="soc-name" style="font-size:13px">${esc(p.name||'')}</div></div>
+      <span class="soc-val" style="font-size:12.5px">${fmtKg(p._v)}</span>
+    </div>`).join('') + `</div>`;
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 setGlass(S.glass);
@@ -13858,6 +15285,16 @@ initSheetSwipe();
 initTabDrag();
 initPageSwipe();
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
+maybeStartOnboarding();   // Ersteinrichtung für neue Nutzer
+if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
+// QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
+try {
+  const _addCode = new URLSearchParams(location.search).get('add');
+  if (_addCode) {
+    sessionStorage.setItem('gt_addCode', _addCode.toUpperCase().slice(0,6));
+    history.replaceState(null, '', location.pathname);
+  }
+} catch(_){}
 
 
 // Migration: bei alten Usern (lastSeenVersion gesetzt, aber seenChangelog leer)
@@ -14297,6 +15734,17 @@ async function _pushToCloud() {
       weightGoal:  S.weightGoal ?? null,
       restTimerSecs: S.restTimerSecs || 90,
       smartRest:  S.smartRest !== false,
+      onboarded:  !!S.onboarded,
+      userName:   S.userName || null,
+      obGoal:     S.obGoal || null,
+      obExp:      S.obExp  || null,
+      obFreq:     S.obFreq || null,
+      socialOn:   !!S.socialOn,
+      friendCode: S.friendCode || null,
+      friends:    S.friends || [],
+      gymName:    S.gymName || null,
+      gymLat:     S.gymLat ?? null,
+      gymLng:     S.gymLng ?? null,
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
@@ -14371,6 +15819,17 @@ function _mergeData(local, cloud) {
     weightGoal:   pick(cloud.weightGoal,   local.weightGoal) ?? null,
     restTimerSecs: pick(cloud.restTimerSecs, local.restTimerSecs),
     smartRest:    pick(cloud.smartRest,    local.smartRest),
+    onboarded:    cloud.onboarded || local.onboarded || false,
+    userName:     pick(cloud.userName, local.userName) ?? '',
+    obGoal:       pick(cloud.obGoal, local.obGoal) ?? null,
+    obExp:        pick(cloud.obExp,  local.obExp)  ?? null,
+    obFreq:       pick(cloud.obFreq, local.obFreq) ?? null,
+    socialOn:     pick(cloud.socialOn, local.socialOn) ?? false,
+    friendCode:   cloud.friendCode || local.friendCode || null,
+    friends:      [...new Set([...(cloud.friends || []), ...(local.friends || [])])],
+    gymName:      pick(cloud.gymName, local.gymName) ?? null,
+    gymLat:       pick(cloud.gymLat,  local.gymLat)  ?? null,
+    gymLng:       pick(cloud.gymLng,  local.gymLng)  ?? null,
     updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
   };
 }
