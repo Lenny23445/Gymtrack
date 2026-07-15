@@ -85,11 +85,11 @@ struct GymTrackLiveActivity: Widget {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     if context.state.isResting {
-                        Text("Pause")
+                        Text(GTL("Pause", "Rest"))
                             .font(.caption2).foregroundColor(.secondary)
                         RestCountdown(state: context.state, font: .title2, width: 72)
                     } else {
-                        Text("Dauer")
+                        Text(GTL("Dauer", "Duration"))
                             .font(.caption2).foregroundColor(.secondary)
                         Text(timerInterval: context.attributes.startDate...Date.distantFuture,
                              countsDown: false)
@@ -116,11 +116,11 @@ struct GymTrackLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 1) {
                         if context.state.isResting {
-                            Text("Pause")
+                            Text(GTL("Pause", "Rest"))
                                 .font(.caption2).foregroundColor(.secondary)
                             RestCountdown(state: context.state, font: .title3)
                         } else {
-                            Text("Satz \(context.state.setsDone)/\(context.state.totalSets)")
+                            Text("\(GTL("Satz", "Set")) \(context.state.setsDone)/\(context.state.totalSets)")
                                 .font(.caption2).foregroundColor(.secondary)
                             Text(timerInterval: context.attributes.startDate...Date.distantFuture,
                                  countsDown: false)

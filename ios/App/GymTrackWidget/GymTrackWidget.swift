@@ -6,6 +6,11 @@ import AppIntents
 
 private let appGroup = "group.com.wolter.gymtrack"
 
+/// Sprach-Helfer: Deutsch nur bei deutscher Gerätesprache, sonst Englisch (wie die App)
+func GTL(_ de: String, _ en: String) -> String {
+    (Locale.preferredLanguages.first ?? "de").hasPrefix("de") ? de : en
+}
+
 struct TrackerItem: Identifiable {
     let id: String
     let label: String
@@ -182,19 +187,19 @@ struct GymTrackSmallView: View {
             // Streak
             HStack(spacing: 4) {
                 Text("🔥")
-                Text("\(data.streakWeeks) Wochen")
+                Text("\(data.streakWeeks) \(GTL("Wochen", "weeks"))")
                     .font(.caption).fontWeight(.bold).foregroundColor(.orange)
             }
             Spacer()
             // Heute
-            Text("Heute")
+            Text(GTL("Heute", "Today"))
                 .font(.caption2).foregroundColor(.secondary)
-            Text(data.todayPlan.isEmpty ? "Ruhetag" : data.todayPlan)
+            Text(data.todayPlan.isEmpty ? GTL("Ruhetag", "Rest day") : data.todayPlan)
                 .font(.subheadline).fontWeight(.bold)
                 .lineLimit(2).minimumScaleFactor(0.8)
             Spacer()
             // Woche
-            Label("\(data.weekSessions)× diese Woche", systemImage: "dumbbell")
+            Label("\(data.weekSessions)× \(GTL("diese Woche", "this week"))", systemImage: "dumbbell")
                 .font(.caption2).foregroundColor(.secondary)
         }
         .padding(14)
@@ -210,26 +215,26 @@ struct GymTrackMediumView: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Label("\(data.streakWeeks) Wochen", systemImage: "flame.fill")
+                Label("\(data.streakWeeks) \(GTL("Wochen", "weeks"))", systemImage: "flame.fill")
                     .font(.subheadline).fontWeight(.bold).foregroundColor(.orange)
 
                 Divider()
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Heute").font(.caption2).foregroundColor(.secondary)
-                    Text(data.todayPlan.isEmpty ? "Ruhetag" : data.todayPlan)
+                    Text(GTL("Heute", "Today")).font(.caption2).foregroundColor(.secondary)
+                    Text(data.todayPlan.isEmpty ? GTL("Ruhetag", "Rest day") : data.todayPlan)
                         .font(.headline).lineLimit(1)
                 }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 8) {
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Diese Woche").font(.caption2).foregroundColor(.secondary)
-                    Text("\(data.weekSessions) Trainings").font(.subheadline).fontWeight(.bold)
+                    Text(GTL("Diese Woche", "This week")).font(.caption2).foregroundColor(.secondary)
+                    Text("\(data.weekSessions) \(GTL("Trainings", "workouts"))").font(.subheadline).fontWeight(.bold)
                 }
                 if !data.lastWorkout.isEmpty {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("Zuletzt").font(.caption2).foregroundColor(.secondary)
+                        Text(GTL("Zuletzt", "Last")).font(.caption2).foregroundColor(.secondary)
                         Text(data.lastWorkout).font(.caption).lineLimit(2).multilineTextAlignment(.trailing)
                     }
                 }
@@ -250,7 +255,7 @@ struct GymTrackLockScreenView: View {
             Image(systemName: "flame.fill").foregroundColor(.orange)
             Text("\(data.streakWeeks)w").fontWeight(.bold)
             Text("·")
-            Text(data.todayPlan.isEmpty ? "Ruhetag" : data.todayPlan).lineLimit(1)
+            Text(data.todayPlan.isEmpty ? GTL("Ruhetag", "Rest day") : data.todayPlan).lineLimit(1)
         }
         .font(.caption)
     }
@@ -260,17 +265,19 @@ struct GymTrackLockScreenView: View {
 
 struct GymTrackWeekView: View {
     let data: WidgetData
-    private let labels = ["Mo","Di","Mi","Do","Fr","Sa","So"]
+    private let labels = (Locale.preferredLanguages.first ?? "de").hasPrefix("de")
+        ? ["Mo","Di","Mi","Do","Fr","Sa","So"]
+        : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Diese Woche")
+                Text(GTL("Diese Woche", "This week"))
                     .font(.caption).fontWeight(.semibold).foregroundColor(.secondary)
                 Spacer()
                 Text("\(data.weekSessions)× ")
                     .font(.caption).fontWeight(.bold).foregroundColor(gtAccent)
-                + Text("trainiert").font(.caption).foregroundColor(.secondary)
+                + Text(GTL("trainiert", "trained")).font(.caption).foregroundColor(.secondary)
             }
             HStack(spacing: 6) {
                 ForEach(0..<7, id: \.self) { i in
@@ -331,7 +338,7 @@ struct GymTrackWidget: Widget {
             }
         }
         .configurationDisplayName("GymTrack")
-        .description("Streak und heutiges Training auf dem Homescreen.")
+        .description(GTL("Streak und heutiges Training auf dem Homescreen.", "Streak and today's workout on your home screen."))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -344,7 +351,7 @@ struct GymTrackLockWidget: Widget {
             GymTrackLockScreenView(data: entry.data)
         }
         .configurationDisplayName("GymTrack Streak")
-        .description("Streak und heutiger Plan auf dem Sperrbildschirm.")
+        .description(GTL("Streak und heutiger Plan auf dem Sperrbildschirm.", "Streak and today's plan on the lock screen."))
         .supportedFamilies([.accessoryRectangular])
     }
 }
@@ -358,11 +365,11 @@ struct GymTrackTrackerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Diese Woche")
+            Text(GTL("Diese Woche", "This week"))
                 .font(.caption).fontWeight(.semibold).foregroundColor(.secondary)
             if data.trackers.isEmpty {
                 Spacer()
-                Text("In der App unter „Heute“ Kategorien hinzufügen")
+                Text(GTL("In der App unter „Heute“ Kategorien hinzufügen", "Add categories in the app under “Today”"))
                     .font(.caption2).foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                 Spacer()
@@ -427,8 +434,8 @@ struct GymTrackTrackerWidget: Widget {
                 }
             }
         }
-        .configurationDisplayName("GymTrack Ziele")
-        .description("Wochenziele als Ringe – tippe einen Ring für +1.")
+        .configurationDisplayName(GTL("GymTrack Ziele", "GymTrack Goals"))
+        .description(GTL("Wochenziele als Ringe – tippe einen Ring für +1.", "Weekly goals as rings – tap a ring for +1."))
         .supportedFamilies([.systemMedium])
     }
 }
@@ -448,8 +455,8 @@ struct GymTrackWeekWidget: Widget {
                 }
             }
         }
-        .configurationDisplayName("GymTrack Woche")
-        .description("Deine Trainingstage Mo–So – tippe einen Tag an.")
+        .configurationDisplayName(GTL("GymTrack Woche", "GymTrack Week"))
+        .description(GTL("Deine Trainingstage Mo–So – tippe einen Tag an.", "Your training days Mon–Sun – tap a day."))
         .supportedFamilies([.systemMedium])
     }
 }
