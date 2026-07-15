@@ -1470,8 +1470,9 @@ body{
   padding:16px;text-align:center;color:var(--text2);font-size:13px;
   background:var(--g5);border-radius:14px;line-height:1.45;
 }
-.preset-ex-row{display:flex;align-items:center;gap:10px;padding:11px 10px;cursor:pointer;border-radius:12px}
+.preset-ex-row{display:flex;align-items:center;gap:10px;padding:11px 10px;cursor:pointer;border-radius:12px;flex:1;min-width:0}
 .preset-ex-row:active{background:var(--g5)}
+#preset-ex-list .ex-swipe-wrap{border-radius:12px;margin-bottom:2px}
 .preset-ex-row .pex-body{flex:1;min-width:0}
 .preset-ex-row .pex-name{font-size:15px;font-weight:600;color:var(--text)}
 .preset-ex-row .pex-sub{font-size:12px;color:var(--text2);margin-top:1px}
@@ -5567,7 +5568,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607150002';
+const APP_VERSION = 'gymtrack-v202607150003';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -7546,9 +7547,14 @@ function moveTabIndicator(activeTab) {
   const barRect = bar.getBoundingClientRect();
   const tabRect = activeTab.getBoundingClientRect();
   if (!tabRect.width) return;                       // Layout noch nicht bereit
-  // -7 = Border (1px) + CSS left (6px): so sitzt die Pill exakt mittig auf dem Tab.
-  const newX    = tabRect.left - barRect.left - 7;
-  const newW    = tabRect.width;
+  // Pill exakt mittig auf dem Tab: Indikator liegt absolut in der Padding-Box der
+  // Tab-Leiste (Ursprung = barRect.left + Border-Breite). CSS `left:6px` ist bereits
+  // die Grundposition, translateX(newX) verschiebt relativ dazu. Border-Breite live
+  // aus clientLeft statt fester Konstante → kein 1px-Versatz. Auf ganze Pixel runden,
+  // damit die halbtransparente Pille scharf (nicht sub-pixel-verwaschen) sitzt.
+  const padLeft = barRect.left + bar.clientLeft;
+  const newX    = Math.round(tabRect.left - padLeft - 6);
+  const newW    = Math.round(tabRect.width);
 
   // Erste Platzierung: ohne Animation setzen und festschreiben.
   if (_indX == null) {
@@ -13463,19 +13469,88 @@ function renderPresetExList() {
   }
   list.innerHTML = items.map(ex => {
     const on = _presetSel.has(ex.id);
-    return `<div class="preset-ex-row${on?' on':''}" onclick="togglePresetEx('${ex.id}')">
-      <div class="pex-body">
-        <div class="pex-name">${esc(ex.name)}</div>
-        <div class="pex-sub">${ex.muscleGroup||''}</div>
+    return `<div class="ex-swipe-wrap">
+      <div class="ex-swipe-inner">
+        <div class="preset-ex-row${on?' on':''}" data-exid="${ex.id}" onclick="presetExRowClick(this,'${ex.id}')">
+          <div class="pex-body">
+            <div class="pex-name">${esc(ex.name)}</div>
+            <div class="pex-sub">${esc(ex.muscleGroup||'')}</div>
+          </div>
+          <div class="pex-chk">${on?'✓':''}</div>
+        </div>
+        <div class="ex-row-del" onclick="deleteExFromPreset('${ex.id}')">🗑</div>
       </div>
-      <div class="pex-chk">${on?'✓':''}</div>
     </div>`;
   }).join('');
+  _initPresetSwipes();
 }
 function togglePresetEx(id) {
   if (_presetSel.has(id)) _presetSel.delete(id); else _presetSel.add(id);
   hapticTick();
   renderPresetExList();
+}
+// Tap auf eine Zeile: offenen Lösch-Swipe erst schließen, sonst Auswahl umschalten.
+function presetExRowClick(el, id) {
+  const inner = el.closest('.ex-swipe-inner');
+  if (inner && inner.classList.contains('swipe-open')) { exCloseSwipe(inner); return; }
+  togglePresetEx(id);
+}
+// Nach links wischen → 🗑 → Übung komplett löschen (wie in der Übungsliste).
+function deleteExFromPreset(exId) {
+  const ex = exById(exId);
+  if (!confirm('Übung „' + (ex ? ex.name : '') + '" wirklich löschen?')) return;
+  S.exercises = S.exercises.filter(e => e.id !== exId);
+  S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== exId); });
+  S.sessions = S.sessions.filter(s => s.logs.length > 0);
+  _presetSel.delete(exId);
+  persist();
+  if (typeof _indexExercisesSpotlight === 'function') _indexExercisesSpotlight();
+  _swipeActive = null;
+  renderPresetExList();
+}
+// Swipe-to-delete für die Übungszeilen im Split-Editor (eigene Init, damit der
+// Tap die Auswahl togglet statt die Detailansicht zu öffnen).
+function _initPresetSwipes() {
+  document.querySelectorAll('#preset-ex-list .ex-swipe-wrap').forEach(wrap => {
+    const inner = wrap.querySelector('.ex-swipe-inner');
+    const row   = wrap.querySelector('.preset-ex-row');
+    if (!inner || !row) return;
+    let startX, startY, tracking = false, wasOpen = false;
+    row.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      tracking = true;
+      wasOpen = inner.classList.contains('swipe-open');
+    }, {passive:true});
+    row.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx) + 8) { tracking = false; return; }  // vertikal → Liste scrollt
+      if (Math.abs(dx) < 4) return;
+      e.preventDefault();
+      const base = wasOpen ? -72 : 0;
+      const nx = Math.max(-72, Math.min(0, base + dx));
+      inner.style.transition = 'none';
+      inner.style.transform = `translateX(${nx}px)`;
+    }, {passive:false});
+    row.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const base = wasOpen ? -72 : 0;
+      inner.style.transition = '';
+      if (base + dx < -36) {
+        inner.style.transform = 'translateX(-72px)';
+        inner.classList.add('swipe-open');
+        if (_swipeActive && _swipeActive !== inner) exCloseSwipe(_swipeActive);
+        _swipeActive = inner;
+      } else {
+        exCloseSwipe(inner);
+      }
+    }, {passive:true});
+  });
 }
 function savePreset() {
   const name = (document.getElementById('preset-name')?.value || '').trim();
@@ -14789,6 +14864,32 @@ function _hasHScrollParent(el) {
   return false;
 }
 
+// ── HINTERGRUND-SCROLL SPERREN, SOLANGE EIN SHEET OFFEN IST ──
+// Ohne das scrollt beim Wischen im Sheet-Kopf (Name/Farbe/Tage) die Seite
+// dahinter mit. Gescrollt wird NUR noch innerhalb des Sheets – in einem echten
+// vertikalen Scroll-Container (z. B. #preset-ex-list). Alles andere (Backdrop,
+// nicht scrollbarer Sheet-Kopf) blockt den Touchmove → Trainingsansicht bleibt fix.
+function _vScrollableAncestor(el, root) {
+  while (el && el !== root && el !== document.body) {
+    if (el.scrollHeight > el.clientHeight + 1) {
+      const oy = window.getComputedStyle(el).overflowY;
+      if (oy === 'auto' || oy === 'scroll') return el;
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) return;                       // Pinch/Zoom nie blocken
+  if (!document.querySelector('.ov.on')) return;          // kein Sheet offen → normal
+  const ov = e.target.closest && e.target.closest('.ov.on');
+  if (!ov) { e.preventDefault(); return; }                // Touch außerhalb offener Sheets
+  if (_vScrollableAncestor(e.target, ov)) return;         // im vertikalen Sheet-Scroller → erlauben
+  if (_hasHScrollParent(e.target)) return;                // horizontale Reihen (Farb-/Tage-Chips)
+  if (e.target.closest('.leaflet-container, canvas')) return; // Karten / Charts pannen lassen
+  e.preventDefault();                                     // Sheet-Kopf / Backdrop → nichts scrollt
+}, { passive: false });
+
 // ── CHANGELOG POPUP ─────────────────────────────────────
 // CHANGELOG-Keys sind STABIL (überleben Versionsbump). Es wird nur angezeigt,
 // was der User noch NICHT in S.seenChangelog hat. Reihenfolge: NEUESTE zuerst.
@@ -15959,6 +16060,7 @@ function renderFriendsTab(){
   const body = document.getElementById('fr-body'); if (!body) return;
   document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
   _updateFrBadges();
+  if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
     body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
       <div style="font-size:16px;font-weight:700">Cloud nicht eingerichtet</div>
