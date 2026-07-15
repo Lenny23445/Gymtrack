@@ -4,221 +4,637 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyGymTrack – Dein smartes Trainingstagebuch</title>
-<meta name="description" content="MyGymTrack ist dein smartes Trainingstagebuch fürs iPhone: Workouts loggen, Gewichtsvorschläge, 1RM-Statistiken, Cloud-Sync und Apple Health.">
+<meta name="description" content="MyGymTrack ist dein smartes Trainingstagebuch fürs iPhone: Workouts in Sekunden loggen, automatische Gewichtsvorschläge, 1RM-Statistiken, Erholungs-Tracking, Streaks & Community.">
 <link rel="icon" href="../icon-192.png">
-<meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0a84ff" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#05060f">
+
+<!-- Social / Instagram Link-Preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="MyGymTrack – Dein smartes Trainingstagebuch">
+<meta property="og:description" content="Workouts loggen, Fortschritt sehen, stärker werden. Smarte Gewichtsvorschläge, 1RM-Analyse, Erholungs-Tracking & Community.">
+<meta property="og:image" content="https://lenny23445.github.io/Gymtrack/icon-1024.png">
+<meta property="og:url" content="https://lenny23445.github.io/Gymtrack/web/">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="../screenshots/tab_Heute.png">
+
 <style>
-  :root{
-    --acc:#007AFF; --acc-press:#0066d6;
-    --bg:#f2f3f7; --card:#ffffff; --card-bdr:rgba(0,0,0,.07);
-    --text:#1c1c1e; --text2:#5c5c62;
-    --tint:rgba(0,122,255,.10);
-    --shadow:0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --acc:#0a84ff; --acc-press:#3b9bff;
-      --bg:#000000; --card:#1c1c1e; --card-bdr:rgba(255,255,255,.10);
-      --text:#f5f5f7; --text2:#a1a1a8;
-      --tint:rgba(10,132,255,.18);
-      --shadow:0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
-    }
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
-    background:var(--bg); color:var(--text); line-height:1.6;
-    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-  }
-  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
-  a{color:var(--acc)}
-  :focus-visible{outline:3px solid var(--acc);outline-offset:3px;border-radius:8px}
+/* ═══════════════ TOKENS ═══════════════ */
+:root{
+  --bg:#05060f;
+  --bg2:#0a0c1a;
+  --text:#f2f5ff;
+  --text2:#9aa3ba;
+  --acc:#0a84ff;
+  --acc2:#5ac8fa;
+  --purple:#8b5cf6;
+  --pink:#ec4899;
+  --green:#30d158;
+  --glass:rgba(255,255,255,.045);
+  --glass-strong:rgba(255,255,255,.07);
+  --stroke:rgba(255,255,255,.09);
+  --stroke2:rgba(255,255,255,.16);
+  --grad:linear-gradient(100deg,#5ac8fa 0%,#0a84ff 45%,#8b5cf6 100%);
+  --r-lg:28px; --r-md:20px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:var(--acc2);text-decoration:none}
+button{cursor:pointer;font:inherit}
+:focus-visible{outline:3px solid var(--acc);outline-offset:3px;border-radius:10px}
+::selection{background:rgba(10,132,255,.35)}
+.wrap{max-width:1140px;margin:0 auto;padding:0 24px}
 
-  /* ── HERO ── */
-  header{
-    position:relative;overflow:hidden;text-align:center;color:#fff;
-    padding:88px 22px 96px;
-    background:radial-gradient(120% 120% at 50% -10%,#5AC8FA 0%,#007AFF 48%,#0051d5 100%);
-  }
-  header .icon{
-    width:104px;height:104px;border-radius:24px;display:block;margin:0 auto 22px;
-    box-shadow:0 16px 40px rgba(0,0,0,.3);
-  }
-  header h1{font-size:clamp(40px,9vw,60px);font-weight:800;letter-spacing:-1.5px;line-height:1}
-  header .tag{font-size:clamp(17px,4.5vw,21px);font-weight:600;margin-top:14px;opacity:.97}
-  header .pitch{max-width:520px;margin:18px auto 0;font-size:16px;opacity:.92;line-height:1.55}
-  .badge{
-    display:inline-flex;align-items:center;gap:8px;margin-top:30px;
-    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.38);
-    color:#fff;font-weight:600;padding:13px 24px;border-radius:30px;font-size:15px;
-    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  }
-  .badge .dot{width:8px;height:8px;border-radius:50%;background:#30d158;box-shadow:0 0 0 4px rgba(48,209,88,.25)}
+h1,h2,.big{font-family:'Barlow Condensed','Barlow',sans-serif;text-transform:uppercase;letter-spacing:.5px}
 
-  /* ── SECTIONS ── */
-  section{padding:56px 0 0}
-  section:last-of-type{padding-bottom:8px}
-  .eyebrow{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
-  h2{font-size:clamp(26px,5vw,32px);font-weight:800;letter-spacing:-.5px;margin-bottom:24px}
+/* ═══════════════ AURORA BACKGROUND ═══════════════ */
+.aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;background:var(--bg)}
+.aurora .blob{
+  position:absolute;width:55vmax;height:55vmax;border-radius:50%;
+  filter:blur(90px);opacity:.32;will-change:transform;
+}
+.aurora .b1{background:#0a3fa8;top:-18%;left:-12%;animation:drift1 26s ease-in-out infinite alternate}
+.aurora .b2{background:#6d28d9;top:-10%;right:-18%;animation:drift2 32s ease-in-out infinite alternate}
+.aurora .b3{background:#9d174d;bottom:-25%;left:22%;opacity:.22;animation:drift3 38s ease-in-out infinite alternate}
+.aurora .b4{background:#065f46;bottom:-20%;right:-14%;opacity:.25;animation:drift1 30s ease-in-out infinite alternate-reverse}
+@keyframes drift1{to{transform:translate(9vw,7vh) scale(1.15)}}
+@keyframes drift2{to{transform:translate(-8vw,10vh) scale(1.1) rotate(20deg)}}
+@keyframes drift3{to{transform:translate(6vw,-8vh) scale(1.2)}}
+/* Grain für Premium-Textur */
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+}
 
-  /* ── FEATURE GRID ── */
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  @media(max-width:760px){.grid{grid-template-columns:1fr 1fr}}
-  @media(max-width:460px){.grid{grid-template-columns:1fr}}
-  .feat{
-    background:var(--card);border:1px solid var(--card-bdr);border-radius:20px;
-    padding:24px 22px;box-shadow:var(--shadow);
-    transition:transform .2s ease, box-shadow .2s ease;
-  }
-  @media(hover:hover){.feat:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.10)}}
-  .feat .ic{
-    width:50px;height:50px;border-radius:14px;background:var(--tint);color:var(--acc);
-    display:flex;align-items:center;justify-content:center;margin-bottom:16px;
-  }
-  .feat .ic svg{width:26px;height:26px}
-  .feat h3{font-size:17px;font-weight:700;margin-bottom:5px}
-  .feat p{font-size:14.5px;color:var(--text2);line-height:1.5}
+/* ═══════════════ NAVBAR ═══════════════ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  transition:background .3s ease,border-color .3s ease,backdrop-filter .3s ease;
+  border-bottom:1px solid transparent;
+}
+nav.scrolled{
+  background:rgba(5,6,15,.72);border-bottom-color:var(--stroke);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+}
+.nav-in{max-width:1140px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:28px}
+.logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;color:var(--text)}
+.logo img{width:34px;height:34px;border-radius:9px;box-shadow:0 4px 14px rgba(10,132,255,.35)}
+.nav-links{display:flex;gap:26px;margin-left:auto}
+.nav-links a{color:var(--text2);font-weight:500;font-size:15px;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{
+  margin-left:auto;display:inline-flex;align-items:center;gap:8px;
+  background:var(--acc);color:#fff;font-weight:600;font-size:14.5px;
+  padding:10px 20px;border-radius:22px;transition:transform .15s var(--ease),box-shadow .2s,background .2s;
+  box-shadow:0 4px 18px rgba(10,132,255,.35);
+}
+.nav-links + .nav-cta{margin-left:0}
+.nav-cta:hover{background:#3b9bff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(10,132,255,.45)}
+@media(max-width:760px){.nav-links{display:none}}
 
-  /* ── CARD BLOCKS ── */
-  .block{
-    background:var(--card);border:1px solid var(--card-bdr);border-radius:22px;
-    padding:30px;box-shadow:var(--shadow);
-  }
-  .block p{color:var(--text2);font-size:16px;margin-bottom:14px}
-  .block p:last-child{margin-bottom:0}
-  .block .name{color:var(--text);font-weight:700;font-size:17px}
-  .btn{
-    display:inline-flex;align-items:center;gap:9px;cursor:pointer;
-    background:var(--acc);color:#fff;font-weight:600;font-size:16px;
-    padding:14px 26px;border-radius:26px;text-decoration:none;
-    transition:background .18s ease, transform .12s ease;
-  }
-  @media(hover:hover){.btn:hover{background:var(--acc-press)}}
-  .btn:active{transform:scale(.97)}
-  .btn svg{width:18px;height:18px}
-  .mail-link{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:19px;text-decoration:none;margin-top:4px}
-  .mail-link svg{width:20px;height:20px}
+/* ═══════════════ HERO ═══════════════ */
+.hero{
+  position:relative;min-height:100svh;display:flex;align-items:center;
+  padding:130px 0 40px;
+}
+.hero-in{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+@media(max-width:900px){
+  .hero{min-height:auto;padding:120px 0 20px}
+  .hero-in{grid-template-columns:1fr;text-align:center;gap:56px}
+}
+.badge{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--glass-strong);border:1px solid var(--stroke2);
+  padding:9px 18px;border-radius:24px;font-size:14px;font-weight:600;color:var(--text);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(48,209,88,.22);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(48,209,88,.08)}}
+.hero h1{
+  font-size:clamp(52px,8.5vw,104px);font-weight:800;line-height:.95;
+  letter-spacing:.5px;margin:26px 0 22px;
+}
+.hero h1 .grad{
+  background:var(--grad);background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shine 6s ease-in-out infinite;
+}
+@keyframes shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero .sub{max-width:520px;font-size:clamp(16px,2vw,18.5px);color:var(--text2);line-height:1.65}
+@media(max-width:900px){.hero .sub{margin:0 auto}}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px}
+@media(max-width:900px){.hero-ctas{justify-content:center}}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:16.5px;
+  padding:16px 30px;border-radius:30px;transition:transform .15s var(--ease),box-shadow .25s,background .2s,border-color .2s;
+  min-height:52px;touch-action:manipulation;
+}
+.btn svg{width:19px;height:19px;flex:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:var(--grad);background-size:200% 100%;color:#fff;
+  box-shadow:0 10px 34px rgba(10,132,255,.4);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(10,132,255,.55);background-position:80% 0}
+.btn-ghost{
+  background:var(--glass);border:1px solid var(--stroke2);color:var(--text);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.btn-ghost:hover{background:var(--glass-strong);border-color:rgba(255,255,255,.28);transform:translateY(-2px)}
+.trust{display:flex;gap:22px;flex-wrap:wrap;margin-top:30px;color:var(--text2);font-size:14px;font-weight:500}
+@media(max-width:900px){.trust{justify-content:center}}
+.trust span{display:inline-flex;align-items:center;gap:7px}
+.trust svg{width:15px;height:15px;color:var(--green)}
 
-  footer{
-    text-align:center;color:var(--text2);font-size:13.5px;
-    padding:56px 22px 44px;line-height:1.9;margin-top:48px;
-    border-top:1px solid var(--card-bdr);
-  }
-  footer .links a{color:var(--text2);text-decoration:none;font-weight:500}
-  footer .links a:hover{color:var(--acc)}
-  footer .sep{opacity:.4;margin:0 8px}
+/* ── Phone Mockup ── */
+.phone-stage{position:relative;display:flex;justify-content:center;perspective:1400px}
+.phone-glow{
+  position:absolute;inset:8% 12%;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,rgba(10,132,255,.4),rgba(139,92,246,.18),transparent 75%);
+  filter:blur(40px);animation:glowPulse 5s ease-in-out infinite;
+}
+@keyframes glowPulse{50%{opacity:.65;transform:scale(1.06)}}
+.phone{
+  position:relative;
+  width:min(320px,74vw);aspect-ratio:1170/2532;border-radius:12.5%/5.8%;
+  border:1px solid rgba(255,255,255,.2);
+  background:#0b0d18;padding:1.5%;
+  box-shadow:0 0 0 5px rgba(20,22,36,.9),0 30px 80px rgba(0,0,0,.65),0 8px 26px rgba(0,0,0,.5);
+  transform-style:preserve-3d;will-change:transform;
+}
+.phone img{width:100%;height:100%;object-fit:cover;border-radius:11%/5.1%}
+.phone .island{
+  position:absolute;top:3.4%;left:50%;transform:translateX(-50%);
+  width:26%;height:2.6%;background:#000;border-radius:100px;z-index:2;
+}
+.hero .phone{animation:floaty 7s ease-in-out infinite}
+@keyframes floaty{50%{transform:translateY(-16px) rotateZ(.4deg)}}
+/* Floating Mini-Cards neben Hero-Phone */
+.float-card{
+  position:absolute;z-index:3;display:flex;align-items:center;gap:11px;
+  background:rgba(16,19,34,.78);border:1px solid var(--stroke2);border-radius:16px;
+  padding:12px 17px;font-size:13.5px;font-weight:600;white-space:nowrap;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 14px 38px rgba(0,0,0,.45);
+}
+.float-card .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.float-card .ic svg{width:18px;height:18px}
+.float-card small{display:block;font-weight:500;color:var(--text2);font-size:11.5px}
+.fc1{top:16%;left:-4%;animation:floaty 6s .8s ease-in-out infinite}
+.fc1 .ic{background:rgba(48,209,88,.16);color:var(--green)}
+.fc2{bottom:20%;right:-6%;animation:floaty 6.5s 1.6s ease-in-out infinite}
+.fc2 .ic{background:rgba(10,132,255,.16);color:var(--acc2)}
+@media(max-width:1050px){.fc1{left:0}.fc2{right:0}}
+@media(max-width:420px){.float-card{display:none}}
 
-  @media (prefers-reduced-motion: reduce){
-    *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
-  }
+/* Scroll-Hinweis */
+.scroll-hint{
+  position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+  color:var(--text2);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;
+  display:flex;flex-direction:column;align-items:center;gap:8px;opacity:.7;
+}
+.scroll-hint::after{
+  content:"";width:1px;height:34px;
+  background:linear-gradient(to bottom,var(--text2),transparent);
+  animation:hintDrop 2s ease-in-out infinite;
+}
+@keyframes hintDrop{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@media(max-width:900px){.scroll-hint{display:none}}
+
+/* ═══════════════ MARQUEE ═══════════════ */
+.marquee{
+  border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke);
+  padding:20px 0;overflow:hidden;position:relative;margin-top:10px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+}
+.marquee-track{display:flex;gap:0;width:max-content;animation:scrollX 36s linear infinite}
+@keyframes scrollX{to{transform:translateX(-50%)}}
+.marquee span{
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:21px;
+  text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);
+  display:inline-flex;align-items:center;gap:26px;padding-right:26px;white-space:nowrap;
+}
+.marquee span::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);opacity:.7}
+
+/* ═══════════════ SECTIONS ═══════════════ */
+section{padding:110px 0 0}
+.eyebrow{
+  display:inline-block;font-size:13px;font-weight:700;letter-spacing:2.5px;
+  text-transform:uppercase;margin-bottom:14px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+h2{font-size:clamp(38px,5.5vw,58px);font-weight:800;line-height:1.02;margin-bottom:16px}
+.sec-sub{color:var(--text2);font-size:17px;max-width:560px;line-height:1.65}
+.sec-head{margin-bottom:52px}
+.sec-head.center{text-align:center}
+.sec-head.center .sec-sub{margin:0 auto}
+
+/* ── Features ── */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+.feat{
+  position:relative;overflow:hidden;
+  background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r-lg);
+  padding:30px 26px;transition:transform .3s var(--ease),border-color .3s,background .3s;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+}
+.feat::before{ /* Maus-Spotlight */
+  content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .35s;
+  background:radial-gradient(340px circle at var(--mx,50%) var(--my,50%),rgba(10,132,255,.14),transparent 65%);
+  pointer-events:none;
+}
+@media(hover:hover){
+  .feat:hover{transform:translateY(-6px);border-color:var(--stroke2);background:var(--glass-strong)}
+  .feat:hover::before{opacity:1}
+}
+.feat .ic{
+  width:52px;height:52px;border-radius:15px;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(10,132,255,.22),rgba(139,92,246,.16));
+  border:1px solid rgba(90,200,250,.25);color:var(--acc2);
+}
+.feat .ic svg{width:25px;height:25px}
+.feat h3{font-size:19px;font-weight:700;margin-bottom:7px}
+.feat p{font-size:15px;color:var(--text2);line-height:1.55}
+
+/* ── Showcase (Screens) ── */
+.shots{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;align-items:start}
+@media(max-width:900px){.shots{grid-template-columns:1fr 1fr;gap:34px}}
+@media(max-width:480px){.shots{grid-template-columns:1fr;max-width:300px;margin:0 auto}}
+.shot{text-align:center}
+.shot .phone{width:100%;margin:0 auto}
+.shot:nth-child(even){transform:translateY(34px)}
+@media(max-width:480px){.shot:nth-child(even){transform:none}}
+.shot h3{font-size:17.5px;font-weight:700;margin:22px 0 3px}
+.shot p{font-size:14px;color:var(--text2)}
+
+/* ── Community / Split ── */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
+@media(max-width:900px){.split{grid-template-columns:1fr;gap:56px}}
+.split .phone-stage{order:2}
+@media(max-width:900px){.split .phone-stage{order:0}}
+.checklist{list-style:none;margin-top:30px;display:grid;gap:17px}
+.checklist li{display:flex;gap:14px;align-items:flex-start;font-size:16px}
+.checklist .ck{
+  flex:none;width:26px;height:26px;border-radius:9px;margin-top:1px;
+  background:linear-gradient(135deg,rgba(48,209,88,.25),rgba(10,132,255,.2));
+  border:1px solid rgba(48,209,88,.35);color:var(--green);
+  display:flex;align-items:center;justify-content:center;
+}
+.checklist .ck svg{width:14px;height:14px}
+.checklist b{display:block;font-size:16.5px}
+.checklist span{color:var(--text2);font-size:14.5px;line-height:1.5}
+
+/* ═══════════════ CTA ═══════════════ */
+.cta-card{
+  position:relative;overflow:hidden;text-align:center;
+  border-radius:36px;padding:90px 30px;
+  background:linear-gradient(160deg,rgba(10,132,255,.16),rgba(139,92,246,.12) 55%,rgba(236,72,153,.1));
+  border:1px solid var(--stroke2);
+}
+.cta-card::before{
+  content:"";position:absolute;top:-55%;left:50%;transform:translateX(-50%);
+  width:130%;height:120%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(10,132,255,.32),transparent 72%);
+  filter:blur(30px);
+}
+.cta-card h2{margin-bottom:14px}
+.cta-card .sec-sub{margin:0 auto 38px}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative}
+.cta-note{margin-top:26px;font-size:14px;color:var(--text2)}
+.cta-note a{font-weight:600}
+
+/* ═══════════════ FOOTER ═══════════════ */
+footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
+.foot-in{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+.foot-brand{max-width:300px}
+.foot-brand .logo{margin-bottom:14px}
+.foot-brand p{color:var(--text2);font-size:14px;line-height:1.6}
+.foot-col h4{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:16px}
+.foot-col a,.foot-col p{display:block;color:var(--text2);font-size:14.5px;margin-bottom:10px;line-height:1.5}
+.foot-col a:hover{color:var(--text)}
+.foot-col .name{color:var(--text);font-weight:600}
+.copy{margin-top:44px;padding-top:24px;border-top:1px solid var(--stroke);color:var(--text2);font-size:13px;text-align:center}
+
+/* ═══════════════ REVEAL ═══════════════ */
+.rv{opacity:0;transform:translateY(34px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.rv.d1{transition-delay:.08s}.rv.d2{transition-delay:.16s}.rv.d3{transition-delay:.24s}
+.rv.d4{transition-delay:.32s}.rv.d5{transition-delay:.4s}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+  .rv{opacity:1;transform:none}
+  .shot:nth-child(even){transform:none}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <img class="icon" src="../icon-192.png" alt="MyGymTrack App-Icon">
-  <h1>MyGymTrack</h1>
-  <p class="tag">Dein smartes Trainingstagebuch</p>
-  <p class="pitch">Workouts loggen, Fortschritt sehen, stärker werden – einfach und ohne Schnickschnack. Direkt auf deinem iPhone.</p>
-  <span class="badge"><span class="dot"></span>Bald im App Store</span>
+<div class="aurora" aria-hidden="true">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="blob b3"></div><div class="blob b4"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav id="nav">
+  <div class="nav-in">
+    <a class="logo" href="#top" aria-label="MyGymTrack – zum Seitenanfang">
+      <img src="../icon-192.png" alt="" width="34" height="34">
+      MyGymTrack
+    </a>
+    <div class="nav-links">
+      <a href="#funktionen">Funktionen</a>
+      <a href="#app">Die App</a>
+      <a href="#motivation">Motivation</a>
+      <a href="#support">Support</a>
+    </div>
+    <a class="nav-cta" href="../" target="_blank" rel="noopener">
+      App öffnen
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px"><path d="M7 17 17 7M9 7h8v8"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="hero" id="top">
+  <div class="wrap hero-in">
+    <div>
+      <span class="badge rv in"><span class="dot"></span>Bald im App Store · jetzt als Web-App testen</span>
+      <h1 class="rv in d1">Track dein<br>Training.<br><span class="grad">Sieh dich wachsen.</span></h1>
+      <p class="sub rv in d2">MyGymTrack ist dein smartes Trainingstagebuch: Workouts in Sekunden loggen, automatische Gewichtsvorschläge, 1RM-Analysen und Erholungs-Tracking – alles auf deinem iPhone.</p>
+      <div class="hero-ctas rv in d3">
+        <a class="btn btn-primary" href="../" target="_blank" rel="noopener">
+          Jetzt kostenlos testen
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="#funktionen">Funktionen ansehen</a>
+      </div>
+      <div class="trust rv in d4">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>Apple Health</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>Cloud-Sync</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>Funktioniert offline</span>
+      </div>
+    </div>
+
+    <div class="phone-stage">
+      <div class="phone-glow" aria-hidden="true"></div>
+      <div class="phone tilt">
+        <div class="island" aria-hidden="true"></div>
+        <img src="../screenshots/tab_Heute.png" alt="MyGymTrack Dashboard: Wochenübersicht, Streak, Erholung und Training-starten-Button" width="1170" height="2532" fetchpriority="high">
+      </div>
+      <div class="float-card fc1" aria-hidden="true">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+        <div>+32 % Beinkraft<small>seit Trainingsstart</small></div>
+      </div>
+      <div class="float-card fc2" aria-hidden="true">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3M16 2v3M3.5 9h17M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m9 14.5 2 2 4-4"/></svg></span>
+        <div>11 Wochen Streak<small>dranbleiben zahlt sich aus</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint" aria-hidden="true">Scroll</div>
 </header>
 
-<div class="wrap">
-
-  <section aria-labelledby="funktionen">
-    <p class="eyebrow">Was die App kann</p>
-    <h2 id="funktionen">Funktionen</h2>
-    <div class="grid">
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8v8M7 6v12M17 6v12M20 8v8M7 12h10"/></svg></div>
-        <h3>Training loggen</h3>
-        <p>Übungen, Sätze, Gewichte & Wiederholungen in Sekunden erfasst.</p>
-      </div>
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
-        <h3>Gewichtsvorschläge</h3>
-        <p>Automatische Progression – die App schlägt dein nächstes Gewicht vor.</p>
-      </div>
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg></div>
-        <h3>1RM &amp; Statistiken</h3>
-        <p>Maximalkraft-Schätzung, Verlaufskurven und Muskelgruppen-Auswertung.</p>
-      </div>
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></div>
-        <h3>Cloud-Sync</h3>
-        <p>Optionaler Login – deine Daten sicher auf all deinen Geräten.</p>
-      </div>
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
-        <h3>Apple Health</h3>
-        <p>Körpergewicht und Workouts nahtlos mit Apple Health verbunden.</p>
-      </div>
-
-      <div class="feat">
-        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".6" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".6" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".6" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.83-.44-1.12-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.66h1.99c3.05 0 5.56-2.51 5.56-5.56C21.97 6.01 17.46 2 12 2Z"/></svg></div>
-        <h3>Themes &amp; Begleiter</h3>
-        <p>Vier Designs und ein animierter Begleiter für die Extra-Motivation.</p>
-      </div>
-
-    </div>
-  </section>
-
-  <section aria-labelledby="support">
-    <p class="eyebrow">Hilfe &amp; Kontakt</p>
-    <h2 id="support">Support</h2>
-    <div class="block">
-      <p>Fragen, Bugs oder Wünsche? Schreib mir direkt – ich antworte so schnell ich kann.</p>
-      <a class="mail-link" href="mailto:wolterlenny362@gmail.com">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m3 6 9 6 9-6"/></svg>
-        wolterlenny362@gmail.com
-      </a>
-    </div>
-  </section>
-
-  <section aria-labelledby="datenschutz">
-    <p class="eyebrow">Deine Daten</p>
-    <h2 id="datenschutz">Datenschutz</h2>
-    <div class="block">
-      <p>Deine Trainingsdaten gehören dir. Wir verkaufen nichts und nutzen keine Daten für Werbung. Alle Details findest du in der Datenschutzerklärung.</p>
-      <a class="btn" href="../privacy.html">
-        Datenschutzerklärung öffnen
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-      </a>
-    </div>
-  </section>
-
-  <section aria-labelledby="impressum">
-    <p class="eyebrow">Anbieterkennzeichnung</p>
-    <h2 id="impressum">Impressum</h2>
-    <div class="block">
-      <p>Angaben gemäß § 5 TMG:</p>
-      <p>
-        <span class="name">Lenny Wolter</span><br>
-        Lincolnstr. 27a<br>
-        10315 Berlin<br>
-        <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a>
-      </p>
-    </div>
-  </section>
-
+<!-- ═══════════════ MARQUEE ═══════════════ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
+    <span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
+  </div>
 </div>
 
-<footer>
-  <div class="links">
-    <a href="../privacy.html">Datenschutz</a><span class="sep">·</span>
-    <a href="#impressum">Impressum</a><span class="sep">·</span>
-    <a href="mailto:wolterlenny362@gmail.com">Kontakt</a>
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section id="funktionen" aria-labelledby="funktionen-h">
+  <div class="wrap">
+    <div class="sec-head center rv">
+      <span class="eyebrow">Was die App kann</span>
+      <h2 id="funktionen-h">Alles für dein Training.<br>Nichts, was ablenkt.</h2>
+      <p class="sec-sub">Kein Schnickschnack – nur die Werkzeuge, die dich wirklich stärker machen.</p>
+    </div>
+
+    <div class="grid">
+      <div class="feat rv">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div>
+        <h3>Blitzschnell loggen</h3>
+        <p>Übungen, Sätze, Gewichte &amp; Wiederholungen in Sekunden erfasst – mit Supersätzen, Pausen-Timer und Plate Calculator.</p>
+      </div>
+      <div class="feat rv d1">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>Smarte Progression</h3>
+        <p>Die App schlägt dir automatisch dein nächstes Gewicht vor. Du fokussierst dich aufs Heben – MyGymTrack denkt mit.</p>
+      </div>
+      <div class="feat rv d2">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg></div>
+        <h3>1RM &amp; Statistiken</h3>
+        <p>Maximalkraft-Schätzung, Volumen-Kurven und Muskelgruppen-Auswertung – dein Fortschritt, schwarz auf weiß.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 17.5 4 14.2 4 10.5A4.5 4.5 0 0 1 8.5 6c1.4 0 2.6.6 3.5 1.7C12.9 6.6 14.1 6 15.5 6A4.5 4.5 0 0 1 20 10.5c0 3.7-3 7-8 10.5Z"/></svg></div>
+        <h3>Erholungs-Tracking</h3>
+        <p>Sieh auf einen Blick, welche Muskelgruppen bereit sind – und wann du wieder Vollgas geben kannst.</p>
+      </div>
+      <div class="feat rv d1">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8m-4-4v4M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg></div>
+        <h3>Streaks &amp; Erfolge</h3>
+        <p>Wochenziele, Meilensteine und Kraftsteigerung pro Muskel – Motivation, die dich immer wieder ins Gym zieht.</p>
+      </div>
+      <div class="feat rv d2">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></div>
+        <h3>Widgets, Health &amp; Sync</h3>
+        <p>Homescreen-Widget, Apple-Health-Anbindung und optionaler Cloud-Sync – deine Daten sicher auf allen Geräten.</p>
+      </div>
+    </div>
   </div>
-  © 2026 Lenny Wolter · MyGymTrack
+</section>
+
+<!-- ═══════════════ SHOWCASE ═══════════════ -->
+<section id="app" aria-labelledby="app-h">
+  <div class="wrap">
+    <div class="sec-head center rv">
+      <span class="eyebrow">Ein Blick in die App</span>
+      <h2 id="app-h">Designt fürs Gym.</h2>
+      <p class="sec-sub">Dunkles Design, klare Zahlen, große Buttons – gebaut für schwitzige Hände zwischen zwei Sätzen.</p>
+    </div>
+
+    <div class="shots">
+      <div class="shot rv">
+        <div class="phone tilt">
+          <div class="island" aria-hidden="true"></div>
+          <img src="../screenshots/tab_Heute.png" alt="Heute-Tab: Wochenübersicht, Streak und Wochenziele" width="1170" height="2532" loading="lazy">
+        </div>
+        <h3>Dein Tag auf einen Blick</h3>
+        <p>Streak, Wochenziele &amp; Schnellstart</p>
+      </div>
+      <div class="shot rv d1">
+        <div class="phone tilt">
+          <div class="island" aria-hidden="true"></div>
+          <img src="../screenshots/tab_Uebungen.png" alt="Übungen-Tab: Wochenplan und Übungsliste mit Zielen" width="1170" height="2532" loading="lazy">
+        </div>
+        <h3>Dein Plan, deine Übungen</h3>
+        <p>Drag &amp; Drop Wochenplanung</p>
+      </div>
+      <div class="shot rv d2">
+        <div class="phone tilt">
+          <div class="island" aria-hidden="true"></div>
+          <img src="../screenshots/tab_Statistik.png" alt="Statistik-Tab: Volumen-Chart und Erholungs-Status pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+        </div>
+        <h3>Zahlen, die motivieren</h3>
+        <p>Volumen, 1RM &amp; Erholung</p>
+      </div>
+      <div class="shot rv d3">
+        <div class="phone tilt">
+          <div class="island" aria-hidden="true"></div>
+          <img src="../screenshots/tab_Erfolge.png" alt="Erfolge-Tab: Kraftsteigerung pro Muskel und Meilensteine" width="1170" height="2532" loading="lazy">
+        </div>
+        <h3>Erfolge, die bleiben</h3>
+        <p>Kraftzuwachs &amp; Meilensteine</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ MOTIVATION / COMMUNITY ═══════════════ -->
+<section id="motivation" aria-labelledby="motivation-h">
+  <div class="wrap split">
+    <div class="phone-stage rv">
+      <div class="phone-glow" aria-hidden="true"></div>
+      <div class="phone tilt">
+        <div class="island" aria-hidden="true"></div>
+        <img src="../screenshots/tab_Erfolge.png" alt="Erfolge-Übersicht mit Kraftsteigerung pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+      </div>
+    </div>
+    <div class="rv d1">
+      <span class="eyebrow">Dranbleiben leicht gemacht</span>
+      <h2 id="motivation-h">Motivation,<br>die nicht nachlässt.</h2>
+      <p class="sec-sub">Fortschritt sichtbar machen ist die beste Motivation. MyGymTrack zeigt dir, wie stark du wirklich geworden bist – und deine Freunde pushen dich weiter.</p>
+      <ul class="checklist">
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Kraftsteigerung pro Muskel</b><span>Sieh genau, wie viel stärker Brust, Beine &amp; Co. geworden sind – in kg und Prozent.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Freunde &amp; Rangliste</b><span>Verbinde dich per Code oder QR, sieh wer gerade trainiert und kämpf im Monats-Ranking mit.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Streaks &amp; Wochenziele</b><span>Setz dir Ziele für Gym, Laufen oder Rad – und halte deine Serie am Leben.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Dein Stil, dein Begleiter</b><span>Vier Designs und ein animierter Begleiter, der sich mit dir über jeden Satz freut.</span></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ CTA ═══════════════ -->
+<section id="support" aria-labelledby="cta-h">
+  <div class="wrap">
+    <div class="cta-card rv">
+      <span class="badge"><span class="dot"></span>Bald im App Store</span>
+      <h2 id="cta-h" style="margin-top:22px">Bereit, stärker<br>zu werden?</h2>
+      <p class="sec-sub">Teste MyGymTrack jetzt kostenlos als Web-App – die iOS-Version ist schon auf dem Weg in den App Store.</p>
+      <div class="cta-btns">
+        <a class="btn btn-primary" href="../" target="_blank" rel="noopener">
+          Web-App öffnen
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="mailto:wolterlenny362@gmail.com">Kontakt aufnehmen</a>
+      </div>
+      <p class="cta-note">Fragen, Bugs oder Wünsche? Schreib mir direkt: <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer id="impressum">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="logo" href="#top">
+        <img src="../icon-192.png" alt="" width="34" height="34">
+        MyGymTrack
+      </a>
+      <p>Dein smartes Trainingstagebuch. Workouts loggen, Fortschritt sehen, stärker werden – ohne Schnickschnack.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Rechtliches</h4>
+      <a href="../privacy.html">Datenschutzerklärung</a>
+      <a href="#impressum">Impressum</a>
+      <p style="margin-top:14px">Deine Trainingsdaten gehören dir.<br>Kein Verkauf, keine Werbe-Nutzung.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Impressum · § 5 TMG</h4>
+      <p><span class="name">Lenny Wolter</span><br>Lincolnstr. 27a<br>10315 Berlin</p>
+      <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a>
+    </div>
+  </div>
+  <div class="wrap copy">© 2026 Lenny Wolter · MyGymTrack</div>
 </footer>
 
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Navbar-Hintergrund beim Scrollen */
+  var nav = document.getElementById('nav');
+  function onScroll(){ nav.classList.toggle('scrolled', window.scrollY > 24); }
+  addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  /* Scroll-Reveal */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.12, rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.rv:not(.in)').forEach(function(el){ io.observe(el); });
+
+  if(reduced) return; /* keine Tilt-/Spotlight-Effekte bei reduzierter Bewegung */
+
+  /* 3D-Tilt auf Phones (nur Geräte mit Hover) */
+  if(window.matchMedia('(hover: hover)').matches){
+    document.querySelectorAll('.tilt').forEach(function(ph){
+      var raf = null;
+      ph.parentElement.addEventListener('mousemove', function(ev){
+        var r = ph.getBoundingClientRect();
+        var x = (ev.clientX - r.left) / r.width - .5;
+        var y = (ev.clientY - r.top) / r.height - .5;
+        if(raf) return;
+        raf = requestAnimationFrame(function(){
+          ph.style.transform = 'rotateY(' + (x*9) + 'deg) rotateX(' + (-y*9) + 'deg)';
+          ph.style.animation = 'none';
+          raf = null;
+        });
+      });
+      ph.parentElement.addEventListener('mouseleave', function(){
+        ph.style.transform = ''; ph.style.animation = '';
+      });
+    });
+
+    /* Maus-Spotlight auf Feature-Karten */
+    document.querySelectorAll('.feat').forEach(function(card){
+      card.addEventListener('mousemove', function(ev){
+        var r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+        card.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+      });
+    });
+  }
+})();
+</script>
 </body>
 </html>
