@@ -5568,7 +5568,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607150003';
+const APP_VERSION = 'gymtrack-v202607150004';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -7972,7 +7972,7 @@ function startPresetDirect(id){
 
   // Plan-Hinweis wie beim Wochenplan anzeigen
   const hint = document.getElementById('wk-plan-hint');
-  const hintText = '📋 ' + p.name + ' · ' + ids.length + ' Übung' + (ids.length !== 1 ? 'en' : '') + ' vorausgewählt';
+  const hintText = p.name + ' · ' + ids.length + ' Übung' + (ids.length !== 1 ? 'en' : '') + ' vorausgewählt';
   if (hint) { hint.style.display = ''; hint.textContent = hintText; }
 
   // Step 1 (Auswahl/Prüfen) zeigen — identisch zum normalen openWorkout()
@@ -13222,13 +13222,13 @@ function openWorkout() {
     const ids = pr ? _presetExIdsExisting(pr) : [];
     if (ids.length) {
       wkExIds = ids.slice();
-      planHintText = '📅 ' + pr.name + ' · ' + ids.length + ' Übung' + (ids.length !== 1 ? 'en' : '') + ' vorausgewählt';
+      planHintText = pr.name + ' · ' + ids.length + ' Übung' + (ids.length !== 1 ? 'en' : '') + ' vorausgewählt';
       _activePlanSrc = { type:'preset', id: pr.id };
     }
   } else if (todayPlan.type === 'exercises' && Array.isArray(todayPlan.exIds) && todayPlan.exIds.length) {
     wkExIds = todayPlan.exIds.filter(id => S.exercises.some(ex => ex.id === id));
     if (wkExIds.length) {
-      planHintText = '📅 ' + wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
+      planHintText = wkExIds.length + ' Übung' + (wkExIds.length !== 1 ? 'en' : '') + ' aus deinem Wochenplan vorausgewählt';
       _activePlanSrc = { type:'week', dayKey: todayKey() };
     }
   } else if (todayPlan.type === 'group' && todayPlan.group) {
@@ -13236,7 +13236,7 @@ function openWorkout() {
       const g = m.groups.find(g => g.id === todayPlan.group);
       if (g && g.muscles) {
         wkExIds = S.exercises.filter(ex => exInGroup(ex, m.id, g.id)).map(ex => ex.id);
-        if (wkExIds.length) planHintText = '📅 ' + g.label + ' aus deinem Wochenplan vorausgewählt';
+        if (wkExIds.length) planHintText = g.label + ' aus deinem Wochenplan vorausgewählt';
         break;
       }
     }
