@@ -5568,7 +5568,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607150004';
+const APP_VERSION = 'gymtrack-v202607160001';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5928,6 +5928,7 @@ const I18N_EN = {
   'Erst Standort wählen — Karte antippen oder Gym suchen.':'Choose a location first — tap the map or search for a gym.',
   'Mein Gym':'My gym','Mein Standort':'My location','Gym suchen (Name, Stadt)':'Search gym (name, city)',
   'Suche fehlgeschlagen':'Search failed','Tippe auf die Karte oder such oben dein Gym':'Tap the map or search for your gym above',
+  'Wo deine Freunde trainieren':'Where your friends train','Tippe auf einen Pin für Details':'Tap a pin for details',
   'So sehen dich deine Freunde in Rangliste, Feed und Karte.':'This is how friends see you in the leaderboard, feed and map.',
   'Foto wählen':'Choose photo','Profil':'Profile',
   '✅ Daten wiederhergestellt! App wird neu geladen.':'✅ Data restored! The app will reload.',
@@ -15939,13 +15940,13 @@ async function _loadProfiles(force){
 // Cloud-Push. Nur für Marketing-Screenshots im Simulator.
 function DEMO_MODE(){ try { return localStorage.getItem('gt_demo') === '1'; } catch(_){ return false; } }
 const _DEMO_ROSTER = [
-  { uid:'demo1', name:'Max Berger',   gymName:'FitZone Mitte', ses:4, mon:14, vol:18400, streak:6,  agoMin:3,    live:true  },
-  { uid:'demo2', name:'Lena Frank',   gymName:'McFit Nord',    ses:3, mon:11, vol:12900, streak:12, agoMin:130,  live:false },
-  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false },
-  { uid:'demo4', name:'Sara Weber',   gymName:'Body Culture',  ses:2, mon:9,  vol:9800,  streak:8,  agoMin:4320, live:false },
-  { uid:'demo5', name:'Jonas Peters', gymName:'FitStar West',  ses:4, mon:13, vol:16100, streak:1,  agoMin:305,  live:false },
+  { uid:'demo1', name:'Max Berger',   gymName:'FitZone Mitte', ses:4, mon:14, vol:18400, streak:6,  agoMin:3,    live:true,  gymLat:52.5200, gymLng:13.4050 },
+  { uid:'demo2', name:'Lena Frank',   gymName:'McFit Nord',    ses:3, mon:11, vol:12900, streak:12, agoMin:130,  live:false, gymLat:52.5601, gymLng:13.4020 },
+  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false, gymLat:52.4890, gymLng:13.3420 },
+  { uid:'demo4', name:'Sara Weber',   gymName:'Body Culture',  ses:2, mon:9,  vol:9800,  streak:8,  agoMin:4320, live:false, gymLat:52.5060, gymLng:13.4520 },
+  { uid:'demo5', name:'Jonas Peters', gymName:'FitStar West',  ses:4, mon:13, vol:16100, streak:1,  agoMin:305,  live:false, gymLat:52.5150, gymLng:13.3010 },
 ];
-function _demoMe(){ return { uid:'demo-me', name:(S.userName||'Lenny'), gymName:'FitZone Mitte', ses:5, mon:18, vol:24200, streak:9, agoMin:60, live:false }; }
+function _demoMe(){ return { uid:'demo-me', name:(S.userName||'Lenny'), gymName:'FitZone Mitte', ses:5, mon:18, vol:24200, streak:9, agoMin:60, live:false, gymLat:52.5170, gymLng:13.3880 }; }
 function _demoProfile(d){
   return {
     uid:d.uid, name:d.name, photo:null, gymName:d.gymName,
@@ -16044,16 +16045,53 @@ function _renderDemoBoard(body){
     </div>`).join('') + `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>`;
 }
 function _renderDemoMap(body){
-  body.innerHTML = `<div class="pad" style="padding-top:8px">
-    <div class="soc-empty" style="padding:2px 4px 12px;text-align:left">Wo deine Freunde trainieren</div>
-    ${_DEMO_ROSTER.map(p=>`<div class="fr-card" style="cursor:default">
-      <div class="fr-ava-wrap"><div class="fr-ava">${_socInitials(p.name)}</div><div class="fr-dot${p.live?' on':''}"></div></div>
-      <div style="flex:1;min-width:0">
-        <div class="fr-name"><span>${esc(p.name)}</span></div>
-        <div class="fr-sub">${esc(p.gymName)}</div>
-      </div>
-    </div>`).join('')}
-  </div>`;
+  body.innerHTML = `<div class="soc-map-wrap">
+      <div id="social-map"><div class="soc-empty" style="height:100%;display:flex;align-items:center;justify-content:center">Karte lädt…</div></div>
+      <button class="soc-map-loc" id="soc-map-loc" onclick="socLocateMe()" aria-label="Mein Standort">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2"/></svg>
+      </button>
+    </div>
+    <div class="soc-map-foot" id="soc-map-foot"></div>`;
+  const foot = document.getElementById('soc-map-foot');
+  if (foot) foot.innerHTML = `<div class="row" style="padding:8px 4px">
+      <div class="row-body">
+        <div class="row-title">Wo deine Freunde trainieren</div>
+        <div class="row-sub" style="white-space:normal;line-height:1.4">Tippe auf einen Pin für Details</div>
+      </div></div>`;
+  _sizeSocMap();
+  _loadLeaflet().then(_initDemoMap).catch(() => {
+    const m = document.getElementById('social-map');
+    if (m) m.innerHTML = '<div class="soc-empty" style="height:100%;display:flex;align-items:center;justify-content:center">Karte konnte nicht geladen werden — bist du offline?</div>';
+  });
+}
+function _initDemoMap(){
+  const el = document.getElementById('social-map');
+  if (!el || !window.L) return;
+  el.innerHTML = '';
+  if (_socMap) { try { _socMap.remove(); } catch(_){} _socMap = null; }
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  _socMap = L.map(el, { zoomControl:false, attributionControl:false });
+  L.control.attribution({ prefix:false, position:'bottomleft' }).addTo(_socMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/' + (dark?'dark_all':'light_all') + '/{z}/{x}/{y}{r}.png',
+    { maxZoom:19, attribution:'&copy; OpenStreetMap &copy; CARTO' }).addTo(_socMap);
+  _socMarkers.forEach(m => { try { _socMap.removeLayer(m); } catch(_){} });
+  _socMarkers = [];
+  const pts = [];
+  const me = _demoMe();
+  if (me.gymLat != null) {
+    const m = L.marker([me.gymLat, me.gymLng], { icon:_gymPin('DU', true) }).addTo(_socMap)
+      .bindPopup(`<b>Du</b><br>${esc(me.gymName)}`);
+    _socMarkers.push(m); pts.push([me.gymLat, me.gymLng]);
+  }
+  _DEMO_ROSTER.forEach(p => {
+    if (p.gymLat == null) return;
+    const m = L.marker([p.gymLat, p.gymLng], { icon:_gymPin(_socInitials(p.name), false) }).addTo(_socMap)
+      .bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.gymName)}`);
+    _socMarkers.push(m); pts.push([p.gymLat, p.gymLng]);
+  });
+  if (pts.length) _socMap.fitBounds(pts, { padding:[40,40], maxZoom:14 });
+  else _socMap.setView([52.52, 13.405], 11);
+  setTimeout(() => { _sizeSocMap(); try { _socMap.invalidateSize(); } catch(_){} }, 260);
 }
 
 function renderFriendsTab(){
