@@ -175,6 +175,33 @@ service cloud.firestore {
         allow update: if request.auth != null
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
       }
+
+      // Foto-Posts (Workout-Share-Flow): Autor schreibt/löscht; 'friends'-Posts
+      // liest nur, wen der Autor als Freund führt (get() aufs Profil); 'public'
+      // liest jeder Angemeldete. Fremd-Update NUR aufs flames-Feld (Flammen-Reaction).
+      match /posts/{pid} {
+        allow read: if request.auth != null && (
+          resource.data.visibility == 'public'
+          || request.auth.uid == userId
+          || get(/databases/$(database)/documents/profiles/$(userId)).data.friends.hasAny([request.auth.uid])
+        );
+        allow create: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.visibility in ['friends','public']
+          && request.resource.data.keys().hasOnly([
+               'ts','visibility','img','imgPath','layout','dayName','dur','mgs','gym','name','photo','flames'
+             ])
+          && request.resource.data.dayName is string && request.resource.data.dayName.size() <= 60;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flames']);
+      }
+    }
+    // Melden von Posts (Community-Moderation): create-only, nur Admin liest.
+    match /reports/{rid} {
+      allow create: if request.auth != null
+        && request.resource.data.reporter == request.auth.uid
+        && request.resource.data.keys().hasOnly(['reporter','authorUid','postId','kind','ts']);
+      allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
     }
     // Freundschaftsanfragen (senden → annehmen/ablehnen; Absender räumt akzeptierte auf)
     match /requests/{rid} {
@@ -219,6 +246,25 @@ service cloud.firestore {
   }
 }
 ```
+
+**Storage-Rules** (Firebase-Konsole → Storage → Rules; Storage einmalig aktivieren, Region wie Firestore):
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Post-Fotos des Share-Flows: nur Autor schreibt/löscht, JPEG ≤ 1 MB.
+    match /posts/{uid}/{file} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.size < 1 * 1024 * 1024
+                   && request.resource.contentType.matches('image/jpeg');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+
+**Composite-Index** (für den öffentlichen Community-Feed, einmalig): Collection-Group `posts`, Felder `visibility` (Aufsteigend) + `ts` (Absteigend), Scope „Sammlungsgruppe". Ohne Index wirft die Community-Ansicht einen Firestore-Fehler mit Anlege-Link in der Konsole — Link klicken reicht.
 
 **RTDB Rules** (`REPLACE_WITH_ADMIN_UID` ersetzen):
 ```json

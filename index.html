@@ -21,8 +21,10 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
   import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, deleteUser }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp }
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, collectionGroup, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp, increment }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+  import { getStorage, ref as stRef, uploadString, getDownloadURL, deleteObject }
+    from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
   import { getDatabase, ref as dbRef, onValue, onDisconnect, set as dbSet, get as dbGet, serverTimestamp as rtdbServerTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js';
 
@@ -96,6 +98,15 @@
     window.FB.onSnapshot         = onSnapshot;
     window.FB.serverTimestamp    = serverTimestamp;
     window.FB.Timestamp          = Timestamp;
+    window.FB.increment          = increment;
+    window.FB.collectionGroup    = (name) => collectionGroup(db, name);
+    // Storage: Post-Fotos (data_url rein → Download-URL raus)
+    const storage = getStorage(app);
+    window.FB.stUpload = async (path, dataUrl) => {
+      const snap = await uploadString(stRef(storage, path), dataUrl, 'data_url');
+      return getDownloadURL(snap.ref);
+    };
+    window.FB.stDelete = (path) => deleteObject(stRef(storage, path));
     window.FB.rtdbGet            = (path) => dbGet(dbRef(rtdb, path));
     // Live-Beobachtung (z.B. Presence der Freunde) — gibt Unsubscribe zurück
     window.FB.rtdbWatch          = (path, cb) => onValue(dbRef(rtdb, path), cb);
@@ -3951,6 +3962,94 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
   [data-theme="dark"]{ --lg-bdr-c:rgba(255,255,255,.4); }
 }
 /* ===== LIQUID GLASS — EXPERIMENT · ENDE ===== */
+/* ── WORKOUT-SHARE-FLOW (Rattle → Kamera → Editor → Teilen) ── */
+#ov-share{align-items:stretch!important;background:#000!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
+.shf-screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;background:#000;color:#fff;overflow:hidden}
+.shf-top{position:absolute;top:calc(10px + var(--sat,0px));left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 16px;z-index:30}
+.shf-x{width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center}
+.shf-title{font-size:15px;font-weight:800;letter-spacing:.3px}
+.shf-hint{position:absolute;bottom:calc(30px + var(--sab));left:0;right:0;text-align:center;font-size:13px;color:rgba(255,255,255,.55);z-index:30}
+/* Rattle */
+.shf-rattle{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.shf-rcard{position:absolute;width:min(64vw,270px);aspect-ratio:3/4;border-radius:22px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.55);transition:transform .12s ease,opacity .12s ease}
+.shf-rcard.back1{transform:scale(.88) translateY(-26px);opacity:.45;filter:brightness(.6)}
+.shf-rcard.back2{transform:scale(.78) translateY(-48px);opacity:.25;filter:brightness(.4)}
+.shf-rcard .shf-rname{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.shf-rcard img,.shf-rcard canvas{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes shfPop{0%{transform:scale(.96)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
+.shf-rcard.landed{animation:shfPop .38s cubic-bezier(.34,1.56,.64,1)}
+/* Web-Kamera-Fallback */
+.shf-cam{flex:1;position:relative;background:#000}
+.shf-cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shf-cam video.mirror{transform:scaleX(-1)}
+.shf-cam-bar{position:absolute;bottom:calc(26px + var(--sab));left:0;right:0;display:flex;align-items:center;justify-content:center;gap:44px;z-index:20}
+.shf-shutter{width:74px;height:74px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.35)}
+.shf-camside{width:46px;height:46px;border-radius:50%;border:none;background:rgba(0,0,0,.4);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.shf-flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40;transition:opacity .5s}
+/* Editor (Layout-Swipe auf dem Foto) */
+.shf-edit{flex:1;display:flex;flex-direction:column;justify-content:center}
+.shf-swipe{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;gap:14px;padding:0 7vw;scrollbar-width:none}
+.shf-swipe::-webkit-scrollbar{display:none}
+.shf-slide{flex:0 0 86vw;scroll-snap-align:center;border-radius:20px;overflow:hidden;box-shadow:0 14px 50px rgba(0,0,0,.5)}
+.shf-slide img{width:100%;display:block}
+.shf-dots{display:flex;justify-content:center;gap:7px;margin-top:16px}
+.shf-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
+.shf-dot.on{background:var(--acc);width:20px;border-radius:4px}
+.shf-cta{position:absolute;bottom:calc(24px + var(--sab));left:24px;right:24px;z-index:30;display:flex;gap:10px}
+.shf-btn{flex:1;padding:16px;border-radius:18px;border:none;font-size:16px;font-weight:800;background:var(--acc);color:#fff}
+.shf-btn.ghost{background:rgba(255,255,255,.14);color:#fff}
+/* Teilen-Schritt */
+.shf-share{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px calc(20px + var(--sab));gap:10px;position:relative}
+.shf-share .shf-preview{position:absolute;top:calc(64px + var(--sat,0px));left:0;right:0;bottom:290px;display:flex;align-items:center;justify-content:center}
+.shf-share .shf-preview img{max-width:62%;max-height:100%;border-radius:16px;box-shadow:0 12px 44px rgba(0,0,0,.5)}
+.shf-dest{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px 15px}
+.shf-dest .ico{font-size:20px;width:30px;text-align:center}
+.shf-dest .t{flex:1;min-width:0}
+.shf-dest .t b{display:block;font-size:15px}
+.shf-dest .t span{font-size:12px;color:rgba(255,255,255,.55)}
+/* ── COMMUNITY CARD-PAGER ── */
+.cpg-wrap{position:relative;height:calc(100dvh - 305px);min-height:420px;touch-action:pan-y}
+.cpg-card{position:absolute;inset:0;border-radius:22px;overflow:hidden;background:#111;box-shadow:0 14px 44px rgba(0,0,0,.35);will-change:transform,opacity}
+.cpg-card.under{transform:scale(.9);opacity:0;z-index:1}
+.cpg-card.top{z-index:2}
+.cpg-card img.cpg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cpg-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 55%,rgba(0,0,0,.62) 100%)}
+.cpg-head{position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;gap:10px;color:#fff;z-index:3}
+.cpg-ava{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;overflow:hidden;flex-shrink:0}
+.cpg-ava img{width:100%;height:100%;object-fit:cover}
+.cpg-head .n{flex:1;min-width:0}
+.cpg-head .n b{display:block;font-size:15px;text-shadow:0 1px 5px rgba(0,0,0,.5)}
+.cpg-head .n span{font-size:12px;opacity:.75}
+.cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:17px;letter-spacing:1px}
+.cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
+.cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
+.cpg-info{position:absolute;left:16px;right:16px;bottom:76px;color:#fff;z-index:3}
+.cpg-info .day{font-size:22px;font-weight:900;letter-spacing:-.4px;text-shadow:0 2px 8px rgba(0,0,0,.45)}
+.cpg-info .meta{font-size:13px;opacity:.85;margin-top:3px}
+.cpg-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cpg-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.16);backdrop-filter:blur(8px)}
+.cpg-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text2);text-align:center;padding:0 30px}
+.cpg-count{position:absolute;top:-30px;right:4px;font-size:12px;color:var(--text2)}
+/* Flamme */
+.flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;transition:transform .15s}
+.flm-btn:active{transform:translateX(-50%) scale(.92)}
+.flm-btn .fl{font-size:20px;filter:grayscale(1) brightness(1.6);transition:filter .2s}
+.flm-btn.on{background:rgba(255,90,0,.32);box-shadow:0 0 22px rgba(255,120,0,.45)}
+.flm-btn.on .fl{filter:none}
+@keyframes flmPop{0%{transform:scale(1)}40%{transform:scale(1.55) rotate(-8deg)}70%{transform:scale(.9)}100%{transform:scale(1)}}
+.flm-btn.pop .fl{animation:flmPop .5s cubic-bezier(.34,1.56,.64,1)}
+.flm-part{position:absolute;left:50%;top:50%;font-size:13px;pointer-events:none;animation:flmFly .7s ease-out forwards}
+@keyframes flmFly{0%{transform:translate(-50%,-50%) scale(.6);opacity:1}100%{transform:translate(calc(-50% + var(--fx)),calc(-50% + var(--fy))) scale(1.15);opacity:0}}
+/* Feed-Umschalter + Glocke */
+.cpg-mode{display:flex;gap:6px;background:var(--gl-bg-t,rgba(120,120,128,.12));border-radius:14px;padding:4px;margin-bottom:12px}
+.cpg-mode button{flex:1;border:none;background:none;padding:8px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--text2)}
+.cpg-mode button.on{background:var(--acc);color:#fff}
+.flm-bell{position:relative}
+.flm-bell-badge{display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px;text-align:center}
+.flm-note{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--gl-bdr,rgba(120,120,128,.15))}
+.flm-note:last-child{border-bottom:none}
+.flm-note .t{flex:1;font-size:14px;line-height:1.35}
+.flm-note .ts{font-size:11.5px;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -4129,8 +4228,12 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 <div class="pg" id="pg-freunde">
   <div class="hdr">
     <div class="hdr-row">
-      <h1>Freunde</h1>
+      <h1>Community</h1>
       <div style="display:flex;gap:8px;align-items:center">
+        <button class="hdr-icon-btn flm-bell" onclick="openFlames()" aria-label="Reaktionen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></svg>
+          <span class="flm-bell-badge" id="flm-bell-badge">0</span>
+        </button>
         <button class="hdr-icon-btn" onclick="openProfileEdit()" aria-label="Mein Profil">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.9 3.4-6.2 7.5-6.2s7.5 2.3 7.5 6.2"/></svg>
         </button>
@@ -4659,7 +4762,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
   </button>
   <button class="tab" onclick="goTab('freunde',this)" style="position:relative">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.05 0-8 1.53-8 4.57V20h16v-2.43C17 14.53 12.05 13 9 13zm8.2-2.16a4 4 0 0 0 0-7.68 5.98 5.98 0 0 1 0 7.68zM18.9 13.5c1.9 1 3.1 2.4 3.1 4.07V20h-2v-2.43c0-1.6-.4-2.9-1.1-4.07z"/></svg>
-    <span>Freunde</span>
+    <span>Community</span>
     <span id="fr-tab-badge" style="display:none;position:absolute;top:6px;right:18%;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px">0</span>
   </button>
   <button class="tab" onclick="goTab('erfolge',this)">
@@ -5089,29 +5192,26 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 </div>
 
 <!-- SCREEN: DONE -->
-<div class="ov" id="ov-done">
-  <div class="done-screen">
-    <div class="done-bg-glow done-glow-1"></div>
-    <div class="done-bg-glow done-glow-2"></div>
-    <div class="done-bg-glow done-glow-3"></div>
-    <button class="done-close-btn" onclick="closeOv('ov-done')">✕</button>
-    <div class="done-scroll">
-      <div class="done-hero" id="done-hero"></div>
-      <div class="done-stats-row" id="done-stats-row"></div>
-      <div id="done-pr-section"></div>
-      <div id="done-hl-wrapper">
-        <div class="done-section-lbl">Highlights</div>
-        <div class="done-hl-grid" id="done-hl-grid"></div>
-      </div>
-      <div class="done-section-lbl">Übungen</div>
-      <div class="done-ex-list" id="done-ex-list"></div>
-      <div id="done-note-box"></div>
-      <div class="done-actions">
-        <button class="done-share-btn" onclick="_shareWk()">↑ Teilen</button>
-        <button class="done-ok-btn" onclick="closeOv('ov-done')">Perfekt!</button>
-      </div>
-      <div style="height:calc(32px + var(--sab))"></div>
-    </div>
+<!-- WORKOUT-SHARE-FLOW: Rattle → Kamera → Layout-Editor → Teilen (JS-gerendert) -->
+<div class="ov" id="ov-share">
+  <div class="shf-screen" id="shf-body"></div>
+</div>
+
+<!-- Flammen-Benachrichtigungen (Glocke im Community-Header) -->
+<div class="ov" id="ov-flames" onclick="if(event.target===this)closeOv('ov-flames')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Reaktionen</h2><button class="x-btn" onclick="closeOv('ov-flames')">✕</button></div>
+    <div id="flames-body" style="padding:0 20px 26px"></div>
+  </div>
+</div>
+
+<!-- „…"-Menü pro Post: Melden / Ausblenden / Blockieren -->
+<div class="ov" id="ov-postmenu" onclick="if(event.target===this)closeOv('ov-postmenu')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Beitrag</h2><button class="x-btn" onclick="closeOv('ov-postmenu')">✕</button></div>
+    <div id="postmenu-body" style="padding:0 20px 26px;display:flex;flex-direction:column;gap:10px"></div>
   </div>
 </div>
 
@@ -5571,7 +5671,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170002';
+const APP_VERSION = 'gymtrack-v202607170004';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5591,6 +5691,31 @@ function setAppLang(v) {
 
 /* Exakte Phrasen (getrimmter Textknoten → Übersetzung) */
 const I18N_EN = {
+  /* Workout-Share-Flow + Community-Pager */
+  'Dein Look':'Your look','Tippen zum Festlegen':'Tap to lock in','Foto':'Photo','Foto aufnehmen':'Take photo',
+  'Kein Kamera-Zugriff':'No camera access',
+  'Erlaube die Kamera in den iOS-Einstellungen oder wähle ein Foto aus der Galerie.':'Allow camera access in iOS Settings or pick a photo from your library.',
+  'Aus Galerie wählen':'Choose from library','Ohne Foto weiter':'Continue without photo','Layout wählen':'Pick a layout',
+  'Nur dein Freundeskreis':'Only your friends','Öffentlich für alle MyGymTrack-Nutzer':'Public for all MyGymTrack users',
+  'Community aus':'Community off',
+  'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
+  'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…',
+  'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
+  'gerade eben':'just now','vor':'ago',
+  'Lade Feed…':'Loading feed…','Feed konnte nicht geladen werden':'Couldn’t load the feed',
+  'Bist du offline? Versuch es gleich nochmal.':'Are you offline? Try again in a moment.','Nochmal versuchen':'Try again',
+  'Neuer Rekord':'New record','Wochen-Streak':'week streak','Optionen':'Options','Flamme':'Flame',
+  'Noch nichts von deinen Freunden':'Nothing from your friends yet','Noch keine Community-Posts':'No community posts yet',
+  'Beende ein Training und teile es — es landet hier.':'Finish a workout and share it — it shows up here.',
+  'Füge zuerst Freunde hinzu — oben rechts über das +.':'Add friends first — via the + at the top right.',
+  'Teile dein nächstes Training mit der Community!':'Share your next workout with the community!',
+  'Alles gesehen!':'All caught up!','Neu laden':'Reload',
+  'Beitrag':'Post','Beitrag löschen':'Delete post','Beitrag ausblenden':'Hide post','Beitrag melden':'Report post',
+  'Nutzer blockieren':'Block user','Danke! Der Beitrag wurde gemeldet.':'Thanks! The post has been reported.',
+  'Nutzer blockieren? Seine Beiträge verschwinden aus deinem Feed.':'Block this user? Their posts will disappear from your feed.',
+  'Diesen Beitrag löschen?':'Delete this post?',
+  'Reaktionen':'Reactions','Jemand':'Someone','feiert dein Training':'cheered your workout',
+  'Noch keine Reaktionen.':'No reactions yet.','Teile ein Training — Flammen landen hier.':'Share a workout — flames land here.',
   'Heute':'Today','Übungen':'Exercises','Statistik':'Stats','Einstellungen':'Settings','Freunde':'Friends',
   'Training':'Workout','Speichern':'Save','Abbrechen':'Cancel','Bearbeiten':'Edit','Entfernen':'Remove',
   'Löschen':'Delete','Fertig':'Done','Fertig ✓':'Done ✓','Zurück':'Back','Weiter →':'Next →','Übernehmen':'Apply',
@@ -14238,6 +14363,13 @@ function finishWk() {
   const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
   S.sessions.push(_newSess);
   persist();
+  // Trainingstag-Name für die Share-Card sichern, BEVOR die Plan-Quelle genullt wird
+  let _shareDayName = null;
+  try {
+    const src = _activePlanSrc;
+    if (src?.type === 'preset' && src.id) { const p = presetById(src.id); _shareDayName = p ? tr(p.name) : null; }
+    else if (src?.type === 'week' && src.dayKey) _shareDayName = _planLabelFor(src.dayKey) || null;
+  } catch(_) {}
   // Optional geänderte Übungsliste in den Quell-Plan übernehmen (fragt nur bei Abweichung)
   try { _maybeUpdatePlanFromSession(valid); } catch(_) {}
   _activePlanSrc = null;
@@ -14258,15 +14390,14 @@ function finishWk() {
     const statsActive = document.getElementById('pg-stats')?.classList.contains('on');
     if (statsActive) renderRecoveryList();
   } catch(_) {}
-  // PR-Erkennung + Feier vor showDone, damit der Done-Screen die PRs zeigen kann.
+  // PR-Erkennung + Feier vor dem Share-Flow, damit die Share-Card die PRs zeigen kann.
   const newSession = _newSess;
   const prs = detectPRs(newSession);
   if (prs.length) celebratePRs(prs);
-  showDone(newSession, prs);
-  fireConfetti();
+  startShareFlow(newSession, prs, _shareDayName);  // neuer Share-Flow statt alter Zusammenfassung
   renderHome();
   checkMilestoneRewards();   // neu erreichte Meilensteine feiern (Vibration + Toast)
-  _socAfterWorkout(newSession, prs);  // Community: Stats-Push + Activity-Feed + Live-Status aus
+  _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
 }
 
 function cancelWk() {
@@ -14425,158 +14556,528 @@ function celebratePRs(prs) {
   });
 }
 
-/* ── WORKOUT TEILEN ───────────────────────────────────── */
-async function _shareWk() {
-  const ses = _shareSes; const prs = _sharePrs || [];
-  if (!ses) return;
-  const W=390, H=Math.min(120+ses.logs.length*48+100, 700);
-  const canvas = document.createElement('canvas');
-  const dpr = Math.min(window.devicePixelRatio||2, 3);
-  canvas.width = W*dpr; canvas.height = H*dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  // Hintergrund
-  const grad = ctx.createLinearGradient(0,0,W,H);
-  grad.addColorStop(0,'#007AFF'); grad.addColorStop(1,'#0047b3');
-  ctx.fillStyle = grad;
-  ctx.beginPath(); ctx.roundRect(0,0,W,H,0); ctx.fill();
-  // Logo + Datum
-  ctx.fillStyle='#fff'; ctx.font='bold 26px -apple-system,sans-serif';
-  ctx.fillText('MyGymTrack 💪', 24, 44);
-  const dateStr = new Date(ses.date).toLocaleDateString(GT_LOCALE,{weekday:'long',day:'numeric',month:'long'});
-  ctx.font='15px -apple-system,sans-serif'; ctx.fillStyle='rgba(255,255,255,.75)';
-  ctx.fillText(dateStr, 24, 68);
-  // Trennlinie
-  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(24,80); ctx.lineTo(W-24,80); ctx.stroke();
-  // Übungen
-  let y=108;
-  ses.logs.forEach(l=>{
-    const ex=exById(l.exerciseId); const w=maxW(l.sets);
-    const isPr = prs.some(p=>p.exId===l.exerciseId);
-    ctx.fillStyle='#fff'; ctx.font='bold 15px -apple-system,sans-serif';
-    ctx.fillText(tr(ex?.name||'?')+(isPr?' 🏆':''), 24, y);
-    ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='13px -apple-system,sans-serif';
-    ctx.fillText(tr(l.sets.length+' Sätze')+(w?' · Max '+kgToDisp(w)+' kg':''), 24, y+18);
-    y+=44;
-  });
-  // Stats-Leiste
-  const sets=ses.logs.reduce((s,l)=>s+l.sets.length,0);
-  const vol=ses.logs.reduce((sum,l)=>sum+l.sets.reduce((s2,s)=>s2+((parseFloat(s.w)||0)*(parseInt(s.r)||0)),0),0);
-  const durMin=ses.duration?Math.round(ses.duration/60):0;
-  ctx.fillStyle='rgba(255,255,255,.15)';
-  ctx.beginPath(); ctx.roundRect(16,H-72,W-32,52,14); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.font='bold 14px -apple-system,sans-serif';
-  ctx.fillText(tr(`${ses.logs.length} Übungen  ·  ${sets} Sätze  ·  ${fmtKg(vol)} Vol${durMin?' · '+durMin+' min':''}`), 28, H-40);
-  ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='11px -apple-system,sans-serif';
-  ctx.fillText('Made with MyGymTrack', 28, H-22);
-  // Teilen
-  const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
-  const file = new File([blob],'gymtrack-workout.png',{type:'image/png'});
-  try {
-    if (navigator.share && navigator.canShare?.({files:[file]}))
-      await navigator.share({files:[file], title:'MyGymTrack Workout'});
-    else if (navigator.share)
-      await navigator.share({title:'MyGymTrack Workout', text: ses.logs.map(l=>{const ex=exById(l.exerciseId);const w=maxW(l.sets);return `• ${tr(ex?.name)}: ${tr(l.sets.length+' Sätze')}${w?' · Max '+kgToDisp(w)+' kg':''}`;}).join('\n')});
-    else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='gymtrack-workout.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
-  } catch(e) { if(e.name!=='AbortError') console.warn('Share:',e); }
+/* ── WORKOUT-SHARE-FLOW ─────────────────────────────────
+   Ersetzt den alten Done-Screen komplett: Layout-Rattle →
+   In-App-Kamera (nativ CameraPlugin/AVFoundation, Web-Fallback
+   getUserMedia) → Layout-Swipe auf dem Foto → Teilen. */
+
+let _shfData = null, _shfSes = null, _shfPrs = [];
+let _shfPhoto = null;              // Image-Objekt oder null (→ Gradient-Card)
+let _shfLayout = 0;
+let _shfRattleT = [];
+let _shfStream = null, _shfFacing = 'user', _shfFlashOn = false;
+let _shfRendered = [];             // dataURL je Layout (Editor/Teilen-Cache)
+let _shfPosted = false;            // wurde als Post hochgeladen? (steuert Activity-Fallback)
+
+function _shfAccent() {
+  try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
+  catch(_) { return '#007AFF'; }
+}
+function _shfRelTime(d) {
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return tr('gerade eben');
+  if (mins < 60) return tr('vor') + ' ' + mins + ' min';
+  return d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'}) + (GT_LANG === 'en' ? '' : ' Uhr');
+}
+function _shfDurStr(sec) {
+  const m = Math.round((sec||0)/60), h = Math.floor(m/60);
+  return h ? h + 'h ' + (m%60 ? (m%60) + 'min' : '') : m + ' min';
 }
 
+// Trainingsdaten → Share-Daten (WorkoutShareData-Äquivalent aus dem Auftrag)
+function _shfBuildData(ses, prs, dayName) {
+  const mgs = [...new Set((ses.logs||[]).map(l => exById(l.exerciseId)?.muscleGroup).filter(Boolean))]
+    .map(m => { try { return muscleLabel(m); } catch(_) { return m; } });
+  return {
+    dayName: (dayName || mgs.slice(0,2).join(' + ') || tr('Training')).slice(0, 40),
+    duration: ses.duration || 0,
+    mgs: mgs.slice(0,4),
+    gym: (S.privacy?.gym && S.gymName) ? S.gymName : null,
+    date: new Date(ses.date),
+    username: (S.userName || _fbUser?.displayName || 'Athlet').slice(0,30),
+    photo: _profilePhoto() || _fbUser?.photoURL || null,
+    prCount: (prs||[]).length
+  };
+}
 
-let _shareSes = null, _sharePrs = [];
-function showDone(ses, prs) {
-  prs = prs || [];
-  _shareSes = ses; _sharePrs = prs;
-  const sets = ses.logs.reduce((s,l) => s + l.sets.length, 0);
-  const vol  = ses.logs.reduce((sum,l) => sum + l.sets.reduce((s2,st) => s2 + ((parseFloat(st.w)||0)*(parseInt(st.r)||0)), 0), 0);
-  const durMin = ses.duration ? Math.round(ses.duration / 60) : 0;
-  const prExIds = new Set(prs.map(p => p.exId));
-  const dateStr = new Date(ses.date).toLocaleDateString(GT_LOCALE, {weekday:'long', day:'numeric', month:'long'});
-  const timeStr = new Date(ses.date).toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'});
-  const durH = Math.floor(durMin / 60), durM = durMin % 60;
-  const durStr = durH ? durH + 'h ' + (durM ? durM + 'min' : '') : durMin + ' min';
+/* ── Layout-System: Registry, damit neue Designs später nur ein
+   Objekt brauchen ({id, name, render}). Rendert auf Canvas —
+   dasselbe Rendering für Live-Preview und finales Bild. ── */
+const SHF_W = 1080, SHF_H = 1440;
 
-  // Hero
-  document.getElementById('done-hero').innerHTML =
-    '<div class="done-hero-title">Training beendet!</div>' +
-    '<div class="done-hero-date">' + dateStr + ' · ' + timeStr + ' Uhr</div>' +
-    (durMin ? '<div class="done-hero-dur">' + durStr.trim() + '</div>' : '');
-
-  // Stats chips
-  const volDisp = vol >= 1000 ? (vol/1000).toFixed(1).replace('.',GT_DEC) : Math.round(vol);
-  const volLbl  = vol >= 1000 ? 't Vol.' : 'kg Vol.';
-  document.getElementById('done-stats-row').innerHTML =
-    '<div class="done-stat-chip"><span class="done-stat-val">' + ses.logs.length + '</span><span class="done-stat-lbl">Übungen</span></div>' +
-    '<div class="done-stat-chip"><span class="done-stat-val">' + sets + '</span><span class="done-stat-lbl">Sätze</span></div>' +
-    (vol > 0 ? '<div class="done-stat-chip"><span class="done-stat-val">' + volDisp + '</span><span class="done-stat-lbl">' + volLbl + '</span></div>' : '') +
-    (durMin ? '<div class="done-stat-chip"><span class="done-stat-val">' + durMin + '</span><span class="done-stat-lbl">Minuten</span></div>' : '');
-
-  // PRs
-  const prEl = document.getElementById('done-pr-section');
-  if (prs.length) {
-    prEl.innerHTML = '<div class="done-pr-wrap">' +
-      '<div class="done-pr-head"><div><div class="done-pr-headtitle">' +
-      prs.length + ' neue' + (prs.length===1?'r':'') + ' Personal Record' + (prs.length===1?'':'s') + '!</div>' +
-      '<div class="done-pr-headsub">Neue Bestleistung</div></div></div>' +
-      prs.map(pr =>
-        '<div class="done-pr-item"><div class="done-pr-item-left">' +
-        '<div class="done-pr-item-name">' + pr.exName + '</div>' +
-        '<div class="done-pr-item-detail">' + pr.label + (pr.prevVal ? ' · vorher ' + pr.prevVal + ' ' + pr.unit : '') + '</div>' +
-        '</div><div class="done-pr-item-val">' + pr.newVal + ' ' + pr.unit + '</div></div>'
-      ).join('') + '</div>';
+function _shfDrawBase(ctx, img, W, H) {
+  if (img) {
+    const s = Math.max(W / img.width, H / img.height);
+    const w = img.width * s, h = img.height * s;
+    ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
   } else {
-    prEl.innerHTML = '';
+    const acc = _shfAccent();
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, acc); g.addColorStop(1, '#0b1020');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.font = (W * 0.5) + 'px -apple-system,sans-serif';
+    ctx.globalAlpha = 0.16;
+    ctx.textAlign = 'center';
+    ctx.fillText('💪', W / 2, H * 0.62);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
-
-  // Highlights
-  const hls = [];
-  let bestW = 0, bestWLog = null;
-  ses.logs.forEach(l => { const w = maxW(l.sets); if (w > bestW) { bestW = w; bestWLog = l; } });
-  if (bestWLog) {
-    const ex = exById(bestWLog.exerciseId);
-    hls.push({ val: kgToDisp(bestW) + ' ' + unitLabel(), sub: 'Max Gewicht', name: ex?.name||bestWLog.exerciseId, color: 'rgba(0,122,255,.30)' });
+}
+function _shfAvatarRow(ctx, d, x, y) {
+  const r = 34;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x + r, y + r, r, 0, Math.PI * 2); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fill();
+  ctx.clip();
+  if (d._avaImg) ctx.drawImage(d._avaImg, x, y, r * 2, r * 2);
+  else {
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px -apple-system,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(_socInitials(d.username), x + r, y + r + 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
-  let mostS = 0, mostSLog = null;
-  ses.logs.forEach(l => { if (l.sets.length > mostS) { mostS = l.sets.length; mostSLog = l; } });
-  if (mostSLog && mostS > 1) {
-    const ex = exById(mostSLog.exerciseId);
-    hls.push({ val: mostS + ' Sätze', sub: 'Meiste Sätze', name: ex?.name||mostSLog.exerciseId, color: 'rgba(52,199,89,.30)' });
+  ctx.restore();
+  ctx.fillStyle = '#fff'; ctx.font = '800 30px -apple-system,sans-serif';
+  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 10;
+  ctx.fillText(d.username, x + r * 2 + 18, y + 28);
+  ctx.font = '500 22px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.8)';
+  ctx.fillText(_shfRelTime(d.date), x + r * 2 + 18, y + 60);
+  ctx.shadowBlur = 0;
+}
+function _shfVDate(ctx, d, W, H) {
+  ctx.save();
+  ctx.translate(W - 34, H / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  ctx.font = '700 22px -apple-system,sans-serif';
+  ctx.textAlign = 'center';
+  const ds = d.date.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}).toUpperCase()
+    + '  ·  ' + d.date.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'});
+  ctx.fillText(ds.split('').join(' '), 0, 0);
+  ctx.restore();
+}
+function _shfWatermark(ctx, W, H, opts) {
+  ctx.save();
+  ctx.translate(W / 2, H * (opts?.y ?? 0.44));
+  ctx.rotate(-0.14);
+  ctx.fillStyle = 'rgba(255,255,255,' + (opts?.a ?? 0.12) + ')';
+  ctx.font = '900 ' + (opts?.s ?? 92) + 'px -apple-system,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('MYGYMTRACK', 0, 0);
+  ctx.restore();
+}
+
+const SHARE_LAYOUTS = [
+  {
+    id: 'classic', name: 'Classic',
+    render(ctx, img, d, W, H) {
+      _shfDrawBase(ctx, img, W, H);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(0,0,0,.45)'); g.addColorStop(0.28, 'rgba(0,0,0,0)');
+      g.addColorStop(0.62, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.62)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      _shfAvatarRow(ctx, d, 44, 48);
+      _shfWatermark(ctx, W, H);
+      _shfVDate(ctx, d, W, H);
+      // Muskelgruppen-Chips über dem CTA
+      let cx = 48, cy = H - 260;
+      ctx.font = '700 24px -apple-system,sans-serif';
+      d.mgs.forEach(m => {
+        const w = ctx.measureText(m).width + 44;
+        ctx.fillStyle = 'rgba(255,255,255,.2)';
+        ctx.beginPath(); ctx.roundRect(cx, cy, w, 52, 26); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillText(m, cx + 22, cy + 35);
+        cx += w + 14;
+      });
+      if (d.gym) {
+        ctx.font = '600 26px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.85)';
+        ctx.fillText('📍 ' + d.gym, 48, cy - 26);
+      }
+      // Großer abgerundeter CTA unten mittig
+      const acc = _shfAccent();
+      const bw = W - 96, bh = 118, bx = 48, by = H - bh - 64;
+      ctx.fillStyle = acc;
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 32); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.font = '900 42px -apple-system,sans-serif';
+      ctx.fillText(d.dayName.toUpperCase(), W / 2, by + 52);
+      ctx.font = '700 30px -apple-system,sans-serif'; ctx.globalAlpha = 0.9;
+      ctx.fillText(_shfDurStr(d.duration) + (d.prCount ? '  ·  ' + d.prCount + ' PR 🏆' : ''), W / 2, by + 92);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    }
+  },
+  {
+    id: 'bold', name: 'Bold',
+    render(ctx, img, d, W, H) {
+      _shfDrawBase(ctx, img, W, H);
+      const g = ctx.createLinearGradient(0, H * 0.45, 0, H);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.88)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.font = '900 30px -apple-system,sans-serif';
+      ctx.fillText('MYGYMTRACK', 48, 76);
+      _shfAvatarRow(ctx, d, 44, 110);
+      _shfVDate(ctx, d, W, H);
+      const acc = _shfAccent();
+      ctx.fillStyle = acc;
+      ctx.font = '900 132px -apple-system,sans-serif';
+      const dur = _shfDurStr(d.duration);
+      ctx.fillText(dur, 44, H - 232);
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 76px -apple-system,sans-serif';
+      const dn = d.dayName.toUpperCase();
+      ctx.fillText(dn.length > 16 ? dn.slice(0, 15) + '…' : dn, 48, H - 130);
+      ctx.font = '600 30px -apple-system,sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.fillText(d.mgs.join('  ·  ') + (d.gym ? '   📍 ' + d.gym : ''), 48, H - 72);
+    }
+  },
+  {
+    id: 'clean', name: 'Clean',
+    render(ctx, img, d, W, H) {
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+      const m = 44, ph = H - 330;
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(m, m, W - m * 2, ph, 28); ctx.clip();
+      if (img) {
+        const s = Math.max((W - m * 2) / img.width, ph / img.height);
+        ctx.drawImage(img, m + (W - m * 2 - img.width * s) / 2, m + (ph - img.height * s) / 2, img.width * s, img.height * s);
+      } else {
+        _shfDrawBase(ctx, null, W, H);
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(m, m, W - m * 2, ph, 28); ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.font = '900 26px -apple-system,sans-serif';
+      ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 8;
+      ctx.fillText('MYGYMTRACK', m + 28, m + 50);
+      ctx.restore();
+      // Polaroid-Fuß: Daten dunkel auf weiß
+      ctx.fillStyle = '#0b0d12';
+      ctx.font = '900 56px -apple-system,sans-serif';
+      ctx.fillText(d.dayName, m, ph + m + 92);
+      ctx.font = '600 30px -apple-system,sans-serif';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText(d.username + '  ·  ' + _shfDurStr(d.duration)
+        + (d.prCount ? '  ·  ' + d.prCount + ' PR' : ''), m, ph + m + 146);
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '600 26px -apple-system,sans-serif';
+      ctx.fillText(d.date.toLocaleDateString(GT_LOCALE, {weekday:'long', day:'numeric', month:'long'})
+        + (d.gym ? '  ·  📍 ' + d.gym : ''), m, ph + m + 192);
+      const acc = _shfAccent();
+      ctx.fillStyle = acc;
+      ctx.beginPath(); ctx.roundRect(W - m - 150, ph + m + 60, 150, 58, 29); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '800 26px -apple-system,sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText('💪 ' + d.mgs.length, W - m - 75, ph + m + 98);
+      ctx.textAlign = 'left';
+    }
   }
-  const totalReps = ses.logs.reduce((s,l) => s + l.sets.reduce((s2,st) => s2+(parseInt(st.r)||0), 0), 0);
-  if (totalReps > 0) hls.push({ val: totalReps.toLocaleString(GT_LOCALE), sub: 'Gesamt', name: 'Wiederholungen', color: 'rgba(255,149,0,.30)' });
-  const hlWrapper = document.getElementById('done-hl-wrapper');
-  if (hls.length) {
-    hlWrapper.style.display = '';
-    document.getElementById('done-hl-grid').innerHTML = hls.map(h =>
-      '<div class="done-hl-card" style="--done-hl-color:' + h.color + '">' +
-      '<div class="done-hl-val">' + h.val + '</div>' +
-      '<div class="done-hl-sub">' + h.sub + '</div>' +
-      '<div class="done-hl-name">' + h.name + '</div></div>'
-    ).join('');
-  } else {
-    hlWrapper.style.display = 'none';
+];
+
+function _shfRender(li, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w || SHF_W; c.height = h || SHF_H;
+  const ctx = c.getContext('2d');
+  const sc = (w || SHF_W) / SHF_W;
+  ctx.scale(sc, sc);
+  SHARE_LAYOUTS[li].render(ctx, _shfPhoto, _shfData, SHF_W, SHF_H);
+  return c;
+}
+function _shfRenderAll() {
+  _shfRendered = SHARE_LAYOUTS.map((_, i) => _shfRender(i, 540, 720).toDataURL('image/jpeg', 0.9));
+}
+
+/* ── Einstieg (aus finishWk) ── */
+function startShareFlow(ses, prs, dayName) {
+  _shfSes = ses; _shfPrs = prs || [];
+  _shfData = _shfBuildData(ses, prs, dayName);
+  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false;
+  // Avatar fürs Canvas vorladen (nur data-URLs — Remote-URLs würden den Canvas tainten)
+  const p = _shfData.photo;
+  if (p && p.startsWith('data:')) {
+    const im = new Image();
+    im.onload = () => { _shfData._avaImg = im; };
+    im.src = p;
   }
+  openOv('ov-share');
+  _shfRattleStart();
+}
+function _shfExit() {
+  _shfRattleT.forEach(clearTimeout); _shfRattleT = [];
+  _shfStopStream();
+  closeOv('ov-share');
+  // Nicht als Post geteilt → Training wie bisher als Text-Activity in den Feed
+  if (!_shfPosted && _shfSes) { try { _socLogActivity(_shfSes, _shfPrs); } catch(_) {} }
+  _shfSes = null; _shfPhoto = null; _shfRendered = [];
+}
 
-  // Exercise list
-  document.getElementById('done-ex-list').innerHTML = ses.logs.map(l => {
-    const ex = exById(l.exerciseId);
-    const w  = maxW(l.sets);
-    const isPr = prExIds.has(l.exerciseId);
-    const exVol = l.sets.reduce((s,st) => s + ((parseFloat(st.w)||0)*(parseInt(st.r)||0)), 0);
-    return '<div class="done-ex-row">' +
-      '<div class="done-ex-info"><div class="done-ex-name">' + (ex?.name||l.exerciseId) + '</div>' +
-      '<div class="done-ex-meta">' + l.sets.length + ' Sätze' + (exVol ? ' · ' + Math.round(exVol) + ' kg' : '') + '</div></div>' +
-      '<div class="done-ex-right">' +
-      (w ? '<div class="done-ex-maxw">' + kgToDisp(w) + ' <span class="done-ex-maxw-u">' + unitLabel() + '</span></div>' : '') +
-      (isPr ? '<div class="done-ex-pr">PR</div>' : '') +
-      '</div></div>';
-  }).join('');
+/* ── Schritt 1: Layout-Rattle (Glücksrad-Auslauf + Haptik-Ticks) ── */
+function _shfRattleStart() {
+  const body = document.getElementById('shf-body');
+  const minis = SHARE_LAYOUTS.map((_, i) => _shfRender(i, 270, 360).toDataURL('image/jpeg', 0.85));
+  body.innerHTML = `
+    <div class="shf-top"><button class="shf-x" onclick="_shfExit()">✕</button>
+      <div class="shf-title">${tr('Dein Look')}</div><div style="width:42px"></div></div>
+    <div class="shf-rattle" id="shf-rattle" onclick="_shfRattleStop()">
+      <div class="shf-rcard back2"></div>
+      <div class="shf-rcard back1"></div>
+      <div class="shf-rcard top" id="shf-rtop"><img id="shf-rimg" src="${minis[0]}"><div class="shf-rname" id="shf-rname">${SHARE_LAYOUTS[0].name}</div></div>
+    </div>
+    <div class="shf-hint">${tr('Tippen zum Festlegen')}</div>`;
+  hapticSelStart();
+  // Auslaufende Tick-Kette: schnell → langsam, Ende bleibt stehen
+  const delays = [70, 70, 75, 80, 90, 100, 115, 135, 160, 195, 240, 300, 380, 470];
+  let t = 0, idx = _shfLayout, stopped = false;
+  window._shfRattleStopFlag = () => stopped = true;
+  delays.forEach((d, i) => {
+    t += d;
+    _shfRattleT.push(setTimeout(() => {
+      if (stopped) return;
+      idx = (idx + 1) % SHARE_LAYOUTS.length;
+      _shfLayout = idx;
+      const img = document.getElementById('shf-rimg'), nm = document.getElementById('shf-rname');
+      if (img) { img.src = minis[idx]; nm.textContent = SHARE_LAYOUTS[idx].name; }
+      hapticTick();
+      if (i === delays.length - 1) _shfRattleLand();
+    }, t));
+  });
+}
+function _shfRattleStop() {   // Tap: sofort festlegen
+  if (window._shfRattleStopFlag) window._shfRattleStopFlag();
+  _shfRattleT.forEach(clearTimeout); _shfRattleT = [];
+  _shfRattleLand();
+}
+function _shfRattleLand() {
+  hapticSelEnd();
+  const top = document.getElementById('shf-rtop');
+  if (top) top.classList.add('landed');
+  haptic(16);
+  setTimeout(_shfCameraStep, 480);
+}
 
-  // Note
-  document.getElementById('done-note-box').innerHTML = ses.note
-    ? '<div class="done-note">' + esc(ses.note) + '</div>' : '';
+/* ── Schritt 2: Kamera (nativ bevorzugt, Web-Fallback) ── */
+async function _shfCameraStep() {
+  const CP = _cap('CameraPlugin');
+  if (CP) {
+    let res = null;
+    try { res = await CP.capture({}); } catch (_) {}
+    if (res?.photo) {
+      const img = new Image();
+      img.onload = () => { _shfPhoto = img; _shfEditorStep(); };
+      img.src = 'data:image/jpeg;base64,' + res.photo;
+      return;
+    }
+    // verweigert/abgebrochen → Editor mit Gradient-Card (teilen bleibt möglich)
+    _shfEditorStep();
+    return;
+  }
+  _shfWebCamStep();
+}
+function _shfStopStream() {
+  try { _shfStream?.getTracks().forEach(t => t.stop()); } catch(_) {}
+  _shfStream = null;
+}
+async function _shfWebCamStep() {
+  const body = document.getElementById('shf-body');
+  body.innerHTML = `
+    <div class="shf-top"><button class="shf-x" onclick="_shfStopStream();_shfEditorStep()">✕</button>
+      <div class="shf-title">${tr('Foto')}</div>
+      <button class="shf-x" id="shf-flashbtn" onclick="_shfToggleFlash()">⚡︎</button></div>
+    <div class="shf-cam"><video id="shf-video" autoplay playsinline muted></video>
+      <div class="shf-flashfx" id="shf-flashfx"></div>
+      <div class="shf-cam-bar">
+        <button class="shf-camside" onclick="_shfPickGallery()">🖼</button>
+        <button class="shf-shutter" onclick="_shfWebSnap()" aria-label="${tr('Foto aufnehmen')}"></button>
+        <button class="shf-camside" onclick="_shfFlipCam()">⟲</button>
+      </div></div>`;
+  try {
+    _shfStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: _shfFacing, width: {ideal: 1920} }, audio: false });
+    const v = document.getElementById('shf-video');
+    v.srcObject = _shfStream;
+    v.classList.toggle('mirror', _shfFacing === 'user');
+  } catch (_) {
+    // Berechtigung verweigert / keine Kamera → Galerie oder ohne Foto weiter
+    document.querySelector('.shf-cam').innerHTML = `
+      <div class="cpg-empty" style="height:100%">
+        <div style="font-size:40px">📷</div>
+        <div><b>${tr('Kein Kamera-Zugriff')}</b><br><span style="font-size:13px">${tr('Erlaube die Kamera in den iOS-Einstellungen oder wähle ein Foto aus der Galerie.')}</span></div>
+        <button class="shf-btn" style="flex:0 0 auto;padding:13px 26px" onclick="_shfPickGallery()">${tr('Aus Galerie wählen')}</button>
+        <button class="shf-btn ghost" style="flex:0 0 auto;padding:13px 26px" onclick="_shfEditorStep()">${tr('Ohne Foto weiter')}</button>
+      </div>`;
+  }
+}
+function _shfToggleFlash() {
+  _shfFlashOn = !_shfFlashOn;
+  const b = document.getElementById('shf-flashbtn');
+  if (b) b.style.background = _shfFlashOn ? 'rgba(255,214,10,.4)' : 'rgba(255,255,255,.14)';
+  haptic(6);
+}
+function _shfFlipCam() {
+  _shfFacing = _shfFacing === 'user' ? 'environment' : 'user';
+  haptic(8);
+  _shfStopStream();
+  _shfWebCamStep();
+}
+function _shfWebSnap() {
+  const v = document.getElementById('shf-video');
+  if (!v || !v.videoWidth) return;
+  const fire = () => {
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext('2d');
+    if (_shfFacing === 'user') { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(v, 0, 0);
+    const img = new Image();
+    img.onload = () => { _shfPhoto = img; _shfStopStream(); _shfEditorStep(); };
+    img.src = c.toDataURL('image/jpeg', 0.9);
+  };
+  haptic(14);
+  if (_shfFlashOn) {
+    const fx = document.getElementById('shf-flashfx');
+    if (fx) { fx.style.opacity = 1; setTimeout(() => { fire(); fx.style.opacity = 0; }, 180); return; }
+  }
+  fire();
+}
+function _shfPickGallery() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files?.[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => { _shfPhoto = img; _shfStopStream(); _shfEditorStep(); };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+  };
+  inp.click();
+}
 
-  openOv('ov-done');
+/* ── Schritt 3: Layout-Swipe auf dem Foto ── */
+function _shfEditorStep() {
+  _shfStopStream();
+  _shfRenderAll();
+  const body = document.getElementById('shf-body');
+  body.innerHTML = `
+    <div class="shf-top"><button class="shf-x" onclick="_shfExit()">✕</button>
+      <div class="shf-title">${tr('Layout wählen')}</div><div style="width:42px"></div></div>
+    <div class="shf-edit">
+      <div class="shf-swipe" id="shf-swipe">
+        ${_shfRendered.map((u, i) => `<div class="shf-slide"><img src="${u}" alt="${SHARE_LAYOUTS[i].name}"></div>`).join('')}
+      </div>
+      <div class="shf-dots" id="shf-dots">
+        ${SHARE_LAYOUTS.map((_, i) => `<div class="shf-dot${i === _shfLayout ? ' on' : ''}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="shf-cta">
+      <button class="shf-btn ghost" style="flex:0 0 auto;padding:16px 20px" onclick="_shfCameraStep()">📷</button>
+      <button class="shf-btn" onclick="_shfShareStep()">${tr('Weiter')}</button>
+    </div>`;
+  const sw = document.getElementById('shf-swipe');
+  // Startposition = im Rattle gelandetes Layout
+  requestAnimationFrame(() => {
+    const slide = sw.children[_shfLayout];
+    if (slide) sw.scrollLeft = slide.offsetLeft - (sw.clientWidth - slide.clientWidth) / 2;
+  });
+  let lastIdx = _shfLayout;
+  sw.addEventListener('scroll', () => {
+    const mid = sw.scrollLeft + sw.clientWidth / 2;
+    let idx = 0, best = 1e9;
+    [...sw.children].forEach((el, i) => {
+      const c = el.offsetLeft + el.clientWidth / 2, dd = Math.abs(c - mid);
+      if (dd < best) { best = dd; idx = i; }
+    });
+    if (idx !== lastIdx) { lastIdx = idx; _shfLayout = idx; hapticTick();
+      [...document.getElementById('shf-dots').children].forEach((d, i) => d.classList.toggle('on', i === idx));
+    }
+  }, { passive: true });
+}
+
+/* ── Schritt 4: Teilen ── */
+function _shfShareStep() {
+  const body = document.getElementById('shf-body');
+  const canPost = !!(S.socialOn && _socReady());
+  body.innerHTML = `
+    <div class="shf-top"><button class="shf-x" onclick="_shfEditorStep()">‹</button>
+      <div class="shf-title">${tr('Teilen')}</div>
+      <button class="shf-x" onclick="_shfExit()">✕</button></div>
+    <div class="shf-share">
+      <div class="shf-preview"><img src="${_shfRendered[_shfLayout]}"></div>
+      ${canPost ? `
+      <div class="shf-dest" onclick="_shfTgl('friends')">
+        <div class="ico">👥</div>
+        <div class="t"><b>${tr('Freunde')}</b><span>${tr('Nur dein Freundeskreis')}</span></div>
+        <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-friends" checked><span class="tgl-track"></span></label>
+      </div>
+      <div class="shf-dest" onclick="_shfTgl('public')">
+        <div class="ico">🌍</div>
+        <div class="t"><b>Community</b><span>${tr('Öffentlich für alle MyGymTrack-Nutzer')}</span></div>
+        <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-public"><span class="tgl-track"></span></label>
+      </div>` : `
+      <div class="shf-dest"><div class="ico">👥</div>
+        <div class="t"><b>${tr('Community aus')}</b><span>${tr('Aktiviere die Community im Community-Tab, um Beiträge zu posten.')}</span></div></div>`}
+      <div class="shf-dest" onclick="_shfExtern()">
+        <div class="ico">📤</div>
+        <div class="t"><b>${tr('Extern teilen')}</b><span>Instagram, WhatsApp, ${tr('Fotos')} …</span></div>
+      </div>
+      <button class="shf-btn" id="shf-postbtn" onclick="_shfPublish()">${canPost ? tr('Posten') : tr('Fertig')}</button>
+    </div>`;
+}
+function _shfTgl(k) {
+  const el = document.getElementById('shf-tg-' + k);
+  if (el) { el.checked = !el.checked; haptic(6); }
+}
+async function _shfFinalJpeg() {
+  return _shfRender(_shfLayout).toDataURL('image/jpeg', 0.82);
+}
+async function _shfExtern() {
+  haptic(10);
+  try {
+    const dataUrl = await _shfFinalJpeg();
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], 'mygymtrack-workout.jpg', { type: 'image/jpeg' });
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'MyGymTrack' });
+    } else {
+      const a = document.createElement('a');
+      a.href = dataUrl; a.download = 'mygymtrack-workout.jpg'; a.click();
+    }
+  } catch (e) { if (e?.name !== 'AbortError') console.warn('[GymTrack] Extern teilen:', e); }
+}
+async function _shfPublish() {
+  const fr = document.getElementById('shf-tg-friends')?.checked;
+  const pb = document.getElementById('shf-tg-public')?.checked;
+  if (!fr && !pb) { _shfExit(); return; }           // nichts gewählt → einfach fertig
+  if (!_socReady()) { _shfExit(); return; }
+  const btn = document.getElementById('shf-postbtn');
+  btn.disabled = true; btn.textContent = tr('Wird gepostet…');
+  try {
+    const id = uid();
+    const d = _shfData;
+    let imgUrl = null, imgPath = null;
+    if (window.FB.stUpload) {
+      imgPath = 'posts/' + _fbUser.uid + '/' + id + '.jpg';
+      imgUrl = await window.FB.stUpload(imgPath, await _shfFinalJpeg());
+    }
+    await window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', id), {
+      ts: Date.now(),
+      visibility: pb ? 'public' : 'friends',       // public schließt Freunde mit ein
+      img: imgUrl, imgPath: imgPath,
+      layout: SHARE_LAYOUTS[_shfLayout].id,
+      dayName: d.dayName, dur: Math.round(d.duration / 60),
+      mgs: d.mgs, gym: d.gym || null,
+      name: d.username, photo: d.photo && d.photo.startsWith('http') ? d.photo : null,
+      flames: {}
+    });
+    _shfPosted = true;
+    hapticSuccess();
+    _shfExit();
+  } catch (e) {
+    console.warn('[GymTrack] Post fehlgeschlagen:', e?.code || e);
+    btn.disabled = false; btn.textContent = tr('Posten');
+    alert(tr('Posten fehlgeschlagen — bist du offline?'));
+  }
 }
 
 // ── BEGLEITER ─────────────────────────────────────────
@@ -14712,7 +15213,7 @@ function importData() {
 // ── SHEET SWIPE-TO-DISMISS ────────────────────────────
 function initSheetSwipe() {
   document.querySelectorAll('.ov').forEach(ov => {
-    if (ov.id === 'ov-done') return;                       // Vollbild-Abschluss – kein Sheet
+    if (ov.id === 'ov-share') return;                      // Vollbild-Share-Flow – kein Sheet
     const sheet  = ov.firstElementChild;                   // Karte/Sheet (egal welche CSS-Klasse)
     const handle = sheet && sheet.querySelector(':scope > .sh-handle');
     if (!sheet || !handle) return;
@@ -16702,13 +17203,366 @@ function _feedItemHTML(a, compact){
     </div>
   </div>`;
 }
+/* ── CARD-PAGER-FEED: ein Post pro Bildschirm, eigene Swipe-Transition
+   (Card schrumpft raus, nächste wächst von hinten nach). Quellen:
+   Foto-Posts (profiles/{uid}/posts) + alte Text-Activities als Gradient-Cards. ── */
+let _cpgMode = 'friends';        // 'friends' | 'public'
+let _cpgItems = [], _cpgIdx = 0, _cpgCache = {};
+let _flMyPosts = null, _flMyPostsTs = 0;
+
 async function _renderFeed(body){
-  body.innerHTML = '<div id="feed-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Feed…</div></div>';
-  const items = await _loadFeed();
-  const el = document.getElementById('feed-list'); if (!el) return;
-  el.innerHTML = items.length
-    ? items.map(a => _feedItemHTML(a)).join('')
-    : '<div class="soc-empty">Noch keine Aktivitäten.<br>Beende ein Training — es erscheint automatisch im Feed deiner Freunde.</div>';
+  body.innerHTML = `
+    <div class="cpg-mode">
+      <button class="${_cpgMode==='friends'?'on':''}" onclick="setCpgMode('friends')">${tr('Freunde')}</button>
+      <button class="${_cpgMode==='public'?'on':''}" onclick="setCpgMode('public')">Community</button>
+    </div>
+    <div class="cpg-wrap" id="cpg-wrap">
+      <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
+    </div>`;
+  let items = [];
+  try { items = await _cpgLoad(); }
+  catch(_) {
+    const w = document.getElementById('cpg-wrap');
+    if (w) w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">📡</div><b>${tr('Feed konnte nicht geladen werden')}</b><span style="font-size:13px">${tr('Bist du offline? Versuch es gleich nochmal.')}</span><button class="btn btn-acc" onclick="_cpgReload()">${tr('Nochmal versuchen')}</button></div>`;
+    return;
+  }
+  _cpgItems = items; _cpgIdx = 0;
+  _cpgRenderStack();
+  _flamesRefreshBadge();
+}
+function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && _socTab === 'feed') _renderFeed(b); }
+function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && _socTab === 'feed') _renderFeed(b); }
+
+async function _loadPostsFor(uid){
+  try {
+    const q = window.FB.query(window.FB.collection('profiles/' + uid + '/posts'),
+      window.FB.orderBy('ts','desc'), window.FB.limit(6));
+    const snap = await window.FB.getDocs(q);
+    const out = [];
+    snap.forEach(d => out.push({ id:d.id, uid, kind:'post', ...d.data() }));
+    return out;
+  } catch(_) { return []; }
+}
+async function _cpgLoad(){
+  const key = _cpgMode;
+  if (_cpgCache[key] && Date.now() - _cpgCache[key].ts < 60000) return _cpgCache[key].items;
+  let items = [];
+  if (!_socReady()) return [];
+  if (_cpgMode === 'friends') {
+    const ids = [...(S.friends||[])];
+    if (_fbUser) ids.unshift(_fbUser.uid);
+    await Promise.all(ids.slice(0,30).map(async uid => {
+      const [posts, acts] = await Promise.all([_loadPostsFor(uid), _loadFeedFor(uid)]);
+      posts.forEach(p => items.push(p));
+      acts.forEach(a => items.push({ ...a, kind:'act' }));
+    }));
+  } else {
+    // Öffentlicher Community-Feed über alle Nutzer (collectionGroup-Index nötig!)
+    const q = window.FB.query(window.FB.collectionGroup('posts'),
+      window.FB.where('visibility','==','public'),
+      window.FB.orderBy('ts','desc'), window.FB.limit(30));
+    const snap = await window.FB.getDocs(q);
+    snap.forEach(d => {
+      const uid = d.ref.parent.parent.id;
+      items.push({ id:d.id, uid, kind:'post', ...d.data() });
+    });
+  }
+  const hidden = new Set(S.hiddenPosts || []);
+  const blocked = new Set(S.blocked || []);
+  items = items
+    .filter(it => !blocked.has(it.uid))
+    .filter(it => !(it.kind === 'post' && hidden.has(it.uid + '/' + it.id)))
+    .sort((a,b) => (b.ts||0) - (a.ts||0))
+    .slice(0, 40);
+  _cpgCache[key] = { ts: Date.now(), items };
+  return items;
+}
+
+function _cpgActText(a){
+  const name = a.uid === _fbUser?.uid ? tr('Du') : (a.name || 'Athlet');
+  if (a.type === 'pr') return { day: (a.prName || 'PR') + ' 🏆', meta: name + ' · ' + tr('Neuer Rekord') + (a.prVal ? ': ' + a.prVal : '') };
+  if (a.type === 'streak') return { day: a.streak + '-' + tr('Wochen-Streak') + ' ⚡️', meta: name };
+  return { day: a.mg ? a.mg + '-Training' : tr('Training'), meta: name + (a.dur ? ' · ' + a.dur + ' Min.' : '') + ((a.prs?.length) ? ' · ' + a.prs.length + ' PR 🏆' : '') };
+}
+function _cpgCardHTML(it, pos){
+  const me = _fbUser?.uid;
+  const isPost = it.kind === 'post';
+  const flameMap = isPost ? (it.flames || {}) : null;
+  const fireCount = isPost
+    ? Object.keys(flameMap).length
+    : Object.values(it.reactions || {}).filter(e => e === '🔥').length;
+  const myFire = isPost ? !!flameMap[me] : (it.reactions || {})[me] === '🔥';
+  const head = isPost
+    ? { day: esc(it.dayName || tr('Training')), meta: [it.dur ? it.dur + ' min' : null, it.gym ? '📍 ' + esc(it.gym) : null].filter(Boolean).join(' · ') }
+    : _cpgActText(it);
+  const acc = _shfAccent();
+  const bg = isPost && it.img
+    ? `<img class="cpg-img" src="${esc(it.img)}" loading="lazy" alt="">`
+    : `<div class="cpg-img" style="background:linear-gradient(160deg,${acc},#0b1020)"></div>`;
+  const chips = isPost && (it.mgs||[]).length
+    ? `<div class="cpg-chips">${it.mgs.slice(0,4).map(m => `<span class="cpg-chip">${esc(m)}</span>`).join('')}</div>` : '';
+  const d = new Date(it.ts || Date.now());
+  const vdate = (d.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}) + ' · ' + d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'})).toUpperCase();
+  const ava = it.photo ? `<img src="${esc(it.photo)}" alt="">` : _socInitials(it.name);
+  return `<div class="cpg-card ${pos}" data-i="${it._i}">
+    ${bg}
+    <div class="cpg-grad"></div>
+    <div class="cpg-water">MYGYMTRACK</div>
+    <div class="cpg-head">
+      <div class="cpg-ava">${ava}</div>
+      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}</b><span>${_timeAgo(it.ts)}</span></div>
+      <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}">…</button>
+    </div>
+    <div class="cpg-vdate">${vdate}</div>
+    <div class="cpg-info">
+      <div class="day">${head.day}</div>
+      <div class="meta">${head.meta || ''}</div>
+      ${chips}
+    </div>
+    <button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
+      <span class="fl">🔥</span><span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
+    </button>
+  </div>`;
+}
+function _cpgRenderStack(){
+  const w = document.getElementById('cpg-wrap'); if (!w) return;
+  _cpgItems.forEach((it, i) => it._i = i);
+  if (!_cpgItems.length) {
+    const isFr = _cpgMode === 'friends';
+    w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">${isFr ? '👥' : '🌍'}</div>
+      <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
+      <span style="font-size:13px">${isFr
+        ? ((S.friends||[]).length ? tr('Beende ein Training und teile es — es landet hier.') : tr('Füge zuerst Freunde hinzu — oben rechts über das +.'))
+        : tr('Teile dein nächstes Training mit der Community!')}</span>
+      ${isFr && !(S.friends||[]).length ? `<button class="btn btn-acc" onclick="openFrAdd()">${tr('Freund hinzufügen')}</button>` : ''}</div>`;
+    return;
+  }
+  if (_cpgIdx >= _cpgItems.length) {
+    w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">✅</div><b>${tr('Alles gesehen!')}</b>
+      <button class="btn btn-acc" onclick="_cpgReload()">${tr('Neu laden')}</button></div>`;
+    return;
+  }
+  const top = _cpgItems[_cpgIdx];
+  const under = _cpgItems[_cpgIdx + 1];
+  w.innerHTML = (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
+  const count = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
+  w.insertAdjacentHTML('afterbegin', count);
+  _cpgBindSwipe(w);
+}
+function _cpgBindSwipe(w){
+  const card = w.querySelector('.cpg-card.top');
+  const under = w.querySelector('.cpg-card.under');
+  if (!card) return;
+  let sx = 0, sy = 0, dx = 0, dragging = false, horiz = null;
+  const W = w.clientWidth || 320;
+  card.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    dx = 0; dragging = true; horiz = null;
+    card.style.transition = 'none';
+    if (under) under.style.transition = 'none';
+  }, { passive: true });
+  card.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+    if (horiz === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) horiz = Math.abs(mx) > Math.abs(my);
+    if (!horiz) return;
+    dx = mx;
+    const p = Math.min(Math.abs(dx) / W, 1);
+    card.style.transform = `translateX(${dx}px) rotate(${dx * 0.035}deg) scale(${1 - p * 0.12})`;
+    card.style.opacity = String(1 - p * 0.35);
+    if (under) { under.style.transform = `scale(${0.9 + p * 0.1})`; under.style.opacity = String(p); }
+  }, { passive: true });
+  card.addEventListener('touchend', () => {
+    if (!dragging) return; dragging = false;
+    if (horiz && Math.abs(dx) > Math.max(80, W * 0.28)) {
+      const dir = dx > 0 ? 1 : -1;
+      card.style.transition = 'transform .3s cubic-bezier(.3,.7,.4,1), opacity .3s';
+      card.style.transform = `translateX(${dir * W * 1.15}px) rotate(${dir * 14}deg) scale(.8)`;
+      card.style.opacity = '0';
+      if (under) {
+        under.style.transition = 'transform .34s cubic-bezier(.34,1.45,.55,1), opacity .25s';
+        under.style.transform = 'scale(1)'; under.style.opacity = '1';
+      }
+      haptic(10);
+      setTimeout(() => { _cpgIdx++; _cpgRenderStack(); }, 300);
+    } else {
+      card.style.transition = 'transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s';
+      card.style.transform = ''; card.style.opacity = '';
+      if (under) { under.style.transition = 'transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s'; under.style.transform = ''; under.style.opacity = ''; }
+    }
+  }, { passive: true });
+}
+
+/* ── Flammen-Reaction: Toggle, optimistisch, Animation + Partikel-Burst ── */
+async function toggleFlame(i){
+  const it = _cpgItems[i];
+  if (!it || !_socReady()) return;
+  const me = _fbUser.uid;
+  const btn = document.getElementById('flm-' + i);
+  let on;
+  if (it.kind === 'post') {
+    it.flames = it.flames || {};
+    on = !it.flames[me];
+    if (on) it.flames[me] = Date.now(); else delete it.flames[me];
+  } else {
+    it.reactions = it.reactions || {};
+    on = it.reactions[me] !== '🔥';
+    if (on) it.reactions[me] = '🔥'; else delete it.reactions[me];
+  }
+  // Optimistisch: Zähler + Optik sofort, Server danach
+  const count = it.kind === 'post'
+    ? Object.keys(it.flames).length
+    : Object.values(it.reactions).filter(e => e === '🔥').length;
+  if (btn) {
+    btn.classList.toggle('on', on);
+    const ct = document.getElementById('flmct-' + i);
+    if (ct) ct.textContent = count || '';
+    if (on) {
+      btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+      for (let p = 0; p < 8; p++) {
+        const s = document.createElement('span');
+        s.className = 'flm-part'; s.textContent = ['🔥','✨','🧡'][p % 3];
+        const ang = Math.random() * Math.PI * 2, dist = 34 + Math.random() * 30;
+        s.style.setProperty('--fx', Math.cos(ang) * dist + 'px');
+        s.style.setProperty('--fy', Math.sin(ang) * dist - 14 + 'px');
+        btn.appendChild(s);
+        setTimeout(() => s.remove(), 750);
+      }
+    }
+  }
+  if (on) hapticSuccess(); else haptic(8);
+  try {
+    if (it.kind === 'post')
+      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/posts', it.id), { flames: it.flames });
+    else
+      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/activities', it.id), { reactions: it.reactions });
+  } catch(e) {
+    // Server lehnte ab → optimistische Änderung zurückrollen
+    if (it.kind === 'post') { if (on) delete it.flames[me]; else it.flames[me] = Date.now(); }
+    else { if (on) delete it.reactions[me]; else it.reactions[me] = '🔥'; }
+    if (btn) {
+      btn.classList.toggle('on', !on);
+      const ct = document.getElementById('flmct-' + i);
+      if (ct) {
+        const c2 = it.kind === 'post' ? Object.keys(it.flames).length : Object.values(it.reactions).filter(x => x === '🔥').length;
+        ct.textContent = c2 || '';
+      }
+    }
+    console.warn('[GymTrack] Flamme fehlgeschlagen:', e?.code || e);
+  }
+}
+
+/* ── „…"-Menü: Melden / Ausblenden / Blockieren / (eigene: Löschen) ── */
+let _pmItem = null;
+function openPostMenu(i){
+  const it = _cpgItems[i]; if (!it) return;
+  _pmItem = it;
+  haptic(8);
+  const mine = it.uid === _fbUser?.uid;
+  const body = document.getElementById('postmenu-body');
+  body.innerHTML = mine
+    ? `<button class="btn btn-gray" style="color:#ff453a" onclick="deleteOwnPost()">${tr('Beitrag löschen')}</button>`
+    : `<button class="btn btn-gray" onclick="hidePost()">${tr('Beitrag ausblenden')}</button>
+       <button class="btn btn-gray" onclick="reportPost()">${tr('Beitrag melden')}</button>
+       <button class="btn btn-gray" style="color:#ff453a" onclick="blockFromFeed()">${tr('Nutzer blockieren')}</button>`;
+  openOv('ov-postmenu');
+}
+function _pmRemoveFromFeed(){
+  _cpgItems = _cpgItems.filter(x => x !== _pmItem);
+  closeOv('ov-postmenu');
+  _cpgIdx = Math.min(_cpgIdx, Math.max(_cpgItems.length - 1, 0));
+  _cpgRenderStack();
+}
+function hidePost(){
+  if (!_pmItem) return;
+  if (_pmItem.kind === 'post') {
+    S.hiddenPosts = S.hiddenPosts || [];
+    S.hiddenPosts.push(_pmItem.uid + '/' + _pmItem.id);
+    if (S.hiddenPosts.length > 300) S.hiddenPosts = S.hiddenPosts.slice(-300);
+    persist();
+  }
+  haptic(10);
+  _pmRemoveFromFeed();
+}
+async function reportPost(){
+  if (!_pmItem || !_socReady()) return;
+  try {
+    await window.FB.addDoc(window.FB.collection('reports'), {
+      reporter: _fbUser.uid,
+      authorUid: _pmItem.uid,
+      postId: _pmItem.id,
+      kind: _pmItem.kind,
+      ts: Date.now()
+    });
+    alert(tr('Danke! Der Beitrag wurde gemeldet.'));
+  } catch(e) { console.warn('[GymTrack] Report:', e?.code || e); }
+  hidePost();
+}
+function blockFromFeed(){
+  if (!_pmItem) return;
+  const uid = _pmItem.uid;
+  if (!confirm(tr('Nutzer blockieren? Seine Beiträge verschwinden aus deinem Feed.'))) return;
+  S.blocked = S.blocked || [];
+  if (!S.blocked.includes(uid)) S.blocked.push(uid);
+  persist();
+  _cpgItems = _cpgItems.filter(x => x.uid !== uid);
+  closeOv('ov-postmenu');
+  _cpgIdx = Math.min(_cpgIdx, Math.max(_cpgItems.length - 1, 0));
+  _cpgRenderStack();
+  haptic(14);
+}
+async function deleteOwnPost(){
+  if (!_pmItem || _pmItem.uid !== _fbUser?.uid) return;
+  if (!confirm(tr('Diesen Beitrag löschen?'))) return;
+  try {
+    await window.FB.deleteDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', _pmItem.id));
+    if (_pmItem.imgPath && window.FB.stDelete) { try { await window.FB.stDelete(_pmItem.imgPath); } catch(_){} }
+  } catch(e) { console.warn('[GymTrack] Löschen:', e?.code || e); }
+  _pmRemoveFromFeed();
+}
+
+/* ── Flammen-Benachrichtigungen (Glocke + Badge) ── */
+async function _flamesMine(force){
+  if (!force && _flMyPosts && Date.now() - _flMyPostsTs < 60000) return _flMyPosts;
+  if (!_socReady()) return [];
+  const posts = await _loadPostsFor(_fbUser.uid);
+  const out = [];
+  posts.forEach(p => Object.entries(p.flames || {}).forEach(([fuid, fts]) => {
+    if (fuid === _fbUser.uid) return;
+    out.push({ fuid, ts: typeof fts === 'number' ? fts : (p.ts || 0), dayName: p.dayName || tr('Training') });
+  }));
+  out.sort((a,b) => b.ts - a.ts);
+  _flMyPosts = out; _flMyPostsTs = Date.now();
+  return out;
+}
+async function _flamesRefreshBadge(){
+  try {
+    const list = await _flamesMine();
+    const fresh = list.filter(f => f.ts > (S.flameSeen || 0)).length;
+    const b = document.getElementById('flm-bell-badge');
+    if (b) { b.style.display = fresh ? '' : 'none'; b.textContent = fresh; }
+  } catch(_){}
+}
+async function openFlames(){
+  haptic(8);
+  openOv('ov-flames');
+  const body = document.getElementById('flames-body');
+  body.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Lade…')}</div>`;
+  const list = await _flamesMine(true);
+  const prof = typeof _socCache !== 'undefined' && _socCache ? _socCache : null;
+  const nameOf = (uid) => {
+    const p = prof && (prof[uid] || (prof.items || []).find?.(x => x.uid === uid));
+    return p?.name || tr('Jemand');
+  };
+  body.innerHTML = list.length
+    ? list.slice(0, 30).map(f => `<div class="flm-note"><span style="font-size:20px">🔥</span>
+        <div class="t"><b>${esc(nameOf(f.fuid))}</b> ${tr('feiert dein Training')} „${esc(f.dayName)}"</div>
+        <span class="ts">${_timeAgo(f.ts)}</span></div>`).join('')
+    : `<div class="soc-empty" style="padding:16px">${tr('Noch keine Reaktionen.')}<br>${tr('Teile ein Training — Flammen landen hier.')}</div>`;
+  S.flameSeen = Date.now();
+  persist();
+  const b = document.getElementById('flm-bell-badge');
+  if (b) b.style.display = 'none';
 }
 async function toggleReaction(uid, aid, emo){
   if (!_socReady()) return;
@@ -17708,6 +18562,7 @@ function _onLogout() {
 
 let _anaSessionRef   = null;
 let _anaSessionStart = null;
+let _anaLastBeatMs   = null;
 let _anaHeartbeat    = null;
 const ANA_HEARTBEAT_MS = 120 * 1000; // 120 s — halbiert die Firestore-Schreibkosten
 
@@ -17753,22 +18608,27 @@ async function analyticsStart(user) {
   }
   try {
     _anaSessionStart = Date.now();
+    _anaLastBeatMs   = Date.now();
     const userRef = window.FB.doc('analytics_users', user.uid);
-    const snap    = await window.FB.getDoc(userRef);
     const isAnon  = !!user.isAnonymous;
-    if (!snap.exists()) {
+    // KEIN getDoc hier: die Rules erlauben Lesen nur dem Admin. Der frühere
+    // getDoc-Aufruf lief bei JEDEM normalen Nutzer auf permission-denied →
+    // Tracking schaltete sich ab (deshalb existierte nur 1 analytics_users-Doc).
+    // Stattdessen: update-first, bei not-found (Erstbesuch) anlegen.
+    try {
+      await window.FB.updateDoc(userRef, {
+        lastSeen: window.FB.serverTimestamp(),
+        totalSessions: window.FB.increment(1),
+        isAnon
+      });
+    } catch (e) {
+      if ((e?.code || '') !== 'not-found') throw e;
       await window.FB.setDoc(userRef, {
         uid: user.uid,
         firstSeen: window.FB.serverTimestamp(),
         lastSeen:  window.FB.serverTimestamp(),
         totalSessions: 1,
         totalSec: 0,
-        isAnon
-      });
-    } else {
-      await window.FB.updateDoc(userRef, {
-        lastSeen: window.FB.serverTimestamp(),
-        totalSessions: (snap.data().totalSessions || 0) + 1,
         isAnon
       });
     }
@@ -17794,14 +18654,22 @@ async function _analyticsBeat(force = false) {
   if (!force && !_isLeader()) return;
   try {
     _renewLead(); // Leader-Timestamp auffrischen
-    const durSec = Math.floor((Date.now() - _anaSessionStart) / 1000);
+    const nowMs  = Date.now();
+    const durSec = Math.floor((nowMs - _anaSessionStart) / 1000);
+    // Nutzungssekunden seit letztem Beat — gedeckelt auf 300 s, damit lange
+    // Hintergrund-Pausen (iOS friert JS ein) nicht als Nutzung zählen.
+    const deltaSec = Math.min(300, Math.max(0, Math.round((nowMs - (_anaLastBeatMs || _anaSessionStart)) / 1000)));
+    _anaLastBeatMs = nowMs;
     await window.FB.updateDoc(_anaSessionRef, {
       lastBeat: window.FB.serverTimestamp(),
       duration: durSec
     });
     if (_fbUser) {
       const userRef = window.FB.doc('analytics_users', _fbUser.uid);
-      await window.FB.updateDoc(userRef, { lastSeen: window.FB.serverTimestamp() });
+      await window.FB.updateDoc(userRef, {
+        lastSeen: window.FB.serverTimestamp(),
+        ...(deltaSec > 0 ? { totalSec: window.FB.increment(deltaSec) } : {})
+      });
     }
   } catch (e) { /* silent */ }
 }
