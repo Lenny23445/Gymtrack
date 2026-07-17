@@ -117,9 +117,30 @@
   #tooltip .tv { font-weight: 700; }
   footer { margin-top: 34px; font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
   .src-ok { color: var(--good); } .src-err { color: var(--crit); }
+
+  #login {
+    position: fixed; inset: 0; z-index: 50; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    background-image:
+      radial-gradient(600px 400px at 85% -10%, rgba(57,135,229,.14), transparent 70%),
+      radial-gradient(500px 380px at -5% 20%, rgba(25,158,112,.10), transparent 70%);
+  }
+  #login .box { max-width: 340px; padding: 30px; }
+  #login h2 { font-size: 20px; margin-bottom: 8px; }
+  #login p { font-size: 13px; color: var(--ink-2); margin-bottom: 18px; }
+  #login button { font-size: 14px; padding: 10px 18px; }
+  #loginMsg { margin-top: 14px; font-size: 12.5px; color: var(--crit); }
 </style>
 </head>
 <body>
+<div id="login">
+  <div class="box">
+    <h2>MyGymTrack Dashboard</h2>
+    <p>Live-Zahlen der App. Zugang nur für den Admin-Account.</p>
+    <button id="loginBtn">Mit Google anmelden</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <h1>MyGymTrack Dashboard</h1>
@@ -127,7 +148,8 @@
     <span class="spacer"></span>
     <span id="stand">lädt …</span>
     <button onclick="load()">Aktualisieren</button>
-    </header>
+    <button id="logoutBtn" title="Abmelden">Abmelden</button>
+  </header>
   <div id="main">Lade Daten …</div>
   <footer id="foot"></footer>
 </div>
@@ -135,35 +157,26 @@
 
 <script>
 'use strict';
-(() => {
-  const B = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const orig = window.fetch.bind(window);
-  window.fetch = async (url, opts) => {
-    if (!String(url).startsWith('/api/all')) return orig(url, opts);
-    const enc = await (await orig('data.enc.json?t=' + Date.now(), { cache: 'no-store' })).json();
-    let pw = localStorage.getItem('gtDashPw') || '';
-    for (;;) {
-      if (!pw) pw = prompt('Dashboard-Passwort:') || '';
-      if (!pw) { document.getElementById('main').textContent = 'Ohne Passwort keine Daten — Seite neu laden.'; throw new Error('kein Passwort'); }
-      try {
-        const raw = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
-        const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: B(enc.salt), iterations: enc.iter, hash: 'SHA-256' }, raw, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: B(enc.iv) }, key, B(enc.ct));
-        localStorage.setItem('gtDashPw', pw);
-        return new Response(pt, { headers: { 'Content-Type': 'application/json' } });
-      } catch { localStorage.removeItem('gtDashPw'); pw = ''; alert('Falsches Passwort'); }
-    }
-  };
-})();
-</script>
-<script>
-'use strict';
 const $ = (s) => document.querySelector(s);
 const nf = new Intl.NumberFormat('de-DE');
 const fmt = (n) => n == null ? '—' : nf.format(n);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dShort = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+const DAY = 86_400_000;
 let REFRESH_AT = 0;
+
+function isoLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function seriesFromMap(map, days) {
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    const iso = isoLocal(d);
+    out.push({ date: iso, v: map.get(iso) || 0 });
+  }
+  return out;
+}
 
 /* ── Balken-Chart (eine Serie) als SVG ── */
 let _cid = 0;
@@ -183,7 +196,6 @@ function barChart(series, color, unit) {
       labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${dShort(p.date)}</text>`;
     }
   });
-  // Direktlabels: nur Maximum + letzter Tag (selektiv)
   const maxI = series.reduce((mi, p, i) => p.v > series[mi].v ? i : mi, 0);
   let dl = '';
   for (const i of new Set([maxI, series.length - 1])) {
@@ -219,14 +231,14 @@ const secHead = (color, title, sub, errObj) =>
    ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
    ${errObj && errObj.ok === false ? `<span class="err">Fehler: ${esc(errObj.error || '?')}</span>` : ''}</div>`;
 
-/* ── Rendern ── */
+/* ── Rendern (identisch zum lokalen Dashboard) ── */
 function render(D) {
   $('#proj').textContent = D.project || '—';
   const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {};
   let h = '';
 
   /* Nutzer */
-  h += `<section>${secHead('var(--users)', 'Nutzer', 'Firebase Auth + Cloud-Sync — live', A.ok ? (S.ok ? null : S) : A)}<div class="tiles">`;
+  h += `<section>${secHead('var(--users)', 'Nutzer', 'Firebase Auth + Cloud-Sync', A.ok ? (S.ok ? null : S) : A)}<div class="tiles">`;
   if (A.ok) h += tile(fmt(A.total), 'Accounts gesamt', 'Firebase Auth', 'var(--users)')
     + tile('+' + fmt(A.new7), 'Neu · 7 Tage')
     + tile('+' + fmt(A.new30), 'Neu · 30 Tage');
@@ -252,7 +264,7 @@ function render(D) {
   /* Workouts */
   if (S.ok && S.workouts) {
     const W = S.workouts;
-    h += `<section>${secHead('var(--workouts)', 'Workouts', 'aus den Cloud-Sync-Daten aller Nutzer', null)}<div class="tiles">`;
+    h += `<section>${secHead('var(--workouts)', 'Workouts', 'aus den Cloud-Sync-Daten aller Nutzer — live', null)}<div class="tiles">`;
     h += tile(fmt(W.total), 'Workouts gesamt', '', 'var(--workouts)')
       + tile(fmt(W.last7), 'Workouts · 7 Tage')
       + tile(fmt(W.last30), 'Workouts · 30 Tage')
@@ -270,14 +282,14 @@ function render(D) {
   }
 
   /* Community */
-  h += `<section>${secHead('var(--extra)', 'Community', 'Freunde-Feature (Opt-in)', C.ok ? null : C)}<div class="tiles">`;
+  h += `<section>${secHead('var(--extra)', 'Community', 'Freunde-Feature (Opt-in) — live', C.ok ? null : C)}<div class="tiles">`;
   if (C.ok) h += tile(fmt(C.profiles), 'Öffentliche Profile', '', 'var(--extra)')
     + tile(fmt(C.liveNow), 'Live im Training', 'laut Profil-Status', C.liveNow > 0 ? 'var(--good)' : '')
     + tile(fmt(C.requests), 'Freundschaftsanfragen', 'Dokumente gesamt');
   h += `</div></section>`;
 
   /* Session-Tracking */
-  h += `<section>${secHead('var(--users)', 'Session-Tracking', 'analytics_sessions — In-App-Nutzung', T.ok ? null : T)}`;
+  h += `<section>${secHead('var(--users)', 'Session-Tracking', 'analytics_sessions — In-App-Nutzung, live', T.ok ? null : T)}`;
   if (T.ok) {
     h += `<div class="tiles">`
       + tile(fmt(T.dauToday), 'Aktive Nutzer heute', 'getrackt (DAU)', 'var(--users)')
@@ -305,9 +317,7 @@ function render(D) {
     }
     h += `<div class="note">${esc(AS.note || '')}</div>`;
   } else if (AS.ok) {
-    h += `<div class="note">Noch nicht verbunden — es fehlen: <b>${(AS.missing || []).map(esc).join('</b>, <b>')}</b>.<br>
-      ${AS.keyId ? `API-Key <code>AuthKey_${esc(AS.keyId)}.p8</code> ist auf dem Mac bereits gefunden ✓<br>` : ''}
-      Einrichten (2 Min): <a style="color:var(--users)" href="https://appstoreconnect.apple.com/access/integrations/api" target="_blank" rel="noopener">App Store Connect → Integrationen</a>: <b>Issuer-ID</b> steht oben auf der Seite · <b>Vendor-Nr.</b> (8-stellig) unter „Zahlungen und Finanzberichte" → beides in <code>analytics/config.json</code> eintragen → Server neu starten. Bis dahin zeigt dieser Abschnitt bewusst <b>nichts</b> — keine Demo-Zahlen mehr.</div>`;
+    h += `<div class="note">Noch nicht verbunden — es fehlen: <b>${(AS.missing || []).map(esc).join('</b>, <b>')}</b>.</div>`;
   }
   h += `</section>`;
 
@@ -317,7 +327,7 @@ function render(D) {
   const src = (name, o) => `<span>${name}: <span class="${o && o.ok ? 'src-ok' : 'src-err'}">${o && o.ok ? '✓' : '✗ ' + esc((o && o.error || '').slice(0, 60))}</span></span>`;
   $('#foot').innerHTML = src('Firebase Auth', A) + src('Firestore users', S) + src('Community', C)
     + src('Tracking', T) + `<span>App Store: <span class="${AS.ok && AS.configured ? 'src-ok' : ''}">${AS.ok && AS.configured ? '✓' : 'nicht konfiguriert'}</span></span>`
-    + `<span style="margin-left:auto">Verschlüsselter Schnappschuss vom ${new Date(D.ts).toLocaleString('de-DE')} Uhr</span>`;
+    + `<span style="margin-left:auto">Live aus Firebase · Stand ${new Date(D.ts).toLocaleTimeString('de-DE')}</span>`;
 
   /* Tooltips für Balken */
   const tip = $('#tooltip');
@@ -332,27 +342,224 @@ function render(D) {
   });
 }
 
-async function load(fresh = false) {
-  $('#stand').textContent = 'lädt …';
-  try {
-    const res = await fetch('/api/all' + (fresh ? '?fresh=1' : ''));
-    const D = await res.json();
-    if (D.error) { $('#main').innerHTML = `<div class="note">${esc(D.error)}</div>`; $('#stand').textContent = 'Fehler'; return; }
-    render(D);
-    REFRESH_AT = Date.now() + 60_000;
-  } catch (e) {
-    $('#stand').textContent = 'Server nicht erreichbar';
-    $('#main').innerHTML = `<div class="note">Schnappschuss konnte nicht geladen werden — später erneut versuchen.</div>`;
-    REFRESH_AT = Date.now() + 15_000;
-  }
-}
-
 setInterval(() => {
+  if (document.hidden) return;
   if (REFRESH_AT && Date.now() >= REFRESH_AT) { REFRESH_AT = 0; load(); return; }
   if (REFRESH_AT) $('#stand').textContent =
-    `Stand ${new Date(REFRESH_AT - 60_000).toLocaleTimeString('de-DE')} · Auto-Refresh in ${Math.ceil((REFRESH_AT - Date.now()) / 1000)} s`;
+    `Stand ${new Date(REFRESH_AT - 300_000).toLocaleTimeString('de-DE')} · Auto-Refresh in ${Math.ceil((REFRESH_AT - Date.now()) / 1000)} s`;
 }, 1000);
-load();
+</script>
+
+<script type="module">
+'use strict';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+  onAuthStateChanged, signOut,
+} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
+import {
+  getFirestore, collection, doc, getDoc, getDocs, query, where, limit, getCountFromServer,
+} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+
+const ADMIN_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
+const TRACKING_FIX_DATE = '2026-07-17';
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA',
+  authDomain:        'gymtrack-25d39.firebaseapp.com',
+  databaseURL:       'https://gymtrack-25d39-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId:         'gymtrack-25d39',
+  storageBucket:     'gymtrack-25d39.firebasestorage.app',
+  messagingSenderId: '404501862861',
+  appId:             '1:404501862861:web:07e975faa3923a1dc44c84',
+};
+
+const app = initializeApp(FIREBASE_CONFIG);
+const fbAuth = getAuth(app);
+const db = getFirestore(app);
+
+/* ── Datenquellen (Browser fragt Firestore direkt — live) ── */
+
+// Auth- und App-Store-Aggregate kann der Browser nicht selbst holen (Admin-API / .p8).
+// Der Mac-Server schreibt sie nach admin/{auth,appstore}; nur die Admin-UID darf lesen.
+const adminDoc = (id) => async () => {
+  const s = await getDoc(doc(db, 'admin', id));
+  if (!s.exists()) throw new Error(`admin/${id} fehlt — Mac-Server noch nie gelaufen?`);
+  const d = JSON.parse(s.data().json);
+  d._stand = Number(s.data().updatedAt || 0);
+  if (d.ok === false) throw new Error(d.error || 'Quelle meldet Fehler');
+  return d;
+};
+
+async function usersStats() {
+  const snap = await getDocs(collection(db, 'users'));
+  const now = Date.now();
+  let active5m = 0, active24h = 0, active7d = 0, active30d = 0;
+  let wkTotal = 0, wk7 = 0, wk30 = 0, sets30 = 0, vol30 = 0;
+  const trainers7 = new Set();
+  const durations30 = [];
+  const wkByDay = new Map();
+  const topEx = new Map();
+  const versions = new Map();
+  let streakActive = 0, streakMax = 0;
+
+  for (const d of snap.docs) {
+    const uid = d.id;
+    const f = d.data() || {};
+    const updatedAt = Number(f.updatedAt || 0);
+    if (updatedAt) {
+      const age = now - updatedAt;
+      if (age < 5 * 60_000) active5m++;
+      if (age < DAY) active24h++;
+      if (age < 7 * DAY) active7d++;
+      if (age < 30 * DAY) active30d++;
+    }
+    if (f.lastSeenVersion) versions.set(String(f.lastSeenVersion), (versions.get(String(f.lastSeenVersion)) || 0) + 1);
+    const streak = Number(f.streak || 0);
+    if (streak > 0) { streakActive++; streakMax = Math.max(streakMax, streak); }
+
+    const exName = new Map();
+    for (const ex of (f.exercises || [])) {
+      if (ex && ex.id != null && ex.name) exName.set(String(ex.id), String(ex.name));
+    }
+
+    for (const s of (f.sessions || [])) {
+      if (!s || !s.date) continue;
+      const t = Date.parse(s.date);
+      if (!t) continue;
+      wkTotal++;
+      const age = now - t;
+      if (age < 7 * DAY) { wk7++; trainers7.add(uid); }
+      if (age < 30 * DAY) {
+        wk30++;
+        const dur = Number(s.duration || 0);
+        if (dur >= 60 && dur <= 6 * 3600) durations30.push(dur);
+        const seen = new Set();
+        for (const l of (s.logs || [])) {
+          if (!l) continue;
+          for (const set of (l.sets || [])) {
+            if (!set || (!set.w && !set.r)) continue;
+            sets30++;
+            vol30 += (parseFloat(set.w) || 0) * (parseInt(set.r) || 0);
+          }
+          const name = exName.get(String(l.exerciseId)) || null;
+          if (name && !seen.has(name)) { seen.add(name); topEx.set(name, (topEx.get(name) || 0) + 1); }
+        }
+      }
+      if (age < 90 * DAY) {
+        const iso = isoLocal(new Date(t));
+        wkByDay.set(iso, (wkByDay.get(iso) || 0) + 1);
+      }
+    }
+  }
+
+  const avgDurMin = durations30.length
+    ? Math.round(durations30.reduce((a, b) => a + b, 0) / durations30.length / 60) : 0;
+
+  return {
+    total: snap.size,
+    active5m, active24h, active7d, active30d,
+    workouts: {
+      total: wkTotal, last7: wk7, last30: wk30,
+      byDay: seriesFromMap(wkByDay, 60),
+      avgDurMin, sets30, vol30: Math.round(vol30),
+      trainers7: trainers7.size,
+      topExercises: [...topEx.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+        .map(([name, n]) => ({ name, n })),
+    },
+    versions: [...versions.entries()].sort((a, b) => b[1] - a[1]).map(([v, n]) => ({ v, n })),
+    streaks: { active: streakActive, max: streakMax },
+  };
+}
+
+async function communityStats() {
+  const [profiles, reqCount] = await Promise.all([
+    getDocs(collection(db, 'profiles')),
+    getCountFromServer(collection(db, 'requests')),
+  ]);
+  let liveNow = 0;
+  for (const d of profiles.docs) {
+    const live = d.data().live;
+    if (live === true || (live && typeof live === 'object' && (live.on || live.active))) liveNow++;
+  }
+  return { profiles: profiles.size, liveNow, requests: reqCount.data().count };
+}
+
+async function trackingStats() {
+  const since = new Date(Date.now() - 7 * DAY);
+  const snap = await getDocs(query(
+    collection(db, 'analytics_sessions'), where('start', '>=', since), limit(20000)));
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const sessions = snap.docs.map(r => {
+    const f = r.data();
+    const st = f.start;
+    const ms = st && typeof st.toMillis === 'function' ? st.toMillis() : Number(st) || 0;
+    return { uid: f.uid || '?', start: ms, durSec: Number(f.duration || 0) };
+  });
+  const today = sessions.filter(s => s.start >= todayStart.getTime());
+  const durs = sessions.map(s => s.durSec).filter(d => d > 0 && d < 6 * 3600);
+  const dauByDay = new Map();
+  for (const s of sessions) {
+    const iso = isoLocal(new Date(s.start));
+    if (!dauByDay.has(iso)) dauByDay.set(iso, new Set());
+    dauByDay.get(iso).add(s.uid);
+  }
+  return {
+    fixDate: TRACKING_FIX_DATE,
+    dauToday: new Set(today.map(s => s.uid)).size,
+    sessionsToday: today.length,
+    sessions7: sessions.length,
+    users7: new Set(sessions.map(s => s.uid)).size,
+    avgSessionMin: durs.length ? Math.round(durs.reduce((a, b) => a + b, 0) / durs.length / 60 * 10) / 10 : 0,
+    dauByDay: [...dauByDay.entries()].sort().map(([date, set]) => ({ date, v: set.size })),
+  };
+}
+
+window.load = async () => {
+  $('#stand').textContent = 'lädt …';
+  const wrap = async (fn) => {
+    try { return { ok: true, ...(await fn()) }; }
+    catch (e) { return { ok: false, error: String(e.message || e).slice(0, 250) }; }
+  };
+  const [auth, sync, community, tracking, appstore] = await Promise.all([
+    wrap(adminDoc('auth')),
+    wrap(usersStats),
+    wrap(communityStats),
+    wrap(trackingStats),
+    wrap(adminDoc('appstore')),
+  ]);
+  if (appstore.ok && appstore._stand) {
+    appstore.note = (appstore.note || '') + ` — übermittelt vom Mac: ${new Date(appstore._stand).toLocaleString('de-DE')}`;
+  }
+  render({ ts: Date.now(), project: FIREBASE_CONFIG.projectId, auth, sync, community, tracking, appstore });
+  REFRESH_AT = Date.now() + 300_000;
+};
+
+/* ── Login ── */
+const provider = new GoogleAuthProvider();
+$('#loginBtn').addEventListener('click', async () => {
+  $('#loginMsg').textContent = '';
+  try { await signInWithPopup(fbAuth, provider); }
+  catch (e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment' || e.code === 'auth/cancelled-popup-request') {
+      try { await signInWithRedirect(fbAuth, provider); } catch (e2) { $('#loginMsg').textContent = e2.message; }
+    } else if (e.code !== 'auth/popup-closed-by-user') $('#loginMsg').textContent = e.message;
+  }
+});
+getRedirectResult(fbAuth).catch(e => { $('#loginMsg').textContent = e.message; });
+$('#logoutBtn').addEventListener('click', () => signOut(fbAuth));
+
+onAuthStateChanged(fbAuth, (u) => {
+  const overlay = $('#login');
+  if (!u) { overlay.style.display = 'flex'; return; }
+  if (u.uid !== ADMIN_UID) {
+    overlay.style.display = 'flex';
+    $('#loginMsg').textContent = `Dieses Konto (${u.email || 'ohne E-Mail'}) hat keinen Zugriff. Bitte mit dem Admin-Google-Konto anmelden.`;
+    signOut(fbAuth);
+    return;
+  }
+  overlay.style.display = 'none';
+  window.load();
+});
 </script>
 </body>
 </html>
