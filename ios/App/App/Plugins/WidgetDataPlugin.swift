@@ -9,7 +9,8 @@ public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "updateWidget", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reloadWidget", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getWidgetDeltas", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getWidgetDeltas", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getInstallInfo", returnType: CAPPluginReturnPromise)
     ]
     static let appGroup = "group.com.wolter.gymtrack"
 
@@ -42,6 +43,26 @@ public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func reloadWidget(_ call: CAPPluginCall) {
         if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
         call.resolve()
+    }
+
+    // Install-Quelle: nur echte App-Store-Installationen sollen zum Store-Update
+    // aufgefordert werden. Simulator, Xcode-Dev und TestFlight liegen versionsmäßig
+    // oft hinter dem (oder vor dem) Store → sonst „Update verfügbar" trotz eigener
+    // neuester Version.
+    @objc func getInstallInfo(_ call: CAPPluginCall) {
+        var isSimulator = false
+        #if targetEnvironment(simulator)
+        isSimulator = true
+        #endif
+        // App Store: Receipt heißt „receipt" UND die Datei existiert.
+        // TestFlight/Sandbox: „sandboxReceipt". Xcode-Dev: „receipt", aber keine Datei.
+        var isAppStore = false
+        if let url = Bundle.main.appStoreReceiptURL {
+            isAppStore = url.lastPathComponent == "receipt"
+                && FileManager.default.fileExists(atPath: url.path)
+        }
+        if isSimulator { isAppStore = false }
+        call.resolve(["isAppStore": isAppStore, "isSimulator": isSimulator])
     }
 
     // Vom Widget getätigte +1-Taps zurückgeben und danach löschen (App übernimmt sie)

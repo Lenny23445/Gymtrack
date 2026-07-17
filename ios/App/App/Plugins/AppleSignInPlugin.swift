@@ -60,8 +60,23 @@ extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         authController = nil
         let nsErr = error as NSError
-        if nsErr.domain == ASAuthorizationError.errorDomain && nsErr.code == 1001 {
-            pendingCall?.reject("cancelled")
+        if nsErr.domain == ASAuthorizationError.errorDomain {
+            switch nsErr.code {
+            case 1001: // canceled – vom User abgebrochen, stumm schlucken
+                pendingCall?.reject("cancelled", "canceled")
+            case 1000: // unknown – häufigste Ursache: Simulator ohne iCloud-Login
+                #if targetEnvironment(simulator)
+                pendingCall?.reject(
+                    "Anmelden mit Apple funktioniert im iOS-Simulator nur mit dort angemeldetem iCloud-Konto – und selbst dann oft nicht. Bitte auf einem echten Gerät testen.",
+                    "simulator")
+                #else
+                pendingCall?.reject(
+                    "Anmelden mit Apple ist fehlgeschlagen. Bitte stelle sicher, dass du auf dem Gerät bei iCloud angemeldet bist, und versuche es erneut.",
+                    "unknown")
+                #endif
+            default:
+                pendingCall?.reject(error.localizedDescription, "apple-\(nsErr.code)")
+            }
         } else {
             pendingCall?.reject(error.localizedDescription)
         }

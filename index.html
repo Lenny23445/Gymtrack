@@ -5568,7 +5568,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607160001';
+const APP_VERSION = 'gymtrack-v202607170001';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17262,9 +17262,26 @@ async function _installedVersion(){
   return null;
 }
 
+// Install-Quelle (App Store vs. Simulator/Dev/TestFlight) – einmal cachen.
+let _installInfo = undefined;
+async function _getInstallInfo(){
+  if (_installInfo !== undefined) return _installInfo;
+  try{
+    const WDP = _cap('WidgetDataPlugin');
+    if (WDP && WDP.getInstallInfo){ _installInfo = await WDP.getInstallInfo(); return _installInfo; }
+  }catch(_){}
+  _installInfo = null; // altes Plugin ohne Methode → wie bisher weitermachen
+  return _installInfo;
+}
+
 async function _runNativeUpdateCheck(){
   if (!_isNative() || !navigator.onLine) return;
   try{
+    // Nur echte App-Store-Installationen zum Store-Update auffordern. Simulator,
+    // Xcode-Dev und TestFlight sind gegenüber dem Store versionsversetzt und würden
+    // sonst „Update verfügbar" zeigen, obwohl es die eigene neueste Version ist.
+    const env = await _getInstallInfo();
+    if (env && env.isAppStore === false) return;
     const installed = await _installedVersion();
     if (!installed) return;
     const r = await fetch(ITUNES_LOOKUP_URL + '&_=' + Date.now(), { cache:'no-store' });
@@ -17275,9 +17292,9 @@ async function _runNativeUpdateCheck(){
     if (!latest) return;
     // Nur auffordern, wenn die App-Store-Version wirklich neuer ist als die installierte
     if (_cmpVer(latest, installed) > 0){
-      // „Später" gilt nur für genau diese Version, bis die App neu gestartet wird
+      // Einmal je Store-Version „Später" → bleibt dauerhaft weg (kein Nerven bei jedem Start)
       let dismissed = '';
-      try { dismissed = sessionStorage.getItem('gt_upd_dismissed') || ''; } catch(_){}
+      try { dismissed = localStorage.getItem('gt_upd_dismissed') || ''; } catch(_){}
       if (dismissed === latest) return;
       _nativeUpdateInfo = { version: latest, notes: 'Version ' + latest };
       _showNativeUpdateBar(_nativeUpdateInfo);
@@ -17306,7 +17323,7 @@ function dismissNativeUpdate(){
   if (bar) bar.classList.remove('show');
   try{
     if (_nativeUpdateInfo && _nativeUpdateInfo.version)
-      sessionStorage.setItem('gt_upd_dismissed', _nativeUpdateInfo.version);
+      localStorage.setItem('gt_upd_dismissed', _nativeUpdateInfo.version);
   }catch(_){}
 }
 
@@ -18389,11 +18406,17 @@ async function doAppleSignIn() {
     else _adbg('Apple: ⚠️ kein User — onAuthState-Fallback?');
   } catch(e) {
     _adbg('Apple ERR: ' + (e?.code || '') + ' | ' + String(e?.message || e).slice(0, 70));
-    // Nur exaktes 'cancelled' von unserem Swift-Plugin stumm schlucken.
-    // Alle anderen Fehler (inkl. Firebase-Fehler) immer anzeigen.
-    if (e?.message === 'cancelled') return;
+    // Nur Abbruch durch den User stumm schlucken.
+    if (e?.message === 'cancelled' || e?.code === 'canceled') return;
     console.error('[GymTrack] ❌ Apple Sign In fehlgeschlagen:', e);
-    alert('❌ Apple:\n' + (e?.code || 'kein code') + '\n' + (e?.message || String(e)));
+    // Klartext-Meldung des nativen Plugins (Simulator/Unknown) direkt zeigen –
+    // die rohe „…AuthorizationError error 1000"-Meldung hilft dem User nicht.
+    const raw = String(e?.message || e);
+    const friendly = (e?.code === 'simulator' || e?.code === 'unknown') ? raw
+      : /error 1000|AuthorizationError|1000/i.test(raw)
+        ? 'Anmelden mit Apple ist fehlgeschlagen. Im iOS-Simulator geht das nur mit angemeldetem iCloud-Konto – bitte auf einem echten Gerät und mit aktivem iCloud-Login erneut versuchen.'
+        : raw;
+    alert('Anmelden mit Apple\n\n' + friendly);
   } finally {
     _loginInProgress = false;
   }
