@@ -4004,9 +4004,10 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .shf-btn{flex:1;padding:16px;border-radius:18px;border:none;font-size:16px;font-weight:800;background:var(--acc);color:#fff}
 .shf-btn.ghost{background:rgba(255,255,255,.14);color:#fff}
 /* Teilen-Schritt */
-.shf-share{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px calc(20px + var(--sab));gap:10px;position:relative}
-.shf-share .shf-preview{position:absolute;top:calc(64px + var(--sat,0px));left:0;right:0;bottom:290px;display:flex;align-items:center;justify-content:center}
-.shf-share .shf-preview img{max-width:62%;max-height:100%;border-radius:16px;box-shadow:0 12px 44px rgba(0,0,0,.5)}
+.shf-share{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;padding:calc(60px + var(--sat,0px)) 20px calc(20px + var(--sab));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.shf-share .shf-preview{flex:0 0 auto;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.shf-share .shf-preview img{max-width:52%;max-height:38vh;border-radius:16px;box-shadow:0 12px 44px rgba(0,0,0,.5)}
+.shf-share .shf-btn{flex:0 0 auto;margin-top:2px}
 .shf-dest{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px 15px}
 .shf-dest .ico{width:30px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
 .shf-pal{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px;position:absolute;bottom:calc(90px + var(--sab));left:0;right:0;z-index:30}
@@ -5691,7 +5692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170006';
+const APP_VERSION = 'gymtrack-v202607170008';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5723,7 +5724,7 @@ const I18N_EN = {
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',
   'Lade Feed…':'Loading feed…','Feed konnte nicht geladen werden':'Couldn’t load the feed',
-  'Bist du offline? Versuch es gleich nochmal.':'Are you offline? Try again in a moment.','Nochmal versuchen':'Try again',
+  'Bist du offline? Versuch es gleich nochmal.':'Are you offline? Try again in a moment.','Versuch es gleich nochmal.':'Try again in a moment.','Nochmal versuchen':'Try again',
   'Neuer Rekord':'New record','Wochen-Streak':'week streak','Optionen':'Options','Flamme':'Flame',
   'Noch nichts von deinen Freunden':'Nothing from your friends yet','Noch keine Community-Posts':'No community posts yet',
   'Beende ein Training und teile es — es landet hier.':'Finish a workout and share it — it shows up here.',
@@ -17415,9 +17416,10 @@ async function _renderFeed(body){
     </div>`;
   let items = [];
   try { items = await _cpgLoad(); }
-  catch(_) {
+  catch(e) {
+    console.warn('[GymTrack] Feed-Load:', e?.code || e);
     const w = document.getElementById('cpg-wrap');
-    if (w) w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.wifiOff({ s: 38 })}</div><b>${tr('Feed konnte nicht geladen werden')}</b><span style="font-size:13px">${tr('Bist du offline? Versuch es gleich nochmal.')}</span><button class="btn btn-acc" onclick="_cpgReload()">${tr('Nochmal versuchen')}</button></div>`;
+    if (w) w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.wifiOff({ s: 38 })}</div><b>${tr('Feed konnte nicht geladen werden')}</b><span style="font-size:13px">${tr('Versuch es gleich nochmal.')}</span><button class="btn btn-acc" onclick="_cpgReload()">${tr('Nochmal versuchen')}</button></div>`;
     return;
   }
   _cpgItems = items; _cpgIdx = 0;
@@ -17451,10 +17453,14 @@ async function _cpgLoad(){
       acts.forEach(a => items.push({ ...a, kind:'act' }));
     }));
   } else {
-    // Öffentlicher Community-Feed über alle Nutzer (collectionGroup-Index nötig!)
+    // Öffentlicher Community-Feed über alle Nutzer. BEWUSST OHNE orderBy('ts') —
+    // where+orderBy auf verschiedenen Feldern bräuchte einen Firestore-Composite-Index;
+    // ohne den warf die Abfrage failed-precondition → fälschlich "offline". Nur der
+    // where('visibility') braucht lediglich den automatischen Einzelfeld-Index.
+    // "Neueste zuerst" macht der client-seitige Sort unten; limit großzügig.
     const q = window.FB.query(window.FB.collectionGroup('posts'),
       window.FB.where('visibility','==','public'),
-      window.FB.orderBy('ts','desc'), window.FB.limit(30));
+      window.FB.limit(60));
     const snap = await window.FB.getDocs(q);
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;

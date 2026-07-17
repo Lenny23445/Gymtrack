@@ -262,7 +262,7 @@ rendert 720×960 und drückt die Qualität notfalls, bis der data-URL < 0,9 MB l
 Die alte `FB.stUpload`/`stDelete`-Schnittstelle (getStorage) bleibt ungenutzt im Code — Storage-Rules
 sind damit **nicht** erforderlich.
 
-**Composite-Index** (für den öffentlichen Community-Feed, einmalig): Collection-Group `posts`, Felder `visibility` (Aufsteigend) + `ts` (Absteigend), Scope „Sammlungsgruppe". Ohne Index wirft die Community-Ansicht einen Firestore-Fehler mit Anlege-Link in der Konsole — Link klicken reicht.
+**Composite-Index: NICHT mehr nötig** (seit v202607170008). Der öffentliche Feed (`_cpgLoad`) fragt `collectionGroup('posts').where('visibility','==','public').limit(60)` **ohne** `orderBy('ts')` ab — braucht nur den automatischen Einzelfeld-Index, kein Composite. „Neueste zuerst" wird client-seitig sortiert. Früher (`where+orderBy`) warf die Abfrage ohne Index `failed-precondition` → fälschlich „offline". Nachteil: bei sehr vielen öffentlichen Posts holt `limit(60)` nicht garantiert die allerneuesten; falls der Feed mal riesig wird, wieder `orderBy('ts','desc')` rein + Composite-Index (visibility ASC, ts DESC) anlegen.
 
 **RTDB Rules** (`REPLACE_WITH_ADMIN_UID` ersetzen):
 ```json
