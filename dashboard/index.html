@@ -110,15 +110,15 @@
 
   .hero {
     margin-top: 4px;
-    background: linear-gradient(135deg, rgba(201,133,0,.18), rgba(25,158,112,.10) 62%, transparent);
-    border: 1px solid var(--border); border-radius: 22px; padding: 20px 22px;
-    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, rgba(25,158,112,.16), rgba(57,135,229,.08) 55%, rgba(201,133,0,.12));
+    border: 1px solid var(--border); border-radius: 22px; padding: 16px 22px 20px; overflow: hidden;
   }
-  @media (max-width: 640px) { .hero { grid-template-columns: 1fr; } }
-  .hero-live {
-    position: absolute; top: 14px; right: 16px; display: flex; align-items: center; gap: 7px;
+  .hero-top {
+    display: flex; justify-content: flex-end; align-items: center; gap: 7px; margin-bottom: 4px;
     font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase;
   }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .hero-grid { grid-template-columns: 1fr; gap: 18px; } }
   .pulse, .dot-live {
     width: 9px; height: 9px; border-radius: 50%; background: var(--good); display: inline-block;
     box-shadow: 0 0 0 0 rgba(12,163,12,.6); animation: pulse 1.8s infinite;
@@ -265,22 +265,29 @@ function render(D) {
   const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {};
   let h = '';
 
-  /* Hero: Downloads (hervorgehoben) + Echtzeit-Aktivität */
+  /* Hero: echte Echtzeit-Zahlen (jetzt in App / jetzt im Training) + Downloads */
   const dl = (AS.ok && AS.configured && AS.apps && AS.apps[0]) ? AS.apps[0] : null;
-  const activeToday = S.ok ? (S.active24h || 0) : 0;
   const activeNow = S.ok ? (S.active5m || 0) : 0;
   const liveTrain = C.ok ? (C.liveNow || 0) : 0;
+  const activeToday = S.ok ? (S.active24h || 0) : 0;
   h += `<div class="hero">
-    <div class="hero-live"><span class="pulse"></span><span id="liveTxt">Live</span></div>
-    <div class="hero-stat gold">
-      <div class="cap">📲 App-Downloads gesamt</div>
-      <div class="big">${dl ? fmt(dl.downloadsTotal) : '—'}${dl && dl.downloads7 ? `<span class="delta">+${fmt(dl.downloads7)}</span>` : ''}</div>
-      <div class="sub">${dl ? `+${fmt(dl.downloads7)} in 7 Tagen · ${fmt(dl.downloads30)} in 30 Tagen · App Store (täglich von Apple)` : 'App Store nicht verbunden'}</div>
-    </div>
-    <div class="hero-stat green">
-      <div class="cap"><span class="dot-live"></span>Gerade aktiv · Echtzeit</div>
-      <div class="big">${fmt(activeToday)}</div>
-      <div class="sub">heute aktiv · ${fmt(activeNow)} in den letzten 5 Min${liveTrain ? ` · ${fmt(liveTrain)} live im Training` : ''}</div>
+    <div class="hero-top"><span class="pulse"></span><span id="liveTxt">Live</span></div>
+    <div class="hero-grid">
+      <div class="hero-stat green">
+        <div class="cap"><span class="dot-live"></span>Jetzt in der App</div>
+        <div class="big">${fmt(activeNow)}</div>
+        <div class="sub">aktiv in den letzten 5 Min · Echtzeit${activeToday ? ` · ${fmt(activeToday)} heute` : ''}</div>
+      </div>
+      <div class="hero-stat green">
+        <div class="cap"><span class="dot-live"></span>Jetzt im Training</div>
+        <div class="big">${fmt(liveTrain)}</div>
+        <div class="sub">trainieren gerade · Echtzeit</div>
+      </div>
+      <div class="hero-stat gold">
+        <div class="cap">📲 Downloads gesamt</div>
+        <div class="big">${dl ? fmt(dl.downloadsTotal) : '—'}${dl && dl.downloads7 ? `<span class="delta">+${fmt(dl.downloads7)}</span>` : ''}</div>
+        <div class="sub">${dl ? `+${fmt(dl.downloads7)} in 7 Tagen · App Store (nur Tageswerte)` : 'App Store nicht verbunden'}</div>
+      </div>
     </div>
   </div>`;
 
