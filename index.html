@@ -17573,21 +17573,25 @@ function _cpgBindSwipe(w){
     const p = Math.min(Math.abs(dx) / W, 1);
     card.style.transform = `translateX(${dx}px) rotate(${dx * 0.035}deg) scale(${1 - p * 0.12})`;
     card.style.opacity = String(1 - p * 0.35);
-    if (under) { under.style.transform = `scale(${0.9 + p * 0.1})`; under.style.opacity = String(p); }
+    // Vorschau der nächsten Card nur beim Vorwärts-Wischen (links). Nach rechts
+    // = zurück, da liegt hinten die vorige Card, nicht die "under".
+    if (under && dx < 0) { under.style.transform = `scale(${0.9 + p * 0.1})`; under.style.opacity = String(p); }
   }, { passive: true });
   card.addEventListener('touchend', () => {
     if (!dragging) return; dragging = false;
-    if (horiz && Math.abs(dx) > Math.max(80, W * 0.28)) {
+    const forward = dx < 0;              // links wischen = weiter, rechts = zurück
+    const canGo = forward ? (_cpgIdx < _cpgItems.length - 1) : (_cpgIdx > 0);
+    if (horiz && Math.abs(dx) > Math.max(80, W * 0.28) && canGo) {
       const dir = dx > 0 ? 1 : -1;
       card.style.transition = 'transform .3s cubic-bezier(.3,.7,.4,1), opacity .3s';
       card.style.transform = `translateX(${dir * W * 1.15}px) rotate(${dir * 14}deg) scale(.8)`;
       card.style.opacity = '0';
-      if (under) {
+      if (under && forward) {
         under.style.transition = 'transform .34s cubic-bezier(.34,1.45,.55,1), opacity .25s';
         under.style.transform = 'scale(1)'; under.style.opacity = '1';
       }
       haptic(10);
-      setTimeout(() => { _cpgIdx++; _cpgRenderStack(); }, 300);
+      setTimeout(() => { _cpgIdx += forward ? 1 : -1; _cpgRenderStack(); }, 300);
     } else {
       card.style.transition = 'transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s';
       card.style.transform = ''; card.style.opacity = '';
