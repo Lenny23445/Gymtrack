@@ -3963,8 +3963,13 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 }
 /* ===== LIQUID GLASS — EXPERIMENT · ENDE ===== */
 /* ── WORKOUT-SHARE-FLOW (Rattle → Kamera → Editor → Teilen) ── */
-#ov-share{align-items:stretch!important;background:#000!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
-.shf-screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;background:#000;color:#fff;overflow:hidden}
+#ov-share{align-items:stretch!important;background:#07080d!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
+.shf-screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;color:#fff;overflow:hidden;
+  background:
+    radial-gradient(120% 80% at 12% -5%, rgba(var(--acc-rgb,0,122,255),.24), transparent 55%),
+    radial-gradient(110% 75% at 105% 105%, rgba(var(--acc-rgb,0,122,255),.15), transparent 55%),
+    radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.5px) 0 0/26px 26px,
+    #07080d}
 .shf-top{position:absolute;top:calc(10px + var(--sat,0px));left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 16px;z-index:30}
 .shf-x{width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center}
 .shf-title{font-size:15px;font-weight:800;letter-spacing:.3px}
@@ -4003,7 +4008,10 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .shf-share .shf-preview{position:absolute;top:calc(64px + var(--sat,0px));left:0;right:0;bottom:290px;display:flex;align-items:center;justify-content:center}
 .shf-share .shf-preview img{max-width:62%;max-height:100%;border-radius:16px;box-shadow:0 12px 44px rgba(0,0,0,.5)}
 .shf-dest{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px 15px}
-.shf-dest .ico{font-size:20px;width:30px;text-align:center}
+.shf-dest .ico{width:30px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.shf-pal{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px;position:absolute;bottom:calc(90px + var(--sab));left:0;right:0;z-index:30}
+.shf-sw{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.25);padding:0;transition:transform .15s,border-color .15s;cursor:pointer}
+.shf-sw.on{border-color:#fff;transform:scale(1.14);box-shadow:0 0 0 3px rgba(255,255,255,.16)}
 .shf-dest .t{flex:1;min-width:0}
 .shf-dest .t b{display:block;font-size:15px}
 .shf-dest .t span{font-size:12px;color:rgba(255,255,255,.55)}
@@ -4040,10 +4048,14 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .flm-btn.pop .fl{animation:flmPop .5s cubic-bezier(.34,1.56,.64,1)}
 .flm-part{position:absolute;left:50%;top:50%;font-size:13px;pointer-events:none;animation:flmFly .7s ease-out forwards}
 @keyframes flmFly{0%{transform:translate(-50%,-50%) scale(.6);opacity:1}100%{transform:translate(calc(-50% + var(--fx)),calc(-50% + var(--fy))) scale(1.15);opacity:0}}
-/* Feed-Umschalter + Glocke */
-.cpg-mode{display:flex;gap:6px;background:var(--gl-bg-t,rgba(120,120,128,.12));border-radius:14px;padding:4px;margin-bottom:12px}
-.cpg-mode button{flex:1;border:none;background:none;padding:8px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--text2)}
-.cpg-mode button.on{background:var(--acc);color:#fff}
+/* Oberste Community/Freunde-Umschaltung */
+.soc-zone-toggle{display:flex;gap:6px;background:var(--gl-bg-t,rgba(120,120,128,.12));border-radius:15px;padding:5px}
+.szt{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:none;background:none;padding:11px 8px;border-radius:11px;font-size:15px;font-weight:800;color:var(--text2);font-family:inherit;cursor:pointer;transition:background .18s,color .18s}
+.szt svg{opacity:.8}
+.szt.on{background:var(--acc);color:#fff}
+.szt.on svg{opacity:1}
+.cpg-zone{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--text2);font-size:12.5px;font-weight:700;margin-bottom:10px}
+.cpg-zone svg{color:var(--acc)}
 .flm-bell{position:relative}
 .flm-bell-badge{display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px;text-align:center}
 .flm-note{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--gl-bdr,rgba(120,120,128,.15))}
@@ -4248,13 +4260,21 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
     </div>
   </div>
   <div class="pad">
-    <div class="soc-chips" id="fr-seg" style="margin-bottom:14px">
+    <div class="soc-zone-toggle" id="soc-zone-toggle">
+      <button class="szt on" data-z="community" onclick="setSocZone('community')">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.4 2.6 15.6 0 18M12 3c-2.6 2.4-2.6 15.6 0 18"/></svg><span>Community</span>
+      </button>
+      <button class="szt" data-z="friends" onclick="setSocZone('friends')">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.1"/><path d="M2.6 19c0-3.4 2.9-5.3 6.4-5.3s6.4 1.9 6.4 5.3"/><path d="M16.8 5.2a3 3 0 0 1 0 5.7M18.4 19c0-2.5-1-4.2-2.6-5.1"/></svg><span>Freunde</span>
+      </button>
+    </div>
+    <div class="soc-chips" id="fr-seg" style="display:none;margin-top:12px">
       <button class="soc-chip on" data-t="friends" onclick="setSocTab('friends')">Freunde</button>
       <button class="soc-chip" data-t="feed" onclick="setSocTab('feed')">Feed</button>
       <button class="soc-chip" data-t="board" onclick="setSocTab('board')">Rangliste</button>
       <button class="soc-chip" data-t="map" onclick="setSocTab('map')">Karte</button>
     </div>
-    <div id="fr-body"></div>
+    <div id="fr-body" style="margin-top:14px"></div>
   </div>
 </div>
 
@@ -5671,7 +5691,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170005';
+const APP_VERSION = 'gymtrack-v202607170006';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -7635,7 +7655,7 @@ function goTab(id, btn) {
   if (id === 'heute')     renderHome();
   if (id === 'uebungen')  renderExList();
   if (id === 'stats')     renderStats();
-  if (id === 'freunde')   renderFriendsTab();
+  if (id === 'freunde') { _socZone = 'community'; renderFriendsTab(); }   // Standard: Community-Feed
   if (id === 'erfolge')   renderErfolge();
   if (id === 'settings')  renderSettings();
   if (id !== 'freunde')   _frStopLive();   // Live-Listener nur solange Freunde-Tab offen
@@ -14561,6 +14581,58 @@ function celebratePRs(prs) {
    In-App-Kamera (nativ CameraPlugin/AVFoundation, Web-Fallback
    getUserMedia) → Layout-Swipe auf dem Foto → Teilen. */
 
+/* ── SVG-ICON-SET ────────────────────────────────────────────────────
+   HARD-REGEL: keine Emojis in der UI — alles als Vektor-Symbol.
+   stroke=currentColor → erbt die Textfarbe. o.s = Größe px. ── */
+function _svg(inner, o){ const s=(o&&o.s)||22; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${(o&&o.sw)||2}" stroke-linecap="round" stroke-linejoin="round" style="display:block;${(o&&o.st)||''}">${inner}</svg>`; }
+const ICO = {
+  camera:o=>_svg('<path d="M6.4 7l1.1-1.8A1 1 0 0 1 8.4 4.7h7.2a1 1 0 0 1 .9.5L17.6 7H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 7z"/><circle cx="12" cy="12.4" r="3.3"/>',o),
+  users:o=>_svg('<circle cx="9" cy="8" r="3.1"/><path d="M2.6 19c0-3.4 2.9-5.3 6.4-5.3s6.4 1.9 6.4 5.3"/><path d="M16.8 5.2a3 3 0 0 1 0 5.7M18.4 19c0-2.5-1-4.2-2.6-5.1"/>',o),
+  globe:o=>_svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.4 2.6 15.6 0 18M12 3c-2.6 2.4-2.6 15.6 0 18"/>',o),
+  share:o=>_svg('<path d="M12 15V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 12.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-5.5"/>',o),
+  flame:o=>_svg('<path d="M12 3c.4 3-1.8 4.2-3.2 6C7 11.5 7 14 8.4 15.9 9.5 17.4 10.9 18 12 18s2.5-.6 3.6-2.1C17 14 17 11.3 15.4 9.3c-.7-.9-1.5-1.6-1.9-2.8-.6 1-1.3 1.6-2 2C11 5.8 11.5 4.2 12 3z"/>',o),
+  pin:o=>_svg('<path d="M12 21c4-4 6.4-7 6.4-10.4A6.4 6.4 0 0 0 5.6 10.6C5.6 14 8 17 12 21z"/><circle cx="12" cy="10.4" r="2.2"/>',o),
+  image:o=>_svg('<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="8.4" cy="10" r="1.5"/><path d="M4.2 17l4.3-3.8 3 2.5L15 11l4.8 4.8"/>',o),
+  flip:o=>_svg('<path d="M4 9a8 8 0 0 1 13-2.5L20 9M20 5v4h-4"/><path d="M20 15a8 8 0 0 1-13 2.5L4 15M4 19v-4h4"/>',o),
+  bolt:o=>_svg('<path d="M13 3 5 13h6l-1 8 8-11h-6z"/>',o),
+  check:o=>_svg('<path d="M20 6 9 17l-5-5"/>',o),
+  wifiOff:o=>_svg('<path d="M2 8.8C5 6.4 8.4 5.2 12 5.2c1.3 0 2.6.2 3.8.5M18.4 8a13 13 0 0 1 3.6 2.8M8.5 12.2A8 8 0 0 1 12 11c1.3 0 2.4.3 3.4.9M12 20l.01 0M9.4 15.6A4 4 0 0 1 12 14.8M2 2l20 20"/>',o),
+};
+/* Flammen-Icon gefüllt (Reaction-Button/Verlauf) — eigenes Verlaufs-SVG. */
+function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="flg${s}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd24a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient></defs><path d="M12 2.5c.5 3.2-2 4.5-3.5 6.4C6.8 11.4 6.8 14.2 8.4 16.2 9.6 17.7 11 18.5 12 18.5s2.4-.8 3.6-2.3c1.6-2 1.6-5 0-7.1-.8-1-1.7-1.8-2-3.1-.7 1.1-1.4 1.8-2.2 2.2C11 5.9 11.5 4 12 2.5z" fill="url(#flg${s})"/></svg>`; }
+
+/* ── Canvas-Icons für die Share-Card (statt Emoji auf dem Bild) ── */
+function _cvPin(ctx, cx, cy, r, col){
+  ctx.save(); ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - r*0.62, cy + r*0.4); ctx.lineTo(cx + r*0.62, cy + r*0.4); ctx.lineTo(cx, cy + r*1.75); ctx.closePath(); ctx.fill();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.42, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function _cvDumbbell(ctx, cx, cy, s, col){
+  ctx.save(); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = s*0.14; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - s*0.44, cy); ctx.lineTo(cx + s*0.44, cy); ctx.stroke();
+  [-1,1].forEach(d=>{ const x=cx+d*s*0.5;
+    ctx.fillRect(x - s*0.07, cy - s*0.34, s*0.14, s*0.68);
+    ctx.fillRect(x + d*s*0.12 - s*0.055, cy - s*0.46, s*0.11, s*0.92); });
+  ctx.restore();
+}
+
+/* ── FARBPALETTEN für die Share-Card (Index 0 = App-Akzent/Theme) ── */
+const SHF_PALETTES = [
+  { id:'app',     name:'App',     accent:null,      bg:'#0b1020' },
+  { id:'violet',  name:'Violett', accent:'#8B5CF6', bg:'#160f2e' },
+  { id:'sunset',  name:'Sunset',  accent:'#FF6B35', bg:'#2a0f14' },
+  { id:'emerald', name:'Grün',    accent:'#10B981', bg:'#04231b' },
+  { id:'rose',    name:'Pink',    accent:'#FF2D78', bg:'#2a0a1e' },
+  { id:'ocean',   name:'Ocean',   accent:'#06B6D4', bg:'#062033' },
+  { id:'gold',    name:'Gold',    accent:'#F5B301', bg:'#241a04' },
+  { id:'mono',    name:'Mono',    accent:'#E5E7EB', bg:'#0a0a0c' },
+];
+let _shfPalIdx = 0;
+function _shfPalBg(){ return SHF_PALETTES[_shfPalIdx]?.bg || '#0b1020'; }
+
 let _shfData = null, _shfSes = null, _shfPrs = [];
 let _shfPhoto = null;              // Image-Objekt oder null (→ Gradient-Card)
 let _shfLayout = 0;
@@ -14570,6 +14642,8 @@ let _shfRendered = [];             // dataURL je Layout (Editor/Teilen-Cache)
 let _shfPosted = false;            // wurde als Post hochgeladen? (steuert Activity-Fallback)
 
 function _shfAccent() {
+  const pal = SHF_PALETTES[_shfPalIdx];
+  if (pal && pal.accent) return pal.accent;
   try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
   catch(_) { return '#007AFF'; }
 }
@@ -14613,13 +14687,17 @@ function _shfDrawBase(ctx, img, W, H) {
   } else {
     const acc = _shfAccent();
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, acc); g.addColorStop(1, '#0b1020');
+    g.addColorStop(0, acc); g.addColorStop(1, _shfPalBg());
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.font = (W * 0.5) + 'px -apple-system,sans-serif';
-    ctx.globalAlpha = 0.16;
-    ctx.textAlign = 'center';
-    ctx.fillText('💪', W / 2, H * 0.62);
-    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    // Branded Muster (kein Emoji): konzentrische Ringe + große Vektor-Hantel, dezent.
+    ctx.save();
+    ctx.globalAlpha = 0.10; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    for (let r = W * 0.18; r < W * 0.95; r += W * 0.13) {
+      ctx.beginPath(); ctx.arc(W / 2, H * 0.6, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.14;
+    _cvDumbbell(ctx, W / 2, H * 0.6, W * 0.42, '#fff');
+    ctx.restore();
   }
 }
 function _shfAvatarRow(ctx, d, x, y) {
@@ -14689,8 +14767,9 @@ const SHARE_LAYOUTS = [
         cx += w + 14;
       });
       if (d.gym) {
+        _cvPin(ctx, 58, cy - 40, 12, 'rgba(255,255,255,.85)');
         ctx.font = '600 26px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.85)';
-        ctx.fillText('📍 ' + d.gym, 48, cy - 26);
+        ctx.fillText(d.gym, 82, cy - 26);
       }
       // Großer abgerundeter CTA unten mittig
       const acc = _shfAccent();
@@ -14701,7 +14780,7 @@ const SHARE_LAYOUTS = [
       ctx.font = '900 42px -apple-system,sans-serif';
       ctx.fillText(d.dayName.toUpperCase(), W / 2, by + 52);
       ctx.font = '700 30px -apple-system,sans-serif'; ctx.globalAlpha = 0.9;
-      ctx.fillText(_shfDurStr(d.duration) + (d.prCount ? '  ·  ' + d.prCount + ' PR 🏆' : ''), W / 2, by + 92);
+      ctx.fillText(_shfDurStr(d.duration) + (d.prCount ? '  ·  ' + d.prCount + ' PR' : ''), W / 2, by + 92);
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
     }
   },
@@ -14728,7 +14807,7 @@ const SHARE_LAYOUTS = [
       ctx.fillText(dn.length > 16 ? dn.slice(0, 15) + '…' : dn, 48, H - 130);
       ctx.font = '600 30px -apple-system,sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,.75)';
-      ctx.fillText(d.mgs.join('  ·  ') + (d.gym ? '   📍 ' + d.gym : ''), 48, H - 72);
+      ctx.fillText(d.mgs.join('  ·  ') + (d.gym ? '  ·  ' + d.gym : ''), 48, H - 72);
     }
   },
   {
@@ -14763,13 +14842,94 @@ const SHARE_LAYOUTS = [
       ctx.fillStyle = '#9ca3af';
       ctx.font = '600 26px -apple-system,sans-serif';
       ctx.fillText(d.date.toLocaleDateString(GT_LOCALE, {weekday:'long', day:'numeric', month:'long'})
-        + (d.gym ? '  ·  📍 ' + d.gym : ''), m, ph + m + 192);
+        + (d.gym ? '  ·  ' + d.gym : ''), m, ph + m + 192);
       const acc = _shfAccent();
       ctx.fillStyle = acc;
       ctx.beginPath(); ctx.roundRect(W - m - 150, ph + m + 60, 150, 58, 29); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = '800 26px -apple-system,sans-serif';
-      ctx.textAlign = 'center'; ctx.fillText('💪 ' + d.mgs.length, W - m - 75, ph + m + 98);
+      _cvDumbbell(ctx, W - m - 100, ph + m + 89, 30, '#fff');
+      ctx.fillStyle = '#fff'; ctx.font = '800 30px -apple-system,sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText(String(d.mgs.length), W - m - 56, ph + m + 99);
       ctx.textAlign = 'left';
+    }
+  },
+  {
+    id: 'minimal', name: 'Minimal',
+    render(ctx, img, d, W, H) {
+      _shfDrawBase(ctx, img, W, H);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(0,0,0,.5)'); g.addColorStop(0.5, 'rgba(0,0,0,.15)'); g.addColorStop(1, 'rgba(0,0,0,.82)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const acc = _shfAccent();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = '800 26px -apple-system,sans-serif';
+      ctx.fillText('MYGYMTRACK', W / 2, 96);
+      ctx.fillStyle = acc; ctx.fillRect(W / 2 - 42, H * 0.4 - 6, 84, 5);
+      ctx.fillStyle = '#fff'; ctx.font = '900 86px -apple-system,sans-serif';
+      const dn = d.dayName.toUpperCase();
+      ctx.fillText(dn.length > 14 ? dn.slice(0, 13) + '…' : dn, W / 2, H * 0.4 + 74);
+      ctx.font = '700 34px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.fillText(_shfDurStr(d.duration) + (d.prCount ? '  ·  ' + d.prCount + ' PR' : ''), W / 2, H * 0.4 + 134);
+      ctx.font = '600 28px -apple-system,sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.72)';
+      ctx.fillText(d.username + (d.gym ? '  ·  ' + d.gym : ''), W / 2, H - 92);
+      ctx.textAlign = 'left';
+    }
+  },
+  {
+    id: 'frame', name: 'Rahmen',
+    render(ctx, img, d, W, H) {
+      ctx.fillStyle = _shfPalBg(); ctx.fillRect(0, 0, W, H);
+      const acc = _shfAccent(), pad = 46, iw = W - pad * 2, ih = H - pad * 2 - 150;
+      ctx.save(); ctx.beginPath(); ctx.roundRect(pad, pad, iw, ih, 30); ctx.clip();
+      _shfDrawBase(ctx, img, W, H);
+      const gg = ctx.createLinearGradient(0, ih * 0.4, 0, pad + ih);
+      gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(1, 'rgba(0,0,0,.6)');
+      ctx.fillStyle = gg; ctx.fillRect(pad, pad, iw, ih);
+      ctx.restore();
+      ctx.save(); ctx.strokeStyle = acc; ctx.lineWidth = 8; ctx.shadowColor = acc; ctx.shadowBlur = 34;
+      ctx.beginPath(); ctx.roundRect(pad, pad, iw, ih, 30); ctx.stroke();
+      ctx.restore();
+      _shfAvatarRow(ctx, d, pad + 20, pad + 20);
+      let cx = pad + 20, cy = pad + ih - 74;
+      ctx.font = '700 24px -apple-system,sans-serif';
+      d.mgs.forEach(m => { const w = ctx.measureText(m).width + 40;
+        ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.beginPath(); ctx.roundRect(cx, cy, w, 50, 25); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillText(m, cx + 20, cy + 33); cx += w + 12; });
+      const fy = pad + ih + 52;
+      ctx.fillStyle = '#fff'; ctx.font = '900 52px -apple-system,sans-serif';
+      ctx.fillText(d.dayName, pad, fy);
+      ctx.fillStyle = acc; ctx.font = '800 32px -apple-system,sans-serif';
+      ctx.fillText(_shfDurStr(d.duration) + (d.prCount ? '  ·  ' + d.prCount + ' PR' : ''), pad, fy + 46);
+      if (d.gym) { _cvPin(ctx, pad + 10, fy + 80, 11, 'rgba(255,255,255,.6)');
+        ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '600 26px -apple-system,sans-serif';
+        ctx.fillText(d.gym, pad + 32, fy + 90); }
+    }
+  },
+  {
+    id: 'stats', name: 'Stats',
+    render(ctx, img, d, W, H) {
+      const acc = _shfAccent();
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, acc); g.addColorStop(1, _shfPalBg());
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.globalAlpha = .08; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+      for (let r = W * 0.2; r < W * 1.1; r += W * 0.14) { ctx.beginPath(); ctx.arc(W * 0.85, H * 0.14, r, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = '800 28px -apple-system,sans-serif';
+      ctx.fillText('MYGYMTRACK', 56, 94);
+      _shfAvatarRow(ctx, d, 52, 132);
+      ctx.fillStyle = '#fff'; ctx.font = '900 100px -apple-system,sans-serif';
+      const dn = d.dayName; ctx.fillText(dn.length > 15 ? dn.slice(0, 14) + '…' : dn, 52, H * 0.52);
+      const stats = [[_shfDurStr(d.duration), tr('Dauer')], [String(d.mgs.length), tr('Muskeln')], [String(d.prCount || 0), 'PR']];
+      const sy = H * 0.52 + 90; let sx = 56;
+      stats.forEach(s => {
+        ctx.fillStyle = '#fff'; ctx.font = '900 60px -apple-system,sans-serif'; ctx.fillText(s[0], sx, sy + 56);
+        ctx.fillStyle = 'rgba(255,255,255,.72)'; ctx.font = '600 24px -apple-system,sans-serif'; ctx.fillText(s[1], sx, sy + 98);
+        sx += 320;
+      });
+      if (d.gym) { _cvPin(ctx, 66, H - 92, 12, 'rgba(255,255,255,.85)');
+        ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '600 28px -apple-system,sans-serif';
+        ctx.fillText(d.gym, 90, H - 82); }
+      _shfWatermark(ctx, W, H, { y: 0.83, a: 0.1, s: 66 });
     }
   }
 ];
@@ -14791,7 +14951,7 @@ function _shfRenderAll() {
 function startShareFlow(ses, prs, dayName) {
   _shfSes = ses; _shfPrs = prs || [];
   _shfData = _shfBuildData(ses, prs, dayName);
-  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false;
+  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false; _shfPalIdx = 0;
   // Avatar fürs Canvas vorladen (nur data-URLs — Remote-URLs würden den Canvas tainten)
   const p = _shfData.photo;
   if (p && p.startsWith('data:')) {
@@ -14882,13 +15042,13 @@ async function _shfWebCamStep() {
   body.innerHTML = `
     <div class="shf-top"><button class="shf-x" onclick="_shfStopStream();_shfEditorStep()">✕</button>
       <div class="shf-title">${tr('Foto')}</div>
-      <button class="shf-x" id="shf-flashbtn" onclick="_shfToggleFlash()">⚡︎</button></div>
+      <button class="shf-x" id="shf-flashbtn" onclick="_shfToggleFlash()" aria-label="${tr('Blitz')}">${ICO.bolt({ s: 20 })}</button></div>
     <div class="shf-cam"><video id="shf-video" autoplay playsinline muted></video>
       <div class="shf-flashfx" id="shf-flashfx"></div>
       <div class="shf-cam-bar">
-        <button class="shf-camside" onclick="_shfPickGallery()">🖼</button>
+        <button class="shf-camside" onclick="_shfPickGallery()" aria-label="${tr('Galerie')}">${ICO.image({ s: 22 })}</button>
         <button class="shf-shutter" onclick="_shfWebSnap()" aria-label="${tr('Foto aufnehmen')}"></button>
-        <button class="shf-camside" onclick="_shfFlipCam()">⟲</button>
+        <button class="shf-camside" onclick="_shfFlipCam()" aria-label="${tr('Kamera wechseln')}">${ICO.flip({ s: 22 })}</button>
       </div></div>`;
   try {
     _shfStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: _shfFacing, width: {ideal: 1920} }, audio: false });
@@ -14899,7 +15059,7 @@ async function _shfWebCamStep() {
     // Berechtigung verweigert / keine Kamera → Galerie oder ohne Foto weiter
     document.querySelector('.shf-cam').innerHTML = `
       <div class="cpg-empty" style="height:100%">
-        <div style="font-size:40px">📷</div>
+        <div style="color:var(--acc)">${ICO.camera({ s: 46 })}</div>
         <div><b>${tr('Kein Kamera-Zugriff')}</b><br><span style="font-size:13px">${tr('Erlaube die Kamera in den iOS-Einstellungen oder wähle ein Foto aus der Galerie.')}</span></div>
         <button class="shf-btn" style="flex:0 0 auto;padding:13px 26px" onclick="_shfPickGallery()">${tr('Aus Galerie wählen')}</button>
         <button class="shf-btn ghost" style="flex:0 0 auto;padding:13px 26px" onclick="_shfEditorStep()">${tr('Ohne Foto weiter')}</button>
@@ -14954,6 +15114,16 @@ function _shfPickGallery() {
   inp.click();
 }
 
+/* Farbpalette wechseln → alle Layouts neu rendern + Slides/Swatches aktualisieren */
+function _shfSetPal(i) {
+  if (_shfPalIdx === i) return;
+  _shfPalIdx = i; haptic(6);
+  _shfRenderAll();
+  const sw = document.getElementById('shf-swipe');
+  if (sw) [...sw.children].forEach((el, idx) => { const im = el.querySelector('img'); if (im && _shfRendered[idx]) im.src = _shfRendered[idx]; });
+  document.querySelectorAll('#shf-pal .shf-sw').forEach((b, idx) => b.classList.toggle('on', idx === i));
+}
+
 /* ── Schritt 3: Layout-Swipe auf dem Foto ── */
 function _shfEditorStep() {
   _shfStopStream();
@@ -14970,8 +15140,11 @@ function _shfEditorStep() {
         ${SHARE_LAYOUTS.map((_, i) => `<div class="shf-dot${i === _shfLayout ? ' on' : ''}"></div>`).join('')}
       </div>
     </div>
+    <div class="shf-pal" id="shf-pal">
+      ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="${p.accent ? `background:${p.accent}` : 'background:conic-gradient(from 210deg,#007AFF,#8B5CF6,#FF2D78,#F5B301,#10B981,#007AFF)'}" aria-label="${p.name}"></button>`).join('')}
+    </div>
     <div class="shf-cta">
-      <button class="shf-btn ghost" style="flex:0 0 auto;padding:16px 20px" onclick="_shfCameraStep()">📷</button>
+      <button class="shf-btn ghost" style="flex:0 0 auto;padding:14px 18px" onclick="_shfCameraStep()" aria-label="${tr('Foto')}">${ICO.camera({ s: 24 })}</button>
       <button class="shf-btn" onclick="_shfShareStep()">${tr('Weiter')}</button>
     </div>`;
   const sw = document.getElementById('shf-swipe');
@@ -15006,19 +15179,19 @@ function _shfShareStep() {
       <div class="shf-preview"><img src="${_shfRendered[_shfLayout]}"></div>
       ${canPost ? `
       <div class="shf-dest" onclick="_shfTgl('friends')">
-        <div class="ico">👥</div>
+        <div class="ico">${ICO.users({ s: 20 })}</div>
         <div class="t"><b>${tr('Freunde')}</b><span>${tr('Nur dein Freundeskreis')}</span></div>
         <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-friends" checked><span class="tgl-track"></span></label>
       </div>
       <div class="shf-dest" onclick="_shfTgl('public')">
-        <div class="ico">🌍</div>
+        <div class="ico">${ICO.globe({ s: 20 })}</div>
         <div class="t"><b>Community</b><span>${tr('Öffentlich für alle MyGymTrack-Nutzer')}</span></div>
         <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-public"><span class="tgl-track"></span></label>
       </div>` : `
-      <div class="shf-dest"><div class="ico">👥</div>
+      <div class="shf-dest"><div class="ico">${ICO.users({ s: 20 })}</div>
         <div class="t"><b>${tr('Community aus')}</b><span>${tr('Aktiviere die Community im Community-Tab, um Beiträge zu posten.')}</span></div></div>`}
       <div class="shf-dest" onclick="_shfExtern()">
-        <div class="ico">📤</div>
+        <div class="ico">${ICO.share({ s: 20 })}</div>
         <div class="t"><b>${tr('Extern teilen')}</b><span>Instagram, WhatsApp, ${tr('Fotos')} …</span></div>
       </div>
       <button class="shf-btn" id="shf-postbtn" onclick="_shfPublish()">${canPost ? tr('Posten') : tr('Fertig')}</button>
@@ -16342,6 +16515,7 @@ function renderOb(){
 // Follow-Modell: Wessen Code du eingibst, den siehst du.
 // ═══════════════════════════════════════════════════════
 let _socTab = 'friends', _socMetric = 'vol', _socPushT = null;
+let _socZone = 'community';   // Oberste Ebene: 'community' (Standard, öffentlicher Feed) | 'friends'
 let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null, _frListDrawn = false;
 let _socCache = null, _socCacheTs = 0;
 let _socMap = null, _socMarkers = [], _leafP = null;
@@ -16461,6 +16635,14 @@ function openSocial(){
   goTabId('freunde');
 }
 function setSocTab(t){ _socTab = t; haptic(6); if (t !== 'friends') _frStopLive(); renderFriendsTab(); }
+/* Oberste Umschaltung Community (öffentlich) ↔ Freunde (privat: Feed/Rangliste/Karte) */
+function setSocZone(z){
+  if (_socZone === z) return;
+  _socZone = z; haptic(6);
+  if (z === 'community') { _frStopLive(); }
+  else if (!['friends','feed','board','map'].includes(_socTab)) { _socTab = 'friends'; }
+  renderFriendsTab();
+}
 function setSocMetric(m){ _socMetric = m; haptic(6); renderFriendsTab(); }
 
 async function _loadProfiles(force){
@@ -16520,6 +16702,7 @@ function _demoFeedText(a){
 }
 function _renderDemoFriends(body){
   try { _frStopLive(); } catch(_){}
+  if (_socZone === 'community') return _renderDemoFeed(body);
   if (_socTab === 'feed')  return _renderDemoFeed(body);
   if (_socTab === 'board') return _renderDemoBoard(body);
   if (_socTab === 'map')   return _renderDemoMap(body);
@@ -16641,7 +16824,9 @@ function _initDemoMap(){
 
 function renderFriendsTab(){
   const body = document.getElementById('fr-body'); if (!body) return;
+  document.querySelectorAll('#soc-zone-toggle .szt').forEach(b => b.classList.toggle('on', b.dataset.z === _socZone));
   document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
+  const _seg = document.getElementById('fr-seg'); if (_seg) _seg.style.display = _socZone === 'friends' ? '' : 'none';
   _updateFrBadges();
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
@@ -16684,6 +16869,7 @@ function renderFriendsTab(){
     const pend = sessionStorage.getItem('gt_addCode');
     if (pend) { sessionStorage.removeItem('gt_addCode'); setTimeout(()=>openFrAdd(pend), 250); }
   } catch(_){}
+  if (_socZone === 'community') return _renderFeed(body);
   if (_socTab === 'feed')  return _renderFeed(body);
   if (_socTab === 'board') return _renderSocBoard(body);
   if (_socTab === 'map')   return _renderSocMapTab(body);
@@ -17220,11 +17406,10 @@ let _cpgItems = [], _cpgIdx = 0, _cpgCache = {};
 let _flMyPosts = null, _flMyPostsTs = 0;
 
 async function _renderFeed(body){
+  _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
+  const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-mode">
-      <button class="${_cpgMode==='friends'?'on':''}" onclick="setCpgMode('friends')">${tr('Freunde')}</button>
-      <button class="${_cpgMode==='public'?'on':''}" onclick="setCpgMode('public')">Community</button>
-    </div>
+    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}</div>
     <div class="cpg-wrap" id="cpg-wrap">
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
     </div>`;
@@ -17232,15 +17417,15 @@ async function _renderFeed(body){
   try { items = await _cpgLoad(); }
   catch(_) {
     const w = document.getElementById('cpg-wrap');
-    if (w) w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">📡</div><b>${tr('Feed konnte nicht geladen werden')}</b><span style="font-size:13px">${tr('Bist du offline? Versuch es gleich nochmal.')}</span><button class="btn btn-acc" onclick="_cpgReload()">${tr('Nochmal versuchen')}</button></div>`;
+    if (w) w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.wifiOff({ s: 38 })}</div><b>${tr('Feed konnte nicht geladen werden')}</b><span style="font-size:13px">${tr('Bist du offline? Versuch es gleich nochmal.')}</span><button class="btn btn-acc" onclick="_cpgReload()">${tr('Nochmal versuchen')}</button></div>`;
     return;
   }
   _cpgItems = items; _cpgIdx = 0;
   _cpgRenderStack();
   _flamesRefreshBadge();
 }
-function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && _socTab === 'feed') _renderFeed(b); }
-function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && _socTab === 'feed') _renderFeed(b); }
+function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
+function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
 
 async function _loadPostsFor(uid){
   try {
@@ -17289,9 +17474,9 @@ async function _cpgLoad(){
 
 function _cpgActText(a){
   const name = a.uid === _fbUser?.uid ? tr('Du') : (a.name || 'Athlet');
-  if (a.type === 'pr') return { day: (a.prName || 'PR') + ' 🏆', meta: name + ' · ' + tr('Neuer Rekord') + (a.prVal ? ': ' + a.prVal : '') };
-  if (a.type === 'streak') return { day: a.streak + '-' + tr('Wochen-Streak') + ' ⚡️', meta: name };
-  return { day: a.mg ? a.mg + '-Training' : tr('Training'), meta: name + (a.dur ? ' · ' + a.dur + ' Min.' : '') + ((a.prs?.length) ? ' · ' + a.prs.length + ' PR 🏆' : '') };
+  if (a.type === 'pr') return { day: (a.prName || 'PR'), meta: name + ' · ' + tr('Neuer Rekord') + (a.prVal ? ': ' + a.prVal : '') };
+  if (a.type === 'streak') return { day: a.streak + '-' + tr('Wochen-Streak'), meta: name };
+  return { day: a.mg ? a.mg + '-Training' : tr('Training'), meta: name + (a.dur ? ' · ' + a.dur + ' Min.' : '') + ((a.prs?.length) ? ' · ' + a.prs.length + ' PR' : '') };
 }
 function _cpgCardHTML(it, pos){
   const me = _fbUser?.uid;
@@ -17302,7 +17487,7 @@ function _cpgCardHTML(it, pos){
     : Object.values(it.reactions || {}).filter(e => e === '🔥').length;
   const myFire = isPost ? !!flameMap[me] : (it.reactions || {})[me] === '🔥';
   const head = isPost
-    ? { day: esc(it.dayName || tr('Training')), meta: [it.dur ? it.dur + ' min' : null, it.gym ? '📍 ' + esc(it.gym) : null].filter(Boolean).join(' · ') }
+    ? { day: esc(it.dayName || tr('Training')), meta: [it.dur ? it.dur + ' min' : null, it.gym ? ICO.pin({ s: 12, st: 'display:inline-block;vertical-align:-2px;margin-right:1px' }) + esc(it.gym) : null].filter(Boolean).join(' · ') }
     : _cpgActText(it);
   const acc = _shfAccent();
   const bg = isPost && it.img
@@ -17329,7 +17514,7 @@ function _cpgCardHTML(it, pos){
       ${chips}
     </div>
     <button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
-      <span class="fl">🔥</span><span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
+      <span class="fl">${_flameFillSVG(20)}</span><span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
     </button>
   </div>`;
 }
@@ -17338,7 +17523,7 @@ function _cpgRenderStack(){
   _cpgItems.forEach((it, i) => it._i = i);
   if (!_cpgItems.length) {
     const isFr = _cpgMode === 'friends';
-    w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">${isFr ? '👥' : '🌍'}</div>
+    w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${isFr ? ICO.users({ s: 40 }) : ICO.globe({ s: 40 })}</div>
       <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
       <span style="font-size:13px">${isFr
         ? ((S.friends||[]).length ? tr('Beende ein Training und teile es — es landet hier.') : tr('Füge zuerst Freunde hinzu — oben rechts über das +.'))
@@ -17347,7 +17532,7 @@ function _cpgRenderStack(){
     return;
   }
   if (_cpgIdx >= _cpgItems.length) {
-    w.innerHTML = `<div class="cpg-empty"><div style="font-size:38px">✅</div><b>${tr('Alles gesehen!')}</b>
+    w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.check({ s: 40 })}</div><b>${tr('Alles gesehen!')}</b>
       <button class="btn btn-acc" onclick="_cpgReload()">${tr('Neu laden')}</button></div>`;
     return;
   }
@@ -17430,7 +17615,7 @@ async function toggleFlame(i){
       btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
       for (let p = 0; p < 8; p++) {
         const s = document.createElement('span');
-        s.className = 'flm-part'; s.textContent = ['🔥','✨','🧡'][p % 3];
+        s.className = 'flm-part'; s.innerHTML = _flameFillSVG(p % 3 === 1 ? 11 : 16);
         const ang = Math.random() * Math.PI * 2, dist = 34 + Math.random() * 30;
         s.style.setProperty('--fx', Math.cos(ang) * dist + 'px');
         s.style.setProperty('--fy', Math.sin(ang) * dist - 14 + 'px');
@@ -17564,7 +17749,7 @@ async function openFlames(){
     return p?.name || tr('Jemand');
   };
   body.innerHTML = list.length
-    ? list.slice(0, 30).map(f => `<div class="flm-note"><span style="font-size:20px">🔥</span>
+    ? list.slice(0, 30).map(f => `<div class="flm-note"><span style="flex-shrink:0">${_flameFillSVG(20)}</span>
         <div class="t"><b>${esc(nameOf(f.fuid))}</b> ${tr('feiert dein Training')} „${esc(f.dayName)}"</div>
         <span class="ts">${_timeAgo(f.ts)}</span></div>`).join('')
     : `<div class="soc-empty" style="padding:16px">${tr('Noch keine Reaktionen.')}<br>${tr('Teile ein Training — Flammen landen hier.')}</div>`;
