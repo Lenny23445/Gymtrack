@@ -5692,7 +5692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170008';
+const APP_VERSION = 'gymtrack-v202607170009';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -14998,7 +14998,7 @@ function _shfRattleStart() {
       _shfLayout = idx;
       const img = document.getElementById('shf-rimg'), nm = document.getElementById('shf-rname');
       if (img) { img.src = minis[idx]; nm.textContent = SHARE_LAYOUTS[idx].name; }
-      hapticTick();
+      haptic(6);   // deutlicher LIGHT-Impact pro Bild (statt subtilem Selection-Tick)
       if (i === delays.length - 1) _shfRattleLand();
     }, t));
   });
