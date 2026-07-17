@@ -55,20 +55,38 @@ BUILD="$(date +%y%m%d%H%M)"
 echo "    Version:      $CUR -> $NEWVER"
 echo "    Build-Nummer: $BUILD"
 
-echo; echo "==> 6/7  Unsigniertes Archiv bauen (dauert 1-2 Min)"
-# WICHTIG: Archiv UNSIGNIERT bauen (device-frei). Das eigentliche Signieren passiert in
-# Step 7 beim -exportArchive mit method=app-store-connect + signingStyle=automatic: dort
-# wird das DISTRIBUTION-Profil erzeugt (braucht KEIN registriertes Gerät) und ALLE
-# Entitlements — inkl. com.apple.developer.applesignin aus App.entitlements — ins Binary
-# gebacken. Signiert man das Archiv hier direkt, erzwingt "Apple Development" ein
-# Development-Profil → braucht ein registriertes Gerät → ARCHIVE FAILED.
+echo; echo "==> 6/8  Unsigniertes Archiv bauen (dauert 1-2 Min)"
+# Archiv UNSIGNIERT bauen (device-frei — signiertes Archiv würde ein Development-Profil
+# erzwingen, das ein registriertes Gerät braucht → ARCHIVE FAILED). ABER: unsigniert läuft
+# die CodeSign-Phase NICHT → App.entitlements landet NICHT im Binary. Deshalb Step 6b.
 rm -rf "$OUT/App.xcarchive"
 xcodebuild -project "$PROJ" -scheme App -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$OUT/App.xcarchive" archive \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
-echo; echo "==> 7/7  Signieren + zu App Store Connect hochladen"
+echo; echo "==> 6b/8  Entitlements ins Binary einbacken (ad-hoc Re-Sign)"
+# KRITISCH: Ohne diesen Schritt fehlt com.apple.developer.applesignin (und HealthKit/App-Groups)
+# im ausgelieferten Binary → Apple-Login schlägt zur Laufzeit mit ASAuthorizationError 1000 fehl.
+# Ursache: unsigniertes Archiv trägt keine Entitlements; der automatische Distribution-Export
+# signiert dann nur mit Default-Entitlements. Fix: hier ad-hoc (-s -) mit den echten
+# Entitlements re-signieren (inside-out: Frameworks → Widget-Extension → App), damit der
+# Export sie übernimmt. Verifiziert am Binary; bricht ab wenn applesignin fehlt.
+RS_APP="$OUT/App.xcarchive/Products/Applications/App.app"
+RS_APPEX="$RS_APP/PlugIns/GymTrackWidget.appex"
+for f in "$RS_APP"/Frameworks/*; do [ -e "$f" ] && codesign -f -s - "$f"; done
+if [ -d "$RS_APPEX/Frameworks" ]; then
+  for f in "$RS_APPEX"/Frameworks/*; do [ -e "$f" ] && codesign -f -s - "$f"; done
+fi
+[ -d "$RS_APPEX" ] && codesign -f -s - --entitlements "ios/App/GymTrackWidget/GymTrackWidget.entitlements" "$RS_APPEX"
+codesign -f -s - --entitlements "ios/App/App/App.entitlements" "$RS_APP"
+if codesign -d --entitlements :- "$RS_APP" 2>/dev/null | grep -q applesignin; then
+  echo "    ✅ applesignin ist im Archiv-Binary eingebettet"
+else
+  echo "    ❌ applesignin FEHLT im Archiv-Binary — Abbruch (Upload würde 1000-defekt sein)"; exit 1
+fi
+
+echo; echo "==> 7/8  Signieren + zu App Store Connect hochladen"
 cat > "$OUT/uploadOptions.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
