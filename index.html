@@ -4042,7 +4042,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 /* Flamme */
 .flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;transition:transform .15s}
 .flm-btn:active{transform:translateX(-50%) scale(.92)}
-.flm-btn .fl{font-size:20px;filter:grayscale(1) brightness(1.6);transition:filter .2s}
+.flm-btn .fl{display:inline-flex;align-items:center;justify-content:center;transform-origin:center;filter:grayscale(1) brightness(1.6);transition:filter .2s}
 .flm-btn.on{background:rgba(255,90,0,.32);box-shadow:0 0 22px rgba(255,120,0,.45)}
 .flm-btn.on .fl{filter:none}
 @keyframes flmPop{0%{transform:scale(1)}40%{transform:scale(1.55) rotate(-8deg)}70%{transform:scale(.9)}100%{transform:scale(1)}}
@@ -5692,7 +5692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170010';
+const APP_VERSION = 'gymtrack-v202607170011';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
