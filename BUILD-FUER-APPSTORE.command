@@ -13,7 +13,7 @@
 #   3. Widget + Entitlements   (setup_ios_extensions.rb)
 #   4. Signing-Identity sichern (Apple Development, fuer automatische Signierung)
 #   5. Version + Build-Nummer hochsetzen
-#   6. Unsigniertes Archiv bauen
+#   6. Unsigniertes Archiv bauen (device-frei; signiert wird in Step 7 beim Export)
 #   7. Fuer App Store signieren + zu App Store Connect HOCHLADEN
 #
 set -euo pipefail
@@ -56,6 +56,12 @@ echo "    Version:      $CUR -> $NEWVER"
 echo "    Build-Nummer: $BUILD"
 
 echo; echo "==> 6/7  Unsigniertes Archiv bauen (dauert 1-2 Min)"
+# WICHTIG: Archiv UNSIGNIERT bauen (device-frei). Das eigentliche Signieren passiert in
+# Step 7 beim -exportArchive mit method=app-store-connect + signingStyle=automatic: dort
+# wird das DISTRIBUTION-Profil erzeugt (braucht KEIN registriertes Gerät) und ALLE
+# Entitlements — inkl. com.apple.developer.applesignin aus App.entitlements — ins Binary
+# gebacken. Signiert man das Archiv hier direkt, erzwingt "Apple Development" ein
+# Development-Profil → braucht ein registriertes Gerät → ARCHIVE FAILED.
 rm -rf "$OUT/App.xcarchive"
 xcodebuild -project "$PROJ" -scheme App -configuration Release \
   -destination 'generic/platform=iOS' \

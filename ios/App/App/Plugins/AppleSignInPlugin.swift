@@ -64,14 +64,27 @@ extension AppleSignInPlugin: ASAuthorizationControllerDelegate {
             switch nsErr.code {
             case 1001: // canceled – vom User abgebrochen, stumm schlucken
                 pendingCall?.reject("cancelled", "canceled")
-            case 1000: // unknown – häufigste Ursache: Simulator ohne iCloud-Login
+            case 1000: // unknown – Sammel-Code; echten Unterfehler herausziehen
                 #if targetEnvironment(simulator)
                 pendingCall?.reject(
                     "Anmelden mit Apple funktioniert im iOS-Simulator nur mit dort angemeldetem iCloud-Konto – und selbst dann oft nicht. Bitte auf einem echten Gerät testen.",
                     "simulator")
                 #else
+                // Diagnose: „unknown" (1000) sagt nichts. Underlying-Error + Reason mitgeben,
+                // damit die echte Ursache (Konto/2FA/Restriction/Config) sichtbar wird.
+                var diag = "Domain=\(nsErr.domain) Code=\(nsErr.code)"
+                if let reason = nsErr.userInfo[NSLocalizedFailureReasonErrorKey] as? String {
+                    diag += " | Reason: \(reason)"
+                }
+                if let underlying = nsErr.userInfo[NSUnderlyingErrorKey] as? NSError {
+                    diag += " | Underlying: \(underlying.domain)#\(underlying.code) \(underlying.localizedDescription)"
+                }
+                let extraKeys = nsErr.userInfo.keys.filter {
+                    $0 != NSLocalizedFailureReasonErrorKey && $0 != NSUnderlyingErrorKey
+                }
+                if !extraKeys.isEmpty { diag += " | Keys: \(extraKeys.joined(separator: ","))" }
                 pendingCall?.reject(
-                    "Anmelden mit Apple ist fehlgeschlagen. Bitte stelle sicher, dass du auf dem Gerät bei iCloud angemeldet bist, und versuche es erneut.",
+                    "Anmelden mit Apple fehlgeschlagen (Diagnose). " + diag,
                     "unknown")
                 #endif
             default:
