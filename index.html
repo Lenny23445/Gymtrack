@@ -5692,7 +5692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170009';
+const APP_VERSION = 'gymtrack-v202607170010';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17556,6 +17556,9 @@ function _cpgBindSwipe(w){
   let sx = 0, sy = 0, dx = 0, dragging = false, horiz = null;
   const W = w.clientWidth || 320;
   card.addEventListener('touchstart', e => {
+    // Touch auf Flammen-/Menü-Button NICHT als Swipe werten — sonst blättert
+    // ein Tap auf die Reaction zur nächsten Card (Button liegt in der Swipe-Card).
+    if (e.target.closest('.flm-btn, .cpg-menu')) { dragging = false; return; }
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     dx = 0; dragging = true; horiz = null;
     card.style.transition = 'none';
