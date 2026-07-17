@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyGymTrack Dashboard</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --surface: #151b24;
+    --surface-2: #1b2430;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #26303d;
+    --baseline: #384453;
+    --border: rgba(255,255,255,.08);
+    --users: #3987e5;      /* Nutzer / Accounts */
+    --workouts: #199e70;   /* Workouts */
+    --store: #c98500;      /* App Store */
+    --extra: #9085e9;      /* Community / Apple */
+    --anon: #566374;       /* Anonym (neutral) */
+    --good: #0ca30c;
+    --warn: #fab219;
+    --crit: #d03b3b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(600px 400px at 85% -10%, rgba(57,135,229,.14), transparent 70%),
+      radial-gradient(500px 380px at -5% 20%, rgba(25,158,112,.10), transparent 70%);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  header h1 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+  .badge { font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px; }
+  .spacer { flex: 1; }
+  button {
+    font: 600 13px system-ui, sans-serif; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 13px; cursor: pointer;
+  }
+  button:hover { background: #232e3d; }
+  #stand { font-size: 12.5px; color: var(--muted); }
+
+  section { margin-top: 26px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sec-head h2 { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .sec-head .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; align-self: center; }
+  .sec-head .sub { font-size: 12.5px; color: var(--muted); }
+  .err {
+    font-size: 12.5px; color: var(--crit); background: rgba(208,59,59,.10);
+    border: 1px solid rgba(208,59,59,.3); border-radius: 8px; padding: 2px 8px;
+  }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 13px 15px 11px;
+  }
+  .tile .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .tile .l { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .tile .s { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .tile.hero .v { color: var(--tint, var(--ink)); }
+
+  .cards { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 15px 16px 12px; min-width: 0;
+  }
+  .card h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+  .card h3 .tbl-btn { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 1px 7px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+  svg text { font: 10.5px system-ui, sans-serif; fill: var(--muted); }
+  svg .dl { font-weight: 600; fill: var(--ink-2); }
+  .bar { transition: opacity .1s; }
+  .bar:hover { opacity: .75; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: right; padding: 3px 8px; color: var(--ink-2); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  .tblwrap { max-height: 220px; overflow: auto; }
+
+  .hbar-row { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 34px; align-items: center; gap: 8px; margin: 6px 0; font-size: 12.5px; }
+  .hbar-row .n { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-row .t { height: 12px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .hbar-row .f { height: 100%; border-radius: 4px; display: block; }
+  .hbar-row .c { color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+
+  .stack { display: flex; height: 16px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--bg); margin: 8px 0 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); }
+  .legend .sw { margin-right: 6px; vertical-align: -1px; }
+
+  .note {
+    font-size: 12.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px; padding: 9px 13px; margin-top: 10px; line-height: 1.55;
+  }
+  .note.info { border-left-color: var(--users); }
+  .note code { background: var(--surface-2); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 10; display: none;
+    background: #060a0f; border: 1px solid var(--border); border-radius: 8px;
+    padding: 5px 9px; font-size: 12px; color: var(--ink); white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,.5);
+  }
+  #tooltip .tv { font-weight: 700; }
+  footer { margin-top: 34px; font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .src-ok { color: var(--good); } .src-err { color: var(--crit); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MyGymTrack Dashboard</h1>
+    <span class="badge" id="proj">…</span>
+    <span class="spacer"></span>
+    <span id="stand">lädt …</span>
+    <button onclick="load()">Aktualisieren</button>
+    </header>
+  <div id="main">Lade Daten …</div>
+  <footer id="foot"></footer>
+</div>
+<div id="tooltip"></div>
+
+<script>
+'use strict';
+(() => {
+  const B = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const orig = window.fetch.bind(window);
+  window.fetch = async (url, opts) => {
+    if (!String(url).startsWith('/api/all')) return orig(url, opts);
+    const enc = await (await orig('data.enc.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    let pw = localStorage.getItem('gtDashPw') || '';
+    for (;;) {
+      if (!pw) pw = prompt('Dashboard-Passwort:') || '';
+      if (!pw) { document.getElementById('main').textContent = 'Ohne Passwort keine Daten — Seite neu laden.'; throw new Error('kein Passwort'); }
+      try {
+        const raw = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+        const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: B(enc.salt), iterations: enc.iter, hash: 'SHA-256' }, raw, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: B(enc.iv) }, key, B(enc.ct));
+        localStorage.setItem('gtDashPw', pw);
+        return new Response(pt, { headers: { 'Content-Type': 'application/json' } });
+      } catch { localStorage.removeItem('gtDashPw'); pw = ''; alert('Falsches Passwort'); }
+    }
+  };
+})();
+</script>
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const nf = new Intl.NumberFormat('de-DE');
+const fmt = (n) => n == null ? '—' : nf.format(n);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dShort = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+let REFRESH_AT = 0;
+
+/* ── Balken-Chart (eine Serie) als SVG ── */
+let _cid = 0;
+function barChart(series, color, unit) {
+  if (!series || !series.length) return '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>';
+  const W = 640, H = 150, padL = 32, padB = 18, padT = 14;
+  const iw = W - padL - 6, ih = H - padT - padB;
+  const max = Math.max(1, ...series.map(p => p.v));
+  const bw = iw / series.length;
+  const y = (v) => padT + ih - (v / max) * ih;
+  let bars = '', labels = '';
+  series.forEach((p, i) => {
+    const x = padL + i * bw;
+    const h = Math.max(p.v > 0 ? 2 : 0, (p.v / max) * ih);
+    bars += `<rect class="bar" x="${(x + 1).toFixed(1)}" y="${(padT + ih - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}" data-d="${p.date}" data-v="${p.v}"/>`;
+    if (i % Math.ceil(series.length / 8) === 0) {
+      labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${dShort(p.date)}</text>`;
+    }
+  });
+  // Direktlabels: nur Maximum + letzter Tag (selektiv)
+  const maxI = series.reduce((mi, p, i) => p.v > series[mi].v ? i : mi, 0);
+  let dl = '';
+  for (const i of new Set([maxI, series.length - 1])) {
+    const p = series[i];
+    if (p.v > 0) dl += `<text class="dl" x="${(padL + i * bw + bw / 2).toFixed(1)}" y="${(y(p.v) - 4).toFixed(1)}" text-anchor="middle">${fmt(p.v)}</text>`;
+  }
+  const gy = y(max);
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" role="img" aria-label="${esc(unit)} pro Tag">
+    <line x1="${padL}" y1="${gy}" x2="${W - 6}" y2="${gy}" stroke="var(--grid)" stroke-dasharray="3 4"/>
+    <text x="${padL - 5}" y="${gy + 4}" text-anchor="end">${fmt(max)}</text>
+    <line x1="${padL}" y1="${padT + ih}" x2="${W - 6}" y2="${padT + ih}" stroke="var(--baseline)"/>
+    <text x="${padL - 5}" y="${padT + ih + 4}" text-anchor="end">0</text>
+    ${bars}${dl}${labels}
+  </svg></div>`;
+}
+
+function chartCard(title, series, color, unit, wide = false) {
+  const tid = 'tbl' + (++_cid);
+  const rows = (series || []).filter(p => p.v > 0).slice().reverse()
+    .map(p => `<tr><td>${p.date}</td><td>${fmt(p.v)}</td></tr>`).join('');
+  return `<div class="card"${wide ? ' style="grid-column:1/-1"' : ''}><h3><span class="sw" style="background:${color}"></span>${esc(title)}
+      <button class="tbl-btn" onclick="const t=document.getElementById('${tid}');t.style.display=t.style.display==='none'?'block':'none'">Tabelle</button></h3>
+    ${barChart(series, color, unit)}
+    <div id="${tid}" class="tblwrap" style="display:none;margin-top:8px"><table><tr><th>Tag</th><th>${esc(unit)}</th></tr>${rows || '<tr><td colspan="2">keine Einträge</td></tr>'}</table></div>
+  </div>`;
+}
+
+const tile = (v, label, sub = '', tint = '') =>
+  `<div class="tile${tint ? ' hero' : ''}"${tint ? ` style="--tint:${tint}"` : ''}><div class="v">${v}</div><div class="l">${esc(label)}</div>${sub ? `<div class="s">${esc(sub)}</div>` : ''}</div>`;
+
+const secHead = (color, title, sub, errObj) =>
+  `<div class="sec-head"><span class="dot" style="background:${color}"></span><h2>${esc(title)}</h2>
+   ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
+   ${errObj && errObj.ok === false ? `<span class="err">Fehler: ${esc(errObj.error || '?')}</span>` : ''}</div>`;
+
+/* ── Rendern ── */
+function render(D) {
+  $('#proj').textContent = D.project || '—';
+  const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {};
+  let h = '';
+
+  /* Nutzer */
+  h += `<section>${secHead('var(--users)', 'Nutzer', 'Firebase Auth + Cloud-Sync — live', A.ok ? (S.ok ? null : S) : A)}<div class="tiles">`;
+  if (A.ok) h += tile(fmt(A.total), 'Accounts gesamt', 'Firebase Auth', 'var(--users)')
+    + tile('+' + fmt(A.new7), 'Neu · 7 Tage')
+    + tile('+' + fmt(A.new30), 'Neu · 30 Tage');
+  if (S.ok) h += tile(fmt(S.total), 'Cloud-Sync-Nutzer', 'users-Dokumente')
+    + tile(fmt(S.active24h), 'Aktiv heute', 'Sync in 24 h')
+    + tile(fmt(S.active7d), 'Aktiv · 7 Tage')
+    + tile(fmt(S.active30d), 'Aktiv · 30 Tage')
+    + tile(fmt(S.active5m), 'Gerade aktiv', 'Sync < 5 Min', S.active5m > 0 ? 'var(--good)' : '');
+  h += `</div><div class="cards">`;
+  if (A.ok) {
+    h += chartCard('Neuregistrierungen pro Tag (60 Tage)', A.signupsByDay, 'var(--users)', 'Accounts');
+    const provs = [['Anonym', A.anon, 'var(--anon)'], ['Google', A.google, 'var(--users)'], ['Apple', A.apple, 'var(--extra)']];
+    if (A.other) provs.push(['Andere', A.other, 'var(--store)']);
+    const total = Math.max(1, A.total);
+    h += `<div class="card"><h3>Anmelde-Art</h3>
+      <div class="stack">${provs.filter(p => p[1] > 0).map(p => `<div style="flex:${p[1]} 0 0;background:${p[2]}" title="${p[0]}: ${fmt(p[1])}"></div>`).join('')}</div>
+      <div class="legend">${provs.map(p => `<span><span class="sw" style="background:${p[2]}"></span>${p[0]} <b>${fmt(p[1])}</b> (${Math.round(p[1] / total * 100)} %)</span>`).join('')}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Anonyme Accounts = App genutzt ohne Login (Auto-Anmeldung beim ersten Start).</div>
+    </div>`;
+  }
+  h += `</div></section>`;
+
+  /* Workouts */
+  if (S.ok && S.workouts) {
+    const W = S.workouts;
+    h += `<section>${secHead('var(--workouts)', 'Workouts', 'aus den Cloud-Sync-Daten aller Nutzer', null)}<div class="tiles">`;
+    h += tile(fmt(W.total), 'Workouts gesamt', '', 'var(--workouts)')
+      + tile(fmt(W.last7), 'Workouts · 7 Tage')
+      + tile(fmt(W.last30), 'Workouts · 30 Tage')
+      + tile(fmt(W.trainers7), 'Trainierende · 7 Tage')
+      + tile(W.avgDurMin ? W.avgDurMin + ' min' : '—', 'Ø Dauer', 'letzte 30 Tage')
+      + tile(fmt(W.sets30), 'Sätze · 30 Tage')
+      + (S.streaks && S.streaks.active ? tile(fmt(S.streaks.active), 'Aktive Streaks', 'max. ' + S.streaks.max) : '');
+    h += `</div><div class="cards">`;
+    h += chartCard('Workouts pro Tag (60 Tage)', W.byDay, 'var(--workouts)', 'Workouts');
+    const maxN = Math.max(1, ...(W.topExercises || []).map(e => e.n));
+    h += `<div class="card"><h3>Top-Übungen (30 Tage)</h3>${
+      (W.topExercises || []).map(e => `<div class="hbar-row"><span class="n" title="${esc(e.name)}">${esc(e.name)}</span><span class="t"><span class="f" style="width:${Math.round(e.n / maxN * 100)}%;background:var(--workouts)"></span></span><span class="c">${fmt(e.n)}</span></div>`).join('') || '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>'
+    }<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Anzahl Workouts (30 Tage), in denen die Übung vorkam.</div></div>`;
+    h += `</div></section>`;
+  }
+
+  /* Community */
+  h += `<section>${secHead('var(--extra)', 'Community', 'Freunde-Feature (Opt-in)', C.ok ? null : C)}<div class="tiles">`;
+  if (C.ok) h += tile(fmt(C.profiles), 'Öffentliche Profile', '', 'var(--extra)')
+    + tile(fmt(C.liveNow), 'Live im Training', 'laut Profil-Status', C.liveNow > 0 ? 'var(--good)' : '')
+    + tile(fmt(C.requests), 'Freundschaftsanfragen', 'Dokumente gesamt');
+  h += `</div></section>`;
+
+  /* Session-Tracking */
+  h += `<section>${secHead('var(--users)', 'Session-Tracking', 'analytics_sessions — In-App-Nutzung', T.ok ? null : T)}`;
+  if (T.ok) {
+    h += `<div class="tiles">`
+      + tile(fmt(T.dauToday), 'Aktive Nutzer heute', 'getrackt (DAU)', 'var(--users)')
+      + tile(fmt(T.sessionsToday), 'Sessions heute')
+      + tile(fmt(T.users7), 'Nutzer · 7 Tage')
+      + tile(fmt(T.sessions7), 'Sessions · 7 Tage')
+      + tile(T.avgSessionMin ? T.avgSessionMin + ' min' : '—', 'Ø Session-Dauer', '7 Tage');
+    h += `</div><div class="cards">`;
+    h += chartCard('Getrackte aktive Nutzer pro Tag', T.dauByDay, 'var(--users)', 'Nutzer');
+    h += `<div class="card"><h3>Einordnung</h3><div class="note info" style="margin-top:0">Das Session-Tracking war bis <b>${esc(T.fixDate || '')}</b> kaputt: eine Firestore-Rule blockte alle Nutzer außer dem Admin — es wurde nur <b>1 Nutzer</b> erfasst. Seit dem Fix zählt es jeden mit aktueller App-Version; die Zahlen hier wachsen mit der Update-Verbreitung. Die Abschnitte <b>Nutzer</b> und <b>Workouts</b> oben sind davon unabhängig und vollständig.</div></div>`;
+    h += `</div>`;
+  }
+  h += `</section>`;
+
+  /* App Store */
+  h += `<section>${secHead('var(--store)', 'App Store', 'Downloads aus App Store Connect', AS.ok ? null : AS)}`;
+  if (AS.ok && AS.configured) {
+    for (const app of AS.apps || []) {
+      h += `<div class="tiles" style="margin-bottom:10px">`
+        + tile(fmt(app.downloads7), 'Downloads · 7 Tage', app.title, 'var(--store)')
+        + tile(fmt(app.downloads30), 'Downloads · 30 Tage')
+        + tile(fmt(app.downloadsTotal), 'Downloads · 60 Tage')
+        + tile(fmt(app.updates7), 'Updates · 7 Tage')
+        + `</div><div class="cards">${chartCard(app.title + ' — Downloads pro Tag', app.series.map(p => ({ date: p.date, v: p.downloads })), 'var(--store)', 'Downloads', true)}</div>`;
+    }
+    h += `<div class="note">${esc(AS.note || '')}</div>`;
+  } else if (AS.ok) {
+    h += `<div class="note">Noch nicht verbunden — es fehlen: <b>${(AS.missing || []).map(esc).join('</b>, <b>')}</b>.<br>
+      ${AS.keyId ? `API-Key <code>AuthKey_${esc(AS.keyId)}.p8</code> ist auf dem Mac bereits gefunden ✓<br>` : ''}
+      Einrichten (2 Min): <a style="color:var(--users)" href="https://appstoreconnect.apple.com/access/integrations/api" target="_blank" rel="noopener">App Store Connect → Integrationen</a>: <b>Issuer-ID</b> steht oben auf der Seite · <b>Vendor-Nr.</b> (8-stellig) unter „Zahlungen und Finanzberichte" → beides in <code>analytics/config.json</code> eintragen → Server neu starten. Bis dahin zeigt dieser Abschnitt bewusst <b>nichts</b> — keine Demo-Zahlen mehr.</div>`;
+  }
+  h += `</section>`;
+
+  $('#main').innerHTML = h;
+
+  /* Footer: Quellen-Status */
+  const src = (name, o) => `<span>${name}: <span class="${o && o.ok ? 'src-ok' : 'src-err'}">${o && o.ok ? '✓' : '✗ ' + esc((o && o.error || '').slice(0, 60))}</span></span>`;
+  $('#foot').innerHTML = src('Firebase Auth', A) + src('Firestore users', S) + src('Community', C)
+    + src('Tracking', T) + `<span>App Store: <span class="${AS.ok && AS.configured ? 'src-ok' : ''}">${AS.ok && AS.configured ? '✓' : 'nicht konfiguriert'}</span></span>`
+    + `<span style="margin-left:auto">Verschlüsselter Schnappschuss vom ${new Date(D.ts).toLocaleString('de-DE')} Uhr</span>`;
+
+  /* Tooltips für Balken */
+  const tip = $('#tooltip');
+  document.querySelectorAll('rect.bar').forEach(r => {
+    r.addEventListener('mousemove', (e) => {
+      tip.style.display = 'block';
+      tip.innerHTML = `${esc(r.dataset.d)} · <span class="tv">${fmt(Number(r.dataset.v))}</span>`;
+      tip.style.left = Math.min(e.clientX + 12, innerWidth - 150) + 'px';
+      tip.style.top = (e.clientY - 34) + 'px';
+    });
+    r.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+}
+
+async function load(fresh = false) {
+  $('#stand').textContent = 'lädt …';
+  try {
+    const res = await fetch('/api/all' + (fresh ? '?fresh=1' : ''));
+    const D = await res.json();
+    if (D.error) { $('#main').innerHTML = `<div class="note">${esc(D.error)}</div>`; $('#stand').textContent = 'Fehler'; return; }
+    render(D);
+    REFRESH_AT = Date.now() + 60_000;
+  } catch (e) {
+    $('#stand').textContent = 'Server nicht erreichbar';
+    $('#main').innerHTML = `<div class="note">Schnappschuss konnte nicht geladen werden — später erneut versuchen.</div>`;
+    REFRESH_AT = Date.now() + 15_000;
+  }
+}
+
+setInterval(() => {
+  if (REFRESH_AT && Date.now() >= REFRESH_AT) { REFRESH_AT = 0; load(); return; }
+  if (REFRESH_AT) $('#stand').textContent =
+    `Stand ${new Date(REFRESH_AT - 60_000).toLocaleTimeString('de-DE')} · Auto-Refresh in ${Math.ceil((REFRESH_AT - Date.now()) / 1000)} s`;
+}, 1000);
+load();
+</script>
+</body>
+</html>
