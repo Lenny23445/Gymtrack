@@ -41,22 +41,19 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         guard #available(iOS 16.1, *) else { call.resolve(["started": false]); return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { call.resolve(["started": false]); return }
 
-        // Bestehende Activity aus vorheriger Session wiederverwenden (App-Kill-Reconnect)
-        if let existing = Activity<GymTrackActivityAttributes>.activities.first {
+        let tsMs: Double = call.getDouble("startTimestamp") ?? (Date().timeIntervalSince1970 * 1000)
+        let startDate = Date(timeIntervalSince1970: tsMs / 1000)
+
+        // Activity desselben Trainings wiederverwenden (App-Kill-Reconnect).
+        // Anderes startDate = Zombie eines alten Trainings → unten beenden + neu erstellen.
+        if let existing = Activity<GymTrackActivityAttributes>.activities.first(where: {
+            abs($0.attributes.startDate.timeIntervalSince(startDate)) < 2
+        }) {
             _currentActivity = existing
             call.resolve(["started": true, "activityId": existing.id])
             return
         }
 
-        // Alte Zombie-Activities bereinigen (sollte nicht vorkommen, aber sicher ist sicher)
-        Task {
-            for old in Activity<GymTrackActivityAttributes>.activities {
-                await old.end(dismissalPolicy: .immediate)
-            }
-        }
-
-        let tsMs: Double = call.getDouble("startTimestamp") ?? (Date().timeIntervalSince1970 * 1000)
-        let startDate = Date(timeIntervalSince1970: tsMs / 1000)
         let attrs = GymTrackActivityAttributes(
             workoutName: call.getString("workoutName") ?? "Training",
             startDate: startDate)
@@ -64,12 +61,21 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
             exerciseName: call.getString("exerciseName") ?? "",
             setsDone: call.getInt("setsDone") ?? 0, totalSets: call.getInt("totalSets") ?? 0,
             restSeconds: 0, isResting: false, restEndsAt: nil)
-        do {
-            let activity = try Activity<GymTrackActivityAttributes>.request(
-                attributes: attrs, contentState: state, pushType: nil)
-            _currentActivity = activity
-            call.resolve(["started": true, "activityId": activity.id])
-        } catch { call.resolve(["started": false]) }
+        // Cleanup + Request strikt nacheinander im SELBEN Task — ein paralleler
+        // Cleanup-Task kann sonst die gerade neu erstellte Activity sofort beenden.
+        Task {
+            for old in Activity<GymTrackActivityAttributes>.activities {
+                await old.end(dismissalPolicy: .immediate)
+            }
+            do {
+                let activity = try Activity<GymTrackActivityAttributes>.request(
+                    attributes: attrs, contentState: state, pushType: nil)
+                self._currentActivity = activity
+                call.resolve(["started": true, "activityId": activity.id])
+            } catch {
+                call.resolve(["started": false, "reason": String(describing: error)])
+            }
+        }
     }
 
     @objc func update(_ call: CAPPluginCall) {

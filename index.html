@@ -150,6 +150,9 @@
 :root{
   --r-sm:10px; --r-md:14px; --r-lg:22px; --r-xl:28px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  /* Harte Obergrenze für Bottom-Sheets/Modals: nie in Statusbar/Dynamic Island
+     ragen. dvh = sichtbarer Viewport; safe-area-top = Notch/Island-Zone. */
+  --sheet-cap:calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
   --ease:cubic-bezier(.22,1,.36,1);
   --spring:cubic-bezier(.34,1.56,.64,1);
   /* Zentrale Glas-Blur-Stufen — appweit konsistent.
@@ -1037,7 +1040,7 @@ body{
   border-radius:var(--r-xl) var(--r-xl) 0 0;
   border:1px solid var(--gl-bdr);
   border-bottom:none;
-  width:100%;max-height:92vh;
+  width:100%;max-height:92vh;max-height:min(92vh,var(--sheet-cap));
   overflow-y:auto;overflow-x:hidden;
   padding-bottom:calc(100px + var(--sab)); /* Platz für die schwebende Leiste */
   animation:up .28s cubic-bezier(.32,1,.32,1);
@@ -2728,7 +2731,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
   border:1px solid var(--gl-bdr);
   border-radius:24px 24px 0 0;
   width:calc(100% - 24px);max-width:440px;margin:0 auto;
-  max-height:88vh;display:flex;flex-direction:column;
+  max-height:88vh;max-height:min(88vh,var(--sheet-cap));display:flex;flex-direction:column;
   padding:4px 16px calc(16px + env(safe-area-inset-bottom));
   box-shadow:0 -16px 56px rgba(0,0,0,.32);
   animation:up .28s cubic-bezier(.32,1,.32,1);
@@ -3380,7 +3383,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   border-radius:24px;
   width:calc(100% - 24px);
   max-width:440px;
-  max-height:88vh;
+  max-height:88vh;max-height:min(88vh,var(--sheet-cap));
   display:flex;flex-direction:column;
   box-shadow:0 16px 56px rgba(0,0,0,.32);
   overflow:hidden;
@@ -3439,7 +3442,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   border-radius:24px;
   width:calc(100% - 24px);
   max-width:680px;
-  max-height:88vh;
+  max-height:88vh;max-height:min(88vh,var(--sheet-cap));
   display:flex;flex-direction:column;
   box-shadow:0 16px 56px rgba(0,0,0,.32);
   overflow:hidden;
@@ -3676,7 +3679,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .ob-done-ring svg{width:46px;height:46px}
 
 /* ── COMMUNITY (Freunde · Rangliste · Karte) ─────────── */
-#ov-social .sheet{height:92vh;max-height:92vh;display:flex;flex-direction:column}
+#ov-social .sheet{height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column}
 #soc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))}
 .soc-gate{text-align:center;padding:34px 18px;display:flex;flex-direction:column;align-items:center;gap:14px}
 .soc-gate-ico{width:64px;height:64px;border-radius:20px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--acc)}
@@ -4456,7 +4459,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: ADMIN-STATISTIKEN -->
 <div class="ov" id="ov-admin-stats" style="z-index:1003">
-  <div class="sheet" style="max-height:92vh;padding-bottom:calc(24px + var(--sab))">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap));padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>App-Statistiken</h2>
@@ -4629,7 +4632,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: TRAINING DETAIL / BEARBEITEN -->
 <div class="ov" id="ov-sess-detail">
-  <div class="sheet" style="max-height:92vh">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="sess-detail-title">Training</h2>
@@ -4803,7 +4806,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: WOCHENPLAN -->
 <div class="ov" id="ov-plan">
-  <div class="sheet" style="max-height:92vh">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Wochenplan</h2>
@@ -4830,7 +4833,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: ÜBUNGS-BIBLIOTHEK -->
 <div class="ov" id="ov-ex-lib" style="z-index:1003">
-  <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap));padding-bottom:calc(12px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Übungs-Bibliothek</h2>
@@ -4846,7 +4849,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: PLAN-VORLAGEN -->
 <div class="ov" id="ov-plan-tpl" style="z-index:1003">
-  <div class="sheet" style="max-height:92vh;padding-bottom:calc(12px + var(--sab))">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap));padding-bottom:calc(12px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Trainingsplan-Vorlagen</h2>
@@ -4861,7 +4864,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: PLAN-TAG BEARBEITEN -->
 <div class="ov" id="ov-plan-day" style="z-index:1001">
-  <div class="sheet" style="max-height:92vh">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="plan-day-title">Montag</h2>
@@ -4894,7 +4897,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: TAG → SPLIT ZUWEISEN -->
 <div class="ov" id="ov-day-assign" style="z-index:1001" onclick="if(event.target===this)closeOv('ov-day-assign')">
-  <div class="sheet" style="max-height:88vh">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="day-assign-title">Montag</h2>
@@ -4912,7 +4915,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: ICON PICKER -->
 <div class="ov" id="ov-icons" style="z-index:1001" onclick="if(event.target===this)closeIconPicker()">
-  <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap));padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Icon wählen</h2>
@@ -4927,7 +4930,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: WORKOUT -->
 <div class="ov" id="ov-wk">
-  <div class="sheet" style="max-height:95vh">
+  <div class="sheet" style="max-height:95vh;max-height:min(95vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="wk-title">Training</h2>
@@ -4991,7 +4994,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: TRAININGSPLAN / PRESET ANLEGEN -->
 <div class="ov" id="ov-preset" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-preset')">
-  <div class="sheet" style="max-height:90vh;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
     <div class="sh-handle" style="flex-shrink:0"></div>
     <div class="sh-head" style="flex-shrink:0">
       <h2 id="preset-title">Neuer Plan</h2>
@@ -5042,7 +5045,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: ÜBUNG DETAIL -->
 <div class="ov" id="ov-det" style="z-index:1001">
-  <div class="sheet" style="max-height:95vh">
+  <div class="sheet" style="max-height:95vh;max-height:min(95vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="det-title">Detail</h2>
@@ -5065,7 +5068,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: MUSKELGRUPPEN-STATISTIK -->
 <div class="ov" id="ov-mg-stat" style="z-index:1001">
-  <div class="sheet" style="max-height:95vh">
+  <div class="sheet" style="max-height:95vh;max-height:min(95vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="mg-stat-title">Muskelgruppe</h2>
@@ -5114,7 +5117,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: BEGLEITER WÄHLEN -->
 <div class="ov" id="ov-companion" onclick="if(event.target===this)closeOv('ov-companion')">
-  <div class="sheet" style="max-height:88vh;padding-bottom:calc(24px + var(--sab))">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap));padding-bottom:calc(24px + var(--sab))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Begleiter wählen</h2>
@@ -5126,7 +5129,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: KONTO / GOOGLE LOGIN -->
 <div class="ov" id="ov-account" onclick="if(event.target===this)closeOv('ov-account')">
-  <div class="sheet" style="max-height:88vh;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap));padding-bottom:0;display:flex;flex-direction:column;overflow:hidden">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Konto</h2>
@@ -5350,7 +5353,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: CUSTOM SPLIT EDITOR -->
 <div class="ov" id="ov-custom-split" onclick="if(event.target===this)closeOv('ov-custom-split')">
-  <div class="sheet" style="max-height:90vh">
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="cs-title">Eigener Split</h2>
@@ -5492,7 +5495,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- ═══ COMMUNITY-SHEETS: FREUND HINZUFÜGEN · PROFIL · PRIVATSPHÄRE ═══ -->
 <div class="ov" id="ov-fradd" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fradd')">
-  <div class="sheet" style="max-height:90vh;display:flex;flex-direction:column">
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));display:flex;flex-direction:column">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Freund hinzufügen</h2>
@@ -5503,7 +5506,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 </div>
 
 <div class="ov" id="ov-frprofile" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-frprofile')">
-  <div class="sheet" style="height:92vh;max-height:92vh;display:flex;flex-direction:column">
+  <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="frp-title">Profil</h2>
@@ -5514,7 +5517,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 </div>
 
 <div class="ov" id="ov-privacy" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-privacy')">
-  <div class="sheet" style="max-height:88vh">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Privatsphäre</h2>
@@ -5526,7 +5529,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 
 <!-- SHEET: EIGENES PROFIL (Name + Bild) -->
 <div class="ov" id="ov-fredit" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fredit')">
-  <div class="sheet" style="max-height:88vh">
+  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Mein Profil</h2>
@@ -5568,7 +5571,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170001';
+const APP_VERSION = 'gymtrack-v202607170002';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -7608,6 +7611,10 @@ function initTabIndicator() {
 const WK_SUB_SHEETS = ['ov-ex-swap','ov-ex-edit','ov-mid-add','ov-det','ov-mg-stat','ov-prog-info','ov-ex','ov-sess-detail'];
 let _wkHiddenBySub   = false; // ov-wk wurde von einem Untersheet verdrängt
 let _suppressWkRestore = false; // z. B. beim Tab-Wechsel: alles zu, nichts wiederherstellen
+// Statistik-Drilldown (Gruppe → Übung → Einheit): X/Swipe geht einen Schritt
+// zurück statt alles zu schließen. Stack hält die Rücksprungziele ('mg'|'det').
+let _statNavStack  = [];
+let _statNavSilent = false; // programmatischer closeOv → nicht zurücknavigieren
 function openOv(id)  {
   if (WK_SUB_SHEETS.includes(id)) {
     const wk = document.getElementById('ov-wk');
@@ -7620,6 +7627,21 @@ function openOv(id)  {
 function closeOv(id) {
   document.getElementById(id).classList.remove('on');
   if (id === 'ov-widget-add') document.body.classList.remove('wpick-open');
+  // Statistik-Drilldown: einen Schritt zurück (Einheit → Übung → Gruppe)
+  if ((id === 'ov-det' || id === 'ov-sess-detail') && _statNavStack.length && !_statNavSilent) {
+    if (_suppressWkRestore) {
+      _statNavStack = []; // Tab-Wechsel: Kette verwerfen, nichts wieder öffnen
+    } else {
+      const back = _statNavStack.pop();
+      if (back === 'det' && id === 'ov-sess-detail' && typeof detId !== 'undefined' && detId) {
+        setTimeout(() => openDet(detId), 120);
+      } else if (back === 'mg' && id === 'ov-det' && typeof mgStatId !== 'undefined' && mgStatId) {
+        setTimeout(() => openGroupStat(mgStatId), 120);
+      } else {
+        _statNavStack = []; // unerwartete Reihenfolge → Kette abbrechen
+      }
+    }
+  }
   // Workout-Sheet wiederherstellen, wenn das letzte Training-Untersheet zugeht
   if (WK_SUB_SHEETS.includes(id) && _wkHiddenBySub && !_suppressWkRestore
       && !(typeof _midAddPending  !== 'undefined' && _midAddPending)
@@ -11533,8 +11555,8 @@ function deleteEx() {
   S.sessions.forEach(s => { s.logs = s.logs.filter(l => l.exerciseId !== editId); });
   S.sessions = S.sessions.filter(s => s.logs.length > 0);
   persist();
-  closeOv('ov-ex');
-  closeOv('ov-det');
+  _statNavStack = []; // Übung weg → Statistik-Drilldown-Kette hinfällig
+  _statNavSilent = true; closeOv('ov-ex'); closeOv('ov-det'); _statNavSilent = false;
   renderExList();
   renderHome();
 }
@@ -11744,9 +11766,14 @@ function renderDetChart(hist) {
   });
 }
 
-function editDet() { closeOv('ov-det'); setTimeout(()=>openNewEx(detId),80); }
+function editDet() { _statNavStack = []; _statNavSilent = true; closeOv('ov-det'); _statNavSilent = false; setTimeout(()=>openNewEx(detId),80); }
 // Aus dem Übungs-Detail eine vergangene Einheit öffnen
-function openSessFromDet(sesId) { closeOv('ov-det'); setTimeout(()=>openSessDetail(sesId),120); }
+function openSessFromDet(sesId) {
+  // Kein Rücksprung beim programmatischen Weiter-Navigieren; Kette stattdessen vertiefen
+  _statNavSilent = true; closeOv('ov-det'); _statNavSilent = false;
+  if (_statNavStack.length) _statNavStack.push('det');
+  setTimeout(()=>openSessDetail(sesId),120);
+}
 
 // ── STATISTIK ─────────────────────────────────────────
 function setsVolume(sets) {
@@ -13148,7 +13175,7 @@ function openGroupStat(groupId) {
       const last = hist.length ? hist[hist.length-1] : null;
       const lw = last ? maxW(last.sets) : 0;
       const e1rm = exBest1RM(ex.id);
-      return `<div class="row tap" onclick="closeOv('ov-mg-stat');setTimeout(()=>openDet('${ex.id}'),120)">
+      return `<div class="row tap" onclick="_statNavStack=['mg'];closeOv('ov-mg-stat');setTimeout(()=>openDet('${ex.id}'),120)">
         <div class="ico">${ex.emoji}</div>
         <div class="row-body">
           <div class="row-title">${esc(ex.name)}</div>
@@ -13810,6 +13837,14 @@ function _restoreActiveWk() {
     _restSecs  = Math.max(0, Math.round((_restEndTs - Date.now()) / 1000));
     _beginRestCountdown();
   }
+  // Dynamic Island wieder verbinden: die Live Activity überlebt den App-Kill im
+  // System, aber _liveActivityActive startet als false → ohne Reconnect kämen nie
+  // wieder Updates an (Island wirkt "tot"). Gleiches timerTs ⇒ Plugin re-attached.
+  const laFirst = wkLogs.find(l => l.sets?.some(s => !s.done)) || wkLogs[0];
+  const laTotal = wkLogs.reduce((a,l) => a + (l.sets?.length||0), 0);
+  const laDone  = wkLogs.reduce((a,l) => a + (l.sets?.filter(s=>s.done).length||0), 0);
+  _startLiveActivity(_getTodayLabel() || 'Training', exById(laFirst?.exerciseId)?.name || '', laDone, laTotal);
+  setTimeout(_syncLiveActivity, 800); // aktuellen Zustand (inkl. laufender Pause) nachpushen
 }
 
 function renderLogCards() {
