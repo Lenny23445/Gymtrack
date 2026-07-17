@@ -131,7 +131,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1"); // Admin liest fürs Dashboard
       allow write: if request.auth != null
         && request.auth.uid == userId
         // Erlaubte Felder (kein unbekannter Payload)
@@ -179,7 +179,8 @@ service cloud.firestore {
     // Freundschaftsanfragen (senden → annehmen/ablehnen; Absender räumt akzeptierte auf)
     match /requests/{rid} {
       allow read: if request.auth != null
-        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid
+            || request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1"); // Admin zählt fürs Dashboard
       allow create: if request.auth != null
         && request.resource.data.from == request.auth.uid
         && request.resource.data.status == 'pending'
@@ -189,6 +190,10 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
       allow delete: if request.auth != null
         && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+    // Dashboard (nur Admin liest; geschrieben ausschliesslich vom Mac-Server via Service-Account)
+    match /admin/{docId} {
+      allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
     }
     match /analytics_users/{userId} {
       allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
