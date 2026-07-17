@@ -5671,7 +5671,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170004';
+const APP_VERSION = 'gymtrack-v202607170005';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -15031,6 +15031,17 @@ function _shfTgl(k) {
 async function _shfFinalJpeg() {
   return _shfRender(_shfLayout).toDataURL('image/jpeg', 0.82);
 }
+// Kompakte base64-Variante fürs Firestore-Dokument (kein Storage nötig): kleinere
+// Auflösung + Qualität notfalls runter, bis der data-URL sicher unter dem
+// Firestore-1-MB-Limit liegt (~0,9 MB Reserve für die übrigen Post-Felder).
+async function _shfFeedJpeg() {
+  const cv = _shfRender(_shfLayout, 720, 960);
+  for (const q of [0.72, 0.6, 0.48, 0.38]) {
+    const url = cv.toDataURL('image/jpeg', q);
+    if (url.length < 900000) return url;
+  }
+  return cv.toDataURL('image/jpeg', 0.3);
+}
 async function _shfExtern() {
   haptic(10);
   try {
@@ -15055,15 +15066,13 @@ async function _shfPublish() {
   try {
     const id = uid();
     const d = _shfData;
-    let imgUrl = null, imgPath = null;
-    if (window.FB.stUpload) {
-      imgPath = 'posts/' + _fbUser.uid + '/' + id + '.jpg';
-      imgUrl = await window.FB.stUpload(imgPath, await _shfFinalJpeg());
-    }
+    // Foto als komprimiertes base64-JPEG direkt im Post ablegen (kein Firebase Storage
+    // → kein Blaze-Plan/Kosten). imgPath bleibt null, also kein Storage-Delete nötig.
+    const img = await _shfFeedJpeg();
     await window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', id), {
       ts: Date.now(),
       visibility: pb ? 'public' : 'friends',       // public schließt Freunde mit ein
-      img: imgUrl, imgPath: imgPath,
+      img: img, imgPath: null,
       layout: SHARE_LAYOUTS[_shfLayout].id,
       dayName: d.dayName, dur: Math.round(d.duration / 60),
       mgs: d.mgs, gym: d.gym || null,

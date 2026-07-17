@@ -80,10 +80,28 @@ final class GTCameraViewController: UIViewController {
         view.layer.addSublayer(previewLayer)
 
         setupChrome()
+        #if targetEnvironment(simulator)
+        // Simulator hat keine Kamera-Hardware — Hinweis statt schwarzer Preview,
+        // Galerie-Button (PHPicker) funktioniert trotzdem.
+        let hint = UILabel()
+        hint.text = "Kamera im Simulator nicht verfügbar\n→ Foto aus Galerie wählen"
+        hint.numberOfLines = 0
+        hint.textAlignment = .center
+        hint.textColor = UIColor(white: 1, alpha: 0.7)
+        hint.font = .systemFont(ofSize: 15, weight: .semibold)
+        hint.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(hint)
+        NSLayoutConstraint.activate([
+            hint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            hint.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            hint.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 30)
+        ])
+        #else
         sessionQueue.async { [weak self] in
             self?.configureSession()
             self?.session.startRunning()
         }
+        #endif
     }
 
     override func viewDidLayoutSubviews() {

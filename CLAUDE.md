@@ -247,22 +247,12 @@ service cloud.firestore {
 }
 ```
 
-**Storage-Rules** (Firebase-Konsole → Storage → Rules; Storage einmalig aktivieren, Region wie Firestore):
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // Post-Fotos des Share-Flows: nur Autor schreibt/löscht, JPEG ≤ 1 MB.
-    match /posts/{uid}/{file} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid
-                   && request.resource.size < 1 * 1024 * 1024
-                   && request.resource.contentType.matches('image/jpeg');
-      allow delete: if request.auth != null && request.auth.uid == uid;
-    }
-  }
-}
-```
+**Storage: NICHT verwendet (Spark-Plan, keine Kosten).** Post-Fotos des Share-Flows werden als
+komprimiertes base64-JPEG direkt im Firestore-Post-Doc (`img`-Feld) gespeichert — `_shfFeedJpeg()`
+rendert 720×960 und drückt die Qualität notfalls, bis der data-URL < 0,9 MB liegt (Firestore-1-MB-Limit).
+`imgPath` bleibt `null` (kein Storage-Delete). Kein Firebase Storage / Blaze-Plan / Kreditkarte nötig.
+Die alte `FB.stUpload`/`stDelete`-Schnittstelle (getStorage) bleibt ungenutzt im Code — Storage-Rules
+sind damit **nicht** erforderlich.
 
 **Composite-Index** (für den öffentlichen Community-Feed, einmalig): Collection-Group `posts`, Felder `visibility` (Aufsteigend) + `ts` (Absteigend), Scope „Sammlungsgruppe". Ohne Index wirft die Community-Ansicht einen Firestore-Fehler mit Anlege-Link in der Konsole — Link klicken reicht.
 
