@@ -58,6 +58,16 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flames']);
       }
     }
+    // Community-Feed: collectionGroup('posts')-Query ueber ALLE Nutzer.
+    // WICHTIG: Die verschachtelte Rule oben (match /profiles/{userId}/posts/{pid})
+    // gilt NICHT fuer collectionGroup-Queries — dafuer verlangt Firestore eine
+    // Recursive-Wildcard-Rule. Ohne die warf _cpgLoad() permission-denied ->
+    // "Feed konnte nicht geladen werden". Nur oeffentliche Posts sind global lesbar;
+    // friends-only bleibt ueber die nested Rule geschuetzt. Reads only — Schreiben/
+    // Loeschen/flames-Update bleibt ausschliesslich in der nested posts-Rule (Autor).
+    match /{path=**}/posts/{pid} {
+      allow read: if request.auth != null && resource.data.visibility == 'public';
+    }
     match /reports/{rid} {
       allow create: if request.auth != null
         && request.resource.data.reporter == request.auth.uid

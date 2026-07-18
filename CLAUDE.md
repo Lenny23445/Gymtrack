@@ -204,6 +204,13 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flames']);
       }
     }
+    // Community-Feed: collectionGroup('posts')-Query über ALLE Nutzer. Verschachtelte
+    // Rules (match /profiles/{uid}/posts/{pid}) gelten NICHT für collectionGroup —
+    // Firestore braucht dafür eine Recursive-Wildcard-Rule. Ohne die: permission-denied
+    // → "Feed konnte nicht geladen werden". Nur public lesbar, reads only.
+    match /{path=**}/posts/{pid} {
+      allow read: if request.auth != null && resource.data.visibility == 'public';
+    }
     // Melden von Posts (Community-Moderation): create-only, nur Admin liest.
     match /reports/{rid} {
       allow create: if request.auth != null
@@ -263,6 +270,8 @@ Die alte `FB.stUpload`/`stDelete`-Schnittstelle (getStorage) bleibt ungenutzt im
 sind damit **nicht** erforderlich.
 
 **Composite-Index: NICHT mehr nötig** (seit v202607170008). Der öffentliche Feed (`_cpgLoad`) fragt `collectionGroup('posts').where('visibility','==','public').limit(60)` **ohne** `orderBy('ts')` ab — braucht nur den automatischen Einzelfeld-Index, kein Composite. „Neueste zuerst" wird client-seitig sortiert. Früher (`where+orderBy`) warf die Abfrage ohne Index `failed-precondition` → fälschlich „offline". Nachteil: bei sehr vielen öffentlichen Posts holt `limit(60)` nicht garantiert die allerneuesten; falls der Feed mal riesig wird, wieder `orderBy('ts','desc')` rein + Composite-Index (visibility ASC, ts DESC) anlegen.
+
+**collectionGroup-Rule ist Pflicht (Root-Cause „Feed konnte nicht geladen werden", gefixt 2026-07-18):** Der Community-Feed nutzt `collectionGroup('posts')`. Verschachtelte Rules (`match /profiles/{uid}/posts/{pid}`) gelten in Firestore **NICHT** für collectionGroup-Queries — ohne die zusätzliche Recursive-Wildcard-Rule `match /{path=**}/posts/{pid} { allow read: if request.auth != null && resource.data.visibility == 'public'; }` wirft die Query `permission-denied` → Feed lädt nicht (Freunde-Feed lief, weil der pro-uid liest). Die Rule steht jetzt im Block oben — **muss in die Firebase-Konsole deployt werden** (Firestore → Rules → Veröffentlichen), sonst bleibt der Feed leer.
 
 **RTDB Rules** (`REPLACE_WITH_ADMIN_UID` ersetzen):
 ```json
