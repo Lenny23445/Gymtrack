@@ -5692,7 +5692,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170011';
+const APP_VERSION = 'gymtrack-v202607170012';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -15543,7 +15543,7 @@ function initPageSwipe() {
     const el = document.elementFromPoint(t.clientX, t.clientY);
     if (!el || el.closest('.tabbar') || el.closest('.ov')) return;
     if (_hasHScrollParent(el)) return;
-    if (el.closest('.ex-swipe-wrap, .last-swipe-inner, #log-cards, .wh-item, #rec-box, .soc-map-wrap')) return;
+    if (el.closest('.ex-swipe-wrap, .last-swipe-inner, #log-cards, .wh-item, #rec-box, .soc-map-wrap, .cpg-card')) return;
     sx = t.clientX; sy = t.clientY; tracking = true;
   }, { passive: true });
 
