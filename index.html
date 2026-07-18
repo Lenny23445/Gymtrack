@@ -4013,6 +4013,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .shf-pal{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px;position:absolute;bottom:calc(90px + var(--sab));left:0;right:0;z-index:30}
 .shf-sw{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.25);padding:0;transition:transform .15s,border-color .15s;cursor:pointer}
 .shf-sw.on{border-color:#fff;transform:scale(1.14);box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.shf-sw-wheel{border-color:rgba(255,255,255,.6);box-shadow:0 0 0 2px rgba(255,255,255,.10)}
 .shf-dest .t{flex:1;min-width:0}
 .shf-dest .t b{display:block;font-size:15px}
 .shf-dest .t span{font-size:12px;color:rgba(255,255,255,.55)}
@@ -5692,7 +5693,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607170012';
+const APP_VERSION = 'gymtrack-v202607180001';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5716,7 +5717,7 @@ const I18N_EN = {
   'Dein Look':'Your look','Tippen zum Festlegen':'Tap to lock in','Foto':'Photo','Foto aufnehmen':'Take photo',
   'Kein Kamera-Zugriff':'No camera access',
   'Erlaube die Kamera in den iOS-Einstellungen oder wähle ein Foto aus der Galerie.':'Allow camera access in iOS Settings or pick a photo from your library.',
-  'Aus Galerie wählen':'Choose from library','Ohne Foto weiter':'Continue without photo','Layout wählen':'Pick a layout',
+  'Aus Galerie wählen':'Choose from library','Ohne Foto weiter':'Continue without photo','Layout wählen':'Pick a layout','Farbe wählen':'Choose color',
   'Nur dein Freundeskreis':'Only your friends','Öffentlich für alle MyGymTrack-Nutzer':'Public for all MyGymTrack users',
   'Community aus':'Community off',
   'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
@@ -14632,7 +14633,23 @@ const SHF_PALETTES = [
   { id:'mono',    name:'Mono',    accent:'#E5E7EB', bg:'#0a0a0c' },
 ];
 let _shfPalIdx = 0;
-function _shfPalBg(){ return SHF_PALETTES[_shfPalIdx]?.bg || '#0b1020'; }
+let _shfCustomCol = null;   // frei per Farbrad gewählte Farbe (_shfPalIdx === -1 = Custom-Modus)
+function _shfAppAcc(){
+  try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
+  catch(_) { return '#007AFF'; }
+}
+// Freifarbe → dunkler Karten-Hintergrund im selben Farbton
+function _shfDarken(hex, keep){
+  const h = (hex||'').replace('#','');
+  if (h.length < 6) return '#0b1020';
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  const to = v => Math.max(0, Math.min(255, Math.round(v*keep))).toString(16).padStart(2,'0');
+  return '#' + to(r) + to(g) + to(b);
+}
+function _shfPalBg(){
+  if (_shfPalIdx === -1 && _shfCustomCol) return _shfDarken(_shfCustomCol, 0.18);
+  return SHF_PALETTES[_shfPalIdx]?.bg || '#0b1020';
+}
 
 let _shfData = null, _shfSes = null, _shfPrs = [];
 let _shfPhoto = null;              // Image-Objekt oder null (→ Gradient-Card)
@@ -14643,10 +14660,10 @@ let _shfRendered = [];             // dataURL je Layout (Editor/Teilen-Cache)
 let _shfPosted = false;            // wurde als Post hochgeladen? (steuert Activity-Fallback)
 
 function _shfAccent() {
+  if (_shfPalIdx === -1 && _shfCustomCol) return _shfCustomCol;
   const pal = SHF_PALETTES[_shfPalIdx];
   if (pal && pal.accent) return pal.accent;
-  try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
-  catch(_) { return '#007AFF'; }
+  return _shfAppAcc();
 }
 function _shfRelTime(d) {
   const mins = Math.round((Date.now() - d.getTime()) / 60000);
@@ -14952,7 +14969,7 @@ function _shfRenderAll() {
 function startShareFlow(ses, prs, dayName) {
   _shfSes = ses; _shfPrs = prs || [];
   _shfData = _shfBuildData(ses, prs, dayName);
-  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false; _shfPalIdx = 0;
+  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false; _shfPalIdx = 0; _shfCustomCol = null;
   // Avatar fürs Canvas vorladen (nur data-URLs — Remote-URLs würden den Canvas tainten)
   const p = _shfData.photo;
   if (p && p.startsWith('data:')) {
@@ -15125,6 +15142,28 @@ function _shfSetPal(i) {
   document.querySelectorAll('#shf-pal .shf-sw').forEach((b, idx) => b.classList.toggle('on', idx === i));
 }
 
+/* Farbrad: natives Farb-Picker öffnen → beliebige Freifarbe für die Share-Card */
+function _shfOpenColorWheel() {
+  const inp = document.getElementById('shf-col-inp');
+  if (!inp) return;
+  if (!inp._bound) {
+    inp._bound = true;
+    const apply = () => _shfSetCustomCol(inp.value);
+    inp.addEventListener('input', apply);
+    inp.addEventListener('change', apply);
+  }
+  inp.click();   // öffnet das OS-Farbrad
+}
+function _shfSetCustomCol(hex) {
+  _shfCustomCol = hex; _shfPalIdx = -1; haptic(6);
+  _shfRenderAll();
+  const sw = document.getElementById('shf-swipe');
+  if (sw) [...sw.children].forEach((el, idx) => { const im = el.querySelector('img'); if (im && _shfRendered[idx]) im.src = _shfRendered[idx]; });
+  document.querySelectorAll('#shf-pal .shf-sw').forEach(b => b.classList.remove('on'));
+  const wb = document.querySelector('#shf-pal .shf-sw-wheel');
+  if (wb) { wb.classList.add('on'); wb.style.background = hex; }
+}
+
 /* ── Schritt 3: Layout-Swipe auf dem Foto ── */
 function _shfEditorStep() {
   _shfStopStream();
@@ -15142,7 +15181,10 @@ function _shfEditorStep() {
       </div>
     </div>
     <div class="shf-pal" id="shf-pal">
-      ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="${p.accent ? `background:${p.accent}` : 'background:conic-gradient(from 210deg,#007AFF,#8B5CF6,#FF2D78,#F5B301,#10B981,#007AFF)'}" aria-label="${p.name}"></button>`).join('')}
+      ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="background:${p.accent || _shfAppAcc()}" aria-label="${p.name}"></button>`).join('')}
+      <button class="shf-sw shf-sw-wheel${_shfPalIdx === -1 ? ' on' : ''}" onclick="_shfOpenColorWheel()" style="${_shfCustomCol ? `background:${_shfCustomCol}` : 'background:conic-gradient(from 210deg,#FF2D78,#F5B301,#10B981,#06B6D4,#8B5CF6,#FF2D78)'}" aria-label="${tr('Farbe wählen')}"></button>
+      <input type="color" id="shf-col-inp" value="${_shfCustomCol || _shfAppAcc()}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0">
+    </div>
     </div>
     <div class="shf-cta">
       <button class="shf-btn ghost" style="flex:0 0 auto;padding:14px 18px" onclick="_shfCameraStep()" aria-label="${tr('Foto')}">${ICO.camera({ s: 24 })}</button>
