@@ -3829,11 +3829,17 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvl-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:800;
   vertical-align:1px;letter-spacing:.2px;background:rgba(var(--acc-rgb),.16);color:var(--acc)}
 .cpg-head .lvl-tag{background:rgba(255,255,255,.22);color:#fff}
-/* Punkte-Ticker (fliegt beim Training-Ende ins Header-Badge) */
-.xp-fly{position:fixed;z-index:4000;font-size:20px;font-weight:900;color:var(--acc);letter-spacing:.3px;
-  pointer-events:none;text-shadow:0 2px 12px rgba(var(--acc-rgb),.55);opacity:1;
-  transition:transform .74s cubic-bezier(.4,0,.2,1),opacity .74s ease-in}
-@media (prefers-reduced-motion:reduce){.xp-fly{transition-duration:.2s}.lvl-badge.bump{animation:none}}
+/* Punkte-Ticker (beim Training-Ende): zentrale Pille + Punkte-Partikel ins Badge */
+.xp-pill{position:fixed;z-index:4001;transform:translate(-50%,-50%) scale(.55);opacity:0;
+  padding:11px 20px;border-radius:999px;font-size:17px;font-weight:900;color:#fff;white-space:nowrap;pointer-events:none;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.96),rgba(var(--acc-rgb),.72));
+  box-shadow:0 10px 34px rgba(var(--acc-rgb),.55),0 0 0 1px rgba(255,255,255,.14) inset;
+  transition:transform .7s cubic-bezier(.34,1.4,.5,1),opacity .7s ease}
+.xp-pill.in{transform:translate(-50%,-50%) scale(1);opacity:1}
+.xp-dot{position:fixed;z-index:4000;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
+  background:var(--acc);box-shadow:0 0 9px rgba(var(--acc-rgb),.9);pointer-events:none;opacity:1;
+  transition:transform .8s cubic-bezier(.4,0,.2,1),opacity .8s ease-in}
+@media (prefers-reduced-motion:reduce){.xp-pill,.xp-dot{transition-duration:.25s}.lvl-badge.bump{animation:none}}
 .frp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .frp-stat{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:13px 14px}
 .frp-stat-v{font-size:19px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
@@ -5766,7 +5772,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607180004';
+const APP_VERSION = 'gymtrack-v202607180005';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5798,7 +5804,7 @@ const I18N_EN = {
   'Gründer von MyGymTrack':'Founder of MyGymTrack',
   'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
   'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
-  'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now',
+  'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
   'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',
@@ -14464,10 +14470,10 @@ function finishWk() {
   const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
   S.sessions.push(_newSess);
   persist();
-  // Gamification: Punkte-Ticker fliegt ins Header-Badge, Vibration, Zahl zählt
-  // hoch, danach ggf. Level-Up feiern (verzögert, damit es nicht mit der
-  // PR-/Streak-Konfetti-Feier kollidiert).
-  setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 650);
+  // Gamification: Punkte-Ticker NICHT hier feuern — er läuft sonst unsichtbar
+  // hinter dem Share-/Snap-Flow. Nur vormerken; ausgelöst wird er, sobald der
+  // Share-Flow geschlossen ist (_shfExit).
+  _xpGainPending = true;
   // Trainingstag-Name für die Share-Card sichern, BEVOR die Plan-Quelle genullt wird
   let _shareDayName = null;
   try {
@@ -15075,6 +15081,9 @@ function _shfExit() {
   // Nicht als Post geteilt → Training wie bisher als Text-Activity in den Feed
   if (!_shfPosted && _shfSes) { try { _socLogActivity(_shfSes, _shfPrs); } catch(_) {} }
   _shfSes = null; _shfPhoto = null; _shfRendered = [];
+  // Punkte-Ticker jetzt zeigen (Share-Flow ist geschlossen). Kurz warten, bis
+  // das Sheet weg-animiert ist, damit der Ticker frei nach oben fliegt.
+  if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 420); }
 }
 
 /* ── Schritt 1: Layout-Rattle (Glücksrad-Auslauf + Haptik-Ticks) ── */
@@ -16845,7 +16854,7 @@ function _demoCard(p){
   return `<div class="fr-card${online?' live':''}">
     <div class="fr-ava-wrap"><div class="fr-ava">${_socInitials(p.name)}</div><div class="fr-dot${online?' on':''}"></div></div>
     <div style="flex:1;min-width:0">
-      <div class="fr-name"><span>${esc(p.name)}</span></div>
+      <div class="fr-name"><span>${esc(p.name)}</span>${_lvlPillFor(p)}</div>
       ${sub}
       <div class="fr-pills">
         <span class="fr-pill">${wses}× diese Woche</span>
@@ -16873,7 +16882,6 @@ function _renderDemoFeed(body){
 }
 function _renderDemoBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
-      <button class="soc-chip${_socMetric==='xp'?' on':''}" onclick="setSocMetric('xp')">Level</button>
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
       <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
       <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
@@ -16891,7 +16899,7 @@ function _renderDemoBoard(body){
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
       <div class="soc-ava">${_socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
-        <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${p.uid==='demo-me'?' (du)':''}</div>
+        <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${_lvlPillFor(p)}${p.uid==='demo-me'?' (du)':''}</div>
         <div class="soc-sub">${_socMetric==='xp'?tr('Level')+' '+_levelOf(p._v).level:(p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
@@ -17089,7 +17097,6 @@ function _socFmtVal(v){
 }
 async function _renderSocBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
-      <button class="soc-chip${_socMetric==='xp'?' on':''}" onclick="setSocMetric('xp')">Level</button>
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
       <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
       <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
@@ -17114,7 +17121,7 @@ async function _renderSocBoard(body){
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
       <div class="soc-ava">${p.photo?`<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">`:_socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
-        <div class="soc-name">${esc(p.name||'')}${_founderTag(p.uid)}${p.uid===_fbUser.uid?' (du)':''}</div>
+        <div class="soc-name">${esc(p.name||'')}${_founderTag(p.uid)}${_lvlPillFor(p)}${p.uid===_fbUser.uid?' (du)':''}</div>
         <div class="soc-sub">${_socMetric==='xp' ? tr('Level')+' '+_levelOf(p._v).level : (p.gymName ? esc(p.gymName) : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
@@ -17182,7 +17189,7 @@ function _frCardHTML(p){
   return `<div class="fr-card${live?' live':''}" onclick="openFrProfile('${p.uid}')">
     <div class="fr-ava-wrap"><div class="fr-ava">${ava}</div><div class="fr-dot${online?' on':''}"></div></div>
     <div style="flex:1;min-width:0">
-      <div class="fr-name"><span>${esc(p.name||'')}</span></div>
+      <div class="fr-name"><span>${esc(p.name||'')}</span>${_founderTag(p.uid)}${_lvlPillFor(p)}</div>
       ${sub}
       <div class="fr-pills">
         <span class="fr-pill">${wses}× diese Woche</span>
@@ -17435,24 +17442,32 @@ function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Fr
 }
 /* Punkte-Schwelle für ein Level — quadratisch wachsende Schritte:
    L1=0, L2=300, L3=900, L4=1800, L5=3000, L6=4500 … (= 150·L·(L−1)). */
+const MAX_LEVEL = 100;
 function _lvlMin(L){ return 150 * L * (L - 1); }
 function _levelOf(pts){
   let L = Math.floor((1 + Math.sqrt(1 + pts / 37.5)) / 2);
   if (!(L >= 1)) L = 1;
-  const base = _lvlMin(L), next = _lvlMin(L + 1);
-  const pct = Math.max(3, Math.min(100, Math.round((pts - base) / (next - base) * 100)));
-  return { level:L, pts, base, next, toGo: next - pts, pct };
+  if (L > MAX_LEVEL) L = MAX_LEVEL;
+  const max = L >= MAX_LEVEL;
+  const base = _lvlMin(L), next = max ? base : _lvlMin(L + 1);
+  const pct = max ? 100 : Math.max(3, Math.min(100, Math.round((pts - base) / (next - base) * 100)));
+  return { level:L, pts, base, next, toGo: max ? 0 : (next - pts), pct, max };
 }
 /* Level-Zahl eines Profils. Rückwärtskompatibel: nimmt Profil ODER Punkte-Zahl. */
 function _socLevel(p){
   const pts = (p && typeof p === 'object') ? _xpOf(p) : (+p || 0);
   return _levelOf(pts).level;
 }
-/* „Lv N"-Tag neben Namen in der Community (Level aus Cache/eigenen Daten). */
+/* „Lv N"-Tag neben Namen — Level aus Cache/eigenen Daten (nach uid). */
 function _lvlTagForUid(uid){
   if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">Lv ${_levelOf(_xpSelf()).level}</span>`;
   const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null;
   return p ? `<span class="lvl-tag">Lv ${_socLevel(p)}</span>` : '';
+}
+/* „Lv N"-Tag aus einem Profil-Objekt (für Freunde-/Rang-Listen; self exakt). */
+function _lvlPillFor(p){
+  const lv = (p && p.uid && p.uid === _fbUser?.uid) ? _levelOf(_xpSelf()).level : _socLevel(p);
+  return `<span class="lvl-tag">Lv ${lv}</span>`;
 }
 /* Header-Badge (Startseite, neben der Flamme). */
 function _renderLevelBadge(){
@@ -17467,9 +17482,10 @@ function _renderLevelBadge(){
 /* Eigene Level-Karte (Community-Übersicht). */
 function _selfLevelCardHTML(){
   const L = _levelOf(_xpSelf());
-  const sub = (GT_LANG === 'en')
-    ? _fmtXP(L.toGo) + ' points → Level ' + (L.level + 1)
-    : 'Noch ' + _fmtXP(L.toGo) + ' Punkte → Level ' + (L.level + 1);
+  const sub = L.max ? tr('Maximales Level erreicht')
+    : (GT_LANG === 'en'
+      ? _fmtXP(L.toGo) + ' points → Level ' + (L.level + 1)
+      : 'Noch ' + _fmtXP(L.toGo) + ' Punkte → Level ' + (L.level + 1));
   return `<div class="lvl-card" onclick="openLevelInfo()">
     <div class="lvl-top">
       <span class="lvl-rank">${tr('Level')} ${L.level}</span>
@@ -17484,7 +17500,7 @@ function openLevelInfo(){
   haptic(8);
   const L = _levelOf(_xpSelf());
   const steps = [];
-  for (let l = Math.max(1, L.level - 1); l <= L.level + 3; l++) steps.push(l);
+  for (let l = Math.max(1, L.level - 1); l <= Math.min(MAX_LEVEL, L.level + 3); l++) steps.push(l);
   const ladder = steps.map(l => `
     <div class="lvl-step${l === L.level ? ' on' : ''}">
       <span class="s-name">${tr('Level')} ${l}</span>
@@ -17495,7 +17511,7 @@ function openLevelInfo(){
     <div class="lvl-card" style="margin:0 0 16px">
       <div class="lvl-top"><span class="lvl-rank">${tr('Level')} ${L.level}</span><span class="lvl-xp">${_fmtXP(L.pts)} ${tr('Punkte')}</span></div>
       <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
-      <div class="lvl-sub">${GT_LANG==='en'?_fmtXP(L.toGo)+' points → Level '+(L.level+1):'Noch '+_fmtXP(L.toGo)+' Punkte → Level '+(L.level+1)}</div>
+      <div class="lvl-sub">${L.max?tr('Maximales Level erreicht'):(GT_LANG==='en'?_fmtXP(L.toGo)+' points → Level '+(L.level+1):'Noch '+_fmtXP(L.toGo)+' Punkte → Level '+(L.level+1))}</div>
     </div>
     <div class="lvl-ladder">${ladder}</div>
     <div class="lvl-xp-rules">${tr('So sammelst du Punkte')}:<br>
@@ -17516,35 +17532,50 @@ function _celebrateLevelUp(L){
 }
 /* Punkte-Ticker: fliegt beim Training-Ende von unten nach oben ins Header-Badge,
    Vibration + Zahl zählt hoch. */
+let _xpGainPending = false;
 function _countUp(el, from, to, ms){
   if (!el) return;
   const t0 = performance.now();
   (function step(t){ const k = Math.min(1, (t - t0) / ms); const v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); el.textContent = _fmtXP(v); if (k < 1) requestAnimationFrame(step); })(t0);
 }
+/* Punkte-Ticker: zentrale „+100"-Pille poppt auf, Punkte-Partikel strömen ins
+   Header-Badge, Vibration, Zahl zählt hoch, danach ggf. Level-Up-Feier. */
 function _xpGainOnFinish(){
   const gain = PTS_PER.workout;
+  const badge = document.getElementById('lvl-badge-el');
+  const rc = badge ? badge.getBoundingClientRect() : null;
+  const tgt = (rc && rc.width) ? { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 } : { x: window.innerWidth - 46, y: 66 };
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.5;
   try {
-    const badge = document.getElementById('lvl-badge-el');
-    const rc = badge ? badge.getBoundingClientRect() : null;
-    const t = (rc && rc.width) ? { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 } : { x: window.innerWidth - 46, y: 66 };
-    const chip = document.createElement('div');
-    chip.className = 'xp-fly'; chip.textContent = '+' + gain;
-    document.body.appendChild(chip);
-    const sx = window.innerWidth / 2 - 18, sy = window.innerHeight - 150;
-    chip.style.left = sx + 'px'; chip.style.top = sy + 'px';
-    requestAnimationFrame(() => { chip.style.transform = `translate(${t.x - 18 - sx}px, ${t.y - 12 - sy}px) scale(.62)`; chip.style.opacity = '0'; });
-    setTimeout(() => { try { chip.remove(); } catch(_){} }, 780);
+    // zentrale Pille: aufpoppen, kurz halten, dann nach oben ins Badge schrumpfen
+    const pill = document.createElement('div');
+    pill.className = 'xp-pill'; pill.textContent = '+' + gain + ' ' + tr('Punkte');
+    pill.style.left = cx + 'px'; pill.style.top = cy + 'px';
+    document.body.appendChild(pill);
+    requestAnimationFrame(() => pill.classList.add('in'));
+    setTimeout(() => { pill.style.transform = `translate(calc(-50% + ${tgt.x - cx}px), calc(-50% + ${tgt.y - cy}px)) scale(.32)`; pill.style.opacity = '0'; }, 640);
+    setTimeout(() => { try { pill.remove(); } catch(_){} }, 1400);
+    // einzelne Punkte-Partikel, die nach oben ins Badge fliegen
+    for (let i = 0; i < 7; i++) {
+      const dot = document.createElement('div'); dot.className = 'xp-dot';
+      dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
+      document.body.appendChild(dot);
+      const jx = (i - 3) * 14;
+      requestAnimationFrame(() => { dot.style.transform = `translate(calc(-50% + ${tgt.x - cx + jx}px), calc(-50% + ${tgt.y - cy}px)) scale(.4)`; dot.style.opacity = '0'; });
+      setTimeout(() => { try { dot.remove(); } catch(_){} }, 1000 + i * 30);
+    }
   } catch(_){}
-  try { haptic([12, 28, 55]); } catch(_){}
+  try { haptic([10, 25, 10, 25, 45]); } catch(_){}
+  // Badge hochzählen + Bump, sobald die Punkte „ankommen"
   setTimeout(() => {
     const newPts = _xpSelf();
     _renderLevelBadge();
-    const badge = document.getElementById('lvl-badge-el');
-    if (badge) { badge.classList.add('bump'); setTimeout(() => badge.classList.remove('bump'), 520); }
-    _countUp(document.getElementById('lvl-badge-pts'), Math.max(0, newPts - gain), newPts, 700);
-    try { haptic(18); } catch(_){}
+    const b = document.getElementById('lvl-badge-el');
+    if (b) { b.classList.add('bump'); setTimeout(() => b.classList.remove('bump'), 520); }
+    _countUp(document.getElementById('lvl-badge-pts'), Math.max(0, newPts - gain), newPts, 720);
+    try { haptic(22); } catch(_){}
     try { _checkLevelUp(); } catch(_){}
-  }, 700);
+  }, 1120);
 }
 /* ── Freundes-Profil ── */
 async function openFrProfile(uid){
