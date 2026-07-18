@@ -3790,6 +3790,50 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Freundes-Profil-Sheet */
 .frp-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0 16px}
 .frp-level{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--soft);color:var(--acc);font-size:12.5px;font-weight:800;border-radius:10px;padding:5px 11px;letter-spacing:.4px;text-transform:uppercase}
+.frp-level .lvl-dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
+.frp-level .frp-xp{opacity:.7;font-weight:700}
+/* Gründer-Banner auf dem Profil-Header */
+.frp-founder{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 14px;border-radius:12px;
+  font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:#fff;
+  background:linear-gradient(90deg,#22e6ff,#a855ff,#ff2fd0);box-shadow:0 4px 16px rgba(168,85,255,.4)}
+.frp-founder .founder-badge{animation:none;filter:drop-shadow(0 0 3px rgba(255,255,255,.85))}
+/* ── XP / Level-Karte (Gamification) ── */
+.lvl-card{background:var(--gl-bg,rgba(120,120,128,.1));border:1px solid var(--gl-bdr,rgba(120,120,128,.16));border-radius:18px;padding:14px 16px;margin-bottom:14px;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.lvl-card:active{transform:scale(.99)}
+.lvl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.lvl-rank{display:inline-flex;align-items:center;gap:8px;font-size:15.5px;font-weight:900;letter-spacing:.2px;color:var(--rc,var(--acc))}
+.lvl-rank .lvl-dot{width:11px;height:11px;border-radius:50%;background:var(--rc,var(--acc));box-shadow:0 0 9px var(--rc,var(--acc));flex-shrink:0}
+.lvl-xp{font-size:13px;font-weight:800;color:var(--text2);white-space:nowrap}
+.lvl-bar{height:9px;border-radius:6px;background:var(--gl-bg-t,rgba(120,120,128,.2));overflow:hidden}
+.lvl-fill{height:100%;border-radius:6px;background:var(--acc);transition:width .55s cubic-bezier(.32,1,.32,1)}
+.lvl-sub{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--text2)}
+/* Level-Info-Sheet: Level-Leiter */
+.lvl-ladder{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.lvl-step{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:14px;background:var(--gl-bg-t,rgba(120,120,128,.1));border:1px solid transparent}
+.lvl-step.on{border-color:rgba(var(--acc-rgb),.55);background:rgba(var(--acc-rgb),.08)}
+.lvl-step .s-name{flex:1;font-size:14.5px;font-weight:800}
+.lvl-step .s-xp{font-size:12.5px;font-weight:700;color:var(--text2)}
+.lvl-step.on .s-xp{color:var(--acc)}
+.lvl-xp-rules{margin-top:16px;font-size:12.5px;color:var(--text2);line-height:1.7}
+.lvl-xp-rules b{color:var(--text)}
+/* Header-Level-Badge (Startseite, neben der Flamme) — Stil analog Streak-Badge */
+.lvl-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.09));
+  border:1px solid rgba(var(--acc-rgb),.34);box-shadow:0 2px 10px rgba(var(--acc-rgb),.16);
+  font-size:13px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
+.lvl-badge-n{color:var(--acc);letter-spacing:.2px}
+.lvl-badge-pts{font-weight:700;color:var(--text2);font-size:12px}
+.lvl-badge.bump{animation:lvlBump .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes lvlBump{0%{transform:scale(1)}45%{transform:scale(1.16)}100%{transform:scale(1)}}
+/* „Lv N"-Tag neben Namen in der Community */
+.lvl-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:800;
+  vertical-align:1px;letter-spacing:.2px;background:rgba(var(--acc-rgb),.16);color:var(--acc)}
+.cpg-head .lvl-tag{background:rgba(255,255,255,.22);color:#fff}
+/* Punkte-Ticker (fliegt beim Training-Ende ins Header-Badge) */
+.xp-fly{position:fixed;z-index:4000;font-size:20px;font-weight:900;color:var(--acc);letter-spacing:.3px;
+  pointer-events:none;text-shadow:0 2px 12px rgba(var(--acc-rgb),.55);opacity:1;
+  transition:transform .74s cubic-bezier(.4,0,.2,1),opacity .74s ease-in}
+@media (prefers-reduced-motion:reduce){.xp-fly{transition-duration:.2s}.lvl-badge.bump{animation:none}}
 .frp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .frp-stat{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:13px 14px}
 .frp-stat-v{font-size:19px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
@@ -4042,6 +4086,13 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 }
 @keyframes fbShine{0%,100%{opacity:.35}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.founder-badge,.founder-badge .fb-shine{animation:none}}
+/* Gründer-Banner (Ribbon) am oberen Rand einer Gründer-Card */
+.cpg-founder{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:6px;
+  height:30px;font-size:11px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#fff;
+  background:linear-gradient(90deg,rgba(34,230,255,.94),rgba(168,85,255,.94),rgba(255,47,208,.94));
+  box-shadow:0 3px 14px rgba(168,85,255,.5);text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.cpg-founder .founder-badge{animation:none;filter:drop-shadow(0 0 3px rgba(255,255,255,.9))}
+.cpg-card.founder .cpg-head{top:40px}
 .cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:17px;letter-spacing:1px}
 .cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
 .cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
@@ -4103,6 +4154,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
   <div class="hdr heute-hdr">
     <div class="hdr-greet-row">
       <h1 id="greet-h">Heute</h1>
+      <div id="level-badge-host"></div>
       <div id="streak-badge-host"></div>
     </div>
     <div class="sub" id="greet-d"></div>
@@ -5240,6 +5292,15 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
   </div>
 </div>
 
+<!-- Level / XP-Info: Rang-Leiter + wie man XP sammelt -->
+<div class="ov" id="ov-lvlinfo" onclick="if(event.target===this)closeOv('ov-lvlinfo')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Dein Level</h2><button class="x-btn" onclick="closeOv('ov-lvlinfo')">✕</button></div>
+    <div id="lvlinfo-body" style="padding:0 20px 26px"></div>
+  </div>
+</div>
+
 <!-- „…"-Menü pro Post: Melden / Ausblenden / Blockieren -->
 <div class="ov" id="ov-postmenu" onclick="if(event.target===this)closeOv('ov-postmenu')">
   <div class="sheet">
@@ -5705,7 +5766,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607180003';
+const APP_VERSION = 'gymtrack-v202607180004';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5734,6 +5795,11 @@ const I18N_EN = {
   'Community aus':'Community off',
   'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
   'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…','Gründer':'Founder',
+  'Gründer von MyGymTrack':'Founder of MyGymTrack',
+  'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
+  'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
+  'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now',
+  'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',
   'Lade Feed…':'Loading feed…','Feed konnte nicht geladen werden':'Couldn’t load the feed',
@@ -5748,7 +5814,7 @@ const I18N_EN = {
   'Nutzer blockieren':'Block user','Danke! Der Beitrag wurde gemeldet.':'Thanks! The post has been reported.',
   'Nutzer blockieren? Seine Beiträge verschwinden aus deinem Feed.':'Block this user? Their posts will disappear from your feed.',
   'Diesen Beitrag löschen?':'Delete this post?',
-  'Reaktionen':'Reactions','Jemand':'Someone','feiert dein Training':'cheered your workout',
+  'Reaktionen':'Reactions','Jemand':'Someone','feiert dein Training':'cheered your workout','Neue Flamme':'New flame',
   'Noch keine Reaktionen.':'No reactions yet.','Teile ein Training — Flammen landen hier.':'Share a workout — flames land here.',
   'Heute':'Today','Übungen':'Exercises','Statistik':'Stats','Einstellungen':'Settings','Freunde':'Friends',
   'Training':'Workout','Speichern':'Save','Abbrechen':'Cancel','Bearbeiten':'Edit','Entfernen':'Remove',
@@ -8539,6 +8605,7 @@ function renderHome() {
   document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString(GT_LOCALE,{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
+  _renderLevelBadge();
   renderHeuteGrid();
 }
 
@@ -14397,6 +14464,10 @@ function finishWk() {
   const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
   S.sessions.push(_newSess);
   persist();
+  // Gamification: Punkte-Ticker fliegt ins Header-Badge, Vibration, Zahl zählt
+  // hoch, danach ggf. Level-Up feiern (verzögert, damit es nicht mit der
+  // PR-/Streak-Konfetti-Feier kollidiert).
+  setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 650);
   // Trainingstag-Name für die Share-Card sichern, BEVOR die Plan-Quelle genullt wird
   let _shareDayName = null;
   try {
@@ -16785,9 +16856,10 @@ function _demoCard(p){
   </div>`;
 }
 function _renderDemoOverview(body){
+  try { _checkLevelUp(true); } catch(_){}
   const profs = _DEMO_ROSTER.map(_demoProfile);
   profs.sort((a,b)=> (b.live&&b.live.on?2:0)-(a.live&&a.live.on?2:0) || (b.lastWk||0)-(a.lastWk||0));
-  body.innerHTML = `<div id="fr-list">${profs.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')}</div>`;
+  body.innerHTML = `${_selfLevelCardHTML()}<div id="fr-list">${profs.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')}</div>`;
 }
 function _renderDemoFeed(body){
   body.innerHTML = `<div id="feed-list">${_DEMO_FEED.map(a=>`
@@ -16801,6 +16873,7 @@ function _renderDemoFeed(body){
 }
 function _renderDemoBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
+      <button class="soc-chip${_socMetric==='xp'?' on':''}" onclick="setSocMetric('xp')">Level</button>
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
       <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
       <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
@@ -16808,7 +16881,8 @@ function _renderDemoBoard(body){
     </div><div id="soc-board"></div>`;
   const wk = getWeekKey();
   const rows = [..._DEMO_ROSTER, _demoMe()].map(_demoProfile).map(p=>({ ...p, _v:_socVal(p, wk) })).sort((a,b)=>b._v-a._v);
-  const hint = _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
+  const hint = _socMetric==='xp' ? 'Level steigt mit Trainings, Streak & Flammen.'
+             : _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
              : _socMetric==='monat'  ? 'Monats-Ranking — zählt Trainings im ' + new Date().toLocaleDateString(GT_LOCALE,{month:'long'}) + '.'
              : 'Rangliste zählt die aktuelle Woche (Mo–So).';
   const el = document.getElementById('soc-board');
@@ -16817,8 +16891,8 @@ function _renderDemoBoard(body){
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
       <div class="soc-ava">${_socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
-        <div class="soc-name">${esc(p.name)}${p.uid==='demo-me'?' (du)':''}</div>
-        <div class="soc-sub">${p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum')}</div>
+        <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${p.uid==='demo-me'?' (du)':''}</div>
+        <div class="soc-sub">${_socMetric==='xp'?tr('Level')+' '+_levelOf(p._v).level:(p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
     </div>`).join('') + `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>`;
@@ -17001,18 +17075,21 @@ async function saveProfileEdit(){
 
 function _monthKey(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function _socVal(p, wk){
+  if (_socMetric === 'xp') return (p.uid === _fbUser?.uid) ? _xpSelf() : _xpOf(p);
   if (_socMetric === 'streak') return p.streak || 0;
   if (_socMetric === 'monat') return (p.month && p.month.key === _monthKey()) ? (p.month.ses || 0) : 0;
   if (!p.week || p.week.key !== wk) return 0;
   return _socMetric === 'vol' ? (p.week.vol || 0) : (p.week.ses || 0);
 }
 function _socFmtVal(v){
+  if (_socMetric === 'xp') return _fmtXP(v) + ' XP';
   if (_socMetric === 'vol') return fmtKg(v);
   if (_socMetric === 'ses' || _socMetric === 'monat') return v + '×';
   return v + ' Wo.';
 }
 async function _renderSocBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
+      <button class="soc-chip${_socMetric==='xp'?' on':''}" onclick="setSocMetric('xp')">Level</button>
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
       <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
       <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
@@ -17028,7 +17105,8 @@ async function _renderSocBoard(body){
   }
   const wk = getWeekKey();
   const rows = profs.map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a,b) => b._v - a._v);
-  const hint = _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
+  const hint = _socMetric==='xp' ? 'Level steigt mit Trainings, Streak & Flammen.'
+             : _socMetric==='streak' ? 'Streak zählt Trainingswochen in Folge.'
              : _socMetric==='monat'  ? 'Monats-Ranking — zählt Trainings im ' + new Date().toLocaleDateString(GT_LOCALE,{month:'long'}) + '.'
              : 'Rangliste zählt die aktuelle Woche (Mo–So).';
   el.innerHTML = rows.map((p,i) => `
@@ -17036,8 +17114,8 @@ async function _renderSocBoard(body){
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
       <div class="soc-ava">${p.photo?`<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">`:_socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
-        <div class="soc-name">${esc(p.name||'')}${p.uid===_fbUser.uid?' (du)':''}</div>
-        <div class="soc-sub">${p.gymName ? esc(p.gymName) : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum')}</div>
+        <div class="soc-name">${esc(p.name||'')}${_founderTag(p.uid)}${p.uid===_fbUser.uid?' (du)':''}</div>
+        <div class="soc-sub">${_socMetric==='xp' ? tr('Level')+' '+_levelOf(p._v).level : (p.gymName ? esc(p.gymName) : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
     </div>`).join('') +
@@ -17063,7 +17141,8 @@ function _updateFrBadges(){
   });
 }
 async function _renderFrOverview(body){
-  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
+  try { _checkLevelUp(true); } catch(_){}   // Rang-Index seeden (kein Fake-Level-Up beim ersten Öffnen)
+  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>${_selfLevelCardHTML()}<div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
   _frListDrawn = false;   /* Einblend-Animation nur beim ersten Aufbau, nicht bei Live-Updates */
   _initFrPull(body);
   _loadRequests().then(r => _renderFrReqs(r.inc));
@@ -17336,14 +17415,138 @@ async function showFrQR(){
   host.innerHTML = '<div id="fr-qr"></div><div class="soc-empty" style="padding:8px 0 0;font-size:12.5px">Mit der iPhone-Kamera scannen — öffnet MyGymTrack mit deinem Code.</div>';
   new QRCode(document.getElementById('fr-qr'), { text:'https://lenny23445.github.io/Gymtrack/?add=' + _socCode(), width:150, height:150, correctLevel:QRCode.CorrectLevel.M });
 }
-/* ── Freundes-Profil ── */
-function _socLevel(total){
-  if (total >= 300) return 'Elite';
-  if (total >= 150) return 'Gold';
-  if (total >= 75)  return 'Silber';
-  if (total >= 25)  return 'Bronze';
-  return 'Einsteiger';
+/* ── Gamification: Level & Punkte ──────────────────────────
+   Punkte komplett client-seitig aus vorhandenen Daten (kein Firestore-Feld,
+   keine Rules-Änderung). Bewusst clean: numerische Level, keine Spiel-Symbole.
+   Zuletzt erreichtes Level in separatem localStorage-Key 'gt_level'
+   (nicht in S → umgeht die users-hasOnly-Regel). */
+const PTS_PER = { workout:100, streakWk:50, flame:20 };
+function _fmtXP(v){ try { return Math.round(v).toLocaleString(GT_LOCALE); } catch(_) { return String(Math.round(v)); } }
+function _xpOf(p){   // Punkte eines fremden Profils (nur öffentlich sichtbare Felder)
+  const total = (p && p.stats && p.stats.total) || 0;
+  const streak = (p && p.streak) || 0;
+  return total*PTS_PER.workout + streak*PTS_PER.streakWk;
 }
+function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Freigabe)
+  const total = (S.sessions || []).length;
+  let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
+  const flames = Array.isArray(_flMyPosts) ? _flMyPosts.length : 0;
+  return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame;
+}
+/* Punkte-Schwelle für ein Level — quadratisch wachsende Schritte:
+   L1=0, L2=300, L3=900, L4=1800, L5=3000, L6=4500 … (= 150·L·(L−1)). */
+function _lvlMin(L){ return 150 * L * (L - 1); }
+function _levelOf(pts){
+  let L = Math.floor((1 + Math.sqrt(1 + pts / 37.5)) / 2);
+  if (!(L >= 1)) L = 1;
+  const base = _lvlMin(L), next = _lvlMin(L + 1);
+  const pct = Math.max(3, Math.min(100, Math.round((pts - base) / (next - base) * 100)));
+  return { level:L, pts, base, next, toGo: next - pts, pct };
+}
+/* Level-Zahl eines Profils. Rückwärtskompatibel: nimmt Profil ODER Punkte-Zahl. */
+function _socLevel(p){
+  const pts = (p && typeof p === 'object') ? _xpOf(p) : (+p || 0);
+  return _levelOf(pts).level;
+}
+/* „Lv N"-Tag neben Namen in der Community (Level aus Cache/eigenen Daten). */
+function _lvlTagForUid(uid){
+  if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">Lv ${_levelOf(_xpSelf()).level}</span>`;
+  const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null;
+  return p ? `<span class="lvl-tag">Lv ${_socLevel(p)}</span>` : '';
+}
+/* Header-Badge (Startseite, neben der Flamme). */
+function _renderLevelBadge(){
+  const host = document.getElementById('level-badge-host');
+  if (!host) return;
+  if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
+  const L = _levelOf(_xpSelf());
+  host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
+    <span class="lvl-badge-n">Lv ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+  </div>`;
+}
+/* Eigene Level-Karte (Community-Übersicht). */
+function _selfLevelCardHTML(){
+  const L = _levelOf(_xpSelf());
+  const sub = (GT_LANG === 'en')
+    ? _fmtXP(L.toGo) + ' points → Level ' + (L.level + 1)
+    : 'Noch ' + _fmtXP(L.toGo) + ' Punkte → Level ' + (L.level + 1);
+  return `<div class="lvl-card" onclick="openLevelInfo()">
+    <div class="lvl-top">
+      <span class="lvl-rank">${tr('Level')} ${L.level}</span>
+      <span class="lvl-xp">${_fmtXP(L.pts)} ${tr('Punkte')}</span>
+    </div>
+    <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
+    <div class="lvl-sub">${sub}</div>
+  </div>`;
+}
+/* Level-Info-Sheet: aktuelle Stufe + kommende Level + Punkte-Regeln. */
+function openLevelInfo(){
+  haptic(8);
+  const L = _levelOf(_xpSelf());
+  const steps = [];
+  for (let l = Math.max(1, L.level - 1); l <= L.level + 3; l++) steps.push(l);
+  const ladder = steps.map(l => `
+    <div class="lvl-step${l === L.level ? ' on' : ''}">
+      <span class="s-name">${tr('Level')} ${l}</span>
+      <span class="s-xp">${l === L.level ? tr('Aktuell') + ' · ' : ''}${_fmtXP(_lvlMin(l))} ${tr('Punkte')}</span>
+    </div>`).join('');
+  const body = document.getElementById('lvlinfo-body');
+  if (body) body.innerHTML = `
+    <div class="lvl-card" style="margin:0 0 16px">
+      <div class="lvl-top"><span class="lvl-rank">${tr('Level')} ${L.level}</span><span class="lvl-xp">${_fmtXP(L.pts)} ${tr('Punkte')}</span></div>
+      <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
+      <div class="lvl-sub">${GT_LANG==='en'?_fmtXP(L.toGo)+' points → Level '+(L.level+1):'Noch '+_fmtXP(L.toGo)+' Punkte → Level '+(L.level+1)}</div>
+    </div>
+    <div class="lvl-ladder">${ladder}</div>
+    <div class="lvl-xp-rules">${tr('So sammelst du Punkte')}:<br>
+      <b>+${PTS_PER.workout}</b> ${tr('pro Training')} · <b>+${PTS_PER.streakWk}</b> ${tr('pro Streak-Woche')} · <b>+${PTS_PER.flame}</b> ${tr('pro erhaltener Flamme')}</div>`;
+  openOv('ov-lvlinfo');
+}
+function _checkLevelUp(silent){
+  const L = _levelOf(_xpSelf()).level;
+  let raw = null; try { raw = localStorage.getItem('gt_level'); } catch(_){}
+  const prev = (raw == null) ? L : (parseInt(raw,10) || 1);
+  try { localStorage.setItem('gt_level', String(L)); } catch(_){}
+  if (raw != null && !silent && L > prev) _celebrateLevelUp(L);
+}
+function _celebrateLevelUp(L){
+  try { fireConfetti(90); } catch(_){}
+  try { haptic([20,40,20,40,30]); } catch(_){}
+  try { showUpdateToast(tr('Level up! Du bist jetzt') + ' ' + tr('Level') + ' ' + L, { autoHide:4200 }); } catch(_){}
+}
+/* Punkte-Ticker: fliegt beim Training-Ende von unten nach oben ins Header-Badge,
+   Vibration + Zahl zählt hoch. */
+function _countUp(el, from, to, ms){
+  if (!el) return;
+  const t0 = performance.now();
+  (function step(t){ const k = Math.min(1, (t - t0) / ms); const v = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); el.textContent = _fmtXP(v); if (k < 1) requestAnimationFrame(step); })(t0);
+}
+function _xpGainOnFinish(){
+  const gain = PTS_PER.workout;
+  try {
+    const badge = document.getElementById('lvl-badge-el');
+    const rc = badge ? badge.getBoundingClientRect() : null;
+    const t = (rc && rc.width) ? { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 } : { x: window.innerWidth - 46, y: 66 };
+    const chip = document.createElement('div');
+    chip.className = 'xp-fly'; chip.textContent = '+' + gain;
+    document.body.appendChild(chip);
+    const sx = window.innerWidth / 2 - 18, sy = window.innerHeight - 150;
+    chip.style.left = sx + 'px'; chip.style.top = sy + 'px';
+    requestAnimationFrame(() => { chip.style.transform = `translate(${t.x - 18 - sx}px, ${t.y - 12 - sy}px) scale(.62)`; chip.style.opacity = '0'; });
+    setTimeout(() => { try { chip.remove(); } catch(_){} }, 780);
+  } catch(_){}
+  try { haptic([12, 28, 55]); } catch(_){}
+  setTimeout(() => {
+    const newPts = _xpSelf();
+    _renderLevelBadge();
+    const badge = document.getElementById('lvl-badge-el');
+    if (badge) { badge.classList.add('bump'); setTimeout(() => badge.classList.remove('bump'), 520); }
+    _countUp(document.getElementById('lvl-badge-pts'), Math.max(0, newPts - gain), newPts, 700);
+    try { haptic(18); } catch(_){}
+    try { _checkLevelUp(); } catch(_){}
+  }, 700);
+}
+/* ── Freundes-Profil ── */
 async function openFrProfile(uid){
   haptic(8);
   const p = (_socCache||[]).find(x => x.uid === uid); if (!p) return;
@@ -17370,9 +17573,10 @@ async function openFrProfile(uid){
         <div class="fr-ava lg">${p.photo?`<img src="${esc(p.photo)}" alt="">`:_socInitials(p.name)}</div>
         <div class="fr-dot${live||_frPresence[uid]?' on':''}" style="width:17px;height:17px"></div>
       </div>
-      <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}</div>
+      <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}${_founderTag(uid, 18)}</div>
       ${p.gymName ? `<div class="fr-sub" style="justify-content:center">${esc(p.gymName)}</div>` : ''}
-      <div class="frp-level">${_socLevel(st?.total||0)}</div>
+      ${uid === FOUNDER_UID ? `<div class="frp-founder">${_founderBadge(14)}<span>${tr('Gründer von MyGymTrack')}</span></div>` : ''}
+      <div class="frp-level" onclick="event.stopPropagation()">${tr('Level')} ${_socLevel(p)}<span class="frp-xp">${_fmtXP(_xpOf(p))} ${tr('Punkte')}</span></div>
       ${live ? `<div style="margin-top:10px"><span class="fr-live-badge"><span class="fr-live-dot"></span>Trainiert gerade${p.live.gym?' · '+esc(p.live.gym):''}</span></div>` : ''}
     </div>
     <div class="frp-grid">${stats.map(s => `<div class="frp-stat"><div class="frp-stat-v">${s[0]}</div><div class="frp-stat-l">${s[1]}</div></div>`).join('')}</div>
@@ -17554,13 +17758,15 @@ function _cpgCardHTML(it, pos){
   const d = new Date(it.ts || Date.now());
   const vdate = (d.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}) + ' · ' + d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'})).toUpperCase();
   const ava = it.photo ? `<img src="${esc(it.photo)}" alt="">` : _socInitials(it.name);
-  return `<div class="cpg-card ${pos}" data-i="${it._i}">
+  const isFounder = it.uid === FOUNDER_UID;
+  return `<div class="cpg-card ${pos}${isFounder ? ' founder' : ''}" data-i="${it._i}">
     ${bg}
     <div class="cpg-grad"></div>
+    ${isFounder ? `<div class="cpg-founder">${_founderBadge(13)}<span>${tr('Gründer von MyGymTrack')}</span></div>` : ''}
     <div class="cpg-water">MYGYMTRACK</div>
     <div class="cpg-head">
       <div class="cpg-ava">${ava}</div>
-      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
       <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}">…</button>
     </div>
     <div class="cpg-vdate">${vdate}</div>
@@ -18232,6 +18438,7 @@ initTabDrag();
 initPageSwipe();
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 maybeStartOnboarding();   // Ersteinrichtung für neue Nutzer
+try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
 if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
 // QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
 try {
