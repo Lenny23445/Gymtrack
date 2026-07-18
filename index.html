@@ -4030,6 +4030,18 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .cpg-head .n{flex:1;min-width:0}
 .cpg-head .n b{display:block;font-size:15px;text-shadow:0 1px 5px rgba(0,0,0,.5)}
 .cpg-head .n span{font-size:12px;opacity:.75}
+/* Gründer-Badge: Neon-Krone neben dem Namen (animiertes Glühen) */
+.founder-badge{display:inline-flex;align-items:center;vertical-align:-2px;margin-left:5px;line-height:0;
+  filter:drop-shadow(0 0 2px rgba(34,230,255,.95)) drop-shadow(0 0 6px rgba(168,85,255,.6));
+  animation:fbGlow 2.6s ease-in-out infinite}
+.founder-badge svg{display:block}
+.founder-badge .fb-shine{transform-origin:center;animation:fbShine 2.6s ease-in-out infinite}
+@keyframes fbGlow{
+  0%,100%{filter:drop-shadow(0 0 2px rgba(34,230,255,.95)) drop-shadow(0 0 6px rgba(34,230,255,.5))}
+  50%{filter:drop-shadow(0 0 4px rgba(255,47,208,1)) drop-shadow(0 0 11px rgba(255,47,208,.75))}
+}
+@keyframes fbShine{0%,100%{opacity:.35}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.founder-badge,.founder-badge .fb-shine{animation:none}}
 .cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:17px;letter-spacing:1px}
 .cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
 .cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
@@ -5693,7 +5705,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607180001';
+const APP_VERSION = 'gymtrack-v202607180003';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5721,7 +5733,7 @@ const I18N_EN = {
   'Nur dein Freundeskreis':'Only your friends','Öffentlich für alle MyGymTrack-Nutzer':'Public for all MyGymTrack users',
   'Community aus':'Community off',
   'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
-  'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…',
+  'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…','Gründer':'Founder',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',
   'Lade Feed…':'Loading feed…','Feed konnte nicht geladen werden':'Couldn’t load the feed',
@@ -14602,6 +14614,11 @@ const ICO = {
 };
 /* Flammen-Icon gefüllt (Reaction-Button/Verlauf) — eigenes Verlaufs-SVG. */
 function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="flg${s}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd24a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient></defs><path d="M12 2.5c.5 3.2-2 4.5-3.5 6.4C6.8 11.4 6.8 14.2 8.4 16.2 9.6 17.7 11 18.5 12 18.5s2.4-.8 3.6-2.3c1.6-2 1.6-5 0-7.1-.8-1-1.7-1.8-2-3.1-.7 1.1-1.4 1.8-2.2 2.2C11 5.9 11.5 4 12 2.5z" fill="url(#flg${s})"/></svg>`; }
+/* Gründer-Kennzeichnung: Neon-Krone neben dem Namen im Community-Feed.
+   FOUNDER_UID = Admin-/Gründer-Account (identisch mit der Admin-UID in den Firestore-Rules). */
+const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
+function _founderBadge(s){ s=s||15; return `<span class="founder-badge" title="${tr('Gründer')}" aria-label="${tr('Gründer')}"><svg viewBox="0 0 24 24" width="${s}" height="${s}"><defs><linearGradient id="fbGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22e6ff"/><stop offset=".5" stop-color="#a855ff"/><stop offset="1" stop-color="#ff2fd0"/></linearGradient></defs><path d="M3.8 18.3 2.4 8.1l5.1 3.9L12 5.2l4.5 6.8 5.1-3.9-1.4 10.2z" fill="url(#fbGrad)" stroke="rgba(255,255,255,.85)" stroke-width="1" stroke-linejoin="round"/><rect x="3.8" y="18.3" width="16.4" height="2.5" rx="1.1" fill="url(#fbGrad)" stroke="rgba(255,255,255,.7)" stroke-width=".8"/><g class="fb-shine" fill="#fff"><circle cx="2.4" cy="8.1" r="1.15"/><circle cx="12" cy="5.2" r="1.35"/><circle cx="21.6" cy="8.1" r="1.15"/></g></svg></span>`; }
+function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
 
 /* ── Canvas-Icons für die Share-Card (statt Emoji auf dem Bild) ── */
 function _cvPin(ctx, cx, cy, r, col){
@@ -15142,18 +15159,8 @@ function _shfSetPal(i) {
   document.querySelectorAll('#shf-pal .shf-sw').forEach((b, idx) => b.classList.toggle('on', idx === i));
 }
 
-/* Farbrad: natives Farb-Picker öffnen → beliebige Freifarbe für die Share-Card */
-function _shfOpenColorWheel() {
-  const inp = document.getElementById('shf-col-inp');
-  if (!inp) return;
-  if (!inp._bound) {
-    inp._bound = true;
-    const apply = () => _shfSetCustomCol(inp.value);
-    inp.addEventListener('input', apply);
-    inp.addEventListener('change', apply);
-  }
-  inp.click();   // öffnet das OS-Farbrad
-}
+/* Farbrad: der <input type=color> IST das antippbare Swatch (per <label>),
+   damit iOS den nativen Farb-Picker auf echten User-Tap öffnet. */
 function _shfSetCustomCol(hex) {
   _shfCustomCol = hex; _shfPalIdx = -1; haptic(6);
   _shfRenderAll();
@@ -15182,8 +15189,9 @@ function _shfEditorStep() {
     </div>
     <div class="shf-pal" id="shf-pal">
       ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="background:${p.accent || _shfAppAcc()}" aria-label="${p.name}"></button>`).join('')}
-      <button class="shf-sw shf-sw-wheel${_shfPalIdx === -1 ? ' on' : ''}" onclick="_shfOpenColorWheel()" style="${_shfCustomCol ? `background:${_shfCustomCol}` : 'background:conic-gradient(from 210deg,#FF2D78,#F5B301,#10B981,#06B6D4,#8B5CF6,#FF2D78)'}" aria-label="${tr('Farbe wählen')}"></button>
-      <input type="color" id="shf-col-inp" value="${_shfCustomCol || _shfAppAcc()}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0">
+      <label class="shf-sw shf-sw-wheel${_shfPalIdx === -1 ? ' on' : ''}" aria-label="${tr('Farbe wählen')}" style="${_shfCustomCol ? `background:${_shfCustomCol}` : 'background:conic-gradient(from 210deg,#FF2D78,#F5B301,#10B981,#06B6D4,#8B5CF6,#FF2D78)'};position:relative;overflow:hidden;display:inline-block">
+        <input type="color" id="shf-col-inp" value="${_shfCustomCol || _shfAppAcc()}" oninput="_shfSetCustomCol(this.value)" onchange="_shfSetCustomCol(this.value)" style="position:absolute;top:-7px;left:-7px;width:44px;height:44px;opacity:0;border:0;padding:0;margin:0;cursor:pointer">
+      </label>
     </div>
     </div>
     <div class="shf-cta">
@@ -17552,7 +17560,7 @@ function _cpgCardHTML(it, pos){
     <div class="cpg-water">MYGYMTRACK</div>
     <div class="cpg-head">
       <div class="cpg-ava">${ava}</div>
-      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}</b><span>${_timeAgo(it.ts)}</span></div>
+      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
       <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}">…</button>
     </div>
     <div class="cpg-vdate">${vdate}</div>
@@ -17562,7 +17570,7 @@ function _cpgCardHTML(it, pos){
       ${chips}
     </div>
     <button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
-      <span class="fl">${_flameFillSVG(20)}</span><span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
+      ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
     </button>
   </div>`;
 }
@@ -17804,7 +17812,7 @@ async function openFlames(){
     return p?.name || tr('Jemand');
   };
   body.innerHTML = list.length
-    ? list.slice(0, 30).map(f => `<div class="flm-note"><span style="flex-shrink:0">${_flameFillSVG(20)}</span>
+    ? list.slice(0, 30).map(f => `<div class="flm-note"><span style="flex-shrink:0">${_flameSVG(20)}</span>
         <div class="t"><b>${esc(nameOf(f.fuid))}</b> ${tr('feiert dein Training')} „${esc(f.dayName)}"</div>
         <span class="ts">${_timeAgo(f.ts)}</span></div>`).join('')
     : `<div class="soc-empty" style="padding:16px">${tr('Noch keine Reaktionen.')}<br>${tr('Teile ein Training — Flammen landen hier.')}</div>`;
@@ -17812,6 +17820,103 @@ async function openFlames(){
   persist();
   const b = document.getElementById('flm-bell-badge');
   if (b) b.style.display = 'none';
+}
+
+/* ── Push/Local-Benachrichtigung, wenn jemand auf MEINE Posts eine Flamme gibt ──
+   Kein Backend/Cloud-Functions (Spark-Plan) → echte Server-Push bei komplett
+   geschlossener App ist nicht möglich. Stattdessen: Live-onSnapshot auf die eigenen
+   Posts. Sobald die App offen ist ODER wieder in den Vordergrund kommt, feuert für
+   jede NEUE fremde Flamme eine lokale Notification + In-App-Badge/Toast. Der erste
+   Snapshot ist nur Baseline (bestehende Flammen lösen KEINE Benachrichtigung aus). */
+let _flameNotifUnsub = null;
+let _flameNotifSeen  = null;   // Set "postId:reactorUid" die schon bekannt sind
+let _flameNotifReady = false;  // erst nach dem Baseline-Snapshot benachrichtigen
+let _flameNotifId    = 2600;
+
+function _flameNotifStart(){
+  _flameNotifStop();
+  if (!_socReady() || !S.socialOn) return;
+  _flameNotifSeen  = new Set();
+  _flameNotifReady = false;
+  _ensureSocialNotifPermission();
+  try {
+    const q = window.FB.query(window.FB.collection('profiles/' + _fbUser.uid + '/posts'),
+      window.FB.orderBy('ts','desc'), window.FB.limit(20));
+    _flameNotifUnsub = window.FB.onSnapshot(q, snap => {
+      const me = _fbUser?.uid;
+      const fresh = [];
+      snap.forEach(d => {
+        const p = d.data(); const flames = p.flames || {};
+        Object.entries(flames).forEach(([fuid, fts]) => {
+          if (fuid === me) return;
+          const key = d.id + ':' + fuid;
+          if (_flameNotifSeen.has(key)) return;
+          _flameNotifSeen.add(key);
+          if (_flameNotifReady) fresh.push({ fuid, ts: typeof fts === 'number' ? fts : Date.now(), dayName: p.dayName || tr('Training') });
+        });
+      });
+      _flameNotifReady = true;
+      _flMyPosts = null;            // Badge-Cache invalidieren, dann neu zählen
+      _flamesRefreshBadge();
+      if (fresh.length) { fresh.sort((a,b) => b.ts - a.ts); _notifyFlames(fresh); }
+    }, err => console.warn('[GymTrack] Flammen-Listener:', err?.code || err));
+  } catch(e) { console.warn('[GymTrack] Flammen-Listener:', e?.code || e); }
+}
+function _flameNotifStop(){
+  if (_flameNotifUnsub) { try { _flameNotifUnsub(); } catch(_){} _flameNotifUnsub = null; }
+  _flameNotifSeen = null; _flameNotifReady = false;
+}
+// Einmalige, sanfte Permission-Anfrage sobald Community aktiv ist (nur nativ).
+async function _ensureSocialNotifPermission(){
+  const LN = _cap('LocalNotifications');
+  if (!LN || S.socNotifAsked) return;
+  S.socNotifAsked = true; persist();
+  try {
+    const perm = await LN.checkPermissions().catch(() => ({ display: 'prompt' }));
+    if (perm.display === 'prompt' || perm.display === 'prompt-with-rationale') {
+      await LN.requestPermissions().catch(() => {});
+    }
+    await LN.createChannel?.({ id:'gymtrack-social', name:'Community', importance:5, visibility:1, sound:'default' }).catch(() => {});
+  } catch(_){}
+}
+async function _notifyFlames(fresh){
+  // Namen der Reagierenden best-effort nachladen (profiles für alle Angemeldeten lesbar)
+  for (const f of fresh) {
+    if (!(_socCache||[]).find?.(x => x.uid === f.fuid)) {
+      try {
+        const s = await window.FB.getDoc(window.FB.doc('profiles', f.fuid));
+        if (s.exists()) (_socCache = _socCache||[]).push({ uid: f.fuid, ...s.data() });
+      } catch(_){}
+    }
+  }
+  const first = fresh[0];
+  const p = (_socCache||[]).find?.(x => x.uid === first.fuid);
+  const name = (p && p.name) || tr('Jemand');
+  const extra = fresh.length - 1;
+  let body = name + ' ' + tr('feiert dein Training') + ' „' + first.dayName + '"';
+  if (extra > 0) body += ' +' + extra;
+  _fireLocalFlameNotif(tr('Neue Flamme') + ' 🔥', body);
+  if (!document.hidden && typeof showUpdateToast === 'function') {
+    try { showUpdateToast('🔥 ' + body, { autoHide: 3500 }); } catch(_){}
+  }
+}
+async function _fireLocalFlameNotif(title, body){
+  const LN = _cap('LocalNotifications');
+  if (LN) {
+    try {
+      const perm = await LN.checkPermissions().catch(() => ({ display: 'prompt' }));
+      if (perm.display !== 'granted') return;   // ungefragt nicht nerven
+      await LN.createChannel?.({ id:'gymtrack-social', name:'Community', importance:5, visibility:1, sound:'default' }).catch(() => {});
+      const id = (_flameNotifId = _flameNotifId >= 2699 ? 2600 : _flameNotifId + 1);
+      await LN.schedule({ notifications: [{
+        id, title, body,
+        schedule: { at: new Date(Date.now() + 250), allowWhileIdle: true },
+        sound: 'default', channelId: 'gymtrack-social'
+      }]}).catch(() => {});
+    } catch(_){}
+  } else if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+    try { const reg = await navigator.serviceWorker.ready; reg.showNotification(title, { body, icon:'icon-192.png', badge:'icon-192.png', tag:'gt-flame' }); } catch(_){}
+  }
 }
 async function toggleReaction(uid, aid, emo){
   if (!_socReady()) return;
