@@ -3836,10 +3836,12 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   box-shadow:0 10px 34px rgba(var(--acc-rgb),.55),0 0 0 1px rgba(255,255,255,.14) inset;
   transition:transform .7s cubic-bezier(.34,1.4,.5,1),opacity .7s ease}
 .xp-pill.in{transform:translate(-50%,-50%) scale(1);opacity:1}
-.xp-dot{position:fixed;z-index:4000;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
-  background:var(--acc);box-shadow:0 0 9px rgba(var(--acc-rgb),.9);pointer-events:none;opacity:1;
-  transition:transform .8s cubic-bezier(.4,0,.2,1),opacity .8s ease-in}
-@media (prefers-reduced-motion:reduce){.xp-pill,.xp-dot{transition-duration:.25s}.lvl-badge.bump{animation:none}}
+.xp-dot{position:fixed;z-index:4000;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%) scale(1);
+  background:var(--acc);box-shadow:0 0 12px rgba(var(--acc-rgb),.95),0 0 3px rgba(255,255,255,.85) inset;
+  pointer-events:none;opacity:1;animation:xpPop .18s ease-out;
+  transition:transform .52s cubic-bezier(.4,.02,.3,1),opacity .5s ease-in}
+@keyframes xpPop{0%{transform:translate(-50%,-50%) scale(0)}62%{transform:translate(-50%,-50%) scale(1.4)}100%{transform:translate(-50%,-50%) scale(1)}}
+@media (prefers-reduced-motion:reduce){.xp-pill,.xp-dot{transition-duration:.25s}.xp-dot{animation-duration:.08s}.lvl-badge.bump{animation:none}}
 .frp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .frp-stat{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:13px 14px}
 .frp-stat-v{font-size:19px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
@@ -4092,13 +4094,6 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 }
 @keyframes fbShine{0%,100%{opacity:.35}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.founder-badge,.founder-badge .fb-shine{animation:none}}
-/* Gründer-Banner (Ribbon) am oberen Rand einer Gründer-Card */
-.cpg-founder{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:6px;
-  height:30px;font-size:11px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:#fff;
-  background:linear-gradient(90deg,rgba(34,230,255,.94),rgba(168,85,255,.94),rgba(255,47,208,.94));
-  box-shadow:0 3px 14px rgba(168,85,255,.5);text-shadow:0 1px 3px rgba(0,0,0,.35)}
-.cpg-founder .founder-badge{animation:none;filter:drop-shadow(0 0 3px rgba(255,255,255,.9))}
-.cpg-card.founder .cpg-head{top:40px}
 .cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:17px;letter-spacing:1px}
 .cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
 .cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
@@ -5707,7 +5702,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 </div>
 
 <div class="ov" id="ov-frprofile" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-frprofile')">
-  <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column">
+  <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="frp-title">Profil</h2>
@@ -5772,7 +5767,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607180005';
+const APP_VERSION = 'gymtrack-v202607190001';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17460,14 +17455,14 @@ function _socLevel(p){
 }
 /* „Lv N"-Tag neben Namen — Level aus Cache/eigenen Daten (nach uid). */
 function _lvlTagForUid(uid){
-  if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">Lv ${_levelOf(_xpSelf()).level}</span>`;
+  if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">LVL ${_levelOf(_xpSelf()).level}</span>`;
   const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null;
-  return p ? `<span class="lvl-tag">Lv ${_socLevel(p)}</span>` : '';
+  return p ? `<span class="lvl-tag">LVL ${_socLevel(p)}</span>` : '';
 }
 /* „Lv N"-Tag aus einem Profil-Objekt (für Freunde-/Rang-Listen; self exakt). */
 function _lvlPillFor(p){
   const lv = (p && p.uid && p.uid === _fbUser?.uid) ? _levelOf(_xpSelf()).level : _socLevel(p);
-  return `<span class="lvl-tag">Lv ${lv}</span>`;
+  return `<span class="lvl-tag">LVL ${lv}</span>`;
 }
 /* Header-Badge (Startseite, neben der Flamme). */
 function _renderLevelBadge(){
@@ -17476,7 +17471,7 @@ function _renderLevelBadge(){
   if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
   const L = _levelOf(_xpSelf());
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
-    <span class="lvl-badge-n">Lv ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
 }
 /* Eigene Level-Karte (Community-Übersicht). */
@@ -17542,40 +17537,55 @@ function _countUp(el, from, to, ms){
    Header-Badge, Vibration, Zahl zählt hoch, danach ggf. Level-Up-Feier. */
 function _xpGainOnFinish(){
   const gain = PTS_PER.workout;
+  // Badge sicherstellen (nach dem 1. Training existiert es evtl. noch nicht) und
+  // den Zähler zunächst auf den ALTEN Stand setzen, damit er sichtbar hochklettert.
+  _renderLevelBadge();
+  const newPts = _xpSelf();
+  const startPts = Math.max(0, newPts - gain);
+  const pe0 = document.getElementById('lvl-badge-pts'); if (pe0) pe0.textContent = _fmtXP(startPts);
   const badge = document.getElementById('lvl-badge-el');
   const rc = badge ? badge.getBoundingClientRect() : null;
   const tgt = (rc && rc.width) ? { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 } : { x: window.innerWidth - 46, y: 66 };
-  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.5;
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.52;
+  // zentrale „+100"-Pille: poppt auf, hält kurz, verblasst (Kontext-Label)
   try {
-    // zentrale Pille: aufpoppen, kurz halten, dann nach oben ins Badge schrumpfen
     const pill = document.createElement('div');
     pill.className = 'xp-pill'; pill.textContent = '+' + gain + ' ' + tr('Punkte');
-    pill.style.left = cx + 'px'; pill.style.top = cy + 'px';
+    pill.style.left = cx + 'px'; pill.style.top = (cy - 78) + 'px';
     document.body.appendChild(pill);
     requestAnimationFrame(() => pill.classList.add('in'));
-    setTimeout(() => { pill.style.transform = `translate(calc(-50% + ${tgt.x - cx}px), calc(-50% + ${tgt.y - cy}px)) scale(.32)`; pill.style.opacity = '0'; }, 640);
-    setTimeout(() => { try { pill.remove(); } catch(_){} }, 1400);
-    // einzelne Punkte-Partikel, die nach oben ins Badge fliegen
-    for (let i = 0; i < 7; i++) {
-      const dot = document.createElement('div'); dot.className = 'xp-dot';
-      dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
-      document.body.appendChild(dot);
-      const jx = (i - 3) * 14;
-      requestAnimationFrame(() => { dot.style.transform = `translate(calc(-50% + ${tgt.x - cx + jx}px), calc(-50% + ${tgt.y - cy}px)) scale(.4)`; dot.style.opacity = '0'; });
-      setTimeout(() => { try { dot.remove(); } catch(_){} }, 1000 + i * 30);
-    }
+    setTimeout(() => { pill.style.opacity = '0'; pill.style.transform = 'translate(-50%,-50%) scale(.72) translateY(-16px)'; }, 1500);
+    setTimeout(() => { try { pill.remove(); } catch(_){} }, 2050);
   } catch(_){}
-  try { haptic([10, 25, 10, 25, 45]); } catch(_){}
-  // Badge hochzählen + Bump, sobald die Punkte „ankommen"
-  setTimeout(() => {
-    const newPts = _xpSelf();
-    _renderLevelBadge();
-    const b = document.getElementById('lvl-badge-el');
-    if (b) { b.classList.add('bump'); setTimeout(() => b.classList.remove('bump'), 520); }
-    _countUp(document.getElementById('lvl-badge-pts'), Math.max(0, newPts - gain), newPts, 720);
-    try { haptic(22); } catch(_){}
-    try { _checkLevelUp(); } catch(_){}
-  }, 1120);
+  try { haptic(6); } catch(_){}
+  // Punkte einzeln nacheinander „aufkommen", jeder schießt nach oben ins Level-
+  // Badge und vibriert beim Ankommen; der Zähler klettert Punkt für Punkt mit.
+  const N = 10, gap = 118, hold = 210, fly = 520;
+  let landed = 0;
+  for (let i = 0; i < N; i++) {
+    setTimeout(() => {
+      const dot = document.createElement('div'); dot.className = 'xp-dot';
+      const sx = cx + (Math.random() - 0.5) * 58, sy = cy + (Math.random() - 0.5) * 22;
+      dot.style.left = sx + 'px'; dot.style.top = sy + 'px';
+      document.body.appendChild(dot);
+      // kurz aufkommen, dann nach oben schießen
+      setTimeout(() => {
+        dot.style.transform = `translate(calc(-50% + ${tgt.x - sx}px), calc(-50% + ${tgt.y - sy}px)) scale(.3)`;
+        dot.style.opacity = '0';
+      }, hold);
+      // Ankunft: Partikel weg, EINE Vibration, Zähler + Badge-Bump
+      setTimeout(() => {
+        try { dot.remove(); } catch(_){}
+        landed++;
+        try { haptic(8); } catch(_){}
+        const shown = (landed >= N) ? newPts : (startPts + Math.round(gain * landed / N));
+        const pe = document.getElementById('lvl-badge-pts'); if (pe) pe.textContent = _fmtXP(shown);
+        const b = document.getElementById('lvl-badge-el');
+        if (b) { b.classList.add('bump'); setTimeout(() => { try { b.classList.remove('bump'); } catch(_){} }, 240); }
+        if (landed >= N) { try { _checkLevelUp(); } catch(_){} }
+      }, hold + fly);
+    }, 260 + i * gap);
+  }
 }
 /* ── Freundes-Profil ── */
 async function openFrProfile(uid){
@@ -17789,11 +17799,9 @@ function _cpgCardHTML(it, pos){
   const d = new Date(it.ts || Date.now());
   const vdate = (d.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}) + ' · ' + d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'})).toUpperCase();
   const ava = it.photo ? `<img src="${esc(it.photo)}" alt="">` : _socInitials(it.name);
-  const isFounder = it.uid === FOUNDER_UID;
-  return `<div class="cpg-card ${pos}${isFounder ? ' founder' : ''}" data-i="${it._i}">
+  return `<div class="cpg-card ${pos}" data-i="${it._i}">
     ${bg}
     <div class="cpg-grad"></div>
-    ${isFounder ? `<div class="cpg-founder">${_founderBadge(13)}<span>${tr('Gründer von MyGymTrack')}</span></div>` : ''}
     <div class="cpg-water">MYGYMTRACK</div>
     <div class="cpg-head">
       <div class="cpg-ava">${ava}</div>
