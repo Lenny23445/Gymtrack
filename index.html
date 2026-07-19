@@ -2066,7 +2066,7 @@ html[data-glass] .tabbar::before{display:block!important}
 /* ── STREAK BADGE (Header oben rechts) ── */
 .streak-badge{
   display:inline-flex;align-items:center;gap:4px;
-  padding:5px 10px 5px 7px;border-radius:999px;
+  height:28px;box-sizing:border-box;padding:0 10px 0 7px;border-radius:999px;
   background:linear-gradient(135deg,rgba(255,149,0,.18),rgba(255,59,48,.12));
   border:1px solid rgba(255,149,0,.32);
   box-shadow:0 2px 10px rgba(255,149,0,.18);
@@ -3817,7 +3817,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvl-xp-rules{margin-top:16px;font-size:12.5px;color:var(--text2);line-height:1.7}
 .lvl-xp-rules b{color:var(--text)}
 /* Header-Level-Badge (Startseite, neben der Flamme) — Stil analog Streak-Badge */
-.lvl-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:999px;
+.lvl-badge{display:inline-flex;align-items:center;gap:4px;height:28px;box-sizing:border-box;padding:0 10px 0 7px;border-radius:999px;
   background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.09));
   border:1px solid rgba(var(--acc-rgb),.34);box-shadow:0 2px 10px rgba(var(--acc-rgb),.16);
   font-size:13px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
@@ -3857,6 +3857,28 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .frp-vs-bar{flex:1;height:10px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
 .frp-vs-fill{height:100%;border-radius:5px;background:var(--acc);transition:width .7s var(--ease)}
 .frp-vs-v{width:30px;text-align:right;font-size:13px;font-weight:800;color:var(--text)}
+/* Plan / Split teilen (QR) + importieren */
+.plan-share-btn svg{display:block}
+.plshare-wrap{display:flex;flex-direction:column;align-items:center;padding:4px 24px 0;text-align:center}
+.plshare-sub{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;opacity:.9}
+.plshare-qr{width:248px;height:248px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:20px;padding:8px;box-shadow:0 10px 34px rgba(0,0,0,.16)}
+.plshare-qr img,.plshare-qr canvas{display:block;border-radius:10px}
+.plshare-noqr{font-size:13px;color:#6b7280;font-weight:600;padding:0 18px;text-align:center}
+.plshare-hint{font-size:12.5px;color:var(--text2);line-height:1.5;margin:16px 8px 20px;max-width:280px}
+.plshare-btns{display:flex;flex-direction:column;gap:10px;width:100%}
+.plimp-card{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:15px 16px;margin:6px 0 12px}
+.plimp-hd{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.plimp-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.plimp-name{font-size:17px;font-weight:800;color:var(--text)}
+.plimp-meta{font-size:12.5px;font-weight:700;color:var(--text2);letter-spacing:.2px}
+.plimp-exs{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.plimp-ex{font-size:12.5px;font-weight:600;color:var(--text);background:var(--soft);border-radius:9px;padding:5px 10px}
+.plimp-rows{margin-top:11px;display:flex;flex-direction:column;gap:8px}
+.plimp-row{display:flex;align-items:center;gap:10px}
+.plimp-day{width:82px;flex-shrink:0;font-size:13px;font-weight:700;color:var(--text2)}
+.plimp-name2{font-size:14px;font-weight:700;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plimp-note{font-size:12.5px;color:var(--text2);line-height:1.55;padding:0 2px}
+.plimp-warn{font-size:12.5px;color:var(--text2);line-height:1.55;padding:11px 13px;background:rgba(255,159,10,.10);border:1px solid rgba(255,159,10,.22);border-radius:13px}
 /* Activity-Feed */
 .feed-item{display:flex;gap:12px;background:var(--card);border:1px solid var(--gl-bdr);border-radius:18px;padding:13px 14px;margin-bottom:10px;animation:fr-in .4s var(--ease) both}
 .feed-txt{font-size:14px;color:var(--text);line-height:1.45;min-width:0}
@@ -4070,7 +4092,7 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .shf-dest .t b{display:block;font-size:15px}
 .shf-dest .t span{font-size:12px;color:rgba(255,255,255,.55)}
 /* ── COMMUNITY CARD-PAGER ── */
-.cpg-wrap{position:relative;height:calc(100dvh - 305px);min-height:420px;touch-action:pan-y}
+.cpg-wrap{position:relative;aspect-ratio:3/4;width:100%;max-width:calc((100dvh - 340px) * 0.75);margin:0 auto;touch-action:pan-y}
 .cpg-card{position:absolute;inset:0;border-radius:22px;overflow:hidden;background:#111;box-shadow:0 14px 44px rgba(0,0,0,.35);will-change:transform,opacity}
 .cpg-card.under{transform:scale(.9);opacity:0;z-index:1}
 .cpg-card.top{z-index:2}
@@ -4094,7 +4116,33 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 }
 @keyframes fbShine{0%,100%{opacity:.35}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.founder-badge,.founder-badge .fb-shine{animation:none}}
-.cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;font-size:17px;letter-spacing:1px}
+.cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+/* Snap-Card: das Bild ist bereits die fertig gestaltete Share-Card (Name, Tag, Stats,
+   Gym, Wasserzeichen alles eingebacken) — deshalb NUR die Controls drüberlegen,
+   kein doppelter HTML-Text-Chrome (sonst liegen zwei Layouts übereinander). */
+.cpg-snap .cpg-menu{position:absolute;top:14px;right:14px;z-index:5}
+.cpg-topfade{position:absolute;top:0;left:0;right:0;height:92px;border-radius:22px 22px 0 0;background:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,0));z-index:2;pointer-events:none}
+/* Snap-Card = Poster (VOLLSTÄNDIG sichtbar, nichts abgeschnitten) + Fußleiste mit
+   Reaktions-Flamme darunter. Der Poster wird per object-fit:contain komplett gezeigt;
+   die seitlichen Ränder füllt eine unscharf gezoomte Kopie des Bildes (statt leerer Balken). */
+.cpg-snap{display:flex;flex-direction:column;background:#0d0d0f}
+.cpg-snap-media{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:22px 22px 0 0;background:#0d0d0f}
+.cpg-snap .cpg-img-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(26px) saturate(1.25) brightness(.7);transform:scale(1.18);z-index:0}
+.cpg-snap .cpg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}
+/* Level-Chip (Community): zeigt das Level der Person — analog Freunde-Feed, oben neben dem eingebackenen Namen. */
+.cpg-snap-lvl{position:absolute;top:14px;right:56px;z-index:5;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:999px;
+  background:rgba(0,0,0,.34);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;line-height:1;white-space:nowrap}
+.cpg-snap-lvl .founder-badge{margin-left:0}
+/* Weicher Akzent-Übergang Poster → Fußleiste (kein harter schwarzer Balken, „faltet" langsam aus). */
+.cpg-foot-fade{position:absolute;left:0;right:0;bottom:0;height:86px;z-index:3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),0) 0%,rgba(var(--acc-rgb),.05) 55%,rgba(var(--acc-rgb),.16) 100%)}
+.cpg-snap-foot{flex-shrink:0;height:58px;display:flex;align-items:center;justify-content:center;border-radius:0 0 22px 22px;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.28));
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
+.cpg-snap .flm-btn{position:static;transform:none;bottom:auto;left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);padding:8px 24px}
+.cpg-snap .flm-btn:active{transform:scale(.92)}
+.cpg-snap .flm-btn.on{background:rgba(255,90,0,.34);border-color:rgba(255,140,0,.4)}
 .cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
 .cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
 .cpg-info{position:absolute;left:16px;right:16px;bottom:76px;color:#fff;z-index:3}
@@ -4105,8 +4153,9 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .cpg-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text2);text-align:center;padding:0 30px}
 .cpg-count{position:absolute;top:-30px;right:4px;font-size:12px;color:var(--text2)}
 /* Flamme */
-.flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;transition:transform .15s}
+.flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;justify-content:center;gap:0;font-size:15px;font-weight:800;transition:transform .15s}
 .flm-btn:active{transform:translateX(-50%) scale(.92)}
+.flm-btn .ct:not(:empty){margin-left:8px}
 .flm-btn .fl{display:inline-flex;align-items:center;justify-content:center;transform-origin:center;filter:grayscale(1) brightness(1.6);transition:filter .2s}
 .flm-btn.on{background:rgba(255,90,0,.32);box-shadow:0 0 22px rgba(255,120,0,.45)}
 .flm-btn.on .fl{filter:none}
@@ -5000,7 +5049,10 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Wochenplan</h2>
-      <button class="x-btn" onclick="closeOv('ov-plan')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="x-btn plan-share-btn" title="Plan teilen" aria-label="Plan teilen" onclick="openPlanShareWeek()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 12.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-5.5"/></svg></button>
+        <button class="x-btn" onclick="closeOv('ov-plan')">✕</button>
+      </div>
     </div>
     <div class="px" style="padding-bottom:6px">
       <div style="font-size:13px;color:var(--text2);margin-bottom:6px">
@@ -5018,6 +5070,42 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
     <div style="font-size:11px;color:var(--text2);padding:6px 20px 4px;letter-spacing:.1px;opacity:.8">⠿ Splits in einen Tag ziehen:</div>
     <div class="split-chip-row" id="split-chip-row"></div>
     <div id="plan-list" class="card" style="margin:8px 20px 20px"></div>
+  </div>
+</div>
+
+<!-- SHEET: PLAN / SPLIT TEILEN (QR + Link) -->
+<div class="ov" id="ov-plshare" style="z-index:1004" onclick="if(event.target===this)closeOv('ov-plshare')">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap));padding-bottom:calc(22px + var(--sab))">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="plshare-title">Plan teilen</h2>
+      <button class="x-btn" onclick="closeOv('ov-plshare')">✕</button>
+    </div>
+    <div class="plshare-wrap">
+      <div class="plshare-sub" id="plshare-sub"></div>
+      <div class="plshare-qr" id="plshare-qr"></div>
+      <div class="plshare-hint" id="plshare-hint">Freund scannt den Code mit der Kamera – der Plan öffnet direkt in GymTrack.</div>
+      <div class="plshare-btns">
+        <button class="btn btn-acc" onclick="_plShareShare()">Link teilen</button>
+        <button class="btn btn-gray" onclick="_plShareCopy()">Link kopieren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: PLAN / SPLIT IMPORTIEREN (Vorschau) -->
+<div class="ov" id="ov-plimport" style="z-index:1005" onclick="if(event.target===this)closeOv('ov-plimport')">
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="plimport-title">Plan importieren</h2>
+      <button class="x-btn" onclick="closeOv('ov-plimport')">✕</button>
+    </div>
+    <div id="plimport-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px 4px"></div>
+    <div style="padding:12px 20px calc(14px + var(--sab));display:flex;gap:10px">
+      <button class="btn btn-gray" style="flex:1" onclick="closeOv('ov-plimport')">Abbrechen</button>
+      <button class="btn btn-acc" style="flex:1.4" onclick="_planImportApply()">Importieren</button>
+    </div>
   </div>
 </div>
 
@@ -5188,7 +5276,10 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
     <div class="sh-handle" style="flex-shrink:0"></div>
     <div class="sh-head" style="flex-shrink:0">
       <h2 id="preset-title">Neuer Plan</h2>
-      <button class="x-btn" onclick="closeOv('ov-preset')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="x-btn plan-share-btn" title="Split teilen" aria-label="Split teilen" onclick="openPlanShareSplit()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 12.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-5.5"/></svg></button>
+        <button class="x-btn" onclick="closeOv('ov-preset')">✕</button>
+      </div>
     </div>
     <div class="px" style="flex-shrink:0">
       <label class="f-label">Name des Splits</label>
@@ -5767,7 +5858,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607190001';
+const APP_VERSION = 'gymtrack-v202607190012';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5888,6 +5979,18 @@ const I18N_EN = {
   'z. B. Bankdrücken':'e.g. Bench Press','(schon im Training)':'(already in workout)','ohne MG':'no group',
   'Erstelle Übungen im Tab „Übungen".':'Create exercises in the “Exercises” tab.','Keine Übungen für':'No exercises for',
   'Wochenplan':'Weekly plan','Wochenplan öffnen':'Open weekly plan',
+  'Plan teilen':'Share plan','Split teilen':'Share split','Plan importieren':'Import plan','Split importieren':'Import split',
+  'Importieren':'Import','Trainingstage':'training days','Trainingsplan in MyGymTrack importieren':'Import training plan into MyGymTrack',
+  'Freund scannt den Code mit der Kamera – der Plan öffnet direkt in GymTrack.':'A friend scans the code with their camera – the plan opens straight in GymTrack.',
+  'Link teilen':'Share link','Link kopieren':'Copy link','Link kopiert':'Link copied','Kopieren nicht möglich':'Could not copy',
+  'QR offline nicht verfügbar – nutze „Link teilen".':'QR unavailable offline – use “Share link”.',
+  'Plan zu groß für QR – nutze „Link teilen".':'Plan too large for QR – use “Share link”.',
+  'Dein Wochenplan ist noch leer.':'Your weekly plan is still empty.','Split zuerst speichern, dann teilen.':'Save the split first, then share.',
+  'Dieser Split hat noch keine Übungen.':'This split has no exercises yet.','Ungültiger Plan-Link':'Invalid plan link',
+  'Fehlende Übungen werden automatisch in deine Bibliothek angelegt.':'Missing exercises are added to your library automatically.',
+  'Beim Importieren wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch angelegt.':'Importing replaces your current weekly plan. Missing exercises are added automatically.',
+  'Keine Übungen im Split.':'No exercises in this split.','Importierter Split':'Imported split','(Import)':'(import)',
+  'Split importiert':'Split imported','Plan importiert':'Plan imported','Import fehlgeschlagen':'Import failed',
   'Plane pro Wochentag eine Trainingsgruppe oder einzelne Übungen. Wiederholt sich jede Woche.':'Plan a training group or individual exercises per weekday. Repeats every week.',
   'Vorlage laden':'Load template','PPL, Upper-Lower, Full Body … mit einem Tap übernehmen':'PPL, Upper-Lower, Full Body … apply with one tap',
   '⠿ Splits in einen Tag ziehen:':'⠿ Drag splits onto a day:','⠿ Übungen auf einen Tag ziehen, um sie hinzuzufügen':'⠿ Drag exercises onto a day to add them',
@@ -15362,6 +15465,10 @@ async function _shfPublish() {
   if (!_socReady()) { _shfExit(); return; }
   const btn = document.getElementById('shf-postbtn');
   btn.disabled = true; btn.textContent = tr('Wird gepostet…');
+  // Optimistisch als „gepostet" markieren, BEVOR asynchron hochgeladen wird: sonst
+  // könnte ein parallel schließender Share-Flow (_shfExit) dasselbe Training ZUSÄTZLICH
+  // als Text-Aktivität loggen → doppelter Feed-Eintrag. Bei Fehler unten zurücksetzen.
+  _shfPosted = true;
   try {
     const id = uid();
     const d = _shfData;
@@ -15382,6 +15489,7 @@ async function _shfPublish() {
     hapticSuccess();
     _shfExit();
   } catch (e) {
+    _shfPosted = false;   // Upload fehlgeschlagen → Text-Aktivitäts-Fallback wieder erlauben
     console.warn('[GymTrack] Post fehlgeschlagen:', e?.code || e);
     btn.disabled = false; btn.textContent = tr('Posten');
     alert(tr('Posten fehlgeschlagen — bist du offline?'));
@@ -15812,6 +15920,16 @@ function haptic(ms) {
       navigator.vibrate(ms || 10);
     }
   } catch(e) {}
+}
+/* Punkte-Vibrations-„Linie": pro Punkt ein feiner Tick in schneller Folge, sodass
+   sich das Einzahlen der Punkte wie ein fließendes Ratschen anfühlt — nicht ein
+   einzelnes langes Brummen. Gedeckelt, damit es nicht endlos vibriert. */
+function _xpHapticLine(points, totalMs){
+  const n = Math.max(1, Math.min(points|0, 60));
+  const step = Math.max(15, (totalMs||1200) / n);
+  hapticSelStart();
+  for (let i = 1; i <= n; i++) setTimeout(() => { try { hapticTick(); } catch(_){} }, Math.round(i * step));
+  setTimeout(() => { try { hapticSelEnd(); } catch(_){} }, Math.round(n * step) + 60);
 }
 // Weiches „Erledigt"-Feedback: kurzer Doppel-Impuls (Erstellen/Speichern/Zuweisen)
 function hapticSuccess() {
@@ -16419,6 +16537,182 @@ function _applyTemplateCore(tpl){
   scheduleWorkoutNotifications();
 }
 
+/* ── Plan / Split teilen & importieren (QR + Deep-Link, offline) ─────────
+   Ein Split oder der ganze Wochenplan wird kompakt serialisiert und in einen
+   gymtrack://import?d=<b64>-Deep-Link gepackt. Der Link steckt im QR-Code
+   (Kamera des Freundes öffnet direkt die App) und lässt sich extern teilen.
+   Import läuft über den appUrlOpen-Listener → Vorschau-Sheet → Übernehmen. */
+const PLAN_SHARE_VER = 1;
+const _PL_DAY_KEYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const _PL_DAY_NAME = { mon:'Montag', tue:'Dienstag', wed:'Mittwoch', thu:'Donnerstag', fri:'Freitag', sat:'Samstag', sun:'Sonntag' };
+function _exMini(ex){ return [ex.name || '', ex.emoji || '', ex.muscleGroup || '']; }
+function _presetToMini(p){
+  const exs = (p.exIds || []).map(id => (S.exercises || []).find(e => e.id === id)).filter(Boolean);
+  return { n: p.name || 'Split', c: p.color || '', e: exs.map(_exMini) };
+}
+function _serializeSplit(pid){
+  const p = presetById(pid); if (!p) return null;
+  const m = _presetToMini(p);
+  if (!m.e.length) return null;
+  return { v: PLAN_SHARE_VER, t: 'split', n: m.n, c: m.c, e: m.e };
+}
+function _serializeWeek(){
+  const presets = [], idxOf = {}, w = {};
+  _PL_DAY_KEYS.forEach(k => {
+    const d = S.weekPlan && S.weekPlan[k]; if (!d) return;
+    if (d.type === 'preset') {
+      const p = presetById(d.id); if (!p) return;
+      if (idxOf[p.id] == null) { idxOf[p.id] = presets.length; presets.push(_presetToMini(p)); }
+      w[k] = idxOf[p.id];
+    } else if (d.type === 'exercises' && (d.exIds || []).length) {
+      const exs = (d.exIds || []).map(id => (S.exercises || []).find(e => e.id === id)).filter(Boolean);
+      if (exs.length) { w[k] = presets.length; presets.push({ n: '', c: '', e: exs.map(_exMini) }); }
+    }
+  });
+  return { v: PLAN_SHARE_VER, t: 'week', p: presets, w };
+}
+// UTF-8-sicheres URL-sicheres base64 (Umlaute in Übungsnamen!)
+function _b64url(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _unb64url(s){ s = String(s||'').replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s += '='; return decodeURIComponent(escape(atob(s))); }
+function _encodeShare(obj){ return _b64url(JSON.stringify(obj)); }
+function _decodeShare(b64){ try { return JSON.parse(_unb64url(b64)); } catch(_){ return null; } }
+function _shareLink(obj){ return 'gymtrack://import?d=' + _encodeShare(obj); }
+
+let _planShareLinkCur = '';
+function openPlanShareWeek(){
+  const hasPlan = _PL_DAY_KEYS.some(k => S.weekPlan && S.weekPlan[k] && S.weekPlan[k].type !== 'none');
+  if (!hasPlan) { showUpdateToast(tr('Dein Wochenplan ist noch leer.')); return; }
+  const obj = _serializeWeek();
+  if (!obj.p.length) { showUpdateToast(tr('Dein Wochenplan ist noch leer.')); return; }
+  const days = Object.keys(obj.w).length;
+  _openPlanShare(obj, tr('Plan teilen'), obj.p.length + ' ' + tr('Splits') + ' · ' + days + ' ' + tr('Trainingstage'));
+}
+function openPlanShareSplit(){
+  const pid = (typeof _presetEditId !== 'undefined') ? _presetEditId : null;
+  if (!pid) { showUpdateToast(tr('Split zuerst speichern, dann teilen.')); return; }
+  const obj = _serializeSplit(pid);
+  if (!obj) { showUpdateToast(tr('Dieser Split hat noch keine Übungen.')); return; }
+  _openPlanShare(obj, tr('Split teilen'), esc(obj.n) + ' · ' + obj.e.length + ' ' + tr('Übungen'));
+}
+function _openPlanShare(obj, title, sub){
+  haptic(8);
+  _planShareLinkCur = _shareLink(obj);
+  const t = document.getElementById('plshare-title'); if (t) t.textContent = title;
+  const s = document.getElementById('plshare-sub'); if (s) s.innerHTML = sub;
+  openOv('ov-plshare');
+  _plShareRenderQR(_planShareLinkCur);
+}
+async function _plShareRenderQR(link){
+  const host = document.getElementById('plshare-qr'); if (!host) return;
+  host.innerHTML = '<div class="plshare-noqr">…</div>';
+  try { await _loadQRLib(); } catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('QR offline nicht verfügbar – nutze „Link teilen".') + '</div>'; return; }
+  host.innerHTML = '';
+  try { new QRCode(host, { text: link, width: 232, height: 232, colorDark: '#0b0d12', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L }); }
+  catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('Plan zu groß für QR – nutze „Link teilen".') + '</div>'; }
+}
+function _plShareShare(){
+  const l = _planShareLinkCur; if (!l) return; haptic(8);
+  const txt = tr('Trainingsplan in MyGymTrack importieren');
+  if (navigator.share) { navigator.share({ title: 'MyGymTrack', text: txt + ':\n' + l }).catch(()=>{}); }
+  else _plShareCopy();
+}
+function _plShareCopy(){
+  const l = _planShareLinkCur; if (!l) return;
+  try { navigator.clipboard.writeText(l); showUpdateToast(tr('Link kopiert')); haptic(8); } catch(_){ showUpdateToast(tr('Kopieren nicht möglich')); }
+}
+
+// Übung aus Mini-Array anlegen/finden → gibt Übungs-ID zurück
+function _planImportEx(mini){
+  const name = (mini && mini[0] || '').trim(); if (!name) return null;
+  let ex = (S.exercises || []).find(e => (e.name || '').toLowerCase() === name.toLowerCase());
+  if (ex) return ex.id;
+  const lib = (typeof EX_LIBRARY !== 'undefined') ? EX_LIBRARY.find(it => it.n.toLowerCase() === name.toLowerCase()) : null;
+  if (lib) {
+    const isTime = lib.t === 'time';
+    ex = { id: uid(), name: lib.n, emoji: lib.e || mini[1] || '', muscleGroup: lib.mg || mini[2] || '',
+      targetSets: lib.s, targetReps: lib.r, targetWeight: 0, targetType: isTime ? 'time' : 'reps',
+      repMin: isTime ? null : Math.max(1, lib.r - 2), repMax: isTime ? null : lib.r + 2, weightScheme: isTime ? null : 'straight' };
+  } else {
+    ex = { id: uid(), name, emoji: mini[1] || '', muscleGroup: mini[2] || '',
+      targetSets: 3, targetReps: 10, targetWeight: 0, targetType: 'reps', repMin: 8, repMax: 12, weightScheme: 'straight' };
+  }
+  if (!Array.isArray(S.exercises)) S.exercises = [];
+  S.exercises.push(ex);
+  return ex.id;
+}
+// gymtrack://import?d=… → Vorschau öffnen. true = war ein Import-Link.
+let _lastImportSig = '', _lastImportAt = 0;
+function _handlePlanImportUrl(url){
+  const m = /[?&]d=([^&#]+)/.exec(url || ''); if (!m) { showUpdateToast(tr('Ungültiger Plan-Link')); return true; }
+  // Kaltstart (getLaunchUrl) + appUrlOpen könnten denselben Link doppelt liefern.
+  if (m[1] === _lastImportSig && Date.now() - _lastImportAt < 4000) return true;
+  _lastImportSig = m[1]; _lastImportAt = Date.now();
+  const obj = _decodeShare(m[1]);
+  if (!obj || obj.v !== PLAN_SHARE_VER || (obj.t !== 'split' && obj.t !== 'week')) { showUpdateToast(tr('Ungültiger Plan-Link')); return true; }
+  _planImportPreview(obj);
+  return true;
+}
+let _planImportObj = null;
+function _planImportPreview(obj){
+  _planImportObj = obj;
+  const ttl = document.getElementById('plimport-title');
+  const body = document.getElementById('plimport-body'); if (!body) return;
+  if (obj.t === 'split') {
+    if (ttl) ttl.textContent = tr('Split importieren');
+    const exs = obj.e || [];
+    body.innerHTML =
+      '<div class="plimp-card"><div class="plimp-hd"><span class="plimp-dot" style="background:' + esc(obj.c || '#0A84FF') + '"></span>' +
+      '<span class="plimp-name">' + esc(obj.n || 'Split') + '</span></div>' +
+      '<div class="plimp-meta">' + exs.length + ' ' + tr('Übungen') + '</div>' +
+      '<div class="plimp-exs">' + exs.map(e => '<span class="plimp-ex">' + esc(e[0] || '') + '</span>').join('') + '</div></div>' +
+      '<div class="plimp-note">' + tr('Fehlende Übungen werden automatisch in deine Bibliothek angelegt.') + '</div>';
+  } else {
+    if (ttl) ttl.textContent = tr('Plan importieren');
+    const w = obj.w || {}, P = obj.p || [];
+    const rows = _PL_DAY_KEYS.filter(k => w[k] != null).map(k => {
+      const p = P[w[k]] || {};
+      return '<div class="plimp-row"><span class="plimp-day">' + tr(_PL_DAY_NAME[k]) + '</span>' +
+        '<span class="plimp-dot" style="background:' + esc(p.c || '#0A84FF') + '"></span>' +
+        '<span class="plimp-name2">' + esc(p.n || tr('Training')) + '</span></div>';
+    }).join('');
+    const nEx = P.reduce((s, p) => s + ((p.e || []).length), 0);
+    body.innerHTML =
+      '<div class="plimp-card"><div class="plimp-meta">' + P.length + ' ' + tr('Splits') + ' · ' + Object.keys(w).length + ' ' + tr('Trainingstage') + ' · ' + nEx + ' ' + tr('Übungen') + '</div>' +
+      '<div class="plimp-rows">' + rows + '</div></div>' +
+      '<div class="plimp-warn">' + tr('Beim Importieren wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch angelegt.') + '</div>';
+  }
+  openOv('ov-plimport');
+}
+function _planImportApply(){
+  const obj = _planImportObj; if (!obj) { closeOv('ov-plimport'); return; }
+  try {
+    if (obj.t === 'split') {
+      const ids = (obj.e || []).map(_planImportEx).filter(Boolean);
+      if (!ids.length) { showUpdateToast(tr('Keine Übungen im Split.')); closeOv('ov-plimport'); return; }
+      let name = obj.n || tr('Importierter Split');
+      if ((S.workoutPresets || []).some(p => (p.name || '').toLowerCase() === name.toLowerCase())) name = name + ' ' + tr('(Import)');
+      const pr = { id: uid(), name, exIds: ids, color: (typeof obj.c === 'string' && obj.c) ? obj.c : SPLIT_PALETTE[(S.workoutPresets || []).length % SPLIT_PALETTE.length] };
+      S.workoutPresets = [...(S.workoutPresets || []), pr];
+    } else {
+      const P = obj.p || [], idxToId = {};
+      P.forEach((p, i) => {
+        const ids = (p.e || []).map(_planImportEx).filter(Boolean);
+        const pr = { id: uid(), name: p.n || tr('Training'), exIds: ids, color: (typeof p.c === 'string' && p.c) ? p.c : SPLIT_PALETTE[i % SPLIT_PALETTE.length] };
+        S.workoutPresets = [...(S.workoutPresets || []), pr]; idxToId[i] = pr.id;
+      });
+      const np = {}; _PL_DAY_KEYS.forEach(k => np[k] = { type: 'none' });
+      Object.entries(obj.w || {}).forEach(([k, idx]) => { if (idxToId[idx] != null && np[k]) np[k] = { type: 'preset', id: idxToId[idx] }; });
+      S.weekPlan = np;
+    }
+    persist();
+    try { scheduleWorkoutNotifications(); } catch(_){}
+    ['renderSplitChips','renderPlanList','renderWeekPreview','renderWeekCircles','renderHeuteGrid'].forEach(fn => { try { if (typeof window[fn] === 'function') window[fn](); } catch(_){} });
+    closeOv('ov-plimport');
+    try { hapticSuccess(); } catch(_){}
+    showUpdateToast(obj.t === 'split' ? tr('Split importiert') : tr('Plan importiert'));
+  } catch(e) { showUpdateToast(tr('Import fehlgeschlagen')); }
+}
+
 // ── SET-TYPEN (normal / warmup / top / drop / fail) ─────────
 const SET_TYPES = ['normal','warmup','top','drop','fail'];
 const SET_TYPE_LABEL = { normal:'', warmup:'W', top:'T', drop:'D', fail:'F' };
@@ -16810,21 +17104,26 @@ function _demoProfile(d){
     live: d.live ? { on:true, start: Date.now() - 26*60000, gym:d.gymName } : null,
   };
 }
-const _DEMO_FEED = [
-  { name:'Max Berger',   type:'workout', mg:'Brust',     dur:58, agoMin:4,   week:4 },
-  { name:'Lena Frank',   type:'pr',      prName:'Kniebeuge', prVal:'110 kg', agoMin:95 },
-  { name:'Tom Krause',   type:'streak',  streak:3,       agoMin:180 },
-  { name:'Lenny',        type:'workout', mg:'Rücken',    dur:64, agoMin:410, me:true, week:5 },
-  { name:'Sara Weber',   type:'workout', mg:'Beine',     dur:47, agoMin:1500 },
-  { name:'Jonas Peters', type:'workout', mg:'Schultern', dur:52, agoMin:5900 },
+// Snap-Foto-Posts für den Demo-Feed — je Post ein anderes Share-Layout, damit
+// sich im Simulator alle Snap-Designs im echten Card-Pager prüfen lassen.
+const _DEMO_POSTS = [
+  { name:'Max Berger',   dayName:'Push Day',     dur:3480, mgs:['Brust','Schulter','Trizeps'], gym:'FitZone Mitte', prCount:2, layout:0, pal:0, agoMin:8    },
+  { name:'Lena Frank',   dayName:'Leg Day',      dur:3900, mgs:['Beine','Waden'],              gym:'McFit Nord',    prCount:1, layout:1, pal:2, agoMin:52   },
+  { name:'Tom Krause',   dayName:'Pull',         dur:3120, mgs:['Rücken','Bizeps'],            gym:'Gym 80',        prCount:0, layout:2, pal:4, agoMin:180  },
+  { name:'Sara Weber',   dayName:'Ganzkörper',   dur:2760, mgs:['Beine','Brust','Rücken'],     gym:'Body Culture',  prCount:3, layout:3, pal:6, agoMin:1500 },
+  { name:'Jonas Peters', dayName:'Oberkörper',   dur:3300, mgs:['Brust','Rücken','Arme'],      gym:'FitStar West',  prCount:1, layout:4, pal:1, agoMin:340  },
+  { name:'Lenny',        dayName:'Beine schwer', dur:3660, mgs:['Beine','Po'],                 gym:'FitZone Mitte', prCount:2, layout:5, pal:5, me:true, agoMin:60 },
 ];
-function _demoFeedText(a){
-  const nm = a.me ? 'Du' : a.name, hat = a.me ? 'hast' : 'hat';
-  if (a.type === 'pr')     return `<b>${esc(nm)}</b> ${hat} einen neuen Rekord aufgestellt: <b>${esc(a.prName)}</b> ${esc(a.prVal)}`;
-  if (a.type === 'streak') return `<b>${esc(nm)}</b> ${hat} eine <b>${a.streak}-Wochen-Streak</b> erreicht`;
-  let t = `<b>${esc(nm)}</b> ${hat} ein <b>${esc(a.mg)}-Training</b> beendet${a.dur ? ' · ' + a.dur + ' Min.' : ''}`;
-  if ((a.week||0) >= 4) t += `<br>Bereits <b>${a.week}× diese Woche</b> trainiert`;
-  return t;
+// Ein Share-Layout mit beliebigen Daten auf Canvas rendern — schaltet temporär
+// die _shf*-Globals um und setzt sie zurück; nutzt exakt denselben Renderer wie
+// der echte Share-Flow, also sehen die Demo-Snaps aus wie die echten Posts.
+function _demoRenderLayout(li, data, pal){
+  const sv = { d:_shfData, p:_shfPhoto, pal:_shfPalIdx, cc:_shfCustomCol };
+  _shfData = data; _shfPhoto = null; _shfPalIdx = pal; _shfCustomCol = null;
+  let url = '';
+  try { url = _shfRender(li, 540, 720).toDataURL('image/jpeg', 0.9); }
+  finally { _shfData = sv.d; _shfPhoto = sv.p; _shfPalIdx = sv.pal; _shfCustomCol = sv.cc; }
+  return url;
 }
 function _renderDemoFriends(body){
   try { _frStopLive(); } catch(_){}
@@ -16866,14 +17165,30 @@ function _renderDemoOverview(body){
   body.innerHTML = `${_selfLevelCardHTML()}<div id="fr-list">${profs.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')}</div>`;
 }
 function _renderDemoFeed(body){
-  body.innerHTML = `<div id="feed-list">${_DEMO_FEED.map(a=>`
-    <div class="feed-item">
-      <div class="fr-ava" style="width:40px;height:40px;font-size:13px;flex-shrink:0">${_socInitials(a.me?(S.userName||'Lenny'):a.name)}</div>
-      <div style="flex:1;min-width:0">
-        <div class="feed-txt">${_demoFeedText(a)}</div>
-        <div class="feed-time">${_timeAgo(Date.now()-a.agoMin*60000)}</div>
-      </div>
-    </div>`).join('')}</div>`;
+  _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
+  const isPub = _cpgMode === 'public';
+  body.innerHTML = `
+    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}</div>
+    <div class="cpg-wrap" id="cpg-wrap"></div>`;
+  const now = Date.now();
+  _cpgItems = _DEMO_POSTS.map((p, i) => {
+    const li  = (p.layout != null ? p.layout : i) % SHARE_LAYOUTS.length;
+    const pal = (p.pal    != null ? p.pal    : i) % SHF_PALETTES.length;
+    const nm  = p.me ? (S.userName || 'Lenny') : p.name;
+    const ts  = now - p.agoMin * 60000;
+    const data = {
+      dayName: p.dayName, duration: p.dur, mgs: p.mgs, gym: p.gym,
+      date: new Date(ts), username: nm, photo: null, prCount: p.prCount || 0
+    };
+    return {
+      id: 'demo-post-' + i, uid: p.me ? 'demo-me' : ('demo' + (i + 1)), kind: 'post',
+      name: nm, photo: null, img: _demoRenderLayout(li, data, pal),
+      dayName: p.dayName, dur: Math.round(p.dur / 60), gym: p.gym, mgs: p.mgs,
+      visibility: isPub ? 'public' : 'friends', ts, flames: {}
+    };
+  });
+  _cpgIdx = 0;
+  _cpgRenderStack();
 }
 function _renderDemoBoard(body){
   body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
@@ -17135,12 +17450,13 @@ function _timeAgo(ts){
   if (days < 7) return 'vor ' + days + ' Tagen';
   const w = Math.floor(days/7);  return w === 1 ? 'vor 1 Woche' : 'vor ' + w + ' Wochen';
 }
+let _flFreshCount = 0;   // Anzahl neuer (ungesehener) Flammen-Reaktionen auf eigene Posts
 function _updateFrBadges(){
-  const n = _frReqCount || 0;
-  ['fr-tab-badge','fr-add-badge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; }
-  });
+  const req = _frReqCount || 0;
+  const tabN = req + (_flFreshCount || 0);   // Community-Tab: Anfragen + neue Flammen-Reaktionen
+  const setB = (id, n) => { const el = document.getElementById(id); if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; } };
+  setB('fr-tab-badge', tabN);   // unten am Community-Tab
+  setB('fr-add-badge', req);    // nur Freundschaftsanfragen am +-Button
 }
 async function _renderFrOverview(body){
   try { _checkLevelUp(true); } catch(_){}   // Rang-Index seeden (kein Fake-Level-Up beim ersten Öffnen)
@@ -17435,13 +17751,20 @@ function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Fr
   const flames = Array.isArray(_flMyPosts) ? _flMyPosts.length : 0;
   return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame;
 }
-/* Punkte-Schwelle für ein Level — quadratisch wachsende Schritte:
-   L1=0, L2=300, L3=900, L4=1800, L5=3000, L6=4500 … (= 150·L·(L−1)). */
+/* Punkte-Schwelle für ein Level. Kalibriert auf „Level 100 nach ~3 Jahren aktivem
+   Training": ~4 Workouts/Woche · 156 Wochen ≈ 624 Workouts × 100 Pkt + Streak-Bonus
+   ≈ 67 000 Pkt. Sanft wachsende Kurve (Potenz 1,5): frühe Level kommen schnell,
+   späte deutlich langsamer. _lvlMin(2)=68, (10)≈2 050, (50)≈23 300, (100)≈66 980. */
 const MAX_LEVEL = 100;
-function _lvlMin(L){ return 150 * L * (L - 1); }
+const _LVL_K = 68;
+function _lvlMin(L){ return L <= 1 ? 0 : Math.round(_LVL_K * Math.pow(L - 1, 1.5)); }
 function _levelOf(pts){
-  let L = Math.floor((1 + Math.sqrt(1 + pts / 37.5)) / 2);
+  pts = Math.max(0, pts);
+  let L = Math.floor(1 + Math.pow(pts / _LVL_K, 2 / 3));
   if (!(L >= 1)) L = 1;
+  // Rundungs-Korrektur: exakt gegen die (gerundeten) _lvlMin-Schwellen abgleichen
+  while (L < MAX_LEVEL && pts >= _lvlMin(L + 1)) L++;
+  while (L > 1 && pts < _lvlMin(L)) L--;
   if (L > MAX_LEVEL) L = MAX_LEVEL;
   const max = L >= MAX_LEVEL;
   const base = _lvlMin(L), next = max ? base : _lvlMin(L + 1);
@@ -17458,6 +17781,17 @@ function _lvlTagForUid(uid){
   if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">LVL ${_levelOf(_xpSelf()).level}</span>`;
   const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null;
   return p ? `<span class="lvl-tag">LVL ${_socLevel(p)}</span>` : '';
+}
+/* Level-Chip für Snap-Cards (Community/Freunde-Feed): Level der Person, oben rechts
+   neben dem eingebackenen Namen. Self exakt; Freunde aus _socCache; Fremde ohne
+   Cache-Treffer → leer (kein Chip). Gründer bekommt zusätzlich die Krone. */
+function _lvlChipForUid(uid){
+  let lv = 0;
+  if (uid && uid === _fbUser?.uid) lv = _levelOf(_xpSelf()).level;
+  else { const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null; if (p) lv = _socLevel(p); }
+  const crown = _founderTag(uid, 13);
+  if (!lv && !crown) return '';
+  return `<div class="cpg-snap-lvl">${crown}${lv ? 'LVL ' + lv : ''}</div>`;
 }
 /* „Lv N"-Tag aus einem Profil-Objekt (für Freunde-/Rang-Listen; self exakt). */
 function _lvlPillFor(p){
@@ -17495,7 +17829,7 @@ function openLevelInfo(){
   haptic(8);
   const L = _levelOf(_xpSelf());
   const steps = [];
-  for (let l = Math.max(1, L.level - 1); l <= Math.min(MAX_LEVEL, L.level + 3); l++) steps.push(l);
+  for (let l = 1; l <= MAX_LEVEL; l++) steps.push(l);
   const ladder = steps.map(l => `
     <div class="lvl-step${l === L.level ? ' on' : ''}">
       <span class="s-name">${tr('Level')} ${l}</span>
@@ -17508,10 +17842,12 @@ function openLevelInfo(){
       <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
       <div class="lvl-sub">${L.max?tr('Maximales Level erreicht'):(GT_LANG==='en'?_fmtXP(L.toGo)+' points → Level '+(L.level+1):'Noch '+_fmtXP(L.toGo)+' Punkte → Level '+(L.level+1))}</div>
     </div>
-    <div class="lvl-ladder">${ladder}</div>
+    <div class="lvl-ladder" style="max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch">${ladder}</div>
     <div class="lvl-xp-rules">${tr('So sammelst du Punkte')}:<br>
       <b>+${PTS_PER.workout}</b> ${tr('pro Training')} · <b>+${PTS_PER.streakWk}</b> ${tr('pro Streak-Woche')} · <b>+${PTS_PER.flame}</b> ${tr('pro erhaltener Flamme')}</div>`;
   openOv('ov-lvlinfo');
+  // Ladder zum aktuellen Level scrollen, damit man ab dort bis 100 blättern kann.
+  setTimeout(() => { const on = document.querySelector('#lvlinfo-body .lvl-step.on'); if (on) on.scrollIntoView({ block:'center' }); }, 70);
 }
 function _checkLevelUp(silent){
   const L = _levelOf(_xpSelf()).level;
@@ -17557,11 +17893,12 @@ function _xpGainOnFinish(){
     setTimeout(() => { pill.style.opacity = '0'; pill.style.transform = 'translate(-50%,-50%) scale(.72) translateY(-16px)'; }, 1500);
     setTimeout(() => { try { pill.remove(); } catch(_){} }, 2050);
   } catch(_){}
-  try { haptic(6); } catch(_){}
   // Punkte einzeln nacheinander „aufkommen", jeder schießt nach oben ins Level-
-  // Badge und vibriert beim Ankommen; der Zähler klettert Punkt für Punkt mit.
+  // Badge; der Zähler klettert Punkt für Punkt mit.
   const N = 10, gap = 118, hold = 210, fly = 520;
   let landed = 0;
+  // Vibrations-Linie: pro Punkt ein Tick in schneller Folge, synchron zum Einfliegen.
+  setTimeout(() => { try { _xpHapticLine(gain, N * gap + fly); } catch(_){} }, hold + 120);
   for (let i = 0; i < N; i++) {
     setTimeout(() => {
       const dot = document.createElement('div'); dot.className = 'xp-dot';
@@ -17577,7 +17914,7 @@ function _xpGainOnFinish(){
       setTimeout(() => {
         try { dot.remove(); } catch(_){}
         landed++;
-        try { haptic(8); } catch(_){}
+        // Haptik läuft als fließende _xpHapticLine (nicht ein Bump pro Dot).
         const shown = (landed >= N) ? newPts : (startPts + Math.round(gain * landed / N));
         const pe = document.getElementById('lvl-badge-pts'); if (pe) pe.textContent = _fmtXP(shown);
         const b = document.getElementById('lvl-badge-el');
@@ -17764,6 +18101,12 @@ async function _cpgLoad(){
   }
   const hidden = new Set(S.hiddenPosts || []);
   const blocked = new Set(S.blocked || []);
+  // Ein als Foto-Post geteiltes Training NICHT zusätzlich als Text-Aktivität zeigen
+  // (sonst „zwei Layouts" fürs selbe Workout). Foto-Post gewinnt; Aktivität desselben
+  // Nutzers im ±3-Min-Fenster wird verworfen.
+  const _postStamps = items.filter(x => x.kind === 'post').map(x => ({ uid: x.uid, ts: x.ts || 0 }));
+  items = items.filter(it => it.kind !== 'act'
+    || !_postStamps.some(p => p.uid === it.uid && Math.abs(p.ts - (it.ts || 0)) < 180000));
   items = items
     .filter(it => !blocked.has(it.uid))
     .filter(it => !(it.kind === 'post' && hidden.has(it.uid + '/' + it.id)))
@@ -17799,6 +18142,28 @@ function _cpgCardHTML(it, pos){
   const d = new Date(it.ts || Date.now());
   const vdate = (d.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}) + ' · ' + d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'})).toUpperCase();
   const ava = it.photo ? `<img src="${esc(it.photo)}" alt="">` : _socInitials(it.name);
+  const flame = `<button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
+      ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
+    </button>`;
+  // Snap-Post: das Bild IST die fertig designte Share-Card (Name/Tag/Stats/Gym/
+  // Wasserzeichen/Datum sind eingebacken). Nur die Controls drüberlegen — sonst
+  // liegt der HTML-Chrome als zweites Layout über dem gleichen Inhalt.
+  if (isPost && it.img) {
+    // Poster füllt den Medienbereich; die Reaktions-Flamme sitzt in der Fußleiste
+    // UNTER dem Poster und verdeckt so keinen Card-Inhalt mehr.
+    return `<div class="cpg-card cpg-snap ${pos}" data-i="${it._i}">
+    <div class="cpg-snap-media">
+      <img class="cpg-img-bg" src="${esc(it.img)}" aria-hidden="true" alt="">
+      <img class="cpg-img" src="${esc(it.img)}" loading="lazy" alt="">
+      <div class="cpg-topfade"></div>
+      ${_lvlChipForUid(it.uid)}
+      <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      <div class="cpg-foot-fade"></div>
+    </div>
+    <div class="cpg-snap-foot">${flame}</div>
+  </div>`;
+  }
+  // Gradient-Card (Text-Activities / Post ohne Bild): HTML-Chrome liefert den Inhalt.
   return `<div class="cpg-card ${pos}" data-i="${it._i}">
     ${bg}
     <div class="cpg-grad"></div>
@@ -17806,7 +18171,7 @@ function _cpgCardHTML(it, pos){
     <div class="cpg-head">
       <div class="cpg-ava">${ava}</div>
       <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
-      <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}">…</button>
+      <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
     <div class="cpg-vdate">${vdate}</div>
     <div class="cpg-info">
@@ -17814,9 +18179,7 @@ function _cpgCardHTML(it, pos){
       <div class="meta">${head.meta || ''}</div>
       ${chips}
     </div>
-    <button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
-      ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
-    </button>
+    ${flame}
   </div>`;
 }
 function _cpgRenderStack(){
@@ -18041,8 +18404,10 @@ async function _flamesRefreshBadge(){
   try {
     const list = await _flamesMine();
     const fresh = list.filter(f => f.ts > (S.flameSeen || 0)).length;
+    _flFreshCount = fresh;
     const b = document.getElementById('flm-bell-badge');
     if (b) { b.style.display = fresh ? '' : 'none'; b.textContent = fresh; }
+    _updateFrBadges();   // Community-Tab-Badge mitziehen
   } catch(_){}
 }
 async function openFlames(){
@@ -18063,6 +18428,8 @@ async function openFlames(){
     : `<div class="soc-empty" style="padding:16px">${tr('Noch keine Reaktionen.')}<br>${tr('Teile ein Training — Flammen landen hier.')}</div>`;
   S.flameSeen = Date.now();
   persist();
+  _flFreshCount = 0;
+  _updateFrBadges();   // Community-Tab-Badge zurücksetzen
   const b = document.getElementById('flm-bell-badge');
   if (b) b.style.display = 'none';
 }
@@ -19835,10 +20202,19 @@ function _setupAppUrlListener() {
     // Google-OAuth-Callback NICHT hier behandeln: ASWebAuthenticationSession liefert
     // die Callback-URL bereits über ihren eigenen Completion-Handler (die startAuth-Promise).
     // Eine zweite Behandlung hier würde nur einen falschen "State verloren"-Fehler auslösen.
-    if (url.startsWith('gymtrack://')) {
+    if (url.startsWith('gymtrack://import')) {
+      _handlePlanImportUrl(url);
+    } else if (url.startsWith('gymtrack://')) {
       _handleWidgetDeepLink(url);
     }
   });
+  // Kaltstart per Deep-Link (App war geschlossen): Launch-URL nachträglich prüfen.
+  try {
+    App.getLaunchUrl?.().then(res => {
+      const u = res && res.url;
+      if (u && u.startsWith('gymtrack://import')) setTimeout(() => { try { _handlePlanImportUrl(u); } catch(_){} }, 900);
+    }).catch(()=>{});
+  } catch(_){}
   console.log('[GymTrack] 📱 appUrlOpen-Listener registriert');
 }
 
