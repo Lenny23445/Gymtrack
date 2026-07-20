@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200005';
+const APP_VERSION = 'gymtrack-v202607200006';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -18614,7 +18614,11 @@ function _friendPostNotifStart(){
         let maxTs = S.friendPostTs || 0;
         snap.forEach(d => {
           const p = d.data();
-          const ts = typeof p.ts === 'number' ? p.ts : 0;
+          // Poster-Uhr kann vorgehen (Client-Date.now() im Post) → auf „jetzt" deckeln,
+          // sonst schlägt ein bereits gesehener Post nach Vordergrund/Re-Subscribe erneut
+          // die lokale friendPostTs und der Badge kommt zurück (Zahl geht nie weg).
+          let ts = typeof p.ts === 'number' ? p.ts : 0;
+          if (ts > Date.now()) ts = Date.now();
           const key = fuid + ':' + d.id;
           if (_friendPostSeen.has(key)) return;
           _friendPostSeen.add(key);
@@ -18624,13 +18628,9 @@ function _friendPostNotifStart(){
           S.friendPostTs = maxTs; persist();
           // Community-Tab gerade offen → Posts sind bereits sichtbar: kein Badge/Toast
           if (document.getElementById('pg-freunde')?.classList.contains('on')) return;
+          // Kein In-App-Toast mehr bei Freundes-Posts: nur die Zahl am Community-Tab.
           _friendPostFresh += fresh.length;
           _updateFrBadges();
-          const nm = fresh.sort((a,b)=>b.ts-a.ts)[0].name || tr('Ein Freund');
-          const body = _friendPostFresh > 1
-            ? tr('Neue Posts von deinen Freunden') + ' (' + _friendPostFresh + ')'
-            : nm + ' ' + tr('hat einen neuen Post geteilt');
-          if (typeof showUpdateToast === 'function') { try { showUpdateToast(body, { autoHide: 3500 }); } catch(_){} }
         }
       }, err => console.warn('[GymTrack] Freundes-Post-Listener:', err?.code || err));
       _friendPostSubs.push(un);
