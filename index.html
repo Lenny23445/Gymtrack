@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200010';
+const APP_VERSION = 'gymtrack-v202607200011';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -18157,10 +18157,18 @@ async function _cpgLoad(){
     // ohne den warf die Abfrage failed-precondition → fälschlich "offline". Nur der
     // where('visibility') braucht lediglich den automatischen Einzelfeld-Index.
     // "Neueste zuerst" macht der client-seitige Sort unten; limit großzügig.
-    const q = window.FB.query(window.FB.collectionGroup('posts'),
-      window.FB.where('visibility','==','public'),
-      window.FB.limit(20));
-    const snap = await window.FB.getDocs(q);
+    // Index (visibility ASC, ts DESC) vorhanden → neueste Posts zuerst holen, damit ein
+    // frisch geteilter Post beim Live-Reload garantiert im Fenster ist (sonst tauchte das
+    // Bild nicht in Echtzeit auf). Fallback ohne Sortierung, falls Index (noch) fehlt.
+    let snap;
+    try {
+      snap = await window.FB.getDocs(window.FB.query(window.FB.collectionGroup('posts'),
+        window.FB.where('visibility','==','public'), window.FB.orderBy('ts','desc'), window.FB.limit(40)));
+    } catch(e) {
+      console.warn('[GymTrack] Community-Feed-Load (Fallback ohne orderBy):', e?.code || e);
+      snap = await window.FB.getDocs(window.FB.query(window.FB.collectionGroup('posts'),
+        window.FB.where('visibility','==','public'), window.FB.limit(20)));
+    }
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;
       items.push({ id:d.id, uid, kind:'post', ...d.data() });
@@ -18639,20 +18647,23 @@ function _friendPostNotifStart(){
           const key = fuid + ':' + d.id;
           if (_friendPostSeen.has(key)) return;
           _friendPostSeen.add(key);
+          // NUR echte „Freunde"-Posts lösen die Freunde-Benachrichtigung aus. Ein öffentlicher
+          // Post (visibility 'public') ist ein Community-Post — auch wenn ein Freund ihn teilt —
+          // und läuft LEISE über den Community-Listener (nur Zahl, kein Push, kein Banner).
+          if (p.visibility !== 'friends') return;
           if (ts > (S.friendPostTs || 0)) { fresh.push({ ts, name: p.name || tr('Ein Freund') }); if (ts > maxTs) maxTs = ts; }
         });
         if (fresh.length) {
           S.friendPostTs = maxTs; persist();
           // Community-Tab gerade offen → Posts direkt live nachladen, kein Badge/Push nötig.
           if (document.getElementById('pg-freunde')?.classList.contains('on')) { _liveFeedRefreshSoon(); return; }
-          // FREUNDE: Zahl am Community-Tab UND echte Benachrichtigung (In-App-Toast + lokale Push).
+          // FREUNDE: Zahl am Community-Tab UND echte System-Push — KEIN blaues In-App-Banner.
           _friendPostFresh += fresh.length;
           _updateFrBadges();
           const nm = fresh.sort((a,b)=>b.ts-a.ts)[0].name || tr('Ein Freund');
           const body = _friendPostFresh > 1
             ? tr('Neue Posts von deinen Freunden') + ' (' + _friendPostFresh + ')'
             : nm + ' ' + tr('hat einen neuen Post geteilt');
-          if (typeof showUpdateToast === 'function') { try { showUpdateToast(body, { autoHide: 3500 }); } catch(_){} }
           try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}
         }
       }, err => console.warn('[GymTrack] Freundes-Post-Listener:', err?.code || err));
@@ -18687,11 +18698,10 @@ function _communitySub(ordered){
   const onSnap = snap => {
     // Jede Änderung (auch Löschungen) → offenen Feed live nachladen.
     if (document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
-    const fr = new Set(S.friends || []);
     let maxTs = S.communityPostTs || 0, freshN = 0;
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;
-      if (uid === me || fr.has(uid)) return;         // eigene + Freunde → Freundes-Listener
+      if (uid === me) return;                         // nur eigene aus; öffentliche Freundes-Posts zählen leise mit
       const p = d.data();
       let ts = typeof p.ts === 'number' ? p.ts : 0;
       if (ts > Date.now()) ts = Date.now();           // Poster-Uhr-Skew deckeln (Badge klebt sonst)
@@ -18759,8 +18769,7 @@ function _reqNotifStart(){
         const body = fresh.length > 1
           ? tr('Neue Freundschaftsanfragen') + ' (' + fresh.length + ')'
           : nm + ' ' + tr('möchte dir folgen');
-        if (typeof showUpdateToast === 'function') { try { showUpdateToast(body, { autoHide: 4000 }); } catch(_){} }
-        try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}
+        try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}   // echte Push, kein In-App-Banner
       }
       _reqSeen = new Set(ids);
     }, err => console.warn('[GymTrack] Anfragen-Listener:', err?.code || err));
