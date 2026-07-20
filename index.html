@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200007';
+const APP_VERSION = 'gymtrack-v202607200008';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17027,12 +17027,13 @@ function _pushSocialSoon(){ clearTimeout(_socPushT); _socPushT = setTimeout(_pus
 function toggleSocial(on){
   S.socialOn = !!on;
   persist();
-  if (on) { _socCode(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); }
+  if (on) { _socCode(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }
   else if (_socReady()) {
     try { window.FB.deleteDoc(window.FB.doc('profiles', _fbUser.uid)); } catch(_){}
     _socCache = null;
     _flameNotifStop();
     _friendPostNotifStop();
+    _communityNotifStop();
   }
   updateSocialUI();
 }
@@ -17310,8 +17311,10 @@ function renderFriendsTab(){
   // Zahl unten am Community-Tab zuverlässig verschwindet: neue Freundes-Posts UND
   // Flammen auf eigene Posts. (Freundschaftsanfragen bleiben separat am +-Button.)
   _friendPostFresh = 0;
+  _communityPostFresh = 0;
   _flFreshCount = 0;
   S.friendPostTs = Date.now();
+  S.communityPostTs = Date.now();
   S.flameSeen = Date.now();
   persist();
   const _bb = document.getElementById('flm-bell-badge'); if (_bb) _bb.style.display = 'none';
@@ -17501,7 +17504,7 @@ function _updateFrBadges(){
   // Community-Tab (unten): NUR „neues zum Anschauen" — Freundes-Posts + Flammen.
   // Anfragen sind aktionsbedürftig (annehmen/ablehnen) und bleiben separat am +-Button
   // (fr-add-badge); sonst würde die Tab-Zahl nie durch bloßes Anschauen weggehen.
-  const tabN = (_flFreshCount || 0) + (_friendPostFresh || 0);
+  const tabN = (_flFreshCount || 0) + (_friendPostFresh || 0) + (_communityPostFresh || 0);
   const setB = (id, n) => { const el = document.getElementById(id); if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; } };
   setB('fr-tab-badge', tabN);   // unten am Community-Tab
   setB('fr-add-badge', req);    // nur Freundschaftsanfragen am +-Button
@@ -18636,11 +18639,17 @@ function _friendPostNotifStart(){
         });
         if (fresh.length) {
           S.friendPostTs = maxTs; persist();
-          // Community-Tab gerade offen → Posts sind bereits sichtbar: kein Badge/Toast
-          if (document.getElementById('pg-freunde')?.classList.contains('on')) return;
-          // Kein In-App-Toast mehr bei Freundes-Posts: nur die Zahl am Community-Tab.
+          // Community-Tab gerade offen → Posts direkt live nachladen, kein Badge/Push nötig.
+          if (document.getElementById('pg-freunde')?.classList.contains('on')) { _liveFeedRefreshSoon(); return; }
+          // FREUNDE: Zahl am Community-Tab UND echte Benachrichtigung (In-App-Toast + lokale Push).
           _friendPostFresh += fresh.length;
           _updateFrBadges();
+          const nm = fresh.sort((a,b)=>b.ts-a.ts)[0].name || tr('Ein Freund');
+          const body = _friendPostFresh > 1
+            ? tr('Neue Posts von deinen Freunden') + ' (' + _friendPostFresh + ')'
+            : nm + ' ' + tr('hat einen neuen Post geteilt');
+          if (typeof showUpdateToast === 'function') { try { showUpdateToast(body, { autoHide: 3500 }); } catch(_){} }
+          try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}
         }
       }, err => console.warn('[GymTrack] Freundes-Post-Listener:', err?.code || err));
       _friendPostSubs.push(un);
@@ -18651,6 +18660,54 @@ function _friendPostNotifStop(){
   _friendPostSubs.forEach(u => { try { u(); } catch(_){} });
   _friendPostSubs = [];
   _friendPostSeen = null;
+}
+/* ── Live-Listener für den ÖFFENTLICHEN Community-Feed (Posts aller Nutzer) ──
+   Neuer public-Post (nicht von mir, nicht von Freunden — die laufen über den
+   Freundes-Listener oben) → NUR eine Zahl am Community-Tab, KEIN Toast/Push.
+   Echtzeit via onSnapshot auf collectionGroup('posts'). Braucht denselben
+   Collection-Group-Single-Field-Index auf visibility wie der Feed-Load. */
+let _cpgLiveUnsub = null, _cpgLiveSeen = null, _communityPostFresh = 0;
+function _communityNotifStart(){
+  if (_cpgLiveUnsub) return;                         // schon aktiv
+  if (!_socReady() || !S.socialOn) return;
+  _cpgLiveSeen = new Set();
+  if (S.communityPostTs == null) { S.communityPostTs = Date.now(); persist(); }
+  const me = _fbUser?.uid;
+  try {
+    const q = window.FB.query(window.FB.collectionGroup('posts'),
+      window.FB.where('visibility','==','public'), window.FB.limit(20));
+    _cpgLiveUnsub = window.FB.onSnapshot(q, snap => {
+      const fr = new Set(S.friends || []);
+      let maxTs = S.communityPostTs || 0, freshN = 0;
+      snap.forEach(d => {
+        const uid = d.ref.parent.parent.id;
+        if (uid === me || fr.has(uid)) return;       // eigene + Freunde → Freundes-Listener
+        const p = d.data();
+        let ts = typeof p.ts === 'number' ? p.ts : 0;
+        if (ts > Date.now()) ts = Date.now();         // Poster-Uhr-Skew deckeln (Badge klebt sonst)
+        const key = uid + ':' + d.id;
+        if (_cpgLiveSeen.has(key)) return;
+        _cpgLiveSeen.add(key);
+        if (ts > (S.communityPostTs || 0)) { freshN++; if (ts > maxTs) maxTs = ts; }
+      });
+      if (freshN) {
+        S.communityPostTs = maxTs; persist();
+        if (document.getElementById('pg-freunde')?.classList.contains('on')) { _liveFeedRefreshSoon(); return; }
+        _communityPostFresh += freshN;
+        _updateFrBadges();                             // NUR Zahl — Community bewusst leise
+      }
+    }, err => console.warn('[GymTrack] Community-Feed-Listener:', err?.code || err));
+  } catch(e){ console.warn('[GymTrack] Community-Feed-Listener:', e?.code || e); }
+}
+function _communityNotifStop(){
+  if (_cpgLiveUnsub) { try { _cpgLiveUnsub(); } catch(_){} _cpgLiveUnsub = null; }
+  _cpgLiveSeen = null;
+}
+/* Offenen Feed live nachladen (debounced), wenn ein neuer Post reinkommt. */
+let _liveFeedT = null;
+function _liveFeedRefreshSoon(){
+  clearTimeout(_liveFeedT);
+  _liveFeedT = setTimeout(() => { try { _cpgReload(); } catch(_){} }, 700);
 }
 // Einmalige, sanfte Permission-Anfrage sobald Community aktiv ist (nur nativ).
 async function _ensureSocialNotifPermission(){
@@ -19678,7 +19735,7 @@ async function _onLogin(user) {
     _syncing = false;
     _initialMergeDone = true;
     updateAccountUI();
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); }   // Flammen- + Freundes-Post-Benachrichtigungen aktivieren
+    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
   }
 }
 
@@ -19686,6 +19743,7 @@ function _onLogout() {
   analyticsStop();
   _flameNotifStop();
   _friendPostNotifStop();
+  _communityNotifStop();
   if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
   _authSettled = true;   // Zustand steht fest (abgemeldet) → Login-Gate darf jetzt zeigen
@@ -19835,7 +19893,7 @@ document.addEventListener('visibilitychange', () => {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
     _updateWidgetData();    // z. B. Tages-/Wochenwechsel während App im Hintergrund
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); }   // Listener binden: verpasste Flammen melden + Freundes-Posts live
+    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
   }
 });
 window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} });
