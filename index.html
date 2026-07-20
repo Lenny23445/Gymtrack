@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200003';
+const APP_VERSION = 'gymtrack-v202607200004';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -15480,6 +15480,9 @@ async function _shfPublish() {
     const writes = [];
     if (fr) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'friends' }));
     if (pb) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'public' }));
+    // Eigenen Post SOFORT in den Feed-Cache einspeisen, damit er beim nächsten
+    // Öffnen ohne Warten (60s-Cache/Neuladen) ganz oben steht — „Echtzeit"-Gefühl.
+    try { _cpgInjectOwnPost(base, { friends: fr, public: pb }); } catch(_) {}
     await Promise.all(writes);
     _shfPosted = true;
     hapticSuccess();
@@ -18083,6 +18086,23 @@ async function _renderFeed(body){
   _flamesRefreshBadge();
 }
 function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
+/* Frisch geposteten eigenen Post optimistisch oben in den passenden Feed-Cache
+   setzen (friends/public je nach Zielauswahl). Falls der Feed gerade offen ist,
+   sofort neu rendern — so erscheint der Post ohne Server-Roundtrip in Echtzeit. */
+function _cpgInjectOwnPost(base, dest){
+  const me = _fbUser?.uid; if (!me) return;
+  const keys = [];
+  if (dest.friends) keys.push('friends');
+  if (dest.public)  keys.push('public');
+  keys.forEach(key => {
+    const it = { id: 'local-' + uid(), uid: me, kind: 'post', visibility: key, ...base };
+    const c = _cpgCache[key];
+    if (c) { c.items = [it, ...c.items.filter(x => x.id !== it.id)].slice(0, 40); c.ts = Date.now(); }
+    else   { _cpgCache[key] = { ts: Date.now(), items: [it] }; }
+  });
+  const b = document.getElementById('fr-body');
+  if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
+}
 function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
 
 async function _loadPostsFor(uid, onlyFriends){
@@ -18123,7 +18143,7 @@ async function _cpgLoad(){
     // "Neueste zuerst" macht der client-seitige Sort unten; limit großzügig.
     const q = window.FB.query(window.FB.collectionGroup('posts'),
       window.FB.where('visibility','==','public'),
-      window.FB.limit(60));
+      window.FB.limit(20));
     const snap = await window.FB.getDocs(q);
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;
