@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200008';
+const APP_VERSION = 'gymtrack-v202607200009';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -18672,31 +18672,48 @@ function _communityNotifStart(){
   if (!_socReady() || !S.socialOn) return;
   _cpgLiveSeen = new Set();
   if (S.communityPostTs == null) { S.communityPostTs = Date.now(); persist(); }
+  _communitySub(true);                               // erst mit ts-Sortierung (braucht Composite-Index)
+}
+/* Ein neuer public-Post muss ZUVERLÄSSIG im onSnapshot-Fenster landen → orderBy('ts','desc').
+   Ohne orderBy sortiert Firestore nach Doc-ID, ein neuer Post fällt meist aus limit(20) →
+   nie Echtzeit. orderBy+where braucht Composite-Index (visibility ASC, ts DESC, COLLECTION_GROUP).
+   Fehlt der noch → failed-precondition → Fallback ohne orderBy (unzuverlässig, aber kein Absturz). */
+function _communitySub(ordered){
   const me = _fbUser?.uid;
+  const onSnap = snap => {
+    const fr = new Set(S.friends || []);
+    let maxTs = S.communityPostTs || 0, freshN = 0;
+    snap.forEach(d => {
+      const uid = d.ref.parent.parent.id;
+      if (uid === me || fr.has(uid)) return;         // eigene + Freunde → Freundes-Listener
+      const p = d.data();
+      let ts = typeof p.ts === 'number' ? p.ts : 0;
+      if (ts > Date.now()) ts = Date.now();           // Poster-Uhr-Skew deckeln (Badge klebt sonst)
+      const key = uid + ':' + d.id;
+      if (_cpgLiveSeen.has(key)) return;
+      _cpgLiveSeen.add(key);
+      if (ts > (S.communityPostTs || 0)) { freshN++; if (ts > maxTs) maxTs = ts; }
+    });
+    if (freshN) {
+      S.communityPostTs = maxTs; persist();
+      if (document.getElementById('pg-freunde')?.classList.contains('on')) { _liveFeedRefreshSoon(); return; }
+      _communityPostFresh += freshN;
+      _updateFrBadges();                               // NUR Zahl — Community bewusst leise
+    }
+  };
   try {
-    const q = window.FB.query(window.FB.collectionGroup('posts'),
-      window.FB.where('visibility','==','public'), window.FB.limit(20));
-    _cpgLiveUnsub = window.FB.onSnapshot(q, snap => {
-      const fr = new Set(S.friends || []);
-      let maxTs = S.communityPostTs || 0, freshN = 0;
-      snap.forEach(d => {
-        const uid = d.ref.parent.parent.id;
-        if (uid === me || fr.has(uid)) return;       // eigene + Freunde → Freundes-Listener
-        const p = d.data();
-        let ts = typeof p.ts === 'number' ? p.ts : 0;
-        if (ts > Date.now()) ts = Date.now();         // Poster-Uhr-Skew deckeln (Badge klebt sonst)
-        const key = uid + ':' + d.id;
-        if (_cpgLiveSeen.has(key)) return;
-        _cpgLiveSeen.add(key);
-        if (ts > (S.communityPostTs || 0)) { freshN++; if (ts > maxTs) maxTs = ts; }
-      });
-      if (freshN) {
-        S.communityPostTs = maxTs; persist();
-        if (document.getElementById('pg-freunde')?.classList.contains('on')) { _liveFeedRefreshSoon(); return; }
-        _communityPostFresh += freshN;
-        _updateFrBadges();                             // NUR Zahl — Community bewusst leise
+    const parts = [window.FB.collectionGroup('posts'), window.FB.where('visibility','==','public')];
+    if (ordered) parts.push(window.FB.orderBy('ts','desc'));
+    parts.push(window.FB.limit(ordered ? 15 : 20));
+    const q = window.FB.query(...parts);
+    _cpgLiveUnsub = window.FB.onSnapshot(q, onSnap, err => {
+      console.warn('[GymTrack] Community-Feed-Listener:', err?.message || err?.code || err);
+      // Composite-Index (visibility,ts) fehlt noch → ohne Sortierung weiterlaufen.
+      if (ordered && err?.code === 'failed-precondition') {
+        try { _cpgLiveUnsub && _cpgLiveUnsub(); } catch(_){}
+        _cpgLiveUnsub = null; _cpgLiveSeen = new Set(); _communitySub(false);
       }
-    }, err => console.warn('[GymTrack] Community-Feed-Listener:', err?.code || err));
+    });
   } catch(e){ console.warn('[GymTrack] Community-Feed-Listener:', e?.code || e); }
 }
 function _communityNotifStop(){
