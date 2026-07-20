@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200004';
+const APP_VERSION = 'gymtrack-v202607200005';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17307,6 +17307,7 @@ function renderFriendsTab(){
   document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
   const _seg = document.getElementById('fr-seg'); if (_seg) _seg.style.display = _socZone === 'friends' ? '' : 'none';
   _friendPostFresh = 0;   // Community geöffnet → „neue Freundes-Posts"-Badge zurücksetzen
+  S.friendPostTs = Date.now(); persist();   // dauerhaft als gesehen markieren (bleibt auch nach App-Neustart weg)
   _updateFrBadges();
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
@@ -18621,6 +18622,8 @@ function _friendPostNotifStart(){
         });
         if (fresh.length) {
           S.friendPostTs = maxTs; persist();
+          // Community-Tab gerade offen → Posts sind bereits sichtbar: kein Badge/Toast
+          if (document.getElementById('pg-freunde')?.classList.contains('on')) return;
           _friendPostFresh += fresh.length;
           _updateFrBadges();
           const nm = fresh.sort((a,b)=>b.ts-a.ts)[0].name || tr('Ein Freund');
@@ -18669,9 +18672,7 @@ async function _notifyFlames(fresh){
   let body = name + ' ' + tr('hat mit einer Flamme auf deinen Post reagiert');
   if (extra > 0) body += ' +' + extra;
   _fireLocalFlameNotif(tr('Neue Flamme') + ' 🔥', body);
-  if (!document.hidden && typeof showUpdateToast === 'function') {
-    try { showUpdateToast('🔥 ' + body, { autoHide: 3500 }); } catch(_){}
-  }
+  // Kein In-App-Toast mehr: nur die System-Push zeigen (blaue In-App-Leiste entfernt)
 }
 async function _fireLocalFlameNotif(title, body){
   const LN = _cap('LocalNotifications');

@@ -7,7 +7,7 @@
   },
   "ios": {
     "contentInset": "scrollEdgeToEdge",
-    "backgroundColor": "#cccae8",
+    "backgroundColor": "#000000",
     "allowsLinkPreview": false
   },
   "plugins": {}
