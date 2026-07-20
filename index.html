@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200011';
+const APP_VERSION = 'gymtrack-v202607200012';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17320,6 +17320,10 @@ function renderFriendsTab(){
   persist();
   const _bb = document.getElementById('flm-bell-badge'); if (_bb) _bb.style.display = 'none';
   _updateFrBadges();
+  // Live-Listener SICHER starten, sobald der Tab offen ist (idempotent, Guards verhindern
+  // Doppel-Abos). Beim Kaltstart laufen die Start-Aufrufe evtl. vor „Auth settled" ins Leere
+  // (_socReady() noch false) → dann würde der Community-Feed erst nach App-Neustart live sein.
+  if (_socReady() && S.socialOn) { try { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); } catch(_){} }
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
     body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
