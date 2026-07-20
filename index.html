@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200009';
+const APP_VERSION = 'gymtrack-v202607200010';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17027,13 +17027,14 @@ function _pushSocialSoon(){ clearTimeout(_socPushT); _socPushT = setTimeout(_pus
 function toggleSocial(on){
   S.socialOn = !!on;
   persist();
-  if (on) { _socCode(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }
+  if (on) { _socCode(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }
   else if (_socReady()) {
     try { window.FB.deleteDoc(window.FB.doc('profiles', _fbUser.uid)); } catch(_){}
     _socCache = null;
     _flameNotifStop();
     _friendPostNotifStop();
     _communityNotifStop();
+    _reqNotifStop();
   }
   updateSocialUI();
 }
@@ -17505,7 +17506,8 @@ function _updateFrBadges(){
   // Anfragen sind aktionsbedürftig (annehmen/ablehnen) und bleiben separat am +-Button
   // (fr-add-badge); sonst würde die Tab-Zahl nie durch bloßes Anschauen weggehen.
   const tabN = (_flFreshCount || 0) + (_friendPostFresh || 0) + (_communityPostFresh || 0);
-  const setB = (id, n) => { const el = document.getElementById(id); if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; } };
+  // Zahl bis 9 anzeigen, darüber „9+".
+  const setB = (id, n) => { const el = document.getElementById(id); if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n > 9 ? '9+' : n; } };
   setB('fr-tab-badge', tabN);   // unten am Community-Tab
   setB('fr-add-badge', req);    // nur Freundschaftsanfragen am +-Button
 }
@@ -18623,6 +18625,8 @@ function _friendPostNotifStart(){
       const q = window.FB.query(window.FB.collection('profiles/' + fuid + '/posts'),
         window.FB.orderBy('ts','desc'), window.FB.limit(3));
       const un = window.FB.onSnapshot(q, snap => {
+        // Jede Änderung (auch Löschungen) → offenen Feed live nachladen.
+        if (document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
         const fresh = [];
         let maxTs = S.friendPostTs || 0;
         snap.forEach(d => {
@@ -18681,6 +18685,8 @@ function _communityNotifStart(){
 function _communitySub(ordered){
   const me = _fbUser?.uid;
   const onSnap = snap => {
+    // Jede Änderung (auch Löschungen) → offenen Feed live nachladen.
+    if (document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
     const fr = new Set(S.friends || []);
     let maxTs = S.communityPostTs || 0, freshN = 0;
     snap.forEach(d => {
@@ -18726,6 +18732,41 @@ function _liveFeedRefreshSoon(){
   clearTimeout(_liveFeedT);
   _liveFeedT = setTimeout(() => { try { _cpgReload(); } catch(_){} }, 700);
 }
+/* ── Echtzeit-Freundschaftsanfragen: Zahl am +-Button live + Standard-Benachrichtigung
+   (In-App-Toast + lokale Push) bei einer NEUEN Anfrage. Zwei Equality-Filter (to,status)
+   brauchen KEINEN Composite-Index. Erster Snapshot = Baseline (kein Nach-Melden alter). */
+let _reqUnsub = null, _reqSeen = null;
+function _reqNotifStart(){
+  if (_reqUnsub) return;
+  if (!_socReady() || !S.socialOn) return;
+  _reqSeen = null;
+  try {
+    const q = window.FB.query(window.FB.collection('requests'),
+      window.FB.where('to','==',_fbUser.uid), window.FB.where('status','==','pending'));
+    _reqUnsub = window.FB.onSnapshot(q, snap => {
+      const ids = [], fresh = [];
+      snap.forEach(d => {
+        const r = d.data();
+        if ((S.blocked||[]).includes(r.from)) { window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{}); return; }
+        ids.push(d.id);
+        if (_reqSeen && !_reqSeen.has(d.id)) fresh.push(r);
+      });
+      _frReqCount = ids.length;
+      _updateFrBadges();
+      if (document.getElementById('pg-freunde')?.classList.contains('on')) { _loadRequests().then(r => _renderFrReqs(r.inc)).catch(()=>{}); }
+      if (_reqSeen && fresh.length) {          // nur echte Neuzugänge melden, nicht den ersten Snapshot
+        const nm = fresh[0].fromName || tr('Jemand');
+        const body = fresh.length > 1
+          ? tr('Neue Freundschaftsanfragen') + ' (' + fresh.length + ')'
+          : nm + ' ' + tr('möchte dir folgen');
+        if (typeof showUpdateToast === 'function') { try { showUpdateToast(body, { autoHide: 4000 }); } catch(_){} }
+        try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}
+      }
+      _reqSeen = new Set(ids);
+    }, err => console.warn('[GymTrack] Anfragen-Listener:', err?.code || err));
+  } catch(e){ console.warn('[GymTrack] Anfragen-Listener:', e?.code || e); }
+}
+function _reqNotifStop(){ if (_reqUnsub){ try{ _reqUnsub(); }catch(_){} _reqUnsub = null; } _reqSeen = null; }
 // Einmalige, sanfte Permission-Anfrage sobald Community aktiv ist (nur nativ).
 async function _ensureSocialNotifPermission(){
   const LN = _cap('LocalNotifications');
@@ -19752,7 +19793,7 @@ async function _onLogin(user) {
     _syncing = false;
     _initialMergeDone = true;
     updateAccountUI();
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
+    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
   }
 }
 
@@ -19761,6 +19802,7 @@ function _onLogout() {
   _flameNotifStop();
   _friendPostNotifStop();
   _communityNotifStop();
+  _reqNotifStop();
   if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
   _authSettled = true;   // Zustand steht fest (abgemeldet) → Login-Gate darf jetzt zeigen
@@ -19910,7 +19952,7 @@ document.addEventListener('visibilitychange', () => {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
     _updateWidgetData();    // z. B. Tages-/Wochenwechsel während App im Hintergrund
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
+    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
   }
 });
 window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} });
