@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200006';
+const APP_VERSION = 'gymtrack-v202607200007';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17306,8 +17306,15 @@ function renderFriendsTab(){
   document.querySelectorAll('#soc-zone-toggle .szt').forEach(b => b.classList.toggle('on', b.dataset.z === _socZone));
   document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
   const _seg = document.getElementById('fr-seg'); if (_seg) _seg.style.display = _socZone === 'friends' ? '' : 'none';
-  _friendPostFresh = 0;   // Community geöffnet → „neue Freundes-Posts"-Badge zurücksetzen
-  S.friendPostTs = Date.now(); persist();   // dauerhaft als gesehen markieren (bleibt auch nach App-Neustart weg)
+  // Community/Freunde geöffnet → ALLES „Passive" als gesehen markieren, damit die
+  // Zahl unten am Community-Tab zuverlässig verschwindet: neue Freundes-Posts UND
+  // Flammen auf eigene Posts. (Freundschaftsanfragen bleiben separat am +-Button.)
+  _friendPostFresh = 0;
+  _flFreshCount = 0;
+  S.friendPostTs = Date.now();
+  S.flameSeen = Date.now();
+  persist();
+  const _bb = document.getElementById('flm-bell-badge'); if (_bb) _bb.style.display = 'none';
   _updateFrBadges();
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
@@ -17491,7 +17498,10 @@ function _timeAgo(ts){
 let _flFreshCount = 0;   // Anzahl neuer (ungesehener) Flammen-Reaktionen auf eigene Posts
 function _updateFrBadges(){
   const req = _frReqCount || 0;
-  const tabN = req + (_flFreshCount || 0) + (_friendPostFresh || 0);   // Community-Tab: Anfragen + neue Flammen + neue Freundes-Posts
+  // Community-Tab (unten): NUR „neues zum Anschauen" — Freundes-Posts + Flammen.
+  // Anfragen sind aktionsbedürftig (annehmen/ablehnen) und bleiben separat am +-Button
+  // (fr-add-badge); sonst würde die Tab-Zahl nie durch bloßes Anschauen weggehen.
+  const tabN = (_flFreshCount || 0) + (_friendPostFresh || 0);
   const setB = (id, n) => { const el = document.getElementById(id); if (el) { el.style.display = n ? 'block' : 'none'; el.textContent = n; } };
   setB('fr-tab-badge', tabN);   // unten am Community-Tab
   setB('fr-add-badge', req);    // nur Freundschaftsanfragen am +-Button
