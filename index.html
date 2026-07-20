@@ -4114,18 +4114,20 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
    kein doppelter HTML-Text-Chrome (sonst liegen zwei Layouts übereinander). */
 .cpg-snap .cpg-menu{position:absolute;top:14px;right:14px;z-index:5}
 .cpg-topfade{position:absolute;top:0;left:0;right:0;height:110px;border-radius:22px 22px 0 0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.12) 60%,rgba(0,0,0,0));z-index:2;pointer-events:none}
-/* Snap-Card: Foto füllt den Rahmen RANDLOS (cover, kein Beschnitt-Rand, keine Balken).
-   Header oben als Overlay; Flammen-Glasleiste unten als Overlay-Leiste mit weichem Ausfaden
-   (Akzent-Glas „faltet" langsam aus, kein harter Balken) — Bild bleibt darunter voll sichtbar. */
-.cpg-snap{background:#0d0d0f}
+/* Snap-Card = Bild OBEN (füllt den Bereich RANDLOS: cover, keine Balken) + SEPARATE
+   Flammen-Glasleiste DARUNTER (nicht auf dem Bild). Weicher Akzent-Übergang am Bild­unterrand
+   lässt die Leiste sanft ausfaden — kein harter Balken. Header als Overlay über dem Bild. */
+.cpg-snap{display:flex;flex-direction:column;background:#0d0d0f}
+.cpg-snap-media{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:22px 22px 0 0;background:#0d0d0f}
 .cpg-card.cpg-snap img.cpg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
 .cpg-snap .cpg-head{z-index:4}
-/* Weiches Ausfaden zum unteren Bildrand, damit die Glasleiste ohne harte Kante ins Bild übergeht. */
-.cpg-foot-fade{position:absolute;left:0;right:0;bottom:0;height:132px;z-index:3;pointer-events:none;border-radius:0 0 22px 22px;
-  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.16) 42%,rgba(0,0,0,.5) 100%)}
-.cpg-snap-foot{position:absolute;left:0;right:0;bottom:0;height:62px;z-index:4;display:flex;align-items:center;justify-content:center;border-radius:0 0 22px 22px;
-  background:linear-gradient(180deg,rgba(var(--acc-rgb),.08),rgba(var(--acc-rgb),.30));
-  backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5)}
+/* Weicher Akzent-Ausfaden am unteren Bildrand → geht sanft in die Fußleiste über (kein harter Rand). */
+.cpg-foot-fade{position:absolute;left:0;right:0;bottom:0;height:96px;z-index:3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),0) 0%,rgba(var(--acc-rgb),.05) 50%,rgba(var(--acc-rgb),.18) 100%)}
+/* Separate Flammen-Glasleiste UNTER dem Bild (eigene Zeile, Akzent-Glas). */
+.cpg-snap-foot{flex-shrink:0;height:60px;display:flex;align-items:center;justify-content:center;border-radius:0 0 22px 22px;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.30));
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
 .cpg-snap .flm-btn{position:static;transform:none;bottom:auto;left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16);padding:8px 24px}
 .cpg-snap .flm-btn:active{transform:scale(.92)}
 .cpg-snap .flm-btn.on{background:rgba(255,90,0,.34);border-color:rgba(255,140,0,.4);box-shadow:0 0 22px rgba(255,120,0,.4)}
@@ -5844,7 +5846,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607190015';
+const APP_VERSION = 'gymtrack-v202607190016';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -18147,14 +18149,16 @@ function _cpgCardHTML(it, pos){
     // Poster füllt den Medienbereich; die Reaktions-Flamme sitzt in der Fußleiste
     // UNTER dem Poster und verdeckt so keinen Card-Inhalt mehr.
     return `<div class="cpg-card cpg-snap ${pos}" data-i="${it._i}">
-    ${bg}
-    <div class="cpg-topfade"></div>
-    <div class="cpg-head">
-      <div class="cpg-ava">${ava}</div>
-      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
-      <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    <div class="cpg-snap-media">
+      ${bg}
+      <div class="cpg-topfade"></div>
+      <div class="cpg-head">
+        <div class="cpg-ava">${ava}</div>
+        <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+        <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      </div>
+      <div class="cpg-foot-fade"></div>
     </div>
-    <div class="cpg-foot-fade"></div>
     <div class="cpg-snap-foot">${flame}</div>
   </div>`;
   }
