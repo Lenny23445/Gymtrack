@@ -4128,6 +4128,11 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
 .cpg-snap-foot{flex-shrink:0;height:60px;display:flex;align-items:center;justify-content:center;border-radius:0 0 22px 22px;
   background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.30));
   backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
+.cpg-snap-foot{gap:12px}
+/* Reaktions-Zähler-Label neben der Flamme („N Flammen") — Zahl steht in der Fußleiste UNTER dem Bild. */
+.cpg-snap-foot .flm-btn .ct{display:none}
+.cpg-flct{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.cpg-flct.dim{opacity:.7;font-weight:700}
 .cpg-snap .flm-btn{position:static;transform:none;bottom:auto;left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16);padding:8px 24px}
 .cpg-snap .flm-btn:active{transform:scale(.92)}
 .cpg-snap .flm-btn.on{background:rgba(255,90,0,.34);border-color:rgba(255,140,0,.4);box-shadow:0 0 22px rgba(255,120,0,.4)}
@@ -5846,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607190016';
+const APP_VERSION = 'gymtrack-v202607200003';
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -5884,7 +5889,7 @@ const I18N_EN = {
   'gerade eben':'just now','vor':'ago',
   'Lade Feed…':'Loading feed…','Feed konnte nicht geladen werden':'Couldn’t load the feed',
   'Bist du offline? Versuch es gleich nochmal.':'Are you offline? Try again in a moment.','Versuch es gleich nochmal.':'Try again in a moment.','Nochmal versuchen':'Try again',
-  'Neuer Rekord':'New record','Wochen-Streak':'week streak','Optionen':'Options','Flamme':'Flame',
+  'Neuer Rekord':'New record','Wochen-Streak':'week streak','Optionen':'Options','Flamme':'Flame','Flammen':'Flames','Erste Flamme geben':'Give the first flame',
   'Noch nichts von deinen Freunden':'Nothing from your friends yet','Noch keine Community-Posts':'No community posts yet',
   'Beende ein Training und teile es — es landet hier.':'Finish a workout and share it — it shows up here.',
   'Füge zuerst Freunde hinzu — oben rechts über das +.':'Add friends first — via the + at the top right.',
@@ -15456,21 +15461,26 @@ async function _shfPublish() {
   // als Text-Aktivität loggen → doppelter Feed-Eintrag. Bei Fehler unten zurücksetzen.
   _shfPosted = true;
   try {
-    const id = uid();
     const d = _shfData;
     // Foto als komprimiertes base64-JPEG direkt im Post ablegen (kein Firebase Storage
     // → kein Blaze-Plan/Kosten). imgPath bleibt null, also kein Storage-Delete nötig.
     const img = await _shfFeedJpeg();
-    await window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', id), {
-      ts: Date.now(),
-      visibility: pb ? 'public' : 'friends',       // public schließt Freunde mit ein
-      img: img, imgPath: null,
+    const base = {
+      ts: Date.now(), img: img, imgPath: null,
       layout: SHARE_LAYOUTS[_shfLayout].id,
       dayName: d.dayName, dur: Math.round(d.duration / 60),
       mgs: d.mgs, gym: d.gym || null,
       name: d.username, photo: d.photo && d.photo.startsWith('http') ? d.photo : null,
       flames: {}
-    });
+    };
+    // Jede ausgewählte Zielgruppe bekommt ein EIGENES Post-Doc mit exakt EINEM
+    // visibility-Wert — Freunde-Feed zeigt nur 'friends'-Docs, Community-Feed nur
+    // 'public'-Docs (siehe _loadPostsFor-Filter). So landet der Post NUR dort, wo
+    // er ausgewählt wurde, statt automatisch auch beim jeweils anderen Ziel.
+    const writes = [];
+    if (fr) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'friends' }));
+    if (pb) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'public' }));
+    await Promise.all(writes);
     _shfPosted = true;
     hapticSuccess();
     _shfExit();
@@ -17094,22 +17104,49 @@ function _demoProfile(d){
 }
 // Snap-Foto-Posts für den Demo-Feed — je Post ein anderes Share-Layout, damit
 // sich im Simulator alle Snap-Designs im echten Card-Pager prüfen lassen.
-const _DEMO_POSTS = [
-  { name:'Max Berger',   dayName:'Push Day',     dur:3480, mgs:['Brust','Schulter','Trizeps'], gym:'FitZone Mitte', prCount:2, layout:0, pal:0, agoMin:8    },
-  { name:'Lena Frank',   dayName:'Leg Day',      dur:3900, mgs:['Beine','Waden'],              gym:'McFit Nord',    prCount:1, layout:1, pal:2, agoMin:52   },
-  { name:'Tom Krause',   dayName:'Pull',         dur:3120, mgs:['Rücken','Bizeps'],            gym:'Gym 80',        prCount:0, layout:2, pal:4, agoMin:180  },
-  { name:'Sara Weber',   dayName:'Ganzkörper',   dur:2760, mgs:['Beine','Brust','Rücken'],     gym:'Body Culture',  prCount:3, layout:3, pal:6, agoMin:1500 },
-  { name:'Jonas Peters', dayName:'Oberkörper',   dur:3300, mgs:['Brust','Rücken','Arme'],      gym:'FitStar West',  prCount:1, layout:4, pal:1, agoMin:340  },
-  { name:'Lenny',        dayName:'Beine schwer', dur:3660, mgs:['Beine','Po'],                 gym:'FitZone Mitte', prCount:2, layout:5, pal:5, me:true, agoMin:60 },
+// Echte Gym-Fotos als Post-Hintergrund (Unsplash-CDN, hotlink-fähig). Als reines
+// <img> gerendert (kein Canvas → kein CORS-Taint), Text liegt als HTML-Overlay drüber.
+const _GYM_PHOTO = [
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=70',
+  'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=800&q=70',
+  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=70',
+  'https://images.unsplash.com/photo-1558611848-73f7eb4001a1?auto=format&fit=crop&w=800&q=70',
+  'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&w=800&q=70',
+  'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=70',
 ];
+// Vorgeladene Image-Objekte (crossOrigin, damit das Canvas beim gebackenen
+// Demo-Layout nicht "tainted" wird) — je Foto ein Promise, das auflöst sobald
+// geladen (oder mit null bei Fehler, dann fällt das Layout auf Akzent-Verlauf zurück).
+const _GYM_PHOTO_IMG = _GYM_PHOTO.map(url => {
+  const im = new Image();
+  im.crossOrigin = 'anonymous';
+  im._ready = new Promise(res => { im.onload = () => res(im); im.onerror = () => res(null); });
+  im.src = url;
+  return im;
+});
+const _DEMO_POSTS = [
+  { name:'Max Berger',   dayName:'Push Day',     dur:3480, mgs:['Brust','Schulter','Trizeps'], gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[0], fl:14, agoMin:8    },
+  { name:'Lena Frank',   dayName:'Leg Day',      dur:3900, mgs:['Beine','Waden'],              gym:'McFit Nord',    prCount:1, photo:_GYM_PHOTO[1], fl:8,  agoMin:52   },
+  { name:'Tom Krause',   dayName:'Pull',         dur:3120, mgs:['Rücken','Bizeps'],            gym:'Gym 80',        prCount:0, photo:_GYM_PHOTO[2], fl:3,  agoMin:180  },
+  { name:'Sara Weber',   dayName:'Ganzkörper',   dur:2760, mgs:['Beine','Brust','Rücken'],     gym:'Body Culture',  prCount:3, photo:_GYM_PHOTO[3], fl:27, agoMin:1500 },
+  { name:'Jonas Peters', dayName:'Oberkörper',   dur:3300, mgs:['Brust','Rücken','Arme'],      gym:'FitStar West',  prCount:1, photo:_GYM_PHOTO[4], fl:5,  agoMin:340  },
+  { name:'Lenny',        dayName:'Beine schwer', dur:3660, mgs:['Beine','Po'],                 gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[5], fl:11, me:true, agoMin:60 },
+];
+// Fake-Flammen-Map mit n Reaktoren (nur Demo — für sichtbaren Reaktions-Zähler).
+function _demoFlames(n){ const o={}; for(let k=0;k<n;k++) o['demofan'+k]=Date.now()-k*60000; return o; }
 // Ein Share-Layout mit beliebigen Daten auf Canvas rendern — schaltet temporär
 // die _shf*-Globals um und setzt sie zurück; nutzt exakt denselben Renderer wie
 // der echte Share-Flow, also sehen die Demo-Snaps aus wie die echten Posts.
-function _demoRenderLayout(li, data, pal){
+function _demoRenderLayout(li, data, pal, bgPhoto){
   const sv = { d:_shfData, p:_shfPhoto, pal:_shfPalIdx, cc:_shfCustomCol };
-  _shfData = data; _shfPhoto = null; _shfPalIdx = pal; _shfCustomCol = null;
+  _shfData = data; _shfPhoto = bgPhoto || null; _shfPalIdx = pal; _shfCustomCol = null;
   let url = '';
   try { url = _shfRender(li, 540, 720).toDataURL('image/jpeg', 0.9); }
+  catch(_) {
+    // Canvas getaintet (Bild ohne CORS-Header geladen) → Fallback ohne Foto (Akzent-Verlauf).
+    _shfPhoto = null;
+    try { url = _shfRender(li, 540, 720).toDataURL('image/jpeg', 0.9); } catch(__) {}
+  }
   finally { _shfData = sv.d; _shfPhoto = sv.p; _shfPalIdx = sv.pal; _shfCustomCol = sv.cc; }
   return url;
 }
@@ -17152,27 +17189,35 @@ function _renderDemoOverview(body){
   profs.sort((a,b)=> (b.live&&b.live.on?2:0)-(a.live&&a.live.on?2:0) || (b.lastWk||0)-(a.lastWk||0));
   body.innerHTML = `${_selfLevelCardHTML()}<div id="fr-list">${profs.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')}</div>`;
 }
-function _renderDemoFeed(body){
+async function _renderDemoFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
   body.innerHTML = `
     <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}</div>
     <div class="cpg-wrap" id="cpg-wrap"></div>`;
+  // Auf die Vorlade-Promises der Gym-Fotos warten, damit sie als echter
+  // Bildhintergrund ins gebackene Layout einfließen (statt Akzent-Verlauf).
+  await Promise.all(_GYM_PHOTO_IMG.map(im => im._ready));
   const now = Date.now();
   _cpgItems = _DEMO_POSTS.map((p, i) => {
-    const li  = (p.layout != null ? p.layout : i) % SHARE_LAYOUTS.length;
-    const pal = (p.pal    != null ? p.pal    : i) % SHF_PALETTES.length;
     const nm  = p.me ? (S.userName || 'Lenny') : p.name;
     const ts  = now - p.agoMin * 60000;
-    const data = {
-      dayName: p.dayName, duration: p.dur, mgs: p.mgs, gym: p.gym,
-      date: new Date(ts), username: nm, photo: null, prCount: p.prCount || 0
-    };
+    // Fertig gestaltetes Share-Layout (3:4) backen — exakt wie ein echter Post.
+    // Je Post ein anderes Layout + eine andere Farbpalette, damit alle Designs
+    // im Card-Pager sichtbar sind (Palette 0 = App-Theme wird übersprungen).
+    const layoutImg = _demoRenderLayout(
+      i % SHARE_LAYOUTS.length,
+      { dayName: p.dayName, duration: p.dur, mgs: p.mgs, gym: p.gym,
+        date: new Date(ts), username: nm, photo: null, prCount: p.prCount || 0 },
+      (i % (SHF_PALETTES.length - 1)) + 1,
+      _GYM_PHOTO_IMG[i % _GYM_PHOTO_IMG.length]
+    );
     return {
       id: 'demo-post-' + i, uid: p.me ? 'demo-me' : ('demo' + (i + 1)), kind: 'post',
-      name: nm, photo: null, img: _demoRenderLayout(li, data, pal),
-      dayName: p.dayName, dur: Math.round(p.dur / 60), gym: p.gym, mgs: p.mgs,
-      visibility: isPub ? 'public' : 'friends', ts, flames: {}
+      // Gebackenes Layout → Bild IST die fertige Card (kein HTML-Overlay, kein rawImg).
+      name: nm, photo: null, img: layoutImg,
+      dayName: p.dayName, dur: Math.round(p.dur / 60), gym: p.gym, mgs: p.mgs, prCount: p.prCount || 0,
+      visibility: isPub ? 'public' : 'friends', ts, flames: _demoFlames(p.fl || 0)
     };
   });
   _cpgIdx = 0;
@@ -18040,13 +18085,20 @@ async function _renderFeed(body){
 function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
 function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
 
-async function _loadPostsFor(uid){
+async function _loadPostsFor(uid, onlyFriends){
   try {
     const q = window.FB.query(window.FB.collection('profiles/' + uid + '/posts'),
       window.FB.orderBy('ts','desc'), window.FB.limit(6));
     const snap = await window.FB.getDocs(q);
     const out = [];
-    snap.forEach(d => out.push({ id:d.id, uid, kind:'post', ...d.data() }));
+    snap.forEach(d => {
+      const data = d.data();
+      // Freunde-Feed zeigt NUR 'friends'-Posts — ein rein für Community gepostetes
+      // Training (visibility:'public') soll nicht zusätzlich hier auftauchen (der
+      // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
+      if (onlyFriends && data.visibility !== 'friends') return;
+      out.push({ id:d.id, uid, kind:'post', ...data });
+    });
     return out;
   } catch(_) { return []; }
 }
@@ -18059,7 +18111,7 @@ async function _cpgLoad(){
     const ids = [...(S.friends||[])];
     if (_fbUser) ids.unshift(_fbUser.uid);
     await Promise.all(ids.slice(0,30).map(async uid => {
-      const [posts, acts] = await Promise.all([_loadPostsFor(uid), _loadFeedFor(uid)]);
+      const [posts, acts] = await Promise.all([_loadPostsFor(uid, true), _loadFeedFor(uid)]);
       posts.forEach(p => items.push(p));
       acts.forEach(a => items.push({ ...a, kind:'act' }));
     }));
@@ -18131,9 +18183,13 @@ function _cpgCardHTML(it, pos){
     ? { day: esc(it.dayName || tr('Training')), meta: [it.dur ? it.dur + ' min' : null, it.gym ? ICO.pin({ s: 12, st: 'display:inline-block;vertical-align:-2px;margin-right:1px' }) + esc(it.gym) : null].filter(Boolean).join(' · ') }
     : _cpgActText(it);
   const acc = _shfAccent();
+  // Echtes Foto (rawImg): bei Ladefehler auf Akzent-Gradient zurückfallen, damit kein schwarzer Rahmen bleibt.
   const bg = isPost && it.img
-    ? `<img class="cpg-img" src="${esc(it.img)}" loading="lazy" alt="">`
+    ? `<img class="cpg-img" src="${esc(it.img)}" loading="lazy" alt=""${it.rawImg ? ` onerror="this.style.display='none'"` : ''}>`
     : `<div class="cpg-img" style="background:linear-gradient(160deg,${acc},#0b1020)"></div>`;
+  const flLabel = fireCount
+    ? fireCount + ' ' + (fireCount === 1 ? tr('Flamme') : tr('Flammen'))
+    : tr('Erste Flamme geben');
   const chips = isPost && (it.mgs||[]).length
     ? `<div class="cpg-chips">${it.mgs.slice(0,4).map(m => `<span class="cpg-chip">${esc(m)}</span>`).join('')}</div>` : '';
   const d = new Date(it.ts || Date.now());
@@ -18148,8 +18204,16 @@ function _cpgCardHTML(it, pos){
   if (isPost && it.img) {
     // Poster füllt den Medienbereich; die Reaktions-Flamme sitzt in der Fußleiste
     // UNTER dem Poster und verdeckt so keinen Card-Inhalt mehr.
+    // rawImg = reines Gym-Foto → Tag/Stats/Gym als HTML-Overlay drüberlegen (bei
+    // gebackenen Share-Cards sind die schon im Bild, dann kein zweites Layout).
+    const rawInfo = it.rawImg ? `<div class="cpg-info">
+        <div class="day">${head.day}</div>
+        <div class="meta">${head.meta || ''}</div>
+        ${chips}
+      </div>` : '';
+    const mediaBg = it.rawImg ? ` style="background:linear-gradient(160deg,${acc},#0b1020)"` : '';
     return `<div class="cpg-card cpg-snap ${pos}" data-i="${it._i}">
-    <div class="cpg-snap-media">
+    <div class="cpg-snap-media"${mediaBg}>
       ${bg}
       <div class="cpg-topfade"></div>
       <div class="cpg-head">
@@ -18157,9 +18221,10 @@ function _cpgCardHTML(it, pos){
         <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
         <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       </div>
+      ${rawInfo}
       <div class="cpg-foot-fade"></div>
     </div>
-    <div class="cpg-snap-foot">${flame}</div>
+    <div class="cpg-snap-foot">${flame}<span class="cpg-flct${fireCount ? '' : ' dim'}" id="flct-${it._i}">${flLabel}</span></div>
   </div>`;
   }
   // Gradient-Card (Text-Activities / Post ohne Bild): HTML-Chrome liefert den Inhalt.
@@ -18183,6 +18248,7 @@ function _cpgCardHTML(it, pos){
 }
 function _cpgRenderStack(){
   const w = document.getElementById('cpg-wrap'); if (!w) return;
+  w.style.height = '';
   _cpgItems.forEach((it, i) => it._i = i);
   if (!_cpgItems.length) {
     const isFr = _cpgMode === 'friends';
@@ -18202,6 +18268,13 @@ function _cpgRenderStack(){
   const top = _cpgItems[_cpgIdx];
   const under = _cpgItems[_cpgIdx + 1];
   w.innerHTML = (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
+  // Fertige Share-Layouts sind 3:4. Die separate Flammen-Fußleiste (60px) frisst sonst
+  // vom Bildbereich ab (cover → oben/unten abgeschnitten). Darum den Rahmen um die
+  // Fußleistenhöhe VERGRÖSSERN, sodass der Medienbereich exakt 3:4 bleibt → Bild passt
+  // randlos rein, nichts wird beschnitten. Ohne Snap-Foto: normales 3:4 (CSS).
+  const _isSnap = top && top.kind === 'post' && top.img;
+  const _bw = w.clientWidth || 0;
+  w.style.height = (_bw && _isSnap) ? (_bw * 4 / 3 + 60) + 'px' : '';
   const count = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
   w.insertAdjacentHTML('afterbegin', count);
   _cpgBindSwipe(w);
@@ -18281,6 +18354,11 @@ async function toggleFlame(i){
     btn.classList.toggle('on', on);
     const ct = document.getElementById('flmct-' + i);
     if (ct) ct.textContent = count || '';
+    const lbl = document.getElementById('flct-' + i);
+    if (lbl) {
+      lbl.textContent = count ? (count + ' ' + (count === 1 ? tr('Flamme') : tr('Flammen'))) : tr('Erste Flamme geben');
+      lbl.classList.toggle('dim', !count);
+    }
     if (on) {
       btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
       for (let p = 0; p < 8; p++) {
