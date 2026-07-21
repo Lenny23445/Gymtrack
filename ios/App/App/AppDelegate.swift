@@ -86,6 +86,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
+
+    // MARK: - Remote Push (APNs) → an @capacitor/push-notifications weiterreichen
+    // Ohne diese zwei Methoden feuert das "registration"-Event im JS nie.
+    // Reines Capacitor, KEIN Firebase-SDK.
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications,
+                                        object: deviceToken)
+    }
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications,
+                                        object: error)
+    }
 }
 
 // MARK: - UNUserNotificationCenterDelegate

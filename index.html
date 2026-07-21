@@ -5851,7 +5851,16 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607200012';
+const APP_VERSION = 'gymtrack-v202607210001';
+
+/* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
+   Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
+   Ablauf: iOS holt Device-Token via @capacitor/push-notifications → Token in
+   profiles/{uid}.pushToken → beim Flammen-Tap ruft der Absender den Worker,
+   der die Push an den Post-Besitzer schickt. Kein Blaze, kein Firebase-SDK. */
+const PUSH_WORKER_URL = 'https://gymtrack-push.wolterlenny362.workers.dev';
+let _pushToken = null;    // APNs-Device-Token dieses Geräts (in profiles/{uid}.pushToken)
+let _pushReg   = false;   // registration-Listener nur einmal binden
 
 /* ══ I18N — Englische Übersetzung als Display-Layer ══════════════════════
    Interne Daten (Übungsnamen, Gruppen-IDs, Cloud-Felder) bleiben deutsch —
@@ -17018,16 +17027,59 @@ async function _pushSocialProfile(){
     friends: S.friends || [],
     updatedAt: Date.now()
   };
+  if (_pushToken) payload.pushToken = _pushToken;   // APNs-Token fürs Sperrbild-Push mitschreiben (merge:false würde ihn sonst löschen)
   try {
     await window.FB.setDoc(window.FB.doc('profiles', _fbUser.uid), payload, { merge:false });
   } catch(e) { console.warn('[GymTrack] Community-Push fehlgeschlagen:', e?.code || e); }
 }
 function _pushSocialSoon(){ clearTimeout(_socPushT); _socPushT = setTimeout(_pushSocialProfile, 1500); }
 
+/* ── Echte Push (APNs) ─────────────────────────────────────────────────────
+   Nur nativ (iOS). Fragt einmalig Push-Erlaubnis, registriert bei APNs, holt
+   den Device-Token und speichert ihn in profiles/{uid}.pushToken. */
+async function _pushRegister(){
+  const PN = _cap('PushNotifications');
+  if (!PN || _pushReg) return;
+  _pushReg = true;
+  try {
+    if (!PN.__gtBound) {
+      PN.__gtBound = true;
+      PN.addListener('registration', (t) => {
+        _pushToken = t && t.value ? String(t.value) : null;
+        if (_pushToken && S.socialOn && _socReady()) { try { _pushSocialProfile(); } catch(_){} }
+      });
+      PN.addListener('registrationError', (e) => {
+        console.warn('[GymTrack] Push-Registrierung fehlgeschlagen:', e);
+      });
+    }
+    let perm = await PN.checkPermissions();
+    if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
+      perm = await PN.requestPermissions();
+    }
+    if (perm.receive === 'granted') { await PN.register(); }
+    else { _pushReg = false; }   // abgelehnt → später erneut versuchen dürfen
+  } catch(e) { _pushReg = false; console.warn('[GymTrack] Push-Setup:', e); }
+}
+
+/* Ruft den Cloudflare-Worker, damit der Post-Besitzer eine echte Push bekommt.
+   Der Worker liest den Empfänger-Token aus Firestore MIT unserem idToken —
+   kein Missbrauch möglich. Fire-and-forget, blockiert die UI nie. */
+async function _notifyFlamePush(toUid){
+  try {
+    if (!PUSH_WORKER_URL || !_fbUser || !toUid) return;
+    const idToken = await _fbUser.getIdToken();
+    fetch(PUSH_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toUid, idToken, fromName: (S.userName || _fbUser.displayName || 'Jemand').slice(0,40) })
+    }).catch(()=>{});
+  } catch(_){}
+}
+
 function toggleSocial(on){
   S.socialOn = !!on;
   persist();
-  if (on) { _socCode(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }
+  if (on) { _socCode(); _pushRegister(); _pushSocialProfile(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }
   else if (_socReady()) {
     try { window.FB.deleteDoc(window.FB.doc('profiles', _fbUser.uid)); } catch(_){}
     _socCache = null;
@@ -17323,7 +17375,7 @@ function renderFriendsTab(){
   // Live-Listener SICHER starten, sobald der Tab offen ist (idempotent, Guards verhindern
   // Doppel-Abos). Beim Kaltstart laufen die Start-Aufrufe evtl. vor „Auth settled" ins Leere
   // (_socReady() noch false) → dann würde der Community-Feed erst nach App-Neustart live sein.
-  if (_socReady() && S.socialOn) { try { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); } catch(_){} }
+  if (_socReady() && S.socialOn) { try { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); } catch(_){} }
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
     body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
@@ -18426,6 +18478,7 @@ async function toggleFlame(i){
       await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/posts', it.id), { flames: it.flames });
     else
       await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/activities', it.id), { reactions: it.reactions });
+    if (on && it.uid && it.uid !== me) _notifyFlamePush(it.uid);   // echte APNs-Push an Post-Besitzer
   } catch(e) {
     // Server lehnte ab → optimistische Änderung zurückrollen
     if (it.kind === 'post') { if (on) delete it.flames[me]; else it.flames[me] = Date.now(); }
@@ -19806,7 +19859,7 @@ async function _onLogin(user) {
     _syncing = false;
     _initialMergeDone = true;
     updateAccountUI();
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
   }
 }
 
@@ -19965,7 +20018,7 @@ document.addEventListener('visibilitychange', () => {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
     _updateWidgetData();    // z. B. Tages-/Wochenwechsel während App im Hintergrund
-    if (S.socialOn) { _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
   }
 });
 window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} });

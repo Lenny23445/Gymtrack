@@ -27,7 +27,8 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly([
              'name','code','photo','gymName','gymLat','gymLng',
-             'week','month','streak','lastWk','live','stats','friends','updatedAt'
+             'week','month','streak','lastWk','live','stats','friends','updatedAt',
+             'pushToken'
            ])
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 30
