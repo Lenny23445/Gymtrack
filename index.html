@@ -5851,7 +5851,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607210001';
+const APP_VERSION = 'gymtrack-v202607210002';
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -18294,7 +18294,13 @@ function _cpgCardHTML(it, pos){
     ? `<div class="cpg-chips">${it.mgs.slice(0,4).map(m => `<span class="cpg-chip">${esc(m)}</span>`).join('')}</div>` : '';
   const d = new Date(it.ts || Date.now());
   const vdate = (d.toLocaleDateString(GT_LOCALE, {day:'2-digit', month:'short'}) + ' · ' + d.toLocaleTimeString(GT_LOCALE, {hour:'2-digit', minute:'2-digit'})).toUpperCase();
-  const ava = it.photo ? `<img src="${esc(it.photo)}" alt="">` : _socInitials(it.name);
+  // Post trägt nur http-Fotos (base64-Avatare werden beim Schreiben genullt, um das
+  // 1-MB-Doc-Limit nicht zu sprengen). Fallback: echtes Profilbild aus dem Cache
+  // (profiles/{uid}.photo enthält auch base64), fürs eigene Profil lokal.
+  const _avaSrc = it.photo
+    || (function(){ const p = (_socCache||[]).find ? (_socCache||[]).find(x => x.uid === it.uid) : null; return p && p.photo ? p.photo : null; })()
+    || (it.uid === me ? _profilePhoto() : null);
+  const ava = _avaSrc ? `<img src="${esc(_avaSrc)}" alt="">` : _socInitials(it.name);
   const flame = `<button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
       ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
     </button>`;
