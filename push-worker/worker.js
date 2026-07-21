@@ -27,6 +27,7 @@ export default {
     let body;
     try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, cors); }
     const { toUid, idToken, fromName } = body || {};
+    console.log("[PUSH] Anfrage rein: toUid=", toUid, "fromName=", fromName, "hatIdToken=", !!idToken);
     if (!toUid || !idToken) return json({ error: "toUid+idToken required" }, 400, cors);
 
     // 1) Empfänger-Profil aus Firestore lesen — MIT dem Login des Absenders.
@@ -34,10 +35,11 @@ export default {
     const fsUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}` +
                   `/databases/(default)/documents/profiles/${encodeURIComponent(toUid)}`;
     const fsRes = await fetch(fsUrl, { headers: { Authorization: `Bearer ${idToken}` } });
-    if (!fsRes.ok) return json({ error: "auth/profile read failed", status: fsRes.status }, 401, cors);
+    if (!fsRes.ok) { console.log("[PUSH] FEHLER: Profil-Lesen/Auth fehlgeschlagen, status=", fsRes.status); return json({ error: "auth/profile read failed", status: fsRes.status }, 401, cors); }
     const doc   = await fsRes.json();
     const token = doc && doc.fields && doc.fields.pushToken && doc.fields.pushToken.stringValue;
-    if (!token) return json({ ok: true, skipped: "no pushToken" }, 200, cors);
+    if (!token) { console.log("[PUSH] KEIN pushToken im Profil des Empfaengers", toUid, "-> Empfaenger hat nie registriert"); return json({ ok: true, skipped: "no pushToken" }, 200, cors); }
+    console.log("[PUSH] Empfaenger-Token gefunden, laenge=", token.length);
 
     // 2) APNs-JWT (ES256 mit deinem .p8) signieren
     const jwt = await apnsJwt(env);
@@ -63,8 +65,10 @@ export default {
     });
     if (!apnsRes.ok) {
       const detail = await apnsRes.text();
+      console.log("[PUSH] APNs LEHNT AB: status=", apnsRes.status, "detail=", detail);
       return json({ error: "apns failed", status: apnsRes.status, detail }, 502, cors);
     }
+    console.log("[PUSH] OK -> APNs hat Push angenommen");
     return json({ ok: true }, 200, cors);
   },
 };
