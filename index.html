@@ -4436,6 +4436,16 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
                    padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
                    outline:none;cursor:pointer;flex-shrink:0;width:auto">
         </div>
+        <div class="row">
+          <div class="row-body">
+            <div class="row-title">Push testen</div>
+            <div class="row-sub" id="pushtest-sub">Schickt dir eine Test-Benachrichtigung</div>
+          </div>
+          <button onclick="_pushSelfTest()"
+            style="background:var(--acc);color:#fff;border:none;border-radius:10px;
+                   padding:8px 14px;font-size:14px;font-weight:700;font-family:inherit;
+                   cursor:pointer;flex-shrink:0">Testen</button>
+        </div>
       </div>
     </div>
     <div>
@@ -5851,7 +5861,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607210002';
+const APP_VERSION = 'gymtrack-v202607210003';
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -17074,6 +17084,39 @@ async function _notifyFlamePush(toUid){
       body: JSON.stringify({ toUid, idToken, fromName: (S.userName || _fbUser.displayName || 'Jemand').slice(0,40) })
     }).catch(()=>{});
   } catch(_){}
+}
+
+/* Selbsttest: registriert, schickt eine Push an DICH SELBST und zeigt in Klartext,
+   woran es hängt. Ein Gerät reicht, keine Cloudflare-Logs nötig. */
+async function _pushSelfTest(){
+  const PN = _cap('PushNotifications');
+  if (!PN) { alert('Push geht nur in der installierten App (nicht im Browser).'); return; }
+  if (!_fbUser || _fbUser.isAnonymous) { alert('Bitte zuerst einloggen (nicht anonym).'); return; }
+  if (!S.socialOn) { alert('Bitte zuerst Community/Freunde aktivieren.'); return; }
+  alert('Registriere Push… gleich kommt evtl. der Erlauben-Dialog. Danach nochmal „Testen" tippen.');
+  _pushReg = false;              // Registrierung erzwingen
+  await _pushRegister();
+  // kurz auf den Token warten (registration-Event ist asynchron)
+  for (let i = 0; i < 20 && !_pushToken; i++) { await new Promise(r => setTimeout(r, 250)); }
+  if (!_pushToken) {
+    alert('❌ Kein Push-Token bekommen.\nErlaubnis erteilt? Und ist es ein TestFlight/Store-Build (nicht Simulator)? Ohne Token kann keine Push kommen.');
+    return;
+  }
+  try { await _pushSocialProfile(); } catch(_){}   // Token sicher ins Profil schreiben
+  await new Promise(r => setTimeout(r, 400));
+  try {
+    const idToken = await _fbUser.getIdToken();
+    const res = await fetch(PUSH_WORKER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toUid: _fbUser.uid, idToken, fromName: 'Test' })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (j.ok && !j.skipped) alert('✅ Push wurde an Apple übergeben. Sperre das Handy — sie sollte in Sekunden kommen. (Token: …' + _pushToken.slice(-6) + ')');
+    else if (j.skipped === 'no pushToken') alert('⚠️ Token noch nicht im Profil gespeichert.\nHast du die Firestore-Rules mit „pushToken" veröffentlicht? Sonst wird der Token abgelehnt.');
+    else if (j.error === 'apns failed') alert('❌ Apple lehnt ab (' + j.status + '): ' + (j.detail || '') + '\nSchick mir genau diese Zeile.');
+    else if (j.error === 'auth/profile read failed') alert('❌ Login/Profil-Lesen fehlgeschlagen (' + j.status + ').');
+    else alert('Antwort: ' + JSON.stringify(j));
+  } catch(e) { alert('❌ Worker nicht erreichbar: ' + (e && e.message || e)); }
 }
 
 function toggleSocial(on){
