@@ -34,8 +34,10 @@ const _quota = new Map(); // uid → {day, chat, report}
 function quotaOk(uid, kind, env) {
   const day = new Date().toISOString().slice(0, 10);
   let q = _quota.get(uid);
-  if (!q || q.day !== day) { q = { day, chat: 0, report: 0 }; _quota.set(uid, q); }
-  const limit = kind === "chat" ? (parseInt(env.CHAT_DAILY) || 100) : (parseInt(env.REPORT_DAILY) || 5);
+  if (!q || q.day !== day) { q = { day, chat: 0, report: 0, scan: 0 }; _quota.set(uid, q); }
+  const limit = kind === "chat" ? (parseInt(env.CHAT_DAILY) || 100)
+              : kind === "scan" ? (parseInt(env.SCAN_DAILY) || 40)
+              : (parseInt(env.REPORT_DAILY) || 5);
   if (q[kind] >= limit) return false;
   q[kind]++;
   return true;
@@ -52,7 +54,7 @@ export default {
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
 
     const path = new URL(request.url).pathname.replace(/\/+$/, "");
-    if (path !== "/report" && path !== "/chat") return json({ error: "unknown endpoint" }, 404, cors);
+    if (path !== "/report" && path !== "/chat" && path !== "/scan") return json({ error: "unknown endpoint" }, 404, cors);
 
     let body;
     try { body = await request.json(); } catch (_) { return json({ error: "bad json" }, 400, cors); }
@@ -72,12 +74,13 @@ export default {
     }
 
     // 3) Tageslimit
-    const kind = path === "/chat" ? "chat" : "report";
+    const kind = path === "/chat" ? "chat" : path === "/scan" ? "scan" : "report";
     if (!quotaOk(uid, kind, env)) return json({ error: "Tageslimit erreicht — morgen geht's weiter" }, 429, cors);
 
     // 4) Claude aufrufen
     try {
       if (path === "/report") return json(await runReport(body, lang, env), 200, cors);
+      if (path === "/scan")   return json(await runScan(body, lang, env), 200, cors);
       return json(await runChat(body, lang, env), 200, cors);
     } catch (e) {
       console.log("[AI] Claude-Fehler:", e.message);
@@ -171,6 +174,61 @@ No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on train
     "\n\n=== NUTZERDATEN ===\n" + ctx;
   const data = await claude(env, { max_tokens: 1200, system: sys, messages: msgs });
   return { text: (data.content.find((b) => b.type === "text") || {}).text || "" };
+}
+
+const SCAN_SCHEMA = {
+  type: "object",
+  properties: {
+    device: { type: "string" },
+    tip:    { type: "string" },
+    exercises: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          nameEn:      { type: "string" },
+          nameDe:      { type: "string" },
+          muscleGroup: { type: "string" },
+          searchTerms: { type: "array", items: { type: "string" } },
+        },
+        required: ["nameEn", "nameDe", "muscleGroup", "searchTerms"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["device", "tip", "exercises"],
+  additionalProperties: false,
+};
+
+async function runScan(body, lang, env) {
+  const de = lang !== "en";
+  const img = String(body.image || "");
+  if (!img || img.length < 1000 || img.length > 2500000) throw new Error("bad image");
+  const sys = de
+    ? `Du bekommst ein Foto aus einem Fitnessstudio. Erkenne das Trainingsgerät (oder die Hantel/Station) und nenne die 1-3 wichtigsten Übungen dafür.
+- device: kurzer deutscher Gerätename (z. B. "Latzug-Maschine"). Wenn kein Gerät erkennbar: "Kein Gerät erkennbar".
+- tip: EIN kurzer Satz zur Ausführung/Einstellung (Sitzhöhe, Griff o. ä.).
+- exercises: 1-3 Übungen. nameEn = gebräuchlicher englischer Übungsname wie in Übungsdatenbanken (z. B. "lat pulldown", "seated cable row"). nameDe = deutscher Name. muscleGroup aus: brust, ruecken, beine, arme, schultern, core. searchTerms: 2-4 englische Alternativ-Namen/Schreibweisen für die Datenbanksuche (klein geschrieben).
+Kein Gerät erkennbar → exercises leer.`
+    : `You get a gym photo. Identify the machine (or free-weight station) and name the 1-3 main exercises for it.
+- device: short machine name. If none recognizable: "No machine recognized".
+- tip: ONE short setup/form sentence.
+- exercises: 1-3 items. nameEn = common English exercise name as used in exercise databases. nameDe = same as nameEn. muscleGroup from: brust, ruecken, beine, arme, schultern, core. searchTerms: 2-4 lowercase English alternative names.
+No machine → empty exercises.`;
+  const data = await claude(env, {
+    max_tokens: 700,
+    system: sys,
+    output_config: { format: { type: "json_schema", schema: SCAN_SCHEMA } },
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: img } },
+        { type: "text", text: de ? "Welches Gerät ist das und welche Übungen macht man daran?" : "Which machine is this and which exercises are done on it?" },
+      ],
+    }],
+  });
+  const txt = (data.content.find((b) => b.type === "text") || {}).text || "{}";
+  return { scan: JSON.parse(txt) };
 }
 
 // ═══════════════ Firebase-Token prüfen ═══════════════

@@ -1040,30 +1040,32 @@ body{
   background:rgba(0,0,0,.5);
   backdrop-filter:blur(3px);
   -webkit-backdrop-filter:blur(3px);
-  z-index:900;display:none;align-items:flex-end;
+  z-index:900;display:none;align-items:flex-end;justify-content:center;
+  /* Premium-Look: Sheets schweben als Karte mit Rand statt volle Handybreite */
+  padding:0 10px calc(10px + var(--sab));
 }
-[data-theme="dark"] .ov{ background:rgba(0,0,0,.5); }
+[data-theme="dark"] .ov{ background:rgba(0,0,0,.55); }
 .ov.on{display:flex}
 .sheet{
   background:var(--gl-bg-h);
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
-  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  border-radius:var(--r-xl);
   border:1px solid var(--gl-bdr);
-  border-bottom:none;
-  width:100%;max-height:92vh;max-height:min(92vh,var(--sheet-cap));
+  width:100%;max-width:560px;
+  max-height:92vh;max-height:min(92vh,var(--sheet-cap));
   overflow-y:auto;overflow-x:hidden;
   padding-bottom:calc(100px + var(--sab)); /* Platz für die schwebende Leiste */
-  animation:up .28s cubic-bezier(.32,1,.32,1);
-  box-shadow:0 -8px 48px rgba(0,0,0,.18),var(--gl-hi);
+  animation:up .3s cubic-bezier(.32,1,.32,1);
+  box-shadow:0 24px 70px rgba(0,0,0,.35),0 4px 18px rgba(0,0,0,.14),var(--gl-hi);
   transition:background .4s;
   position:relative;
 }
 .sheet::after{
   content:'';position:absolute;top:0;left:0;right:0;height:110px;
-  background:var(--sheen);pointer-events:none;border-radius:28px 28px 0 0;
+  background:var(--sheen);pointer-events:none;border-radius:var(--r-xl) var(--r-xl) 0 0;
 }
-@keyframes up{from{transform:translateY(100%)}}
+@keyframes up{from{transform:translateY(calc(100% + 20px))}}
 
 /* Dark Mode: große Overlay-Flächen (Bottom-Sheets, Trainingskalender) als
    DUNKLES Milchglas — dunkler Tint statt weißem Schleier + kräftiger Blur.
@@ -17461,7 +17463,9 @@ function _pwRender(feature){
       <div class="pw-title">${compact ? (AI_ON ? 'Dein KI-Coach wartet' : 'Mehr aus deinem Training holen') : 'Alles aus deinem Training holen'}</div>
       <div class="pw-sub">${compact ? 'Mehr rausholen — für weniger als einen Proteinriegel im Monat.' : (AI_ON ? 'KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.' : 'Tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.')}</div>
     </div>
-    <div class="pw-feats">${_pwFeatRowsHTML((compact ? ['chat','report','exdb','scan'] : ['chat','report','exdb','scan','stats','body','export','themes']).filter(k => AI_ON || !['chat','report','scan'].includes(k)))}</div>
+    <div class="pw-feats">${_pwFeatRowsHTML(
+      compact ? (AI_ON ? ['chat','report','exdb','scan'] : ['exdb','stats','body','export'])
+              : ['chat','report','exdb','scan','stats','body','export','themes'].filter(k => AI_ON || !['chat','report','scan'].includes(k)))}</div>
     <div class="pw-plans">${_pwPlanCardsHTML('_pwPlan','pwPickPlan')}</div>
     ${native
       ? `<button class="pw-cta" id="pw-cta" onclick="paywallBuy()">Premium freischalten</button>`
