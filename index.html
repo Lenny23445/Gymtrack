@@ -858,7 +858,7 @@ body{
   box-shadow:0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05),
              inset 0 1px 0 rgba(255,255,255,.70);
   display:flex;z-index:1000;padding:7px;
-  transition:background .4s;
+  transition:background .4s,padding .32s cubic-bezier(.32,1,.32,1);
   overflow:hidden;
 }
 [data-glass="off"] .tabbar{
@@ -901,7 +901,7 @@ body{
   flex:1;display:flex;flex-direction:column;align-items:center;
   padding:8px 4px 9px;gap:2px;cursor:pointer;border:none;
   background:none;color:var(--text2);
-  transition:color .22s,opacity .22s;
+  transition:color .22s,opacity .22s,padding .28s cubic-bezier(.32,1,.32,1);
   font-family:inherit;border-radius:22px;
   position:relative;z-index:1;
   opacity:0.55;
@@ -3951,11 +3951,13 @@ html[data-glass][data-theme="dark"] .tabbar{
   box-shadow:var(--lg-rim),var(--lg-elev)!important;
   transition:max-width .3s cubic-bezier(.32,1,.32,1),padding .3s cubic-bezier(.32,1,.32,1),transform .3s;
 }
-/* Tab-Bar minimiert beim Runterscrollen → kompakte Kapsel (nur Icons) */
-html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
-[data-theme="dark"] .tabbar .tab span{ transition:opacity .18s,max-height .28s cubic-bezier(.32,1,.32,1); overflow:hidden; }
-[data-theme="dark"] .tabbar.tabbar--min .tab span{ opacity:0; max-height:0; }
-[data-theme="dark"] .tabbar.tabbar--min .tab{ padding-top:9px; padding-bottom:9px; }
+/* Tab-Bar minimiert beim Runterscrollen → kompakte Kapsel (nur Icons).
+   Gilt für ALLE Themes; explizite max-height auf dem Label ist Pflicht —
+   von `none` auf 0 kann CSS nicht animieren (das war der Ruckler). */
+.tabbar.tabbar--min{ padding:4px 7px; }
+.tabbar .tab span{ transition:opacity .18s ease,max-height .28s cubic-bezier(.32,1,.32,1); overflow:hidden; max-height:16px; }
+.tabbar.tabbar--min .tab span{ opacity:0; max-height:0; }
+.tabbar.tabbar--min .tab{ padding-top:9px; padding-bottom:9px; }
 /* ---- Nav-Schicht: sticky Header ---- */
 [data-theme="dark"] .hdr{
   background:linear-gradient(180deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 60%,transparent 100%)!important;
@@ -4027,8 +4029,8 @@ html[data-theme="dark"] .tabbar.tabbar--min{ padding:4px 7px; }
   [data-theme="dark"] .btn-acc{ background:#0A84FF!important; }
 }
 @media (prefers-reduced-motion: reduce){
-  [data-theme="dark"] .btn,[data-theme="dark"] .btn-acc,[data-theme="dark"] .tabbar,
-  [data-theme="dark"] .tabbar .tab span{ transition:none!important; }
+  [data-theme="dark"] .btn,[data-theme="dark"] .btn-acc,.tabbar,
+  .tabbar .tab,.tabbar .tab span{ transition:none!important; }
   [data-theme="dark"] .btn:active,[data-theme="dark"] .btn-acc:active{ transform:none!important; }
 }
 @media (prefers-contrast: more){
@@ -5861,7 +5863,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607210003';
+const APP_VERSION = 'gymtrack-v202607220001';
+
+/* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
+   true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
+   NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
+const DEMO_SEED = true;
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -5999,6 +6006,7 @@ const I18N_EN = {
   'Link teilen':'Share link','Link kopieren':'Copy link','Link kopiert':'Link copied','Kopieren nicht möglich':'Could not copy',
   'QR offline nicht verfügbar – nutze „Link teilen".':'QR unavailable offline – use “Share link”.',
   'Plan zu groß für QR – nutze „Link teilen".':'Plan too large for QR – use “Share link”.',
+  'In der MyGymTrack-App öffnen':'Open in the MyGymTrack app',
   'Dein Wochenplan ist noch leer.':'Your weekly plan is still empty.','Split zuerst speichern, dann teilen.':'Save the split first, then share.',
   'Dieser Split hat noch keine Übungen.':'This split has no exercises yet.','Ungültiger Plan-Link':'Invalid plan link',
   'Fehlende Übungen werden automatisch in deine Bibliothek angelegt.':'Missing exercises are added to your library automatically.',
@@ -14617,7 +14625,13 @@ function finishWk() {
   const newSession = _newSess;
   const prs = detectPRs(newSession);
   if (prs.length) celebratePRs(prs);
-  startShareFlow(newSession, prs, _shareDayName);  // neuer Share-Flow statt alter Zusammenfassung
+  // Share-Flow abgesichert: wirft er (Canvas/Avatar), liefen sonst renderHome &
+  // Punkte-Ticker nie → Level-Badge blieb stehen/verschwand und Punkte kamen nie an.
+  try { startShareFlow(newSession, prs, _shareDayName); }
+  catch(e) {
+    console.warn('[GymTrack] Share-Flow-Fehler:', e);
+    if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 600); }
+  }
   renderHome();
   checkMilestoneRewards();   // neu erreichte Meilensteine feiern (Vibration + Toast)
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
@@ -16594,7 +16608,12 @@ function _b64url(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\
 function _unb64url(s){ s = String(s||'').replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s += '='; return decodeURIComponent(escape(atob(s))); }
 function _encodeShare(obj){ return _b64url(JSON.stringify(obj)); }
 function _decodeShare(b64){ try { return JSON.parse(_unb64url(b64)); } catch(_){ return null; } }
-function _shareLink(obj){ return 'gymtrack://import?d=' + _encodeShare(obj); }
+/* Geteilter Link ist ein ECHTER https-Link (in WhatsApp & Co. klickbar — das
+   nackte gymtrack://-Schema wurde dort nicht verlinkt und „funktionierte nicht").
+   Er öffnet die Web-App, die die Import-Vorschau zeigt und per Button/Deep-Link
+   in die native App weiterreicht (gymtrack://import?d=…). */
+const PLAN_SHARE_BASE = 'https://lenny23445.github.io/Gymtrack/';
+function _shareLink(obj){ return PLAN_SHARE_BASE + '?import=' + _encodeShare(obj); }
 
 let _planShareLinkCur = '';
 function openPlanShareWeek(){
@@ -16658,13 +16677,13 @@ function _planImportEx(mini){
   S.exercises.push(ex);
   return ex.id;
 }
-// gymtrack://import?d=… → Vorschau öffnen. true = war ein Import-Link.
-let _lastImportSig = '', _lastImportAt = 0;
+// gymtrack://import?d=… ODER https://…/?import=… → Vorschau öffnen. true = war ein Import-Link.
+let _lastImportSig = '', _lastImportAt = 0, _planImportD = '';
 function _handlePlanImportUrl(url){
-  const m = /[?&]d=([^&#]+)/.exec(url || ''); if (!m) { showUpdateToast(tr('Ungültiger Plan-Link')); return true; }
+  const m = /[?&](?:d|import)=([^&#]+)/.exec(url || ''); if (!m) { showUpdateToast(tr('Ungültiger Plan-Link')); return true; }
   // Kaltstart (getLaunchUrl) + appUrlOpen könnten denselben Link doppelt liefern.
   if (m[1] === _lastImportSig && Date.now() - _lastImportAt < 4000) return true;
-  _lastImportSig = m[1]; _lastImportAt = Date.now();
+  _lastImportSig = m[1]; _lastImportAt = Date.now(); _planImportD = m[1];
   const obj = _decodeShare(m[1]);
   if (!obj || obj.v !== PLAN_SHARE_VER || (obj.t !== 'split' && obj.t !== 'week')) { showUpdateToast(tr('Ungültiger Plan-Link')); return true; }
   _planImportPreview(obj);
@@ -16698,6 +16717,12 @@ function _planImportPreview(obj){
       '<div class="plimp-card"><div class="plimp-meta">' + P.length + ' ' + tr('Splits') + ' · ' + Object.keys(w).length + ' ' + tr('Trainingstage') + ' · ' + nEx + ' ' + tr('Übungen') + '</div>' +
       '<div class="plimp-rows">' + rows + '</div></div>' +
       '<div class="plimp-warn">' + tr('Beim Importieren wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch angelegt.') + '</div>';
+  }
+  // Im Browser (Web-Version) geöffnet: zusätzlich anbieten, den Import direkt in
+  // der installierten nativen App zu öffnen (Deep-Link mit derselben Payload).
+  if (!window.Capacitor?.isNativePlatform?.() && _planImportD) {
+    body.innerHTML += '<button class="btn" style="width:100%;margin-top:12px" ' +
+      'onclick="location.href=\'gymtrack://import?d=\'+_planImportD">' + tr('In der MyGymTrack-App öffnen') + '</button>';
   }
   openOv('ov-plimport');
 }
@@ -17418,7 +17443,7 @@ function renderFriendsTab(){
   // Live-Listener SICHER starten, sobald der Tab offen ist (idempotent, Guards verhindern
   // Doppel-Abos). Beim Kaltstart laufen die Start-Aufrufe evtl. vor „Auth settled" ins Leere
   // (_socReady() noch false) → dann würde der Community-Feed erst nach App-Neustart live sein.
-  if (_socReady() && S.socialOn) { try { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); } catch(_){} }
+  if (_socReady() && S.socialOn) { try { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); _purgeOldPosts(); } catch(_){} }
   if (DEMO_MODE()) return _renderDemoFriends(body);
   if (!window.FB || !window.FB.configured) {
     body.innerHTML = `<div class="soc-gate"><div class="soc-gate-ico">${_OB_SVG.users}</div>
@@ -17900,7 +17925,11 @@ function _xpOf(p){   // Punkte eines fremden Profils (nur öffentlich sichtbare 
 function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Freigabe)
   const total = (S.sessions || []).length;
   let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
-  const flames = Array.isArray(_flMyPosts) ? _flMyPosts.length : 0;
+  // Flammen aus der dauerhaften Flame-Bank (monoton wachsend) statt aus dem
+  // flüchtigen Post-Cache: Der war nach jedem Post/Reload kurz null → Punkte
+  // und Level sprangen sichtbar runter („Level verschwunden / nichts eingezahlt").
+  // Außerdem überleben die Punkte so das wöchentliche Post-Löschen.
+  let flames = 0; try { flames = _flameBank().t || 0; } catch(_){}
   return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame;
 }
 /* Punkte-Schwelle für ein Level. Kalibriert auf „Level 100 nach ~3 Jahren, 3× pro Woche":
@@ -18006,6 +18035,7 @@ function _celebrateLevelUp(L){
 /* Punkte-Ticker: fliegt beim Training-Ende von unten nach oben ins Header-Badge,
    Vibration + Zahl zählt hoch. */
 let _xpGainPending = false;
+let _xpAnimBusy = false;   // Ticker läuft → Badge nicht zwischendurch neu rendern
 function _countUp(el, from, to, ms){
   if (!el) return;
   const t0 = performance.now();
@@ -18014,6 +18044,7 @@ function _countUp(el, from, to, ms){
 /* Punkte-Ticker: zentrale „+100"-Pille poppt auf, Punkte-Partikel strömen ins
    Header-Badge, Vibration, Zahl zählt hoch, danach ggf. Level-Up-Feier. */
 function _xpGainOnFinish(){
+  _xpAnimBusy = true;
   const gain = PTS_PER.workout;
   // Badge sicherstellen (nach dem 1. Training existiert es evtl. noch nicht) und
   // den Zähler zunächst auf den ALTEN Stand setzen, damit er sichtbar hochklettert.
@@ -18065,6 +18096,13 @@ function _xpGainOnFinish(){
       }, hold + fly);
     }, 260 + i * gap);
   }
+  // Sicherheitsnetz: egal was mit den Timern passiert (Hintergrund, gedrosselte
+  // Timeouts, entfernte Elemente) — am Ende steht IMMER der echte Punktestand im
+  // frisch gerenderten Badge. Das fixt „Level oben verschwunden / Punkte fehlen".
+  setTimeout(() => {
+    _xpAnimBusy = false;
+    try { _renderLevelBadge(); _checkLevelUp(); } catch(_){}
+  }, 260 + N * gap + hold + fly + 400);
 }
 /* ── Freundes-Profil ── */
 async function openFrProfile(uid){
@@ -18124,13 +18162,83 @@ async function openFrProfile(uid){
   });
 }
 /* ── Activity-Feed ── */
+/* ── Wochen-Lebensdauer für Posts/Aktivitäten ────────────────────────────
+   Community- und Freunde-Posts leben genau eine Woche: jeden SONNTAG 00:00
+   verschwindet alles Ältere. Kein Backend (Spark-Plan) → zweigleisig:
+   1) ANZEIGE: alle Feed-Loader filtern Einträge vor dem letzten Sonntag 00:00 raus
+      (wirkt sofort, auch für Posts fremder Nutzer, die ihre App nicht öffnen).
+   2) LÖSCHEN: jeder Client räumt beim Start seine EIGENEN alten Posts/Aktivitäten
+      aus Firestore (Rules erlauben delete nur dem Autor). Erhaltene Flammen werden
+      VORHER dauerhaft in der Flame-Bank gutgeschrieben — Punkte bleiben erhalten. */
+function _weekCutoffTs(){
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay());   // letzter Sonntag 00:00 (getDay(): So = 0)
+  return d.getTime();
+}
+/* Flame-Bank: dauerhaft gezählte, erhaltene Flammen (localStorage 'gt_flameBank',
+   nicht in S → umgeht die users-hasOnly-Regel). Monoton wachsend: jede Flamme
+   (postId:reactorUid) zählt genau einmal — auch nachdem der Post gelöscht wurde.
+   Damit schwanken Level/Punkte nicht mehr, wenn der Post-Cache gerade leer ist. */
+function _flameBank(){
+  try { const b = JSON.parse(localStorage.getItem('gt_flameBank') || '{}'); return { t: b.t || 0, k: b.k || {} }; }
+  catch(_){ return { t: 0, k: {} }; }
+}
+function _flameBankAdd(postId, flames){
+  if (!postId || !flames) return;
+  const me = _fbUser?.uid;
+  const b = _flameBank();
+  let changed = false;
+  Object.keys(flames).forEach(fuid => {
+    if (fuid === me) return;
+    const key = postId + ':' + fuid;
+    if (!b.k[key]) { b.k[key] = 1; b.t++; changed = true; }
+  });
+  if (changed) { try { localStorage.setItem('gt_flameBank', JSON.stringify(b)); } catch(_){} }
+}
+function _flameBankPrunePost(postId){
+  // Post ist endgültig gelöscht → Dedupe-Keys dazu freigeben (Zähler t bleibt!)
+  try {
+    const b = _flameBank();
+    let changed = false;
+    Object.keys(b.k).forEach(k => { if (k.startsWith(postId + ':')) { delete b.k[k]; changed = true; } });
+    if (changed) localStorage.setItem('gt_flameBank', JSON.stringify(b));
+  } catch(_){}
+}
+let _wkPurgeRan = false;
+async function _purgeOldPosts(){
+  if (_wkPurgeRan || !_socReady() || !S.socialOn) return;
+  _wkPurgeRan = true;
+  const cut = _weekCutoffTs();
+  try {
+    const snap = await window.FB.getDocs(window.FB.query(
+      window.FB.collection('profiles/' + _fbUser.uid + '/posts'), window.FB.where('ts','<',cut)));
+    const jobs = [];
+    snap.forEach(d => {
+      _flameBankAdd(d.id, d.data().flames);   // Punkte sichern, BEVOR der Post stirbt
+      jobs.push(window.FB.deleteDoc(d.ref).then(() => _flameBankPrunePost(d.id)));
+    });
+    await Promise.all(jobs);
+    if (jobs.length) console.log('[GymTrack] Wochen-Aufräumen: ' + jobs.length + ' alte Posts gelöscht');
+  } catch(e){ console.warn('[GymTrack] Wochen-Aufräumen Posts:', e?.code || e); }
+  try {
+    const snap = await window.FB.getDocs(window.FB.query(
+      window.FB.collection('profiles/' + _fbUser.uid + '/activities'), window.FB.where('ts','<',cut)));
+    const jobs = [];
+    snap.forEach(d => jobs.push(window.FB.deleteDoc(d.ref)));
+    await Promise.all(jobs);
+  } catch(e){ console.warn('[GymTrack] Wochen-Aufräumen Activities:', e?.code || e); }
+}
 async function _loadFeedFor(uid){
   try {
     const q = window.FB.query(window.FB.collection('profiles/' + uid + '/activities'),
       window.FB.orderBy('ts','desc'), window.FB.limit(6));
     const snap = await window.FB.getDocs(q);
-    const out = [];
-    snap.forEach(d => out.push({ id:d.id, uid, ...d.data() }));
+    const out = [], cut = _weekCutoffTs();
+    snap.forEach(d => {
+      const data = d.data();
+      if ((data.ts || 0) < cut) return;   // Wochen-Lebensdauer: Älteres ausblenden
+      out.push({ id:d.id, uid, ...data });
+    });
     return out;
   } catch(_) { return []; }
 }
@@ -18232,6 +18340,7 @@ async function _loadPostsFor(uid, onlyFriends){
       // Training (visibility:'public') soll nicht zusätzlich hier auftauchen (der
       // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
       if (onlyFriends && data.visibility !== 'friends') return;
+      if ((data.ts || 0) < _weekCutoffTs()) return;   // Wochen-Lebensdauer: Älteres ausblenden
       out.push({ id:d.id, uid, kind:'post', ...data });
     });
     return out;
@@ -18284,6 +18393,7 @@ async function _cpgLoad(){
   items = items
     .filter(it => !blocked.has(it.uid))
     .filter(it => !(it.kind === 'post' && hidden.has(it.uid + '/' + it.id)))
+    .filter(it => (it.ts || 0) >= _weekCutoffTs())   // Wochen-Lebensdauer (auch fremde Posts)
     .sort((a,b) => (b.ts||0) - (a.ts||0))
     .slice(0, 40);
   await _cpgEnrichProfiles(items);   // Autor-Profile laden → Level-Tag hinter JEDEM Namen
@@ -18619,10 +18729,13 @@ async function _flamesMine(force){
   if (!_socReady()) return [];
   const posts = await _loadPostsFor(_fbUser.uid);
   const out = [];
-  posts.forEach(p => Object.entries(p.flames || {}).forEach(([fuid, fts]) => {
-    if (fuid === _fbUser.uid) return;
-    out.push({ fuid, ts: typeof fts === 'number' ? fts : (p.ts || 0), dayName: p.dayName || tr('Training') });
-  }));
+  posts.forEach(p => {
+    _flameBankAdd(p.id, p.flames);   // erhaltene Flammen dauerhaft gutschreiben (Punkte-Basis)
+    Object.entries(p.flames || {}).forEach(([fuid, fts]) => {
+      if (fuid === _fbUser.uid) return;
+      out.push({ fuid, ts: typeof fts === 'number' ? fts : (p.ts || 0), dayName: p.dayName || tr('Training') });
+    });
+  });
   out.sort((a,b) => b.ts - a.ts);
   _flMyPosts = out; _flMyPostsTs = Date.now();
   return out;
@@ -18635,6 +18748,7 @@ async function _flamesRefreshBadge(){
     const b = document.getElementById('flm-bell-badge');
     if (b) { b.style.display = fresh ? '' : 'none'; b.textContent = fresh; }
     _updateFrBadges();   // Community-Tab-Badge mitziehen
+    if (!_xpAnimBusy) _renderLevelBadge();   // frisch gebankte Flammen → Punkte im Badge aktuell halten
   } catch(_){}
 }
 async function openFlames(){
@@ -18643,9 +18757,20 @@ async function openFlames(){
   const body = document.getElementById('flames-body');
   body.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Lade…')}</div>`;
   const list = await _flamesMine(true);
-  const prof = typeof _socCache !== 'undefined' && _socCache ? _socCache : null;
+  // Namen der Reagierenden sicherstellen: fehlende Profile nachladen (profiles
+  // sind für alle Angemeldeten lesbar) — sonst stand hier nur „Jemand".
+  const needUids = [...new Set(list.slice(0, 30).map(f => f.fuid))]
+    .filter(uid => uid && !((_socCache || []).find?.(x => x.uid === uid)));
+  if (needUids.length) {
+    await Promise.all(needUids.map(async uid => {
+      try {
+        const s = await window.FB.getDoc(window.FB.doc('profiles', uid));
+        if (s.exists()) (_socCache = _socCache || []).push({ uid, ...s.data() });
+      } catch(_){}
+    }));
+  }
   const nameOf = (uid) => {
-    const p = prof && (prof[uid] || (prof.items || []).find?.(x => x.uid === uid));
+    const p = (_socCache || []).find?.(x => x.uid === uid);
     return p?.name || tr('Jemand');
   };
   body.innerHTML = list.length
@@ -18689,6 +18814,7 @@ function _flameNotifStart(){
       let maxTs = S.flameNotifTs || 0;
       snap.forEach(d => {
         const p = d.data(); const flames = p.flames || {};
+        _flameBankAdd(d.id, flames);   // Live eingehende Flammen sofort dauerhaft zählen
         Object.entries(flames).forEach(([fuid, fts]) => {
           if (fuid === me) return;
           const ts = typeof fts === 'number' ? fts : 0;
@@ -19233,10 +19359,115 @@ function hwSocial(size){
     </div>`).join('') + `</div>`;
 }
 
+// ── DEMO/SIMULATIONS-SEED (nur wenn DEMO_SEED=true) ───────────────
+// Baut 6 Monate Trainingshistorie mit stetig steigendem Volumen +
+// aktuelle Woche Mo–Sa "abgehakt". Rein im Speicher, nicht persistiert.
+function _seedDemoData() {
+  const r2 = v => Math.round(v / 2.5) * 2.5;              // auf 2,5-kg-Schritte runden
+  // Übungen (fester Split: Push / Pull / Legs)
+  const EX = [
+    { id:'dm_bench', name:'Bankdrücken',      muscleGroup:'brust',     base:60  },
+    { id:'dm_ohp',   name:'Schulterdrücken',  muscleGroup:'schultern', base:38  },
+    { id:'dm_dip',   name:'Dips',             muscleGroup:'arme',      base:45  },
+    { id:'dm_dead',  name:'Kreuzheben',       muscleGroup:'ruecken',   base:110 },
+    { id:'dm_row',   name:'Langhantelrudern', muscleGroup:'ruecken',   base:55  },
+    { id:'dm_curl',  name:'Bizeps-Curls',     muscleGroup:'arme',      base:20  },
+    { id:'dm_squat', name:'Kniebeugen',       muscleGroup:'beine',     base:90  },
+    { id:'dm_press', name:'Beinpresse',       muscleGroup:'beine',     base:150 },
+  ];
+  S.exercises = EX.map(e => {
+    const ex = { id:e.id, name:e.name, emoji:'', muscleGroup:e.muscleGroup,
+                 targetSets:4, targetReps:9, targetType:'reps', repMin:8, repMax:10,
+                 weightScheme:'double', progStep:2.5, targetWeight:0 };
+    ensureExGroups(ex);
+    return ex;
+  });
+  const baseOf = id => EX.find(e => e.id === id).base;
+  const TEMPLATES = [
+    ['dm_bench','dm_ohp','dm_dip'],     // Push
+    ['dm_dead','dm_row','dm_curl'],     // Pull
+    ['dm_squat','dm_press'],            // Legs
+  ];
+
+  const WEEKS = 26;                                       // ~6 Monate
+  const today = new Date(); today.setHours(18,0,0,0);
+  const curMon = new Date(today);
+  curMon.setDate(today.getDate() - ((today.getDay()+6)%7)); // Montag dieser Woche
+
+  const sessions = [];
+  let tmplIdx = 0;
+  for (let w = 0; w < WEEKS; w++) {
+    const isCurrent = (w === WEEKS - 1);
+    // Vergangene Wochen: Mo,Di,Do,Fr (4×). Aktuelle Woche: Mo–Sa (6×).
+    const dayIdx = isCurrent ? [0,1,2,3,4,5] : [0,1,3,4];
+    const weekMon = new Date(curMon);
+    weekMon.setDate(curMon.getDate() - (WEEKS - 1 - w) * 7);
+    // Fortschritt 0..1 über die 6 Monate → stetige Progression
+    const prog = w / (WEEKS - 1);
+    const factor = 0.55 + 0.45 * prog;                   // Gewichts-Skalierung 55%→100%
+    for (const di of dayIdx) {
+      const d = new Date(weekMon);
+      d.setDate(weekMon.getDate() + di);
+      d.setHours(18, (di*7) % 40, 0, 0);
+      // Zukunftstage der aktuellen Woche (Do–Sa liegen nach "jetzt"): als warmup
+      // taggen → volles Volumen fürs Chart, aber gedämpfte Ermüdung (sonst würde
+      // die negative Zeitdifferenz die Erholung überall auf 0% ziehen).
+      const isFuture = d.getTime() > Date.now();
+      const tpl = TEMPLATES[tmplIdx % TEMPLATES.length]; tmplIdx++;
+      const logs = tpl.map(exId => {
+        const w0 = Math.max(2.5, r2(baseOf(exId) * factor));
+        const sets = [];
+        for (let s = 0; s < 4; s++) {
+          const reps = 8 + ((s + di) % 3);               // 8..10
+          const wt   = s === 0 ? r2(w0 * 0.9) : w0;       // 1. Satz etwas leichter
+          sets.push(isFuture ? { w: wt, r: reps, type:'warmup' } : { w: wt, r: reps });
+        }
+        return { exerciseId: exId, sets };
+      });
+      sessions.push({
+        id: 'dm_' + w + '_' + di,
+        date: d.toISOString(),
+        duration: 3300 + (di % 3) * 600,
+        logs,
+      });
+    }
+  }
+  // Zweiter Pass: jedes Session-Volumen auf eine glatt & progressiv steigende
+  // Kurve normalisieren → Overall-Chart wird eine saubere Linie nach oben
+  // (kein Zickzack durch unterschiedliche Push/Pull/Legs-Volumina).
+  const N = sessions.length;
+  const V0 = 4500, V1 = 27000;                           // Start- → End-Volumen (kg)
+  sessions.forEach((ses, i) => {
+    const p = N > 1 ? i / (N - 1) : 1;
+    const trend = V0 + (V1 - V0) * Math.pow(p, 1.35);    // leicht beschleunigender Aufwärtstrend
+    // realistische Schwankung um den Trend (leichte/schwere Tage) — kein Zickzack,
+    // aber sichtbare Progression bleibt klar erkennbar
+    const wobble = 1 + 0.06 * Math.sin(i * 0.55) + 0.035 * Math.sin(i * 0.21 + 2);
+    const target = trend * wobble;
+    const raw = ses.logs.reduce((a,l)=>a + l.sets.reduce((b,s)=>b + s.w*s.r, 0), 0);
+    if (raw > 0) {
+      const k = target / raw;
+      ses.logs.forEach(l => l.sets.forEach(s => { s.w = Math.round(s.w * k * 2) / 2; }));
+    }
+  });
+  S.sessions = sessions;
+  S.onboarded = true;                                    // Onboarding überspringen
+  // Demo: direkt Statistik-Tab zeigen (nur zum Screenshot-Prüfen)
+  setTimeout(() => { try { goTab('stats', document.querySelectorAll('.tab')[2]); } catch(_){} }, 400);
+  // Demo-only: Mo–Sa alle als solide Haken zeigen (Zukunftstage nicht ausgrauen)
+  if (!document.getElementById('dm-demo-style')) {
+    const st = document.createElement('style');
+    st.id = 'dm-demo-style';
+    st.textContent = '.week-dot.future{opacity:1 !important}';
+    document.head.appendChild(st);
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
+try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
 renderExList();
@@ -19254,6 +19485,15 @@ try {
   if (_addCode) {
     sessionStorage.setItem('gt_addCode', _addCode.toUpperCase().slice(0,6));
     history.replaceState(null, '', location.pathname);
+  }
+} catch(_){}
+// Plan/Split-Import-Link (?import=…): geteilter https-Link öffnet die Web-App →
+// Import-Vorschau zeigen (mit „In der App öffnen"-Button, falls im Browser).
+try {
+  const _impD = new URLSearchParams(location.search).get('import');
+  if (_impD) {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => { try { _handlePlanImportUrl('?import=' + _impD); } catch(_){} }, 700);
   }
 } catch(_){}
 
@@ -19908,7 +20148,7 @@ async function _onLogin(user) {
     _syncing = false;
     _initialMergeDone = true;
     updateAccountUI();
-    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + Wochen-Aufräumen
   }
 }
 
@@ -20610,7 +20850,7 @@ function _setupAppUrlListener() {
     // Google-OAuth-Callback NICHT hier behandeln: ASWebAuthenticationSession liefert
     // die Callback-URL bereits über ihren eigenen Completion-Handler (die startAuth-Promise).
     // Eine zweite Behandlung hier würde nur einen falschen "State verloren"-Fehler auslösen.
-    if (url.startsWith('gymtrack://import')) {
+    if (url.startsWith('gymtrack://import') || /[?&]import=/.test(url)) {
       _handlePlanImportUrl(url);
     } else if (url.startsWith('gymtrack://')) {
       _handleWidgetDeepLink(url);
@@ -20620,7 +20860,7 @@ function _setupAppUrlListener() {
   try {
     App.getLaunchUrl?.().then(res => {
       const u = res && res.url;
-      if (u && u.startsWith('gymtrack://import')) setTimeout(() => { try { _handlePlanImportUrl(u); } catch(_){} }, 900);
+      if (u && (u.startsWith('gymtrack://import') || /[?&]import=/.test(u))) setTimeout(() => { try { _handlePlanImportUrl(u); } catch(_){} }, 900);
     }).catch(()=>{});
   } catch(_){}
   console.log('[GymTrack] 📱 appUrlOpen-Listener registriert');
@@ -21020,14 +21260,24 @@ document.addEventListener('touchmove', e => {
 (function(){
   function init(){
     var tb=document.querySelector('.tabbar'); if(!tb) return;
-    if(document.documentElement.getAttribute('data-theme')!=='dark'){/* nur dark relevant */}
-    var last=0;
+    var last=0, resnapT=null;
+    // Nach dem Größenwechsel sitzt die Auswahl-Pille sonst auf der alten Position/Breite
+    // → nach Ende der Padding-Transition (~.32s) einmal sauber nachmessen.
+    function resnap(){
+      clearTimeout(resnapT);
+      resnapT=setTimeout(function(){
+        try{ var a=document.querySelector('.tab.on'); if(a&&typeof moveTabIndicator==='function') moveTabIndicator(a); }catch(_){}
+      },340);
+    }
     function onScroll(e){
       var el=e.target;
       var y=(el&&typeof el.scrollTop==='number')?el.scrollTop:(window.scrollY||window.pageYOffset||0);
       if(typeof y!=='number') return;
-      if(y>last+6 && y>44){ tb.classList.add('tabbar--min'); }
-      else if(y<last-6 || y<=44){ tb.classList.remove('tabbar--min'); }
+      if(y<0) y=0;   // iOS-Rubber-Band: Overscroll nicht als "hoch scrollen" werten
+      var min=tb.classList.contains('tabbar--min');
+      // Größere Hysterese (10px) + Zustands-Check: kein Flackern mitten in der Animation
+      if(!min && y>last+10 && y>44){ tb.classList.add('tabbar--min'); resnap(); }
+      else if(min && (y<last-10 || y<=44)){ tb.classList.remove('tabbar--min'); resnap(); }
       last=y;
     }
     document.addEventListener('scroll', onScroll, {capture:true, passive:true});
