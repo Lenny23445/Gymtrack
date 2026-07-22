@@ -125,6 +125,10 @@ S = {
 - **Encoding:** UTF-8 ohne BOM. Edit-Tool OK. Niemals `Get-Content`/`Set-Content`.
 - **Preview-Server:** Port 5500, `.claude/launch.json` (PowerShell HttpListener)
 
+## Premium (Abo)
+
+2,99 €/Monat · 19,99 €/Jahr, direkt StoreKit 2 (kein RevenueCat). Produkt-IDs `gymtrack.premium.monthly`/`.yearly` (müssen in App Store Connect existieren — Setup-Schritte in `PREMIUM-SETUP.md`). Status NUR lokal in `localStorage['gt_premium']` (bewusst NICHT im users-Doc → keine Rules-Änderung, kein Sync-Bruch); Quelle der Wahrheit = StoreKit-Entitlement, `PremiumPlugin.swift` liefert JWS als Abo-Beweis. `isPremium()`: Founder-UID immer Premium; `localStorage['gt_premiumDev']='1'` = UI-Dev-Unlock. Gating via `premGate(feature)` → Paywall (`ov-paywall`). Einstieg: Heute-Widget `premium` (hwPremium → `openPremHub()`), Onboarding-Schritt 6, Settings-Sektion. KI (`ov-ai-report`, `ov-ai-chat`) läuft über `AI_WORKER_URL` (`ai-worker/worker.js`, Cloudflare): prüft Firebase-idToken + StoreKit-JWS inkl. Zertifikatskette bis gepinnte Apple Root CA G3; Secrets ANTHROPIC_API_KEY + FIREBASE_API_KEY; Modell via `MODEL`-Var (Default claude-haiku-4-5). KI-Plan-Import: ```gtplan-Block → `aicApplyPlan()`. Übungsdatenbank (`ov-exdb`): exercisedb.dev → Fallback free-exercise-db (jsDelivr), Cache `localStorage['gt_exdb_v1']`. Körper-Tracking `localStorage['gt_bodyLog']` (Fotos base64, max 30, NUR lokal). Premium-Themes gold/mitternacht/smaragd (setTheme(t, silent) — Boot-Aufruf mit silent=true!). App-Icons: `CFBundleAlternateIcons` in Info.plist + `AppIcon{Gold,White}@{2x,3x}.png` in `ios/App/App/` (pbxproj: App-Gruppe, NICHT Plugins-Gruppe — deren Pfad ist App/Plugins/). Neue Web-Assets in `build.js`-Kopierliste eintragen!
+
 ## Firebase / Cloud-Sync
 
 **Einmaliges Setup:** Firebase-Projekt → Google Auth + Anonymous Auth + Firestore (Production, `eur3`) → Rules (s.u.) → Web-App registrieren → `firebaseConfig` in index.html nach `const FIREBASE_CONFIG = {` → `lenny23445.github.io` zu Authorized Domains.

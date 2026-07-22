@@ -133,5 +133,6 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(SpotlightPlugin())
         bridge?.registerPluginInstance(WidgetDataPlugin())
         bridge?.registerPluginInstance(CameraPlugin())
+        bridge?.registerPluginInstance(PremiumPlugin())
     }
 }
