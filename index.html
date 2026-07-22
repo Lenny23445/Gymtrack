@@ -5879,7 +5879,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607221430';
+const APP_VERSION = 'gymtrack-v202607221500';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17069,6 +17069,8 @@ function _socOwnStats(){
 }
 async function _pushSocialProfile(){
   if (!S.socialOn || !_socReady()) return;
+  // Demo-/Marketing-Simulator pusht kein Community-Profil (Fake-"Lenny"-Profile)
+  try { if (_demoModeAny() || (typeof DEMO_SEED !== 'undefined' && DEMO_SEED)) return; } catch(_){}
   let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
   const w = _weekStats();
   const P = S.privacy || {};
@@ -19495,11 +19497,65 @@ function _seedDemoData() {
   }
 }
 
+// ── DEMO-DATEN-BEREINIGUNG ───────────────────────────────
+// DEMO_SEED-Builds (dm_-IDs) und .seed_demo.py (String-IDs wie 'bench') haben
+// Demo-Trainingsdaten auf echten Accounts hinterlassen (persist→Cloud-Sync).
+// Echte IDs beginnen mit '_' (uid()) — Demo-IDs sind eindeutig erkennbar und
+// werden hier restlos entfernt (Übungen, Sessions, Seed-Presets, Wochenplan-Refs).
+// Läuft beim Start UND nach jedem Cloud-Merge, damit kontaminierte Cloud-Docs
+// sich selbst heilen. Im Marketing-Simulator (DEMO_SEED/gt_demo) bleibt alles.
+const _DEMO_EX_IDS = new Set(['bench','incline','ohp','lateral','pushdown','deadlift','pullup','row','curl','squat','legpress','legcurl']);
+function _isDemoExId(id){ return typeof id === 'string' && (id.indexOf('dm_') === 0 || _DEMO_EX_IDS.has(id)); }
+function _demoModeAny(){
+  try { return DEMO_MODE() || localStorage.getItem('gt_demo_social') === '1'; } catch(_){ return false; }
+}
+function _purgeDemoData(obj){
+  if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) return false;
+  if (_demoModeAny()) return false;
+  let hit = false;
+  try {
+    if (Array.isArray(obj.exercises)) {
+      const n = obj.exercises.length;
+      obj.exercises = obj.exercises.filter(e => !(e && _isDemoExId(e.id)));
+      if (obj.exercises.length !== n) hit = true;
+    }
+    if (Array.isArray(obj.sessions)) {
+      const n = obj.sessions.length;
+      obj.sessions = obj.sessions.filter(s => {
+        if (!s) return false;
+        if (typeof s.id === 'string' && s.id.indexOf('dm_') === 0) return false;
+        return !(s.logs || []).some(l => l && _isDemoExId(l.exerciseId));
+      });
+      if (obj.sessions.length !== n) hit = true;
+    }
+    // Seed-Presets (Push/Pull/Legs, exIds ausschließlich Demo-Übungen) + deren Wochenplan-Slots
+    if (Array.isArray(obj.workoutPresets)) {
+      const gone = new Set();
+      const n = obj.workoutPresets.length;
+      obj.workoutPresets = obj.workoutPresets.filter(p => {
+        const bad = p && Array.isArray(p.exIds) && p.exIds.length > 0 && p.exIds.every(_isDemoExId);
+        if (bad) gone.add(p.id);
+        return !bad;
+      });
+      if (obj.workoutPresets.length !== n) {
+        hit = true;
+        if (obj.weekPlan) for (const k in obj.weekPlan) {
+          const d = obj.weekPlan[k];
+          if (d && d.type === 'preset' && gone.has(d.id)) obj.weekPlan[k] = { type:'none' };
+        }
+      }
+    }
+  } catch(_){}
+  if (hit) console.log('[GymTrack] Demo-Daten bereinigt');
+  return hit;
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
 try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
+try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
 renderExList();
@@ -19963,6 +20019,8 @@ window.persist = persist;
 
 async function _pushToCloud() {
   if (!_fbUser || !window.FB || !window.FB.configured) return;
+  // Demo-/Marketing-Modus (Simulator-Seeds) synct NIE in die Cloud
+  if (_demoModeAny() || (typeof DEMO_SEED !== 'undefined' && DEMO_SEED)) return;
   try {
     const ref = window.FB.userDocRef(_fbUser.uid);
     // WICHTIG: Jedes Feld hier muss auch im hasOnly() der Firestore-Rules stehen,
@@ -20025,6 +20083,9 @@ function _mergeById(cloud, local, cloudNewer) {
 
 // Merge: kombiniere local + cloud verlustfrei
 function _mergeData(local, cloud) {
+  // Demo-Altlasten aus BEIDEN Quellen filtern, bevor gemergt wird — sonst
+  // schleust ein kontaminiertes Cloud-Doc/Gerät die dm_-Daten wieder ein.
+  try { _purgeDemoData(local); _purgeDemoData(cloud); } catch(_){}
   const exMap = new Map();
   [...(cloud.exercises || []), ...(local.exercises || [])].forEach(ex => {
     if (!ex || !ex.id) return;
