@@ -4467,6 +4467,15 @@ html[data-theme="mitternacht"]{background-color:#05060f}
     <div id="ps-body"></div>
   </div>
 </div>
+<!-- Geräte-Scanner -->
+<div class="ov" id="ov-scan" onclick="if(event.target===this)closeOv('ov-scan')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Geräte-Scanner</h2><button class="x-btn" onclick="closeOv('ov-scan')">✕</button></div>
+    <div id="scan-body"></div>
+  </div>
+</div>
+<input type="file" id="scan-file" accept="image/*" capture="environment" style="display:none" onchange="_scanPicked(this)">
 <!-- Export -->
 <div class="ov" id="ov-export" onclick="if(event.target===this)closeOv('ov-export')">
   <div class="sheet">
@@ -4693,7 +4702,7 @@ html[data-theme="mitternacht"]{background-color:#05060f}
         <div class="row" onclick="premOpenFromSettings()" style="cursor:pointer">
           <div class="row-body">
             <div class="row-title" style="display:flex;align-items:center;gap:8px">MyGymTrack Premium <span id="prem-status-pill"></span></div>
-            <div class="row-sub" id="prem-status-sub">KI-Coach, Wochenbericht, Übungsdatenbank &amp; mehr</div>
+            <div class="row-sub" id="prem-status-sub">Übungsdatenbank, Pro-Analyse, Körper-Tracking &amp; mehr</div>
           </div>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
         </div>
@@ -5526,7 +5535,10 @@ html[data-theme="mitternacht"]{background-color:#05060f}
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="wk-title">Training</h2>
-      <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="x-btn" id="scan-cam-btn" onclick="openGymScan()" title="Gerät scannen" aria-label="Gerät scannen"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 7l1.1-1.8A1 1 0 0 1 8.4 4.7h7.2a1 1 0 0 1 .9.5L17.6 7H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 7z"/><circle cx="12" cy="12.4" r="3.3"/></svg></button>
+        <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
+      </div>
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
@@ -6173,7 +6185,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607222000';
+const APP_VERSION = 'gymtrack-v202607222100';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17274,10 +17286,10 @@ function _obStepHTML(s){
           <div class="ob-tpl-days">${days.map(d=>`<span class="ob-day-chip">${d}</span>`).join('')}</div>
         </button>`; }).join('')}</div>`;
   }
-  if (s === 6) return `<div class="ob-q" style="text-align:center">Hol dir deinen KI-Coach</div>
+  if (s === 6) return `<div class="ob-q" style="text-align:center">${AI_ON ? 'Hol dir deinen KI-Coach' : 'Hol dir MyGymTrack Premium'}</div>
     <div class="ob-qsub" style="text-align:center">MyGymTrack Premium — kündbar jederzeit.</div>
     <div class="pw-feats" style="margin-top:14px">
-      ${_pwFeatRowsHTML(['chat','report','exdb','stats'])}
+      ${_pwFeatRowsHTML(AI_ON ? ['chat','report','exdb','stats'] : ['exdb','stats','body','export'])}
     </div>
     <div class="pw-plans">${_pwPlanCardsHTML('_obPremPlan','obPickPremPlan')}</div>
     <div class="pw-foot">Abo verlängert sich automatisch, kündbar jederzeit in den App-Store-Einstellungen.</div>`;
@@ -17324,6 +17336,8 @@ const PREM_THEMES = ['gold','mitternacht','smaragd'];
 const PREM_MONTHLY = 'gymtrack.premium.monthly';
 const PREM_YEARLY  = 'gymtrack.premium.yearly';
 const AI_WORKER_URL = 'https://gymtrack-ai.wolterlenny362.workers.dev';
+// KI-Features (Coach, Wochenbericht, Geräte-Scanner) noch in Arbeit — im Release ausgeblendet.
+const AI_ON = false;
 
 let PREM = (() => { try { return JSON.parse(localStorage.getItem('gt_premium')) || {}; } catch(_){ return {}; } })();
 function _premSave(){ try { localStorage.setItem('gt_premium', JSON.stringify(PREM)); } catch(_){} }
@@ -17408,6 +17422,7 @@ const _PW_FEATS = {
   body:   { ico:'bodyM',   t:'Körper-Tracking',    s:'Maße & Fortschrittsfotos mit Verlauf' },
   export: { ico:'exportF', t:'Export',             s:'Trainingsdaten als PDF-Bericht oder CSV' },
   themes: { ico:'sparkle', t:'Exklusive Designs',  s:'Premium-Themes & alternative App-Icons' },
+  scan:   { ico:'camera',  t:'Geräte-Scanner',     s:'Gerät fotografieren — Übung mit Animation erklärt' },
 };
 function _pwFeatRowsHTML(keys){
   return keys.map(k => { const f = _PW_FEATS[k]; if (!f) return '';
@@ -17439,13 +17454,14 @@ function openPaywall(feature){
 function _pwRender(feature){
   const el = document.getElementById('pw-body'); if (!el) return;
   const native = _isNative();
+  const compact = feature === 'postlogin';   // nach dem Login: kurz & knackig
   el.innerHTML = `
     <div class="pw-hero">
       <div class="pw-hero-badge">${ICO.sparkle({s:30})}</div>
-      <div class="pw-title">Alles aus deinem Training holen</div>
-      <div class="pw-sub">KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.</div>
+      <div class="pw-title">${compact ? (AI_ON ? 'Dein KI-Coach wartet' : 'Mehr aus deinem Training holen') : 'Alles aus deinem Training holen'}</div>
+      <div class="pw-sub">${compact ? 'Mehr rausholen — für weniger als einen Proteinriegel im Monat.' : (AI_ON ? 'KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.' : 'Tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.')}</div>
     </div>
-    <div class="pw-feats">${_pwFeatRowsHTML(['chat','report','exdb','stats','body','export','themes'])}</div>
+    <div class="pw-feats">${_pwFeatRowsHTML((compact ? ['chat','report','exdb','scan'] : ['chat','report','exdb','scan','stats','body','export','themes']).filter(k => AI_ON || !['chat','report','scan'].includes(k)))}</div>
     <div class="pw-plans">${_pwPlanCardsHTML('_pwPlan','pwPickPlan')}</div>
     ${native
       ? `<button class="pw-cta" id="pw-cta" onclick="paywallBuy()">Premium freischalten</button>`
@@ -17491,10 +17507,13 @@ async function obPremBuy(){
 // ── Premium-Hub (Einstieg von der Startseite) ────────
 function hwPremium(size){
   const prem = isPremium();
-  const t = prem ? 'KI-Coach' : 'KI-Coach & Premium';
+  const t = AI_ON ? (prem ? 'KI-Coach' : 'KI-Coach & Premium') : 'Premium';
   const s = size === 'sm' ? '' :
-    prem ? 'Wochenbericht, Coach-Chat, Übungsdatenbank & Pro-Analyse'
-         : 'Dein Training, analysiert von KI — Bericht, Coach & 1300+ Übungen';
+    AI_ON
+      ? (prem ? 'Wochenbericht, Coach-Chat, Übungsdatenbank & Pro-Analyse'
+              : 'Dein Training, analysiert von KI — Bericht, Coach & 1300+ Übungen')
+      : (prem ? 'Übungsdatenbank, Pro-Analyse, Körper-Tracking & Export'
+              : 'Pro-Analyse, 1300+ Übungen, Körper-Tracking & mehr');
   return `<div class="ph-card" style="height:100%" onclick="openPremHub()">
     <div class="ph-t">${ICO.sparkle({s:18})} ${t}${prem?'':' <span class="prem-pill">Premium</span>'}</div>
     ${s?`<div class="ph-s">${s}</div>`:''}
@@ -17504,8 +17523,10 @@ function openPremHub(){
   if (!isPremium()) { openPaywall('hub'); return; }
   const el = document.getElementById('ph-body'); if (!el) return;
   const tiles = [
-    ['openAiReport()',  'report',  'Wochenbericht', 'KI-Analyse deiner Trainingswoche'],
-    ['openAiChat()',    'robot',   'KI-Coach',      'Fragen, Alternativen, Pläne'],
+    ...(AI_ON ? [
+      ['openAiReport()',  'report',  'Wochenbericht', 'KI-Analyse deiner Trainingswoche'],
+      ['openAiChat()',    'robot',   'KI-Coach',      'Fragen, Alternativen, Pläne'],
+    ] : []),
     ['openExDb()',      'library', 'Übungsdatenbank','1300+ Übungen mit Animation'],
     ['openProStats()',  'chart2',  'Pro-Analyse',   'Balance, Heatmap, 1RM-Trends'],
     ['openBodySheet()', 'bodyM',   'Körper-Tracking','Maße & Fortschrittsfotos'],
@@ -17527,6 +17548,8 @@ function premGate(feature){ if (isPremium()) return true; openPaywall(feature); 
 // ── Premium-Status in der UI ─────────────────────────
 function _premLockRefresh(){
   const prem = isPremium();
+  const scb = document.getElementById('scan-cam-btn');
+  if (scb) scb.style.display = AI_ON ? '' : 'none';
   document.querySelectorAll('.prem-lock').forEach(el => { el.style.display = prem ? 'none' : ''; });
   const pill = document.getElementById('prem-status-pill');
   if (pill) pill.innerHTML = prem ? '<span class="prem-pill">Aktiv</span>' : '';
@@ -17534,7 +17557,7 @@ function _premLockRefresh(){
   if (sub) {
     if (prem && PREM.exp) sub.textContent = (PREM.plan==='yearly'?'Jahresabo':'Monatsabo') + ' · verlängert sich am ' + new Date(PREM.exp).toLocaleDateString(GT_LOCALE);
     else if (prem) sub.textContent = 'Premium aktiv';
-    else sub.textContent = 'KI-Coach, Wochenbericht, Übungsdatenbank & mehr';
+    else sub.textContent = AI_ON ? 'KI-Coach, Wochenbericht, Übungsdatenbank & mehr' : 'Übungsdatenbank, Pro-Analyse, Körper-Tracking & mehr';
   }
   const mr = document.getElementById('prem-manage-row');
   if (mr) mr.style.display = (prem && PREM.src === 'store') ? '' : 'none';
@@ -17807,6 +17830,7 @@ function _aiProfile(){
 
 // ── KI-Wochenbericht ─────────────────────────────────
 function openAiReport(){
+  if (!AI_ON) return;
   if (!premGate('report')) return;
   openOv('ov-ai-report');
   _airRender();
@@ -17894,6 +17918,7 @@ let _aicHist = (() => { try { return JSON.parse(localStorage.getItem('gt_aiChat'
 let _aicBusy = false, _aicPlanPending = null;
 function _aicSave(){ try { localStorage.setItem('gt_aiChat', JSON.stringify(_aicHist.slice(-40))); } catch(_){} }
 function openAiChat(){
+  if (!AI_ON) return;
   if (!premGate('chat')) return;
   openOv('ov-ai-chat');
   _aicRenderLog();
@@ -18006,6 +18031,89 @@ function aicApplyPlan(){
   _aicHist.push({ r:'a', t:'Plan übernommen! Du findest ihn im Heute-Tab und unter Training.' });
   _aicSave(); _aicRenderLog();
   haptic(25);
+}
+
+// ═══════════════════════════════════════════════════════
+// PREMIUM — GERÄTE-SCANNER (Kamera → KI erkennt Gerät → Übung mit GIF)
+// ═══════════════════════════════════════════════════════
+function openGymScan(){
+  if (!AI_ON) return;
+  if (!premGate('scan')) return;
+  const inp = document.getElementById('scan-file');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function _scanPicked(inp){
+  const f = inp.files && inp.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+    c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const b64 = c.toDataURL('image/jpeg', 0.72).split(',')[1];
+    URL.revokeObjectURL(img.src);
+    _scanRun(b64);
+  };
+  img.src = URL.createObjectURL(f);
+}
+async function _scanRun(b64){
+  const el = document.getElementById('scan-body'); if (!el) return;
+  openOv('ov-scan');
+  el.innerHTML = `<div style="text-align:center;padding:30px 12px;color:var(--text2);font-size:14.5px">
+    <div class="aic-typing" style="justify-content:center;margin:0 auto 12px;display:flex"><span></span><span></span><span></span></div>
+    Gerät wird erkannt…</div>`;
+  try {
+    const [res] = await Promise.all([ _aiFetch('scan', { image: b64 }), _exdbEnsureSilent() ]);
+    const d = res.scan || {};
+    const rows = (d.exercises || []).slice(0,3).map(ex => {
+      const hit = _scanMatch(ex);
+      const nm = esc(ex.nameDe || ex.nameEn || '');
+      if (hit) return `<div class="exdb-row" onclick="openExDbDetail('${hit.id}')">
+          <img class="exdb-thumb" loading="lazy" src="${esc(hit.gif)}" alt="">
+          <div style="flex:1;min-width:0"><div class="exdb-n">${nm}</div>
+          <div class="exdb-m">${esc(hit.n)} · Tippen für Animation</div></div>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+        </div>`;
+      return `<div class="exdb-row" style="cursor:default">
+          <div class="pw-feat-ico" style="width:52px;height:52px;flex-shrink:0">${ICO.sparkle({s:20})}</div>
+          <div style="flex:1;min-width:0"><div class="exdb-n">${nm}</div>
+          <div class="exdb-m">Keine Animation gefunden</div></div></div>`;
+    }).join('');
+    el.innerHTML = `
+      <div style="text-align:center;padding:2px 4px 12px">
+        <div class="pw-title" style="font-size:19px">${esc(d.device || 'Gerät erkannt')}</div>
+        ${d.tip ? `<div class="pw-sub">${esc(d.tip)}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">${rows || '<div style="text-align:center;padding:20px;color:var(--text2);font-size:14px">Kein Gerät erkannt — probier ein Foto aus mehr Abstand.</div>'}</div>
+      <button class="btn" style="width:100%;margin-top:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text)" onclick="openGymScan()">Noch ein Foto</button>`;
+  } catch(e){
+    el.innerHTML = `<div style="text-align:center;padding:26px 12px;color:var(--text2);font-size:14px;line-height:1.6">
+      Scan gerade nicht möglich:<br><b>${esc(e?.message||String(e))}</b><br><br>
+      <button class="btn btn-acc" onclick="openGymScan()">Nochmal versuchen</button></div>`;
+  }
+}
+async function _exdbEnsureSilent(){   // ExDB fürs Matching laden, ohne das ExDB-Sheet zu öffnen
+  if (_exdbData) return;
+  try {
+    const cached = localStorage.getItem('gt_exdb_v1');
+    if (cached) { _exdbData = JSON.parse(cached); return; }
+  } catch(_){}
+  try { await _exdbEnsure(); } catch(_){}
+}
+function _scanMatch(ex){
+  const terms = [ex.nameEn].concat(ex.searchTerms || []).filter(Boolean).map(t => String(t).toLowerCase());
+  let best = null, bestScore = 0;
+  for (const e of (_exdbData || [])) {
+    const n = e.n.toLowerCase();
+    for (const t of terms) {
+      let s = 0;
+      if (n === t) s = 100;
+      else if (n.includes(t)) s = 60 + t.length;
+      else if (t.includes(n)) s = 50 + n.length;
+      if (s > bestScore) { bestScore = s; best = e; }
+    }
+  }
+  return bestScore >= 52 ? best : null;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -18279,6 +18387,12 @@ Object.assign(I18N_EN, {
   'Alles aus deinem Training holen':'Get everything out of your training',
   'KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.':'AI coach, deep analytics and 1300+ exercises — for less than a protein bar a month.',
   'Premium freischalten':'Unlock Premium', 'Jährlich':'Yearly', 'Monatlich':'Monthly',
+  'Mehr aus deinem Training holen':'Get more out of your training',
+  'Tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.':'Deep analytics and 1300+ exercises — for less than a protein bar a month.',
+  'Hol dir MyGymTrack Premium':'Get MyGymTrack Premium',
+  'Übungsdatenbank, Pro-Analyse, Körper-Tracking & mehr':'Exercise database, pro analytics, body tracking & more',
+  'Übungsdatenbank, Pro-Analyse, Körper-Tracking & Export':'Exercise database, pro analytics, body tracking & export',
+  'Pro-Analyse, 1300+ Übungen, Körper-Tracking & mehr':'Pro analytics, 1300+ exercises, body tracking & more',
   'pro Jahr · 1,67 €/Monat':'per year · €1.67/month', 'pro Monat':'per month', 'Spare 44 %':'Save 44%',
   'Datenschutz':'Privacy', 'Nutzungsbedingungen':'Terms of Use',
   'KI-Coach':'AI Coach', 'KI-Wochenbericht':'AI Weekly Report', 'Übungsdatenbank':'Exercise Database',
@@ -18312,6 +18426,12 @@ Object.assign(I18N_EN, {
   'Für Excel/Numbers: jede Übung, jeder Satz, jedes Gewicht':'For Excel/Numbers: every exercise, set and weight',
   'Übersicht mit Statistiken und Bestwerten zum Teilen':'Overview with stats and records to share',
   'Gold':'Gold', 'Mitternacht':'Midnight', 'Smaragd':'Emerald', 'Klassisch':'Classic', 'Weiß':'White',
+  'Geräte-Scanner':'Machine Scanner', 'Gerät fotografieren — Übung mit Animation erklärt':'Snap a machine — exercise explained with animation',
+  'Gerät scannen':'Scan machine', 'Gerät wird erkannt…':'Identifying machine…', 'Gerät erkannt':'Machine identified',
+  'Noch ein Foto':'Another photo', 'Keine Animation gefunden':'No animation found',
+  'Kein Gerät erkannt — probier ein Foto aus mehr Abstand.':'No machine detected — try a photo from further away.',
+  'Tippen für Animation':'Tap for animation', 'Dein KI-Coach wartet':'Your AI coach is waiting',
+  'Mehr rausholen — für weniger als einen Proteinriegel im Monat.':'Get more out of it — for less than a protein bar a month.',
   'Hol dir deinen KI-Coach':'Get your AI coach',
   'MyGymTrack Premium — kündbar jederzeit.':'MyGymTrack Premium — cancel anytime.',
   'Ohne Premium weiter':'Continue without Premium',
@@ -21606,6 +21726,13 @@ function _hideAuthGate(){
   if (!el || !el.classList.contains('on')) return;
   el.style.transition = 'opacity .32s'; el.style.opacity = '0';
   setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
+  // Direkt nach der ersten Anmeldung einmalig die Paywall zeigen (kompakt, wegklickbar)
+  setTimeout(()=>{ try {
+    if (!localStorage.getItem('gt_pwPostLogin') && !isPremium()) {
+      localStorage.setItem('gt_pwPostLogin', '1');
+      openPaywall('postlogin');
+    }
+  } catch(_){} }, 650);
 }
 
 // ── ANALYTICS / NUTZUNGS-TRACKER ──────────────────────
