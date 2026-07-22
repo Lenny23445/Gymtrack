@@ -4536,10 +4536,6 @@ html[data-theme="mitternacht"]{background-color:#05060f}
     <div class="sub" id="stats-sub"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div>
-      <div class="s-title">Überblick</div>
-      <div id="stats-summary"></div>
-    </div>
     <div class="card" onclick="openProStats()" style="cursor:pointer">
       <div style="padding:14px 16px;position:relative;z-index:1;display:flex;align-items:center;gap:13px">
         <div class="pw-feat-ico" style="width:38px;height:38px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M6 16.5V10M11 16.5V4M16 16.5V8M21 16.5v-4"/></svg></div>
@@ -4549,6 +4545,10 @@ html[data-theme="mitternacht"]{background-color:#05060f}
         </div>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
       </div>
+    </div>
+    <div>
+      <div class="s-title">Überblick</div>
+      <div id="stats-summary"></div>
     </div>
     <div class="stats-dual">
       <div class="stats-mini-box" onclick="openVolumeFull()">
@@ -6183,7 +6183,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607221800';
+const APP_VERSION = 'gymtrack-v202607221900';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17339,7 +17339,9 @@ let PREM = (() => { try { return JSON.parse(localStorage.getItem('gt_premium')) 
 function _premSave(){ try { localStorage.setItem('gt_premium', JSON.stringify(PREM)); } catch(_){} }
 
 function isPremium(){
-  if (typeof _fbUser !== 'undefined' && _fbUser && _fbUser.uid === FOUNDER_UID) return true; // Founder immer
+  // try/catch: _fbUser ist ein späteres top-level `let` — beim INIT-Aufruf (setTheme/renderHome)
+  // wäre der Zugriff sonst ein TDZ-ReferenceError und der komplette Boot bricht ab!
+  try { if (_fbUser && _fbUser.uid === FOUNDER_UID) return true; } catch(_){} // Founder immer
   if (localStorage.getItem('gt_premiumDev') === '1') return true;                            // Dev-Unlock (nur UI)
   if (!PREM.active) return false;
   return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
