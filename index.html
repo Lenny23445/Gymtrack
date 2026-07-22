@@ -1040,32 +1040,30 @@ body{
   background:rgba(0,0,0,.5);
   backdrop-filter:blur(3px);
   -webkit-backdrop-filter:blur(3px);
-  z-index:900;display:none;align-items:flex-end;justify-content:center;
-  /* Premium-Look: Sheets schweben als Karte mit Rand statt volle Handybreite */
-  padding:0 10px calc(10px + var(--sab));
+  z-index:900;display:none;align-items:flex-end;
 }
-[data-theme="dark"] .ov{ background:rgba(0,0,0,.55); }
+[data-theme="dark"] .ov{ background:rgba(0,0,0,.5); }
 .ov.on{display:flex}
 .sheet{
   background:var(--gl-bg-h);
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
-  border-radius:var(--r-xl);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
   border:1px solid var(--gl-bdr);
-  width:100%;max-width:560px;
-  max-height:92vh;max-height:min(92vh,var(--sheet-cap));
+  border-bottom:none;
+  width:100%;max-height:92vh;max-height:min(92vh,var(--sheet-cap));
   overflow-y:auto;overflow-x:hidden;
   padding-bottom:calc(100px + var(--sab)); /* Platz für die schwebende Leiste */
-  animation:up .3s cubic-bezier(.32,1,.32,1);
-  box-shadow:0 24px 70px rgba(0,0,0,.35),0 4px 18px rgba(0,0,0,.14),var(--gl-hi);
+  animation:up .28s cubic-bezier(.32,1,.32,1);
+  box-shadow:0 -8px 48px rgba(0,0,0,.18),var(--gl-hi);
   transition:background .4s;
   position:relative;
 }
 .sheet::after{
   content:'';position:absolute;top:0;left:0;right:0;height:110px;
-  background:var(--sheen);pointer-events:none;border-radius:var(--r-xl) var(--r-xl) 0 0;
+  background:var(--sheen);pointer-events:none;border-radius:28px 28px 0 0;
 }
-@keyframes up{from{transform:translateY(calc(100% + 20px))}}
+@keyframes up{from{transform:translateY(100%)}}
 
 /* Dark Mode: große Overlay-Flächen (Bottom-Sheets, Trainingskalender) als
    DUNKLES Milchglas — dunkler Tint statt weißem Schleier + kräftiger Blur.
@@ -4193,143 +4191,6 @@ html[data-glass][data-theme="dark"] .tabbar{
 .flm-note:last-child{border-bottom:none}
 .flm-note .t{flex:1;font-size:14px;line-height:1.35}
 .flm-note .ts{font-size:11.5px;color:var(--text2)}
-/* ═══════════════════ PREMIUM ═══════════════════ */
-/* Gold-Akzent für Premium-Elemente — unabhängig vom Theme */
-:root{--prem1:#f7c948;--prem2:#ff9d2f;--prem-grad:linear-gradient(135deg,#f7c948,#ff9d2f)}
-.prem-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:9px;font-size:11px;font-weight:800;
-  background:var(--prem-grad);color:#3a2500;letter-spacing:.3px}
-.prem-lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#b8860b;
-  background:rgba(247,201,72,.16);border:1px solid rgba(247,201,72,.35);padding:2px 8px;border-radius:8px}
-[data-theme="dark"] .prem-lock,[data-theme="mitternacht"] .prem-lock{color:#f7c948}
-/* Paywall */
-.pw-hero{text-align:center;padding:6px 4px 14px}
-.pw-hero-badge{width:64px;height:64px;border-radius:20px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
-  background:var(--prem-grad);color:#3a2500;box-shadow:0 10px 30px rgba(247,160,47,.35)}
-.pw-title{font-size:24px;font-weight:800;letter-spacing:-.4px}
-.pw-sub{font-size:14px;color:var(--text2);margin-top:5px;line-height:1.5}
-.pw-feats{display:flex;flex-direction:column;gap:3px;margin:10px 0 14px}
-.pw-feat{display:flex;align-items:center;gap:12px;padding:9px 6px;position:relative;z-index:1}
-.pw-feat-ico{width:34px;height:34px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.18);color:var(--acc)}
-.pw-feat-t{font-size:14.5px;font-weight:700}
-.pw-feat-s{font-size:12.5px;color:var(--text2);margin-top:1px;line-height:1.35}
-.pw-plans{display:flex;gap:10px;margin:4px 0 12px}
-.pw-plan{flex:1;position:relative;border:2px solid var(--gl-bdr);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
-  background:var(--inp-bg);transition:border-color .15s,transform .12s}
-.pw-plan.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.07);transform:scale(1.02)}
-.pw-plan-name{font-size:13px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
-.pw-plan-price{font-size:21px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
-.pw-plan-per{font-size:12px;color:var(--text2)}
-.pw-plan-save{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;
-  background:var(--prem-grad);color:#3a2500;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:8px}
-.pw-cta{width:100%;border:none;border-radius:15px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;
-  background:var(--acc);color:#fff;box-shadow:0 8px 24px rgba(var(--acc-rgb),.35)}
-.pw-cta:disabled{opacity:.55}
-.pw-foot{font-size:11px;color:var(--text2);line-height:1.5;text-align:center;margin-top:10px}
-.pw-links{display:flex;justify-content:center;gap:14px;margin-top:8px}
-.pw-links button{background:none;border:none;font-family:inherit;font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;padding:4px}
-/* Premium-Hub (Heute-Widget + Sheet) */
-.ph-card{position:relative;overflow:hidden;border-radius:20px;padding:16px;cursor:pointer;color:#fff;
-  background:linear-gradient(135deg,#1c1633 0%,#3b2a72 55%,#7b4dff 130%)}
-.ph-card::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(247,201,72,.35),transparent 55%)}
-.ph-card .ph-t{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;position:relative;z-index:1}
-.ph-card .ph-s{font-size:12.5px;opacity:.85;margin-top:4px;line-height:1.45;position:relative;z-index:1}
-.ph-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:6px}
-.ph-tile{position:relative;border-radius:16px;padding:14px;cursor:pointer;background:var(--inp-bg);border:1px solid var(--gl-bdr)}
-.ph-tile-ico{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;
-  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.18);color:var(--acc)}
-.ph-tile-t{font-size:14px;font-weight:750}
-.ph-tile-s{font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.35}
-/* KI-Chat */
-#aic-log{display:flex;flex-direction:column;gap:10px;padding:4px 2px;overflow-y:auto;max-height:52vh;-webkit-overflow-scrolling:touch}
-.aic-msg{max-width:86%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.aic-user{align-self:flex-end;background:var(--acc);color:#fff;border-bottom-right-radius:5px}
-.aic-bot{align-self:flex-start;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-bottom-left-radius:5px}
-.aic-bot b{font-weight:750}
-.aic-typing{align-self:flex-start;display:flex;gap:4px;padding:12px 14px}
-.aic-typing span{width:7px;height:7px;border-radius:50%;background:var(--text2);opacity:.5;animation:aicB 1.2s infinite}
-.aic-typing span:nth-child(2){animation-delay:.18s}.aic-typing span:nth-child(3){animation-delay:.36s}
-@keyframes aicB{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-4px);opacity:1}}
-.aic-inrow{display:flex;gap:8px;align-items:flex-end;padding-top:10px}
-#aic-in{flex:1;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;padding:11px 13px;font-size:15px;
-  font-family:inherit;color:var(--text);outline:none;resize:none;max-height:110px;line-height:1.4}
-.aic-send{width:42px;height:42px;border-radius:13px;border:none;background:var(--acc);color:#fff;cursor:pointer;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center}
-.aic-send:disabled{opacity:.45}
-.aic-sugg{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.aic-sugg::-webkit-scrollbar{display:none}
-.aic-sugg button{flex-shrink:0;background:rgba(var(--acc-rgb),.08);border:1px solid rgba(var(--acc-rgb),.2);color:var(--acc);
-  font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:11px;cursor:pointer;white-space:nowrap}
-.aic-plan-btn{margin-top:8px;background:var(--prem-grad);color:#3a2500;border:none;border-radius:11px;padding:9px 14px;
-  font-family:inherit;font-size:13px;font-weight:800;cursor:pointer}
-/* KI-Wochenbericht */
-.air-score-wrap{display:flex;align-items:center;gap:16px;padding:4px 2px 12px}
-.air-ring{width:86px;height:86px;flex-shrink:0;position:relative}
-.air-ring svg{transform:rotate(-90deg)}
-.air-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
-.air-sec{margin-top:14px}
-.air-sec-t{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:7px;
-  display:flex;align-items:center;gap:7px}
-.air-item{display:flex;gap:10px;padding:8px 2px;font-size:14px;line-height:1.5;align-items:flex-start}
-.air-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);margin-top:7px;flex-shrink:0}
-.air-cmp{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--sep);font-size:14px}
-.air-cmp:last-child{border-bottom:none}
-.air-cmp b{font-variant-numeric:tabular-nums}
-.air-up{color:#2ea84a;font-weight:800}.air-down{color:#e5484d;font-weight:800}.air-flat{color:var(--text2);font-weight:700}
-/* Übungsdatenbank */
-.exdb-filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.exdb-filters::-webkit-scrollbar{display:none}
-.exdb-filters button{flex-shrink:0;background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text);font-family:inherit;
-  font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:11px;cursor:pointer;white-space:nowrap}
-.exdb-filters button.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.exdb-list{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
-.exdb-row{display:flex;align-items:center;gap:12px;padding:9px;border-radius:14px;background:var(--inp-bg);
-  border:1px solid var(--gl-bdr);cursor:pointer}
-.exdb-thumb{width:52px;height:52px;border-radius:11px;object-fit:cover;background:#fff;flex-shrink:0}
-.exdb-n{font-size:14px;font-weight:700;line-height:1.3}
-.exdb-m{font-size:11.5px;color:var(--text2);margin-top:2px;text-transform:capitalize}
-.exdb-gif{width:100%;max-width:290px;border-radius:16px;background:#fff;display:block;margin:0 auto}
-.exdb-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
-.exdb-tag{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:9px;background:rgba(var(--acc-rgb),.09);
-  border:1px solid rgba(var(--acc-rgb),.18);color:var(--acc);text-transform:capitalize}
-.exdb-steps{margin-top:12px;font-size:13.5px;line-height:1.55;color:var(--text)}
-.exdb-steps li{margin:6px 0 6px 18px}
-/* Körper-Tracking */
-.bt-mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.bt-min{display:flex;flex-direction:column;gap:4px}
-.bt-min label{font-size:12px;font-weight:700;color:var(--text2)}
-.bt-min input{background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:11px;padding:10px 12px;font-size:15px;
-  font-family:inherit;color:var(--text);outline:none;width:100%}
-.bt-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-.bt-ph{position:relative;border-radius:13px;overflow:hidden;aspect-ratio:3/4;background:var(--inp-bg);border:1px solid var(--gl-bdr)}
-.bt-ph img{width:100%;height:100%;object-fit:cover;display:block}
-.bt-ph-d{position:absolute;bottom:0;left:0;right:0;font-size:10px;font-weight:700;color:#fff;padding:8px 6px 4px;
-  background:linear-gradient(transparent,rgba(0,0,0,.65))}
-/* Pro-Statistik */
-.ps-bal-row{display:flex;align-items:center;gap:10px;padding:7px 2px}
-.ps-bal-name{width:86px;font-size:13px;font-weight:700;flex-shrink:0}
-.ps-bal-bar{flex:1;height:14px;border-radius:7px;background:var(--inp-bg);overflow:hidden;position:relative}
-.ps-bal-fill{height:100%;border-radius:7px;background:var(--acc);min-width:3px}
-.ps-bal-v{width:52px;text-align:right;font-size:12px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;flex-shrink:0}
-.ps-hm{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
-.ps-hm-cell{aspect-ratio:1;border-radius:6px;background:var(--inp-bg)}
-.ps-hm-lbl{font-size:10px;color:var(--text2);text-align:center;font-weight:700}
-/* App-Icon-Auswahl */
-.aic-icons{display:flex;gap:14px;padding:4px 2px}
-.aic-icon{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-.aic-icon img{width:58px;height:58px;border-radius:14px;border:2.5px solid transparent}
-.aic-icon.on img{border-color:var(--acc)}
-.aic-icon span{font-size:11px;font-weight:700;color:var(--text2)}
-/* Premium-Themes */
-[data-theme="gold"]{--acc:#c99700;--acc-rgb:201,151,0;--mesh:radial-gradient(60% 50% at 15% 8%,rgba(247,201,72,.20),transparent),radial-gradient(55% 45% at 90% 12%,rgba(255,157,47,.16),transparent)}
-[data-theme="gold"] #tab-indicator{background:linear-gradient(135deg,#f7c948,#ff9d2f)}
-[data-theme="mitternacht"]{--bg:#05060f;--card:#0c0f1e;--text:#eef0ff;--text2:#8b90b3;--sep:rgba(255,255,255,.07);
-  --inp-bg:#12152a;--gl-bg:rgba(16,18,38,.72);--gl-bdr:rgba(120,130,255,.14);
-  --acc:#7b8cff;--acc-rgb:123,140,255;--mesh:radial-gradient(60% 50% at 15% 8%,rgba(123,140,255,.16),transparent),radial-gradient(55% 45% at 90% 12%,rgba(64,80,220,.14),transparent)}
-html[data-theme="mitternacht"]{background-color:#05060f}
-[data-theme="mitternacht"] #tab-indicator{background:linear-gradient(135deg,#7b8cff,#4050dc)}
-[data-theme="smaragd"]{--acc:#0f9d6e;--acc-rgb:15,157,110;--mesh:radial-gradient(60% 50% at 15% 8%,rgba(15,157,110,.16),transparent),radial-gradient(55% 45% at 90% 12%,rgba(24,200,140,.13),transparent)}
-[data-theme="smaragd"] #tab-indicator{background:linear-gradient(135deg,#18c88c,#0f9d6e)}
 </style>
 </head>
 <body>
@@ -4382,119 +4243,6 @@ html[data-theme="mitternacht"]{background-color:#05060f}
   </div>
 </div>
 
-<!-- ═══════════ PREMIUM: OVERLAYS ═══════════ -->
-<!-- Paywall -->
-<div class="ov" id="ov-paywall" onclick="if(event.target===this)closeOv('ov-paywall')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>MyGymTrack Premium</h2><button class="x-btn" onclick="closeOv('ov-paywall')">✕</button></div>
-    <div id="pw-body"></div>
-  </div>
-</div>
-<!-- Premium-Hub -->
-<div class="ov" id="ov-prem-hub" onclick="if(event.target===this)closeOv('ov-prem-hub')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Premium</h2><button class="x-btn" onclick="closeOv('ov-prem-hub')">✕</button></div>
-    <div id="ph-body"></div>
-  </div>
-</div>
-<!-- KI-Wochenbericht -->
-<div class="ov" id="ov-ai-report" onclick="if(event.target===this)closeOv('ov-ai-report')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>KI-Wochenbericht</h2><button class="x-btn" onclick="closeOv('ov-ai-report')">✕</button></div>
-    <div id="air-body"></div>
-  </div>
-</div>
-<!-- KI-Coach (Chat) -->
-<div class="ov" id="ov-ai-chat" onclick="if(event.target===this)closeOv('ov-ai-chat')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>KI-Coach</h2>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="x-btn" onclick="aicReset()" title="Chat leeren" aria-label="Chat leeren"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9a8 8 0 0 1 13-2.5L20 9M20 5v4h-4"/></svg></button>
-        <button class="x-btn" onclick="closeOv('ov-ai-chat')">✕</button>
-      </div>
-    </div>
-    <div id="aic-log"></div>
-    <div class="aic-sugg" id="aic-sugg"></div>
-    <div class="aic-inrow">
-      <textarea id="aic-in" rows="1" placeholder="Frag deinen Coach…" oninput="_aicGrow(this)"></textarea>
-      <button class="aic-send" id="aic-send" onclick="aicSend()" aria-label="Senden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
-    </div>
-  </div>
-</div>
-<!-- Übungsdatenbank -->
-<div class="ov" id="ov-exdb" onclick="if(event.target===this)closeOv('ov-exdb')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Übungsdatenbank</h2><button class="x-btn" onclick="closeOv('ov-exdb')">✕</button></div>
-    <div class="ex-search-wrap" style="padding:0 0 8px">
-      <input class="ex-search no-ico" id="exdb-search" type="search" placeholder="1300+ Übungen durchsuchen…" oninput="exdbFilter()" autocomplete="off">
-    </div>
-    <div class="exdb-filters" id="exdb-muscles"></div>
-    <div class="exdb-list" id="exdb-list"></div>
-  </div>
-</div>
-<!-- Übungsdatenbank: Detail -->
-<div class="ov" id="ov-exdb-detail" onclick="if(event.target===this)closeOv('ov-exdb-detail')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2 id="exdbd-title">Übung</h2><button class="x-btn" onclick="closeOv('ov-exdb-detail')">✕</button></div>
-    <div id="exdbd-body"></div>
-  </div>
-</div>
-<!-- Körper-Tracking -->
-<div class="ov" id="ov-body" onclick="if(event.target===this)closeOv('ov-body')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Körper-Tracking</h2><button class="x-btn" onclick="closeOv('ov-body')">✕</button></div>
-    <div id="bt-body"></div>
-  </div>
-</div>
-<!-- Körpermaße eintragen -->
-<div class="ov" id="ov-body-entry" onclick="if(event.target===this)closeOv('ov-body-entry')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Maße eintragen</h2><button class="x-btn" onclick="closeOv('ov-body-entry')">✕</button></div>
-    <div id="bt-entry-body"></div>
-  </div>
-</div>
-<!-- Pro-Statistik -->
-<div class="ov" id="ov-prostats" onclick="if(event.target===this)closeOv('ov-prostats')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Pro-Analyse</h2><button class="x-btn" onclick="closeOv('ov-prostats')">✕</button></div>
-    <div id="ps-body"></div>
-  </div>
-</div>
-<!-- Geräte-Scanner -->
-<div class="ov" id="ov-scan" onclick="if(event.target===this)closeOv('ov-scan')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Geräte-Scanner</h2><button class="x-btn" onclick="closeOv('ov-scan')">✕</button></div>
-    <div id="scan-body"></div>
-  </div>
-</div>
-<input type="file" id="scan-file" accept="image/*" capture="environment" style="display:none" onchange="_scanPicked(this)">
-<!-- Export -->
-<div class="ov" id="ov-export" onclick="if(event.target===this)closeOv('ov-export')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Export</h2><button class="x-btn" onclick="closeOv('ov-export')">✕</button></div>
-    <div id="export-body"></div>
-  </div>
-</div>
-<!-- App-Icon -->
-<div class="ov" id="ov-appicon" onclick="if(event.target===this)closeOv('ov-appicon')">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2>App-Icon</h2><button class="x-btn" onclick="closeOv('ov-appicon')">✕</button></div>
-    <div id="appicon-body"></div>
-  </div>
-</div>
-
 <!-- PAGE: ÜBUNGEN -->
 <div class="pg" id="pg-uebungen">
   <div class="hdr">
@@ -4524,10 +4272,7 @@ html[data-theme="mitternacht"]{background-color:#05060f}
   <!-- ÜBUNGEN (offen · prominent) -->
   <div class="ex-sec-head">
     <span class="ex-sec-title">Übungen<span class="ex-db-count" id="ex-db-count"></span></span>
-    <div class="ex-sec-actions">
-      <button class="ex-sec-tpl" onclick="openExDb()">Datenbank</button>
-      <button class="ex-sec-add" onclick="openNewEx(null)">＋ Übung</button>
-    </div>
+    <button class="ex-sec-add" onclick="openNewEx(null)">＋ Übung</button>
   </div>
   <div class="icon-cat-scroll" id="ex-filter-bar" style="padding:8px 20px 4px"></div>
   <div class="ex-search-wrap" style="padding:0 20px">
@@ -4547,16 +4292,6 @@ html[data-theme="mitternacht"]{background-color:#05060f}
     <div class="sub" id="stats-sub"></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div class="card" onclick="openProStats()" style="cursor:pointer">
-      <div style="padding:14px 16px;position:relative;z-index:1;display:flex;align-items:center;gap:13px">
-        <div class="pw-feat-ico" style="width:38px;height:38px"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M6 16.5V10M11 16.5V4M16 16.5V8M21 16.5v-4"/></svg></div>
-        <div style="flex:1;min-width:0">
-          <div class="row-title" style="display:flex;align-items:center;gap:8px">Pro-Analyse <span class="prem-lock" data-premlock="stats">Premium</span></div>
-          <div class="row-sub" style="white-space:normal;line-height:1.45;margin-top:2px">Muskel-Balance, Volumen-Heatmap &amp; 1RM-Trends</div>
-        </div>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
-    </div>
     <div>
       <div class="s-title">Überblick</div>
       <div id="stats-summary"></div>
@@ -4695,38 +4430,6 @@ html[data-theme="mitternacht"]{background-color:#05060f}
             <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:2px">Als App installieren — kein App Store nötig</div>
           </div>
           <button onclick="triggerInstall()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0">Installieren</button>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="s-title">Premium</div>
-      <div class="card">
-        <div class="row" onclick="premOpenFromSettings()" style="cursor:pointer">
-          <div class="row-body">
-            <div class="row-title" style="display:flex;align-items:center;gap:8px">MyGymTrack Premium <span id="prem-status-pill"></span></div>
-            <div class="row-sub" id="prem-status-sub">Übungsdatenbank, Pro-Analyse, Körper-Tracking &amp; mehr</div>
-          </div>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="row" id="prem-appicon-row" onclick="openAppIconSheet()" style="cursor:pointer;display:none">
-          <div class="row-body">
-            <div class="row-title">App-Icon</div>
-            <div class="row-sub">Alternative Icons für deinen Homescreen</div>
-          </div>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="row" id="prem-manage-row" onclick="premManage()" style="cursor:pointer;display:none">
-          <div class="row-body">
-            <div class="row-title">Abo verwalten</div>
-            <div class="row-sub">Kündigen oder Tarif wechseln (Apple)</div>
-          </div>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
-        <div class="row" onclick="premRestore()" style="cursor:pointer">
-          <div class="row-body">
-            <div class="row-title">Käufe wiederherstellen</div>
-            <div class="row-sub" id="prem-restore-sub">Abo auf diesem Gerät aktivieren</div>
-          </div>
         </div>
       </div>
     </div>
@@ -4881,24 +4584,6 @@ html[data-theme="mitternacht"]{background-color:#05060f}
           <div class="theme-dot" style="background:linear-gradient(135deg,#48D368 50%,#28A745 50%);border:2px solid #2ea84a"></div>
           <span class="theme-name">Grün</span>
           <span class="theme-chk" id="chk-grün" style="visibility:hidden">✓</span>
-        </div>
-        <div class="theme-row" onclick="setTheme('gold')">
-          <div class="theme-dot" style="background:linear-gradient(135deg,#f7c948 50%,#ff9d2f 50%);border:2px solid #d9a520"></div>
-          <span class="theme-name">Gold</span>
-          <span class="prem-lock" data-premlock="gold">Premium</span>
-          <span class="theme-chk" id="chk-gold" style="visibility:hidden">✓</span>
-        </div>
-        <div class="theme-row" onclick="setTheme('mitternacht')">
-          <div class="theme-dot" style="background:linear-gradient(135deg,#12152a 50%,#05060f 50%);border:2px solid #7b8cff"></div>
-          <span class="theme-name">Mitternacht</span>
-          <span class="prem-lock" data-premlock="mitternacht">Premium</span>
-          <span class="theme-chk" id="chk-mitternacht" style="visibility:hidden">✓</span>
-        </div>
-        <div class="theme-row" onclick="setTheme('smaragd')">
-          <div class="theme-dot" style="background:linear-gradient(135deg,#18c88c 50%,#0f9d6e 50%);border:2px solid #12a877"></div>
-          <span class="theme-name">Smaragd</span>
-          <span class="prem-lock" data-premlock="smaragd">Premium</span>
-          <span class="theme-chk" id="chk-smaragd" style="visibility:hidden">✓</span>
         </div>
         <div class="row" style="border-top:1px solid var(--sep)">
           <div class="row-body">
@@ -5537,10 +5222,7 @@ html[data-theme="mitternacht"]{background-color:#05060f}
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="wk-title">Training</h2>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="x-btn" id="scan-cam-btn" onclick="openGymScan()" title="Gerät scannen" aria-label="Gerät scannen"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 7l1.1-1.8A1 1 0 0 1 8.4 4.7h7.2a1 1 0 0 1 .9.5L17.6 7H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19H4a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4 7z"/><circle cx="12" cy="12.4" r="3.3"/></svg></button>
-        <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
-      </div>
+      <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
     <!-- step 1: select -->
     <div id="wk-step1">
@@ -6187,7 +5869,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607222100';
+const APP_VERSION = 'gymtrack-v202607222200';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8346,20 +8028,13 @@ document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
 }));
 
 // ── THEME ─────────────────────────────────────────────
-function setTheme(t, silent) {
-  // Premium-Themes: ohne Abo beim Tippen Paywall zeigen; beim Boot still auf Hell zurückfallen
-  if (PREM_THEMES.includes(t) && !isPremium()) {
-    if (silent) t = 'light';
-    else { openPaywall('themes'); return; }
-  }
+function setTheme(t) {
   S.theme = t;
   persist();
   document.documentElement.setAttribute('data-theme', t);
-  ['light','rosa','dark','blau','grün','gold','mitternacht','smaragd'].forEach(n => {
-    const el = document.getElementById('chk-'+n);
-    if (el) el.style.visibility = n===t ? 'visible' : 'hidden';
-  });
-  try { _premLockRefresh(); } catch(_){}
+  ['light','rosa','dark','blau','grün'].forEach(n =>
+    document.getElementById('chk-'+n).style.visibility = n===t ? 'visible' : 'hidden'
+  );
 }
 function setGlass(on) {
   S.glass = on;
@@ -8377,7 +8052,6 @@ function setGlass(on) {
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
   {type:'weekcal', size:'lg'},
-  {type:'premium', size:'lg'},
   {type:'streak',  size:'sm'},
   {type:'recovery',size:'sm'},
   {type:'weight',  size:'md'},
@@ -8405,9 +8079,8 @@ const WIDGET_DEFS = {
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
   plans:   {title:'Deine Trainingspläne', icon:'', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
   social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
-  premium: {title:'',                icon:'', label:'KI-Coach',         desc:'Premium: Coach, Bericht & mehr', sizes:['sm','md','lg'], lgRows:1, build:hwPremium},
 };
-const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','social','premium','streak','volume','recovery','muscles','onerm','qadd','qweight'];
+const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
@@ -17288,13 +16961,6 @@ function _obStepHTML(s){
           <div class="ob-tpl-days">${days.map(d=>`<span class="ob-day-chip">${d}</span>`).join('')}</div>
         </button>`; }).join('')}</div>`;
   }
-  if (s === 6) return `<div class="ob-q" style="text-align:center">${AI_ON ? 'Hol dir deinen KI-Coach' : 'Hol dir MyGymTrack Premium'}</div>
-    <div class="ob-qsub" style="text-align:center">MyGymTrack Premium — kündbar jederzeit.</div>
-    <div class="pw-feats" style="margin-top:14px">
-      ${_pwFeatRowsHTML(AI_ON ? ['chat','report','exdb','stats'] : ['exdb','stats','body','export'])}
-    </div>
-    <div class="pw-plans">${_pwPlanCardsHTML('_obPremPlan','obPickPremPlan')}</div>
-    <div class="pw-foot">Abo verlängert sich automatisch, kündbar jederzeit in den App-Store-Einstellungen.</div>`;
   return `<div class="ob-hero" style="padding-top:12vh">
       <div class="ob-done-ring">${_OB_SVG.check}</div>
       <div class="ob-h1">Alles bereit${_ob.name ? ', ' + esc(_ob.name) : ''}!</div>
@@ -17308,1146 +16974,21 @@ function renderOb(){
   if (!el || !_ob) return;
   const s = _ob.step;
   const canNext = !(s===2 && !_ob.goal) && !(s===3 && !_ob.exp) && !(s===4 && !_ob.freq);
-  const primary = s===0 ? 'Los geht’s' : s===5 ? 'Plan übernehmen' : s===6 ? 'Premium freischalten' : s===7 ? 'Los geht’s' : 'Weiter';
-  const foot = s === 7
+  const primary = s===0 ? 'Los geht’s' : s===5 ? 'Plan übernehmen' : s===6 ? 'Los geht’s' : 'Weiter';
+  const foot = s === 6
     ? `<button class="btn btn-acc" onclick="obFinish()">${primary}</button>`
-    : s === 6
-    ? `<button class="btn btn-acc" id="ob-prem-cta" onclick="obPremBuy()">${primary}</button>
-       <button class="ob-ghost" onclick="obNext()">Ohne Premium weiter</button>`
     : `<button class="btn btn-acc" onclick="obNext()" ${canNext?'':'disabled style="opacity:.45"'}>${primary}</button>
        ${s===0 ? '<button class="ob-ghost" onclick="skipOnboarding()">Ohne Einrichtung starten — alles selbst anlegen</button>' : ''}
        ${s===5 ? '<button class="ob-ghost" onclick="obSkipPlan()">Ohne Plan starten</button>' : ''}`;
   el.innerHTML = `
     <div class="ob-top">
-      ${s>0 && s<7 ? `<button class="hdr-icon-btn" onclick="obBack()" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>` : '<div style="width:38px"></div>'}
-      <div class="ob-dots">${Array.from({length:8},(_,i)=>`<div class="ob-dot${i===s?' on':''}"></div>`).join('')}</div>
-      ${s<7 ? '<button class="ob-skip" onclick="skipOnboarding()">Überspringen</button>' : '<div style="width:38px"></div>'}
+      ${s>0 && s<6 ? `<button class="hdr-icon-btn" onclick="obBack()" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>` : '<div style="width:38px"></div>'}
+      <div class="ob-dots">${Array.from({length:7},(_,i)=>`<div class="ob-dot${i===s?' on':''}"></div>`).join('')}</div>
+      ${s<6 ? '<button class="ob-skip" onclick="skipOnboarding()">Überspringen</button>' : '<div style="width:38px"></div>'}
     </div>
     <div class="ob-body"><div class="ob-step">${_obStepHTML(s)}</div></div>
     <div class="ob-foot">${foot}</div>`;
 }
-
-// ═══════════════════════════════════════════════════════
-// PREMIUM — ABO (StoreKit 2) · PAYWALL · HUB
-// Status NUR lokal (localStorage 'gt_premium'), NICHT im users-Doc —
-// keine Rules-Änderung nötig, kein Sync-Bruch. Quelle der Wahrheit ist
-// StoreKit (Transaction.currentEntitlements), der JWS ist der Abo-Beweis
-// für den KI-Worker (serverseitige Verifikation gegen Apple-Zertifikate).
-// ═══════════════════════════════════════════════════════
-const PREM_THEMES = ['gold','mitternacht','smaragd'];
-const PREM_MONTHLY = 'gymtrack.premium.monthly';
-const PREM_YEARLY  = 'gymtrack.premium.yearly';
-const AI_WORKER_URL = 'https://gymtrack-ai.wolterlenny362.workers.dev';
-// KI-Features (Coach, Wochenbericht, Geräte-Scanner) noch in Arbeit — im Release ausgeblendet.
-const AI_ON = false;
-
-let PREM = (() => { try { return JSON.parse(localStorage.getItem('gt_premium')) || {}; } catch(_){ return {}; } })();
-function _premSave(){ try { localStorage.setItem('gt_premium', JSON.stringify(PREM)); } catch(_){} }
-
-function isPremium(){
-  // try/catch: _fbUser ist ein späteres top-level `let` — beim INIT-Aufruf (setTheme/renderHome)
-  // wäre der Zugriff sonst ein TDZ-ReferenceError und der komplette Boot bricht ab!
-  try { if (_fbUser && _fbUser.uid === FOUNDER_UID) return true; } catch(_){} // Founder immer
-  if (localStorage.getItem('gt_premiumDev') === '1') return true;                            // Dev-Unlock (nur UI)
-  if (!PREM.active) return false;
-  return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
-}
-
-// Icon-Ergänzungen (Vektor, kein Emoji — UI-Regel)
-Object.assign(ICO, {
-  sparkle:o=>_svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9z"/>',o),
-  robot:o=>_svg('<rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 8V4.8M12 4.8a1.4 1.4 0 1 0-.01 0z"/><circle cx="9.2" cy="13" r="1.1"/><circle cx="14.8" cy="13" r="1.1"/><path d="M9.5 16.2h5"/>',o),
-  report:o=>_svg('<path d="M7 3.5h7L18.5 8v11A1.5 1.5 0 0 1 17 20.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14 3.5V8h4.5M9 13l2 2 4-4.5"/>',o),
-  library:o=>_svg('<path d="M4.5 5A1.5 1.5 0 0 1 6 3.5h4V20.5H6A1.5 1.5 0 0 1 4.5 19z"/><path d="M10 3.5h4A1.5 1.5 0 0 1 15.5 5v15.5H10z"/><path d="m15.5 7 3.4-1 2.3 13.6-3.5 1z"/>',o),
-  bodyM:o=>_svg('<circle cx="12" cy="5.6" r="2.6"/><path d="M12 8.2v5.4M12 13.6l-3.4 6M12 13.6l3.4 6M7.2 10.4h9.6"/>',o),
-  exportF:o=>_svg('<path d="M12 14V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 11.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-6.5"/>',o),
-  crown:o=>_svg('<path d="M4 8.5 7.5 12l4.5-6 4.5 6L20 8.5V17a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17z"/>',o),
-  chart2:o=>_svg('<path d="M3.5 20h17M6.5 16.5v-6M11 16.5V4.5M15.5 16.5v-8M20 16.5v-4"/>',o),
-});
-
-// ── StoreKit-Bridge ──────────────────────────────────
-let _pwProducts = null;   // [{id, displayPrice, price, period}]
-async function _premLoadProducts(){
-  const P = _cap('PremiumPlugin'); if (!P) return null;
-  try {
-    const r = await P.loadProducts();
-    _pwProducts = r.products || [];
-    return _pwProducts;
-  } catch(e){ console.log('[PREM] Produkte laden:', e?.message||e); return null; }
-}
-function _premApply(res){
-  if (!res) return;
-  if (res.active) {
-    PREM = { active:true, plan: res.productId === PREM_YEARLY ? 'yearly' : 'monthly',
-             exp: res.expiresMs || 0, jws: res.jws || PREM.jws || null, src:'store' };
-  } else if (res.status === 'none') {
-    PREM = { active:false };
-  }
-  _premSave();
-  try { _premLockRefresh(); } catch(_){}
-  try { renderHeuteGrid(); } catch(_){}
-}
-async function premRefreshEntitlement(){
-  const P = _cap('PremiumPlugin'); if (!P) return;
-  try { _premApply(await P.getEntitlement()); } catch(_){}
-}
-async function premRestore(){
-  const P = _cap('PremiumPlugin');
-  if (!P) { alert('Käufe wiederherstellen geht nur in der iOS-App.'); return; }
-  const sub = document.getElementById('prem-restore-sub');
-  if (sub) sub.textContent = 'Wird geprüft…';
-  try {
-    const res = await P.restore();
-    _premApply(res);
-    if (sub) sub.textContent = res.active ? 'Premium aktiv — willkommen zurück!' : 'Kein aktives Abo gefunden';
-  } catch(e){ if (sub) sub.textContent = 'Fehler: ' + (e?.message||e); }
-}
-async function premManage(){
-  const P = _cap('PremiumPlugin'); if (!P) return;
-  try { await P.manageSubs(); setTimeout(premRefreshEntitlement, 1500); } catch(_){}
-}
-
-// ── Paywall ──────────────────────────────────────────
-let _pwPlan = 'yearly';
-let _obPremPlan = 'yearly';
-function _pwPrice(plan){
-  const id = plan === 'yearly' ? PREM_YEARLY : PREM_MONTHLY;
-  const p = (_pwProducts||[]).find(x => x.id === id);
-  if (p) return p.displayPrice;
-  return plan === 'yearly' ? '19,99 €' : '2,99 €';
-}
-const _PW_FEATS = {
-  chat:   { ico:'robot',   t:'KI-Coach',           s:'Kennt dein komplettes Training — Fragen, Alternativen, Pläne' },
-  report: { ico:'report',  t:'KI-Wochenbericht',   s:'Detaillierte Analyse & Vergleich deiner Trainingswochen' },
-  exdb:   { ico:'library', t:'Übungsdatenbank',    s:'1300+ Übungen mit Animation, Technik & Muskel-Filter' },
-  stats:  { ico:'chart2',  t:'Pro-Analyse',        s:'Muskel-Balance, Volumen-Heatmap & 1RM-Trends' },
-  body:   { ico:'bodyM',   t:'Körper-Tracking',    s:'Maße & Fortschrittsfotos mit Verlauf' },
-  export: { ico:'exportF', t:'Export',             s:'Trainingsdaten als PDF-Bericht oder CSV' },
-  themes: { ico:'sparkle', t:'Exklusive Designs',  s:'Premium-Themes & alternative App-Icons' },
-  scan:   { ico:'camera',  t:'Geräte-Scanner',     s:'Gerät fotografieren — Übung mit Animation erklärt' },
-};
-function _pwFeatRowsHTML(keys){
-  return keys.map(k => { const f = _PW_FEATS[k]; if (!f) return '';
-    return `<div class="pw-feat"><div class="pw-feat-ico">${ICO[f.ico]({s:19})}</div>
-      <div><div class="pw-feat-t">${f.t}</div><div class="pw-feat-s">${f.s}</div></div></div>`; }).join('');
-}
-function _pwPlanCardsHTML(stateVar, pickFn){
-  const cur = stateVar === '_obPremPlan' ? _obPremPlan : _pwPlan;
-  return `
-    <div class="pw-plan${cur==='yearly'?' on':''}" onclick="${pickFn}('yearly')">
-      <span class="pw-plan-save">Spare 44 %</span>
-      <div class="pw-plan-name">Jährlich</div>
-      <div class="pw-plan-price">${_pwPrice('yearly')}</div>
-      <div class="pw-plan-per">pro Jahr · 1,67 €/Monat</div>
-    </div>
-    <div class="pw-plan${cur==='monthly'?' on':''}" onclick="${pickFn}('monthly')">
-      <div class="pw-plan-name">Monatlich</div>
-      <div class="pw-plan-price">${_pwPrice('monthly')}</div>
-      <div class="pw-plan-per">pro Monat</div>
-    </div>`;
-}
-function pwPickPlan(p){ _pwPlan = p; haptic(6); _pwRender(); }
-function obPickPremPlan(p){ _obPremPlan = p; haptic(6); renderOb(); }
-function openPaywall(feature){
-  _pwRender(feature);
-  openOv('ov-paywall');
-  if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRender(feature));
-}
-function _pwRender(feature){
-  const el = document.getElementById('pw-body'); if (!el) return;
-  const native = _isNative();
-  const compact = feature === 'postlogin';   // nach dem Login: kurz & knackig
-  el.innerHTML = `
-    <div class="pw-hero">
-      <div class="pw-hero-badge">${ICO.sparkle({s:30})}</div>
-      <div class="pw-title">${compact ? (AI_ON ? 'Dein KI-Coach wartet' : 'Mehr aus deinem Training holen') : 'Alles aus deinem Training holen'}</div>
-      <div class="pw-sub">${compact ? 'Mehr rausholen — für weniger als einen Proteinriegel im Monat.' : (AI_ON ? 'KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.' : 'Tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.')}</div>
-    </div>
-    <div class="pw-feats">${_pwFeatRowsHTML(
-      compact ? (AI_ON ? ['chat','report','exdb','scan'] : ['exdb','stats','body','export'])
-              : ['chat','report','exdb','scan','stats','body','export','themes'].filter(k => AI_ON || !['chat','report','scan'].includes(k)))}</div>
-    <div class="pw-plans">${_pwPlanCardsHTML('_pwPlan','pwPickPlan')}</div>
-    ${native
-      ? `<button class="pw-cta" id="pw-cta" onclick="paywallBuy()">Premium freischalten</button>`
-      : `<div class="card" style="padding:14px;text-align:center;font-size:14px;line-height:1.5">Premium schließt du in der <b>MyGymTrack iOS-App</b> ab — dort steht dir dann alles auch im Web zur Verfügung.</div>`}
-    <div class="pw-foot">${_pwPlan==='yearly' ? _pwPrice('yearly')+' pro Jahr' : _pwPrice('monthly')+' pro Monat'} · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen</div>
-    <div class="pw-links">
-      <button onclick="premRestore()">Käufe wiederherstellen</button>
-      <button onclick="window.open('https://lenny23445.github.io/Gymtrack/privacy.html','_blank')">Datenschutz</button>
-      <button onclick="window.open('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/','_blank')">Nutzungsbedingungen</button>
-    </div>`;
-}
-async function paywallBuy(){
-  const P = _cap('PremiumPlugin'); if (!P) return;
-  const btn = document.getElementById('pw-cta');
-  if (btn) { btn.disabled = true; btn.textContent = 'Apple-Kauf läuft…'; }
-  try {
-    const res = await P.purchase({ productId: _pwPlan === 'yearly' ? PREM_YEARLY : PREM_MONTHLY });
-    if (res.active) {
-      _premApply(res);
-      haptic(30);
-      closeOv('ov-paywall');
-      setTimeout(() => openPremHub(), 250);
-    } else if (res.status === 'pending') {
-      alert('Kauf wartet auf Bestätigung (z. B. Familienfreigabe). Premium wird automatisch aktiv, sobald genehmigt.');
-    }
-  } catch(e){
-    alert('Kauf fehlgeschlagen: ' + (e?.message||e));
-  }
-  if (btn) { btn.disabled = false; btn.textContent = 'Premium freischalten'; }
-}
-async function obPremBuy(){
-  const P = _cap('PremiumPlugin');
-  if (!P) { obNext(); return; }   // Web/Simulator ohne Produkte: einfach weiter
-  const btn = document.getElementById('ob-prem-cta');
-  if (btn) { btn.disabled = true; btn.textContent = 'Apple-Kauf läuft…'; }
-  try {
-    const res = await P.purchase({ productId: _obPremPlan === 'yearly' ? PREM_YEARLY : PREM_MONTHLY });
-    if (res.active) { _premApply(res); haptic(30); obNext(); return; }
-  } catch(e){ alert('Kauf fehlgeschlagen: ' + (e?.message||e)); }
-  if (btn) { btn.disabled = false; btn.textContent = 'Premium freischalten'; }
-}
-
-// ── Premium-Hub (Einstieg von der Startseite) ────────
-function hwPremium(size){
-  const prem = isPremium();
-  const t = AI_ON ? (prem ? 'KI-Coach' : 'KI-Coach & Premium') : 'Premium';
-  const s = size === 'sm' ? '' :
-    AI_ON
-      ? (prem ? 'Wochenbericht, Coach-Chat, Übungsdatenbank & Pro-Analyse'
-              : 'Dein Training, analysiert von KI — Bericht, Coach & 1300+ Übungen')
-      : (prem ? 'Übungsdatenbank, Pro-Analyse, Körper-Tracking & Export'
-              : 'Pro-Analyse, 1300+ Übungen, Körper-Tracking & mehr');
-  return `<div class="ph-card" style="height:100%" onclick="openPremHub()">
-    <div class="ph-t">${ICO.sparkle({s:18})} ${t}${prem?'':' <span class="prem-pill">Premium</span>'}</div>
-    ${s?`<div class="ph-s">${s}</div>`:''}
-  </div>`;
-}
-function openPremHub(){
-  if (!isPremium()) { openPaywall('hub'); return; }
-  const el = document.getElementById('ph-body'); if (!el) return;
-  const tiles = [
-    ...(AI_ON ? [
-      ['openAiReport()',  'report',  'Wochenbericht', 'KI-Analyse deiner Trainingswoche'],
-      ['openAiChat()',    'robot',   'KI-Coach',      'Fragen, Alternativen, Pläne'],
-    ] : []),
-    ['openExDb()',      'library', 'Übungsdatenbank','1300+ Übungen mit Animation'],
-    ['openProStats()',  'chart2',  'Pro-Analyse',   'Balance, Heatmap, 1RM-Trends'],
-    ['openBodySheet()', 'bodyM',   'Körper-Tracking','Maße & Fortschrittsfotos'],
-    ['openExportSheet()','exportF','Export',        'PDF-Bericht & CSV'],
-    ['openAppIconSheet()','sparkle','App-Icon',     'Alternative Icons'],
-    ['premGoThemes()',  'crown',   'Designs',       'Premium-Themes'],
-  ];
-  el.innerHTML = `<div class="ph-grid">${tiles.map(([fn,ico,t,s]) =>
-    `<div class="ph-tile" onclick="${fn}">
-       <div class="ph-tile-ico">${ICO[ico]({s:19})}</div>
-       <div class="ph-tile-t">${t}</div><div class="ph-tile-s">${s}</div>
-     </div>`).join('')}</div>`;
-  openOv('ov-prem-hub');
-}
-function premGoThemes(){ closeOv('ov-prem-hub'); goTab('erfolge'); setTimeout(() => { try { openSettingsPage(); } catch(_){} }, 120); }
-function premOpenFromSettings(){ if (isPremium()) openPremHub(); else openPaywall('settings'); }
-function premGate(feature){ if (isPremium()) return true; openPaywall(feature); return false; }
-
-// ── Premium-Status in der UI ─────────────────────────
-function _premLockRefresh(){
-  const prem = isPremium();
-  const scb = document.getElementById('scan-cam-btn');
-  if (scb) scb.style.display = AI_ON ? '' : 'none';
-  document.querySelectorAll('.prem-lock').forEach(el => { el.style.display = prem ? 'none' : ''; });
-  const pill = document.getElementById('prem-status-pill');
-  if (pill) pill.innerHTML = prem ? '<span class="prem-pill">Aktiv</span>' : '';
-  const sub = document.getElementById('prem-status-sub');
-  if (sub) {
-    if (prem && PREM.exp) sub.textContent = (PREM.plan==='yearly'?'Jahresabo':'Monatsabo') + ' · verlängert sich am ' + new Date(PREM.exp).toLocaleDateString(GT_LOCALE);
-    else if (prem) sub.textContent = 'Premium aktiv';
-    else sub.textContent = AI_ON ? 'KI-Coach, Wochenbericht, Übungsdatenbank & mehr' : 'Übungsdatenbank, Pro-Analyse, Körper-Tracking & mehr';
-  }
-  const mr = document.getElementById('prem-manage-row');
-  if (mr) mr.style.display = (prem && PREM.src === 'store') ? '' : 'none';
-  const ar = document.getElementById('prem-appicon-row');
-  if (ar) ar.style.display = (prem && _isNative()) ? '' : 'none';
-}
-
-// ── App-Icons (Premium, nativ) ───────────────────────
-const PREM_ICONS = [
-  { key:null,            name:'Klassisch',   img:'icon-192.png' },
-  { key:'AppIconGold',   name:'Gold',        img:'icon-gold-192.png' },
-  { key:'AppIconWhite',  name:'Weiß',        img:'icon-white-192.png' },
-];
-function openAppIconSheet(){
-  if (!premGate('appicon')) return;
-  const el = document.getElementById('appicon-body'); if (!el) return;
-  const cur = localStorage.getItem('gt_appIcon') || '';
-  el.innerHTML = `<div class="aic-icons">${PREM_ICONS.map(ic =>
-    `<div class="aic-icon${(ic.key||'')===cur?' on':''}" onclick="premSetIcon('${ic.key||''}')">
-       <img src="${ic.img}" alt="${ic.name}"><span>${ic.name}</span></div>`).join('')}</div>
-    <div class="pw-foot" style="text-align:left">iOS zeigt kurz eine Bestätigung, wenn das Icon wechselt.</div>`;
-  openOv('ov-appicon');
-}
-async function premSetIcon(key){
-  const P = _cap('PremiumPlugin'); if (!P) { alert('Nur in der iOS-App möglich.'); return; }
-  try {
-    await P.setAppIcon({ name: key || null });
-    localStorage.setItem('gt_appIcon', key || '');
-    openAppIconSheet();
-  } catch(e){ alert('Icon-Wechsel fehlgeschlagen: ' + (e?.message||e)); }
-}
-
-// ── Init (aus INIT aufgerufen) ───────────────────────
-function premInit(){
-  // Premium-Widget einmalig in bestehende Layouts einfügen (neue Layouts haben es ab Werk)
-  try {
-    if (!localStorage.getItem('gt_premWidgetV1')) {
-      localStorage.setItem('gt_premWidgetV1', '1');
-      if (Array.isArray(S.heuteLayout) && S.heuteLayout.length && !S.heuteLayout.some(w => w && w.type === 'premium')) {
-        S.heuteLayout.splice(1, 0, { type:'premium', size:'lg' });
-        persist(); renderHeuteGrid();
-      }
-    }
-  } catch(_){}
-  _premLockRefresh();
-  if (_isNative()) {
-    premRefreshEntitlement();
-    _premLoadProducts();
-    try {
-      const P = _cap('PremiumPlugin');
-      P && P.addListener && P.addListener('entitlementChanged', d => _premApply(d));
-    } catch(_){}
-  }
-  // Nach Login neu bewerten (Founder-Konto = Premium)
-  try { window.addEventListener('gt-auth-changed', _premLockRefresh); } catch(_){}
-}
-
-// ═══════════════════════════════════════════════════════
-// PREMIUM — ÜBUNGSDATENBANK (1300+ Übungen, kostenlose Quellen)
-// Primär: exercisedb.dev (offene API, echte GIFs). Fallback:
-// free-exercise-db via jsDelivr (2-Frame-Animation). Kompakter Cache
-// in localStorage 'gt_exdb_v1' (ohne Anleitungen, ~400 KB).
-// ═══════════════════════════════════════════════════════
-let _exdbData = null;      // [{id,n,gif,bp,tg,eq,steps[]}]
-let _exdbBp = 'all';
-let _exdbLoading = false;
-
-const _EXDB_MG_MAP = {  // bodyPart/target (EN) → App-Muskelgruppe
-  chest:'brust', back:'ruecken', lats:'ruecken', 'upper back':'ruecken', traps:'ruecken', neck:'ruecken',
-  'upper legs':'beine', 'lower legs':'beine', glutes:'beine', quads:'beine', hamstrings:'beine', calves:'beine',
-  'upper arms':'arme', 'lower arms':'arme', biceps:'arme', triceps:'arme', forearms:'arme',
-  shoulders:'schultern', delts:'schultern',
-  waist:'core', abs:'core', abdominals:'core', cardio:'core',
-};
-function _exdbToMg(ex){
-  const keys = [].concat(ex.bp||[], ex.tg||[]).map(x => String(x).toLowerCase());
-  for (const k of keys) if (_EXDB_MG_MAP[k]) return _EXDB_MG_MAP[k];
-  return '';
-}
-function openExDb(){
-  if (!premGate('exdb')) return;
-  openOv('ov-exdb');
-  _exdbEnsure();
-}
-async function _exdbEnsure(){
-  if (_exdbData) { _exdbRender(); return; }
-  try {
-    const cached = localStorage.getItem('gt_exdb_v1');
-    if (cached) { _exdbData = JSON.parse(cached); _exdbRender(); return; }
-  } catch(_){}
-  if (_exdbLoading) return;
-  _exdbLoading = true;
-  const list = document.getElementById('exdb-list');
-  if (list) list.innerHTML = `<div style="text-align:center;padding:30px 10px;color:var(--text2);font-size:14px">Übungsdatenbank wird geladen…<br><span style="font-size:12px">(einmalig, danach offline verfügbar)</span></div>`;
-  let data = null;
-  // 1) exercisedb.dev — offene API mit echten GIFs
-  try {
-    data = [];
-    let url = 'https://v1.exercisedb.dev/api/v1/exercises?limit=100';
-    for (let page = 0; page < 20 && url; page++) {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const j = await r.json();
-      const rows = j.data || [];
-      rows.forEach(e => data.push({
-        id:'edb_' + (e.exerciseId || e.id), n: e.name || '',
-        gif: e.gifUrl || '', bp: e.bodyParts || [], tg: e.targetMuscles || [],
-        eq: e.equipments || [], steps: (e.instructions || []).slice(0, 6),
-      }));
-      url = j.metadata && j.metadata.nextPage ? j.metadata.nextPage : null;
-    }
-    if (data.length < 50) throw new Error('zu wenig Daten');
-  } catch(e){
-    console.log('[EXDB] exercisedb.dev fehlgeschlagen, Fallback:', e?.message||e);
-    data = null;
-  }
-  // 2) Fallback: free-exercise-db (jsDelivr, 2 Frames statt GIF)
-  if (!data) {
-    try {
-      const r = await fetch('https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json');
-      const j = await r.json();
-      const base = 'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
-      data = j.map(e => ({
-        id:'fed_' + e.id, n: e.name || '',
-        gif: e.images && e.images[0] ? base + e.images[0] : '',
-        gif2: e.images && e.images[1] ? base + e.images[1] : '',
-        bp: [e.category || ''].concat(e.primaryMuscles || []), tg: e.primaryMuscles || [],
-        eq: e.equipment ? [e.equipment] : [], steps: (e.instructions || []).slice(0, 6),
-      }));
-    } catch(e2){
-      _exdbLoading = false;
-      if (list) list.innerHTML = `<div style="text-align:center;padding:30px 10px;color:var(--text2);font-size:14px">Datenbank gerade nicht erreichbar.<br>Prüfe deine Internetverbindung und versuch es nochmal.</div>`;
-      return;
-    }
-  }
-  _exdbData = data;
-  _exdbLoading = false;
-  try {  // Kompakt-Cache ohne Anleitungen (localStorage-Budget)
-    localStorage.setItem('gt_exdb_v1', JSON.stringify(data.map(e => ({...e, steps: e.steps && e.steps.length ? e.steps : []}))));
-  } catch(_){ try { localStorage.setItem('gt_exdb_v1', JSON.stringify(data.map(e => ({...e, steps: []})))); } catch(__){} }
-  _exdbRender();
-}
-function _exdbBodyParts(){
-  const set = new Set();
-  (_exdbData||[]).forEach(e => (e.bp||[]).forEach(b => b && set.add(String(b).toLowerCase())));
-  return ['all', ...Array.from(set).sort()];
-}
-function exdbPickBp(bp){ _exdbBp = bp; haptic(5); _exdbRender(); }
-function exdbFilter(){ _exdbRenderList(); }
-function _exdbRender(){
-  const mEl = document.getElementById('exdb-muscles');
-  if (mEl) mEl.innerHTML = _exdbBodyParts().map(bp =>
-    `<button class="${_exdbBp===bp?'on':''}" onclick="exdbPickBp('${bp.replace(/'/g,"\\'")}')">${bp==='all'?'Alle':esc(bp)}</button>`).join('');
-  _exdbRenderList();
-}
-function _exdbRenderList(){
-  const list = document.getElementById('exdb-list'); if (!list || !_exdbData) return;
-  const q = (document.getElementById('exdb-search')?.value || '').trim().toLowerCase();
-  let rows = _exdbData;
-  if (_exdbBp !== 'all') rows = rows.filter(e => (e.bp||[]).some(b => String(b).toLowerCase() === _exdbBp));
-  if (q) rows = rows.filter(e => e.n.toLowerCase().includes(q));
-  const total = rows.length;
-  rows = rows.slice(0, 80);
-  list.innerHTML = rows.map((e, i) =>
-    `<div class="exdb-row" onclick="openExDbDetail('${e.id}')">
-       <img class="exdb-thumb" loading="lazy" src="${esc(e.gif)}" alt="">
-       <div style="flex:1;min-width:0"><div class="exdb-n">${esc(e.n)}</div>
-       <div class="exdb-m">${esc((e.tg||[]).slice(0,2).join(' · ') || (e.bp||[])[0] || '')}</div></div>
-     </div>`).join('') +
-    (total > 80 ? `<div style="text-align:center;padding:10px;color:var(--text2);font-size:12.5px">${total-80} weitere — Suche verfeinern</div>` : '') +
-    (total === 0 ? `<div style="text-align:center;padding:26px 10px;color:var(--text2);font-size:14px">Nichts gefunden</div>` : '');
-}
-let _exdbFlip = null;
-function openExDbDetail(id){
-  const e = (_exdbData||[]).find(x => x.id === id); if (!e) return;
-  const tEl = document.getElementById('exdbd-title');
-  if (tEl) tEl.textContent = e.n;
-  const el = document.getElementById('exdbd-body'); if (!el) return;
-  clearInterval(_exdbFlip);
-  el.innerHTML = `
-    <img class="exdb-gif" id="exdbd-img" src="${esc(e.gif)}" alt="${esc(e.n)}">
-    <div class="exdb-tags">
-      ${(e.tg||[]).map(t=>`<span class="exdb-tag">${esc(t)}</span>`).join('')}
-      ${(e.eq||[]).map(t=>`<span class="exdb-tag" style="opacity:.75">${esc(t)}</span>`).join('')}
-    </div>
-    ${e.steps && e.steps.length ? `<ol class="exdb-steps">${e.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>` : ''}
-    <button class="btn btn-acc" style="width:100%;margin-top:14px" onclick="exdbAdd('${e.id}')">Zu meinen Übungen hinzufügen</button>
-    <div class="pw-foot">Quelle: offene Übungsdatenbank (englisch)</div>`;
-  if (e.gif2) {  // Fallback-DB: 2 Bilder abwechseln = Animation
-    let f = false;
-    _exdbFlip = setInterval(() => {
-      const img = document.getElementById('exdbd-img');
-      if (!img) { clearInterval(_exdbFlip); return; }
-      f = !f; img.src = f ? e.gif2 : e.gif;
-    }, 900);
-  }
-  openOv('ov-exdb-detail');
-}
-function exdbAdd(id){
-  const e = (_exdbData||[]).find(x => x.id === id); if (!e) return;
-  if (S.exercises.some(x => x.name.toLowerCase() === e.n.toLowerCase())) {
-    alert('Diese Übung hast du schon.'); return;
-  }
-  if (S.exercises.length >= 500) { alert('Übungslimit erreicht (500).'); return; }
-  S.exercises.push({
-    id: uid(), name: e.n, emoji: '🏋️', muscleGroup: _exdbToMg(e),
-    targetSets: 3, targetReps: 10, targetWeight: 0, targetType: 'reps',
-    repMin: 8, repMax: 12, weightScheme: 'straight',
-  });
-  persist();
-  try { renderExList(); } catch(_){}
-  haptic(20);
-  closeOv('ov-exdb-detail');
-}
-
-// ═══════════════════════════════════════════════════════
-// PREMIUM — KI (Wochenbericht + Coach-Chat)
-// Alle KI-Aufrufe laufen über den Cloudflare-Worker (AI_WORKER_URL).
-// Der Worker verlangt: Firebase-idToken (wer bist du) + StoreKit-JWS
-// (bist du Premium) — Founder-UID geht ohne JWS durch.
-// ═══════════════════════════════════════════════════════
-async function _aiFetch(kind, payload){
-  if (!(window.FB && window.FB.configured && typeof _fbUser !== 'undefined' && _fbUser))
-    throw new Error('Bitte zuerst anmelden.');
-  const idToken = await _fbUser.getIdToken();
-  const res = await fetch(AI_WORKER_URL + '/' + kind, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken, jws: PREM.jws || null, lang: GT_LANG, ...payload }),
-  });
-  if (!res.ok) {
-    let msg = 'HTTP ' + res.status;
-    try { const j = await res.json(); if (j.error) msg = j.error; } catch(_){}
-    if (res.status === 402) msg = 'Kein aktives Premium-Abo gefunden. Öffne die App einmal neu oder stelle Käufe wieder her.';
-    throw new Error(msg);
-  }
-  return res.json();
-}
-
-// ── Wochen-Aggregation (kompakt, geht an die KI) ─────
-function _aiWeekAgg(offset){   // offset 0 = aktuelle Woche (Mo–So), 1 = letzte, …
-  const mon = new Date(); mon.setHours(0,0,0,0);
-  mon.setDate(mon.getDate() - ((mon.getDay()+6)%7) - offset*7);
-  const end = new Date(mon); end.setDate(end.getDate()+7);
-  let vol = 0, sets = 0, dur = 0, ses = 0;
-  const mg = {}, exVol = {};
-  (S.sessions||[]).forEach(s => {
-    const d = new Date(s.date);
-    if (d < mon || d >= end) return;
-    ses++; dur += (s.duration||0);
-    (s.logs||[]).forEach(l => {
-      const ex = exById(l.exerciseId); if (!ex) return;
-      (l.sets||[]).forEach(st => {
-        if (st.type === 'warmup') return;
-        sets++;
-        const v = (st.reps||0) * (st.weight||0);
-        vol += v;
-        if (ex.muscleGroup) mg[ex.muscleGroup] = (mg[ex.muscleGroup]||0) + v;
-        exVol[ex.name] = (exVol[ex.name]||0) + v;
-      });
-    });
-  });
-  const topEx = Object.entries(exVol).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([n,v])=>({n, vol:Math.round(v)}));
-  return { week: offset, sessions: ses, volumeKg: Math.round(vol), sets, durMin: Math.round(dur/60),
-           muscles: Object.fromEntries(Object.entries(mg).map(([k,v])=>[k,Math.round(v)])), topExercises: topEx };
-}
-function _aiProfile(){
-  return { name: S.userName || null, goal: S.obGoal || null, experience: S.obExp || null,
-           freqPerWeek: S.obFreq || null, unit: 'kg' };
-}
-
-// ── KI-Wochenbericht ─────────────────────────────────
-function openAiReport(){
-  if (!AI_ON) return;
-  if (!premGate('report')) return;
-  openOv('ov-ai-report');
-  _airRender();
-}
-function _airCacheKey(){
-  const w = _aiWeekAgg(0);
-  return getWeekKey() + ':' + w.sessions + ':' + w.sets;
-}
-function _airRender(){
-  const el = document.getElementById('air-body'); if (!el) return;
-  let cache = null;
-  try { cache = JSON.parse(localStorage.getItem('gt_aiReport')); } catch(_){}
-  if (cache && cache.key === _airCacheKey() && cache.data) { _airShow(cache.data); return; }
-  const w = _aiWeekAgg(0);
-  if (!w.sessions) {
-    el.innerHTML = `<div style="text-align:center;padding:28px 12px;color:var(--text2);font-size:14.5px;line-height:1.6">
-      Diese Woche noch kein Training.<br>Starte eine Einheit — dein KI-Bericht wartet danach hier.</div>`;
-    return;
-  }
-  el.innerHTML = `<div style="text-align:center;padding:24px 12px">
-      <div class="pw-hero-badge" style="margin-bottom:14px">${ICO.report({s:28})}</div>
-      <div style="font-size:15px;color:var(--text2);line-height:1.6">Deine Woche: <b>${w.sessions} Trainings · ${(w.volumeKg/1000).toFixed(1)} t Volumen</b></div>
-      <button class="pw-cta" style="margin-top:18px" onclick="_airGenerate()">Bericht erstellen</button>
-    </div>`;
-}
-async function _airGenerate(){
-  const el = document.getElementById('air-body'); if (!el) return;
-  el.innerHTML = `<div style="text-align:center;padding:30px 12px;color:var(--text2);font-size:14.5px">
-    <div class="aic-typing" style="justify-content:center;margin:0 auto 12px;display:flex"><span></span><span></span><span></span></div>
-    Deine Woche wird analysiert…</div>`;
-  try {
-    const weeks = [0,1,2,3,4].map(_aiWeekAgg);
-    const res = await _aiFetch('report', { profile: _aiProfile(), weeks });
-    const data = res.report;
-    localStorage.setItem('gt_aiReport', JSON.stringify({ key: _airCacheKey(), ts: Date.now(), data }));
-    _airShow(data);
-  } catch(e){
-    el.innerHTML = `<div style="text-align:center;padding:26px 12px;color:var(--text2);font-size:14px;line-height:1.6">
-      Bericht gerade nicht möglich:<br><b>${esc(e?.message||String(e))}</b><br><br>
-      <button class="btn btn-acc" onclick="_airGenerate()">Nochmal versuchen</button></div>`;
-  }
-}
-function _airCmpRow(label, cur, prev, unit){
-  const diff = cur - prev;
-  const pct = prev > 0 ? Math.round(diff/prev*100) : null;
-  const cls = diff > 0 ? 'air-up' : diff < 0 ? 'air-down' : 'air-flat';
-  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '—';
-  return `<div class="air-cmp"><span>${label}</span>
-    <span><b>${cur}${unit}</b> <span class="${cls}" style="font-size:12.5px;margin-left:6px">${arrow} ${pct===null?'neu':Math.abs(pct)+' %'}</span></span></div>`;
-}
-function _airShow(d){
-  const el = document.getElementById('air-body'); if (!el) return;
-  const w0 = _aiWeekAgg(0), w1 = _aiWeekAgg(1);
-  const score = Math.max(0, Math.min(100, Math.round(d.score||0)));
-  const circ = 2*Math.PI*38;
-  el.innerHTML = `
-    <div class="air-score-wrap">
-      <div class="air-ring">
-        <svg width="86" height="86"><circle cx="43" cy="43" r="38" stroke="var(--inp-bg)" stroke-width="8" fill="none"/>
-        <circle cx="43" cy="43" r="38" stroke="var(--acc)" stroke-width="8" fill="none" stroke-linecap="round"
-          stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-score/100)}"/></svg>
-        <div class="air-ring-num">${score}</div>
-      </div>
-      <div style="flex:1;font-size:14.5px;line-height:1.55">${esc(d.summary||'')}</div>
-    </div>
-    <div class="air-sec"><div class="air-sec-t">Vergleich zur Vorwoche</div>
-      ${_airCmpRow('Trainings', w0.sessions, w1.sessions, '')}
-      ${_airCmpRow('Volumen', Math.round(w0.volumeKg/100)/10, Math.round(w1.volumeKg/100)/10, ' t')}
-      ${_airCmpRow('Sätze', w0.sets, w1.sets, '')}
-      ${_airCmpRow('Trainingszeit', w0.durMin, w1.durMin, ' min')}
-    </div>
-    ${Array.isArray(d.highlights)&&d.highlights.length?`<div class="air-sec"><div class="air-sec-t">Highlights</div>
-      ${d.highlights.map(h=>`<div class="air-item"><div class="air-dot"></div><div>${esc(h)}</div></div>`).join('')}</div>`:''}
-    ${Array.isArray(d.analyse)&&d.analyse.length?`<div class="air-sec"><div class="air-sec-t">Analyse</div>
-      ${d.analyse.map(h=>`<div class="air-item"><div class="air-dot"></div><div>${esc(h)}</div></div>`).join('')}</div>`:''}
-    ${Array.isArray(d.warnings)&&d.warnings.length?`<div class="air-sec"><div class="air-sec-t">Achtung</div>
-      ${d.warnings.map(h=>`<div class="air-item"><div class="air-dot" style="background:#e5484d"></div><div>${esc(h)}</div></div>`).join('')}</div>`:''}
-    ${Array.isArray(d.recommendations)&&d.recommendations.length?`<div class="air-sec"><div class="air-sec-t">Nächste Woche</div>
-      ${d.recommendations.map(h=>`<div class="air-item"><div class="air-dot" style="background:#2ea84a"></div><div>${esc(h)}</div></div>`).join('')}</div>`:''}
-    <button class="btn" style="width:100%;margin-top:16px;background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text)" onclick="localStorage.removeItem('gt_aiReport');_airGenerate()">Neu erstellen</button>`;
-}
-
-// ── KI-Coach (Chat) ──────────────────────────────────
-let _aicHist = (() => { try { return JSON.parse(localStorage.getItem('gt_aiChat')) || []; } catch(_){ return []; } })();
-let _aicBusy = false, _aicPlanPending = null;
-function _aicSave(){ try { localStorage.setItem('gt_aiChat', JSON.stringify(_aicHist.slice(-40))); } catch(_){} }
-function openAiChat(){
-  if (!AI_ON) return;
-  if (!premGate('chat')) return;
-  openOv('ov-ai-chat');
-  _aicRenderLog();
-  _aicRenderSugg();
-}
-function aicReset(){
-  if (_aicHist.length && !confirm('Chat-Verlauf löschen?')) return;
-  _aicHist = []; _aicPlanPending = null; _aicSave(); _aicRenderLog(); _aicRenderSugg();
-}
-function _aicGrow(ta){ ta.style.height = 'auto'; ta.style.height = Math.min(110, ta.scrollHeight) + 'px'; }
-function _aicMd(t){   // Mini-Markdown NACH esc(): **fett**, Listen-Punkte
-  return esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/^[-•] /gm, '· ');
-}
-function _aicRenderLog(){
-  const log = document.getElementById('aic-log'); if (!log) return;
-  if (!_aicHist.length) {
-    log.innerHTML = `<div class="aic-msg aic-bot">Hey${S.userName?' '+esc(S.userName):''}! Ich bin dein Coach und kenne dein komplettes Training — alle Übungen, Einheiten und Statistiken. Frag mich was: Übungs-Alternativen, Technik, oder lass dir einen kompletten Trainingsplan bauen.</div>`;
-  } else {
-    log.innerHTML = _aicHist.map(m =>
-      `<div class="aic-msg ${m.r==='u'?'aic-user':'aic-bot'}">${m.r==='u'?esc(m.t):_aicMd(m.t)}</div>`).join('');
-  }
-  if (_aicPlanPending) log.innerHTML += `<button class="aic-plan-btn" onclick="aicApplyPlan()">Trainingsplan übernehmen</button>`;
-  if (_aicBusy) log.innerHTML += `<div class="aic-typing"><span></span><span></span><span></span></div>`;
-  log.scrollTop = log.scrollHeight + 999;
-}
-function _aicRenderSugg(){
-  const el = document.getElementById('aic-sugg'); if (!el) return;
-  if (_aicHist.length) { el.innerHTML = ''; return; }
-  const sugg = ['Bewerte meine letzte Woche', 'Alternative zu einer Übung finden', 'Erstell mir einen neuen Trainingsplan', 'Wo bin ich unausgeglichen?'];
-  el.innerHTML = sugg.map(s => `<button onclick="document.getElementById('aic-in').value='${s.replace(/'/g,"\\'")}';aicSend()">${s}</button>`).join('');
-}
-function _aicContext(){
-  const exs = (S.exercises||[]).slice(0,120).map(e => e.name + (e.muscleGroup ? ' ['+e.muscleGroup+']' : ''));
-  const recent = (S.sessions||[]).slice(-14).map(s => ({
-    date: s.date && s.date.slice ? s.date.slice(0,10) : s.date, durMin: Math.round((s.duration||0)/60),
-    ex: (s.logs||[]).map(l => {
-      const ex = exById(l.exerciseId);
-      const best = (l.sets||[]).filter(x=>x.type!=='warmup').sort((a,b)=>(b.weight||0)-(a.weight||0))[0];
-      return ex ? ex.name + (best ? ` ${best.weight||0}kg×${best.reps||0}` : '') : null;
-    }).filter(Boolean),
-  }));
-  return { profile: _aiProfile(), weeks: [0,1,2,3].map(_aiWeekAgg), exercises: exs, recentSessions: recent,
-           weekPlanDays: Object.fromEntries(Object.entries(S.weekPlan||{}).map(([k,v])=>[k, v.type!=='none'])) };
-}
-async function aicSend(){
-  if (_aicBusy) return;
-  const ta = document.getElementById('aic-in');
-  const t = (ta?.value || '').trim();
-  if (!t) return;
-  ta.value = ''; _aicGrow(ta);
-  _aicHist.push({ r:'u', t }); _aicSave();
-  _aicBusy = true; _aicPlanPending = null;
-  _aicRenderLog(); _aicRenderSugg();
-  const send = document.getElementById('aic-send'); if (send) send.disabled = true;
-  try {
-    const msgs = _aicHist.slice(-16).map(m => ({ role: m.r==='u'?'user':'assistant', content: m.t }));
-    const res = await _aiFetch('chat', { messages: msgs, context: _aicContext() });
-    let txt = res.text || '';
-    const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);
-    if (pm) {
-      try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
-      txt = txt.replace(pm[0], '').trim();
-    }
-    _aicHist.push({ r:'a', t: txt || 'Hier ist dein Plan:' });
-    _aicSave();
-  } catch(e){
-    _aicHist.push({ r:'a', t: 'Das hat gerade nicht geklappt: ' + (e?.message||e) });
-  }
-  _aicBusy = false;
-  if (send) send.disabled = false;
-  _aicRenderLog();
-}
-function aicApplyPlan(){
-  const p = _aicPlanPending; if (!p || !p.days) return;
-  const hasPlan = Object.values(S.weekPlan||{}).some(v => v && v.type !== 'none');
-  if (hasPlan && !confirm('Dein aktueller Wochenplan wird ersetzt. Weiter?')) return;
-  const byLabel = {};
-  let colorIdx = (S.workoutPresets||[]).length;
-  const newPlan = {};
-  ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
-    const day = p.days[k];
-    if (!day || day.rest || !Array.isArray(day.exercises) || !day.exercises.length) { newPlan[k] = {type:'none'}; return; }
-    const ids = [];
-    day.exercises.slice(0,10).forEach(de => {
-      const nm = String(de.name||'').slice(0,60); if (!nm) return;
-      let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
-      if (!ex) {
-        if (S.exercises.length >= 500) return;
-        ex = { id: uid(), name: nm, emoji: '🏋️',
-               muscleGroup: ['brust','ruecken','beine','arme','schultern','core'].includes(de.muscleGroup) ? de.muscleGroup : '',
-               targetSets: Math.min(8, de.sets||3), targetReps: Math.min(30, de.repMax||10), targetWeight: 0,
-               targetType: 'reps', repMin: Math.min(29, de.repMin||8), repMax: Math.min(30, de.repMax||12), weightScheme: 'straight' };
-        S.exercises.push(ex);
-      }
-      ids.push(ex.id);
-    });
-    if (!ids.length) { newPlan[k] = {type:'none'}; return; }
-    const label = String(day.label || 'Training').slice(0,30);
-    let pr = byLabel[label];
-    if (!pr) { pr = { id: uid(), name: label, exIds: [], color: SPLIT_PALETTE[(colorIdx++) % SPLIT_PALETTE.length], _ai:true }; byLabel[label] = pr; }
-    ids.forEach(id => { if (!pr.exIds.includes(id)) pr.exIds.push(id); });
-    newPlan[k] = { type:'preset', id: pr.id };
-  });
-  S.workoutPresets = [...(S.workoutPresets||[]).filter(x => !x._ai), ...Object.values(byLabel)];
-  S.weekPlan = newPlan;
-  persist();
-  try { scheduleWorkoutNotifications(); } catch(_){}
-  try { renderHome(); renderExList(); } catch(_){}
-  _aicPlanPending = null;
-  _aicHist.push({ r:'a', t:'Plan übernommen! Du findest ihn im Heute-Tab und unter Training.' });
-  _aicSave(); _aicRenderLog();
-  haptic(25);
-}
-
-// ═══════════════════════════════════════════════════════
-// PREMIUM — GERÄTE-SCANNER (Kamera → KI erkennt Gerät → Übung mit GIF)
-// ═══════════════════════════════════════════════════════
-function openGymScan(){
-  if (!AI_ON) return;
-  if (!premGate('scan')) return;
-  const inp = document.getElementById('scan-file');
-  if (inp) { inp.value = ''; inp.click(); }
-}
-function _scanPicked(inp){
-  const f = inp.files && inp.files[0]; if (!f) return;
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    const scale = Math.min(1, 900 / Math.max(img.width, img.height));
-    c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const b64 = c.toDataURL('image/jpeg', 0.72).split(',')[1];
-    URL.revokeObjectURL(img.src);
-    _scanRun(b64);
-  };
-  img.src = URL.createObjectURL(f);
-}
-async function _scanRun(b64){
-  const el = document.getElementById('scan-body'); if (!el) return;
-  openOv('ov-scan');
-  el.innerHTML = `<div style="text-align:center;padding:30px 12px;color:var(--text2);font-size:14.5px">
-    <div class="aic-typing" style="justify-content:center;margin:0 auto 12px;display:flex"><span></span><span></span><span></span></div>
-    Gerät wird erkannt…</div>`;
-  try {
-    const [res] = await Promise.all([ _aiFetch('scan', { image: b64 }), _exdbEnsureSilent() ]);
-    const d = res.scan || {};
-    const rows = (d.exercises || []).slice(0,3).map(ex => {
-      const hit = _scanMatch(ex);
-      const nm = esc(ex.nameDe || ex.nameEn || '');
-      if (hit) return `<div class="exdb-row" onclick="openExDbDetail('${hit.id}')">
-          <img class="exdb-thumb" loading="lazy" src="${esc(hit.gif)}" alt="">
-          <div style="flex:1;min-width:0"><div class="exdb-n">${nm}</div>
-          <div class="exdb-m">${esc(hit.n)} · Tippen für Animation</div></div>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
-        </div>`;
-      return `<div class="exdb-row" style="cursor:default">
-          <div class="pw-feat-ico" style="width:52px;height:52px;flex-shrink:0">${ICO.sparkle({s:20})}</div>
-          <div style="flex:1;min-width:0"><div class="exdb-n">${nm}</div>
-          <div class="exdb-m">Keine Animation gefunden</div></div></div>`;
-    }).join('');
-    el.innerHTML = `
-      <div style="text-align:center;padding:2px 4px 12px">
-        <div class="pw-title" style="font-size:19px">${esc(d.device || 'Gerät erkannt')}</div>
-        ${d.tip ? `<div class="pw-sub">${esc(d.tip)}</div>` : ''}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">${rows || '<div style="text-align:center;padding:20px;color:var(--text2);font-size:14px">Kein Gerät erkannt — probier ein Foto aus mehr Abstand.</div>'}</div>
-      <button class="btn" style="width:100%;margin-top:14px;background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text)" onclick="openGymScan()">Noch ein Foto</button>`;
-  } catch(e){
-    el.innerHTML = `<div style="text-align:center;padding:26px 12px;color:var(--text2);font-size:14px;line-height:1.6">
-      Scan gerade nicht möglich:<br><b>${esc(e?.message||String(e))}</b><br><br>
-      <button class="btn btn-acc" onclick="openGymScan()">Nochmal versuchen</button></div>`;
-  }
-}
-async function _exdbEnsureSilent(){   // ExDB fürs Matching laden, ohne das ExDB-Sheet zu öffnen
-  if (_exdbData) return;
-  try {
-    const cached = localStorage.getItem('gt_exdb_v1');
-    if (cached) { _exdbData = JSON.parse(cached); return; }
-  } catch(_){}
-  try { await _exdbEnsure(); } catch(_){}
-}
-function _scanMatch(ex){
-  const terms = [ex.nameEn].concat(ex.searchTerms || []).filter(Boolean).map(t => String(t).toLowerCase());
-  let best = null, bestScore = 0;
-  for (const e of (_exdbData || [])) {
-    const n = e.n.toLowerCase();
-    for (const t of terms) {
-      let s = 0;
-      if (n === t) s = 100;
-      else if (n.includes(t)) s = 60 + t.length;
-      else if (t.includes(n)) s = 50 + n.length;
-      if (s > bestScore) { bestScore = s; best = e; }
-    }
-  }
-  return bestScore >= 52 ? best : null;
-}
-
-// ═══════════════════════════════════════════════════════
-// PREMIUM — KÖRPER-TRACKING · PRO-ANALYSE · EXPORT
-// Körperdaten NUR lokal (localStorage 'gt_bodyLog') — Fotos wären zu
-// groß fürs users-Doc (1-MB-Limit) und brauchen so keine Rules-Änderung.
-// ═══════════════════════════════════════════════════════
-let BODY = (() => { try { return JSON.parse(localStorage.getItem('gt_bodyLog')) || {measures:[],photos:[]}; } catch(_){ return {measures:[],photos:[]}; } })();
-function _bodySave(){ try { localStorage.setItem('gt_bodyLog', JSON.stringify(BODY)); } catch(_){ alert('Speicher voll — lösche alte Fortschrittsfotos.'); } }
-const _BT_FIELDS = [['chest','Brust'],['waist','Taille'],['hips','Hüfte'],['arm','Oberarm'],['thigh','Oberschenkel']];
-
-function openBodySheet(){
-  if (!premGate('body')) return;
-  _btRender();
-  openOv('ov-body');
-}
-function _btRender(){
-  const el = document.getElementById('bt-body'); if (!el) return;
-  const ms = (BODY.measures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  const last = ms[ms.length-1], first = ms[0];
-  const rows = last ? _BT_FIELDS.map(([k,lbl]) => {
-    if (last[k] == null) return '';
-    const d0 = first && first[k] != null && first !== last ? (last[k]-first[k]) : null;
-    const cls = d0 == null ? '' : d0 < 0 ? 'air-down' : d0 > 0 ? 'air-up' : 'air-flat';
-    return `<div class="air-cmp"><span>${lbl}</span><span><b>${String(last[k]).replace('.',GT_DEC)} cm</b>
-      ${d0 != null ? `<span class="${cls}" style="font-size:12.5px;margin-left:6px">${d0>0?'+':''}${d0.toFixed(1).replace('.',GT_DEC)}</span>` : ''}</span></div>`;
-  }).join('') : '';
-  el.innerHTML = `
-    ${last ? `<div class="card" style="padding:6px 14px;margin-bottom:12px">${rows}
-      <div class="pw-foot" style="text-align:left;margin:6px 0 8px">Stand ${new Date(last.date).toLocaleDateString(GT_LOCALE)} · Veränderung seit Beginn</div></div>`
-    : `<div style="text-align:center;padding:16px 10px 20px;color:var(--text2);font-size:14px;line-height:1.6">Noch keine Maße erfasst.<br>Miss dich alle 2–4 Wochen — immer zur gleichen Tageszeit.</div>`}
-    <button class="btn btn-acc" style="width:100%" onclick="openBodyEntry()">Maße eintragen</button>
-    <div class="air-sec"><div class="air-sec-t">Fortschrittsfotos</div>
-      <div class="bt-photos" id="bt-photos">
-        ${(BODY.photos||[]).slice().reverse().map((p,i)=>`<div class="bt-ph" onclick="btDelPhoto(${(BODY.photos||[]).length-1-i})"><img src="${p.b64}" alt=""><div class="bt-ph-d">${new Date(p.date).toLocaleDateString(GT_LOCALE)}</div></div>`).join('')}
-        <label class="bt-ph" style="display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2)">
-          ${ICO.camera({s:26})}<input type="file" accept="image/*" style="display:none" onchange="btAddPhoto(this)">
-        </label>
-      </div>
-      <div class="pw-foot" style="text-align:left">Foto antippen zum Löschen · Fotos bleiben nur auf diesem Gerät.</div>
-    </div>`;
-}
-function openBodyEntry(){
-  const el = document.getElementById('bt-entry-body'); if (!el) return;
-  const today = new Date().toISOString().slice(0,10);
-  const last = (BODY.measures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).pop() || {};
-  el.innerHTML = `
-    <div class="bt-mgrid">
-      ${_BT_FIELDS.map(([k,lbl]) => `<div class="bt-min"><label>${lbl} (cm)</label>
-        <input type="number" inputmode="decimal" step="0.5" id="bt-in-${k}" placeholder="${last[k]!=null?String(last[k]).replace('.',GT_DEC):'–'}"></div>`).join('')}
-      <div class="bt-min"><label>Körpergewicht (kg)</label>
-        <input type="number" inputmode="decimal" step="0.1" id="bt-in-weight" placeholder="optional"></div>
-    </div>
-    <button class="btn btn-acc" style="width:100%;margin-top:16px" onclick="btSaveEntry('${today}')">Speichern</button>`;
-  openOv('ov-body-entry');
-}
-function btSaveEntry(date){
-  const entry = { date };
-  let has = false;
-  _BT_FIELDS.forEach(([k]) => {
-    const v = parseFloat(String(document.getElementById('bt-in-'+k)?.value||'').replace(',','.'));
-    if (!isNaN(v) && v > 0 && v < 400) { entry[k] = Math.round(v*10)/10; has = true; }
-  });
-  const w = parseFloat(String(document.getElementById('bt-in-weight')?.value||'').replace(',','.'));
-  if (!isNaN(w) && w > 20 && w < 400) {   // ins bestehende Gewichts-Log (synct in die Cloud)
-    S.weightLog = S.weightLog || [];
-    const i = S.weightLog.findIndex(e => e.date === date);
-    if (i >= 0) S.weightLog[i].weight = w; else S.weightLog.push({ date, weight: w });
-    persist();
-    try { renderHome(); } catch(_){}
-    has = true;
-  }
-  if (!has) { alert('Trag mindestens einen Wert ein.'); return; }
-  BODY.measures = (BODY.measures||[]).filter(m => m.date !== date);
-  if (Object.keys(entry).length > 1) BODY.measures.push(entry);
-  _bodySave();
-  haptic(15);
-  closeOv('ov-body-entry');
-  _btRender();
-}
-function btAddPhoto(inp){
-  const f = inp.files && inp.files[0]; if (!f) return;
-  if ((BODY.photos||[]).length >= 30) { alert('Maximal 30 Fotos — lösch zuerst alte.'); return; }
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    const scale = Math.min(1, 720 / Math.max(img.width, img.height));
-    c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    let q = 0.8, b64 = c.toDataURL('image/jpeg', q);
-    while (b64.length > 250000 && q > 0.3) { q -= 0.1; b64 = c.toDataURL('image/jpeg', q); }
-    BODY.photos = BODY.photos || [];
-    BODY.photos.push({ date: new Date().toISOString().slice(0,10), b64 });
-    _bodySave(); _btRender();
-    URL.revokeObjectURL(img.src);
-  };
-  img.src = URL.createObjectURL(f);
-}
-function btDelPhoto(idx){
-  if (!confirm('Foto löschen?')) return;
-  BODY.photos.splice(idx, 1);
-  _bodySave(); _btRender();
-}
-
-// ── Pro-Analyse ──────────────────────────────────────
-function _e1rm(w, r){ return r > 0 ? w * (1 + r/30) : w; }
-function openProStats(){
-  if (!premGate('stats')) return;
-  const el = document.getElementById('ps-body'); if (!el) return;
-  // 4-Wochen-Muskelvolumen
-  const mg = {};
-  let push = 0, pull = 0;
-  const cutoff = Date.now() - 28*864e5;
-  const byDay = {};   // 'YYYY-MM-DD' → Volumen (für Heatmap)
-  const exBest = {};  // name → [{ts, e1rm}]
-  (S.sessions||[]).forEach(s => {
-    const ts = new Date(s.date).getTime();
-    (s.logs||[]).forEach(l => {
-      const ex = exById(l.exerciseId); if (!ex) return;
-      (l.sets||[]).forEach(st => {
-        if (st.type === 'warmup') return;
-        const v = (st.reps||0)*(st.weight||0);
-        const dk = new Date(s.date).toISOString().slice(0,10);
-        byDay[dk] = (byDay[dk]||0) + v;
-        if (ts >= cutoff) {
-          if (ex.muscleGroup) mg[ex.muscleGroup] = (mg[ex.muscleGroup]||0) + v;
-          if (['brust','schultern'].includes(ex.muscleGroup)) push += v;
-          if (ex.muscleGroup === 'ruecken') pull += v;
-        }
-        if ((st.weight||0) > 0) {
-          (exBest[ex.name] = exBest[ex.name]||[]).push({ ts, e: _e1rm(st.weight, st.reps||1) });
-        }
-      });
-    });
-  });
-  const totalMg = Object.values(mg).reduce((a,b)=>a+b,0) || 1;
-  const balRows = MUSCLE_GROUPS.map(g => {
-    const v = mg[g.id]||0, pct = Math.round(v/totalMg*100);
-    return `<div class="ps-bal-row"><div class="ps-bal-name">${g.label}</div>
-      <div class="ps-bal-bar"><div class="ps-bal-fill" style="width:${Math.max(2,pct)}%"></div></div>
-      <div class="ps-bal-v">${pct} %</div></div>`;
-  }).join('');
-  const ratio = pull > 0 ? (push/pull) : null;
-  const ratioTxt = ratio == null ? 'Noch zu wenig Daten'
-    : ratio > 1.35 ? `Push-lastig (${ratio.toFixed(1)} : 1) — mehr Rücken einplanen`
-    : ratio < 0.7 ? `Pull-lastig (1 : ${(1/ratio).toFixed(1)}) — Brust/Schulter ausbauen`
-    : `Ausgeglichen (${ratio.toFixed(1)} : 1)`;
-  // Heatmap: 12 Wochen × Mo–So
-  const mon = new Date(); mon.setHours(0,0,0,0); mon.setDate(mon.getDate() - ((mon.getDay()+6)%7) - 77);
-  let maxV = 0; const cells = [];
-  for (let i = 0; i < 84; i++) {
-    const d = new Date(mon); d.setDate(d.getDate()+i);
-    const v = byDay[d.toISOString().slice(0,10)]||0;
-    maxV = Math.max(maxV, v); cells.push(v);
-  }
-  const hm = cells.map(v => {
-    const op = maxV > 0 ? (v/maxV) : 0;
-    return `<div class="ps-hm-cell" style="${v>0?`background:rgba(var(--acc-rgb),${(0.18+op*0.82).toFixed(2)})`:''}"></div>`;
-  });
-  const hmRows = [];   // spaltenweise Wochen → zeilenweise ausgeben (7 Spalten = Tage)
-  for (let w = 0; w < 12; w++) hmRows.push(cells.slice(w*7,(w+1)*7).map((_,d)=>hm[w*7+d]).join(''));
-  // 1RM-Trends: Top-6 nach Volumen
-  const trends = Object.entries(exBest)
-    .map(([n, arr]) => {
-      const best = Math.max(...arr.map(x=>x.e));
-      const old = arr.filter(x => x.ts < cutoff);
-      const oldBest = old.length ? Math.max(...old.map(x=>x.e)) : null;
-      return { n, best, diff: oldBest != null ? best-oldBest : null, count: arr.length };
-    })
-    .sort((a,b)=>b.count-a.count).slice(0,6);
-  el.innerHTML = `
-    <div class="air-sec" style="margin-top:2px"><div class="air-sec-t">Muskel-Balance · 4 Wochen</div>${balRows}
-      <div class="air-item" style="padding-top:10px"><div class="air-dot"></div><div><b>Push/Pull:</b> ${ratioTxt}</div></div></div>
-    <div class="air-sec"><div class="air-sec-t">Aktivität · 12 Wochen</div>
-      <div class="ps-hm">${['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="ps-hm-lbl">${d}</div>`).join('')}${hmRows.join('')}</div></div>
-    <div class="air-sec"><div class="air-sec-t">1RM-Entwicklung (Epley)</div>
-      ${trends.length ? trends.map(t => `<div class="air-cmp"><span>${esc(t.n)}</span>
-        <span><b>${Math.round(t.best)} kg</b>${t.diff != null ? ` <span class="${t.diff>0?'air-up':t.diff<0?'air-down':'air-flat'}" style="font-size:12.5px;margin-left:6px">${t.diff>0?'▲':t.diff<0?'▼':'—'} ${Math.abs(Math.round(t.diff))} kg</span>` : ''}</span></div>`).join('')
-      : '<div style="color:var(--text2);font-size:13.5px;padding:6px 2px">Noch keine Gewichts-Sätze geloggt.</div>'}</div>`;
-  openOv('ov-prostats');
-}
-
-// ── Export (CSV + PDF) ───────────────────────────────
-function openExportSheet(){
-  if (!premGate('export')) return;
-  const el = document.getElementById('export-body'); if (!el) return;
-  el.innerHTML = `
-    <div class="pw-feats">
-      <div class="pw-feat" onclick="exportCsv()" style="cursor:pointer"><div class="pw-feat-ico">${ICO.exportF({s:19})}</div>
-        <div><div class="pw-feat-t">CSV — alle Sätze</div><div class="pw-feat-s">Für Excel/Numbers: jede Übung, jeder Satz, jedes Gewicht</div></div></div>
-      <div class="pw-feat" onclick="exportPdf()" style="cursor:pointer"><div class="pw-feat-ico">${ICO.report({s:19})}</div>
-        <div><div class="pw-feat-t">PDF-Bericht</div><div class="pw-feat-s">Übersicht mit Statistiken und Bestwerten zum Teilen</div></div></div>
-    </div>`;
-  openOv('ov-export');
-}
-async function _exportShare(blob, filename){
-  try {
-    const file = new File([blob], filename, { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files:[file] })) {
-      await navigator.share({ files:[file] }); return;
-    }
-  } catch(e){ if (e && e.name === 'AbortError') return; }
-  try {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = filename;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-  } catch(_){ alert('Export fehlgeschlagen.'); }
-}
-function exportCsv(){
-  const rows = [['Datum','Uebung','Muskelgruppe','Satz','Wdh','Gewicht_kg','Dauer_min']];
-  (S.sessions||[]).forEach(s => {
-    const dur = Math.round((s.duration||0)/60);
-    (s.logs||[]).forEach(l => {
-      const ex = exById(l.exerciseId); if (!ex) return;
-      (l.sets||[]).forEach((st,i) => rows.push([
-        String(s.date).slice(0,10), ex.name.replace(/[;\n]/g,' '), ex.muscleGroup||'',
-        i+1, st.reps||0, String(st.weight||0).replace('.',','), dur ]));
-    });
-  });
-  const csv = '﻿' + rows.map(r => r.join(';')).join('\n');
-  _exportShare(new Blob([csv], { type:'text/csv' }), 'MyGymTrack-Export.csv');
-}
-async function exportPdf(){
-  if (!window.jspdf) {
-    try {
-      await new Promise((ok, err) => {
-        const sc = document.createElement('script');
-        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        sc.onload = ok; sc.onerror = err; document.head.appendChild(sc);
-      });
-    } catch(_){ alert('PDF-Modul konnte nicht geladen werden (offline?). CSV geht immer.'); return; }
-  }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const w = [0,1,2,3].map(_aiWeekAgg);
-  const tot = (S.sessions||[]).length;
-  let y = 20;
-  doc.setFontSize(20); doc.text('MyGymTrack — Trainingsbericht', 14, y); y += 9;
-  doc.setFontSize(10); doc.setTextColor(120);
-  doc.text('Erstellt am ' + new Date().toLocaleDateString('de-DE') + (S.userName ? ' · ' + S.userName : ''), 14, y); y += 12;
-  doc.setTextColor(0); doc.setFontSize(13); doc.text('Überblick', 14, y); y += 7;
-  doc.setFontSize(10);
-  doc.text(`Trainings gesamt: ${tot}`, 14, y); y += 6;
-  doc.text(`Diese Woche: ${w[0].sessions} Trainings · ${(w[0].volumeKg/1000).toFixed(1)} t · ${w[0].durMin} min`, 14, y); y += 6;
-  doc.text(`Letzte Woche: ${w[1].sessions} Trainings · ${(w[1].volumeKg/1000).toFixed(1)} t · ${w[1].durMin} min`, 14, y); y += 12;
-  doc.setFontSize(13); doc.text('Top-Übungen (4 Wochen, Volumen)', 14, y); y += 7;
-  doc.setFontSize(10);
-  const agg = {};
-  w.forEach(x => x.topExercises.forEach(t => agg[t.n] = (agg[t.n]||0) + t.vol));
-  Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(([n,v]) => {
-    doc.text(`${n}: ${Math.round(v/100)/10} t`, 14, y); y += 6;
-    if (y > 275) { doc.addPage(); y = 20; }
-  });
-  y += 6; doc.setFontSize(13); doc.text('Muskelverteilung diese Woche', 14, y); y += 7;
-  doc.setFontSize(10);
-  Object.entries(w[0].muscles||{}).forEach(([m,v]) => {
-    doc.text(`${muscleLabel(m)||m}: ${Math.round(v)} kg`, 14, y); y += 6;
-    if (y > 275) { doc.addPage(); y = 20; }
-  });
-  _exportShare(doc.output('blob'), 'MyGymTrack-Bericht.pdf');
-}
-
-// ── Premium: englische Übersetzungen (Display-Layer) ──
-Object.assign(I18N_EN, {
-  'MyGymTrack Premium':'MyGymTrack Premium', 'Premium':'Premium', 'Aktiv':'Active',
-  'KI-Coach, Wochenbericht, Übungsdatenbank & mehr':'AI coach, weekly report, exercise database & more',
-  'App-Icon':'App icon', 'Alternative Icons für deinen Homescreen':'Alternative icons for your home screen',
-  'Abo verwalten':'Manage subscription', 'Kündigen oder Tarif wechseln (Apple)':'Cancel or switch plan (Apple)',
-  'Käufe wiederherstellen':'Restore purchases', 'Abo auf diesem Gerät aktivieren':'Activate your subscription on this device',
-  'Alles aus deinem Training holen':'Get everything out of your training',
-  'KI-Coach, tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.':'AI coach, deep analytics and 1300+ exercises — for less than a protein bar a month.',
-  'Premium freischalten':'Unlock Premium', 'Jährlich':'Yearly', 'Monatlich':'Monthly',
-  'Mehr aus deinem Training holen':'Get more out of your training',
-  'Tiefe Analysen und 1300+ Übungen — für weniger als ein Proteinriegel im Monat.':'Deep analytics and 1300+ exercises — for less than a protein bar a month.',
-  'Hol dir MyGymTrack Premium':'Get MyGymTrack Premium',
-  'Übungsdatenbank, Pro-Analyse, Körper-Tracking & mehr':'Exercise database, pro analytics, body tracking & more',
-  'Übungsdatenbank, Pro-Analyse, Körper-Tracking & Export':'Exercise database, pro analytics, body tracking & export',
-  'Pro-Analyse, 1300+ Übungen, Körper-Tracking & mehr':'Pro analytics, 1300+ exercises, body tracking & more',
-  'pro Jahr · 1,67 €/Monat':'per year · €1.67/month', 'pro Monat':'per month', 'Spare 44 %':'Save 44%',
-  'Datenschutz':'Privacy', 'Nutzungsbedingungen':'Terms of Use',
-  'KI-Coach':'AI Coach', 'KI-Wochenbericht':'AI Weekly Report', 'Übungsdatenbank':'Exercise Database',
-  'Pro-Analyse':'Pro Analytics', 'Körper-Tracking':'Body Tracking', 'Export':'Export', 'Designs':'Themes',
-  'Kennt dein komplettes Training — Fragen, Alternativen, Pläne':'Knows your entire training — questions, alternatives, plans',
-  'Detaillierte Analyse & Vergleich deiner Trainingswochen':'Detailed analysis & comparison of your training weeks',
-  '1300+ Übungen mit Animation, Technik & Muskel-Filter':'1300+ exercises with animation, technique & muscle filter',
-  'Muskel-Balance, Volumen-Heatmap & 1RM-Trends':'Muscle balance, volume heatmap & 1RM trends',
-  'Maße & Fortschrittsfotos mit Verlauf':'Measurements & progress photos with history',
-  'Trainingsdaten als PDF-Bericht oder CSV':'Training data as PDF report or CSV',
-  'Premium-Themes & alternative App-Icons':'Premium themes & alternative app icons',
-  'Exklusive Designs':'Exclusive designs',
-  'Wochenbericht':'Weekly report', 'KI-Analyse deiner Trainingswoche':'AI analysis of your training week',
-  'Fragen, Alternativen, Pläne':'Questions, alternatives, plans', '1300+ Übungen mit Animation':'1300+ exercises with animation',
-  'Balance, Heatmap, 1RM-Trends':'Balance, heatmap, 1RM trends', 'Maße & Fortschrittsfotos':'Measurements & progress photos',
-  'PDF-Bericht & CSV':'PDF report & CSV', 'Alternative Icons':'Alternative icons', 'Premium-Themes':'Premium themes',
-  'Vergleich zur Vorwoche':'Compared to last week', 'Highlights':'Highlights', 'Analyse':'Analysis',
-  'Achtung':'Watch out', 'Nächste Woche':'Next week', 'Neu erstellen':'Regenerate',
-  'Bericht erstellen':'Create report', 'Trainings':'Workouts', 'Volumen':'Volume', 'Sätze':'Sets', 'Trainingszeit':'Training time',
-  'Deine Woche wird analysiert…':'Analyzing your week…', 'Nochmal versuchen':'Try again',
-  'Frag deinen Coach…':'Ask your coach…', 'Chat leeren':'Clear chat', 'Trainingsplan übernehmen':'Apply training plan',
-  'Bewerte meine letzte Woche':'Rate my last week', 'Alternative zu einer Übung finden':'Find an exercise alternative',
-  'Erstell mir einen neuen Trainingsplan':'Build me a new training plan', 'Wo bin ich unausgeglichen?':'Where am I unbalanced?',
-  '1300+ Übungen durchsuchen…':'Search 1300+ exercises…', 'Alle':'All', 'Nichts gefunden':'Nothing found',
-  'Zu meinen Übungen hinzufügen':'Add to my exercises', 'Quelle: offene Übungsdatenbank (englisch)':'Source: open exercise database',
-  'Maße eintragen':'Log measurements', 'Fortschrittsfotos':'Progress photos', 'Speichern':'Save',
-  'Brust':'Chest', 'Taille':'Waist', 'Hüfte':'Hips', 'Oberarm':'Upper arm', 'Oberschenkel':'Thigh',
-  'Körpergewicht (kg)':'Body weight (kg)',
-  'Foto antippen zum Löschen · Fotos bleiben nur auf diesem Gerät.':'Tap a photo to delete · photos stay on this device only.',
-  'CSV — alle Sätze':'CSV — all sets', 'PDF-Bericht':'PDF report',
-  'Für Excel/Numbers: jede Übung, jeder Satz, jedes Gewicht':'For Excel/Numbers: every exercise, set and weight',
-  'Übersicht mit Statistiken und Bestwerten zum Teilen':'Overview with stats and records to share',
-  'Gold':'Gold', 'Mitternacht':'Midnight', 'Smaragd':'Emerald', 'Klassisch':'Classic', 'Weiß':'White',
-  'Geräte-Scanner':'Machine Scanner', 'Gerät fotografieren — Übung mit Animation erklärt':'Snap a machine — exercise explained with animation',
-  'Gerät scannen':'Scan machine', 'Gerät wird erkannt…':'Identifying machine…', 'Gerät erkannt':'Machine identified',
-  'Noch ein Foto':'Another photo', 'Keine Animation gefunden':'No animation found',
-  'Kein Gerät erkannt — probier ein Foto aus mehr Abstand.':'No machine detected — try a photo from further away.',
-  'Tippen für Animation':'Tap for animation', 'Dein KI-Coach wartet':'Your AI coach is waiting',
-  'Mehr rausholen — für weniger als einen Proteinriegel im Monat.':'Get more out of it — for less than a protein bar a month.',
-  'Hol dir deinen KI-Coach':'Get your AI coach',
-  'MyGymTrack Premium — kündbar jederzeit.':'MyGymTrack Premium — cancel anytime.',
-  'Ohne Premium weiter':'Continue without Premium',
-  'Abo verlängert sich automatisch, kündbar jederzeit in den App-Store-Einstellungen.':'Subscription renews automatically, cancel anytime in App Store settings.',
-  'Datenbank':'Database',
-});
-I18N_RX.push(
-  [/Jahresabo · verlängert sich am /g, 'Yearly · renews on '],
-  [/Monatsabo · verlängert sich am /g, 'Monthly · renews on '],
-  [/(\d+) weitere — Suche verfeinern/g, '$1 more — refine your search'],
-  [/(\d+) Trainings · /g, '$1 workouts · '],
-);
 
 // ═══════════════════════════════════════════════════════
 // COMMUNITY — FREUNDE · RANGLISTE · GYM-KARTE
@@ -20963,7 +19504,7 @@ function _purgeDemoData(obj){
 }
 
 // ── INIT ──────────────────────────────────────────────
-setTheme(S.theme, true);   // silent: Premium-Theme ohne Abo fällt still auf Hell zurück
+setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
 try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
@@ -20977,7 +19518,6 @@ initTabDrag();
 initPageSwipe();
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 maybeStartOnboarding();   // Ersteinrichtung für neue Nutzer
-premInit();               // Premium: Abo-Status, Widget-Migration, UI-Locks
 try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
 if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
 // QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
@@ -21730,13 +20270,6 @@ function _hideAuthGate(){
   if (!el || !el.classList.contains('on')) return;
   el.style.transition = 'opacity .32s'; el.style.opacity = '0';
   setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
-  // Direkt nach der ersten Anmeldung einmalig die Paywall zeigen (kompakt, wegklickbar)
-  setTimeout(()=>{ try {
-    if (!localStorage.getItem('gt_pwPostLogin') && !isPremium()) {
-      localStorage.setItem('gt_pwPostLogin', '1');
-      openPaywall('postlogin');
-    }
-  } catch(_){} }, 650);
 }
 
 // ── ANALYTICS / NUTZUNGS-TRACKER ──────────────────────
