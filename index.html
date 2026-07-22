@@ -5863,7 +5863,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607220001';
+const APP_VERSION = 'gymtrack-v202607220002';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19487,12 +19487,18 @@ try {
     history.replaceState(null, '', location.pathname);
   }
 } catch(_){}
-// Plan/Split-Import-Link (?import=…): geteilter https-Link öffnet die Web-App →
-// Import-Vorschau zeigen (mit „In der App öffnen"-Button, falls im Browser).
+// Plan/Split-Import-Link (?import=…): der https-Link ist nur der klickbare TRÄGER.
+// NATIVE APP ZUERST: Im Browser sofort per Deep-Link in die installierte App
+// springen (iOS fragt „In ‚MyGymTrack' öffnen?" → App zeigt die Import-Vorschau
+// über appUrlOpen). Die Web-Vorschau dahinter ist nur Fallback für Empfänger
+// ohne App (inkl. „In der MyGymTrack-App öffnen"-Button).
 try {
   const _impD = new URLSearchParams(location.search).get('import');
   if (_impD) {
     history.replaceState(null, '', location.pathname);
+    if (!window.Capacitor?.isNativePlatform?.()) {
+      setTimeout(() => { try { location.href = 'gymtrack://import?d=' + _impD; } catch(_){} }, 80);
+    }
     setTimeout(() => { try { _handlePlanImportUrl('?import=' + _impD); } catch(_){} }, 700);
   }
 } catch(_){}
