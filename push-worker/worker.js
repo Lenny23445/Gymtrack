@@ -12,7 +12,8 @@
 
 const FIREBASE_PROJECT = "gymtrack-25d39";
 const BUNDLE_ID        = "com.wolter.gymtrack";
-const APNS_HOST        = "https://api.push.apple.com"; // Production (TestFlight + App Store)
+const APNS_HOST         = "https://api.push.apple.com";         // Production (TestFlight + App Store)
+const APNS_HOST_SANDBOX = "https://api.sandbox.push.apple.com"; // Xcode-Debug-Builds
 
 export default {
   async fetch(request, env) {
@@ -53,7 +54,7 @@ export default {
         badge: 1,
       },
     });
-    const apnsRes = await fetch(`${APNS_HOST}/3/device/${token}`, {
+    const send = (host) => fetch(`${host}/3/device/${token}`, {
       method: "POST",
       headers: {
         authorization: `bearer ${jwt}`,
@@ -63,8 +64,17 @@ export default {
       },
       body: payload,
     });
+    let apnsRes = await send(APNS_HOST);
     if (!apnsRes.ok) {
-      const detail = await apnsRes.text();
+      let detail = await apnsRes.text();
+      // Xcode-Debug-Builds registrieren SANDBOX-Device-Tokens; ein Sandbox-only-Key
+      // wirft auf Production BadEnvironmentKeyInToken. In beiden Faellen: Sandbox probieren.
+      if (/BadDeviceToken|BadEnvironmentKeyInToken/.test(detail)) {
+        console.log("[PUSH] Production lehnt ab (", detail.trim(), ") -> versuche Sandbox");
+        apnsRes = await send(APNS_HOST_SANDBOX);
+        if (apnsRes.ok) { console.log("[PUSH] OK via SANDBOX"); return json({ ok: true, env: "sandbox" }, 200, cors); }
+        detail = await apnsRes.text();
+      }
       console.log("[PUSH] APNs LEHNT AB: status=", apnsRes.status, "detail=", detail);
       return json({ error: "apns failed", status: apnsRes.status, detail }, 502, cors);
     }
