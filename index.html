@@ -5863,7 +5863,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607220002';
+const APP_VERSION = 'gymtrack-v202607221201';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17129,10 +17129,14 @@ async function _pushSelfTest(){
   }
   try { await _pushSocialProfile(); } catch(_){}   // Token sicher ins Profil schreiben
   await new Promise(r => setTimeout(r, 400));
+  let idToken;
+  try { idToken = await _fbUser.getIdToken(); }
+  catch(e) { alert('❌ Firebase-Login-Token fehlgeschlagen: ' + (e && e.message || e)); return; }
   try {
-    const idToken = await _fbUser.getIdToken();
+    // Bewusst OHNE Content-Type-Header: einfacher CORS-Request, kein Preflight
+    // (WKWebView meldete "Load failed" trotz erreichbarem Worker).
     const res = await fetch(PUSH_WORKER_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
       body: JSON.stringify({ toUid: _fbUser.uid, idToken, fromName: 'Test' })
     });
     const j = await res.json().catch(() => ({}));
