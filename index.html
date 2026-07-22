@@ -5109,10 +5109,6 @@ html[data-glass][data-theme="dark"] .tabbar{
       <div class="plshare-sub" id="plshare-sub"></div>
       <div class="plshare-qr" id="plshare-qr"></div>
       <div class="plshare-hint" id="plshare-hint">Freund scannt den Code mit der Kamera – der Plan öffnet direkt in GymTrack.</div>
-      <div class="plshare-btns">
-        <button class="btn btn-acc" onclick="_plShareShare()">Link teilen</button>
-        <button class="btn btn-gray" onclick="_plShareCopy()">Link kopieren</button>
-      </div>
     </div>
   </div>
 </div>
@@ -6024,8 +6020,8 @@ const I18N_EN = {
   'Importieren':'Import','Trainingstage':'training days','Trainingsplan in MyGymTrack importieren':'Import training plan into MyGymTrack',
   'Freund scannt den Code mit der Kamera – der Plan öffnet direkt in GymTrack.':'A friend scans the code with their camera – the plan opens straight in GymTrack.',
   'Link teilen':'Share link','Link kopieren':'Copy link','Link kopiert':'Link copied','Kopieren nicht möglich':'Could not copy',
-  'QR offline nicht verfügbar – nutze „Link teilen".':'QR unavailable offline – use “Share link”.',
-  'Plan zu groß für QR – nutze „Link teilen".':'Plan too large for QR – use “Share link”.',
+  'QR offline nicht verfügbar – bitte mit Internet erneut öffnen.':'QR unavailable offline – reopen with internet.',
+  'Plan zu groß für einen QR-Code – teile einzelne Splits.':'Plan too large for a QR code – share single splits.',
   'In der MyGymTrack-App öffnen':'Open in the MyGymTrack app',
   'Dein Wochenplan ist noch leer.':'Your weekly plan is still empty.','Split zuerst speichern, dann teilen.':'Save the split first, then share.',
   'Dieser Split hat noch keine Übungen.':'This split has no exercises yet.','Ungültiger Plan-Link':'Invalid plan link',
@@ -16641,12 +16637,11 @@ function _b64url(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\
 function _unb64url(s){ s = String(s||'').replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s += '='; return decodeURIComponent(escape(atob(s))); }
 function _encodeShare(obj){ return _b64url(JSON.stringify(obj)); }
 function _decodeShare(b64){ try { return JSON.parse(_unb64url(b64)); } catch(_){ return null; } }
-/* Geteilter Link ist ein ECHTER https-Link (in WhatsApp & Co. klickbar — das
-   nackte gymtrack://-Schema wurde dort nicht verlinkt und „funktionierte nicht").
-   Er öffnet die Web-App, die die Import-Vorschau zeigt und per Button/Deep-Link
-   in die native App weiterreicht (gymtrack://import?d=…). */
-const PLAN_SHARE_BASE = 'https://lenny23445.github.io/Gymtrack/';
-function _shareLink(obj){ return PLAN_SHARE_BASE + '?import=' + _encodeShare(obj); }
+/* Teilen läuft NUR über den QR-Code (Lennys Vorgabe 2026-07-22): Der QR trägt
+   den direkten App-Deep-Link gymtrack://import?d=… — Kamera scannt, App öffnet
+   sofort die Import-Vorschau. KEIN Web-/GitHub-Umweg, keine Link-Buttons.
+   (Die ?import=-Handler bleiben drin, falls später Universal Links kommen.) */
+function _shareLink(obj){ return 'gymtrack://import?d=' + _encodeShare(obj); }
 
 let _planShareLinkCur = '';
 function openPlanShareWeek(){
@@ -16675,10 +16670,10 @@ function _openPlanShare(obj, title, sub){
 async function _plShareRenderQR(link){
   const host = document.getElementById('plshare-qr'); if (!host) return;
   host.innerHTML = '<div class="plshare-noqr">…</div>';
-  try { await _loadQRLib(); } catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('QR offline nicht verfügbar – nutze „Link teilen".') + '</div>'; return; }
+  try { await _loadQRLib(); } catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('QR offline nicht verfügbar – bitte mit Internet erneut öffnen.') + '</div>'; return; }
   host.innerHTML = '';
   try { new QRCode(host, { text: link, width: 232, height: 232, colorDark: '#0b0d12', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L }); }
-  catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('Plan zu groß für QR – nutze „Link teilen".') + '</div>'; }
+  catch(_){ host.innerHTML = '<div class="plshare-noqr">' + tr('Plan zu groß für einen QR-Code – teile einzelne Splits.') + '</div>'; }
 }
 function _plShareShare(){
   const l = _planShareLinkCur; if (!l) return; haptic(8);
