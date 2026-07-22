@@ -3689,6 +3689,25 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .ob-done-ring{width:92px;height:92px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;animation:welcome-pop .6s var(--spring);color:var(--acc)}
 .ob-done-ring svg{width:46px;height:46px}
 
+/* ── AUTH-GATE (Login-Pflicht nach Onboarding) ───────── */
+#auth-gate{position:fixed;inset:0;z-index:1390;background:var(--bg);display:none;flex-direction:column}
+#auth-gate.on{display:flex}
+.ag-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(var(--sat) + 7vh) 26px 12px;animation:ob-in .38s var(--ease) both}
+.ag-benefits{display:flex;flex-direction:column;gap:14px;margin-top:30px;width:100%;max-width:320px;text-align:left}
+.ag-ben{display:flex;align-items:center;gap:13px}
+.ag-ben-ico{width:40px;height:40px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--acc)}
+.ag-ben-ico svg{width:20px;height:20px}
+.ag-ben-title{font-size:14.5px;font-weight:700;color:var(--text)}
+.ag-ben-sub{font-size:12.5px;color:var(--text2);line-height:1.4;margin-top:1px}
+.ag-foot{padding:10px 26px calc(var(--sab) + 18px);display:flex;flex-direction:column;gap:10px;align-items:center}
+.ag-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:340px;border-radius:24px;padding:14px 20px;font-size:16.5px;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:-.2px;transition:transform .15s}
+.ag-btn:active{transform:scale(.97)}
+.ag-btn svg{flex-shrink:0}
+.ag-apple{background:var(--text);color:var(--bg);border:none}
+.ag-google{background:#fff;color:#1f1f1f;border:1.5px solid var(--gl-bdr)}
+.ag-legal{font-size:11.5px;color:var(--text2);line-height:1.5;text-align:center;max-width:300px;margin-top:2px}
+.ag-legal a{color:var(--text2)}
+
 /* ── COMMUNITY (Freunde · Rangliste · Karte) ─────────── */
 #ov-social .sheet{height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column}
 #soc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))}
@@ -5784,6 +5803,7 @@ html[data-glass][data-theme="dark"] .tabbar{
 
 <!-- ═══ ONBOARDING: ERSTEINRICHTUNG (JS-gerendert) ═══ -->
 <div id="ob-screen"></div>
+<div id="auth-gate"></div>
 
 <!-- ═══ COMMUNITY-SHEETS: FREUND HINZUFÜGEN · PROFIL · PRIVATSPHÄRE ═══ -->
 <div class="ov" id="ov-fradd" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fradd')">
@@ -5863,12 +5883,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607221201';
+const APP_VERSION = 'gymtrack-v202607221430';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = true;
+const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -6179,6 +6199,19 @@ const I18N_EN = {
   'Alles bereit':'All set',
   'Dein Wochenplan ist eingerichtet — du findest ihn im Heute-Tab. Zeit für dein erstes Training.':'Your weekly plan is set up — you’ll find it in the Today tab. Time for your first workout.',
   'Leg direkt los: Erstelle Übungen oder starte dein erstes Training im Heute-Tab.':'Get started right away: create exercises or start your first workout in the Today tab.',
+  'Melde dich an':'Sign in',
+  'Ein Konto braucht’s, damit deine Trainings sicher sind und du mit Freunden trainieren kannst.':'You need an account so your workouts stay safe and you can train with friends.',
+  'Automatisches Cloud-Backup':'Automatic cloud backup',
+  'Nie wieder Daten verlieren — auch beim Handywechsel.':'Never lose data again — even when switching phones.',
+  'Freunde & Rangliste':'Friends & leaderboard',
+  'Vergleiche dich und bleib gemeinsam dran.':'Compare yourself and stay on track together.',
+  'Community & Flammen':'Community & flames',
+  'Teile Erfolge und sammle deine Wochen-Streak.':'Share achievements and build your weekly streak.',
+  'Mit Apple fortfahren':'Continue with Apple',
+  'Mit Google fortfahren':'Continue with Google',
+  'Mit der Anmeldung akzeptierst du unsere':'By signing in you accept our',
+  'Datenschutzerklärung':'privacy policy',
+  '. Wir posten nichts ohne dich.':'. We never post without you.',
   'Benachrichtigungen':'Notifications','Trainings-Erinnerungen':'Workout reminders',
   'Erinnert dich an geplante Trainings':'Reminds you of planned workouts','Uhrzeit der Erinnerung':'Reminder time',
   'Täglich zu dieser Zeit':'Daily at this time','Pausenintelligenz':'Smart rest',
@@ -16849,6 +16882,7 @@ function _obClose(){
   }
   _ob = null;
   renderHome(); renderExList();
+  _maybeAuthGate();   // Login-Pflicht: direkt nach dem Onboarding (auch bei „Überspringen")
 }
 function obFinish(){
   haptic(15);
@@ -16957,8 +16991,7 @@ function renderOb(){
   const canNext = !(s===2 && !_ob.goal) && !(s===3 && !_ob.exp) && !(s===4 && !_ob.freq);
   const primary = s===0 ? 'Los geht’s' : s===5 ? 'Plan übernehmen' : s===6 ? 'Los geht’s' : 'Weiter';
   const foot = s === 6
-    ? `<button class="btn btn-acc" onclick="obFinish()">${primary}</button>
-       <button class="ob-ghost" onclick="obFinishCloud()">Daten in der Cloud sichern</button>`
+    ? `<button class="btn btn-acc" onclick="obFinish()">${primary}</button>`
     : `<button class="btn btn-acc" onclick="obNext()" ${canNext?'':'disabled style="opacity:.45"'}>${primary}</button>
        ${s===0 ? '<button class="ob-ghost" onclick="skipOnboarding()">Ohne Einrichtung starten — alles selbst anlegen</button>' : ''}
        ${s===5 ? '<button class="ob-ghost" onclick="obSkipPlan()">Ohne Plan starten</button>' : ''}`;
@@ -20070,6 +20103,7 @@ async function _onLogin(user) {
   _authSettled = true;
   if (_onLoginUid === user.uid) {
     _fbUser = user; updateAccountUI(); _refreshFriendsIfVisible();
+    if (!user.isAnonymous) _hideAuthGate(); else _maybeAuthGate();
     // Re-Auth zur Konto-Löschung abgeschlossen → jetzt löschen
     if (_pendingDelete && !user.isAnonymous) { _pendingDelete = false; _runAccountDeletion(); }
     return;
@@ -20077,6 +20111,7 @@ async function _onLogin(user) {
   _onLoginUid = user.uid;
   console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid, user.isAnonymous ? '(anonym)' : '');
   _fbUser = user;
+  if (!user.isAnonymous) _hideAuthGate(); else _maybeAuthGate();
   updateAccountUI();
   _refreshFriendsIfVisible();   // falls User auf dem Freunde-Tab wartet, sofort echten Inhalt zeigen
   if (!window.FB || !window.FB.configured) return;
@@ -20176,6 +20211,56 @@ function _onLogout() {
   _initialMergeDone = false;
   updateAccountUI();
   _refreshFriendsIfVisible();
+  _maybeAuthGate();
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH-GATE — Login-Pflicht (Apple/Google), nicht umgehbar.
+// Erscheint direkt nach dem Onboarding und bei jedem Start
+// ohne echtes Konto (anonyme Auth zählt NICHT als Login).
+// ═══════════════════════════════════════════════════════
+function _authGateNeeded(){
+  if (!window.FB || !window.FB.configured) return false;  // ohne Firebase kein Login möglich → nicht aussperren
+  if (!_authSettled) return false;                        // Auth-Restore abwarten (kein Flackern für eingeloggte User)
+  return !_fbUser || _fbUser.isAnonymous;
+}
+function _maybeAuthGate(){
+  if (_ob) return;                                  // Onboarding läuft — Gate kommt direkt danach (_obClose)
+  if (!S.onboarded && !S.welcomeShown) return;      // Onboarding startet gleich — Gate danach
+  if (_authGateNeeded()) _showAuthGate(); else _hideAuthGate();
+}
+function _showAuthGate(){
+  const el = document.getElementById('auth-gate');
+  if (!el || el.classList.contains('on')) return;
+  const ben = (ico, t, s) => `<div class="ag-ben"><div class="ag-ben-ico">${ico}</div><div><div class="ag-ben-title">${t}</div><div class="ag-ben-sub">${s}</div></div></div>`;
+  const svgCloud  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 100-9 6 6 0 00-11.5 1.7A4 4 0 007 19h10.5z"/></svg>';
+  const svgUsers  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>';
+  const svgFlame  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.4 0 7-2.8 7-6.5 0-3.5-2.5-5.7-4.2-8C13.5 5.6 12.7 3.7 12.5 2c-2.3 1.6-4 3.9-4.6 6.1-.4-.8-.7-1.8-.8-2.8C4.9 7.5 5 10.6 5 15.5 5 19.2 7.6 22 12 22z"/></svg>';
+  const svgApple  = '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>';
+  const svgG      = '<svg width="19" height="19" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  el.innerHTML = `
+    <div class="ag-body">
+      <img class="ob-hero-logo" src="icon-192.png" alt="MyGymTrack">
+      <div class="ob-h1">Melde dich an</div>
+      <div class="ob-sub">Ein Konto braucht’s, damit deine Trainings sicher sind und du mit Freunden trainieren kannst.</div>
+      <div class="ag-benefits">
+        ${ben(svgCloud, 'Automatisches Cloud-Backup', 'Nie wieder Daten verlieren — auch beim Handywechsel.')}
+        ${ben(svgUsers, 'Freunde & Rangliste', 'Vergleiche dich und bleib gemeinsam dran.')}
+        ${ben(svgFlame, 'Community & Flammen', 'Teile Erfolge und sammle deine Wochen-Streak.')}
+      </div>
+    </div>
+    <div class="ag-foot">
+      ${_isNative() ? `<button class="ag-btn ag-apple" onclick="doAppleSignIn()">${svgApple} Mit Apple fortfahren</button>` : ''}
+      <button class="ag-btn ag-google" onclick="doGoogleSignIn()">${svgG} Mit Google fortfahren</button>
+      <div class="ag-legal">Mit der Anmeldung akzeptierst du unsere <a href="https://lenny23445.github.io/Gymtrack/privacy.html" target="_blank" rel="noopener">Datenschutzerklärung</a>. Wir posten nichts ohne dich.</div>
+    </div>`;
+  el.classList.add('on');
+}
+function _hideAuthGate(){
+  const el = document.getElementById('auth-gate');
+  if (!el || !el.classList.contains('on')) return;
+  el.style.transition = 'opacity .32s'; el.style.opacity = '0';
+  setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
 }
 
 // ── ANALYTICS / NUTZUNGS-TRACKER ──────────────────────
@@ -21178,13 +21263,13 @@ function _initFirebaseListeners() {
   setTimeout(() => {
     if (!_fbUser && !_loginInProgress && window.FB?.signInAnonymously) {
       window.FB.signInAnonymously()
-        .then(res => { if (res?.user) _onLogin(res.user); else { _authSettled = true; _refreshFriendsIfVisible(); } })
+        .then(res => { if (res?.user) _onLogin(res.user); else { _authSettled = true; _refreshFriendsIfVisible(); _maybeAuthGate(); } })
         .catch(e => {
           console.warn('[GymTrack] Anonyme Auth nicht verfügbar (in Firebase Console aktivieren):', e?.code || e?.message);
-          _authSettled = true; _refreshFriendsIfVisible();   // Zustand steht fest → Login-Gate darf zeigen
+          _authSettled = true; _refreshFriendsIfVisible(); _maybeAuthGate();   // Zustand steht fest → Login-Gate darf zeigen
         });
     } else if (!_loginInProgress) {
-      _authSettled = true; _refreshFriendsIfVisible();   // Auth bereits restauriert oder Anon nicht verfügbar
+      _authSettled = true; _refreshFriendsIfVisible(); _maybeAuthGate();   // Auth bereits restauriert oder Anon nicht verfügbar
     }
   }, 3000);
 
@@ -21192,7 +21277,7 @@ function _initFirebaseListeners() {
   // je auflöst (z. B. Netz-Hänger in der WKWebView), darf der Freunde-Tab nicht ewig
   // auf „Verbinde…" stehen bleiben — nach spätestens 8s den Zustand als „fest" markieren.
   setTimeout(() => {
-    if (!_authSettled) { _authSettled = true; _refreshFriendsIfVisible(); }
+    if (!_authSettled) { _authSettled = true; _refreshFriendsIfVisible(); _maybeAuthGate(); }
   }, 8000);
 }
 if (window.FB !== undefined) {
