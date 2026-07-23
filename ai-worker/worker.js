@@ -200,7 +200,7 @@ async function llm(env, { system, messages, maxTokens, schema }) {
 }
 
 async function llmGemini(env, { system, messages, maxTokens, schema }) {
-  const model = env.MODEL || "gemini-2.5-flash";
+  const model = env.MODEL || "gemini-3.5-flash-lite";
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
@@ -208,7 +208,9 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
   const generationConfig = {
     maxOutputTokens: maxTokens,
     temperature: 0.6,
-    thinkingConfig: { thinkingBudget: 0 },
+    // Gemini 3.x nutzt thinkingLevel statt thinkingBudget (2.5er-Feld) — beide
+    // zusammen bzw. das falsche Feld gibt HTTP 400 INVALID_ARGUMENT.
+    thinkingConfig: { thinkingLevel: "MINIMAL" },
   };
   if (schema) {
     generationConfig.responseMimeType = "application/json";

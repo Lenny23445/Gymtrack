@@ -6123,7 +6123,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607231617';
+const APP_VERSION = 'gymtrack-v202607231654';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -20449,8 +20449,10 @@ async function aiCall(kind, payload){
   try { idToken = await _fbUser.getIdToken(); }
   catch(_) { _dndToast('Bitte zuerst anmelden.'); return null; }
   try {
+    // Bewusst OHNE Content-Type-Header: einfacher CORS-Request, kein Preflight
+    // (WKWebView meldet sonst "Load failed" trotz erreichbarem Worker, s. Commit e5c1562).
     const res = await fetch(AI_WORKER_URL + '/' + kind, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
       body: JSON.stringify({ idToken, jws: PREM.jws || null, lang: GT_LANG, ...payload }),
     });
     let j = null; try { j = await res.json(); } catch(_){}
