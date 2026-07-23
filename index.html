@@ -6347,7 +6347,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232225';
+const APP_VERSION = 'gymtrack-v202607232310';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15956,6 +15956,38 @@ const SHF_PALETTES = [
 ];
 let _shfPalIdx = 0;
 let _shfCustomCol = null;   // frei per Farbrad gewählte Farbe (_shfPalIdx === -1 = Custom-Modus)
+let _shfUserPal = false;    // Nutzer hat selbst gewählt → Auto-Vorauswahl fasst nichts mehr an
+/* Auto-Vorauswahl der Layout-Farbe: Foto klein rastern, Durchschnittsfarbe/-helligkeit
+   bestimmen und die Palette mit dem besten Kontrast (WCAG-Ratio + Farbabstand,
+   damit z.B. Grün nicht auf Rasen-Grün landet) als STANDARD setzen. Der Nutzer
+   behält die volle Kontrolle über die Swatch-Reihe — das hier ist nur der Default. */
+function _shfAutoPal(img){
+  try {
+    const c = document.createElement('canvas'); c.width = 24; c.height = 32;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 24, 32);
+    const d = x.getImageData(0, 0, 24, 32).data;
+    let r = 0, g = 0, b = 0; const n = d.length / 4;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+    r /= n; g /= n; b /= n;
+    const lum = (rgb) => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+      return .2126 * f(rgb[0]) + .7152 * f(rgb[1]) + .0722 * f(rgb[2]); };
+    const hex2rgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+    const Lb = lum([r, g, b]);
+    let best = 0, bestScore = -1; const scores = [];
+    SHF_PALETTES.forEach((p, i) => {
+      const acc = p.accent || _shfAppAcc();
+      if (!/^#[0-9a-f]{6}$/i.test(acc)) { scores[i] = 0; return; }
+      const rgb = hex2rgb(acc);
+      const ratio = (Math.max(lum(rgb), Lb) + .05) / (Math.min(lum(rgb), Lb) + .05);
+      const dist = Math.abs(rgb[0] - r) + Math.abs(rgb[1] - g) + Math.abs(rgb[2] - b);
+      scores[i] = ratio * 100 + dist * .15;
+      if (scores[i] > bestScore) { bestScore = scores[i]; best = i; }
+    });
+    // App-Farbe (Index 0) bevorzugen, wenn sie fast genauso gut lesbar ist — Branding
+    if (scores[0] >= bestScore * .85) return 0;
+    return best;
+  } catch(_) { return 0; }
+}
 function _shfAppAcc(){
   try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
   catch(_) { return '#007AFF'; }
@@ -16287,7 +16319,7 @@ function _shfRenderAll() {
 function startShareFlow(ses, prs, dayName) {
   _shfSes = ses; _shfPrs = prs || [];
   _shfData = _shfBuildData(ses, prs, dayName);
-  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false; _shfPalIdx = 0; _shfCustomCol = null;
+  _shfPhoto = null; _shfLayout = 0; _shfRendered = []; _shfPosted = false; _shfPalIdx = 0; _shfCustomCol = null; _shfUserPal = false;
   // Avatar fürs Canvas vorladen (nur data-URLs — Remote-URLs würden den Canvas tainten)
   const p = _shfData.photo;
   if (p && p.startsWith('data:')) {
@@ -16461,7 +16493,7 @@ function _shfPickGallery() {
 /* Farbpalette wechseln → alle Layouts neu rendern + Slides/Swatches aktualisieren */
 function _shfSetPal(i) {
   if (_shfPalIdx === i) return;
-  _shfPalIdx = i; haptic(6);
+  _shfPalIdx = i; _shfUserPal = true; haptic(6);
   _shfRenderAll();
   const sw = document.getElementById('shf-swipe');
   if (sw) [...sw.children].forEach((el, idx) => { const im = el.querySelector('img'); if (im && _shfRendered[idx]) im.src = _shfRendered[idx]; });
@@ -16471,7 +16503,7 @@ function _shfSetPal(i) {
 /* Farbrad: der <input type=color> IST das antippbare Swatch (per <label>),
    damit iOS den nativen Farb-Picker auf echten User-Tap öffnet. */
 function _shfSetCustomCol(hex) {
-  _shfCustomCol = hex; _shfPalIdx = -1; haptic(6);
+  _shfCustomCol = hex; _shfPalIdx = -1; _shfUserPal = true; haptic(6);
   _shfRenderAll();
   const sw = document.getElementById('shf-swipe');
   if (sw) [...sw.children].forEach((el, idx) => { const im = el.querySelector('img'); if (im && _shfRendered[idx]) im.src = _shfRendered[idx]; });
@@ -16483,6 +16515,9 @@ function _shfSetCustomCol(hex) {
 /* ── Schritt 3: Layout-Swipe auf dem Foto ── */
 function _shfEditorStep() {
   _shfStopStream();
+  // Standard-Layoutfarbe automatisch nach Foto-Kontrast — solange der Nutzer
+  // noch nicht selbst in der Swatch-Reihe gewählt hat.
+  if (_shfPhoto && !_shfUserPal) { _shfPalIdx = _shfAutoPal(_shfPhoto); _shfCustomCol = null; }
   _shfRenderAll();
   const body = document.getElementById('shf-body');
   body.innerHTML = `
