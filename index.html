@@ -4224,6 +4224,9 @@ html[data-glass][data-theme="dark"] .tabbar{
    z-index über Tabbar (1000) und KI-Bubble (1060), sonst versteckt die
    schwebende Leiste die Sheet-Unterkante. */
 #ov-paywall{z-index:1080}
+/* Inhalt nicht randbündig: Sheet selbst hat kein Seiten-Padding, nur .sh-head —
+   der gerenderte Paywall-Body braucht daher eigenes. */
+#pw-body{padding:0 20px}
 /* Konto-Sheet: gleicher Grund wie oben, PLUS kann von aiCall() bei 402 im
    Simulator über ein bereits offenes KI-Sheet (Chat/Analyse) gelegt werden —
    ohne eigenen z-index würde die Stapel-Reihenfolge nur vom DOM-Ort abhängen
@@ -6333,7 +6336,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240915';
+const APP_VERSION = 'gymtrack-v202607232131';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -23133,10 +23136,7 @@ function _onLogout() {
 function _authGateNeeded(){
   if (!window.FB || !window.FB.configured) return false;  // ohne Firebase kein Login möglich → nicht aussperren
   if (!_authSettled) return false;                        // Auth-Restore abwarten (kein Flackern für eingeloggte User)
-  // TEMP-DEV-BYPASS (NICHT COMMITTEN): anonyme Auth zählt hier vorübergehend als
-  // Login, nur damit der Simulator ohne echten Apple/Google-Account testbar ist.
-  // Vor jedem Commit zurück auf: return !_fbUser || _fbUser.isAnonymous;
-  return !_fbUser;
+  return !_fbUser || _fbUser.isAnonymous;
 }
 function _maybeAuthGate(){
   if (_ob) return;                                  // Onboarding läuft — Gate kommt direkt danach (_obClose)
@@ -23175,6 +23175,18 @@ function _hideAuthGate(){
   if (!el || !el.classList.contains('on')) return;
   el.style.transition = 'opacity .32s'; el.style.opacity = '0';
   setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
+  setTimeout(_maybeWelcomePaywall, 600);   // Soft-Paywall direkt nach dem ersten Login (wegklickbar)
+}
+// Einmalige Welcome-Paywall nach dem allerersten Login — weich: normales
+// Paywall-Sheet, per ✕/Backdrop/Swipe schließbar. Flag bewusst nur lokal
+// (kein users-Feld → keine Rules-Änderung).
+function _maybeWelcomePaywall(){
+  try{
+    if (localStorage.getItem('gt_pwWelcome')) return;
+    if (isPremium()) return;
+    localStorage.setItem('gt_pwWelcome','1');
+    openPaywall();
+  }catch(_){}
 }
 
 // ── ANALYTICS / NUTZUNGS-TRACKER ──────────────────────
