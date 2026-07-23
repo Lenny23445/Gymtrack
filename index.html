@@ -4338,6 +4338,12 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ai-radial{
   position:fixed;z-index:1061;display:flex;flex-direction:column-reverse;gap:10px;
   padding:2px;background:none;
+  /* KRITISCH: Der Container ist IMMER im DOM und durch die 7 Pillen rund 400 px
+     hoch — ohne pointer-events:none fängt er als oberste Ebene (z-index 1061)
+     alle Taps und Swipes in seinem Bereich ab, obwohl man nichts sieht. Genau
+     das hat Community-Swipes und Buttons „tot" wirken lassen. Nur die
+     eingeblendeten Pillen (.ai-r-item.on) nehmen wieder Eingaben an. */
+  pointer-events:none;
 }
 .ai-r-item{
   flex-shrink:0;width:fit-content;height:46px;border-radius:23px;padding:0 18px 0 14px;
@@ -6330,7 +6336,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232149';
+const APP_VERSION = 'gymtrack-v202607232208';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17746,10 +17752,12 @@ const OB_EXPS = [
 ];
 let _ob = null;
 
+// Rückgabe: true = Onboarding läuft jetzt (Aufrufer wartet dann auf _obClose).
 function maybeStartOnboarding(){
-  if (S.onboarded || S.welcomeShown) return;
-  if ((S.sessions||[]).length || (S.exercises||[]).length) { S.onboarded = true; persist(); return; }
+  if (S.onboarded || S.welcomeShown) return false;
+  if ((S.sessions||[]).length || (S.exercises||[]).length) { S.onboarded = true; persist(); return false; }
   startOnboarding();
+  return true;
 }
 function startOnboarding(){
   _ob = { step:0, name:'', goal:null, exp:null, freq:null, tpl:null, applied:false };
@@ -17767,7 +17775,10 @@ function _obClose(){
   }
   _ob = null;
   renderHome(); renderExList();
-  _maybeAuthGate();   // Login-Pflicht: direkt nach dem Onboarding (auch bei „Überspringen")
+  // Reihenfolge: Login → Onboarding → Soft-Paywall. Das Gate lief schon vor dem
+  // Onboarding; hier nur noch Sicherheitsnetz (z. B. Logout mittendrin).
+  if (_authGateNeeded()) { _maybeAuthGate(); return; }
+  setTimeout(_maybeWelcomePaywall, 420);   // Soft-Paywall direkt nach dem Onboarding (wegklickbar)
 }
 function obFinish(){
   haptic(15);
@@ -20723,7 +20734,13 @@ async function aiCall(kind, payload){
     if (!res.ok) { _dndToast((j && j.error) || 'KI gerade nicht erreichbar.'); return null; }
     if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} }
     return j;
-  } catch(e) { _dndToast('KI gerade nicht erreichbar.'); return null; }
+  } catch(e) {
+    // Klartext statt Sammelmeldung: „Load failed" (WKWebView-Netzfehler) sieht
+    // sonst genauso aus wie ein echter Ausfall des Workers.
+    console.warn('[GymTrack] KI-Call fehlgeschlagen:', kind, e);
+    _dndToast('KI nicht erreichbar (' + (e?.message || e) + ')');
+    return null;
+  }
 }
 
 // ── KI-Coach: LIVE-COACH IM TRAINING (Phase D) ─────────
@@ -22178,7 +22195,18 @@ initTabDrag();
 initPageSwipe();
 _aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
-maybeStartOnboarding();   // Ersteinrichtung für neue Nutzer
+// Startreihenfolge: Login-Gate ZUERST (synchron gerendert, damit der Startbildschirm
+// nicht kurz aufblitzt), Onboarding erst NACH dem Login, danach die Soft-Paywall.
+// Bewusst nur _hadRealLogin() statt _authGateNeeded(): _fbUser/_authSettled sind
+// spätere top-level `let`s — ein Zugriff hier wäre ein TDZ-Fehler und würde den
+// kompletten Boot abbrechen (gleiche Falle wie früher in isPremium()).
+if (!_hadRealLogin()) _showAuthGate();
+else setTimeout(maybeStartOnboarding, 0);   // eingeloggtes Gerät: normaler Start
+// Sicherheitsnetz: Wenn Firebase gar nicht lädt (offline/Blocker), darf das Gate
+// niemanden dauerhaft aussperren — nach 10 s öffnen und normal weitermachen.
+setTimeout(() => {
+  if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
+}, 10000);
 try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
 if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
 // QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
@@ -22786,7 +22814,7 @@ async function _onLogin(user) {
   _authSettled = true;
   if (_onLoginUid === user.uid) {
     _fbUser = user; updateAccountUI(); _refreshFriendsIfVisible();
-    if (!user.isAnonymous) _hideAuthGate(); else _maybeAuthGate();
+    if (!user.isAnonymous) { try { localStorage.setItem('gt_signedIn','1'); } catch(_){} _hideAuthGate(); } else _maybeAuthGate();
     // Re-Auth zur Konto-Löschung abgeschlossen → jetzt löschen
     if (_pendingDelete && !user.isAnonymous) { _pendingDelete = false; _runAccountDeletion(); }
     return;
@@ -22794,7 +22822,7 @@ async function _onLogin(user) {
   _onLoginUid = user.uid;
   console.log('[GymTrack] ✅ Login erkannt:', user.email || user.uid, user.isAnonymous ? '(anonym)' : '');
   _fbUser = user;
-  if (!user.isAnonymous) _hideAuthGate(); else _maybeAuthGate();
+  if (!user.isAnonymous) { try { localStorage.setItem('gt_signedIn','1'); } catch(_){} _hideAuthGate(); } else _maybeAuthGate();
   updateAccountUI();
   _refreshFriendsIfVisible();   // falls User auf dem Freunde-Tab wartet, sofort echten Inhalt zeigen
   if (!window.FB || !window.FB.configured) return;
@@ -22875,6 +22903,7 @@ async function _onLogin(user) {
   } finally {
     _syncing = false;
     _initialMergeDone = true;
+    _postLoginFlow();   // Cloud-Stand steht → Onboarding (falls nötig), danach Soft-Paywall
     updateAccountUI();
     if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + Wochen-Aufräumen
   }
@@ -22888,6 +22917,7 @@ function _onLogout() {
   _reqNotifStop();
   if (_fbUser && window.FB?.stopPresence) window.FB.stopPresence(_fbUser.uid);
   _fbUser = null;
+  try { localStorage.removeItem('gt_signedIn'); } catch(_){}   // Gerät gilt wieder als „nie eingeloggt" → Gate sofort beim nächsten Start
   _authSettled = true;   // Zustand steht fest (abgemeldet) → Login-Gate darf jetzt zeigen
   _onLoginUid = null;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
@@ -22899,18 +22929,48 @@ function _onLogout() {
 
 // ═══════════════════════════════════════════════════════
 // AUTH-GATE — Login-Pflicht (Apple/Google), nicht umgehbar.
-// Erscheint direkt nach dem Onboarding und bei jedem Start
-// ohne echtes Konto (anonyme Auth zählt NICHT als Login).
+// Reihenfolge beim allerersten Start: GATE → Onboarding →
+// Soft-Paywall. Das Gate wird schon im INIT gezeigt (synchron,
+// vor dem ersten Paint) — sonst blitzt der Startbildschirm auf,
+// bis Firebase den Auth-Zustand geklärt hat.
+// Anonyme Auto-Anmeldung zählt NICHT als Login.
 // ═══════════════════════════════════════════════════════
+// Hat dieses Gerät schon mal ein ECHTES Konto benutzt? Nur dann darf der Start
+// ungesperrt durchlaufen, während Firebase den Login restauriert (kein Flackern
+// für Bestandsnutzer). gt_synced_<uid> deckt Nutzer ab, die vor der Einführung
+// von gt_signedIn schon eingeloggt waren.
+function _hadRealLogin(){
+  try {
+    if (localStorage.getItem('gt_signedIn') === '1') return true;
+    for (let i = 0; i < localStorage.length; i++) {
+      if ((localStorage.key(i) || '').startsWith('gt_synced_')) return true;
+    }
+  } catch(_){}
+  return false;
+}
 function _authGateNeeded(){
-  if (!window.FB || !window.FB.configured) return false;  // ohne Firebase kein Login möglich → nicht aussperren
-  if (!_authSettled) return false;                        // Auth-Restore abwarten (kein Flackern für eingeloggte User)
-  return !_fbUser || _fbUser.isAnonymous;  // anonyme Auto-Anmeldung zählt NICHT als Login
+  if (window.FB && !window.FB.configured) return false;   // ohne Firebase kein Login möglich → nicht aussperren
+  if (!_authSettled) return !_hadRealLogin();             // vor dem Auth-Restore: nur echte Neu-Installationen sperren
+  return !_fbUser || _fbUser.isAnonymous;
 }
 function _maybeAuthGate(){
-  if (_ob) return;                                  // Onboarding läuft — Gate kommt direkt danach (_obClose)
-  if (!S.onboarded && !S.welcomeShown) return;      // Onboarding startet gleich — Gate danach
+  if (_ob) return;                                  // Onboarding läuft (kommt erst NACH dem Login)
   if (_authGateNeeded()) _showAuthGate(); else _hideAuthGate();
+}
+// Nach dem Login: erst Onboarding, danach die Soft-Paywall. Läuft genau einmal.
+let _postLoginFlowDone = false;
+function _postLoginFlow(tries){
+  if (_postLoginFlowDone || _ob) return;
+  if (_authGateNeeded()) return;                    // noch nicht eingeloggt → Gate steht
+  // Bei echtem Login erst den Cloud-Merge abwarten: sonst startet das Onboarding
+  // für Bestandsnutzer, deren onboarded-Flag erst aus der Cloud kommt.
+  if (_fbUser && !_fbUser.isAnonymous && !_initialMergeDone && (tries || 0) < 25) {
+    setTimeout(() => _postLoginFlow((tries || 0) + 1), 400);
+    return;
+  }
+  _postLoginFlowDone = true;
+  if (maybeStartOnboarding()) return;               // Paywall folgt dann aus _obClose
+  _maybeWelcomePaywall();
 }
 function _showAuthGate(){
   const el = document.getElementById('auth-gate');
@@ -22944,7 +23004,7 @@ function _hideAuthGate(){
   if (!el || !el.classList.contains('on')) return;
   el.style.transition = 'opacity .32s'; el.style.opacity = '0';
   setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
-  setTimeout(_maybeWelcomePaywall, 600);   // Soft-Paywall direkt nach dem ersten Login (wegklickbar)
+  setTimeout(() => _postLoginFlow(), 600);   // nach dem Login: Onboarding, danach Soft-Paywall
 }
 // Einmalige Welcome-Paywall nach dem allerersten Login — weich: normales
 // Paywall-Sheet, per ✕/Backdrop/Swipe schließbar. Flag bewusst nur lokal
