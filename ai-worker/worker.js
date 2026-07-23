@@ -131,7 +131,22 @@ export default {
       const stats = await monthlyStats(env);
       const costUsd = estCostUsd(env, stats.inTok, stats.outTok);
       const budgetUsd = parseFloat(env.GLOBAL_MONTHLY_USD) || null;
-      return json({ ...stats, costUsd, budgetUsd }, 200, cors);
+      // Alle KV-Monate (stats:YYYY-MM) fürs Dashboard: Historie + Ø-Kosten/Monat
+      let history = [];
+      try {
+        const kv = env.AI_QUOTA;
+        if (kv) {
+          const list = await kv.list({ prefix: "stats:" });
+          history = (await Promise.all(list.keys.map(async (k) => {
+            const raw = await kv.get(k.name);
+            if (!raw) return null;
+            const s = JSON.parse(raw);
+            return { month: k.name.slice(6), calls: s.calls || 0, inTok: s.inTok || 0, outTok: s.outTok || 0,
+                     costUsd: estCostUsd(env, s.inTok || 0, s.outTok || 0) };
+          }))).filter(Boolean).sort((a, b) => a.month < b.month ? -1 : 1);
+        }
+      } catch (e) { /* Historie optional — Hauptzahlen liefern trotzdem */ }
+      return json({ ...stats, costUsd, budgetUsd, history }, 200, cors);
     }
 
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
@@ -378,6 +393,25 @@ const ANALYZE_SCHEMA = {
     summary: { type: "string" },
     points:  { type: "array", items: { type: "string" } },
     recos:   { type: "array", items: { type: "string" } },
+    // Direkt umsetzbare Vorschläge — die App zeigt pro Action einen "Übernehmen"-
+    // Button und schreibt die Änderung in die Übungs-Ziele des Nutzers.
+    actions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label:    { type: "string" },  // kurzer Button-Text
+          kind:     { type: "string" },  // sets | reps | addEx
+          exercise: { type: "string" },  // exakter Übungsname (bei addEx: neuer Name)
+          muscleGroup: { type: "string" },
+          sets:     { type: "integer" },
+          repMin:   { type: "integer" },
+          repMax:   { type: "integer" },
+          why:      { type: "string" },  // 1 Satz Begründung
+        },
+        required: ["label", "kind", "exercise"],
+      },
+    },
   },
   required: ["summary", "points", "recos"],
 };
@@ -401,10 +435,12 @@ async function runAnalyze(body, lang, env) {
 score: 0-100 ehrliche Gesamtbewertung.
 summary: 2-3 Sätze Gesamtfazit.
 points: 2-4 konkrete Beobachtungen (positiv wie kritisch).
-recos: 2-4 konkrete, umsetzbare Empfehlungen.`
+recos: 2-4 konkrete, umsetzbare Empfehlungen.
+actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
 score: 0-100 honest overall rating.
-summary: 2-3 sentences. points: 2-4 concrete observations. recos: 2-4 actionable recommendations.`;
+summary: 2-3 sentences. points: 2-4 concrete observations. recos: 2-4 actionable recommendations.
+actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],

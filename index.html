@@ -4260,10 +4260,10 @@ html[data-glass][data-theme="dark"] .tabbar{
   position:relative;overflow:hidden;
   background:linear-gradient(120deg,var(--acc) 0%,rgba(var(--acc-rgb),.82) 100%);color:#fff;
   box-shadow:0 10px 28px rgba(var(--acc-rgb),.40),inset 0 1px 0 rgba(255,255,255,.28)}
-.pw-cta::after{content:'';position:absolute;top:0;bottom:0;width:46%;left:-60%;
+.pw-cta::after{content:'';position:absolute;top:0;bottom:0;width:46%;left:-50%;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);
   animation:pwShine 3.2s ease-in-out infinite}
-@keyframes pwShine{0%,55%{left:-60%}85%,100%{left:130%}}
+@keyframes pwShine{0%,55%{transform:translateX(0)}85%,100%{transform:translateX(420%)}}
 @media (prefers-reduced-motion:reduce){.pw-cta::after{animation:none}}
 .pw-cta:disabled{opacity:.6}
 .pw-trust{display:flex;justify-content:center;gap:14px;margin-top:12px;flex-wrap:wrap}
@@ -4318,7 +4318,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 }
 #ai-radial-backdrop{
   position:fixed;inset:0;z-index:1055;display:none;
-  background:rgba(0,0,0,.46);backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);
+  background:rgba(0,0,0,.20);backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);
   opacity:0;transition:opacity .22s ease;
 }
 #ai-radial-backdrop.on{display:block;opacity:1}
@@ -4392,6 +4392,10 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .aia-hrow-bar{flex:1;height:8px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
 .aia-hrow-fill{height:100%;border-radius:5px;background:var(--acc)}
 .aia-hrow-v{width:52px;flex-shrink:0;text-align:right;font-weight:700}
+.aia-act{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;margin-top:8px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+.aia-act-t{font-size:14px;font-weight:700;line-height:1.35}
+.aia-act-s{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4}
 /* ═══ TRAININGSPLAN-WIZARD ═══ */
 .pwz-dots{display:flex;justify-content:center;gap:6px;margin:2px 0 14px}
 .pwz-dot{width:7px;height:7px;border-radius:50%;background:var(--inp-bg);border:1px solid var(--gl-bdr);transition:background .2s,transform .2s}
@@ -4405,6 +4409,21 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .pwz-ta{width:100%;box-sizing:border-box;margin-top:10px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;
   padding:12px 14px;font-size:15px;font-family:inherit;color:var(--text);outline:none;resize:none;min-height:64px;line-height:1.45}
 .pwz-nav{display:flex;gap:10px;margin-top:18px}
+/* ═══ IN-APP-KAMERA: RAHMEN-OVERLAY (Scanner + Workout-Snap) ═══ */
+.gtcam-frame{position:absolute;inset:36px 26px 86px;pointer-events:none;z-index:3}
+.gtcam-frame i{position:absolute;width:36px;height:36px;border:3px solid rgba(255,255,255,.92);
+  filter:drop-shadow(0 1px 6px rgba(0,0,0,.45))}
+.gtcam-frame i:nth-child(1){top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:15px}
+.gtcam-frame i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:15px}
+.gtcam-frame i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:15px}
+.gtcam-frame i:nth-child(4){bottom:0;right:0;border-left:none;border-top:none;border-bottom-right-radius:15px}
+.gtcam-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
+  font-size:11.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.45);padding:5px 12px;border-radius:10px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.scn-cam{position:relative;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:3/4}
+.scn-cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scn-cam-bar{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;background:linear-gradient(to top,rgba(0,0,0,.55),transparent)}
 /* ═══ GERÄTE-SCANNER ═══ */
 .scn-drop{border:2px dashed rgba(var(--acc-rgb),.4);border-radius:20px;padding:30px 16px;text-align:center;cursor:pointer;
   background:rgba(var(--acc-rgb),.05)}
@@ -4459,24 +4478,27 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
 #fchat-log{display:flex;flex-direction:column;gap:8px;padding:6px 2px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .fchat-day{align-self:center;font-size:10.5px;font-weight:800;color:var(--text2);padding:3px 10px;border-radius:8px;background:var(--inp-bg)}
 .fchat-ts{font-size:9.5px;opacity:.55;margin-top:2px;text-align:right}
-/* ═══ LIVE-COACH: PULSIERENDE KI-AURA ═══ */
-@keyframes coachAura{
-  0%,100%{box-shadow:0 0 0 1.5px rgba(var(--acc-rgb),.35),0 0 18px 2px rgba(var(--acc-rgb),.20)}
-  50%{box-shadow:0 0 0 2.5px rgba(var(--acc-rgb),.65),0 0 30px 7px rgba(var(--acc-rgb),.38)}
-}
-.ex-card.coach-aura{border-color:rgba(var(--acc-rgb),.45)}
+/* ═══ LIVE-COACH: PULSIERENDE KI-AURA ═══
+   Bewusst als Opacity-Puls auf einem Pseudo-Element (Compositor-Animation) statt
+   animiertem box-shadow — box-shadow-Keyframes repainted jeden Frame und ruckelt
+   auf älteren Geräten. */
+.ex-card.coach-aura{position:relative;border-color:rgba(var(--acc-rgb),.50)}
+.ex-card.coach-aura::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+  box-shadow:inset 0 0 0 2px rgba(var(--acc-rgb),.55),0 0 26px 5px rgba(var(--acc-rgb),.34);opacity:.45}
 @media (prefers-reduced-motion:no-preference){
-  .ex-card.coach-aura{animation:coachAura 2.2s ease-in-out infinite}
-  .coach-bar.thinking{animation:coachAura 1.1s ease-in-out infinite}
+  .ex-card.coach-aura::after{animation:coachAuraOp 2.2s ease-in-out infinite}
 }
+@keyframes coachAuraOp{0%,100%{opacity:.35}50%{opacity:1}}
 .coach-ki-tag{font-size:9px;font-weight:800;letter-spacing:.6px;color:#fff;background:var(--acc);
   border-radius:6px;padding:1.5px 6px;margin-left:6px;vertical-align:1px}
 /* ═══════════════════ KI-COACH: LIVE-COACH IM TRAINING (Phase D) ═══════════════════ */
 .wk-head-title-row{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
 @keyframes coachPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.35)}}
 /* Feste Coach-Leiste — durchgehend sichtbar im aktiven Training (Status + Live-Reaktionen) */
-.coach-bar{margin:0 0 10px;padding:9px 12px;border-radius:14px;transition:background .3s,border-color .3s;
-  background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
+.coach-bar{margin:0 0 10px;padding:9px 12px;border-radius:14px;transition:border-color .3s;
+  background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.30);
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
+[data-glass="off"] .coach-bar{background:var(--inp-bg);backdrop-filter:none;-webkit-backdrop-filter:none}
 .coach-bar-head{display:flex;align-items:center;gap:7px}
 .coach-bar-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex-shrink:0}
 @media (prefers-reduced-motion:no-preference){
@@ -6315,7 +6337,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232045';
+const APP_VERSION = 'gymtrack-v202607232140';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -6987,6 +7009,9 @@ const I18N_EN = {
   'Volumen 4 Wo.':'Volume 4 wks','Muskelgruppen-Balance (4 Wochen)':'Muscle group balance (4 weeks)',
   'PRs (4 Wo.)':'PRs (4 wks)','Ø pro Woche':'Avg per week','Volumen-Trend (8 Wochen)':'Volume trend (8 weeks)','jetzt':'now',
   'Stärkste Übungen (e1RM)':'Strongest lifts (e1RM)','Dein Coach bewertet die Zahlen…':'Your coach is scoring the numbers…',
+  'Direkt übernehmen':'Apply directly','Übernommen — dein Training ist angepasst.':'Applied — your training is updated.',
+  'Übung nicht gefunden — Name geändert?':'Exercise not found — renamed?',
+  'Kamera öffnen':'Open camera','Gerät mittig einfangen':'Center the machine','Schließen':'Close',
   'Optional…':'Optional…','Diktieren':'Dictate',
   /* Changelog: Live-Coach Ausbau (23.07.2026) */
   '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
@@ -8584,8 +8609,11 @@ let _suppressWkRestore = false; // z. B. beim Tab-Wechsel: alles zu, nichts wied
 // zurück statt alles zu schließen. Stack hält die Rücksprungziele ('mg'|'det').
 let _statNavStack  = [];
 let _statNavSilent = false; // programmatischer closeOv → nicht zurücknavigieren
+// Sheets, die bewusst ÜBER dem aktiven Training liegen dürfen (Picker) —
+// alles andere verdrängt ov-wk, statt sich überlappend drüberzulegen.
+const OV_STACK_EXEMPT = ['ov-wk','ov-wheel','ov-settype'];
 function openOv(id)  {
-  if (WK_SUB_SHEETS.includes(id)) {
+  if (!OV_STACK_EXEMPT.includes(id)) {
     const wk = document.getElementById('ov-wk');
     if (wk && wk.classList.contains('on')) { wk.classList.remove('on'); _wkHiddenBySub = true; }
   }
@@ -8622,11 +8650,12 @@ function closeOv(id) {
       }
     }
   }
-  // Workout-Sheet wiederherstellen, wenn das letzte Training-Untersheet zugeht
-  if (WK_SUB_SHEETS.includes(id) && _wkHiddenBySub && !_suppressWkRestore
+  // Workout-Sheet wiederherstellen, wenn das letzte verdrängende Sheet zugeht
+  if (id === 'ov-ai-scan') { try { _scnStopCam(); _scnStopAnim(); } catch(_){} }   // Kamera/Animation nie weiterlaufen lassen
+  if (!OV_STACK_EXEMPT.includes(id) && _wkHiddenBySub && !_suppressWkRestore
       && !(typeof _midAddPending  !== 'undefined' && _midAddPending)
       && !(typeof _swapAddPending !== 'undefined' && _swapAddPending)
-      && !WK_SUB_SHEETS.some(x => document.getElementById(x)?.classList.contains('on'))
+      && !document.querySelector('.ov.on:not(#ov-wk)')
       && typeof isWorkoutActive === 'function' && isWorkoutActive()) {
     _wkHiddenBySub = false;
     document.getElementById('ov-wk')?.classList.add('on');
@@ -16316,6 +16345,10 @@ function _shfRattleLand() {
 
 /* ── Schritt 2: Kamera (nativ bevorzugt, Web-Fallback) ── */
 async function _shfCameraStep() {
+  // In-App-Kamera mit App-Rahmen zuerst (gleiches Sucher-Design wie der Geräte-
+  // Scanner). Das native CameraPlugin (System-Kamera ohne eigenes Design) bleibt
+  // nur Fallback für Umgebungen ohne getUserMedia.
+  if (navigator.mediaDevices?.getUserMedia) { _shfWebCamStep(); return; }
   const CP = _cap('CameraPlugin');
   if (CP) {
     let res = null;
@@ -16344,6 +16377,7 @@ async function _shfWebCamStep() {
       <button class="shf-x" id="shf-flashbtn" onclick="_shfToggleFlash()" aria-label="${tr('Blitz')}">${ICO.bolt({ s: 20 })}</button></div>
     <div class="shf-cam"><video id="shf-video" autoplay playsinline muted></video>
       <div class="shf-flashfx" id="shf-flashfx"></div>
+      ${_gtCamFrameHTML()}
       <div class="shf-cam-bar">
         <button class="shf-camside" onclick="_shfPickGallery()" aria-label="${tr('Galerie')}">${ICO.image({ s: 22 })}</button>
         <button class="shf-shutter" onclick="_shfWebSnap()" aria-label="${tr('Foto aufnehmen')}"></button>
@@ -21877,22 +21911,62 @@ function _fedbMatch(db, nameEn){
   return bestScore >= Math.max(1, qw.length - 1) ? best : null;
 }
 function _scnStopAnim(){ if (_scnAnimT) { clearInterval(_scnAnimT); _scnAnimT = null; } }
+// Ecken-Rahmen fürs Kamera-Sucherbild (geteilt mit dem Workout-Snap)
+function _gtCamFrameHTML(){ return `<div class="gtcam-frame"><i></i><i></i><i></i><i></i></div>`; }
 function openAiScan(){
   _scnResult = null; _scnPhoto = null; _scnBusy = false; _scnSel = 0;
   _scnStopAnim();
-  _scnRenderStart();
   openOv('ov-ai-scan');
-  _fedbLoad();   // DB schon mal im Hintergrund anwärmen
+  _scnCamStep();   // direkt in die In-App-Kamera mit Rahmen
+  _fedbLoad();     // DB schon mal im Hintergrund anwärmen
 }
 function _scnRenderStart(){
   const el = document.getElementById('scn-body'); if (!el) return;
   el.innerHTML = `
-    <div class="scn-drop" onclick="document.getElementById('scn-file').click()">
+    <div class="scn-drop" onclick="_scnCamStep()">
       <div style="color:var(--acc)">${ICO.camera({s:44})}</div>
-      <div class="scn-drop-t">${tr('Gerät fotografieren')}</div>
+      <div class="scn-drop-t">${tr('Kamera öffnen')}</div>
       <div class="scn-drop-s">${tr('Die KI erkennt das Gerät und zeigt dir passende Übungen mit Ausführung.')}</div>
     </div>
     <button class="btn btn-gray" style="margin-top:12px" onclick="document.getElementById('scn-file-lib').click()">${tr('Aus Fotos wählen')}</button>`;
+}
+// In-App-Sucherbild mit Rahmen statt Foto-Picker. Kein getUserMedia (alte iOS-
+// Version / Zugriff verweigert) → Fallback auf System-Kamera via capture-Input.
+let _scnStream = null;
+function _scnStopCam(){ try { _scnStream?.getTracks().forEach(t => t.stop()); } catch(_){} _scnStream = null; }
+async function _scnCamStep(){
+  const el = document.getElementById('scn-body'); if (!el) return;
+  el.innerHTML = `
+    <div class="scn-cam">
+      <video id="scn-video" autoplay playsinline muted></video>
+      ${_gtCamFrameHTML()}
+      <div class="gtcam-hint">${tr('Gerät mittig einfangen')}</div>
+      <div class="scn-cam-bar">
+        <button class="shf-camside" onclick="_scnStopCam();document.getElementById('scn-file-lib').click()" aria-label="${tr('Aus Fotos wählen')}">${ICO.image({s:22})}</button>
+        <button class="shf-shutter" onclick="_scnSnap()" aria-label="${tr('Foto aufnehmen')}"></button>
+        <button class="shf-camside" onclick="_scnStopCam();_scnRenderStart()" aria-label="${tr('Schließen')}">✕</button>
+      </div>
+    </div>`;
+  try {
+    _scnStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1600 } }, audio: false });
+    const v = document.getElementById('scn-video');
+    if (v) v.srcObject = _scnStream; else _scnStopCam();   // Sheet evtl. schon zu
+  } catch(_) {
+    _scnRenderStart();
+    document.getElementById('scn-file')?.click();
+  }
+}
+function _scnSnap(){
+  const v = document.getElementById('scn-video');
+  if (!v || !v.videoWidth) return;
+  const MAX = 1024, sc = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+  const cnv = document.createElement('canvas');
+  cnv.width = Math.round(v.videoWidth * sc); cnv.height = Math.round(v.videoHeight * sc);
+  cnv.getContext('2d').drawImage(v, 0, 0, cnv.width, cnv.height);
+  _scnStopCam();
+  haptic(10);
+  _scnPhoto = cnv.toDataURL('image/jpeg', 0.82);
+  _scnAnalyze();
 }
 function _scnPicked(input){
   const file = input.files && input.files[0]; input.value = '';
@@ -21938,7 +22012,7 @@ function _scnRenderResult(){
       <div class="card" style="padding:14px;margin-top:12px;font-size:14px;line-height:1.55">
         ${tr('Kein Trainingsgerät erkannt.')}${v.device ? ' ' + esc(v.device) : ''}<br>
         <span style="color:var(--text2)">${tr('Versuch es mit einem Foto, auf dem das Gerät komplett zu sehen ist.')}</span></div>
-      <button class="btn btn-acc" style="margin-top:14px" onclick="document.getElementById('scn-file').click()">${tr('Nochmal fotografieren')}</button>`;
+      <button class="btn btn-acc" style="margin-top:14px" onclick="_scnCamStep()">${tr('Nochmal fotografieren')}</button>`;
     return;
   }
   const exs = (v.exercises || []).slice(0, 3);
@@ -21968,7 +22042,7 @@ function _scnRenderResult(){
       ${v.howTo.slice(0, 5).map((s, i) => `<div class="scn-step"><div class="scn-step-n">${i + 1}</div><div>${esc(s)}</div></div>`).join('')}` : ''}
     ${v.caution ? `<div class="card" style="padding:11px 12px;margin-top:10px;font-size:12.5px;line-height:1.5;color:var(--text2)"><b style="color:var(--text)">${tr('Häufigster Fehler:')}</b> ${esc(v.caution)}</div>` : ''}
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-gray" style="flex:1" onclick="document.getElementById('scn-file').click()">${tr('Neues Foto')}</button>
+      <button class="btn btn-gray" style="flex:1" onclick="_scnCamStep()">${tr('Neues Foto')}</button>
       <button class="btn btn-acc" style="flex:1.4" onclick="_scnAddExercise()">${tr('In meine Übungen')}</button>
     </div>`;
   _scnLoadAnim();
@@ -22150,6 +22224,40 @@ function _aiaLocalHTML(mode, data){
   } catch(e) { console.warn('[Analyse] Kacheln:', e); }
   return '';
 }
+// KI-Vorschläge mit "Übernehmen"-Button: schreiben direkt in die Übungs-Ziele
+let _aiaActions = [];
+function _aiaApply(i){
+  const ac = _aiaActions[i]; if (!ac) return;
+  const validMg = ['brust','ruecken','beine','arme','schultern','core'];
+  const nm = String(ac.exercise || '').trim().slice(0, 60); if (!nm) return;
+  const clampI = (v, lo, hi, dflt) => { v = parseInt(v); return isNaN(v) ? dflt : Math.max(lo, Math.min(hi, v)); };
+  let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
+  if (ac.kind === 'addEx') {
+    if (ex) { _dndToast('Übung ist schon in deiner Liste.'); }
+    else if (S.exercises.length >= 500) { _dndToast('Übungslimit erreicht.'); return; }
+    else {
+      const rMin = clampI(ac.repMin, 1, 29, 8), rMax = Math.max(rMin, clampI(ac.repMax, 1, 30, 12));
+      S.exercises.push({
+        id: uid(), name: nm, emoji: '🏋️',
+        muscleGroup: validMg.includes(ac.muscleGroup) ? ac.muscleGroup : '',
+        targetSets: clampI(ac.sets, 1, 8, 3), targetReps: rMax, targetWeight: 0, targetType: 'reps',
+        repMin: rMin, repMax: rMax, weightScheme: 'straight',
+      });
+    }
+  } else if (!ex) { _dndToast('Übung nicht gefunden — Name geändert?'); return; }
+  else if (ac.kind === 'sets') { ex.targetSets = clampI(ac.sets, 1, 8, ex.targetSets); }
+  else if (ac.kind === 'reps') {
+    const rMin = clampI(ac.repMin, 1, 29, ex.repMin), rMax = Math.max(rMin, clampI(ac.repMax, 1, 30, ex.repMax));
+    ex.repMin = rMin; ex.repMax = rMax; ex.targetReps = rMax;
+  } else return;
+  persist();
+  try { renderExList(); renderHome(); } catch(_){}
+  const row = document.getElementById('aia-act-' + i);
+  const btn = row && row.querySelector('button');
+  if (btn) btn.outerHTML = `<span style="color:#30d158;font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:4px;flex-shrink:0">${ICO.check({s:14})} ${tr('Übernommen')}</span>`;
+  haptic(16);
+  _dndToast('Übernommen — dein Training ist angepasst.');
+}
 function _aiaShow(a, localHTML){
   const el = document.getElementById('aia-body'); if (!el) return;
   const hasScore = typeof a.score === 'number';
@@ -22157,6 +22265,7 @@ function _aiaShow(a, localHTML){
   const circ = 2 * Math.PI * 38;
   const hasPoints = Array.isArray(a.points) && a.points.length;
   const hasRecos  = Array.isArray(a.recos)  && a.recos.length;
+  _aiaActions = Array.isArray(a.actions) ? a.actions.filter(x => x && x.label && x.kind && x.exercise).slice(0, 3) : [];
   el.innerHTML = `
     ${localHTML || ''}
     ${hasScore ? `
@@ -22173,6 +22282,11 @@ function _aiaShow(a, localHTML){
       ${a.points.map(p => `<div class="aia-item"><div class="aia-dot"></div><div>${esc(p)}</div></div>`).join('')}</div>` : ''}
     ${hasRecos ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Empfehlungen')}</div>
       ${a.recos.map(r => `<div class="aia-item"><div class="aia-dot" style="background:#2ea84a"></div><div>${esc(r)}</div></div>`).join('')}</div>` : ''}
+    ${_aiaActions.length ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Direkt übernehmen')}</div>
+      ${_aiaActions.map((ac, i) => `<div class="aia-act" id="aia-act-${i}">
+        <div style="flex:1;min-width:0"><div class="aia-act-t">${esc(ac.label)}</div>${ac.why ? `<div class="aia-act-s">${esc(ac.why)}</div>` : ''}</div>
+        <button class="btn btn-acc" style="width:auto;padding:9px 14px;font-size:13px;flex-shrink:0" onclick="_aiaApply(${i})">${tr('Übernehmen')}</button>
+      </div>`).join('')}</div>` : ''}
     ${(!hasScore && !a.summary && !hasPoints && !hasRecos) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
   `;
 }
