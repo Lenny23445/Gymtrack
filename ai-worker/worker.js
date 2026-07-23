@@ -5,6 +5,8 @@
 //   POST /chat     {idToken, jws, lang, messages[], context}   → {text, quota}
 //   POST /coach    {idToken, jws, lang, t:{...}}                → {c:{...}, quota}
 //   POST /analyze  {idToken, jws, lang, mode, data}             → {a:{...}, quota}
+//   POST /vision   {idToken, jws, lang, img, mime}               → {v:{...}, quota}
+//                  img = base64-JPEG (ohne data:-Präfix) eines Gerätefotos
 //   GET  /stats    ?idToken=…  (nur Founder-UID)                 → {month, calls, inTok, outTok, costUsd, budgetUsd}
 //
 // Sicherheit (beides muss passen):
@@ -52,6 +54,7 @@ function dailyOk(uid, kind, env) {
   if (!q || q.day !== day) { q = { day, chat: 0, coach: 0, analyze: 0 }; _quota.set(uid, q); }
   const limit = kind === "chat" ? (parseInt(env.CHAT_DAILY) || 100)
               : kind === "coach" ? (parseInt(env.COACH_DAILY) || 60)
+              : kind === "vision" ? (parseInt(env.VISION_DAILY) || 20)
               : (parseInt(env.ANALYZE_DAILY) || 10);
   if (q[kind] >= limit) return false;
   q[kind]++;
@@ -132,7 +135,7 @@ export default {
     }
 
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
-    if (path !== "/chat" && path !== "/coach" && path !== "/analyze") return json({ error: "unknown endpoint" }, 404, cors);
+    if (path !== "/chat" && path !== "/coach" && path !== "/analyze" && path !== "/vision") return json({ error: "unknown endpoint" }, 404, cors);
 
     let body;
     try { body = await request.json(); } catch (_) { return json({ error: "bad json" }, 400, cors); }
@@ -152,7 +155,7 @@ export default {
     }
 
     // 3) Tageslimit (Missbrauchsbremse)
-    const kind = path.slice(1); // "chat" | "coach" | "analyze"
+    const kind = path.slice(1); // "chat" | "coach" | "analyze" | "vision"
     if (!dailyOk(uid, kind, env)) return json({ error: "Tageslimit erreicht — morgen geht's weiter" }, 429, cors);
 
     // 4) Monatslimit (autoritativ, sichtbar für den Nutzer) — Coach-Trigger zählen halb
@@ -178,6 +181,7 @@ export default {
       let result;
       if (path === "/chat")    result = await runChat(body, lang, env);
       else if (path === "/coach")   result = await runCoach(body, lang, env);
+      else if (path === "/vision")  result = await runVision(body, lang, env);
       else                           result = await runAnalyze(body, lang, env);
       try { await recordUsage(env, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
       delete result.usage; // interne Kosten-Info, nicht an den Client
@@ -201,9 +205,12 @@ async function llm(env, { system, messages, maxTokens, schema }) {
 
 async function llmGemini(env, { system, messages, maxTokens, schema }) {
   const model = env.MODEL || "gemini-3.5-flash-lite";
+  // Optionales m.img = {mime, data(base64)} → multimodaler Part (Geräte-Scanner)
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
+    parts: m.img
+      ? [{ inline_data: { mime_type: m.img.mime, data: m.img.data } }, { text: m.content }]
+      : [{ text: m.content }],
   }));
   const generationConfig = {
     maxOutputTokens: maxTokens,
@@ -236,7 +243,13 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
 }
 
 async function llmClaude(env, { system, messages, maxTokens, schema }) {
-  const payload = { max_tokens: maxTokens, system, messages };
+  const msgs = messages.map((m) => m.img
+    ? { role: m.role, content: [
+        { type: "image", source: { type: "base64", media_type: m.img.mime, data: m.img.data } },
+        { type: "text", text: m.content },
+      ] }
+    : m);
+  const payload = { max_tokens: maxTokens, system, messages: msgs };
   if (schema) payload.output_config = { format: { type: "json_schema", schema } };
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -399,6 +412,67 @@ summary: 2-3 sentences. points: 2-4 concrete observations. recos: 2-4 actionable
     schema: ANALYZE_SCHEMA,
   });
   return { a: JSON.parse(text), usage };
+}
+
+// ═══════════════ /vision — Geräte-Scanner (Foto → Gerät + Übungen) ═══════════════
+
+const VISION_SCHEMA = {
+  type: "object",
+  properties: {
+    isGym:   { type: "boolean" },  // false = kein Trainingsgerät erkennbar
+    device:  { type: "string" },
+    muscleGroups: { type: "array", items: { type: "string" } },
+    exercises: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name:   { type: "string" },  // deutscher Übungsname
+          nameEn: { type: "string" },  // englischer Datenbank-Name (z.B. "Lat Pulldown")
+          muscleGroup: { type: "string" },
+          tip:    { type: "string" },
+        },
+        required: ["name", "nameEn"],
+      },
+    },
+    howTo:   { type: "array", items: { type: "string" } },
+    caution: { type: "string" },
+  },
+  required: ["isGym", "device", "exercises"],
+};
+
+async function runVision(body, lang, env) {
+  const de = lang !== "en";
+  const img = String(body.img || "").replace(/^data:[^,]*,/, "");
+  // ~1,3 MB base64 ≈ 1 MB JPEG — Client skaliert auf max. 1024px runter
+  if (!img || img.length < 100 || img.length > 1400000) throw new Error("bad image");
+  const mime = body.mime === "image/png" ? "image/png" : "image/jpeg";
+  const sys = de
+    ? `Du bist der Geräte-Scanner der Fitness-App MyGymTrack. Du bekommst ein Foto aus einem Fitnessstudio und erkennst das abgebildete Trainingsgerät (auch Freihantel-/Rack-Aufbauten).
+isGym: false, wenn KEIN Trainingsgerät/Equipment erkennbar ist (dann alles andere leer lassen bzw. device kurz beschreiben, was zu sehen ist).
+device: kurzer deutscher Gerätename (z.B. "Latzug", "Beinpresse", "Kabelzug-Turm").
+muscleGroups: NUR aus brust, ruecken, beine, arme, schultern, core.
+exercises: 1-3 sinnvolle Übungen an diesem Gerät, wichtigste zuerst. name = deutscher Name, nameEn = gebräuchlicher englischer Name wie in Übungsdatenbanken (z.B. "Lat Pulldown", "Leg Press", "Seated Cable Row"), muscleGroup aus der Liste oben, tip = 1 kurzer Technik-Tipp.
+howTo: 3-5 kurze Schritte, wie man die WICHTIGSTE Übung sauber ausführt (duzen, je max. 12 Wörter).
+caution: 1 Satz — häufigster Fehler an diesem Gerät.`
+    : `You are the machine scanner of the MyGymTrack fitness app. You get a gym photo and identify the training machine/equipment (including free-weight/rack setups).
+isGym: false if NO training equipment is visible (leave the rest empty, describe briefly in device).
+device: short machine name (e.g. "Lat Pulldown", "Leg Press").
+muscleGroups: ONLY from brust, ruecken, beine, arme, schultern, core.
+exercises: 1-3 sensible exercises on this machine, most important first. name = display name, nameEn = common database name (e.g. "Lat Pulldown"), muscleGroup from the list above, tip = 1 short technique tip.
+howTo: 3-5 short steps for the MAIN exercise (max 12 words each).
+caution: 1 sentence — most common mistake on this machine.`;
+  const { text, usage } = await llm(env, {
+    system: sys,
+    messages: [{
+      role: "user",
+      content: de ? "Welches Trainingsgerät ist das und welche Übungen macht man daran?" : "Which training machine is this and which exercises are done on it?",
+      img: { mime, data: img },
+    }],
+    maxTokens: 700,
+    schema: VISION_SCHEMA,
+  });
+  return { v: JSON.parse(text), usage };
 }
 
 // ═══════════════ Firebase-Token prüfen ═══════════════
