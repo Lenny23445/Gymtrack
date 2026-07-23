@@ -31,9 +31,10 @@ Genau wie beim Push-Worker:
    - `GEMINI_API_KEY` → aistudio.google.com/apikey → neuen Key erstellen (Standardmodell: Gemini 2.5 Flash, sehr günstig).
    - `FIREBASE_API_KEY` → derselbe `apiKey` wie in index.html im `FIREBASE_CONFIG`-Block.
    - Nur falls du auf Claude zurückwechseln willst: zusätzlich `ANTHROPIC_API_KEY` setzen und Var `PROVIDER=claude`.
-5. Optional (Vars, kein Secret): `MODEL` (Gemini-Modell, Default `gemini-2.5-flash`), `MONTHLY_LIMIT` (Default 50), `CHAT_DAILY`/`COACH_DAILY`/`ANALYZE_DAILY` (Tageslimits als Missbrauchsbremse, Defaults 100/60/10).
+5. Optional (Vars, kein Secret): `MODEL` (Gemini-Modell, Default `gemini-2.5-flash`), `MONTHLY_LIMIT` (Default 50), `CHAT_DAILY`/`COACH_DAILY`/`ANALYZE_DAILY` (Tageslimits als Missbrauchsbremse, Defaults 100/60/10), `PRICE_IN_PER_M`/`PRICE_OUT_PER_M` (USD/1 Mio. Token für Kostenschätzung, Default 0.30/2.50), `GLOBAL_MONTHLY_USD` (harter Kostendeckel/Monat über ALLE Nutzer — leer = kein Deckel; empfohlen: kleinen Wert setzen, z. B. 5, damit bei Nutzer-Wachstum nie unbemerkt Kosten explodieren).
 
 **Test:** Mit deinem Founder-Account (du bist automatisch Premium, auch ohne Kauf) in der App → KI-Bubble → Chat: Frage stellen. Kommt eine Antwort → Worker läuft.
+**Kosten-Check:** `curl "https://gymtrack-ai.wolterlenny362.workers.dev/stats?idToken=<Founder-idToken>"` liefert `{month, calls, inTok, outTok, costUsd, budgetUsd}`.
 
 ## 3. Xcode einmalig (nur fürs Live-Simulator-Panel in Claude)
 

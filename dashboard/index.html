@@ -22,6 +22,7 @@
     --extra: #9085e9;      /* Community / Apple */
     --anon: #566374;       /* Anonym (neutral) */
     --premium: #d9a728;    /* Premium / Umsatz */
+    --ai: #4fc3d9;         /* KI-Nutzung & Kosten */
     --good: #0ca30c;
     --warn: #fab219;
     --crit: #d03b3b;
@@ -189,6 +190,7 @@
 const $ = (s) => document.querySelector(s);
 const nf = new Intl.NumberFormat('de-DE');
 const nfEUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+const nfUSD = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' });
 const fmt = (n) => n == null ? '—' : nf.format(n);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dShort = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
@@ -264,7 +266,7 @@ const secHead = (color, title, sub, errObj) =>
 /* ── Rendern (identisch zum lokalen Dashboard) ── */
 function render(D) {
   $('#proj').textContent = D.project || '—';
-  const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {};
+  const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {}, AI = D.ai || {};
   let h = '';
 
   /* Hero: echte Echtzeit-Zahlen (jetzt in App / jetzt im Training) + Downloads */
@@ -371,6 +373,26 @@ function render(D) {
     h += `</div><div class="note info">Schätzung aus App-Tracking, <b>nicht</b> Apples offiziellen Zahlen — ohne Apples Provision (15–30&nbsp;%), Steuern, Testphasen oder Rückerstattungen. Echte Zahlen: App Store Connect → Analyse/Abonnements bzw. Zahlungen und Finanzberichte. Bestehende Premium-Nutzer tauchen erst nach ihrer nächsten App-Session hier auf (Feld ist neu).</div></section>`;
   }
 
+  /* KI-Nutzung & Kosten */
+  h += `<section>${secHead('var(--ai)', 'KI-Nutzung & Kosten', 'Cloudflare-Worker (Gemini/Claude) — live, geschätzt', AI.ok ? null : AI)}`;
+  if (AI.ok) {
+    const hasBudget = typeof AI.budgetUsd === 'number' && AI.budgetUsd > 0;
+    const pct = hasBudget ? Math.min(100, Math.round((AI.costUsd / AI.budgetUsd) * 100)) : null;
+    const pctTint = pct == null ? '' : pct >= 90 ? 'var(--crit)' : pct >= 70 ? 'var(--warn)' : 'var(--ai)';
+    h += `<div class="tiles">`
+      + tile(fmt(AI.calls), 'KI-Anfragen', 'diesen Monat', 'var(--ai)')
+      + tile(fmt(AI.inTok), 'Input-Token', 'diesen Monat')
+      + tile(fmt(AI.outTok), 'Output-Token', 'diesen Monat')
+      + tile(nfUSD.format(AI.costUsd || 0), 'Geschätzte Kosten', 'diesen Monat')
+      + (hasBudget ? tile(pct + ' %', 'Budget-Auslastung', nfUSD.format(AI.costUsd) + ' von ' + nfUSD.format(AI.budgetUsd), pctTint) : '');
+    h += `</div><div class="note info">Schätzung auf Basis der im Worker hinterlegten Listenpreise (PRICE_IN_PER_M/PRICE_OUT_PER_M) — keine offizielle Abrechnung. ${
+      hasBudget
+        ? `Bei Erreichen des Monatsbudgets (${nfUSD.format(AI.budgetUsd)}) blockt der Worker automatisch weitere KI-Calls für alle Nutzer, bis der Monat wechselt.`
+        : `Kein globales Monatsbudget gesetzt (Worker-Variable <code>GLOBAL_MONTHLY_USD</code>) — es gelten nur die Pro-Nutzer-Limits, kein Gesamtkosten-Deckel.`
+    }</div>`;
+  }
+  h += `</section>`;
+
   /* App Store */
   h += `<section>${secHead('var(--store)', 'App Store', 'Downloads aus App Store Connect', AS.ok ? null : AS)}`;
   if (AS.ok && AS.configured) {
@@ -434,6 +456,7 @@ import {
 
 const ADMIN_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 const TRACKING_FIX_DATE = '2026-07-17';
+const AI_WORKER_URL = 'https://gymtrack-ai.wolterlenny362.workers.dev';
 const FIREBASE_CONFIG = {
   apiKey:            'AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA',
   authDomain:        'gymtrack-25d39.firebaseapp.com',
@@ -597,23 +620,34 @@ async function trackingStats() {
   };
 }
 
+// Worker prüft die Admin-UID selbst (verifyFirebaseToken + FOUNDER_UID-Check in
+// worker.js) — hier reicht der normale idToken, kein Secret im Dashboard nötig.
+async function aiStats() {
+  const idToken = await fbAuth.currentUser.getIdToken();
+  const res = await fetch(AI_WORKER_URL + '/stats?idToken=' + encodeURIComponent(idToken));
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
+  return data;
+}
+
 window.load = async () => {
   $('#stand').textContent = 'lädt …';
   const wrap = async (fn) => {
     try { return { ok: true, ...(await fn()) }; }
     catch (e) { return { ok: false, error: String(e.message || e).slice(0, 250) }; }
   };
-  const [auth, sync, community, tracking, appstore] = await Promise.all([
+  const [auth, sync, community, tracking, appstore, ai] = await Promise.all([
     wrap(adminDoc('auth')),
     wrap(usersStats),
     wrap(communityStats),
     wrap(trackingStats),
     wrap(adminDoc('appstore')),
+    wrap(aiStats),
   ]);
   if (appstore.ok && appstore._stand) {
     appstore.note = (appstore.note || '') + ` — übermittelt vom Mac: ${new Date(appstore._stand).toLocaleString('de-DE')}`;
   }
-  render({ ts: Date.now(), project: FIREBASE_CONFIG.projectId, auth, sync, community, tracking, appstore });
+  render({ ts: Date.now(), project: FIREBASE_CONFIG.projectId, auth, sync, community, tracking, appstore, ai });
   REFRESH_AT = Date.now() + 300_000;
 };
 

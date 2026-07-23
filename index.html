@@ -4202,10 +4202,18 @@ html[data-glass][data-theme="dark"] .tabbar{
 :root{--prem1:#f7c948;--prem2:#ff9d2f;--prem-grad:linear-gradient(135deg,#f7c948,#ff9d2f)}
 .prem-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:9px;font-size:11px;font-weight:800;
   background:var(--prem-grad);color:#3a2500;letter-spacing:.3px}
-/* Paywall */
+/* Paywall — cleaner App-Stil, dezenter Akzent statt Gold-Verlauf; eigener
+   z-index über Tabbar (1000) und KI-Bubble (1060), sonst versteckt die
+   schwebende Leiste die Sheet-Unterkante. */
+#ov-paywall{z-index:1080}
+/* Konto-Sheet: gleicher Grund wie oben, PLUS kann von aiCall() bei 402 im
+   Simulator über ein bereits offenes KI-Sheet (Chat/Analyse) gelegt werden —
+   ohne eigenen z-index würde die Stapel-Reihenfolge nur vom DOM-Ort abhängen
+   (beide sonst gleich 900) und das Login-Sheet könnte dahinter verschwinden. */
+#ov-account{z-index:1080}
 .pw-hero{text-align:center;padding:6px 4px 14px}
 .pw-hero-badge{width:64px;height:64px;border-radius:20px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
-  background:var(--prem-grad);color:#3a2500;box-shadow:0 10px 30px rgba(247,160,47,.35)}
+  background:rgba(var(--acc-rgb),.12);color:var(--acc)}
 .pw-title{font-size:22px;font-weight:800;letter-spacing:-.4px;text-align:center}
 .pw-sub{font-size:14px;color:var(--text2);margin-top:5px;line-height:1.5;text-align:center}
 .pw-feats{display:flex;flex-direction:column;gap:3px;margin:14px 0}
@@ -4222,7 +4230,7 @@ html[data-glass][data-theme="dark"] .tabbar{
 .pw-plan-price{font-size:21px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
 .pw-plan-per{font-size:12px;color:var(--text2)}
 .pw-plan-save{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;
-  background:var(--prem-grad);color:#3a2500;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:8px}
+  background:var(--acc);color:#fff;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:8px}
 .pw-cta{width:100%;border:none;border-radius:15px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;
   background:var(--acc);color:#fff;box-shadow:0 8px 24px rgba(var(--acc-rgb),.35)}
 .pw-cta:disabled{opacity:.6}
@@ -4335,14 +4343,18 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .aia-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);margin-top:7px;flex-shrink:0}
 /* ═══════════════════ KI-COACH: LIVE-COACH IM TRAINING (Phase D) ═══════════════════ */
 .wk-head-title-row{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
-.coach-pill{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:4px 10px 4px 8px;border-radius:20px;
-  font-size:11px;font-weight:700;color:var(--acc);white-space:nowrap;
-  background:var(--gl-bg-t);border:1px solid rgba(var(--acc-rgb),.28)}
-.coach-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex-shrink:0}
-@media (prefers-reduced-motion:no-preference){
-  .coach-pill-dot{animation:coachPulse 1.8s ease-in-out infinite}
-}
 @keyframes coachPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.35)}}
+/* Feste Coach-Leiste — durchgehend sichtbar im aktiven Training (Status + Live-Reaktionen) */
+.coach-bar{margin:0 0 10px;padding:9px 12px;border-radius:14px;transition:background .3s,border-color .3s;
+  background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
+.coach-bar-head{display:flex;align-items:center;gap:7px}
+.coach-bar-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex-shrink:0}
+@media (prefers-reduced-motion:no-preference){
+  .coach-bar-dot{animation:coachPulse 2.4s ease-in-out infinite}
+  .coach-bar.thinking .coach-bar-dot{animation:coachPulse .9s ease-in-out infinite}
+}
+.coach-bar-lbl{font-size:12px;font-weight:700;color:var(--acc);letter-spacing:.2px}
+.coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:4px;line-height:1.4;font-weight:600}
 .coach-card{position:relative;display:flex;border-radius:14px;overflow:hidden;margin-bottom:10px;
   background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
 .coach-card-bar{width:4px;flex-shrink:0;background:var(--acc)}
@@ -4355,6 +4367,12 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .coach-card-btn.accept{background:var(--acc);color:#fff}
 .coach-card-btn.dismiss{background:var(--inp-bg);color:var(--text2);border:1px solid var(--gl-bdr)}
 .coach-card-applied{display:flex;align-items:center;gap:8px;color:var(--acc);font-size:13px;font-weight:700}
+.coach-card-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.coach-card-opt{flex:1 1 auto;min-width:84px;border:1px solid rgba(var(--acc-rgb),.3);border-radius:10px;
+  padding:8px 10px;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--acc);
+  background:rgba(var(--acc-rgb),.08);cursor:pointer}
+.coach-card-skip{display:block;margin:7px auto 0;background:none;border:none;font-family:inherit;
+  font-size:11.5px;color:var(--text2);cursor:pointer;padding:2px}
 </style>
 </head>
 <body>
@@ -5406,7 +5424,6 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
     <div class="sh-head">
       <div class="wk-head-title-row">
         <h2 id="wk-title">Training</h2>
-        <span id="wk-coach-pill" class="coach-pill" style="display:none"><span class="coach-pill-dot"></span>KI-Coach aktiv</span>
       </div>
       <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
@@ -5447,6 +5464,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
             <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
           </div>
         </div>
+        <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
         <div id="rest-timer-bar" class="rest-bar" style="display:none">
           <span class="rest-bar-lbl">Pause</span>
           <div class="rest-bar-controls">
@@ -6105,7 +6123,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607231500';
+const APP_VERSION = 'gymtrack-v202607231617';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -11520,6 +11538,7 @@ function confirmWheel() {
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
   try { _coachEval(li, si); } catch(_) {}
+  try { _coachMicroReact(li, si); } catch(_) {}
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
   // PR-Feier NICHT hier — erst wenn der Satz per Häkchen bestätigt wird (toggleSetDone).
@@ -14750,6 +14769,7 @@ function startActive() {
   _coachState = _coachDefaultState(); // Live-Coach-Rate-Limits für neue Einheit zurücksetzen
   _coachClearCard();
   _coachEvalTimers = {};
+  _coachBarState = { mode: 'idle', msg: '' };
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
@@ -14933,7 +14953,7 @@ function renderLogCards() {
   }).join('');
   _attachSwipeToDelete();
   _saveActiveWkSoon();
-  try { _wkCoachPillSync(); } catch(_) {}
+  try { _coachBarRender(); } catch(_) {}
 }
 
 /* ── SWIPE-TO-DELETE (Übung im aktiven Training nach links wischen) ──
@@ -15589,6 +15609,9 @@ function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}
 /* Gründer-Kennzeichnung: Neon-Krone neben dem Namen im Community-Feed.
    FOUNDER_UID = Admin-/Gründer-Account (identisch mit der Admin-UID in den Firestore-Rules). */
 const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
+// Zusaetzliche Tester-UIDs (siehe ai-worker/worker.js, gleiche Liste) - kommen wie
+// Founder ueberall ohne Abo durch, inkl. echter KI-Antworten (Worker prueft dieselbe UID).
+const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1']);
 function _founderBadge(){ return `<span class="founder-tag" title="Founder" aria-label="Founder">Founder</span>`; }
 function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
 
@@ -20335,7 +20358,7 @@ function isPremium(){
   // try/catch: _fbUser ist ein späteres top-level `let` — bei frühem Aufruf
   // (z. B. beim Boot-Rendering vor dem Erreichen der KONTO-Sektion) wäre der
   // Zugriff sonst ein TDZ-ReferenceError, der den kompletten Boot abbricht!
-  try { if (_fbUser && _fbUser.uid === FOUNDER_UID) return true; } catch(_){} // Founder immer Premium
+  try { if (_fbUser && TEST_UIDS.has(_fbUser.uid)) return true; } catch(_){} // Founder/Tester immer Premium
   if (localStorage.getItem('gt_premiumDev') === '1') return true;             // Dev-Unlock (nur UI, kein echtes Abo)
   if (!PREM.active) return false;
   return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
@@ -20433,7 +20456,20 @@ async function aiCall(kind, payload){
     let j = null; try { j = await res.json(); } catch(_){}
     if (res.status === 402) {
       await premRefreshEntitlement();
-      openPaywall(kind);
+      // Simulator: der Worker prüft IMMER serverseitig (Firebase-Login + Kaufnachweis),
+      // egal was der lokale gt_premiumDev-Bypass clientseitig freischaltet — sonst
+      // könnte jeder KI ohne Abo erschleichen. Ohne Founder-Login (der einzige Account,
+      // den der Worker ohne Kaufnachweis durchlässt) 402t der Call also weiterhin.
+      // Statt der Kauf-Paywall (im Simulator sinnlos, kein echter Kauf möglich) hier
+      // zum Login leiten — das eigentliche Hindernis beim KI-Testen.
+      const env = await _getInstallInfo();
+      const isFounder = !!(_fbUser && TEST_UIDS.has(_fbUser.uid));
+      if (env && env.isSimulator && !isFounder) {
+        _dndToast('Simulator: mit deinem Founder-Konto anmelden, um KI-Funktionen zu testen.');
+        try { openOv('ov-account'); } catch(_) {}
+      } else {
+        openPaywall(kind);
+      }
       return null;
     }
     if (res.status === 429) {
@@ -20473,9 +20509,28 @@ function _coachQuotaExhausted() {
     return q.used >= q.limit;
   } catch(_) { return false; }
 }
-function _wkCoachPillSync() {
-  const el = document.getElementById('wk-coach-pill'); if (!el) return;
-  el.style.display = (isPremium() && S.aiCoach && S.aiCoach.live !== false) ? '' : 'none';
+// Feste Coach-Leiste: durchgehend sichtbarer Status ("Coach aktiv"/"denkt nach…")
+// + zeitweilige Reaktionszeile (Lob/Kurz-Tipp). mode: 'idle' | 'thinking' | 'msg'.
+let _coachBarState = { mode: 'idle', msg: '' };
+let _coachBarMsgTimer = null;
+function _coachBarSet(mode, msg, holdMs) {
+  _coachBarState.mode = mode || 'idle';
+  if (msg !== undefined) _coachBarState.msg = msg || '';
+  if (_coachBarMsgTimer) { clearTimeout(_coachBarMsgTimer); _coachBarMsgTimer = null; }
+  _coachBarRender();
+  if (holdMs) _coachBarMsgTimer = setTimeout(() => {
+    _coachBarState = { mode: 'idle', msg: '' }; _coachBarRender();
+  }, holdMs);
+}
+function _coachBarRender() {
+  const el = document.getElementById('wk-coach-bar'); if (!el) return;
+  const on = isPremium() && S.aiCoach && S.aiCoach.live !== false;
+  if (!on) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const thinking = _coachBarState.mode === 'thinking';
+  el.className = 'coach-bar' + (thinking ? ' thinking' : '');
+  el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-dot"></span><span class="coach-bar-lbl">${thinking ? 'Coach denkt nach…' : 'Coach aktiv'}</span></div>` +
+    (_coachBarState.msg ? `<div class="coach-bar-msg">${esc(_coachBarState.msg)}</div>` : '');
 }
 function _coachClearCard() {
   if (_coachCard && _coachCard.timer) clearTimeout(_coachCard.timer);
@@ -20533,6 +20588,54 @@ function _coachVolDelta(exId, li) {
     if (!(curVol > 0)) return null;
     return Math.round(((curVol - lastVol) / lastVol) * 100);
   } catch(_) { return null; }
+}
+
+// ── Lokale Mikro-Reaktion: bei JEDEM geloggten Satz, KEIN aiCall (kein Token/
+// Quota-Verbrauch) — läuft komplett unabhängig von den KI-Trigger-Calls unten
+// (_coachEvalRun), damit sich die Leiste "durchgehend dabei" anfühlt, ohne dass
+// Kosten getrieben werden. Nie zweimal dieselbe Phrase hintereinander.
+let _coachMicroLast = null;
+function _coachMicroPick(arr) {
+  let m; do { m = arr[Math.floor(Math.random() * arr.length)]; } while (arr.length > 1 && m === _coachMicroLast);
+  _coachMicroLast = m; return m;
+}
+function _coachMicroReact(li, si) {
+  if (!isPremium() || !S.aiCoach || S.aiCoach.live === false) return;
+  const log = wkLogs[li]; if (!log) return;
+  const set = log.sets && log.sets[si]; if (!set) return;
+  const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
+  if ((set.type || 'normal') === 'warmup') return;
+  const w = parseFloat(set.w), r = parseInt(set.r);
+  if (!(w > 0) || !(r > 0)) return; // erst wenn BEIDES eingetragen ist
+
+  let msg = null;
+  try {
+    const hist = exHistory(log.exerciseId);
+    if (hist.length) {
+      const lastSets = hist[hist.length - 1].sets || [];
+      let base = lastSets[si];
+      if (!base || !(parseFloat(base.w) > 0)) {
+        const work = lastSets.filter(s => (s.type || 'normal') !== 'warmup');
+        base = work.slice().sort((a, b) => (parseFloat(b.w) || 0) - (parseFloat(a.w) || 0))[0] || null;
+      }
+      if (base && parseFloat(base.w) > 0 && parseInt(base.r) > 0) {
+        const lastE1RM = epley1RM(parseFloat(base.w), parseInt(base.r));
+        const curE1RM  = epley1RM(w, r);
+        if (lastE1RM > 0 && curE1RM > 0) {
+          const diff = (curE1RM - lastE1RM) / lastE1RM;
+          if (diff >= 0.05) msg = _coachMicroPick(['Stark gesteigert.', 'Klare Verbesserung.', 'Sauber drauf gelegt.']);
+          else if (diff <= -0.08) msg = _coachMicroPick(['Ruhig angehen.', 'Heute etwas leichter — passt auch.']);
+        }
+      }
+    }
+  } catch(_) {}
+  if (!msg) {
+    // Kein Vergleich möglich/neutral: nur beim ersten Satz der Übung bestätigen,
+    // sonst würde die Leiste bei jedem einzelnen Satz aufblitzen und nerven.
+    if (si === 0 || (set.type || 'normal') === 'fail') msg = _coachMicroPick(['Sauber.', 'Sitzt.', 'Gebucht.', 'Notiert.']);
+    else return;
+  }
+  try { _coachBarSet('msg', msg, 4000); } catch(_) {}
 }
 
 function _coachEvalRun(li, si) {
@@ -20607,17 +20710,19 @@ function _coachEvalRun(li, si) {
 
   (async () => {
     try {
+      try { _coachBarSet('thinking'); } catch(_) {}
       const res = await aiCall('coach', { t: payload }); // aiCall zeigt Fehler/Paywall/Quota-Toast bereits selbst
-      if (!res || !res.c) return; // laut Vorgabe: fehlgeschlagener Call → still überspringen, kein Fehler-UI
+      if (!res || !res.c) { try { _coachBarSet('idle'); } catch(_) {} return; } // laut Vorgabe: fehlgeschlagener Call → still überspringen, kein Fehler-UI
       _coachCard = { exId: log.exerciseId, c: res.c, applied:false, baseW: w, timer:null };
       renderLogCards();
+      try { _coachBarSet('msg', res.c.title || res.c.text || '', 6000); } catch(_) {}
       // Auto-Dismiss nach 45s, wenn unangetastet
       _coachCard.timer = setTimeout(() => {
         if (_coachCard && _coachCard.exId === log.exerciseId && !_coachCard.applied) {
           _coachClearCard(); renderLogCards();
         }
       }, 45000);
-    } catch(e) { console.warn('[Coach] call:', e); }
+    } catch(e) { console.warn('[Coach] call:', e); try { _coachBarSet('idle'); } catch(_) {} }
   })();
 }
 
@@ -20634,15 +20739,27 @@ function _coachCardHTML() {
       return `<div class="coach-card"><div class="coach-card-bar"></div>
         <div class="coach-card-body coach-card-applied">${ICO.check({s:16})}<span>Übernommen</span></div></div>`;
     }
+    // Entweder mehrere Wege (options) ODER eine Einzel-Aktion (action) ODER reines
+    // Lob ohne Aktion (kind:'none'/fehlt) — s. COACH_SCHEMA im Worker.
+    const opts = Array.isArray(c.options) ? c.options.filter(o => o && o.label && o.action) : [];
+    const hasAction = c.action && c.action.kind && c.action.kind !== 'none';
+    let btns = '';
+    if (opts.length) {
+      btns = `<div class="coach-card-opts">${opts.map((o,i) =>
+          `<button type="button" class="coach-card-opt" onclick="_coachPickOption(${i})">${esc(o.label)}</button>`).join('')}</div>
+        <button type="button" class="coach-card-skip" onclick="_coachDismiss()">Ignorieren</button>`;
+    } else if (hasAction) {
+      btns = `<div class="coach-card-btns">
+          <button type="button" class="coach-card-btn accept" onclick="_coachAccept()">Annehmen</button>
+          <button type="button" class="coach-card-btn dismiss" onclick="_coachDismiss()">Ignorieren</button>
+        </div>`;
+    }
     return `<div class="coach-card" id="coach-card-live">
       <div class="coach-card-bar"></div>
       <div class="coach-card-body">
         <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(c.title||'')}</span></div>
         <div class="coach-card-text">${esc(c.text||'')}</div>
-        <div class="coach-card-btns">
-          <button type="button" class="coach-card-btn accept" onclick="_coachAccept()">Annehmen</button>
-          <button type="button" class="coach-card-btn dismiss" onclick="_coachDismiss()">Ignorieren</button>
-        </div>
+        ${btns}
       </div>
     </div>`;
   } catch(e) { console.warn('[Coach] card render:', e); return ''; }
@@ -20673,6 +20790,14 @@ function _coachApplyAction(li, action, baseW) {
       }
       break;
     }
+    case 'topSet': {
+      const si = _coachNextSetIdx(log);
+      if (si >= 0) {
+        if (val != null) log.sets[si].w = String(roundToStep(val));
+        log.sets[si].type = 'top'; // gleiche Kennzeichnung wie manueller Top-Satz (SET_TYPE_LABEL)
+      }
+      break;
+    }
     case 'deload': {
       const si = _coachNextSetIdx(log);
       if (si >= 0 && baseW > 0) log.sets[si].w = String(roundToStep(baseW * 0.9));
@@ -20691,21 +20816,28 @@ function _coachApplyAction(li, action, baseW) {
   }
   try { _saveActiveWk(); } catch(_) {}
 }
+// Gemeinsamer Commit-Pfad für Einzel-Aktion (_coachAccept) und Options-Auswahl
+// (_coachPickOption) — beide wenden am Ende dieselbe Aktion aufs nächste Set an.
+function _coachCommitAction(action) {
+  if (!_coachCard || _coachCard.applied) return;
+  if (_coachCard.timer) { clearTimeout(_coachCard.timer); _coachCard.timer = null; }
+  const li = wkLogs.findIndex(l => l.exerciseId === _coachCard.exId);
+  try { if (li >= 0) _coachApplyAction(li, action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
+  _coachCard.applied = true;
+  try { haptic(14); } catch(_) {}
+  renderLogCards(); // zeigt kurz die Checkmark-Bestätigung (applied-Zweig von _coachCardHTML)
+  setTimeout(() => { _coachClearCard(); renderLogCards(); }, 1000);
+}
 function _coachAccept() {
+  try { _coachCommitAction((_coachCard && _coachCard.c || {}).action); }
+  catch(e) { console.warn('[Coach] accept:', e); try { _coachClearCard(); renderLogCards(); } catch(_) {} }
+}
+function _coachPickOption(idx) {
   try {
-    if (!_coachCard || _coachCard.applied) return;
-    if (_coachCard.timer) { clearTimeout(_coachCard.timer); _coachCard.timer = null; }
-    const c = _coachCard.c || {};
-    const li = wkLogs.findIndex(l => l.exerciseId === _coachCard.exId);
-    try { if (li >= 0) _coachApplyAction(li, c.action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
-    _coachCard.applied = true;
-    try { haptic(14); } catch(_) {}
-    renderLogCards(); // zeigt kurz die Checkmark-Bestätigung (applied-Zweig von _coachCardHTML)
-    setTimeout(() => { _coachClearCard(); renderLogCards(); }, 1000);
-  } catch(e) {
-    console.warn('[Coach] accept:', e);
-    try { _coachClearCard(); renderLogCards(); } catch(_) {}
-  }
+    const opts = (_coachCard && Array.isArray(_coachCard.c && _coachCard.c.options)) ? _coachCard.c.options : [];
+    const opt = opts[idx]; if (!opt) return;
+    _coachCommitAction(opt.action);
+  } catch(e) { console.warn('[Coach] pickOption:', e); try { _coachClearCard(); renderLogCards(); } catch(_) {} }
 }
 
 // ── Paywall ────────────────────────────────────────────
@@ -20755,7 +20887,7 @@ function _pwRender(feature){
     <div class="pw-hero">
       <div class="pw-hero-badge">${ICO.sparkle({s:30})}</div>
       <div class="pw-title">${f ? f.t : 'Dein KI-Coach für MyGymTrack'}</div>
-      <div class="pw-sub">Chat, Live-Tipps im Training und automatische Trainingsanalyse — für weniger als einen Proteinriegel im Monat.</div>
+      <div class="pw-sub">Chat, Live-Tipps im Training und automatische Trainingsanalyse.</div>
     </div>
     <div class="pw-feats">${_pwFeatRowsHTML(['chat','coach','analyze','insights'])}</div>
     <div class="pw-plans">${_pwPlanCardsHTML()}</div>
@@ -20781,7 +20913,7 @@ function setAiCoachOpt(key, val){
   S.aiCoach = S.aiCoach || { live:true, insights:true };
   S.aiCoach[key] = !!val;
   persist();
-  try { if (typeof _wkCoachPillSync === 'function') _wkCoachPillSync(); } catch(_) {}
+  try { if (typeof _coachBarRender === 'function') _coachBarRender(); } catch(_) {}
 }
 function renderPremiumSettings(){
   const el = document.getElementById('prem-settings-body'); if (!el) return;
@@ -21475,6 +21607,21 @@ async function _runUpdateCheck() {
 // Stattdessen prüfen, ob eine neuere Version bereitsteht, und zum Update im
 // App Store auffordern.
 setTimeout(() => { if (_isNative()) _runNativeUpdateCheck(); else _runUpdateCheck(); }, 1200);
+setTimeout(_maybeUnlockSimPremium, 1200);
+
+// Simulator: Premium-UI automatisch entsperren (kein echter Kauf im Simulator
+// möglich). NUR das UI-Flag (wie renderPremiumSettings/premGate es sowieso schon
+// via gt_premiumDev unterstützen) — für ECHTE KI-Calls prüft der Worker weiterhin
+// unabhängig serverseitig JWS/idToken; dafür im Simulator mit dem Founder-Konto
+// anmelden (kommt dort ohne Abo-Nachweis durch, siehe ai-worker/worker.js).
+async function _maybeUnlockSimPremium(){
+  if (!_isNative()) return;
+  try {
+    if (localStorage.getItem('gt_premiumDev') === '1') return; // schon entsperrt
+    const env = await _getInstallInfo();
+    if (env && env.isSimulator) localStorage.setItem('gt_premiumDev', '1');
+  } catch(_){}
+}
 
 // ── NATIVE UPDATE (App Store) ─────────────────────────
 // Vollautomatisch über Apples offizielle iTunes-Lookup-API: vergleicht die

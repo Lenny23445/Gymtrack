@@ -5,6 +5,7 @@
 //   POST /chat     {idToken, jws, lang, messages[], context}   → {text, quota}
 //   POST /coach    {idToken, jws, lang, t:{...}}                → {c:{...}, quota}
 //   POST /analyze  {idToken, jws, lang, mode, data}             → {a:{...}, quota}
+//   GET  /stats    ?idToken=…  (nur Founder-UID)                 → {month, calls, inTok, outTok, costUsd, budgetUsd}
 //
 // Sicherheit (beides muss passen):
 //   1. idToken   = Firebase-Login (wer bist du) — geprüft via accounts:lookup
@@ -23,10 +24,18 @@
 //   CLAUDE_MODEL  = Claude-Modell falls PROVIDER=claude (Default: claude-haiku-4-5)
 //   MONTHLY_LIMIT = KI-Anfragen/Monat pro Premium-Nutzer (Default 50; Coach-Trigger zählen 0.5)
 //   CHAT_DAILY / COACH_DAILY / ANALYZE_DAILY = Tageslimits als Missbrauchsbremse
+//   PRICE_IN_PER_M / PRICE_OUT_PER_M = USD pro 1 Mio. Input-/Output-Token für die Kostenschätzung
+//                  (Default 0.30/2.50 ≈ Gemini 2.5 Flash) — rein für Anzeige + Spend-Cap-Berechnung
+//   GLOBAL_MONTHLY_USD = harter Kostendeckel/Monat über ALLE Nutzer zusammen (leer = kein Deckel);
+//                  bei Erreichen antworten /chat|/coach|/analyze mit 429, bis der Monat wechselt
 // Bindings:
-//   AI_QUOTA (KV Namespace) = führt das Monatslimit fort (Key q:{uid}:{YYYY-MM})
+//   AI_QUOTA (KV Namespace) = führt Monatslimit (q:{uid}:{YYYY-MM}) UND globale Kosten-Stats (stats:{YYYY-MM}) fort
 
 const FOUNDER_UID = "GMm3AlNn1pVRL6cc76opBgnM9sr1";
+// Zusaetzliche Tester-UIDs: kommen wie Founder ohne Abo-Nachweis + ohne Monatslimit
+// durch. Sicher, weil an echte Firebase-Identitaet gebunden (Auth via Google/Apple
+// noetig) - nicht faelschbar wie ein localStorage-Flag im oeffentlichen JS-Quelltext.
+const TEST_UIDS = new Set([FOUNDER_UID, "wbOGsL3zsyb1ylzEXPhgpqWdeOg1"]);
 const BUNDLE_ID   = "com.wolter.gymtrack";
 const PRODUCT_IDS = ["gymtrack.premium.monthly", "gymtrack.premium.yearly"];
 const GRACE_MS    = 3 * 864e5; // 3 Tage Kulanz nach Ablauf (wie App-seitig)
@@ -53,7 +62,7 @@ function dailyOk(uid, kind, env) {
 async function monthlyUse(uid, env, weight) {
   const limit = parseInt(env.MONTHLY_LIMIT) || 50;
   const month = new Date().toISOString().slice(0, 7);
-  if (uid === FOUNDER_UID) return { ok: true, used: 0, limit, month };
+  if (TEST_UIDS.has(uid)) return { ok: true, used: 0, limit, month };
   const kv = env.AI_QUOTA;
   if (!kv) return { ok: true, used: 0, limit, month }; // kein KV gebunden (z.B. lokaler Dev) → nicht blockieren
   const key = "q:" + uid + ":" + month;
@@ -64,17 +73,65 @@ async function monthlyUse(uid, env, weight) {
   return { ok: true, used: next, limit, month };
 }
 
+// ── Globales Monats-Aggregat (Tokens/Kosten über ALLE Nutzer) — Kostendeckel + Dashboard ──
+function estCostUsd(env, inTok, outTok) {
+  const priceIn  = parseFloat(env.PRICE_IN_PER_M)  || 0.30; // Gemini 2.5 Flash Default-Schätzpreise
+  const priceOut = parseFloat(env.PRICE_OUT_PER_M) || 2.50;
+  return (inTok / 1e6) * priceIn + (outTok / 1e6) * priceOut;
+}
+async function monthlyStats(env) {
+  const month = new Date().toISOString().slice(0, 7);
+  const kv = env.AI_QUOTA;
+  const empty = { month, calls: 0, inTok: 0, outTok: 0 };
+  if (!kv) return empty;
+  try {
+    const raw = await kv.get("stats:" + month);
+    return raw ? { month, ...JSON.parse(raw) } : empty;
+  } catch (_) { return empty; }
+}
+// Nach jedem erfolgreichen LLM-Call — bewusst separat von monthlyUse() (Call-Zähler
+// pro User), das hier ist die Kosten-Summe über ALLE User für Spend-Cap + Dashboard.
+async function recordUsage(env, usage) {
+  const kv = env.AI_QUOTA;
+  if (!kv || !usage) return;
+  const month = new Date().toISOString().slice(0, 7);
+  const key = "stats:" + month;
+  const raw = await kv.get(key);
+  const s = raw ? JSON.parse(raw) : { calls: 0, inTok: 0, outTok: 0 };
+  s.calls++;
+  s.inTok  += usage.inTok  || 0;
+  s.outTok += usage.outTok || 0;
+  await kv.put(key, JSON.stringify(s), { expirationTtl: 400 * 86400 });
+}
+
 export default {
   async fetch(request, env) {
     const cors = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
-    if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
 
-    const path = new URL(request.url).pathname.replace(/\/+$/, "");
+    const url  = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, "");
+
+    // ── GET /stats — Monats-Tokens/Kosten fürs Admin-Dashboard (nur Founder-UID) ──
+    if (path === "/stats") {
+      if (request.method !== "GET") return json({ error: "GET only" }, 405, cors);
+      const idToken = url.searchParams.get("idToken");
+      if (!idToken) return json({ error: "idToken fehlt" }, 401, cors);
+      let uid;
+      try { uid = await verifyFirebaseToken(idToken, env); }
+      catch (e) { return json({ error: "Anmeldung ungültig" }, 401, cors); }
+      if (uid !== FOUNDER_UID) return json({ error: "kein Zugriff" }, 403, cors);
+      const stats = await monthlyStats(env);
+      const costUsd = estCostUsd(env, stats.inTok, stats.outTok);
+      const budgetUsd = parseFloat(env.GLOBAL_MONTHLY_USD) || null;
+      return json({ ...stats, costUsd, budgetUsd }, 200, cors);
+    }
+
+    if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
     if (path !== "/chat" && path !== "/coach" && path !== "/analyze") return json({ error: "unknown endpoint" }, 404, cors);
 
     let body;
@@ -88,7 +145,7 @@ export default {
     catch (e) { console.log("[AI] Auth fehlgeschlagen:", e.message); return json({ error: "Anmeldung ungültig — bitte neu einloggen" }, 401, cors); }
 
     // 2) Bist du Premium? — StoreKit-JWS prüfen (Founder darf ohne)
-    if (uid !== FOUNDER_UID) {
+    if (!TEST_UIDS.has(uid)) {
       if (!jws) return json({ error: "Kein Abo-Nachweis" }, 402, cors);
       try { await verifyStoreKitJws(jws); }
       catch (e) { console.log("[AI] JWS abgelehnt:", e.message); return json({ error: "Abo-Nachweis ungültig: " + e.message }, 402, cors); }
@@ -106,12 +163,24 @@ export default {
     }
     const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month };
 
-    // 5) LLM aufrufen
+    // 5) Globales Monatsbudget (Kostendeckel über ALLE Nutzer zusammen, Hard-Stop) —
+    // nur aktiv wenn GLOBAL_MONTHLY_USD gesetzt ist (Var, kein Secret; siehe Kopfkommentar).
+    const budgetUsd = parseFloat(env.GLOBAL_MONTHLY_USD);
+    if (budgetUsd > 0) {
+      const stats = await monthlyStats(env);
+      if (estCostUsd(env, stats.inTok, stats.outTok) >= budgetUsd) {
+        return json({ error: "KI-Monatsbudget erreicht — bitte später erneut versuchen" }, 429, cors);
+      }
+    }
+
+    // 6) LLM aufrufen
     try {
       let result;
       if (path === "/chat")    result = await runChat(body, lang, env);
       else if (path === "/coach")   result = await runCoach(body, lang, env);
       else                           result = await runAnalyze(body, lang, env);
+      try { await recordUsage(env, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
+      delete result.usage; // interne Kosten-Info, nicht an den Client
       result.quota = quota;
       return json(result, 200, cors);
     } catch (e) {
@@ -159,7 +228,9 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
   if (!cand) throw new Error("keine Antwort");
   if (cand.finishReason === "SAFETY" || cand.finishReason === "PROHIBITED_CONTENT") throw new Error("refusal");
   const parts = (cand.content && cand.content.parts) || [];
-  return parts.map((p) => p.text || "").join("");
+  const text = parts.map((p) => p.text || "").join("");
+  const um = data.usageMetadata || {};
+  return { text, usage: { inTok: um.promptTokenCount || 0, outTok: um.candidatesTokenCount || 0 } };
 }
 
 async function llmClaude(env, { system, messages, maxTokens, schema }) {
@@ -177,7 +248,9 @@ async function llmClaude(env, { system, messages, maxTokens, schema }) {
   if (!res.ok) throw new Error("Claude HTTP " + res.status + " " + (await res.text()).slice(0, 300));
   const data = await res.json();
   if (data.stop_reason === "refusal") throw new Error("refusal");
-  return (data.content.find((b) => b.type === "text") || {}).text || "";
+  const text = (data.content.find((b) => b.type === "text") || {}).text || "";
+  const u = data.usage || {};
+  return { text, usage: { inTok: u.input_tokens || 0, outTok: u.output_tokens || 0 } };
 }
 
 // Gemini's responseSchema ist ein OpenAPI-Subset — additionalProperties wird nicht unterstützt.
@@ -219,27 +292,36 @@ When the user wants a training plan: ask at most ONE short clarifying question i
 muscleGroup only from: brust, ruecken, beine, arme, schultern, core. Prefer exercises the user already has (exact names from the list). All 7 days mon-sun, rest days as {"rest":true}. Summarize the plan briefly before the code block.
 No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.`) +
     "\n\n=== NUTZERDATEN ===\n" + ctx;
-  const text = await llm(env, { system: sys, messages: msgs, maxTokens: 1200 });
-  return { text };
+  const { text, usage } = await llm(env, { system: sys, messages: msgs, maxTokens: 1200 });
+  return { text, usage };
 }
 
 // ═══════════════ /coach — Live-Trigger während des Trainings ═══════════════
 
+const COACH_ACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    kind:  { type: "string" }, // weight | extraSet | dropSet | topSet | rest | deload | none
+    value: { type: "number" },
+  },
+  required: ["kind"],
+};
 const COACH_SCHEMA = {
   type: "object",
   properties: {
-    title:  { type: "string" },
-    text:   { type: "string" },
-    action: {
-      type: "object",
-      properties: {
-        kind:  { type: "string" }, // weight | extraSet | dropSet | rest | deload | none
-        value: { type: "number" },
+    title:   { type: "string" },
+    text:    { type: "string" },
+    action:  COACH_ACTION_SCHEMA, // gesetzt bei eindeutiger Lage (options dann leer)
+    options: {                     // gesetzt bei mehreren sinnvollen Wegen (2-3, action dann leer)
+      type: "array",
+      items: {
+        type: "object",
+        properties: { label: { type: "string" }, action: COACH_ACTION_SCHEMA },
+        required: ["label", "action"],
       },
-      required: ["kind"],
     },
   },
-  required: ["title", "text", "action"],
+  required: ["title", "text"],
 };
 
 async function runCoach(body, lang, env) {
@@ -249,19 +331,27 @@ async function runCoach(body, lang, env) {
     ? `Du bist ein sportwissenschaftlich fundierter Fitness-Coach in der App MyGymTrack und gibst eine SEHR kurze Live-Einschätzung während eines laufenden Satzes. Du bekommst kompakte Trigger-Daten (aktueller Satz vs. letzte Session, Ermüdung, Ziel). Antworte mit maximal 2 kurzen Sätzen, duze, konkret, keine Floskeln, keine Begrüßung.
 title: max. 4 Wörter Kurztitel (z. B. "Starke Leistung", "Achtung Ermüdung").
 text: 1-2 Sätze Einschätzung + Empfehlung.
-action.kind: eine von "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz sinnvoll), "dropSet" (Dropsatz sinnvoll), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (nur Kommentar, keine Aktion).
+Gib ENTWEDER "action" ODER "options" zurück (nie beide, nie leer bei reinem Lob):
+- Ist die Lage eindeutig (klar EIN sinnvoller nächster Schritt): "action" setzen.
+- Gibt es mehrere sinnvolle Wege (z. B. Dropsatz ODER ein Satz mehr ODER normal weiter): "options" mit 2-3 Einträgen {label: kurzer Button-Text max. 3 Wörter, action}.
+- Reines Lob ohne konkrete Aktion: "action":{"kind":"none"}, kein "options".
+action.kind: "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz), "dropSet" (Dropsatz), "topSet" (nächster Satz = neuer Bestwert/Top-Satz), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (keine Aktion).
 Trigger-Typen: jump=deutliche Leistungssteigerung, drop=deutlicher Leistungsabfall, repmax=alle Sätze am oberen Wiederholungsende (Gewicht könnte steigen), fatigue=hohe Ermüdung erkannt, stall=Stagnation über mehrere Einheiten.`
     : `You are a sports-science-grounded fitness coach in the MyGymTrack app giving a VERY short live assessment during an active set. You get compact trigger data (current set vs last session, fatigue, goal). Reply in max 2 short sentences, concrete, no filler, no greeting.
 title: max 4 words. text: 1-2 sentences assessment + recommendation.
-action.kind: one of "weight" (adjust weight, value=new kg), "extraSet", "dropSet", "rest", "deload", "none".
+Return EITHER "action" OR "options" (never both, never empty on pure praise):
+- Clear situation (one obvious next step): set "action".
+- Multiple sensible paths (e.g. drop set OR one more set OR continue as planned): set "options" with 2-3 entries {label: short button text max 3 words, action}.
+- Pure praise, no concrete action: "action":{"kind":"none"}, no "options".
+action.kind: "weight" (adjust weight, value=new kg), "extraSet", "dropSet", "topSet" (next set = new best/top set), "rest", "deload", "none".
 Trigger types: jump=clear performance increase, drop=clear performance drop, repmax=all sets at top of rep range, fatigue=high fatigue detected, stall=stagnation across sessions.`;
-  const text = await llm(env, {
+  const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: JSON.stringify(t).slice(0, 2000) }],
-    maxTokens: 250,
+    maxTokens: 300,
     schema: COACH_SCHEMA,
   });
-  return { c: JSON.parse(text) };
+  return { c: JSON.parse(text), usage };
 }
 
 // ═══════════════ /analyze — Trainingsanalyse / Workout-Optimierung / Fortschritt ═══════════════
@@ -300,13 +390,13 @@ recos: 2-4 konkrete, umsetzbare Empfehlungen.`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
 score: 0-100 honest overall rating.
 summary: 2-3 sentences. points: 2-4 concrete observations. recos: 2-4 actionable recommendations.`;
-  const text = await llm(env, {
+  const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],
     maxTokens: 900,
     schema: ANALYZE_SCHEMA,
   });
-  return { a: JSON.parse(text) };
+  return { a: JSON.parse(text), usage };
 }
 
 // ═══════════════ Firebase-Token prüfen ═══════════════
