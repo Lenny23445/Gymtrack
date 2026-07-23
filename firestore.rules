@@ -70,19 +70,6 @@ service cloud.firestore {
     match /{path=**}/posts/{pid} {
       allow read: if request.auth != null && resource.data.visibility == 'public';
     }
-    // 1:1-Chat zwischen Freunden: Chat-ID = beide UIDs sortiert, mit "_" verbunden.
-    // Nur die beiden Teilnehmer (eigene UID steckt in der Chat-ID) lesen/schreiben.
-    match /chats/{chatId}/messages/{mid} {
-      allow read: if request.auth != null && request.auth.uid in chatId.split('_');
-      allow create: if request.auth != null
-        && request.auth.uid in chatId.split('_')
-        && request.resource.data.from == request.auth.uid
-        && request.resource.data.to in chatId.split('_')
-        && request.resource.data.keys().hasOnly(['from','to','text','ts'])
-        && request.resource.data.text is string
-        && request.resource.data.text.size() <= 500;
-      allow delete: if request.auth != null && resource.data.from == request.auth.uid;
-    }
     match /reports/{rid} {
       allow create: if request.auth != null
         && request.resource.data.reporter == request.auth.uid

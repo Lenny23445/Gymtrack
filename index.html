@@ -4091,11 +4091,22 @@ html[data-glass][data-theme="dark"] .tabbar{
 .shf-flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40;transition:opacity .5s}
 /* Editor (Layout-Swipe auf dem Foto) */
 .shf-edit{flex:1;display:flex;flex-direction:column;justify-content:center}
-.shf-swipe{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;gap:14px;padding:0 7vw;scrollbar-width:none}
+.shf-swipe{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;gap:16px;padding:14px 15vw;scrollbar-width:none}
 .shf-swipe::-webkit-scrollbar{display:none}
-.shf-slide{flex:0 0 86vw;scroll-snap-align:center;border-radius:20px;overflow:hidden;box-shadow:0 14px 50px rgba(0,0,0,.5)}
-.shf-slide img{width:100%;display:block}
-.shf-dots{display:flex;justify-content:center;gap:7px;margin-top:16px}
+/* Karten-Karussell: aktive Karte groß mit gestricheltem Rahmen (Ticket-Look),
+   Nachbarn lugen gedimmt und verkleinert an den Rändern rein */
+.shf-slide{flex:0 0 70vw;scroll-snap-align:center;border-radius:22px;overflow:visible;position:relative;
+  transform:scale(.90);opacity:.38;transition:transform .28s ease,opacity .28s ease}
+.shf-slide img{width:100%;display:block;border-radius:22px;box-shadow:0 14px 50px rgba(0,0,0,.5)}
+.shf-slide.on{transform:scale(1);opacity:1}
+.shf-slide.on::after{content:'';position:absolute;inset:-9px;border-radius:28px;pointer-events:none;
+  border:1.5px dashed rgba(255,255,255,.85)}
+.shf-dots{display:flex;justify-content:center;gap:7px;margin-top:18px}
+/* Stats-Zeile unter dem Karussell (Sessions · aktive Zeit, grüne Deltas) */
+.shf-stats{display:flex;justify-content:center;gap:34px;margin-top:14px}
+.shf-stats .l{display:block;font-size:10.5px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.55);text-transform:uppercase}
+.shf-stats b{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.shf-stats i{font-style:normal;font-size:12px;font-weight:800;color:#30d158;margin-left:5px}
 .shf-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
 .shf-dot.on{background:var(--acc);width:20px;border-radius:4px}
 .shf-cta{position:absolute;bottom:calc(24px + var(--sab));left:24px;right:24px;z-index:30;display:flex;gap:10px}
@@ -4176,12 +4187,6 @@ html[data-glass][data-theme="dark"] .tabbar{
 .cpg-count{position:absolute;top:-30px;right:4px;font-size:12px;color:var(--text2)}
 /* Flamme */
 .flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;justify-content:center;gap:0;font-size:15px;font-weight:800;transition:transform .15s}
-/* Direkt-Nachricht auf Community-Cards (öffnet 1:1-Chat mit dem Autor) */
-.cpg-msg{border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;
-  background:rgba(0,0,0,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;
-  border-radius:22px;padding:9px 14px;font-size:12.5px;font-weight:800}
-.cpg-card:not(.cpg-snap) .cpg-msg{position:absolute;bottom:14px;right:14px;z-index:4}
-.cpg-snap .cpg-msg{margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16)}
 .flm-btn:active{transform:translateX(-50%) scale(.92)}
 .flm-btn .ct:not(:empty){margin-left:8px}
 .flm-btn .fl{display:inline-flex;align-items:center;justify-content:center;transform-origin:center;filter:grayscale(1) brightness(1.6);transition:filter .2s}
@@ -4327,12 +4332,12 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   opacity:0;transition:opacity .22s ease;
 }
 #ai-radial-backdrop.on{display:block;opacity:1}
+/* Bewusst KEIN Scroll-Container mehr: overflow-y + Kind-Effekte erzeugten in
+   WKWebView eine durchgehende dunkle Compositing-Fläche hinter den Pillen. */
 #ai-radial{
   position:fixed;z-index:1061;display:flex;flex-direction:column-reverse;gap:10px;
-  max-height:min(58vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
-  padding:2px;
+  padding:2px;background:none;
 }
-#ai-radial::-webkit-scrollbar{display:none}
 .ai-r-item{
   flex-shrink:0;width:fit-content;height:46px;border-radius:23px;padding:0 18px 0 14px;
   display:flex;align-items:center;gap:10px;
@@ -4484,10 +4489,6 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
 .frp-exp-track{height:8px;border-radius:5px;background:var(--inp-bg);overflow:hidden;margin-top:6px}
 .frp-exp-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,rgba(var(--acc-rgb),.55),var(--acc))}
 .frp-bio{font-size:13.5px;line-height:1.55;margin-top:4px;white-space:pre-wrap;word-break:break-word}
-/* ═══ FREUNDE-CHAT ═══ */
-#fchat-log{display:flex;flex-direction:column;gap:8px;padding:6px 2px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.fchat-day{align-self:center;font-size:10.5px;font-weight:800;color:var(--text2);padding:3px 10px;border-radius:8px;background:var(--inp-bg)}
-.fchat-ts{font-size:9.5px;opacity:.55;margin-top:2px;text-align:right}
 /* ═══ LIVE-COACH: PULSIERENDE KI-AURA ═══
    Bewusst als Opacity-Puls auf einem Pseudo-Element (Compositor-Animation) statt
    animiertem box-shadow — box-shadow-Keyframes repainted jeden Frame und ruckelt
@@ -6304,21 +6305,6 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
   </div>
 </div>
 
-<!-- SHEET: FREUNDE-CHAT (1:1) -->
-<div class="ov" id="ov-frchat" style="z-index:1082" onclick="if(event.target===this)closeOv('ov-frchat')">
-  <div class="sheet" style="height:86vh;height:min(86vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
-    <div class="sh-handle"></div>
-    <div class="sh-head"><h2 id="fchat-title">Chat</h2><button class="x-btn" onclick="closeFrChat()">✕</button></div>
-    <div id="fchat-log"></div>
-    <div class="aic-inrow" style="padding:10px 14px calc(12px + var(--sab))">
-      <textarea id="fchat-in" rows="1" maxlength="500" placeholder="Nachricht…" oninput="_aicGrow(this)"></textarea>
-      <button class="aic-send" id="fchat-send" type="button" onclick="fchatSend()" aria-label="Senden">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- SHEET: POST-WORKOUT CHECK-IN (Phase E, für ALLE Nutzer) -->
 <div class="ov" id="ov-checkin" onclick="if(event.target===this)closeOv('ov-checkin')">
   <div class="sheet">
@@ -6347,7 +6333,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232310';
+const APP_VERSION = 'gymtrack-v202607240915';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7023,6 +7009,9 @@ const I18N_EN = {
   'Übung nicht gefunden — Name geändert?':'Exercise not found — renamed?',
   'Kamera öffnen':'Open camera','Gerät mittig einfangen':'Center the machine','Schließen':'Close',
   'im Training':'training now',
+  'Was möchtest du optimieren?':'What do you want to optimize?','Was möchtest du analysieren?':'What do you want to analyze?',
+  'Letztes Workout':'Last workout','Gesamter Fortschritt':'Overall progress','Einzelne Übung':'Single exercise',
+  'Welche Übung?':'Which exercise?','Split':'Split','Sessions':'Sessions','Aktive Zeit':'Active time',
   'Optional…':'Optional…','Diktieren':'Dictate',
   /* Changelog: Live-Coach Ausbau (23.07.2026) */
   '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
@@ -16525,11 +16514,21 @@ function _shfEditorStep() {
       <div class="shf-title">${tr('Layout wählen')}</div><div style="width:42px"></div></div>
     <div class="shf-edit">
       <div class="shf-swipe" id="shf-swipe">
-        ${_shfRendered.map((u, i) => `<div class="shf-slide"><img src="${u}" alt="${SHARE_LAYOUTS[i].name}"></div>`).join('')}
+        ${_shfRendered.map((u, i) => `<div class="shf-slide${i === _shfLayout ? ' on' : ''}"><img src="${u}" alt="${SHARE_LAYOUTS[i].name}"></div>`).join('')}
       </div>
       <div class="shf-dots" id="shf-dots">
         ${SHARE_LAYOUTS.map((_, i) => `<div class="shf-dot${i === _shfLayout ? ' on' : ''}"></div>`).join('')}
       </div>
+      ${(() => {
+        const n = (S.sessions || []).length;
+        const totMin = Math.round((S.sessions || []).reduce((a, s) => a + (s.duration || 0), 0) / 60);
+        const lastMin = Math.round(((S.sessions || [])[n - 1]?.duration || 0) / 60);
+        const fmtT = totMin >= 60 ? Math.floor(totMin / 60) + ' h ' + (totMin % 60) + ' m' : totMin + ' m';
+        return `<div class="shf-stats">
+          <div><span class="l">${tr('Sessions')}</span><b>${n}<i>+1</i></b></div>
+          <div><span class="l">${tr('Aktive Zeit')}</span><b>${fmtT}${lastMin ? `<i>+${lastMin} m</i>` : ''}</b></div>
+        </div>`;
+      })()}
     </div>
     <div class="shf-pal" id="shf-pal">
       ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="background:${p.accent || _shfAppAcc()}" aria-label="${p.name}"></button>`).join('')}
@@ -16557,6 +16556,7 @@ function _shfEditorStep() {
       if (dd < best) { best = dd; idx = i; }
     });
     if (idx !== lastIdx) { lastIdx = idx; _shfLayout = idx; hapticTick();
+      [...sw.children].forEach((el, i) => el.classList.toggle('on', i === idx));
       [...document.getElementById('shf-dots').children].forEach((d, i) => d.classList.toggle('on', i === idx));
     }
   }, { passive: true });
@@ -19401,7 +19401,6 @@ async function openFrProfile(uid){
     <div class="frp-sec">Aktivität</div>
     <div id="frp-feed"><div class="soc-empty" style="padding:10px">Lade…</div></div>
     <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-acc" style="flex:1.4" onclick="openFrChat('${uid}')">${tr('Nachricht')}</button>
       <button class="btn btn-gray" style="flex:1" onclick="removeFriend('${uid}')">Entfernen</button>
       <button class="btn btn-gray" style="flex:1;color:#ff453a" onclick="blockUser('${uid}')">Blockieren</button>
     </div>`;
@@ -19413,82 +19412,8 @@ async function openFrProfile(uid){
       : '<div class="soc-empty" style="padding:10px">Noch keine Aktivitäten.</div>';
   });
 }
-/* ── 1:1-CHAT MIT FREUNDEN ────────────────────────────────────────────────
-   Firestore chats/{uidA_uidB}/messages (Chat-ID = beide UIDs sortiert).
-   Rules: nur die beiden Teilnehmer lesen/schreiben (siehe firestore.rules —
-   MUSS in der Konsole veröffentlicht sein, sonst "Chat nicht verfügbar"). */
-let _fchatPeer = null, _fchatUnsub = null, _fchatSending = false;
-function _fchatId(a, b){ return [a, b].sort().join('_'); }
-function openFrChat(uid, name){
-  if (!_socReady()) return;
-  const p = (_socCache || []).find(x => x.uid === uid);
-  _fchatPeer = { uid, name: (p && p.name) || name || 'Chat' };
-  const t = document.getElementById('fchat-title'); if (t) t.textContent = _fchatPeer.name;
-  const log = document.getElementById('fchat-log');
-  if (log) log.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Lade…')}</div>`;
-  openOv('ov-frchat');
-  _fchatListen();
-  haptic(8);
-}
-function closeFrChat(){
-  if (_fchatUnsub) { try { _fchatUnsub(); } catch(_){} _fchatUnsub = null; }
-  _fchatPeer = null;
-  closeOv('ov-frchat');
-}
-function _fchatListen(){
-  if (_fchatUnsub) { try { _fchatUnsub(); } catch(_){} _fchatUnsub = null; }
-  if (!_fchatPeer || !_socReady()) return;
-  const cid = _fchatId(_fbUser.uid, _fchatPeer.uid);
-  const q = window.FB.query(window.FB.collection('chats/' + cid + '/messages'),
-    window.FB.orderBy('ts', 'desc'), window.FB.limit(50));
-  _fchatUnsub = window.FB.onSnapshot(q, snap => {
-    const msgs = []; snap.forEach(d => msgs.push(d.data()));
-    msgs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-    _fchatRender(msgs);
-  }, e => {
-    console.warn('[GymTrack] Chat:', e?.code || e);
-    const log = document.getElementById('fchat-log');
-    if (log) log.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Chat gerade nicht verfügbar.')}</div>`;
-  });
-}
-function _fchatRender(msgs){
-  const log = document.getElementById('fchat-log'); if (!log) return;
-  if (!msgs.length) {
-    log.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Noch keine Nachrichten — sag Hallo!')}</div>`;
-    return;
-  }
-  let lastDay = '';
-  log.innerHTML = msgs.map(m => {
-    const d = new Date(m.ts || 0);
-    const day = d.toLocaleDateString(GT_LOCALE);
-    const sep = day !== lastDay ? `<div class="fchat-day">${day}</div>` : '';
-    lastDay = day;
-    const mine = m.from === (_fbUser && _fbUser.uid);
-    const time = d.toLocaleTimeString(GT_LOCALE, { hour: '2-digit', minute: '2-digit' });
-    return `${sep}<div class="aic-msg ${mine ? 'aic-user' : 'aic-bot'}">${esc(String(m.text || '').slice(0, 500))}<div class="fchat-ts">${time}</div></div>`;
-  }).join('');
-  log.scrollTop = log.scrollHeight + 999;
-}
-async function fchatSend(){
-  if (_fchatSending || !_fchatPeer || !_socReady()) return;
-  const inp = document.getElementById('fchat-in');
-  const t = (inp?.value || '').trim().slice(0, 500);
-  if (!t) return;
-  _fchatSending = true;
-  const btn = document.getElementById('fchat-send'); if (btn) btn.disabled = true;
-  try {
-    const cid = _fchatId(_fbUser.uid, _fchatPeer.uid);
-    await window.FB.addDoc(window.FB.collection('chats/' + cid + '/messages'),
-      { from: _fbUser.uid, to: _fchatPeer.uid, text: t, ts: Date.now() });
-    if (inp) { inp.value = ''; _aicGrow(inp); }
-    haptic(6);
-  } catch(e) {
-    _dndToast(tr('Nachricht konnte nicht gesendet werden.'));
-    console.warn('[GymTrack] Chat send:', e?.code || e);
-  }
-  _fchatSending = false;
-  if (btn) btn.disabled = false;
-}
+/* 1:1-Freunde-Chat wurde auf Wunsch komplett entfernt (2026-07-24) —
+   Community bleibt bewusst bei Flammen-Reaktionen ohne Direktnachrichten. */
 
 /* ── Activity-Feed ── */
 /* ── Wochen-Lebensdauer für Posts/Aktivitäten ────────────────────────────
@@ -19811,11 +19736,6 @@ function _cpgCardHTML(it, pos){
   const flame = `<button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
       ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
     </button>`;
-  // Direkt-Nachricht an den Autor (nicht auf eigenen Posts) — öffnet den 1:1-Chat
-  const msgBtn = (it.uid && it.uid !== me)
-    ? `<button class="cpg-msg" data-n="${esc(it.name || '')}" onclick="event.stopPropagation();openFrChat('${it.uid}', this.dataset.n)" aria-label="${tr('Nachricht')}">
-        ${ICO.chatBubble({s:15})}<span>${tr('Nachricht')}</span>
-      </button>` : '';
   // Snap-Post: das Bild IST die fertig designte Share-Card (Name/Tag/Stats/Gym/
   // Wasserzeichen/Datum sind eingebacken). Nur die Controls drüberlegen — sonst
   // liegt der HTML-Chrome als zweites Layout über dem gleichen Inhalt.
@@ -19842,7 +19762,7 @@ function _cpgCardHTML(it, pos){
       ${rawInfo}
       <div class="cpg-foot-fade"></div>
     </div>
-    <div class="cpg-snap-foot">${flame}<span class="cpg-flct${fireCount ? '' : ' dim'}" id="flct-${it._i}">${flLabel}</span>${msgBtn}</div>
+    <div class="cpg-snap-foot">${flame}<span class="cpg-flct${fireCount ? '' : ' dim'}" id="flct-${it._i}">${flLabel}</span></div>
   </div>`;
   }
   // Gradient-Card (Text-Activities / Post ohne Bild): HTML-Chrome liefert den Inhalt.
@@ -19862,7 +19782,6 @@ function _cpgCardHTML(it, pos){
       ${chips}
     </div>
     ${flame}
-    ${msgBtn}
   </div>`;
 }
 function _cpgRenderStack(){
@@ -22188,7 +22107,69 @@ function _scnAddExercise(){
 
 // ── KI-Analyse (Training/Workout/Fortschritt) ─────────
 const _AIA_TITLES = { training:'Trainingsanalyse', workout:'Workout optimieren', progress:'Fortschritt analysieren' };
-function _aiaData(mode){
+// Fokus-Auswahl vor der Analyse: gesamt / einzelner Split / einzelne Übung
+function _aiaScopeUI(mode, exList){
+  const el = document.getElementById('aia-body'); if (!el) return;
+  if (exList) {
+    const used = {};
+    (S.sessions || []).slice(-40).forEach(s => (s.logs || []).forEach(l => { used[l.exerciseId] = 1; }));
+    const exs = (S.exercises || []).slice().sort((a, b) => (used[b.id] || 0) - (used[a.id] || 0)).slice(0, 40);
+    el.innerHTML = `<div class="aia-sec-t" style="margin-bottom:8px">${tr('Welche Übung?')}</div>
+      ${exs.map(e => `<div class="scn-ex" onclick="openAiAnalyze('progress',{exercise:'${e.id}'})"><div class="scn-ex-t">${esc(e.name)}</div>${muscleLabel(e.muscleGroup) ? `<span style="font-size:11px;font-weight:800;color:var(--acc)">${esc(muscleLabel(e.muscleGroup))}</span>` : ''}</div>`).join('')}
+      <button class="btn btn-gray" style="margin-top:12px" onclick="_aiaScopeUI('progress')">${tr('Zurück')}</button>`;
+    return;
+  }
+  const presets = (S.workoutPresets || []).slice(0, 12);
+  el.innerHTML = `<div class="aia-sec-t" style="margin-bottom:8px">${mode === 'workout' ? tr('Was möchtest du optimieren?') : tr('Was möchtest du analysieren?')}</div>
+    <div class="scn-ex on" onclick="openAiAnalyze('${mode}', null)"><div class="scn-ex-t">${mode === 'workout' ? tr('Letztes Workout') : tr('Gesamter Fortschritt')}</div></div>
+    ${presets.map(p => `<div class="scn-ex" onclick="openAiAnalyze('${mode}',{preset:'${p.id}'})"><div class="scn-ex-t">${esc(p.name)}</div><span style="font-size:11px;font-weight:800;color:var(--acc)">${tr('Split')}</span></div>`).join('')}
+    ${mode === 'progress' ? `<div class="scn-ex" onclick="_aiaScopeUI('progress', true)"><div class="scn-ex-t">${tr('Einzelne Übung')}</div></div>` : ''}`;
+}
+function _aiaData(mode, scope){
+  const sc = scope || null;
+  // Split-Fokus: Übungsziele + letzte Bestleistungen des gewählten Presets
+  if (sc && sc.preset && (mode === 'workout' || mode === 'progress')) {
+    const pr = presetById(sc.preset); if (!pr) return {};
+    const ids = pr.exIds || [];
+    const exData = ids.map(id => {
+      const ex = exById(id); if (!ex) return null;
+      const hist = exHistory(id); const last = hist[hist.length - 1];
+      const best = last ? _coachTopSet(last.sets) : null;
+      return { name: ex.name, muscleGroup: ex.muscleGroup, targetSets: ex.targetSets, repMin: ex.repMin, repMax: ex.repMax,
+               lastBest: best ? { w: parseFloat(best.w) || 0, r: parseInt(best.r) || 0, date: (last.date || '').slice(0, 10) } : null,
+               bestE1RM: Math.round((exBest1RM(id) || 0) * 10) / 10 };
+    }).filter(Boolean);
+    if (mode === 'workout') return { scope: 'split', split: pr.name, exercises: exData };
+    // progress + Split: Wochen-Volumen nur über die Split-Übungen
+    const idSet = new Set(ids);
+    const weeks = [];
+    for (let i = 0; i < 8; i++) {
+      const end = Date.now() - i * 7 * 864e5, start = end - 7 * 864e5;
+      let vol = 0, sets = 0, sessions = 0;
+      (S.sessions || []).forEach(s => {
+        const t = new Date(s.date).getTime();
+        if (t < start || t >= end) return;
+        let hit = false;
+        (s.logs || []).forEach(l => { if (!idSet.has(l.exerciseId)) return; hit = true; vol += setsVolume(l.sets || []); sets += (l.sets || []).length; });
+        if (hit) sessions++;
+      });
+      weeks.unshift({ weeksAgo: i, sessions, sets, volumeKg: Math.round(vol) });
+    }
+    return { scope: 'split', split: pr.name, weeks, exercises: exData };
+  }
+  // Übungs-Fokus: e1RM-Verlauf einer einzelnen Übung
+  if (sc && sc.exercise && mode === 'progress') {
+    const ex = exById(sc.exercise); if (!ex) return {};
+    const hist = exHistory(sc.exercise).slice(-10);
+    return { scope: 'exercise', exercise: ex.name, muscleGroup: ex.muscleGroup,
+      history: hist.map(h => {
+        const b = _coachTopSet(h.sets);
+        const w = b ? parseFloat(b.w) || 0 : 0, r = b ? parseInt(b.r) || 0 : 0;
+        return { date: (h.date || '').slice(0, 10), w, r, e1rm: w && r ? Math.round(epley1RM(w, r) * 10) / 10 : 0 };
+      }),
+      bestE1RM: Math.round((exBest1RM(sc.exercise) || 0) * 10) / 10,
+      target: { sets: ex.targetSets, repMin: ex.repMin, repMax: ex.repMax } };
+  }
   if (mode === 'workout') {
     const s = (S.sessions || [])[S.sessions.length - 1];
     if (!s) return {};
@@ -22262,6 +22243,9 @@ function _aiaData(mode){
 function _aiaFmtK(n){ return n >= 10000 ? (Math.round(n / 100) / 10).toLocaleString(GT_LOCALE) + 'k' : String(Math.round(n)); }
 function _aiaLocalHTML(mode, data){
   try {
+    // Split-/Übungs-Fokus hat eigene Datenform — Kacheln nur wo die Form passt
+    if (data && data.scope === 'exercise') return '';
+    if (data && data.scope === 'split' && mode === 'workout') return '';
     if (mode === 'workout') {
       const exs = data.exercises || []; if (!exs.length) return '';
       let sets = 0, vol = 0, best = null;
@@ -22383,12 +22367,14 @@ function _aiaShow(a, localHTML){
     ${(!hasScore && !a.summary && !hasPoints && !hasRecos) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
   `;
 }
-async function openAiAnalyze(mode){
+async function openAiAnalyze(mode, scope){
   const el = document.getElementById('aia-body'); if (!el) return;
   const titleEl = document.getElementById('aia-title');
   if (titleEl) titleEl.textContent = tr(_AIA_TITLES[mode] || 'Analyse');
   openOv('ov-ai-analyze');
-  const data = _aiaData(mode);
+  // Workout optimieren / Fortschritt: erst den Fokus wählen (gesamt/Split/Übung)
+  if ((mode === 'workout' || mode === 'progress') && scope === undefined) { _aiaScopeUI(mode); return; }
+  const data = _aiaData(mode, scope);
   // Lokale Zahlen SOFORT zeigen — die KI-Bewertung kommt asynchron oben drauf
   const local = _aiaLocalHTML(mode, data);
   el.innerHTML = `${local}<div style="text-align:center;padding:${local ? 18 : 34}px 12px;color:var(--text2);font-size:14.5px">

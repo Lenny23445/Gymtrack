@@ -422,29 +422,31 @@ async function runAnalyze(body, lang, env) {
   const data = JSON.stringify(body.data || {}).slice(0, 8000);
   const focusDe = {
     training: "die gesamte Trainingsplanung/-struktur des Nutzers (Split, Frequenz, Balance der Muskelgruppen)",
-    workout:  "das zuletzt geloggte einzelne Workout (Ausführungsqualität, Sinnhaftigkeit der Satz-/Gewichtswahl)",
-    progress: "den langfristigen Fortschritt über die letzten Wochen (Volumen-Trend, PRs, Muskelgruppen-Entwicklung)",
+    workout:  "das zuletzt geloggte einzelne Workout (Ausführungsqualität, Sinnhaftigkeit der Satz-/Gewichtswahl). WENN data.scope='split': stattdessen den übergebenen Split (Übungsauswahl, Satz-/Wdh-Ziele, Muskelbalance, Reihenfolge, fehlende/überflüssige Übungen)",
+    progress: "den langfristigen Fortschritt über die letzten Wochen (Volumen-Trend, PRs, Muskelgruppen-Entwicklung). WENN data.scope='exercise': GENAU diese eine Übung (e1RM-Verlauf, Stagnation, Wdh-Bereich, konkrete Progressions-/Techniktipps). WENN data.scope='split': nur diesen Split",
   }[mode];
   const focusEn = {
     training: "the user's overall training plan/structure (split, frequency, muscle group balance)",
-    workout:  "the single most recently logged workout (execution quality, set/weight choices)",
-    progress: "long-term progress over recent weeks (volume trend, PRs, muscle group development)",
+    workout:  "the single most recently logged workout (execution quality, set/weight choices). IF data.scope='split': the given split instead (exercise selection, set/rep targets, balance, order, missing/redundant exercises)",
+    progress: "long-term progress over recent weeks (volume trend, PRs, muscle group development). IF data.scope='exercise': EXACTLY this one exercise (e1RM trend, stalls, rep range, concrete progression/technique tips). IF data.scope='split': only this split",
   }[mode];
   const sys = de
     ? `Du bist ein sportwissenschaftlich fundierter Personal Trainer in der App MyGymTrack. Analysiere ${focusDe} anhand der mitgelieferten aggregierten JSON-Daten. Duze den Nutzer, sei konkret, beziehe dich auf echte Zahlen/Übungsnamen aus den Daten.
+Sei AUSFÜHRLICH und sportwissenschaftlich fundiert (Volumen-Richtwerte pro Muskelgruppe, progressive Überlastung, Erholung/Frequenz) — der Nutzer zahlt für eine echte Experten-Einschätzung, nicht für Allgemeinplätze.
 score: 0-100 ehrliche Gesamtbewertung.
-summary: 2-3 Sätze Gesamtfazit.
-points: 2-4 konkrete Beobachtungen (positiv wie kritisch).
-recos: 2-4 konkrete, umsetzbare Empfehlungen.
+summary: 3-4 Sätze Gesamtfazit.
+points: 3-5 konkrete Beobachtungen (positiv wie kritisch), jeweils mit Zahl aus den Daten.
+recos: 3-6 konkrete, umsetzbare Empfehlungen mit kurzem sportwissenschaftlichem Warum.
 actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
+Be THOROUGH and sports-science-grounded (volume landmarks per muscle group, progressive overload, recovery/frequency) — the user pays for a real expert assessment.
 score: 0-100 honest overall rating.
-summary: 2-3 sentences. points: 2-4 concrete observations. recos: 2-4 actionable recommendations.
+summary: 3-4 sentences. points: 3-5 concrete observations, each with a number from the data. recos: 3-6 actionable recommendations with a short scientific why.
 actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],
-    maxTokens: 900,
+    maxTokens: 1500,
     schema: ANALYZE_SCHEMA,
   });
   return { a: JSON.parse(text), usage };
