@@ -4051,7 +4051,7 @@ html[data-glass][data-theme="dark"] .tabbar{
 }
 @media (prefers-reduced-motion: reduce){
   [data-theme="dark"] .btn,[data-theme="dark"] .btn-acc,.tabbar,
-  .tabbar .tab,.tabbar .tab span,#ai-bubble{ transition:none!important; }
+  .tabbar .tab,.tabbar .tab span{ transition:none!important; }
   [data-theme="dark"] .btn:active,[data-theme="dark"] .btn-acc:active{ transform:none!important; }
 }
 @media (prefers-contrast: more){
@@ -4246,9 +4246,7 @@ html[data-glass][data-theme="dark"] .tabbar{
   cursor:pointer;-webkit-tap-highlight-color:transparent;
   box-shadow:0 8px 28px rgba(0,0,0,.38),0 2px 8px rgba(0,0,0,.22),
              inset 0 1px 0 rgba(255,255,255,.16);
-  transition:opacity .22s ease,visibility .22s ease,
-             width .32s cubic-bezier(.32,1,.32,1),height .32s cubic-bezier(.32,1,.32,1),
-             bottom .32s cubic-bezier(.32,1,.32,1);outline:none;
+  transition:opacity .22s ease,visibility .22s ease;outline:none;
 }
 [data-glass="off"] #ai-bubble{
   background:#1c1c20;backdrop-filter:none;-webkit-backdrop-filter:none;
@@ -4390,6 +4388,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
     <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad heute-pad" id="heute-pad">
+    <div id="coach-today-card"></div>
     <div id="heute-grid"></div>
   </div>
 </div>
@@ -6106,7 +6105,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607231345';
+const APP_VERSION = 'gymtrack-v202607231500';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -6724,6 +6723,13 @@ const I18N_EN = {
   'Du empfindest deine Trainings zuletzt als leichter.':'You’ve been rating your workouts as easier lately.',
   'KI-Monatsanalyse':'AI monthly summary',
   'Tippen für eine KI-Zusammenfassung deines Monats.':'Tap for an AI summary of your month.',
+  /* Check-in bremst Progression (Phase G) */
+  'Empfehlung für heute':'Recommendation for today','Ausblenden':'Dismiss',
+  /* Changelog: Live-Coach Ausbau (23.07.2026) */
+  '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
+  '🧠 Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'🧠 Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
+  '📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch':'📉 A "Very hard" check-in now automatically holds back the weight increase for your next workout',
+  '🎯 Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor':'🎯 New recommendation on the Today tab: on a free day, suggests your most recovered muscle group',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -6824,6 +6830,12 @@ const I18N_RX = [
   [/Du trainierst zuletzt Ø ([\d.,]+)×\/Woche — dein Ziel sind (\d+)×\./g, 'You’re averaging $1×/week lately — your goal is $2×.'],
   [/Du erreichst dein Frequenz-Ziel von (\d+)× pro Woche\./g, 'You’re hitting your frequency goal of $1× per week.'],
   [/(\d+) neue Bestleistungen in den letzten 4 Wochen\./g, '$1 new PRs in the last 4 weeks.'],
+  // Check-in bremst Progression (Phase G) + Tagesempfehlung
+  [/: Erholung vor Steigerung/g, ': recovery before progression'],
+  [/Du hast dein letztes Training als "Sehr schwer" bewertet\. Heute /g, 'You rated your last workout "Very hard". Today, '],
+  [/ halten statt weiter steigern\./g, ' — hold instead of increasing further.'],
+  [/ ist zu (\d+)% erholt — guter Fokus für heute\./g, ' is $1% recovered — good focus for today.'],
+  [/ ist noch bei (\d+)% — heute lieber schonen\./g, ' is still at $1% — better to rest that today.'],
 ];
 
 /* tr(): exakte Phrase → Segmente (· -getrennt) → Regex-Regeln */
@@ -6908,6 +6920,14 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-23-live-coach-plus': {
+    label: '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor',
+    items: [
+      '🧠 Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert',
+      '📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch',
+      '🎯 Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor',
+    ]
+  },
   'cl-2026-07-14-english': {
     label: '14.07.2026 · MyGymTrack spricht jetzt Englisch',
     items: [
@@ -9080,6 +9100,62 @@ function renderHome() {
   renderStreak();
   _renderLevelBadge();
   renderHeuteGrid();
+  renderCoachTodayCard();
+}
+
+// ── KI-Coach: TAGESEMPFEHLUNG NACH ERHOLUNG (Phase G) ──
+// Rein lokal berechnet (Recovery-Daten liegen längst vor) — kein KI-Call, kein
+// Kosten-/Quota-Verbrauch. Nur wenn heute noch kein Plan zugewiesen ist (sonst
+// würde die Empfehlung der eigenen Wochenplanung widersprechen).
+function _coachTodaySuggestion() {
+  try {
+    if (!isPremium() || !S.aiCoach || S.aiCoach.insights === false) return null;
+    if (planFor(todayKey()).type !== 'none') return null;
+    if (localStorage.getItem('gt_coachTodayDismiss') === todayKey()) return null;
+    const mgRec = getMuscleGroupRecovery();
+    const trained = MUSCLE_GROUPS
+      .map(mg => ({ mg, r: mgRec[mg.id] }))
+      .filter(c => c.r && c.r.lastTs);
+    if (!trained.length) return null;
+    trained.sort((a,b) => b.r.recPct - a.r.recPct);
+    const best = trained[0];
+    if (best.r.recPct < 75) return null;
+    const worst = trained[trained.length-1];
+    let text = `${muscleLabel(best.mg.id)} ist zu ${best.r.recPct}% erholt — guter Fokus für heute.`;
+    if (worst.mg.id !== best.mg.id && worst.r.recPct < 40) {
+      text += ` ${muscleLabel(worst.mg.id)} ist noch bei ${worst.r.recPct}% — heute lieber schonen.`;
+    }
+    return { mgId: best.mg.id, text };
+  } catch(e) { console.warn('[Coach] today suggestion:', e); return null; }
+}
+function renderCoachTodayCard() {
+  const host = document.getElementById('coach-today-card');
+  if (!host) return;
+  try {
+    const s = _coachTodaySuggestion();
+    if (!s) { host.innerHTML = ''; return; }
+    host.innerHTML = `<div class="coach-card">
+      <div class="coach-card-bar"></div>
+      <div class="coach-card-body">
+        <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(tr('Empfehlung für heute'))}</span></div>
+        <div class="coach-card-text">${esc(s.text)}</div>
+        <div class="coach-card-btns">
+          <button type="button" class="coach-card-btn accept" onclick="_coachTodayGoTrain('${s.mgId}')">Training starten</button>
+          <button type="button" class="coach-card-btn dismiss" onclick="_coachTodayDismiss()">${esc(tr('Ausblenden'))}</button>
+        </div>
+      </div>
+    </div>`;
+  } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
+}
+function _coachTodayDismiss() {
+  try { localStorage.setItem('gt_coachTodayDismiss', todayKey()); } catch(_) {}
+  const host = document.getElementById('coach-today-card');
+  if (host) host.innerHTML = '';
+  haptic(8);
+}
+function _coachTodayGoTrain(mgId) {
+  try { setExCat(mgId); } catch(_) {}
+  goTabId('uebungen');
 }
 
 // Kompakte History für Heute-Tab (erweiterbar)
@@ -9637,6 +9713,15 @@ function progStepFor(ex) {
   return null;
 }
 
+// Post-Workout-Check-in (Phase E) als Progressions-Bremse: wurde die letzte
+// Einheit als "Sehr schwer" bewertet, wird die Double-Progression EINMAL
+// ausgesetzt (kein Gewichts-Sprung + kein Wdh-Reset) — der Plan reagiert so
+// auf gemeldete Überlastung statt stur weiterzusteigern.
+function _ciBlocksProgression(sessionId) {
+  if (!sessionId) return false;
+  const c = (S.checkins || []).find(c => c.sid === sessionId);
+  return !!c && c.feel === 4;
+}
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
   if (!hist.length) return ex.targetWeight ? Number(ex.targetWeight) : null;
@@ -9673,8 +9758,9 @@ function getSuggestedWeight(ex) {
   const cfgStep   = progStepFor(ex);
   const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
   const stepSmall = cfgStep != null ? cfgStep : 2.5;
+  const held = _ciBlocksProgression(last.id);
 
-  if (lastIdx >= 1) {
+  if (!held && lastIdx >= 1) {
     // vorletzte Einheit MIT Arbeitsgewicht (vor lastIdx)
     let prevIdx = -1;
     for (let i = lastIdx - 1; i >= 0; i--) {
@@ -9693,7 +9779,7 @@ function getSuggestedWeight(ex) {
       }
     }
   }
-  if (allReps && allSets) return lMaxW + stepSmall;
+  if (!held && allReps && allSets) return lMaxW + stepSmall;
   return lMaxW;
 }
 
@@ -9719,7 +9805,11 @@ function getSuggestion(ex) {
   const cfgStep   = progStepFor(ex);
   const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
   const stepSmall = cfgStep != null ? cfgStep : 2.5;
+  const held = _ciBlocksProgression(last.id);
 
+  if (held) {
+    return { type:'hold', icon:'', title:`${ex.name}: Erholung vor Steigerung`, text:`Du hast dein letztes Training als "Sehr schwer" bewertet. Heute ${kgToDisp(lMaxW)} ${unitLabel()} halten statt weiter steigern.` };
+  }
   if (hist.length >= 2) {
     const prev   = hist[hist.length-2];
     const pWork  = _workSets(prev.sets);
@@ -11217,7 +11307,7 @@ function getSuggestedReps(ex) {
   // Gewicht steigt: Rückschritt statt Progression.
   const warmups = last.sets.filter(s => (s.type||'normal') === 'warmup').length;
   const allSets = mainSets.length >= (topOnly ? 1 : Math.max(1, (ex.targetSets||1) - warmups));
-  if (allTop && allSets) return min;
+  if (allTop && allSets && !_ciBlocksProgression(last.id)) return min;
   // Noch im Bereich am Aufbauen → eine Wdh mehr anpeilen als der schwächste Satz.
   const minReps = Math.min(...mainSets.map(s => parseInt(s.r) || 0));
   return Math.max(min, Math.min(max, minReps + 1));
@@ -20418,16 +20508,16 @@ function _coachTopSet(sets) {
   if (!work.length) return null;
   return work.slice().sort((a,b) => (parseFloat(b.w)||0) - (parseFloat(a.w)||0))[0];
 }
-// Top-Satz (Gewicht × Wdh) über die letzten 3 Einheiten (2 vergangene + die aktuelle)
+// Top-Satz (Gewicht × Wdh) über die letzten 2 Einheiten (1 vergangene + die aktuelle)
 // identisch → Stagnation.
 function _coachIsStalled(exId, log) {
   const hist = exHistory(exId);
-  if (hist.length < 2) return false;
+  if (hist.length < 1) return false;
   const curTop = _coachTopSet(log.sets);
   if (!curTop) return false;
   const curW = parseFloat(curTop.w) || 0, curR = parseInt(curTop.r) || 0;
   if (!curW || !curR) return false;
-  return hist.slice(-2).every(h => {
+  return hist.slice(-1).every(h => {
     const top = _coachTopSet(h.sets);
     return !!top && (parseFloat(top.w)||0) === curW && (parseInt(top.r)||0) === curR;
   });
@@ -20457,9 +20547,9 @@ function _coachEvalRun(li, si) {
 
   // Client-seitige Rate-Limits — VOR jeder Auswertung prüfen (spart Rechenzeit/Calls)
   if (!_coachState) _coachState = _coachDefaultState();
-  if (_coachState.calls >= 3) return;                                    // max. 3 Calls/Training
-  if (_coachState.perExercise[log.exerciseId]) return;                   // max. 1 Call/Übung/Training
-  if (Date.now() - (_coachState.lastCallTs || 0) < 90 * 1000) return;    // 90s Cooldown
+  if (_coachState.calls >= 5) return;                                    // max. 5 Calls/Training
+  if ((_coachState.perExercise[log.exerciseId] || 0) >= 2) return;       // max. 2 Calls/Übung/Training
+  if (Date.now() - (_coachState.lastCallTs || 0) < 60 * 1000) return;    // 60s Cooldown
   if (_coachQuotaExhausted()) return;                                    // Monatslimit clientseitig schon voll
 
   // Vergleichs-Basis: letzte VERGANGENE Einheit mit dieser Übung. exHistory() liest
@@ -20486,9 +20576,9 @@ function _coachEvalRun(li, si) {
 
   // Trigger-Priorität — beim ersten Treffer stoppen (max. 1 Trigger-Typ pro Call).
   let type = null;
-  if (fatPct >= 60 && curE1RM <= lastE1RM * 0.90) type = 'fatigue';
-  else if (si >= 1 && curE1RM <= lastE1RM * 0.90) type = 'drop';
-  else if (curE1RM >= lastE1RM * 1.07) type = 'jump';
+  if (fatPct >= 45 && curE1RM <= lastE1RM * 0.93) type = 'fatigue';
+  else if (si >= 1 && curE1RM <= lastE1RM * 0.93) type = 'drop';
+  else if (curE1RM >= lastE1RM * 1.05) type = 'jump';
   else if (_coachAllSetsAtRepMax(log, ex)) type = 'repmax';
   else if (_coachIsStalled(log.exerciseId, log)) type = 'stall';
   if (!type) return;
@@ -20499,7 +20589,7 @@ function _coachEvalRun(li, si) {
   // Rate-Limits SOFORT buchen (nicht erst nach Antwort) — verhindert Doppel-Feuer,
   // während der Call noch läuft; wird per _saveActiveWk() gleich gesichert.
   _coachState.calls++;
-  _coachState.perExercise[log.exerciseId] = true;
+  _coachState.perExercise[log.exerciseId] = (_coachState.perExercise[log.exerciseId] || 0) + 1;
   _coachState.seen.push(dedupeKey);
   _coachState.lastCallTs = Date.now();
   try { _saveActiveWk(); } catch(_) {}
@@ -20834,7 +20924,7 @@ function _aibDock(){
   const tb = document.querySelector('.tabbar');
   if (!b || !tb) return;
   const h = Math.round(tb.getBoundingClientRect().height);
-  if (h > 40) {
+  if (h > 0) {
     // Etwas kleiner als die Tableiste, dafür vertikal mittig zu ihr ausgerichtet
     const d = Math.round(h * 0.8);
     b.style.width = d + 'px'; b.style.height = d + 'px';
@@ -20850,13 +20940,13 @@ function _aibInit(){
     if (el) new MutationObserver(_aibSyncVisibility).observe(el, { attributes:true, attributeFilter:['class'] });
   });
   const tb = document.querySelector('.tabbar');
-  if (tb) {
-    new MutationObserver(_aibDock).observe(tb, { attributes:true, attributeFilter:['class'] });
-    // Tabbar-Padding animiert selbst über .32s (transition:padding) — einmal exakt
-    // nachmessen, wenn diese Transition fertig ist, damit Bubble nie neben der
-    // tatsächlichen (fertig eingerasteten) Tableisten-Höhe hängen bleibt.
-    tb.addEventListener('transitionend', e => { if (e.propertyName === 'padding') _aibDock(); });
-  }
+  // ResizeObserver statt MutationObserver: Tabbar-Höhe ändert sich beim
+  // tabbar--min-Wechsel über eine .32s-CSS-Transition (Padding). ResizeObserver
+  // feuert JEDEN gerenderten Zwischenframe dieser Animation, nicht nur einmal
+  // beim Klassenwechsel — Bubble bleibt so während der ganzen Animation exakt
+  // an der echten (gemessenen) Tableisten-Höhe angedockt, kein eigenes Timing/
+  // keine eigene Transition nötig, die aus dem Tritt geraten könnte.
+  if (tb && 'ResizeObserver' in window) new ResizeObserver(_aibDock).observe(tb);
   window.addEventListener('resize', _aibDock);
   _aibDock();
   setTimeout(_aibDock, 600);   // nach Font-/Layout-Settling nachmessen
