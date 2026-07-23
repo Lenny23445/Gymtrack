@@ -3475,8 +3475,10 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* ── REST-TIMER BAR ─────────────────────────────────── */
 /* Bleibt beim Scrollen oben sichtbar (sticky) und ist als gefüllter,
    pulsierender Akzent-Balken deutlich prominenter — kein Hochscrollen nötig. */
+/* Sticky-Stapel im Training: Coach-Leiste + Pause-Balken bleiben beim Scrollen
+   gemeinsam oben sichtbar (der Wrapper klebt, nicht mehr der Balken allein). */
+#wk-sticky{position:sticky;top:6px;z-index:6}
 .rest-bar{
-  position:sticky;top:6px;z-index:6;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:linear-gradient(135deg,rgba(var(--acc-rgb),.97),rgba(var(--acc-rgb),.80));
   border:1px solid rgba(255,255,255,.28);
@@ -4174,6 +4176,12 @@ html[data-glass][data-theme="dark"] .tabbar{
 .cpg-count{position:absolute;top:-30px;right:4px;font-size:12px;color:var(--text2)}
 /* Flamme */
 .flm-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:4;border:none;background:rgba(0,0,0,.38);backdrop-filter:blur(10px);color:#fff;border-radius:26px;padding:10px 22px;display:flex;align-items:center;justify-content:center;gap:0;font-size:15px;font-weight:800;transition:transform .15s}
+/* Direkt-Nachricht auf Community-Cards (öffnet 1:1-Chat mit dem Autor) */
+.cpg-msg{border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;
+  background:rgba(0,0,0,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;
+  border-radius:22px;padding:9px 14px;font-size:12.5px;font-weight:800}
+.cpg-card:not(.cpg-snap) .cpg-msg{position:absolute;bottom:14px;right:14px;z-index:4}
+.cpg-snap .cpg-msg{margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16)}
 .flm-btn:active{transform:translateX(-50%) scale(.92)}
 .flm-btn .ct:not(:empty){margin-left:8px}
 .flm-btn .fl{display:inline-flex;align-items:center;justify-content:center;transform-origin:center;filter:grayscale(1) brightness(1.6);transition:filter .2s}
@@ -5586,6 +5594,8 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
             <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
           </div>
         </div>
+        <!-- Sticky-Stapel: Coach-Leiste + Pause-Balken scrollen gemeinsam mit -->
+        <div id="wk-sticky">
         <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
         <div id="rest-timer-bar" class="rest-bar" style="display:none">
           <span class="rest-bar-lbl">Pause</span>
@@ -5595,6 +5605,7 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
             <button class="rest-adj-btn" onclick="adjustRest(15)">+15s</button>
           </div>
           <button class="rest-bar-skip" onclick="skipRest()">✕</button>
+        </div>
         </div>
         <div id="log-cards"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
@@ -6304,7 +6315,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607231835';
+const APP_VERSION = 'gymtrack-v202607232045';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -6934,12 +6945,11 @@ const I18N_EN = {
   'Jetzt freischalten':'Unlock now','Jederzeit kündbar':'Cancel anytime','Über deinen App Store':'Via your App Store','Sofort aktiv':'Active instantly',
   'nur 1,67 €/Monat':'just €1.67/month','NEU':'NEW',
   'Dein perfekter Plan':'Your perfect plan','Wie oft pro Woche?':'How often per week?',
-  'Sei realistisch — lieber 3× konsequent als 5× auf dem Papier.':'Be realistic — 3× consistently beats 5× on paper.',
-  'Was ist dein Ziel?':'What is your goal?','Danach richten sich Übungsauswahl, Sätze und Wiederholungsbereiche.':'Exercise selection, sets and rep ranges follow from this.',
-  'Wie viel Zeit pro Einheit?':'How much time per session?','Der Plan wird so gebaut, dass du in dieser Zeit wirklich durchkommst.':'The plan is built so you actually finish in that time.',
+  'Was ist dein Ziel?':'What is your goal?','Wie viel Zeit pro Einheit?':'How much time per session?',
   'Verletzungen oder Einschränkungen?':'Injuries or limitations?',
-  'Die KI wählt dann gelenkschonende Alternativen. Kein Arzt-Ersatz — bei Schmerzen bitte abklären lassen.':'The AI will pick joint-friendly alternatives. Not medical advice — please see a doctor for pain.',
-  'Noch Wünsche?':'Anything else?','Plan erstellen lassen':'Create my plan',
+  'Bei Schmerzen bitte ärztlich abklären.':'Please see a doctor for pain.',
+  'Noch Wünsche?':'Anything else?','Optional — z. B. „nur Kurzhanteln". Im Chat weiter anpassbar.':'Optional — e.g. "dumbbells only". Refine later in chat.',
+  'Plan erstellen lassen':'Create my plan',
   'Muskelaufbau':'Muscle growth','Kraft':'Strength','Abnehmen':'Lose weight','Fit bleiben':'Stay fit',
   'Keine':'None','Knie':'Knee','Schulter':'Shoulder','Unterer Rücken':'Lower back','Ellenbogen':'Elbow','Handgelenk':'Wrist','Hüfte':'Hip',
   'Erstelle mir meinen perfekten Trainingsplan.':'Create my perfect training plan.',
@@ -19311,10 +19321,10 @@ async function openFrProfile(uid){
    MUSS in der Konsole veröffentlicht sein, sonst "Chat nicht verfügbar"). */
 let _fchatPeer = null, _fchatUnsub = null, _fchatSending = false;
 function _fchatId(a, b){ return [a, b].sort().join('_'); }
-function openFrChat(uid){
+function openFrChat(uid, name){
   if (!_socReady()) return;
   const p = (_socCache || []).find(x => x.uid === uid);
-  _fchatPeer = { uid, name: (p && p.name) || 'Chat' };
+  _fchatPeer = { uid, name: (p && p.name) || name || 'Chat' };
   const t = document.getElementById('fchat-title'); if (t) t.textContent = _fchatPeer.name;
   const log = document.getElementById('fchat-log');
   if (log) log.innerHTML = `<div class="soc-empty" style="padding:16px">${tr('Lade…')}</div>`;
@@ -19678,6 +19688,11 @@ function _cpgCardHTML(it, pos){
   const flame = `<button class="flm-btn${myFire ? ' on' : ''}" id="flm-${it._i}" onclick="toggleFlame(${it._i})" aria-label="${tr('Flamme')}">
       ${_flameSVG(20)}<span class="ct" id="flmct-${it._i}">${fireCount || ''}</span>
     </button>`;
+  // Direkt-Nachricht an den Autor (nicht auf eigenen Posts) — öffnet den 1:1-Chat
+  const msgBtn = (it.uid && it.uid !== me)
+    ? `<button class="cpg-msg" data-n="${esc(it.name || '')}" onclick="event.stopPropagation();openFrChat('${it.uid}', this.dataset.n)" aria-label="${tr('Nachricht')}">
+        ${ICO.chatBubble({s:15})}<span>${tr('Nachricht')}</span>
+      </button>` : '';
   // Snap-Post: das Bild IST die fertig designte Share-Card (Name/Tag/Stats/Gym/
   // Wasserzeichen/Datum sind eingebacken). Nur die Controls drüberlegen — sonst
   // liegt der HTML-Chrome als zweites Layout über dem gleichen Inhalt.
@@ -19704,7 +19719,7 @@ function _cpgCardHTML(it, pos){
       ${rawInfo}
       <div class="cpg-foot-fade"></div>
     </div>
-    <div class="cpg-snap-foot">${flame}<span class="cpg-flct${fireCount ? '' : ' dim'}" id="flct-${it._i}">${flLabel}</span></div>
+    <div class="cpg-snap-foot">${flame}<span class="cpg-flct${fireCount ? '' : ' dim'}" id="flct-${it._i}">${flLabel}</span>${msgBtn}</div>
   </div>`;
   }
   // Gradient-Card (Text-Activities / Post ohne Bild): HTML-Chrome liefert den Inhalt.
@@ -19724,6 +19739,7 @@ function _cpgCardHTML(it, pos){
       ${chips}
     </div>
     ${flame}
+    ${msgBtn}
   </div>`;
 }
 function _cpgRenderStack(){
@@ -21754,24 +21770,21 @@ function _pwzRender(){
   let inner = '';
   if (st.step === 0) inner = `
     <div class="pwz-q">Wie oft pro Woche?</div>
-    <div class="pwz-s">Sei realistisch — lieber 3× konsequent als 5× auf dem Papier.</div>
     ${chips([2,3,4,5,6].map(n => ({ v:n, l:n+'× pro Woche' })), st.freq, o => `_pwzSet('freq',${o.v})`)}`;
   else if (st.step === 1) inner = `
     <div class="pwz-q">Was ist dein Ziel?</div>
-    <div class="pwz-s">Danach richten sich Übungsauswahl, Sätze und Wiederholungsbereiche.</div>
     ${chips(_PWZ_GOALS, st.goal, o => `_pwzSet('goal','${o.id}')`)}`;
   else if (st.step === 2) inner = `
     <div class="pwz-q">Wie viel Zeit pro Einheit?</div>
-    <div class="pwz-s">Der Plan wird so gebaut, dass du in dieser Zeit wirklich durchkommst.</div>
     ${chips([30,45,60,90].map(n => ({ v:n, l:'ca. '+n+' Min.' })), st.time, o => `_pwzSet('time',${o.v})`)}`;
   else if (st.step === 3) inner = `
     <div class="pwz-q">Verletzungen oder Einschränkungen?</div>
-    <div class="pwz-s">Die KI wählt dann gelenkschonende Alternativen. Kein Arzt-Ersatz — bei Schmerzen bitte abklären lassen.</div>
+    <div class="pwz-s">Bei Schmerzen bitte ärztlich abklären.</div>
     <div class="pwz-chips">${_PWZ_INJ.map(o =>
       `<button type="button" class="pwz-chip${st.inj.includes(o.id)?' on':''}" onclick="_pwzInjTgl('${o.id}')">${o.l}</button>`).join('')}</div>`;
   else inner = `
     <div class="pwz-q">Noch Wünsche?</div>
-    <div class="pwz-s">Z. B. „Fokus auf Arme", „nur Kurzhanteln", „Home-Gym ohne Maschinen" — oder einfach leer lassen. Du kannst danach im Chat weiter verfeinern, auch per Diktat.</div>
+    <div class="pwz-s">Optional — z. B. „nur Kurzhanteln". Im Chat weiter anpassbar.</div>
     <textarea id="pwz-ta" class="pwz-ta" maxlength="300" placeholder="Optional…" oninput="_pwzState.wish=this.value">${esc(st.wish)}</textarea>`;
   el.innerHTML = `${dots}${inner}
     <div class="pwz-nav">
