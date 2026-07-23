@@ -413,9 +413,23 @@ function render(D) {
   const todayIso = isoLocal(new Date());
   const newToday = A.ok && A.signupsByDay ? ((A.signupsByDay.find(p => p.date === todayIso) || {}).v || 0) : null;
 
+  /* Live-Downloads: Apples offizielle Summe als Basis (kein Konten-Fake),
+     obendrauf nur die neuen Firebase-Konten NACH Apples letztem Berichtstag. */
+  let liveDl = null, liveExtra = 0, appleCut = null;
+  if (dl && dl.series && dl.series.length) {
+    for (let i = dl.series.length - 1; i >= 0; i--) {
+      if (dl.series[i].downloads > 0) { appleCut = dl.series[i].date; break; }
+    }
+    if (A.ok && A.signupsByDay && appleCut) {
+      liveExtra = A.signupsByDay.filter(p => p.date > appleCut).reduce((a, p) => a + (p.v || 0), 0);
+    }
+    liveDl = (dl.downloadsTotal || 0) + liveExtra;
+  }
+  const liveDlSub = appleCut ? `Apple bis ${dShort(appleCut)} + ${fmt(liveExtra)} neue Konten seither` : 'App Store nicht verbunden';
+
   /* ── Übersicht ── */
   let ov = `<section>${secHead('Auf einen Blick', 'die wichtigsten Zahlen — live', null)}<div class="tiles">`;
-  ov += tile(A.ok ? fmt(A.total) : '—', 'Downloads · live abgeleitet', A.ok ? `+${fmt(newToday)} heute · +${fmt(A.new7)} in 7 Tagen` : 'admin/auth fehlt', true, true)
+  ov += tile(liveDl != null ? fmt(liveDl) : '—', 'Downloads · live', liveDlSub, true, liveDl != null)
     + tile(P ? nfEUR.format(P.mrrEstimate) : '—', 'Umsatz / Monat', P ? `${fmt(P.total)} Premium-Nutzer · geschätzt` : '', true)
     + tile(S.ok ? fmt(S.active5m) : '—', 'Jetzt in der App', 'aktiv < 5 Min', false, S.ok && S.active5m > 0)
     + tile(C.ok ? fmt(C.liveNow) : '—', 'Jetzt im Training', 'Echtzeit', false, C.ok && C.liveNow > 0)
@@ -428,11 +442,15 @@ function render(D) {
     <div class="cards">${chartCard('Neue Accounts pro Tag', A.signupsByDay, 'Accounts', { wide: true })}</div></section>`;
 
   /* ── Downloads ── */
-  let dlh = `<section>${secHead('Downloads · live abgeleitet', 'aus Firebase-Accounts (Login-Pflicht + anonyme Auto-Anmeldung)', A.ok ? null : A)}<div class="tiles">`;
+  let dlh = `<section>${secHead('Downloads · live', 'Basis = Apple offiziell, live ergänzt um neue Konten', AS.ok ? (A.ok ? null : A) : AS)}<div class="tiles">`;
+  dlh += tile(liveDl != null ? fmt(liveDl) : '—', 'Downloads · live', liveDlSub, true, liveDl != null)
+    + (dl ? tile(fmt(dl.downloadsTotal), 'Apple offiziell', appleCut ? `Stand ${dShort(appleCut)} · ~1 Tag versetzt` : '') : '')
+    + tile('+' + fmt(newToday), 'Neue Konten heute', 'live')
+    + tile('+' + fmt(A.ok ? A.new7 : null), 'Neue Konten · 7 Tage');
+  dlh += `</div><div class="note">Die große Zahl ist <b>Apples offizielle Download-Summe</b> bis zum letzten Berichtstag${appleCut ? ` (${dShort(appleCut)})` : ''} — dazu live nur die Firebase-Konten, die <b>seither</b> neu entstanden sind. Alte anonyme Konten (Web/PWA-Besucher, Alt-Nutzer) zählen hier NICHT mehr rein.</div>`;
+  dlh += `<div class="sec-head" style="margin-top:18px"><h2>Firebase-Konten</h2><span class="sub">alle Anmelde-Arten — zur Einordnung, nicht die Download-Zahl</span></div><div class="tiles">`;
   if (A.ok) {
-    dlh += tile(fmt(A.total), 'Installationen gesamt', 'Accounts, alle Anmelde-Arten', true, true)
-      + tile('+' + fmt(newToday), 'Heute', 'live')
-      + tile('+' + fmt(A.new7), 'Neu · 7 Tage')
+    dlh += tile(fmt(A.total), 'Konten gesamt', 'inkl. Web/PWA + anonym')
       + tile('+' + fmt(A.new30), 'Neu · 30 Tage');
   }
   dlh += `</div>`;
