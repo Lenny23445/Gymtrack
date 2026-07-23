@@ -42,44 +42,51 @@ export default {
     if (!token) { console.log("[PUSH] KEIN pushToken im Profil des Empfaengers", toUid, "-> Empfaenger hat nie registriert"); return json({ ok: true, skipped: "no pushToken" }, 200, cors); }
     console.log("[PUSH] Empfaenger-Token gefunden, laenge=", token.length);
 
-    // 2) APNs-JWT (ES256 mit deinem .p8) signieren
-    const jwt = await apnsJwt(env);
+    // 2) APNs-JWT signieren + 3) Push senden — beides abgesichert: ein kaputtes
+    // APNS_KEY_P8-Secret (z.B. ungueltiges Base64) wuerde sonst als uncaught
+    // Exception ohne CORS-Header rausgehen -> Client sieht nur "Load failed"
+    // statt des echten Grunds.
+    try {
+      const jwt = await apnsJwt(env);
 
-    // 3) Push senden
-    const payload = JSON.stringify({
-      aps: {
-        alert: { title: "MyGymTrack",
-                 body: `${sanitize(fromName) || "Jemand"} hat mit einer Flamme reagiert` },
-        sound: "default",
-        badge: 1,
-      },
-    });
-    const send = (host) => fetch(`${host}/3/device/${token}`, {
-      method: "POST",
-      headers: {
-        authorization: `bearer ${jwt}`,
-        "apns-topic": BUNDLE_ID,
-        "apns-push-type": "alert",
-        "apns-priority": "10",
-      },
-      body: payload,
-    });
-    let apnsRes = await send(APNS_HOST);
-    if (!apnsRes.ok) {
-      let detail = await apnsRes.text();
-      // Xcode-Debug-Builds registrieren SANDBOX-Device-Tokens; ein Sandbox-only-Key
-      // wirft auf Production BadEnvironmentKeyInToken. In beiden Faellen: Sandbox probieren.
-      if (/BadDeviceToken|BadEnvironmentKeyInToken/.test(detail)) {
-        console.log("[PUSH] Production lehnt ab (", detail.trim(), ") -> versuche Sandbox");
-        apnsRes = await send(APNS_HOST_SANDBOX);
-        if (apnsRes.ok) { console.log("[PUSH] OK via SANDBOX"); return json({ ok: true, env: "sandbox" }, 200, cors); }
-        detail = await apnsRes.text();
+      const payload = JSON.stringify({
+        aps: {
+          alert: { title: "MyGymTrack",
+                   body: `${sanitize(fromName) || "Jemand"} hat mit einer Flamme reagiert` },
+          sound: "default",
+          badge: 1,
+        },
+      });
+      const send = (host) => fetch(`${host}/3/device/${token}`, {
+        method: "POST",
+        headers: {
+          authorization: `bearer ${jwt}`,
+          "apns-topic": BUNDLE_ID,
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+        },
+        body: payload,
+      });
+      let apnsRes = await send(APNS_HOST);
+      if (!apnsRes.ok) {
+        let detail = await apnsRes.text();
+        // Xcode-Debug-Builds registrieren SANDBOX-Device-Tokens; ein Sandbox-only-Key
+        // wirft auf Production BadEnvironmentKeyInToken. In beiden Faellen: Sandbox probieren.
+        if (/BadDeviceToken|BadEnvironmentKeyInToken/.test(detail)) {
+          console.log("[PUSH] Production lehnt ab (", detail.trim(), ") -> versuche Sandbox");
+          apnsRes = await send(APNS_HOST_SANDBOX);
+          if (apnsRes.ok) { console.log("[PUSH] OK via SANDBOX"); return json({ ok: true, env: "sandbox" }, 200, cors); }
+          detail = await apnsRes.text();
+        }
+        console.log("[PUSH] APNs LEHNT AB: status=", apnsRes.status, "detail=", detail);
+        return json({ error: "apns failed", status: apnsRes.status, detail }, 502, cors);
       }
-      console.log("[PUSH] APNs LEHNT AB: status=", apnsRes.status, "detail=", detail);
-      return json({ error: "apns failed", status: apnsRes.status, detail }, 502, cors);
+      console.log("[PUSH] OK -> APNs hat Push angenommen");
+      return json({ ok: true }, 200, cors);
+    } catch (e) {
+      console.log("[PUSH] FEHLER beim Signieren/Senden:", e && e.message || e);
+      return json({ error: "sign/send failed", detail: String(e && e.message || e) }, 500, cors);
     }
-    console.log("[PUSH] OK -> APNs hat Push angenommen");
-    return json({ ok: true }, 200, cors);
   },
 };
 
