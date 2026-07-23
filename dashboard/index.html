@@ -411,21 +411,29 @@ function render(D) {
   const P = (T.ok && T.premium) || null;
   const dl = (AS.ok && AS.configured && AS.apps && AS.apps[0]) ? AS.apps[0] : null;
   const todayIso = isoLocal(new Date());
-  const newToday = A.ok && A.signupsByDay ? ((A.signupsByDay.find(p => p.date === todayIso) || {}).v || 0) : null;
+  // echte Store-Installs (Apple/Google-Login) — anonyme Konten zählen NICHT als Download
+  const realSeries = (A.ok && A.signupsByDayReal) ? A.signupsByDayReal : (A.ok && A.signupsByDay ? A.signupsByDay : null);
+  const newToday = realSeries ? ((realSeries.find(p => p.date === todayIso) || {}).v || 0) : null;
 
-  /* Live-Downloads: Apples offizielle Summe als Basis (kein Konten-Fake),
-     obendrauf nur die neuen Firebase-Konten NACH Apples letztem Berichtstag. */
+  /* Live-Downloads = Apples offizielle Gesamtzahl (App-Analytics-Anker aus config, Stand X)
+     + die echten Apple/Google-Anmeldungen, die SEIT diesem Stand dazugekommen sind. Wächst live. */
+  const off = (AS.ok && AS.official && AS.official.downloads > 0 && AS.official.asOf) ? AS.official : null;
   let liveDl = null, liveExtra = 0, appleCut = null;
-  if (dl && dl.series && dl.series.length) {
+  if (off) {
+    appleCut = off.asOf;
+    if (realSeries) liveExtra = realSeries.filter(p => p.date > appleCut).reduce((a, p) => a + (p.v || 0), 0);
+    liveDl = off.downloads + liveExtra;
+  } else if (dl && dl.series && dl.series.length) {
+    // Fallback (kein Anker gesetzt): Sales-Report-Summe + neue Konten seit letztem Apple-Tag
     for (let i = dl.series.length - 1; i >= 0; i--) {
       if (dl.series[i].downloads > 0) { appleCut = dl.series[i].date; break; }
     }
-    if (A.ok && A.signupsByDay && appleCut) {
-      liveExtra = A.signupsByDay.filter(p => p.date > appleCut).reduce((a, p) => a + (p.v || 0), 0);
-    }
+    if (realSeries && appleCut) liveExtra = realSeries.filter(p => p.date > appleCut).reduce((a, p) => a + (p.v || 0), 0);
     liveDl = (dl.downloadsTotal || 0) + liveExtra;
   }
-  const liveDlSub = appleCut ? `Apple bis ${dShort(appleCut)} + ${fmt(liveExtra)} neue Konten seither` : 'App Store nicht verbunden';
+  const liveDlSub = appleCut
+    ? `Apple offiziell ${off ? fmt(off.downloads) : fmt(dl ? dl.downloadsTotal : 0)} (Stand ${dShort(appleCut)}) + ${fmt(liveExtra)} neue Apple/Google-Konten seither`
+    : 'App Store nicht verbunden';
 
   /* ── Übersicht ── */
   let ov = `<section>${secHead('Auf einen Blick', 'die wichtigsten Zahlen — live', null)}<div class="tiles">`;
@@ -443,11 +451,12 @@ function render(D) {
 
   /* ── Downloads ── */
   let dlh = `<section>${secHead('Downloads · live', 'Basis = Apple offiziell, live ergänzt um neue Konten', AS.ok ? (A.ok ? null : A) : AS)}<div class="tiles">`;
+  const real7 = realSeries ? realSeries.slice(-7).reduce((a, p) => a + (p.v || 0), 0) : null;
   dlh += tile(liveDl != null ? fmt(liveDl) : '—', 'Downloads · live', liveDlSub, true, liveDl != null)
-    + (dl ? tile(fmt(dl.downloadsTotal), 'Apple offiziell', appleCut ? `Stand ${dShort(appleCut)} · ~1 Tag versetzt` : '') : '')
-    + tile('+' + fmt(newToday), 'Neue Konten heute', 'live')
-    + tile('+' + fmt(A.ok ? A.new7 : null), 'Neue Konten · 7 Tage');
-  dlh += `</div><div class="note">Die große Zahl ist <b>Apples offizielle Download-Summe</b> bis zum letzten Berichtstag${appleCut ? ` (${dShort(appleCut)})` : ''} — dazu live nur die Firebase-Konten, die <b>seither</b> neu entstanden sind. Alte anonyme Konten (Web/PWA-Besucher, Alt-Nutzer) zählen hier NICHT mehr rein.</div>`;
+    + ((off || dl) ? tile(fmt(off ? off.downloads : dl.downloadsTotal), 'Apple offiziell', appleCut ? `Stand ${dShort(appleCut)}${off ? '' : ' · ~1 Tag versetzt'}` : '') : '')
+    + tile('+' + fmt(newToday), 'Neue Apple/Google-Konten heute', 'live')
+    + tile('+' + fmt(real7), 'Neue Apple/Google-Konten · 7 Tage');
+  dlh += `</div><div class="note">Die große Zahl ist <b>Apples offizielle Gesamt-Download-Zahl</b>${off ? ' aus App Store Connect (App-Analytics)' : ' (Sales-Report-Summe)'} mit Stand ${appleCut ? dShort(appleCut) : '—'} — dazu live nur die <b>echten Apple/Google-Anmeldungen</b>, die <b>seither</b> neu dazugekommen sind. Anonyme Konten (Web/PWA-Besucher, Alt-Nutzer) zählen hier NICHT rein. Offizielle Zahl bei Gelegenheit in <code>config.json</code> aktualisieren.</div>`;
   dlh += `<div class="sec-head" style="margin-top:18px"><h2>Firebase-Konten</h2><span class="sub">alle Anmelde-Arten — zur Einordnung, nicht die Download-Zahl</span></div><div class="tiles">`;
   if (A.ok) {
     dlh += tile(fmt(A.total), 'Konten gesamt', 'inkl. Web/PWA + anonym')
@@ -469,7 +478,7 @@ function render(D) {
     if (dl && dl.series) {
       const asSeries = dl.series.map(p => ({ date: p.date, v: p.downloads }));
       dlh += `<div class="card wide"><h3>Verifikation: Accounts vs. App Store <span style="font-weight:400;color:var(--muted)">· letzte 14 Tage</span></h3>
-        ${barChart2((A.signupsByDay || []).slice(-14), asSeries.slice(-14), 'Neue Accounts (live)', 'App-Store-Downloads (offiziell)')}
+        ${barChart2((realSeries || []).slice(-14), asSeries.slice(-14), 'Neue Apple/Google-Konten (live)', 'App-Store-Downloads (offiziell)')}
         <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Laufen beide Balken pro Tag ungefähr gleich, stimmt die Live-Ableitung. Abweichungen: Web/PWA-Nutzer zählen als Account, aber nicht als Store-Download; Re-Installationen umgekehrt. Apples letzter Tag fehlt (Berichte ~1 Tag versetzt).</div></div>`;
     }
     dlh += `</div>`;
