@@ -3,185 +3,248 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MyGymTrack Dashboard</title>
 <style>
   :root {
-    --bg: #0b0f14;
-    --surface: #151b24;
-    --surface-2: #1b2430;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --muted: #898781;
-    --grid: #26303d;
-    --baseline: #384453;
-    --border: rgba(255,255,255,.08);
-    --users: #3987e5;      /* Nutzer / Accounts */
-    --workouts: #199e70;   /* Workouts */
-    --store: #c98500;      /* App Store */
-    --extra: #9085e9;      /* Community / Apple */
-    --anon: #566374;       /* Anonym (neutral) */
-    --premium: #d9a728;    /* Premium / Umsatz */
-    --ai: #4fc3d9;         /* KI-Nutzung & Kosten */
-    --good: #0ca30c;
-    --warn: #fab219;
-    --crit: #d03b3b;
+    --bg: #f6f6f4;
+    --surface: #ffffff;
+    --ink: #101010;
+    --ink-2: #3c3c3c;
+    --muted: #8a8a86;
+    --border: #e3e3df;
+    --border-2: #cfcfca;
+    --grid: #ececea;
+    --baseline: #b9b9b4;
+    --bar: #161616;
+    --bar-2: #b8b8b2;
+    --crit: #b42318;
+    --sb-w: 232px;
+    --sb-min: 64px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    background: var(--bg);
-    color: var(--ink);
+    background: var(--bg); color: var(--ink);
     font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
     min-height: 100vh;
-    background-image:
-      radial-gradient(600px 400px at 85% -10%, rgba(57,135,229,.14), transparent 70%),
-      radial-gradient(500px 380px at -5% 20%, rgba(25,158,112,.10), transparent 70%);
-    background-attachment: fixed;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
 
-  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
-  header h1 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
-  .badge { font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px; }
-  .spacer { flex: 1; }
-  button {
-    font: 600 13px system-ui, sans-serif; color: var(--ink);
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 7px 13px; cursor: pointer;
+  /* ── Layout ── */
+  #app { display: flex; min-height: 100vh; }
+  main { flex: 1; min-width: 0; padding: 18px 20px 60px; max-width: 1220px; }
+  @media (max-width: 700px) { main { padding: 12px 12px 50px; } }
+
+  /* ── Sidebar ── */
+  aside {
+    width: var(--sb-w); flex: none; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 16px 10px 14px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    transition: width .18s ease;
   }
-  button:hover { background: #232e3d; }
-  #stand { font-size: 12.5px; color: var(--muted); }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 16px; }
+  .brand .logo {
+    width: 30px; height: 30px; flex: none; border-radius: 8px;
+    background: var(--ink); color: #fff; display: grid; place-items: center;
+    font-weight: 800; font-size: 14px; letter-spacing: -.02em;
+  }
+  .brand .t { font-weight: 700; font-size: 14.5px; letter-spacing: -.01em; white-space: nowrap; }
+  .brand .s { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .navlbl { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: 10px 12px 4px; white-space: nowrap; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    padding: 9px 12px; border-radius: 9px; font-size: 13.5px; font-weight: 550;
+    color: var(--ink-2); text-align: left; white-space: nowrap;
+  }
+  .nav-btn svg { flex: none; }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn.active { background: var(--ink); color: #fff; font-weight: 650; }
+  .sb-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
 
-  section { margin-top: 26px; }
-  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .sec-head h2 { font-size: 15px; font-weight: 700; color: var(--ink); }
-  .sec-head .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; align-self: center; }
-  .sec-head .sub { font-size: 12.5px; color: var(--muted); }
+  /* Zeitraum-Filter */
+  .seg { display: flex; border: 1px solid var(--border-2); border-radius: 9px; overflow: hidden; margin: 6px 10px 10px; }
+  .seg button { flex: 1; padding: 6px 0; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface); }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.on { background: var(--ink); color: #fff; }
+
+  /* eingeklappt (Desktop) */
+  body.nav-min aside { width: var(--sb-min); padding-left: 8px; padding-right: 8px; }
+  body.nav-min .brand .t, body.nav-min .brand .s, body.nav-min .navlbl,
+  body.nav-min .nav-btn span, body.nav-min .seg { display: none; }
+  body.nav-min .nav-btn { justify-content: center; padding: 11px 0; }
+
+  /* Mobile: Off-Canvas */
+  #backdrop { display: none; }
+  @media (max-width: 900px) {
+    aside {
+      position: fixed; left: 0; top: 0; z-index: 40; height: 100dvh;
+      transform: translateX(-105%); transition: transform .2s ease;
+      width: var(--sb-w) !important;
+    }
+    body.nav-open aside { transform: translateX(0); }
+    body.nav-open #backdrop { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,.35); }
+    body.nav-min .brand .t, body.nav-min .brand .s, body.nav-min .navlbl,
+    body.nav-min .nav-btn span, body.nav-min .seg { display: revert; }
+    body.nav-min .nav-btn { justify-content: flex-start; padding: 9px 12px; }
+    #collapseBtn { display: none; }
+  }
+
+  /* ── Topbar ── */
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .icon-btn {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--border-2); border-radius: 9px; background: var(--surface); color: var(--ink);
+  }
+  .icon-btn:hover { background: var(--bg); }
+  #menuBtn { display: none; }
+  @media (max-width: 900px) { #menuBtn { display: grid; } }
+  .topbar h1 { font-size: 17px; font-weight: 750; letter-spacing: -.02em; }
+  .topbar .spacer { flex: 1; }
+  #stand { font-size: 12px; color: var(--muted); }
+  .tbtn {
+    font-size: 12.5px; font-weight: 650; border: 1px solid var(--border-2);
+    border-radius: 9px; padding: 7px 12px; background: var(--surface);
+  }
+  .tbtn:hover { background: var(--bg); }
+
+  /* ── Panels / Sektionen ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+  section { margin-top: 22px; }
+  section:first-child { margin-top: 4px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .sec-head h2 { font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+  .sec-head .sub { font-size: 12px; color: var(--muted); }
   .err {
-    font-size: 12.5px; color: var(--crit); background: rgba(208,59,59,.10);
-    border: 1px solid rgba(208,59,59,.3); border-radius: 8px; padding: 2px 8px;
+    font-size: 12px; color: var(--crit); border: 1px solid var(--crit);
+    border-radius: 7px; padding: 1px 8px; background: var(--surface);
   }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .tile {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 13px 15px 11px;
-  }
-  .tile .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
-  .tile .l { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
-  .tile .s { font-size: 11px; color: var(--muted); margin-top: 1px; }
-  .tile.hero .v { color: var(--tint, var(--ink)); }
+  /* Kacheln */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 10px; }
+  .tile .v { font-size: 25px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+  .tile .s { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .tile.big { grid-column: span 2; }
+  .tile.big .v { font-size: 38px; }
+  @media (max-width: 480px) { .tiles { grid-template-columns: 1fr 1fr; } .tile.big { grid-column: 1/-1; } .tile.big .v { font-size: 42px; } }
 
-  .cards { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-top: 10px; }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--ink); display: inline-block;
+    margin-right: 7px; vertical-align: 3px;
+    animation: blink 1.8s infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+  .cards { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 8px; }
   @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 15px 16px 12px; min-width: 0;
-  }
-  .card h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
-  .card h3 .tbl-btn { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 1px 7px; }
-  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px 11px; min-width: 0; }
+  .card.wide { grid-column: 1/-1; }
+  .card h3 { font-size: 12.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .card h3 .tbl-btn { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--border-2); border-radius: 6px; padding: 1px 7px; }
 
   svg text { font: 10.5px system-ui, sans-serif; fill: var(--muted); }
-  svg .dl { font-weight: 600; fill: var(--ink-2); }
+  svg .dl { font-weight: 650; fill: var(--ink-2); }
   .bar { transition: opacity .1s; }
-  .bar:hover { opacity: .75; }
+  .bar:hover { opacity: .6; }
 
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   th, td { text-align: right; padding: 3px 8px; color: var(--ink-2); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
   th:first-child, td:first-child { text-align: left; }
   th { color: var(--muted); font-weight: 600; }
-  .tblwrap { max-height: 220px; overflow: auto; }
+  .tblwrap { max-height: 240px; overflow: auto; }
 
   .hbar-row { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 34px; align-items: center; gap: 8px; margin: 6px 0; font-size: 12.5px; }
   .hbar-row .n { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hbar-row .t { height: 12px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-  .hbar-row .f { height: 100%; border-radius: 4px; display: block; }
+  .hbar-row .t { height: 11px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+  .hbar-row .f { height: 100%; display: block; background: var(--bar); }
   .hbar-row .c { color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
 
-  .stack { display: flex; height: 16px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--bg); margin: 8px 0 10px; }
+  .stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 8px 0 10px; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); }
-  .legend .sw { margin-right: 6px; vertical-align: -1px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--border-2); }
 
   .note {
     font-size: 12.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border);
-    border-left: 3px solid var(--warn); border-radius: 10px; padding: 9px 13px; margin-top: 10px; line-height: 1.55;
+    border-left: 3px solid var(--ink); border-radius: 10px; padding: 9px 13px; margin-top: 10px; line-height: 1.55;
   }
-  .note.info { border-left-color: var(--users); }
-  .note code { background: var(--surface-2); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
-
-  .hero {
-    margin-top: 4px;
-    background: linear-gradient(135deg, rgba(25,158,112,.16), rgba(57,135,229,.08) 55%, rgba(201,133,0,.12));
-    border: 1px solid var(--border); border-radius: 22px; padding: 16px 22px 20px; overflow: hidden;
-  }
-  .hero-top {
-    display: flex; justify-content: flex-end; align-items: center; gap: 7px; margin-bottom: 4px;
-    font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase;
-  }
-  .hero-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-  @media (max-width: 760px) { .hero-grid { grid-template-columns: 1fr; gap: 18px; } }
-  .pulse, .dot-live {
-    width: 9px; height: 9px; border-radius: 50%; background: var(--good); display: inline-block;
-    box-shadow: 0 0 0 0 rgba(12,163,12,.6); animation: pulse 1.8s infinite;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(12,163,12,.55); }
-    70% { box-shadow: 0 0 0 11px rgba(12,163,12,0); }
-    100% { box-shadow: 0 0 0 0 rgba(12,163,12,0); }
-  }
-  .hero-stat { display: flex; flex-direction: column; gap: 3px; }
-  .hero-stat .cap { font-size: 12.5px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 7px; }
-  .hero-stat .big { font-size: 54px; font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
-  .hero-stat.gold .big { color: var(--store); }
-  .hero-stat.green .big { color: var(--good); }
-  .hero-stat .big .delta { font-size: 20px; font-weight: 700; vertical-align: 12px; margin-left: 8px; color: var(--good); }
-  .hero-stat .sub { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .note code { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; font-size: 12px; }
 
   #tooltip {
-    position: fixed; pointer-events: none; z-index: 10; display: none;
-    background: #060a0f; border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px 9px; font-size: 12px; color: var(--ink); white-space: nowrap;
-    box-shadow: 0 6px 18px rgba(0,0,0,.5);
+    position: fixed; pointer-events: none; z-index: 60; display: none;
+    background: var(--ink); border-radius: 7px; padding: 5px 9px;
+    font-size: 12px; color: #fff; white-space: nowrap;
   }
   #tooltip .tv { font-weight: 700; }
-  footer { margin-top: 34px; font-size: 12px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
-  .src-ok { color: var(--good); } .src-err { color: var(--crit); }
+  footer { margin-top: 30px; font-size: 11.5px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .src-ok { color: var(--ink); font-weight: 650; } .src-err { color: var(--crit); }
 
+  /* ── Login ── */
   #login {
     position: fixed; inset: 0; z-index: 50; background: var(--bg);
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    background-image:
-      radial-gradient(600px 400px at 85% -10%, rgba(57,135,229,.14), transparent 70%),
-      radial-gradient(500px 380px at -5% 20%, rgba(25,158,112,.10), transparent 70%);
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px;
   }
-  #login .box { max-width: 340px; padding: 30px; }
-  #login h2 { font-size: 20px; margin-bottom: 8px; }
-  #login p { font-size: 13px; color: var(--ink-2); margin-bottom: 18px; }
-  #login button { font-size: 14px; padding: 10px 18px; }
+  #login .box { max-width: 340px; padding: 34px 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+  #login h2 { font-size: 19px; margin: 14px 0 6px; letter-spacing: -.01em; }
+  #login p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  #login button.go { font-size: 14px; font-weight: 650; padding: 10px 20px; border-radius: 10px; background: var(--ink); color: #fff; }
   #loginMsg { margin-top: 14px; font-size: 12.5px; color: var(--crit); }
 </style>
 </head>
 <body>
 <div id="login">
   <div class="box">
+    <div class="brand" style="justify-content:center;padding:0"><div class="logo">GT</div></div>
     <h2>MyGymTrack Dashboard</h2>
     <p>Live-Zahlen der App. Zugang nur für den Admin-Account.</p>
-    <button id="loginBtn">Mit Google anmelden</button>
+    <button class="go" id="loginBtn">Mit Google anmelden</button>
     <div id="loginMsg"></div>
   </div>
 </div>
-<div class="wrap">
-  <header>
-    <h1>MyGymTrack Dashboard</h1>
-    <span class="badge" id="proj">…</span>
-    <span class="spacer"></span>
-    <span id="stand">lädt …</span>
-    <button onclick="load()">Aktualisieren</button>
-    <button id="logoutBtn" title="Abmelden">Abmelden</button>
-  </header>
-  <div id="main">Lade Daten …</div>
-  <footer id="foot"></footer>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="logo">GT</div>
+      <div><div class="t">MyGymTrack</div><div class="s">Analytics</div></div>
+    </div>
+    <div class="navlbl">Bereiche</div>
+    <nav id="nav"></nav>
+    <div class="sb-foot">
+      <div class="navlbl">Zeitraum · Charts</div>
+      <div class="seg" id="periodSeg">
+        <button data-p="7">7 T</button><button data-p="30">30 T</button><button data-p="60">60 T</button>
+      </div>
+      <button class="nav-btn" id="collapseBtn" title="Leiste einklappen">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        <span>Einklappen</span>
+      </button>
+      <button class="nav-btn" id="logoutBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Abmelden</span>
+      </button>
+    </div>
+  </aside>
+  <div id="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+
+  <main>
+    <div class="topbar">
+      <button class="icon-btn" id="menuBtn" aria-label="Menü">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 id="pageTitle">Übersicht</h1>
+      <span class="spacer"></span>
+      <span id="stand">lädt …</span>
+      <button class="tbtn" onclick="load()">Aktualisieren</button>
+    </div>
+    <div id="main">Lade Daten …</div>
+    <footer id="foot"></footer>
+  </main>
 </div>
 <div id="tooltip"></div>
 
@@ -196,6 +259,18 @@ const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','
 const dShort = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 const DAY = 86_400_000;
 let REFRESH_AT = 0;
+let LAST_D = null;
+let PERIOD = Number(localStorage.getItem('gtdash_period') || 30);
+let TAB = localStorage.getItem('gtdash_tab') || 'overview';
+
+const TABS = [
+  { id: 'overview',  t: 'Übersicht', ico: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>' },
+  { id: 'downloads', t: 'Downloads', ico: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
+  { id: 'training',  t: 'Training', ico: '<path d="M2 12h2.5M19.5 12H22M8 12h8"/><rect x="4.5" y="7" width="3" height="10" rx="1"/><rect x="16.5" y="7" width="3" height="10" rx="1"/>' },
+  { id: 'community', t: 'Community', ico: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+  { id: 'revenue',   t: 'Umsatz', ico: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.7a4.4 4.4 0 0 0-3.3-1.5c-2.5 0-4.4 2.2-4.4 4.8s1.9 4.8 4.4 4.8a4.4 4.4 0 0 0 3.3-1.5M6.5 10.6h4.6M6.5 13.4h4.6"/>' },
+  { id: 'ai',        t: 'KI-Coach', ico: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 1.5V4M15 1.5V4M9 20v2.5M15 20v2.5M1.5 9H4M1.5 15H4M20 9h2.5M20 15h2.5"/><rect x="9" y="9" width="6" height="6" rx="1"/>' },
+];
 
 function isoLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -209,12 +284,45 @@ function seriesFromMap(map, days) {
   }
   return out;
 }
+const cut = (series) => (series || []).slice(-PERIOD);
+
+/* ── Navigation ── */
+function buildNav() {
+  $('#nav').innerHTML = TABS.map(t =>
+    `<button class="nav-btn${t.id === TAB ? ' active' : ''}" data-tab="${t.id}" onclick="showTab('${t.id}')">
+       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.ico}</svg>
+       <span>${t.t}</span></button>`).join('');
+}
+window.showTab = (id) => {
+  TAB = id; localStorage.setItem('gtdash_tab', id);
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
+  const t = TABS.find(x => x.id === id);
+  $('#pageTitle').textContent = t ? t.t : '';
+  document.body.classList.remove('nav-open');
+  window.scrollTo(0, 0);
+};
+function updateSeg() {
+  document.querySelectorAll('#periodSeg button').forEach(b => b.classList.toggle('on', Number(b.dataset.p) === PERIOD));
+}
+document.querySelectorAll('#periodSeg button').forEach(b => b.addEventListener('click', () => {
+  PERIOD = Number(b.dataset.p); localStorage.setItem('gtdash_period', PERIOD);
+  updateSeg(); if (LAST_D) render(LAST_D);
+}));
+$('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
+$('#collapseBtn').addEventListener('click', () => {
+  document.body.classList.toggle('nav-min');
+  localStorage.setItem('gtdash_navmin', document.body.classList.contains('nav-min') ? '1' : '');
+});
+if (localStorage.getItem('gtdash_navmin')) document.body.classList.add('nav-min');
+buildNav(); updateSeg();
 
 /* ── Balken-Chart (eine Serie) als SVG ── */
 let _cid = 0;
-function barChart(series, color, unit) {
+function barChart(series, unit, color) {
   if (!series || !series.length) return '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>';
-  const W = 640, H = 150, padL = 32, padB = 18, padT = 14;
+  color = color || 'var(--bar)';
+  const W = 640, H = 150, padL = 34, padB = 18, padT = 14;
   const iw = W - padL - 6, ih = H - padT - padB;
   const max = Math.max(1, ...series.map(p => p.v));
   const bw = iw / series.length;
@@ -223,7 +331,7 @@ function barChart(series, color, unit) {
   series.forEach((p, i) => {
     const x = padL + i * bw;
     const h = Math.max(p.v > 0 ? 2 : 0, (p.v / max) * ih);
-    bars += `<rect class="bar" x="${(x + 1).toFixed(1)}" y="${(padT + ih - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}" data-d="${p.date}" data-v="${p.v}"/>`;
+    bars += `<rect class="bar" x="${(x + 1).toFixed(1)}" y="${(padT + ih - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${color}" data-d="${p.date}" data-v="${p.v}"/>`;
     if (i % Math.ceil(series.length / 8) === 0) {
       labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${dShort(p.date)}</text>`;
     }
@@ -244,178 +352,235 @@ function barChart(series, color, unit) {
   </svg></div>`;
 }
 
-function chartCard(title, series, color, unit, wide = false) {
+/* Zwei Serien nebeneinander (Vergleich Accounts vs. App Store) */
+function barChart2(a, b, lblA, lblB) {
+  if (!a || !a.length) return '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>';
+  a = a.map(p => ({ date: p.date, v: Number(p.v) || 0 }));
+  b = (b || []).map(p => ({ date: p.date, v: Number(p.v) || 0 }));
+  const bMap = new Map(b.map(p => [p.date, p.v]));
+  const W = 640, H = 160, padL = 34, padB = 18, padT = 14;
+  const iw = W - padL - 6, ih = H - padT - padB;
+  const max = Math.max(1, ...a.map(p => p.v), ...(b || []).map(p => p.v));
+  const gw = iw / a.length;
+  let bars = '', labels = '';
+  a.forEach((p, i) => {
+    const x = padL + i * gw;
+    const bv = bMap.get(p.date) || 0;
+    const w1 = Math.max(1, gw / 2 - 1.5);
+    const h1 = Math.max(p.v > 0 ? 2 : 0, (p.v / max) * ih);
+    const h2 = Math.max(bv > 0 ? 2 : 0, (bv / max) * ih);
+    bars += `<rect class="bar" x="${(x + 1).toFixed(1)}" y="${(padT + ih - h1).toFixed(1)}" width="${w1.toFixed(1)}" height="${h1.toFixed(1)}" rx="1.5" fill="var(--bar)" data-d="${p.date} · ${esc(lblA)}" data-v="${p.v}"/>`
+         + `<rect class="bar" x="${(x + 1 + w1 + 1).toFixed(1)}" y="${(padT + ih - h2).toFixed(1)}" width="${w1.toFixed(1)}" height="${h2.toFixed(1)}" rx="1.5" fill="var(--bar-2)" data-d="${p.date} · ${esc(lblB)}" data-v="${bv}"/>`;
+    if (i % Math.ceil(a.length / 7) === 0) {
+      labels += `<text x="${(x + gw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${dShort(p.date)}</text>`;
+    }
+  });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" role="img" aria-label="Vergleich">
+    <line x1="${padL}" y1="${padT + ih}" x2="${W - 6}" y2="${padT + ih}" stroke="var(--baseline)"/>
+    <text x="${padL - 5}" y="${padT + ih + 4}" text-anchor="end">0</text>
+    <text x="${padL - 5}" y="${padT + 4}" text-anchor="end">${fmt(max)}</text>
+    ${bars}${labels}
+  </svg></div>
+  <div class="legend" style="margin-top:6px"><span><span class="sw" style="background:var(--bar)"></span>${esc(lblA)}</span><span><span class="sw" style="background:var(--bar-2)"></span>${esc(lblB)}</span></div>`;
+}
+
+function chartCard(title, series, unit, opts = {}) {
   const tid = 'tbl' + (++_cid);
+  const cutSeries = opts.noCut ? series : cut(series);
   const rows = (series || []).filter(p => p.v > 0).slice().reverse()
     .map(p => `<tr><td>${p.date}</td><td>${fmt(p.v)}</td></tr>`).join('');
-  return `<div class="card"${wide ? ' style="grid-column:1/-1"' : ''}><h3><span class="sw" style="background:${color}"></span>${esc(title)}
+  return `<div class="card${opts.wide ? ' wide' : ''}"><h3>${esc(title)}${opts.noCut ? '' : `<span style="font-weight:400;color:var(--muted)">· ${PERIOD} Tage</span>`}
       <button class="tbl-btn" onclick="const t=document.getElementById('${tid}');t.style.display=t.style.display==='none'?'block':'none'">Tabelle</button></h3>
-    ${barChart(series, color, unit)}
+    ${barChart(cutSeries, unit, opts.color)}
     <div id="${tid}" class="tblwrap" style="display:none;margin-top:8px"><table><tr><th>Tag</th><th>${esc(unit)}</th></tr>${rows || '<tr><td colspan="2">keine Einträge</td></tr>'}</table></div>
   </div>`;
 }
 
-const tile = (v, label, sub = '', tint = '') =>
-  `<div class="tile${tint ? ' hero' : ''}"${tint ? ` style="--tint:${tint}"` : ''}><div class="v">${v}</div><div class="l">${esc(label)}</div>${sub ? `<div class="s">${esc(sub)}</div>` : ''}</div>`;
+const tile = (v, label, sub = '', big = false, live = false) =>
+  `<div class="tile${big ? ' big' : ''}"><div class="v num">${live ? '<span class="live-dot"></span>' : ''}${v}</div><div class="l">${esc(label)}</div>${sub ? `<div class="s">${esc(sub)}</div>` : ''}</div>`;
 
-const secHead = (color, title, sub, errObj) =>
-  `<div class="sec-head"><span class="dot" style="background:${color}"></span><h2>${esc(title)}</h2>
+const secHead = (title, sub, errObj) =>
+  `<div class="sec-head"><h2>${esc(title)}</h2>
    ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
    ${errObj && errObj.ok === false ? `<span class="err">Fehler: ${esc(errObj.error || '?')}</span>` : ''}</div>`;
 
-/* ── Rendern (identisch zum lokalen Dashboard) ── */
+/* ── Rendern ── */
 function render(D) {
-  $('#proj').textContent = D.project || '—';
+  LAST_D = D;
   const A = D.auth || {}, S = D.sync || {}, C = D.community || {}, T = D.tracking || {}, AS = D.appstore || {}, AI = D.ai || {};
-  let h = '';
-
-  /* Hero: echte Echtzeit-Zahlen (jetzt in App / jetzt im Training) + Downloads */
+  const P = (T.ok && T.premium) || null;
   const dl = (AS.ok && AS.configured && AS.apps && AS.apps[0]) ? AS.apps[0] : null;
-  const activeNow = S.ok ? (S.active5m || 0) : 0;
-  const liveTrain = C.ok ? (C.liveNow || 0) : 0;
-  const activeToday = S.ok ? (S.active24h || 0) : 0;
-  h += `<div class="hero">
-    <div class="hero-top"><span class="pulse"></span><span id="liveTxt">Live</span></div>
-    <div class="hero-grid">
-      <div class="hero-stat green">
-        <div class="cap"><span class="dot-live"></span>Jetzt in der App</div>
-        <div class="big">${fmt(activeNow)}</div>
-        <div class="sub">aktiv in den letzten 5 Min · Echtzeit${activeToday ? ` · ${fmt(activeToday)} heute` : ''}</div>
-      </div>
-      <div class="hero-stat green">
-        <div class="cap"><span class="dot-live"></span>Jetzt im Training</div>
-        <div class="big">${fmt(liveTrain)}</div>
-        <div class="sub">trainieren gerade · Echtzeit</div>
-      </div>
-      <div class="hero-stat gold">
-        <div class="cap">📲 Downloads gesamt</div>
-        <div class="big">${dl ? fmt(dl.downloadsTotal) : '—'}${dl && dl.downloads7 ? `<span class="delta">+${fmt(dl.downloads7)}</span>` : ''}</div>
-        <div class="sub">${dl ? `+${fmt(dl.downloads7)} in 7 Tagen · App Store (nur Tageswerte)` : 'App Store nicht verbunden'}</div>
-      </div>
-    </div>
-  </div>`;
+  const todayIso = isoLocal(new Date());
+  const newToday = A.ok && A.signupsByDay ? ((A.signupsByDay.find(p => p.date === todayIso) || {}).v || 0) : null;
 
-  /* Nutzer */
-  h += `<section>${secHead('var(--users)', 'Nutzer', 'Firebase Auth + Cloud-Sync', A.ok ? (S.ok ? null : S) : A)}<div class="tiles">`;
-  if (A.ok) h += tile(fmt(A.total), 'Accounts gesamt', 'Firebase Auth', 'var(--users)')
-    + tile('+' + fmt(A.new7), 'Neu · 7 Tage')
-    + tile('+' + fmt(A.new30), 'Neu · 30 Tage');
-  if (S.ok) h += tile(fmt(S.total), 'Cloud-Sync-Nutzer', 'users-Dokumente')
+  /* ── Übersicht ── */
+  let ov = `<section>${secHead('Auf einen Blick', 'die wichtigsten Zahlen — live', null)}<div class="tiles">`;
+  ov += tile(A.ok ? fmt(A.total) : '—', 'Downloads · live abgeleitet', A.ok ? `+${fmt(newToday)} heute · +${fmt(A.new7)} in 7 Tagen` : 'admin/auth fehlt', true, true)
+    + tile(P ? nfEUR.format(P.mrrEstimate) : '—', 'Umsatz / Monat', P ? `${fmt(P.total)} Premium-Nutzer · geschätzt` : '', true)
+    + tile(S.ok ? fmt(S.active5m) : '—', 'Jetzt in der App', 'aktiv < 5 Min', false, S.ok && S.active5m > 0)
+    + tile(C.ok ? fmt(C.liveNow) : '—', 'Jetzt im Training', 'Echtzeit', false, C.ok && C.liveNow > 0)
+    + tile(S.ok ? fmt(S.active24h) : '—', 'Aktiv heute')
+    + tile(AI.ok ? nfUSD.format(AI.costUsd || 0) : '—', 'KI-Kosten', 'diesen Monat')
+    + tile(dl ? fmt(dl.downloads7) : '—', 'App Store · 7 Tage', 'offiziell, 1 Tag versetzt')
+    + tile(S.ok && S.workouts ? fmt(S.workouts.last7) : '—', 'Workouts · 7 Tage');
+  ov += `</div></section>`;
+  if (A.ok) ov += `<section>${secHead('Neue Nutzer', 'Neuregistrierungen = neue Installationen', null)}
+    <div class="cards">${chartCard('Neue Accounts pro Tag', A.signupsByDay, 'Accounts', { wide: true })}</div></section>`;
+
+  /* ── Downloads ── */
+  let dlh = `<section>${secHead('Downloads · live abgeleitet', 'aus Firebase-Accounts (Login-Pflicht + anonyme Auto-Anmeldung)', A.ok ? null : A)}<div class="tiles">`;
+  if (A.ok) {
+    dlh += tile(fmt(A.total), 'Installationen gesamt', 'Accounts, alle Anmelde-Arten', true, true)
+      + tile('+' + fmt(newToday), 'Heute', 'live')
+      + tile('+' + fmt(A.new7), 'Neu · 7 Tage')
+      + tile('+' + fmt(A.new30), 'Neu · 30 Tage');
+  }
+  dlh += `</div>`;
+  if (A.ok) {
+    const provs = [['Google', A.google || 0], ['Apple', A.apple || 0], ['Anonym', A.anon || 0]];
+    if (A.other) provs.push(['Andere', A.other]);
+    const shades = ['#161616', '#5a5a56', '#b8b8b2', '#dcdcd8'];
+    const total = Math.max(1, A.total);
+    dlh += `<div class="cards">`;
+    dlh += chartCard('Neue Accounts pro Tag', A.signupsByDay, 'Accounts');
+    dlh += `<div class="card"><h3>Anmelde-Art</h3>
+      <div class="stack">${provs.filter(p => p[1] > 0).map((p, i) => `<div style="flex:${p[1]} 0 0;background:${shades[i]}" title="${p[0]}: ${fmt(p[1])}"></div>`).join('')}</div>
+      <div class="legend">${provs.map((p, i) => `<span><span class="sw" style="background:${shades[i]}"></span>${p[0]} <b class="num">${fmt(p[1])}</b> (${Math.round(p[1] / total * 100)} %)</span>`).join('')}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Anonym = App geöffnet, Login-Wand (noch) nicht abgeschlossen — die App meldet sich nach 3 s automatisch anonym an.</div>
+    </div>`;
+    if (dl && dl.series) {
+      const asSeries = dl.series.map(p => ({ date: p.date, v: p.downloads }));
+      dlh += `<div class="card wide"><h3>Verifikation: Accounts vs. App Store <span style="font-weight:400;color:var(--muted)">· letzte 14 Tage</span></h3>
+        ${barChart2((A.signupsByDay || []).slice(-14), asSeries.slice(-14), 'Neue Accounts (live)', 'App-Store-Downloads (offiziell)')}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Laufen beide Balken pro Tag ungefähr gleich, stimmt die Live-Ableitung. Abweichungen: Web/PWA-Nutzer zählen als Account, aber nicht als Store-Download; Re-Installationen umgekehrt. Apples letzter Tag fehlt (Berichte ~1 Tag versetzt).</div></div>`;
+    }
+    dlh += `</div>`;
+  }
+  dlh += `</section>`;
+  dlh += `<section>${secHead('App Store · offiziell', 'App Store Connect, ~1 Tag versetzt', AS.ok ? null : AS)}`;
+  if (AS.ok && AS.configured) {
+    for (const app of AS.apps || []) {
+      dlh += `<div class="tiles" style="margin-bottom:8px">`
+        + tile(fmt(app.downloads7), 'Downloads · 7 Tage', app.title)
+        + tile(fmt(app.downloads30), 'Downloads · 30 Tage')
+        + tile(fmt(app.downloadsTotal), 'Downloads · 60 Tage')
+        + tile(fmt(app.updates7), 'Updates · 7 Tage')
+        + `</div><div class="cards">${chartCard(app.title + ' — Downloads pro Tag', app.series.map(p => ({ date: p.date, v: p.downloads })), 'Downloads', { wide: true })}</div>`;
+    }
+    dlh += `<div class="note">${esc(AS.note || '')}</div>`;
+  } else if (AS.ok) {
+    dlh += `<div class="note">Noch nicht verbunden — es fehlen: <b>${(AS.missing || []).map(esc).join('</b>, <b>')}</b>.</div>`;
+  }
+  dlh += `</section>`;
+
+  /* ── Training ── */
+  let tr = '';
+  tr += `<section>${secHead('Aktivität', 'Cloud-Sync — live', A.ok ? (S.ok ? null : S) : A)}<div class="tiles">`;
+  if (S.ok) tr += tile(fmt(S.active5m), 'Gerade aktiv', 'Sync < 5 Min', false, S.active5m > 0)
     + tile(fmt(S.active24h), 'Aktiv heute', 'Sync in 24 h')
     + tile(fmt(S.active7d), 'Aktiv · 7 Tage')
     + tile(fmt(S.active30d), 'Aktiv · 30 Tage')
-    + tile(fmt(S.active5m), 'Gerade aktiv', 'Sync < 5 Min', S.active5m > 0 ? 'var(--good)' : '');
-  h += `</div><div class="cards">`;
-  if (A.ok) {
-    h += chartCard('Neuregistrierungen pro Tag (60 Tage)', A.signupsByDay, 'var(--users)', 'Accounts');
-    const provs = [['Anonym', A.anon, 'var(--anon)'], ['Google', A.google, 'var(--users)'], ['Apple', A.apple, 'var(--extra)']];
-    if (A.other) provs.push(['Andere', A.other, 'var(--store)']);
-    const total = Math.max(1, A.total);
-    h += `<div class="card"><h3>Anmelde-Art</h3>
-      <div class="stack">${provs.filter(p => p[1] > 0).map(p => `<div style="flex:${p[1]} 0 0;background:${p[2]}" title="${p[0]}: ${fmt(p[1])}"></div>`).join('')}</div>
-      <div class="legend">${provs.map(p => `<span><span class="sw" style="background:${p[2]}"></span>${p[0]} <b>${fmt(p[1])}</b> (${Math.round(p[1] / total * 100)} %)</span>`).join('')}</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Anonyme Accounts = App genutzt ohne Login (Auto-Anmeldung beim ersten Start).</div>
-    </div>`;
-  }
-  h += `</div></section>`;
-
-  /* Workouts */
+    + tile(fmt(S.total), 'Cloud-Sync-Nutzer', 'users-Dokumente');
+  tr += `</div></section>`;
   if (S.ok && S.workouts) {
     const W = S.workouts;
-    h += `<section>${secHead('var(--workouts)', 'Workouts', 'aus den Cloud-Sync-Daten aller Nutzer — live', null)}<div class="tiles">`;
-    h += tile(fmt(W.total), 'Workouts gesamt', '', 'var(--workouts)')
+    tr += `<section>${secHead('Workouts', 'aus den Cloud-Sync-Daten aller Nutzer — live', null)}<div class="tiles">`;
+    tr += tile(fmt(W.total), 'Workouts gesamt', '', true)
       + tile(fmt(W.last7), 'Workouts · 7 Tage')
       + tile(fmt(W.last30), 'Workouts · 30 Tage')
       + tile(fmt(W.trainers7), 'Trainierende · 7 Tage')
       + tile(W.avgDurMin ? W.avgDurMin + ' min' : '—', 'Ø Dauer', 'letzte 30 Tage')
       + tile(fmt(W.sets30), 'Sätze · 30 Tage')
       + (S.streaks && S.streaks.active ? tile(fmt(S.streaks.active), 'Aktive Streaks', 'max. ' + S.streaks.max) : '');
-    h += `</div><div class="cards">`;
-    h += chartCard('Workouts pro Tag (60 Tage)', W.byDay, 'var(--workouts)', 'Workouts');
+    tr += `</div><div class="cards">`;
+    tr += chartCard('Workouts pro Tag', W.byDay, 'Workouts');
     const maxN = Math.max(1, ...(W.topExercises || []).map(e => e.n));
-    h += `<div class="card"><h3>Top-Übungen (30 Tage)</h3>${
-      (W.topExercises || []).map(e => `<div class="hbar-row"><span class="n" title="${esc(e.name)}">${esc(e.name)}</span><span class="t"><span class="f" style="width:${Math.round(e.n / maxN * 100)}%;background:var(--workouts)"></span></span><span class="c">${fmt(e.n)}</span></div>`).join('') || '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>'
+    tr += `<div class="card"><h3>Top-Übungen (30 Tage)</h3>${
+      (W.topExercises || []).map(e => `<div class="hbar-row"><span class="n" title="${esc(e.name)}">${esc(e.name)}</span><span class="t"><span class="f" style="width:${Math.round(e.n / maxN * 100)}%"></span></span><span class="c">${fmt(e.n)}</span></div>`).join('') || '<div style="color:var(--muted);font-size:12.5px">keine Daten</div>'
     }<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Anzahl Workouts (30 Tage), in denen die Übung vorkam.</div></div>`;
-    h += `</div></section>`;
+    tr += `</div></section>`;
   }
-
-  /* Community */
-  h += `<section>${secHead('var(--extra)', 'Community', 'Freunde-Feature (Opt-in) — live', C.ok ? null : C)}<div class="tiles">`;
-  if (C.ok) h += tile(fmt(C.profiles), 'Öffentliche Profile', '', 'var(--extra)')
-    + tile(fmt(C.liveNow), 'Live im Training', 'laut Profil-Status', C.liveNow > 0 ? 'var(--good)' : '')
-    + tile(fmt(C.requests), 'Freundschaftsanfragen', 'Dokumente gesamt');
-  h += `</div></section>`;
-
-  /* Session-Tracking */
-  h += `<section>${secHead('var(--users)', 'Session-Tracking', 'analytics_sessions — In-App-Nutzung, live', T.ok ? null : T)}`;
+  tr += `<section>${secHead('Session-Tracking', 'analytics_sessions — In-App-Nutzung, live', T.ok ? null : T)}`;
   if (T.ok) {
-    h += `<div class="tiles">`
-      + tile(fmt(T.dauToday), 'Aktive Nutzer heute', 'getrackt (DAU)', 'var(--users)')
+    tr += `<div class="tiles">`
+      + tile(fmt(T.dauToday), 'Aktive Nutzer heute', 'getrackt (DAU)')
       + tile(fmt(T.sessionsToday), 'Sessions heute')
       + tile(fmt(T.users7), 'Nutzer · 7 Tage')
       + tile(fmt(T.sessions7), 'Sessions · 7 Tage')
       + tile(T.avgSessionMin ? T.avgSessionMin + ' min' : '—', 'Ø Session-Dauer', '7 Tage');
-    h += `</div><div class="cards">`;
-    h += chartCard('Getrackte aktive Nutzer pro Tag', T.dauByDay, 'var(--users)', 'Nutzer');
-    h += `<div class="card"><h3>Einordnung</h3><div class="note info" style="margin-top:0">Das Session-Tracking war bis <b>${esc(T.fixDate || '')}</b> kaputt: eine Firestore-Rule blockte alle Nutzer außer dem Admin — es wurde nur <b>1 Nutzer</b> erfasst. Seit dem Fix zählt es jeden mit aktueller App-Version; die Zahlen hier wachsen mit der Update-Verbreitung. Die Abschnitte <b>Nutzer</b> und <b>Workouts</b> oben sind davon unabhängig und vollständig.</div></div>`;
-    h += `</div>`;
+    tr += `</div><div class="cards">`;
+    tr += chartCard('Getrackte aktive Nutzer pro Tag', T.dauByDay, 'Nutzer', { noCut: true });
+    tr += `<div class="card"><h3>Einordnung</h3><div class="note" style="margin-top:0">Das Session-Tracking war bis <b>${esc(T.fixDate || '')}</b> kaputt (nur Admin erfasst). Seit dem Fix zählt es jeden mit aktueller App-Version. <b>Aktivität</b> und <b>Workouts</b> oben sind davon unabhängig und vollständig.</div></div>`;
+    tr += `</div>`;
   }
-  h += `</section>`;
+  tr += `</section>`;
 
-  /* Premium & Umsatz */
-  if (T.ok && T.premium) {
-    const P = T.premium;
-    h += `<section>${secHead('var(--premium)', 'Premium & Umsatz', 'analytics_users — live, geschätzt', null)}<div class="tiles">`
-      + tile(fmt(P.total), 'Premium-Nutzer', 'aktuell aktiv', 'var(--premium)')
-      + tile(fmt(P.monthly), 'davon Monats-Abo', '2,99 €/Monat')
-      + tile(fmt(P.yearly), 'davon Jahres-Abo', '19,99 €/Jahr')
-      + tile(nfEUR.format(P.mrrEstimate), 'Ø Umsatz/Monat', 'geschätzt, brutto');
-    h += `</div><div class="note info">Schätzung aus App-Tracking, <b>nicht</b> Apples offiziellen Zahlen — ohne Apples Provision (15–30&nbsp;%), Steuern, Testphasen oder Rückerstattungen. Echte Zahlen: App Store Connect → Analyse/Abonnements bzw. Zahlungen und Finanzberichte. Bestehende Premium-Nutzer tauchen erst nach ihrer nächsten App-Session hier auf (Feld ist neu).</div></section>`;
+  /* ── Community ── */
+  let cm = `<section>${secHead('Community', 'Freunde-Feature (Opt-in) — live', C.ok ? null : C)}<div class="tiles">`;
+  if (C.ok) cm += tile(fmt(C.profiles), 'Öffentliche Profile', '', true)
+    + tile(fmt(C.liveNow), 'Live im Training', 'laut Profil-Status', false, C.liveNow > 0)
+    + tile(fmt(C.requests), 'Freundschaftsanfragen', 'Dokumente gesamt');
+  cm += `</div></section>`;
+
+  /* ── Umsatz ── */
+  let rv = `<section>${secHead('Premium & Umsatz', 'analytics_users — live, geschätzt', T.ok ? null : T)}<div class="tiles">`;
+  if (P) {
+    rv += tile(nfEUR.format(P.mrrEstimate), 'Umsatz / Monat', 'geschätzt, brutto', true)
+      + tile(fmt(P.total), 'Premium-Nutzer', 'aktuell aktiv')
+      + tile(fmt(P.monthly), 'Monats-Abo', '2,99 €/Monat')
+      + tile(fmt(P.yearly), 'Jahres-Abo', '19,99 €/Jahr');
   }
+  rv += `</div><div class="note">Schätzung aus App-Tracking, <b>nicht</b> Apples offiziellen Zahlen — ohne Apples Provision (15–30&nbsp;%), Steuern, Testphasen oder Rückerstattungen. Echte Zahlen: App Store Connect → Zahlungen und Finanzberichte.</div></section>`;
 
-  /* KI-Nutzung & Kosten */
-  h += `<section>${secHead('var(--ai)', 'KI-Nutzung & Kosten', 'Cloudflare-Worker (Gemini/Claude) — live, geschätzt', AI.ok ? null : AI)}`;
+  /* ── KI-Coach ── */
+  let ai = `<section>${secHead('KI-Coach · Verkäufe', 'Premium = Zugang zum KI-Coach', T.ok ? null : T)}<div class="tiles">`;
+  if (P) {
+    ai += tile(fmt(P.total), 'Käufer', 'aktive Premium-Abos', true)
+      + tile(nfEUR.format(P.mrrEstimate), 'Einnahmen / Monat', 'geschätzt, brutto');
+  }
+  ai += `</div></section>`;
+  ai += `<section>${secHead('KI-Kosten (Gemini)', 'Cloudflare-Worker — live, geschätzt', AI.ok ? null : AI)}`;
   if (AI.ok) {
     const hasBudget = typeof AI.budgetUsd === 'number' && AI.budgetUsd > 0;
     const pct = hasBudget ? Math.min(100, Math.round((AI.costUsd / AI.budgetUsd) * 100)) : null;
-    const pctTint = pct == null ? '' : pct >= 90 ? 'var(--crit)' : pct >= 70 ? 'var(--warn)' : 'var(--ai)';
-    h += `<div class="tiles">`
-      + tile(fmt(AI.calls), 'KI-Anfragen', 'diesen Monat', 'var(--ai)')
+    const H = Array.isArray(AI.history) ? AI.history : null;
+    const avgMonth = H && H.length ? H.reduce((a, m) => a + (m.costUsd || 0), 0) / H.length : null;
+    ai += `<div class="tiles">`
+      + tile(nfUSD.format(AI.costUsd || 0), 'Kosten diesen Monat', 'Gemini, geschätzt', true)
+      + tile(nfUSD.format(avgMonth != null ? avgMonth : (AI.costUsd || 0)), 'Ø Kosten / Monat', avgMonth != null ? `über ${H.length} Monat${H.length > 1 ? 'e' : ''}` : 'nur aktueller Monat (Worker alt)')
+      + tile(fmt(AI.calls), 'KI-Anfragen', 'diesen Monat')
       + tile(fmt(AI.inTok), 'Input-Token', 'diesen Monat')
       + tile(fmt(AI.outTok), 'Output-Token', 'diesen Monat')
-      + tile(nfUSD.format(AI.costUsd || 0), 'Geschätzte Kosten', 'diesen Monat')
-      + (hasBudget ? tile(pct + ' %', 'Budget-Auslastung', nfUSD.format(AI.costUsd) + ' von ' + nfUSD.format(AI.budgetUsd), pctTint) : '');
-    h += `</div><div class="note info">Schätzung auf Basis der im Worker hinterlegten Listenpreise (PRICE_IN_PER_M/PRICE_OUT_PER_M) — keine offizielle Abrechnung. ${
-      hasBudget
-        ? `Bei Erreichen des Monatsbudgets (${nfUSD.format(AI.budgetUsd)}) blockt der Worker automatisch weitere KI-Calls für alle Nutzer, bis der Monat wechselt.`
-        : `Kein globales Monatsbudget gesetzt (Worker-Variable <code>GLOBAL_MONTHLY_USD</code>) — es gelten nur die Pro-Nutzer-Limits, kein Gesamtkosten-Deckel.`
-    }</div>`;
-  }
-  h += `</section>`;
-
-  /* App Store */
-  h += `<section>${secHead('var(--store)', 'App Store', 'Downloads aus App Store Connect', AS.ok ? null : AS)}`;
-  if (AS.ok && AS.configured) {
-    for (const app of AS.apps || []) {
-      h += `<div class="tiles" style="margin-bottom:10px">`
-        + tile(fmt(app.downloads7), 'Downloads · 7 Tage', app.title, 'var(--store)')
-        + tile(fmt(app.downloads30), 'Downloads · 30 Tage')
-        + tile(fmt(app.downloadsTotal), 'Downloads · 60 Tage')
-        + tile(fmt(app.updates7), 'Updates · 7 Tage')
-        + `</div><div class="cards">${chartCard(app.title + ' — Downloads pro Tag', app.series.map(p => ({ date: p.date, v: p.downloads })), 'var(--store)', 'Downloads', true)}</div>`;
+      + (hasBudget ? tile(pct + ' %', 'Budget-Auslastung', nfUSD.format(AI.costUsd) + ' von ' + nfUSD.format(AI.budgetUsd)) : '');
+    ai += `</div>`;
+    if (H && H.length > 1) {
+      ai += `<div class="cards"><div class="card wide"><h3>Monats-Historie</h3><div class="tblwrap"><table>
+        <tr><th>Monat</th><th>Anfragen</th><th>Input-Token</th><th>Output-Token</th><th>Kosten</th></tr>
+        ${H.slice().reverse().map(m => `<tr><td>${esc(m.month)}</td><td>${fmt(m.calls)}</td><td>${fmt(m.inTok)}</td><td>${fmt(m.outTok)}</td><td>${nfUSD.format(m.costUsd || 0)}</td></tr>`).join('')}
+      </table></div></div></div>`;
     }
-    h += `<div class="note">${esc(AS.note || '')}</div>`;
-  } else if (AS.ok) {
-    h += `<div class="note">Noch nicht verbunden — es fehlen: <b>${(AS.missing || []).map(esc).join('</b>, <b>')}</b>.</div>`;
+    ai += `<div class="note">Schätzung auf Basis der im Worker hinterlegten Listenpreise (PRICE_IN_PER_M/PRICE_OUT_PER_M) — keine offizielle Abrechnung. ${
+      hasBudget
+        ? `Bei Erreichen des Monatsbudgets (${nfUSD.format(AI.budgetUsd)}) blockt der Worker automatisch weitere KI-Calls, bis der Monat wechselt.`
+        : `Kein globales Monatsbudget gesetzt (Worker-Variable <code>GLOBAL_MONTHLY_USD</code>) — nur Pro-Nutzer-Limits, kein Gesamtkosten-Deckel.`
+    }${H == null ? ' <b>Hinweis:</b> Ø/Historie erscheint erst nach dem nächsten Worker-Redeploy (neues history-Feld in /stats).' : ''}</div>`;
   }
-  h += `</section>`;
+  ai += `</section>`;
 
-  $('#main').innerHTML = h;
+  $('#main').innerHTML =
+    `<div class="panel" id="panel-overview">${ov}</div>
+     <div class="panel" id="panel-downloads">${dlh}</div>
+     <div class="panel" id="panel-training">${tr}</div>
+     <div class="panel" id="panel-community">${cm}</div>
+     <div class="panel" id="panel-revenue">${rv}</div>
+     <div class="panel" id="panel-ai">${ai}</div>`;
+  showTab(TAB);
 
   /* Footer: Quellen-Status */
   const src = (name, o) => `<span>${name}: <span class="${o && o.ok ? 'src-ok' : 'src-err'}">${o && o.ok ? '✓' : '✗ ' + esc((o && o.error || '').slice(0, 60))}</span></span>`;
   $('#foot').innerHTML = src('Firebase Auth', A) + src('Firestore users', S) + src('Community', C)
-    + src('Tracking', T) + `<span>App Store: <span class="${AS.ok && AS.configured ? 'src-ok' : ''}">${AS.ok && AS.configured ? '✓' : 'nicht konfiguriert'}</span></span>`
+    + src('Tracking', T) + src('KI-Worker', AI)
+    + `<span>App Store: <span class="${AS.ok && AS.configured ? 'src-ok' : ''}">${AS.ok && AS.configured ? '✓' : 'nicht konfiguriert'}</span></span>`
     + `<span style="margin-left:auto">Live aus Firebase · Stand ${new Date(D.ts).toLocaleTimeString('de-DE')}</span>`;
 
   /* Tooltips für Balken */
@@ -424,7 +589,7 @@ function render(D) {
     r.addEventListener('mousemove', (e) => {
       tip.style.display = 'block';
       tip.innerHTML = `${esc(r.dataset.d)} · <span class="tv">${fmt(Number(r.dataset.v))}</span>`;
-      tip.style.left = Math.min(e.clientX + 12, innerWidth - 150) + 'px';
+      tip.style.left = Math.min(e.clientX + 12, innerWidth - 170) + 'px';
       tip.style.top = (e.clientY - 34) + 'px';
     });
     r.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
@@ -436,9 +601,7 @@ setInterval(() => {
   if (REFRESH_AT && Date.now() >= REFRESH_AT) { REFRESH_AT = 0; load(); return; }
   if (REFRESH_AT) {
     const secs = Math.max(0, Math.ceil((REFRESH_AT - Date.now()) / 1000));
-    $('#stand').textContent = `Stand ${new Date(REFRESH_AT - 300_000).toLocaleTimeString('de-DE')} · Auto-Refresh in ${secs} s`;
-    const lt = document.getElementById('liveTxt');
-    if (lt) lt.textContent = `Live · in ${secs}s`;
+    $('#stand').textContent = `Stand ${new Date(REFRESH_AT - 300_000).toLocaleTimeString('de-DE')} · Refresh in ${secs} s`;
   }
 }, 1000);
 </script>
