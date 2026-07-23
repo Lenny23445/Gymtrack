@@ -4199,6 +4199,11 @@ html[data-glass][data-theme="dark"] .tabbar{
 .szt.on svg{opacity:1}
 .cpg-zone{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--text2);font-size:12.5px;font-weight:700;margin-bottom:10px}
 .cpg-zone svg{color:var(--acc)}
+/* Dezenter Live-Zähler: „· N im Training" mit grünem Puls-Punkt */
+.cpg-live{display:none;align-items:center;gap:5px;color:var(--text2)}
+.cpg-live.on{display:inline-flex}
+.cpg-live i{width:6px;height:6px;border-radius:50%;background:#30d158;flex-shrink:0}
+@media (prefers-reduced-motion:no-preference){.cpg-live i{animation:coachPulse 2s ease-in-out infinite}}
 .flm-bell{position:relative}
 .flm-bell-badge{display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#ff453a;color:#fff;font-size:10px;font-weight:800;line-height:16px;padding:0 4px;text-align:center}
 .flm-note{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--gl-bdr,rgba(120,120,128,.15))}
@@ -4331,9 +4336,10 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ai-r-item{
   flex-shrink:0;width:fit-content;height:46px;border-radius:23px;padding:0 18px 0 14px;
   display:flex;align-items:center;gap:10px;
-  background:var(--gl-bg-h);border:1px solid var(--gl-bdr);box-shadow:var(--gl-shad),var(--gl-hi);
-  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
-  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  /* KEIN backdrop-filter hier: innerhalb des Scroll-Containers #ai-radial rendert
+     WKWebView den Filter als durchgehende dunkle Box hinter allen Pillen
+     (gleicher WebKit-Bug wie bei der Snap-Card). Solide Pille stattdessen. */
+  background:var(--inp-bg);border:1px solid var(--gl-bdr);box-shadow:0 6px 18px rgba(0,0,0,.16);
   color:var(--acc);cursor:pointer;font:inherit;
   opacity:0;pointer-events:none;transform:translateY(16px) scale(.92);
   transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s ease;
@@ -4344,6 +4350,10 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ai-r-lbl{
   white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--text);
 }
+/* KI-Sheets über Tabbar (1000) + Bubble (1060) — sonst verdecken die schwebenden
+   Leisten die Sheet-Unterkante und blockieren Taps auf die unteren Buttons
+   (gleiche Lösung wie #ov-paywall). */
+#ov-ai-chat,#ov-ai-analyze,#ov-plan-wizard,#ov-ai-scan{z-index:1080}
 /* KI-Chat */
 #aic-log{display:flex;flex-direction:column;gap:10px;padding:4px 2px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .aic-msg{max-width:86%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
@@ -6275,7 +6285,7 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
 </div>
 
 <!-- SHEET: PLAN-IMPORT (behalten vs. aufräumen) -->
-<div class="ov" id="ov-plan-apply" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-plan-apply')">
+<div class="ov" id="ov-plan-apply" style="z-index:1082" onclick="if(event.target===this)closeOv('ov-plan-apply')">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-head"><h2>Plan übernehmen</h2><button class="x-btn" onclick="closeOv('ov-plan-apply')">✕</button></div>
@@ -6295,7 +6305,7 @@ input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:2
 </div>
 
 <!-- SHEET: FREUNDE-CHAT (1:1) -->
-<div class="ov" id="ov-frchat" style="z-index:1003" onclick="if(event.target===this)closeOv('ov-frchat')">
+<div class="ov" id="ov-frchat" style="z-index:1082" onclick="if(event.target===this)closeOv('ov-frchat')">
   <div class="sheet" style="height:86vh;height:min(86vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
     <div class="sh-handle"></div>
     <div class="sh-head"><h2 id="fchat-title">Chat</h2><button class="x-btn" onclick="closeFrChat()">✕</button></div>
@@ -6337,7 +6347,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232140';
+const APP_VERSION = 'gymtrack-v202607232225';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7012,6 +7022,7 @@ const I18N_EN = {
   'Direkt übernehmen':'Apply directly','Übernommen — dein Training ist angepasst.':'Applied — your training is updated.',
   'Übung nicht gefunden — Name geändert?':'Exercise not found — renamed?',
   'Kamera öffnen':'Open camera','Gerät mittig einfangen':'Center the machine','Schließen':'Close',
+  'im Training':'training now',
   'Optional…':'Optional…','Diktieren':'Dictate',
   /* Changelog: Live-Coach Ausbau (23.07.2026) */
   '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
@@ -17962,8 +17973,11 @@ function _obRecTpl(){
   if (f <= 5) return 'upperlower';
   return e === 'profi' ? 'arnold' : 'ppl6';
 }
-function obPickGoal(id){ _ob.goal = id; haptic(8); renderOb(); setTimeout(()=>{ if(_ob && _ob.step===2) obNext(); }, 280); }
-function obPickExp(id){ _ob.exp = id; haptic(8); renderOb(); setTimeout(()=>{ if(_ob && _ob.step===3) obNext(); }, 280); }
+// Bewusst KEIN Auto-Weiter mehr nach der Auswahl: das sprang gefühlt „von
+// alleine" weiter und bestätigte Dinge, die der Nutzer nur antippen wollte.
+// Weiter geht es ausschließlich über den Weiter-Button.
+function obPickGoal(id){ _ob.goal = id; haptic(8); renderOb(); }
+function obPickExp(id){ _ob.exp = id; haptic(8); renderOb(); }
 function obPickFreq(n){ _ob.freq = n; haptic(8); _ob.tpl = null; renderOb(); }
 function obPickTpl(id){ _ob.tpl = id; haptic(8); renderOb(); }
 function obBack(){ if(!_ob || _ob.step===0) return; haptic(6); _ob.step--; renderOb(); }
@@ -18433,7 +18447,7 @@ async function _renderDemoFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}</div>
+    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap"></div>`;
   // Auf die Vorlade-Promises der Gym-Fotos warten, damit sie als echter
   // Bildhintergrund ins gebackene Layout einfließen (statt Akzent-Verlauf).
@@ -19089,7 +19103,21 @@ async function showFrQR(){
    keine Rules-Änderung). Bewusst clean: numerische Level, keine Spiel-Symbole.
    Zuletzt erreichtes Level in separatem localStorage-Key 'gt_level'
    (nicht in S → umgeht die users-hasOnly-Regel). */
-const PTS_PER = { workout:100, streakWk:50, flame:20 };
+const PTS_PER = { workout:100, streakWk:50, flame:20, flameGiven:10 };
+/* Gegebene Flammen (localStorage 'gt_flamesGiven', gleiche Mechanik wie die
+   Flame-Bank): jede Flamme an einen fremden Post zählt genau EINMAL Punkte —
+   An/Aus-Getoggle farmt nichts, Zähler t bleibt monoton. Animiert zum Reagieren. */
+function _flamesGiven(){
+  try { const b = JSON.parse(localStorage.getItem('gt_flamesGiven') || '{}'); return { t: b.t || 0, k: b.k || {} }; }
+  catch(_){ return { t: 0, k: {} }; }
+}
+function _flamesGivenAdd(key){
+  if (!key) return;
+  const b = _flamesGiven();
+  if (b.k[key]) return;
+  b.k[key] = 1; b.t++;
+  try { localStorage.setItem('gt_flamesGiven', JSON.stringify(b)); } catch(_){}
+}
 function _fmtXP(v){ try { return Math.round(v).toLocaleString(GT_LOCALE); } catch(_) { return String(Math.round(v)); } }
 function _xpOf(p){   // Punkte eines fremden Profils (nur öffentlich sichtbare Felder)
   const total = (p && p.stats && p.stats.total) || 0;
@@ -19104,7 +19132,8 @@ function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Fr
   // und Level sprangen sichtbar runter („Level verschwunden / nichts eingezahlt").
   // Außerdem überleben die Punkte so das wöchentliche Post-Löschen.
   let flames = 0; try { flames = _flameBank().t || 0; } catch(_){}
-  return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame;
+  let given = 0; try { given = _flamesGiven().t || 0; } catch(_){}
+  return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame + given*PTS_PER.flameGiven;
 }
 /* Punkte-Schwelle für ein Level. Kalibriert auf „Level 100 nach ~3 Jahren, 3× pro Woche":
    3 Workouts/Woche · 156 Wochen ≈ 468 Workouts × 100 Pkt = 46 800 + Streak (~156 Wo × 50
@@ -19553,14 +19582,39 @@ let _cpgMode = 'friends';        // 'friends' | 'public'
 let _cpgItems = [], _cpgIdx = 0, _cpgCache = {};
 let _flMyPosts = null, _flMyPostsTs = 0;
 
+/* ── Live-Zähler: wie viele Nutzer trainieren GERADE (profiles.live.on) ──
+   Equality-Query auf das Map-Feld (Auto-Index), Cache 60 s, Karteileichen
+   (App gekillt, live blieb stehen) über live.start < 4 h gefiltert. */
+let _socLiveN = null, _socLiveTs = 0;
+async function _socLiveRefresh(){
+  const els = document.querySelectorAll('.js-live-count');
+  if (!els.length || !(window.FB && window.FB.configured && _fbUser)) return;
+  if (Date.now() - _socLiveTs > 60000) {
+    try {
+      const snap = await window.FB.getDocs(window.FB.query(
+        window.FB.collection('profiles'), window.FB.where('live.on', '==', true), window.FB.limit(100)));
+      let n = 0;
+      const cutoff = Date.now() - 4 * 3600e3;
+      snap.forEach(d => { const l = d.data().live; if (l && l.on && (!l.start || l.start > cutoff)) n++; });
+      _socLiveN = n; _socLiveTs = Date.now();
+    } catch(e) { console.warn('[GymTrack] Live-Zähler:', e?.code || e); return; }
+  }
+  document.querySelectorAll('.js-live-count').forEach(el => {
+    if (_socLiveN > 0) {
+      el.classList.add('on');
+      el.innerHTML = `· <i></i>${_socLiveN} ${tr('im Training')}`;
+    } else el.classList.remove('on');
+  });
+}
 async function _renderFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}</div>
+    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap">
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
     </div>`;
+  try { _socLiveRefresh(); } catch(_){}
   let items = [];
   try { items = await _cpgLoad(); }
   catch(e) {
@@ -19903,6 +19957,10 @@ async function toggleFlame(i){
     }
   }
   if (on) hapticSuccess(); else haptic(8);
+  // Flammen GEBEN bringt Punkte (einmalig pro fremdem Post — Toggle farmt nichts)
+  if (on && it.uid && it.uid !== me) {
+    try { _flamesGivenAdd(it.uid + ':' + (it.id || it.ts || '')); } catch(_){}
+  }
   try {
     if (it.kind === 'post')
       await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/posts', it.id), { flames: it.flames });
