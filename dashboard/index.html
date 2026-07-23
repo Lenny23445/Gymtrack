@@ -414,6 +414,14 @@ function render(D) {
   // echte Store-Installs (Apple/Google-Login) — anonyme Konten zählen NICHT als Download
   const realSeries = (A.ok && A.signupsByDayReal) ? A.signupsByDayReal : (A.ok && A.signupsByDay ? A.signupsByDay : null);
   const newToday = realSeries ? ((realSeries.find(p => p.date === todayIso) || {}).v || 0) : null;
+  const appleSeries = (A.ok && A.signupsByDayApple) || null;
+  const googleSeries = (A.ok && A.signupsByDayGoogle) || null;
+  const todayOf = (s) => s ? ((s.find(p => p.date === todayIso) || {}).v || 0) : null;
+  const appleToday = todayOf(appleSeries), googleToday = todayOf(googleSeries);
+  // Frische der Mac-Server-Daten (admin/auth) — "live" stimmt nur, wenn der Mac liefert
+  const authAgeMin = (A.ok && A._stand) ? Math.round((Date.now() - A._stand) / 60_000) : null;
+  const authStale = authAgeMin != null && authAgeMin > 30;
+  const staleErr = authStale ? { ok: false, error: `Login-Daten ${authAgeMin} Min alt — läuft der Mac-Server?` } : null;
 
   /* Live-Downloads = Apples offizielle Gesamtzahl (App-Analytics-Anker aus config, Stand X)
      + die echten Apple/Google-Anmeldungen, die SEIT diesem Stand dazugekommen sind. Wächst live. */
@@ -436,8 +444,10 @@ function render(D) {
     : 'App Store nicht verbunden';
 
   /* ── Übersicht ── */
-  let ov = `<section>${secHead('Auf einen Blick', 'die wichtigsten Zahlen — live', null)}<div class="tiles">`;
+  let ov = `<section>${secHead('Auf einen Blick', 'die wichtigsten Zahlen — live', staleErr)}<div class="tiles">`;
   ov += tile(liveDl != null ? fmt(liveDl) : '—', 'Downloads · live', liveDlSub, true, liveDl != null)
+    + tile(appleToday != null ? '+' + fmt(appleToday) : '—', 'Apple-Logins heute', 'neue Konten · live', false, appleToday > 0)
+    + tile(googleToday != null ? '+' + fmt(googleToday) : '—', 'Google-Logins heute', 'neue Konten · live', false, googleToday > 0)
     + tile(P ? nfEUR.format(P.mrrEstimate) : '—', 'Umsatz / Monat', P ? `${fmt(P.total)} Premium-Nutzer · geschätzt` : '', true)
     + tile(S.ok ? fmt(S.active5m) : '—', 'Jetzt in der App', 'aktiv < 5 Min', false, S.ok && S.active5m > 0)
     + tile(C.ok ? fmt(C.liveNow) : '—', 'Jetzt im Training', 'Echtzeit', false, C.ok && C.liveNow > 0)
@@ -450,12 +460,14 @@ function render(D) {
     <div class="cards">${chartCard('Neue Accounts pro Tag', A.signupsByDay, 'Accounts', { wide: true })}</div></section>`;
 
   /* ── Downloads ── */
-  let dlh = `<section>${secHead('Downloads · live', 'Basis = Apple offiziell, live ergänzt um neue Konten', AS.ok ? (A.ok ? null : A) : AS)}<div class="tiles">`;
+  let dlh = `<section>${secHead('Downloads · live', 'Basis = Apple offiziell, live ergänzt um neue Konten', AS.ok ? (A.ok ? staleErr : A) : AS)}<div class="tiles">`;
   const real7 = realSeries ? realSeries.slice(-7).reduce((a, p) => a + (p.v || 0), 0) : null;
   dlh += tile(liveDl != null ? fmt(liveDl) : '—', 'Downloads · live', liveDlSub, true, liveDl != null)
     + ((off || dl) ? tile(fmt(off ? off.downloads : dl.downloadsTotal), 'Apple offiziell', appleCut ? `Stand ${dShort(appleCut)}${off ? '' : ' · ~1 Tag versetzt'}` : '') : '')
-    + tile('+' + fmt(newToday), 'Neue Apple/Google-Konten heute', 'live')
-    + tile('+' + fmt(real7), 'Neue Apple/Google-Konten · 7 Tage');
+    + tile(appleToday != null ? '+' + fmt(appleToday) : '—', 'Apple-Logins heute', 'neue Konten · live', false, appleToday > 0)
+    + tile(googleToday != null ? '+' + fmt(googleToday) : '—', 'Google-Logins heute', 'neue Konten · live', false, googleToday > 0)
+    + tile('+' + fmt(newToday), 'Zusammen heute', 'Apple + Google')
+    + tile('+' + fmt(real7), 'Apple/Google-Konten · 7 Tage');
   dlh += `</div><div class="note">Die große Zahl ist <b>Apples offizielle Gesamt-Download-Zahl</b>${off ? ' aus App Store Connect (App-Analytics)' : ' (Sales-Report-Summe)'} mit Stand ${appleCut ? dShort(appleCut) : '—'} — dazu live nur die <b>echten Apple/Google-Anmeldungen</b>, die <b>seither</b> neu dazugekommen sind. Anonyme Konten (Web/PWA-Besucher, Alt-Nutzer) zählen hier NICHT rein. Offizielle Zahl bei Gelegenheit in <code>config.json</code> aktualisieren.</div>`;
   dlh += `<div class="sec-head" style="margin-top:18px"><h2>Firebase-Konten</h2><span class="sub">alle Anmelde-Arten — zur Einordnung, nicht die Download-Zahl</span></div><div class="tiles">`;
   if (A.ok) {
@@ -475,6 +487,11 @@ function render(D) {
       <div class="legend">${provs.map((p, i) => `<span><span class="sw" style="background:${shades[i]}"></span>${p[0]} <b class="num">${fmt(p[1])}</b> (${Math.round(p[1] / total * 100)} %)</span>`).join('')}</div>
       <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Anonym = App geöffnet, Login-Wand (noch) nicht abgeschlossen — die App meldet sich nach 3 s automatisch anonym an.</div>
     </div>`;
+    if (appleSeries && googleSeries) {
+      dlh += `<div class="card wide"><h3>Apple- vs. Google-Logins pro Tag <span style="font-weight:400;color:var(--muted)">· letzte 14 Tage</span></h3>
+        ${barChart2(appleSeries.slice(-14), googleSeries.slice(-14), 'Apple', 'Google')}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Neue Konten pro Tag nach Anmelde-Art — dank Login-Wand ≈ Downloads. Heute: <b class="num">+${fmt(appleToday)}</b> Apple · <b class="num">+${fmt(googleToday)}</b> Google.</div></div>`;
+    }
     if (dl && dl.series) {
       const asSeries = dl.series.map(p => ({ date: p.date, v: p.downloads }));
       dlh += `<div class="card wide"><h3>Verifikation: Accounts vs. App Store <span style="font-weight:400;color:var(--muted)">· letzte 14 Tage</span></h3>
