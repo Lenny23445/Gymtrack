@@ -848,8 +848,10 @@ body{
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
   position:fixed;bottom:calc(6px + var(--sab));
-  left:50%;transform:translateX(-50%);
-  width:calc(100% - 40px);max-width:390px;
+  /* Gestaucht: rechts bleibt Platz für die angedockte KI-Bubble (#ai-bubble),
+     sonst volle Breite ausnutzen */
+  left:14px;right:90px;transform:none;
+  width:auto;max-width:none;
   background:rgba(255,255,255,0.55);
   backdrop-filter:blur(40px) saturate(180%);
   -webkit-backdrop-filter:blur(40px) saturate(180%);
@@ -857,7 +859,7 @@ body{
   border-radius:999px;
   box-shadow:0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05),
              inset 0 1px 0 rgba(255,255,255,.70);
-  display:flex;z-index:1000;padding:7px;
+  display:flex;align-items:center;z-index:1000;padding:11px;
   transition:background .4s,padding .32s cubic-bezier(.32,1,.32,1);
   overflow:hidden;
 }
@@ -4049,7 +4051,7 @@ html[data-glass][data-theme="dark"] .tabbar{
 }
 @media (prefers-reduced-motion: reduce){
   [data-theme="dark"] .btn,[data-theme="dark"] .btn-acc,.tabbar,
-  .tabbar .tab,.tabbar .tab span{ transition:none!important; }
+  .tabbar .tab,.tabbar .tab span,#ai-bubble{ transition:none!important; }
   [data-theme="dark"] .btn:active,[data-theme="dark"] .btn-acc:active{ transform:none!important; }
 }
 @media (prefers-contrast: more){
@@ -4129,6 +4131,10 @@ html[data-glass][data-theme="dark"] .tabbar{
 .founder-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:800;
   vertical-align:1px;letter-spacing:.3px;background:#0b0b0d;color:#fff;border:1px solid rgba(255,255,255,.16)}
 .cpg-head .founder-tag{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.24)}
+/* Phase G: Premium-Abzeichen neben Namen — nur das Metallic-SVG, keine Pille (bleibt
+   in jedem Theme gleich edel statt sich der Akzentfarbe anzupassen). */
+.prem-tag{display:inline-flex;align-items:center;margin-left:5px;vertical-align:-2px}
+.prem-tag svg{display:block}
 .cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
 /* Snap-Card: das Bild ist bereits die fertig gestaltete Share-Card (Name, Tag, Stats,
    Gym, Wasserzeichen alles eingebacken) — deshalb NUR die Controls drüberlegen,
@@ -4191,6 +4197,166 @@ html[data-glass][data-theme="dark"] .tabbar{
 .flm-note:last-child{border-bottom:none}
 .flm-note .t{flex:1;font-size:14px;line-height:1.35}
 .flm-note .ts{font-size:11.5px;color:var(--text2)}
+/* ═══════════════════ PREMIUM ═══════════════════ */
+/* Gold-Akzent für Premium-Elemente — unabhängig vom Theme */
+:root{--prem1:#f7c948;--prem2:#ff9d2f;--prem-grad:linear-gradient(135deg,#f7c948,#ff9d2f)}
+.prem-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:9px;font-size:11px;font-weight:800;
+  background:var(--prem-grad);color:#3a2500;letter-spacing:.3px}
+/* Paywall */
+.pw-hero{text-align:center;padding:6px 4px 14px}
+.pw-hero-badge{width:64px;height:64px;border-radius:20px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
+  background:var(--prem-grad);color:#3a2500;box-shadow:0 10px 30px rgba(247,160,47,.35)}
+.pw-title{font-size:22px;font-weight:800;letter-spacing:-.4px;text-align:center}
+.pw-sub{font-size:14px;color:var(--text2);margin-top:5px;line-height:1.5;text-align:center}
+.pw-feats{display:flex;flex-direction:column;gap:3px;margin:14px 0}
+.pw-feat{display:flex;align-items:center;gap:12px;padding:9px 6px}
+.pw-feat-ico{width:34px;height:34px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.18);color:var(--acc)}
+.pw-feat-t{font-size:14.5px;font-weight:700}
+.pw-feat-s{font-size:12.5px;color:var(--text2);margin-top:1px;line-height:1.35}
+.pw-plans{display:flex;gap:10px;margin:4px 0 14px}
+.pw-plan{flex:1;position:relative;border:2px solid var(--gl-bdr);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+  background:var(--inp-bg);transition:border-color .15s,transform .12s}
+.pw-plan.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.07);transform:scale(1.02)}
+.pw-plan-name{font-size:13px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.pw-plan-price{font-size:21px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
+.pw-plan-per{font-size:12px;color:var(--text2)}
+.pw-plan-save{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  background:var(--prem-grad);color:#3a2500;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:8px}
+.pw-cta{width:100%;border:none;border-radius:15px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;
+  background:var(--acc);color:#fff;box-shadow:0 8px 24px rgba(var(--acc-rgb),.35)}
+.pw-cta:disabled{opacity:.6}
+.pw-foot{font-size:11px;color:var(--text2);line-height:1.5;text-align:center;margin-top:10px}
+.pw-links{display:flex;justify-content:center;gap:14px;margin-top:8px}
+.pw-links button{background:none;border:none;font-family:inherit;font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;padding:4px}
+/* ═══════════════════ KI-COACH: SCHWEBENDE BUBBLE + RADIALMENÜ ═══════════════════ */
+/* Abgetrennter Kreis rechts neben der (gestauchten) Tableiste, gleiche Unterkante,
+   feste Größe (kleiner als die Tabbar-Höhe). IMMER dunkles Glas — bewusst NICHT
+   themenabhängig wie .tabbar, damit die Bubble als eigenständiges Premium-Element
+   erkennbar bleibt, egal welches App-Theme aktiv ist. Zeigt das App-Icon. */
+#ai-bubble{
+  position:fixed;z-index:1060;right:14px;bottom:calc(6px + var(--sab));
+  width:56px;height:56px;border-radius:50%;overflow:hidden;
+  padding:0;margin:0;font:inherit;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(28,28,32,.62);
+  backdrop-filter:blur(34px) saturate(160%);
+  -webkit-backdrop-filter:blur(34px) saturate(160%);
+  border:1px solid rgba(255,255,255,.16);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 8px 28px rgba(0,0,0,.38),0 2px 8px rgba(0,0,0,.22),
+             inset 0 1px 0 rgba(255,255,255,.16);
+  transition:opacity .22s ease,visibility .22s ease,
+             width .32s cubic-bezier(.32,1,.32,1),height .32s cubic-bezier(.32,1,.32,1),
+             bottom .32s cubic-bezier(.32,1,.32,1);outline:none;
+}
+[data-glass="off"] #ai-bubble{
+  background:#1c1c20;backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:0 2px 20px rgba(0,0,0,.30);
+}
+#ai-bubble::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:48%;
+  background:linear-gradient(180deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,0) 100%);
+  pointer-events:none;border-radius:999px 999px 0 0;
+}
+[data-glass="off"] #ai-bubble::after{display:none}
+#ai-bubble::before{
+  content:'';position:absolute;inset:0;border-radius:50%;padding:1.5px;
+  background:linear-gradient(160deg,
+    rgba(255,255,255,.75) 0%,rgba(255,255,255,.22) 30%,
+    transparent 55%,rgba(255,255,255,.26) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:2;
+}
+/* App-Icon füllt die Kugel komplett; Glas-Ebenen (::before/::after) liegen drüber */
+#ai-bubble img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;pointer-events:none}
+#ai-bubble:active{opacity:.72}
+body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-r-item{
+  opacity:0!important;visibility:hidden!important;pointer-events:none!important;
+}
+#ai-radial-backdrop{
+  position:fixed;inset:0;z-index:1055;display:none;
+  background:rgba(0,0,0,.46);backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);
+  opacity:0;transition:opacity .22s ease;
+}
+#ai-radial-backdrop.on{display:block;opacity:1}
+#ai-radial{
+  position:fixed;z-index:1061;display:flex;flex-direction:column-reverse;gap:10px;
+  max-height:min(58vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  padding:2px;
+}
+#ai-radial::-webkit-scrollbar{display:none}
+.ai-r-item{
+  flex-shrink:0;width:fit-content;height:46px;border-radius:23px;padding:0 18px 0 14px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--gl-bg-h);border:1px solid var(--gl-bdr);box-shadow:var(--gl-shad),var(--gl-hi);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  color:var(--acc);cursor:pointer;font:inherit;
+  opacity:0;pointer-events:none;transform:translateY(16px) scale(.92);
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s ease;
+}
+#ai-radial[data-side="l"] .ai-r-item{align-self:flex-start}
+#ai-radial[data-side="r"] .ai-r-item{align-self:flex-end}
+.ai-r-item.on{opacity:1;pointer-events:auto;transform:none}
+.ai-r-lbl{
+  white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--text);
+}
+/* KI-Chat */
+#aic-log{display:flex;flex-direction:column;gap:10px;padding:4px 2px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.aic-msg{max-width:86%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.aic-user{align-self:flex-end;background:var(--acc);color:#fff;border-bottom-right-radius:5px}
+.aic-bot{align-self:flex-start;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-bottom-left-radius:5px}
+.aic-bot b{font-weight:750}
+.aic-typing{align-self:flex-start;display:flex;gap:4px;padding:12px 14px}
+.aic-typing span{width:7px;height:7px;border-radius:50%;background:var(--text2);opacity:.5;animation:aicB 1.2s infinite}
+.aic-typing span:nth-child(2){animation-delay:.18s}.aic-typing span:nth-child(3){animation-delay:.36s}
+@keyframes aicB{0%,60%,100%{transform:none;opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.aic-inrow{display:flex;gap:8px;align-items:flex-end;padding:10px 2px 2px}
+#aic-in{flex:1;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;padding:11px 13px;font-size:15px;
+  font-family:inherit;color:var(--text);outline:none;resize:none;max-height:110px;line-height:1.4}
+.aic-send{width:42px;height:42px;border-radius:13px;border:none;background:var(--acc);color:#fff;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center}
+.aic-send:disabled{opacity:.45}
+.aic-sugg{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.aic-sugg::-webkit-scrollbar{display:none}
+.aic-sugg button{flex-shrink:0;background:rgba(var(--acc-rgb),.08);border:1px solid rgba(var(--acc-rgb),.2);color:var(--acc);
+  font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:11px;cursor:pointer;white-space:nowrap}
+.aic-plan-btn{margin-top:4px;background:var(--prem-grad);color:#3a2500;border:none;border-radius:11px;padding:10px 14px;
+  font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;align-self:flex-start}
+/* KI-Analyse */
+.aia-score-wrap{display:flex;align-items:center;gap:16px;padding:12px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:16px}
+.aia-ring{width:86px;height:86px;flex-shrink:0;position:relative}
+.aia-ring svg{transform:rotate(-90deg)}
+.aia-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800}
+.aia-sec{margin-top:16px}
+.aia-sec-t{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:8px}
+.aia-item{display:flex;gap:10px;padding:7px 2px;font-size:14px;line-height:1.5;align-items:flex-start}
+.aia-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);margin-top:7px;flex-shrink:0}
+/* ═══════════════════ KI-COACH: LIVE-COACH IM TRAINING (Phase D) ═══════════════════ */
+.wk-head-title-row{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
+.coach-pill{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:4px 10px 4px 8px;border-radius:20px;
+  font-size:11px;font-weight:700;color:var(--acc);white-space:nowrap;
+  background:var(--gl-bg-t);border:1px solid rgba(var(--acc-rgb),.28)}
+.coach-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex-shrink:0}
+@media (prefers-reduced-motion:no-preference){
+  .coach-pill-dot{animation:coachPulse 1.8s ease-in-out infinite}
+}
+@keyframes coachPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.35)}}
+.coach-card{position:relative;display:flex;border-radius:14px;overflow:hidden;margin-bottom:10px;
+  background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
+.coach-card-bar{width:4px;flex-shrink:0;background:var(--acc)}
+.coach-card-body{flex:1;min-width:0;padding:10px 12px}
+.coach-card-head{display:flex;align-items:center;gap:7px;color:var(--acc)}
+.coach-card-title{font-size:13.5px;font-weight:800;color:var(--text)}
+.coach-card-text{font-size:13px;color:var(--text2);line-height:1.45;margin-top:3px}
+.coach-card-btns{display:flex;gap:8px;margin-top:9px}
+.coach-card-btn{flex:1;border:none;border-radius:10px;padding:8px 10px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.coach-card-btn.accept{background:var(--acc);color:#fff}
+.coach-card-btn.dismiss{background:var(--inp-bg);color:var(--text2);border:1px solid var(--gl-bdr)}
+.coach-card-applied{display:flex;align-items:center;gap:8px;color:var(--acc);font-size:13px;font-weight:700}
 </style>
 </head>
 <body>
@@ -4295,6 +4461,10 @@ html[data-glass][data-theme="dark"] .tabbar{
     <div>
       <div class="s-title">Überblick</div>
       <div id="stats-summary"></div>
+    </div>
+    <div id="stats-insights-wrap" style="display:none">
+      <div class="s-title">Einblicke</div>
+      <div class="card" id="stats-insights-list"></div>
     </div>
     <div class="stats-dual">
       <div class="stats-mini-box" onclick="openVolumeFull()">
@@ -4432,6 +4602,10 @@ html[data-glass][data-theme="dark"] .tabbar{
           <button onclick="triggerInstall()" style="background:var(--acc);color:#fff;border:none;border-radius:12px;padding:9px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0">Installieren</button>
         </div>
       </div>
+    </div>
+    <div>
+      <div class="s-title">MyGymTrack Premium</div>
+      <div class="card" id="prem-settings-body"></div>
     </div>
     <div>
       <div class="s-title">Benachrichtigungen</div>
@@ -5231,7 +5405,10 @@ html[data-glass][data-theme="dark"] .tabbar{
   <div class="sheet" style="max-height:95vh;max-height:min(95vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
-      <h2 id="wk-title">Training</h2>
+      <div class="wk-head-title-row">
+        <h2 id="wk-title">Training</h2>
+        <span id="wk-coach-pill" class="coach-pill" style="display:none"><span class="coach-pill-dot"></span>KI-Coach aktiv</span>
+      </div>
       <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
     <!-- step 1: select -->
@@ -5445,6 +5622,15 @@ html[data-glass][data-theme="dark"] .tabbar{
     <div class="px" id="account-body" style="overflow-y:auto;flex:1;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 90px)">
       <!-- Wird per JS gefüllt: entweder Login-Form oder Profil -->
     </div>
+  </div>
+</div>
+
+<!-- OVERLAY: PREMIUM-PAYWALL -->
+<div class="ov" id="ov-paywall" onclick="if(event.target===this)closeOv('ov-paywall')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>MyGymTrack Premium</h2><button class="x-btn" onclick="closeOv('ov-paywall')">✕</button></div>
+    <div id="pw-body"></div>
   </div>
 </div>
 
@@ -5860,6 +6046,47 @@ html[data-glass][data-theme="dark"] .tabbar{
   </div>
 </div>
 
+<!-- ═══ KI-COACH: SCHWEBENDE BUBBLE + RADIALMENÜ (Phase C) ═══ -->
+<div id="ai-radial-backdrop" onclick="closeAiRadial()"></div>
+<div id="ai-radial"></div>
+<button type="button" id="ai-bubble" aria-label="KI-Coach"></button>
+
+<!-- SHEET: KI-CHAT -->
+<div class="ov" id="ov-ai-chat" onclick="if(event.target===this)closeOv('ov-ai-chat')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>KI-Coach</h2><button class="x-btn" onclick="closeOv('ov-ai-chat')">✕</button></div>
+    <div class="px" style="padding-bottom:26px">
+      <div id="aic-log"></div>
+      <div class="aic-sugg" id="aic-sugg"></div>
+      <div class="aic-inrow">
+        <textarea id="aic-in" rows="1" placeholder="Frag deinen Coach…" oninput="_aicGrow(this)"></textarea>
+        <button class="aic-send" id="aic-send" type="button" onclick="aicSend()" aria-label="Senden">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: KI-ANALYSE (Training/Workout/Fortschritt) -->
+<div class="ov" id="ov-ai-analyze" onclick="if(event.target===this)closeOv('ov-ai-analyze')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2 id="aia-title">Trainingsanalyse</h2><button class="x-btn" onclick="closeOv('ov-ai-analyze')">✕</button></div>
+    <div class="px" id="aia-body" style="padding-bottom:26px"></div>
+  </div>
+</div>
+
+<!-- SHEET: POST-WORKOUT CHECK-IN (Phase E, für ALLE Nutzer) -->
+<div class="ov" id="ov-checkin" onclick="if(event.target===this)closeOv('ov-checkin')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Check-in</h2><button class="x-btn" onclick="closeOv('ov-checkin')">✕</button></div>
+    <div class="px" id="checkin-body" style="padding-bottom:26px"></div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────
 /* ── ICON-BIBLIOTHEK ── */
@@ -5879,12 +6106,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607230913';
+const APP_VERSION = 'gymtrack-v202607231338';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = true;   // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -6442,6 +6669,61 @@ const I18N_EN = {
   'Diagnose läuft…':'Running diagnostics…','Diagnose-Element nicht da — alte Version aktiv':'Diagnostics element missing — old version active',
   'Nicht eingeloggt (currentUser ist null)':'Not signed in (currentUser is null)',
   'UID stimmt mit Admin-UID überein':'UID matches admin UID','UID stimmt NICHT mit Admin-UID überein':'UID does NOT match admin UID',
+  /* Premium / KI-Coach — Paywall */
+  'MyGymTrack Premium':'MyGymTrack Premium','Dein KI-Coach für MyGymTrack':'Your AI coach for MyGymTrack',
+  'Chat, Live-Tipps im Training und automatische Trainingsanalyse — für weniger als einen Proteinriegel im Monat.':'Chat, live tips during training, and automatic workout analysis — for less than a protein bar a month.',
+  'KI-Chat':'AI Chat','Frag deinen Coach zu Übungen, Plänen & Fortschritt':'Ask your coach about exercises, plans & progress',
+  'Live-Coach im Training':'Live coach during training','Tipps & Anpassungen direkt während des Satzes':'Tips & adjustments right during your set',
+  'Trainingsanalyse':'Workout analysis','KI bewertet Volumen, Balance & Technik-Trends':'AI evaluates volume, balance & technique trends',
+  'Fortschritts-Insights':'Progress insights','Automatische Auswertung deiner Statistik':'Automatic evaluation of your stats',
+  'Spare 44 %':'Save 44%','Jährlich':'Yearly','Monatlich':'Monthly',
+  'pro Jahr · 1,67 €/Monat':'per year · €1.67/month','pro Monat':'per month',
+  'Premium freischalten':'Unlock Premium','Premium schließt du in der MyGymTrack iOS-App ab.':'You unlock Premium in the MyGymTrack iOS app.',
+  'Kauf läuft…':'Purchase in progress…','Premium aktiv ✓':'Premium active ✓',
+  'Kauf wartet auf Bestätigung (z. B. Familienfreigabe).':'Purchase awaiting approval (e.g. Family Sharing).',
+  'Käufe wiederherstellen geht nur in der iOS-App.':'Restoring purchases only works in the iOS app.',
+  'Premium aktiv — willkommen zurück!':'Premium active — welcome back!','Kein aktives Abo gefunden.':'No active subscription found.',
+  'Abo verwalten geht nur in der iOS-App.':'Managing your subscription only works in the iOS app.',
+  'Du hast dein monatliches KI-Limit erreicht.':'You have reached your monthly AI limit.','KI gerade nicht erreichbar.':'AI is currently unavailable.',
+  'Bitte zuerst anmelden.':'Please sign in first.','Käufe wiederherstellen':'Restore purchases',
+  /* Premium / KI-Coach — Einstellungen */
+  'Premium aktiv':'Premium active','Kein Premium':'No Premium',
+  'KI-Chat, Live-Coach & Trainingsanalyse freischalten':'Unlock AI chat, live coach & workout analysis',
+  'Abo verwalten':'Manage subscription','In den App-Store-Einstellungen öffnen':'Open in App Store settings',
+  'Abo auf diesem Gerät erneut aktivieren':'Reactivate subscription on this device','KI-Anfragen':'AI requests',
+  'KI-Insights in Statistik':'AI insights in stats','Automatische Auswertung deiner Trainingsdaten':'Automatic evaluation of your training data',
+  /* KI-Coach — Bubble, Radialmenü, Chat, Analyse (Phase C) */
+  'KI-Coach':'AI coach','Trainingsplan erstellen':'Create workout plan','Workout optimieren':'Optimize workout',
+  'Fortschritt analysieren':'Analyze progress','KI-Einstellungen':'AI settings',
+  'Frag deinen Coach…':'Ask your coach…','Senden':'Send',
+  'Frag mich zu Übungen, Technik oder lass dir einen kompletten Trainingsplan erstellen.':'Ask me about exercises, technique, or have me build you a complete workout plan.',
+  'Erstelle mir einen Trainingsplan':'Create a workout plan for me','Alternative zu einer Übung finden':'Find an alternative exercise',
+  'Wie kann ich mein Volumen steigern?':'How can I increase my volume?','Wo bin ich unausgeglichen?':'Where am I unbalanced?',
+  'Plan importieren':'Import plan','Hier ist dein Plan:':'Here is your plan:',
+  'Dein aktueller Wochenplan wird ersetzt. Weiter?':'Your current weekly plan will be replaced. Continue?',
+  'Plan importiert — du findest ihn im Heute-Tab.':'Plan imported — you’ll find it in the Today tab.',
+  'Wird analysiert…':'Analyzing…','Analyse gerade nicht möglich.':'Analysis is not possible right now.',
+  'Beobachtungen':'Observations','Empfehlungen':'Recommendations','Keine Auswertung erhalten.':'No evaluation received.',
+  'Analyse':'Analysis',
+  /* KI-Coach — Live-Coach im Training (Phase D) */
+  'KI-Coach aktiv':'AI coach active','Annehmen':'Accept','Ignorieren':'Ignore','Übernommen':'Applied',
+  /* Post-Workout-Check-in (Phase E) */
+  'Wie hat sich dein Training angefühlt?':'How did your workout feel?',
+  'Sehr leicht':'Very easy','Gut':'Good','Anstrengend':'Tough','Sehr schwer':'Very hard',
+  'Energielevel':'Energy level','Niedrig':'Low','Mittel':'Medium','Hoch':'High',
+  /* KI-Einblicke im Statistik-Tab (Phase F) */
+  'Einblicke':'Insights','Volumentrend':'Volume trend',
+  'Dein Trainingsvolumen bleibt seit Wochen stabil.':'Your training volume has stayed steady for weeks.',
+  'Dein Trainingsvolumen steigt in den letzten Wochen.':'Your training volume has been rising lately.',
+  'Dein Trainingsvolumen sinkt in den letzten Wochen.':'Your training volume has been dropping lately.',
+  'Vernachlässigte Muskelgruppe':'Lagging muscle group','Bester Wiederholungsbereich':'Best rep range',
+  'Trainingsfrequenz':'Training frequency','Bestleistungen':'Personal records',
+  '1 neue Bestleistung in den letzten 4 Wochen.':'1 new PR in the last 4 weeks.',
+  'Belastungsempfinden':'Perceived effort',
+  'Du empfindest deine Trainings zuletzt als anstrengender.':'You’ve been rating your workouts as tougher lately.',
+  'Du empfindest deine Trainings zuletzt als leichter.':'You’ve been rating your workouts as easier lately.',
+  'KI-Monatsanalyse':'AI monthly summary',
+  'Tippen für eine KI-Zusammenfassung deines Monats.':'Tap for an AI summary of your month.',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -6528,6 +6810,20 @@ const I18N_RX = [
   [/\bSätze\b/g, 'sets'], [/\bWdh\b/g, 'reps'], [/\bÜbungen\b/g, 'exercises'], [/\bÜbung\b/g, 'exercise'],
   [/\bdiese Woche\b/g, 'this week'], [/\bEinheiten\b/g, 'sessions'],
   [/Woche (\d+)/g, 'Week $1'],
+  // Premium / KI-Coach — dynamische/zusammengesetzte Texte
+  [/Noch (\d+) von (\d+) KI-Anfragen diesen Monat/g, 'You have $1 of $2 AI requests left this month'],
+  [/Jahresabo · läuft ab am /g, 'Yearly plan · renews on '],
+  [/Monatsabo · läuft ab am /g, 'Monthly plan · renews on '],
+  [/ pro Jahr · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per year · renews automatically · cancel anytime in the App Store settings'],
+  [/ pro Monat · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per month · renews automatically · cancel anytime in the App Store settings'],
+  [/Kauf fehlgeschlagen: /g, 'Purchase failed: '],
+  [/Wiederherstellung fehlgeschlagen: /g, 'Restore failed: '],
+  // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
+  [/ bekommt aktuell nur (\d+)% deines Trainingsvolumens\./g, ' currently gets only $1% of your training volume.'],
+  [/Im Bereich (.+) Wdh\. wächst dein 1RM am stärksten\./g, 'Your estimated 1RM grows fastest in the $1 rep range.'],
+  [/Du trainierst zuletzt Ø ([\d.,]+)×\/Woche — dein Ziel sind (\d+)×\./g, 'You’re averaging $1×/week lately — your goal is $2×.'],
+  [/Du erreichst dein Frequenz-Ziel von (\d+)× pro Woche\./g, 'You’re hitting your frequency goal of $1× per week.'],
+  [/(\d+) neue Bestleistungen in den letzten 4 Wochen\./g, '$1 new PRs in the last 4 weeks.'],
 ];
 
 /* tr(): exakte Phrase → Segmente (· -getrennt) → Regex-Regeln */
@@ -7037,6 +7333,10 @@ S.friends   = Array.isArray(S.friends) ? S.friends : []; // UIDs der Freunde
 S.blocked   = Array.isArray(S.blocked) ? S.blocked : []; // blockierte UIDs (nur lokal)
 // Privatsphäre: was Freunde sehen dürfen (alles einzeln schaltbar)
 S.privacy = Object.assign({ gym:true, live:true, lastWk:true, stats:true, prs:false, feed:true }, S.privacy || {});
+// KI-Coach-Feature-Toggles (Premium) — bewusst geräte-lokal wie S.privacy, kein Cloud-Sync-Feld.
+S.aiCoach = Object.assign({ live:true, insights:true }, S.aiCoach || {});
+// Post-Workout-Check-ins (Phase E): [{sid, d, feel:1-4, en:1-3}], auf 400 Einträge gedeckelt.
+if (!S.checkins) S.checkins = [];
 
 let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
@@ -7383,6 +7683,12 @@ let exCatFilter = 'alle';  // Filter im Übungen-Tab
 let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
+// Live-Coach im Training (Phase D): Rate-Limit-Zustand + aktive Vorschlagskarte.
+// _coachDefaultState()/_coachNormalizeState() sind weiter unten definiert — Function-
+// Declarations sind gehoisted, der Aufruf hier funktioniert trotzdem.
+let _coachState = _coachDefaultState();
+let _coachCard  = null;    // { exId, c, applied, baseW, timer } – aktuell angezeigte Vorschlagskarte
+let _coachEvalTimers = {}; // Debounce-Timer je "li_si", s. _coachEval()
 // Plan, aus dem das aktuelle Training gestartet wurde: {type:'preset',id} | {type:'week',dayKey} | null.
 // Wird am Ende genutzt, um optional die im Training geänderte Übungsliste in den Plan zu übernehmen.
 let _activePlanSrc = null;
@@ -8003,10 +8309,21 @@ function openOv(id)  {
   document.getElementById(id).classList.add('on');
   if (id === 'ov-wk') _wkHiddenBySub = false;
   updateWkMiniVisibility();
+  try { _aibSyncVisibility(); } catch(_){}
 }
 function closeOv(id) {
   document.getElementById(id).classList.remove('on');
   if (id === 'ov-widget-add') document.body.classList.remove('wpick-open');
+  // Post-Workout-Check-in (Phase E): einziger Anlaufpunkt für ALLE Schließwege
+  // (Fertig/Überspringen rufen closeOv direkt, Backdrop-Klick + Swipe-Dismiss tun es
+  // ebenfalls). Wächter _checkinContinued garantiert genau EINEN Lauf der finishWk-
+  // Tail-Kette (_finishWkContinue), egal welcher Pfad das Sheet schließt.
+  if (id === 'ov-checkin' && !_checkinContinued) {
+    _checkinContinued = true;
+    const sess = _checkinSess, dayName = _checkinDayName;
+    _checkinSess = null; _checkinDayName = null;
+    try { _finishWkContinue(sess, dayName); } catch(e) { console.warn('[GymTrack] _finishWkContinue:', e); }
+  }
   // Statistik-Drilldown: einen Schritt zurück (Einheit → Übung → Gruppe)
   if ((id === 'ov-det' || id === 'ov-sess-detail') && _statNavStack.length && !_statNavSilent) {
     if (_suppressWkRestore) {
@@ -8032,6 +8349,7 @@ function closeOv(id) {
     document.getElementById('ov-wk')?.classList.add('on');
   }
   updateWkMiniVisibility();
+  try { _aibSyncVisibility(); } catch(_){}
 }
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
   if (e.target===o) { if (o.id==='ov-icons') closeIconPicker(); else closeOv(o.id); }
@@ -11111,6 +11429,7 @@ function confirmWheel() {
     value = String(reps);
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
+  try { _coachEval(li, si); } catch(_) {}
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
   // PR-Feier NICHT hier — erst wenn der Satz per Häkchen bestätigt wird (toggleSetDone).
@@ -12428,6 +12747,11 @@ function computeFatigueAll() {
     if (!ts || ts < cutoff) continue;
     const hoursAgo = (now - ts) / 3600000;
     const decay = Math.pow(0.5, hoursAgo / FAT_HALFLIFE_H);
+    // Phase E: Post-Workout-Check-in als kleiner, klar begrenzter Ermüdungs-Modifier
+    // (±8% bei feel 1..4, 2.5 = Mitte/neutral) — KEIN Eingriff in die Kern-Formel,
+    // nur ein zusätzlicher Faktor auf den bereits berechneten Beitrag dieser Session.
+    const _ciFeelForSes = (S.checkins || []).find(c => c.sid === ses.id)?.feel;
+    const feelMul = _ciFeelForSes ? (1 + (_ciFeelForSes - 2.5) * 0.032) : 1;
 
     for (const log of (ses.logs || [])) {
       const ex = S.exercises.find(e => e.id === log.exerciseId);
@@ -12441,7 +12765,7 @@ function computeFatigueAll() {
       for (const id of ids) {
         const w = weights[id];
         const contrib = exVol * w;
-        acc[id].load += contrib * decay;
+        acc[id].load += contrib * decay * feelMul;
         acc[id].hist.push({ date: ses.date, ts, exId: ex.id, exName: ex.name, vol: contrib });
         if (!acc[id].lastTs || ts > acc[id].lastTs) {
           acc[id].lastTs  = ts;
@@ -13043,11 +13367,227 @@ function openVolumeFull() {
 function renderStats() {
   invalidateFatigue();
   renderStatsSummary();
+  // Phase F: KI-Einblicke — rein lokal berechnet, darf den Statistik-Tab nie sprengen.
+  try { renderStatsInsights(); } catch(e) { console.warn('[GymTrack] renderStatsInsights:', e); }
   renderStatsOverallChart();
   renderFatigueMini();
   renderWeekCircles();
   renderStatsMuscleGroups();
   renderStatsExerciseList();
+}
+
+// ── PHASE F: KI-EINBLICKE (Statistik-Tab) ──────────────
+// computeInsights(): reines JS, KEIN KI-Call. Liefert bis zu 3 Kandidaten, nach
+// „wie auffällig der Befund ist" (_rank) sortiert. Jeder Kandidat läuft isoliert
+// in try/catch — ein einzelner kaputter Kandidat darf nie die anderen mitreißen.
+function computeInsights() {
+  const out = [];
+
+  // Wiederverwendet Phase C's _aiaData('progress'): 8-Wochen-Volumen + Vierwochen-PRs.
+  let prog = {};
+  try { prog = _aiaData('progress') || {}; } catch(_) {}
+  const weeks = prog.weeks || [];
+
+  // 1) Volumentrend der letzten 4 Wochen (2 vs. 2 verglichen)
+  try {
+    if (weeks.length >= 4) {
+      const last4 = weeks.slice(-4);
+      const recent2 = last4[2].volumeKg + last4[3].volumeKg;
+      const prev2   = last4[0].volumeKg + last4[1].volumeKg;
+      if (recent2 > 0 || prev2 > 0) {
+        const delta = prev2 > 0 ? (recent2 - prev2) / prev2 : 1;
+        let trend = 'flat', text = 'Dein Trainingsvolumen bleibt seit Wochen stabil.';
+        if (delta > 0.1)      { trend = 'up';   text = 'Dein Trainingsvolumen steigt in den letzten Wochen.'; }
+        else if (delta < -0.1) { trend = 'down'; text = 'Dein Trainingsvolumen sinkt in den letzten Wochen.'; }
+        out.push({ icon:'chart2', title:'Volumentrend', text, trend, _rank: Math.abs(delta) + 0.1 });
+      }
+    }
+  } catch(_) {}
+
+  // 2) Vernachlässigte Muskelgruppe: <10% Volumenanteil unter den Gruppen, die der
+  // aktive Wochenplan überhaupt bespielt (Volumen-Aggregation wiederverwendet aus
+  // Phase C's _aiaData('training'), dieselbe 28-Tage-Basis wie renderStatsMuscleGroups).
+  try {
+    let trainD = {};
+    try { trainD = _aiaData('training') || {}; } catch(_) {}
+    const volByMg = trainD.volume4wByMuscle || {};
+    const plannedIds = new Set();
+    Object.values(S.weekPlan || {}).forEach(day => {
+      if (!day || day.type === 'none') return;
+      let exIds = [];
+      if (day.type === 'preset') { const p = presetById(day.id); exIds = p ? (p.exIds || []) : []; }
+      else if (day.type === 'exercises') { exIds = day.exIds || []; }
+      exIds.forEach(id => { const ex = exById(id); if (ex && ex.muscleGroup) plannedIds.add(ex.muscleGroup); });
+    });
+    if (plannedIds.size >= 2) {
+      let total = 0; const per = {};
+      plannedIds.forEach(mg => { const v = volByMg[mg] || 0; per[mg] = v; total += v; });
+      if (total > 0) {
+        let worst = null, worstShare = 1;
+        plannedIds.forEach(mg => { const share = per[mg] / total; if (share < worstShare) { worstShare = share; worst = mg; } });
+        if (worst && worstShare < 0.10) {
+          const pct = Math.round(worstShare * 100);
+          out.push({
+            icon:'dumbbell', title:'Vernachlässigte Muskelgruppe',
+            text: `${muscleLabel(worst)} bekommt aktuell nur ${pct}% deines Trainingsvolumens.`,
+            trend:'down', _rank: (0.10 - worstShare) * 4 + 0.2,
+          });
+        }
+      }
+    }
+  } catch(_) {}
+
+  // 3) Wiederholungsbereich mit dem stärksten e1RM-Wachstum (Epley, letzte 4 vs. ältere Wochen)
+  try {
+    const cutoff = Date.now() - 28 * 864e5;
+    const brackets = [{id:'1-5',lo:1,hi:5},{id:'6-10',lo:6,hi:10},{id:'11-15',lo:11,hi:15},{id:'15+',lo:16,hi:999}];
+    const recentBest = {}, olderBest = {};
+    (S.sessions || []).forEach(ses => {
+      const t = new Date(ses.date).getTime();
+      const bucket = t >= cutoff ? recentBest : olderBest;
+      (ses.logs || []).forEach(l => (l.sets || []).forEach(s => {
+        const r = parseInt(s.r) || 0, w = parseFloat(s.w) || 0;
+        if (!r || !w) return;
+        const br = brackets.find(b => r >= b.lo && r <= b.hi); if (!br) return;
+        const e = epley1RM(w, r);
+        if (!bucket[br.id] || e > bucket[br.id]) bucket[br.id] = e;
+      }));
+    });
+    let bestBr = null, bestGrowth = 0;
+    brackets.forEach(b => {
+      const rc = recentBest[b.id], ol = olderBest[b.id];
+      if (rc && ol && ol > 0) {
+        const g = (rc - ol) / ol;
+        if (g > bestGrowth) { bestGrowth = g; bestBr = b.id; }
+      }
+    });
+    if (bestBr && bestGrowth > 0.03) {
+      out.push({
+        icon:'trendUp', title:'Bester Wiederholungsbereich',
+        text: `Im Bereich ${bestBr} Wdh. wächst dein 1RM am stärksten.`,
+        trend:'up', _rank: bestGrowth + 0.15,
+      });
+    }
+  } catch(_) {}
+
+  // 4) Trainingsfrequenz vs. Ziel (S.obFreq) — Ø Einheiten/Woche der letzten 4 Wochen
+  try {
+    if (S.obFreq && weeks.length >= 4) {
+      const last4 = weeks.slice(-4);
+      const avg = last4.reduce((s,w) => s + (w.sessions||0), 0) / 4;
+      const goal = S.obFreq;
+      const avgStr = avg.toFixed(1).replace('.', GT_DEC);
+      if (avg < goal - 0.5) {
+        out.push({
+          icon:'calendar', title:'Trainingsfrequenz',
+          text: `Du trainierst zuletzt Ø ${avgStr}×/Woche — dein Ziel sind ${goal}×.`,
+          trend:'down', _rank: (goal - avg) / goal + 0.1,
+        });
+      } else {
+        out.push({
+          icon:'calendar', title:'Trainingsfrequenz',
+          text: `Du erreichst dein Frequenz-Ziel von ${goal}× pro Woche.`,
+          trend:'up', _rank: 0.08,
+        });
+      }
+    }
+  } catch(_) {}
+
+  // 5) PRs der letzten 4 Wochen (Zählung wiederverwendet aus Phase C's _aiaData('progress'))
+  try {
+    const n = prog.prCountLast4w || 0;
+    if (n >= 1) {
+      out.push({
+        icon:'crown', title:'Bestleistungen',
+        text: n === 1 ? '1 neue Bestleistung in den letzten 4 Wochen.' : `${n} neue Bestleistungen in den letzten 4 Wochen.`,
+        trend:'up', _rank: Math.min(1, n / 3) + 0.05,
+      });
+    }
+  } catch(_) {}
+
+  // 6) Check-in-Belastungstrend (nur wenn genug Check-ins da sind — direkt nach dem
+  // Phase-E-Rollout meist noch nicht, dann wird dieser Kandidat einfach übersprungen)
+  try {
+    const cks = (S.checkins || []).slice(-8);
+    if (cks.length >= 6) {
+      const half = Math.floor(cks.length / 2);
+      const avgO = cks.slice(0, half).reduce((s,c) => s + c.feel, 0) / half;
+      const avgR = cks.slice(half).reduce((s,c) => s + c.feel, 0) / (cks.length - half);
+      const diff = avgR - avgO;
+      if (Math.abs(diff) >= 0.4) {
+        out.push({
+          icon:'flame', title:'Belastungsempfinden',
+          text: diff > 0 ? 'Du empfindest deine Trainings zuletzt als anstrengender.' : 'Du empfindest deine Trainings zuletzt als leichter.',
+          trend: diff > 0 ? 'up' : 'down', _rank: Math.abs(diff) / 4,
+        });
+      }
+    }
+  } catch(_) {}
+
+  out.sort((a,b) => (b._rank||0) - (a._rank||0));
+  return out.slice(0, 3);
+}
+
+function _insTrendSVG(t) {
+  const d = t === 'up' ? 'M5 15l5-6 4 3 5-7' : t === 'down' ? 'M5 9l5 6 4-3 5 7' : 'M5 12h14';
+  return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+}
+function renderStatsInsights() {
+  const wrap = document.getElementById('stats-insights-wrap');
+  const list = document.getElementById('stats-insights-list');
+  if (!wrap || !list) return;
+  let items = [];
+  try { items = computeInsights(); } catch(e) { console.warn('[GymTrack] computeInsights:', e); }
+  const showPrem = isPremium();
+  if (!items.length && !showPrem) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const rows = items.map(it => `
+    <div class="row">
+      <div style="width:16px;height:16px;flex-shrink:0;color:var(--text2)">${ICO[it.icon] ? ICO[it.icon]({s:16}) : ''}</div>
+      <div class="row-body">
+        <div class="row-title" style="font-size:14.5px">${esc(it.title)}</div>
+        <div class="row-sub" style="white-space:normal">${esc(it.text)}</div>
+      </div>
+      <div style="flex-shrink:0;color:var(--text2);opacity:.6">${_insTrendSVG(it.trend)}</div>
+    </div>`).join('');
+  list.innerHTML = rows + (showPrem ? _moSumRowHTML() : '');
+}
+
+// Premium-Extra: „KI-Monatsanalyse" — ruft die KI höchstens 1×/Kalendermonat auf
+// (Cache localStorage['gt_aiMoSum']), Daten wiederverwendet aus Phase C's _aiaData.
+function _moSumMonthKey() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function _moSumCache() { try { return JSON.parse(localStorage.getItem('gt_aiMoSum') || 'null'); } catch(_) { return null; } }
+function _moSumRowHTML() {
+  const cached = _moSumCache();
+  const hasText = cached && cached.month === _moSumMonthKey() && cached.text;
+  const sub = hasText ? cached.text : 'Tippen für eine KI-Zusammenfassung deines Monats.';
+  return `<div class="row tap" id="stats-mosum-row" onclick="_openMoSum()">
+      <div style="width:16px;height:16px;flex-shrink:0;color:var(--text2)">${ICO.sparkle({s:16})}</div>
+      <div class="row-body">
+        <div class="row-title" style="font-size:14.5px">KI-Monatsanalyse</div>
+        <div class="row-sub" style="white-space:normal">${esc(sub)}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`;
+}
+async function _openMoSum() {
+  const cached = _moSumCache();
+  const monthKey = _moSumMonthKey();
+  if (cached && cached.month === monthKey && cached.text) return; // schon gecacht diesen Monat — nichts zu tun
+  if (!premGate('analyze')) return;
+  const row = document.getElementById('stats-mosum-row');
+  const sub = row ? row.querySelector('.row-sub') : null;
+  if (sub) sub.textContent = tr('Wird analysiert…');
+  try {
+    const data = _aiaData('progress');
+    const res = await aiCall('analyze', { mode:'progress', data });
+    const text = (res && res.a && (res.a.summary || (res.a.points||[]).join(' '))) || '';
+    if (text) { try { localStorage.setItem('gt_aiMoSum', JSON.stringify({ month: monthKey, text })); } catch(_){} }
+    renderStatsInsights();
+  } catch(e) {
+    console.warn('[GymTrack] KI-Monatsanalyse fehlgeschlagen:', e);
+    if (sub) sub.textContent = tr('Analyse gerade nicht möglich.');
+  }
 }
 
 // ── ERFOLGE (Meilensteine, Trainingszeit, Kraftsteigerung) ──
@@ -14117,6 +14657,9 @@ function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
   _ensureRestNotifPermission(); // Pause-Ende-Signal darf im Hintergrund feuern
   _livePR = {};   // Live-PR-Tracker für neue Einheit zurücksetzen
+  _coachState = _coachDefaultState(); // Live-Coach-Rate-Limits für neue Einheit zurücksetzen
+  _coachClearCard();
+  _coachEvalTimers = {};
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
@@ -14168,7 +14711,8 @@ function _saveActiveWk() {
       note: document.getElementById('wk-note')?.value || '',
       planSrc: _activePlanSrc || null,            // Quelle für „Plan übernehmen?"
       restEndTs: restActive ? _restEndTs : 0,     // laufende Pause übersteht App-Neustart
-      restSmart: restActive ? _restSmart : false
+      restSmart: restActive ? _restSmart : false,
+      coachState: _coachState                      // Live-Coach-Rate-Limits übersteht App-Neustart
     }));
   } catch(_) {}
 }
@@ -14197,6 +14741,9 @@ function _restoreActiveWk() {
   wkLogs  = logs;
   wkExIds = Array.isArray(saved.exIds) && saved.exIds.length ? saved.exIds : logs.map(l => l.exerciseId);
   timerTs = saved.ts;
+  _coachState = _coachNormalizeState(saved.coachState); // Live-Coach-Rate-Limits übersteht App-Neustart
+  _coachCard = null; // evtl. offene Vorschlagskarte ist nach Neustart nicht mehr aktuell
+  _coachEvalTimers = {};
   // Laufende Zeit-Satz-Timer pausieren — der Neustart hat sie beendet
   wkLogs.forEach(l => (l.sets || []).forEach(s => {
     if (s.tRunning) { s.tElapsed = s.tElapsed || 0; s.tRunning = false; s.tStart = null; }
@@ -14229,6 +14776,9 @@ function _restoreActiveWk() {
 }
 
 function renderLogCards() {
+  // Vorschlagskarte des Live-Coaches gehört zu einer bestimmten Übung — wenn die
+  // (z. B. per Swipe) aus dem Training entfernt wurde, ist die Karte hinfällig.
+  try { if (_coachCard && !wkLogs.some(l => l.exerciseId === _coachCard.exId)) _coachClearCard(); } catch(_) {}
   document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
@@ -14249,6 +14799,7 @@ function renderLogCards() {
         <button class="ex-swap-btn" onclick="openExSwap(${li})" title="Übung tauschen" aria-label="Übung tauschen">⇄</button>
       </div>
       <div class="ex-body">
+        ${(_coachCard && _coachCard.exId === log.exerciseId) ? _coachCardHTML() : ''}
         <div class="set-hdr"><span></span><span></span><span>TYP</span><span>${unitLabel().toUpperCase()}</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
@@ -14292,6 +14843,7 @@ function renderLogCards() {
   }).join('');
   _attachSwipeToDelete();
   _saveActiveWkSoon();
+  try { _wkCoachPillSync(); } catch(_) {}
 }
 
 /* ── SWIPE-TO-DELETE (Übung im aktiven Training nach links wischen) ──
@@ -14602,6 +15154,7 @@ function _maybeUpdatePlanFromSession(valid) {
 function finishWk() {
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
+  try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   // Zeit-Übungen: elapsed als r sichern
   wkLogs.forEach(l => {
     const ex = exById(l.exerciseId);
@@ -14650,13 +15203,25 @@ function finishWk() {
     const statsActive = document.getElementById('pg-stats')?.classList.contains('on');
     if (statsActive) renderRecoveryList();
   } catch(_) {}
+  // Post-Workout-Check-in (Phase E, für ALLE Nutzer — keine Premium-Sperre): der Rest
+  // der Kette (PR-Erkennung, Share-Flow, renderHome, Meilensteine, Social-Push) läuft
+  // NICHT mehr hier direkt weiter, sondern erst wenn das Check-in-Sheet zugeht —
+  // s. _finishWkContinue()/_checkinOpen() weiter unten und der closeOv('ov-checkin')-Hook.
+  _checkinOpen(_newSess, _shareDayName);
+}
+
+/* Tail-Ende von finishWk() (Phase E hierher ausgelagert, Inhalt unverändert): läuft
+   erst NACH dem Post-Workout-Check-in-Sheet — s. _checkinOpen()/closeOv('ov-checkin').
+   sess = die neue Session (früher „newSession"/„_newSess"), dayName = Trainingstag-
+   Name für die Share-Card (früher „_shareDayName"). */
+function _finishWkContinue(sess, dayName) {
   // PR-Erkennung + Feier vor dem Share-Flow, damit die Share-Card die PRs zeigen kann.
-  const newSession = _newSess;
+  const newSession = sess;
   const prs = detectPRs(newSession);
   if (prs.length) celebratePRs(prs);
   // Share-Flow abgesichert: wirft er (Canvas/Avatar), liefen sonst renderHome &
   // Punkte-Ticker nie → Level-Badge blieb stehen/verschwand und Punkte kamen nie an.
-  try { startShareFlow(newSession, prs, _shareDayName); }
+  try { startShareFlow(newSession, prs, dayName); }
   catch(e) {
     console.warn('[GymTrack] Share-Flow-Fehler:', e);
     if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 600); }
@@ -14666,9 +15231,68 @@ function finishWk() {
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
 }
 
+/* ── POST-WORKOUT CHECK-IN (Phase E) ──────────────────────────────────
+   ov-checkin fragt „Wie hat sich dein Training angefühlt?" (feel 1-4) +
+   Energielevel (en 1-3), bevor die finishWk-Kette (_finishWkContinue) weiterläuft.
+   _checkinContinued ist der Wächter: egal ob der Nutzer speichert, überspringt
+   oder das Sheet wegwischt/wegtippt — closeOv('ov-checkin') ruft am Ende IMMER
+   _finishWkContinue() auf, aber garantiert nur genau EINMAL pro Training. */
+let _checkinSess = null, _checkinDayName = null, _checkinContinued = false;
+let _ciFeel = null, _ciEnergy = 2;   // Energie startet neutral vorbelegt (Mittel)
+
+const CI_FEELS = [
+  { v:1, ico:'effort1', label:'Sehr leicht' },
+  { v:2, ico:'effort2', label:'Gut' },
+  { v:3, ico:'effort3', label:'Anstrengend' },
+  { v:4, ico:'effort4', label:'Sehr schwer' },
+];
+const CI_ENERGIES = [ { v:1, label:'Niedrig' }, { v:2, label:'Mittel' }, { v:3, label:'Hoch' } ];
+
+function _checkinOpen(sess, dayName) {
+  _checkinSess = sess;
+  _checkinDayName = dayName;
+  _checkinContinued = false;
+  _ciFeel = null;
+  _ciEnergy = 2;
+  _renderCheckin();
+  openOv('ov-checkin');
+}
+function _ciSetFeel(v) { _ciFeel = v; haptic(8); _renderCheckin(); }
+function _ciSetEnergy(v) { _ciEnergy = v; haptic(8); _renderCheckin(); }
+function _renderCheckin() {
+  const el = document.getElementById('checkin-body');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="ob-q" style="font-size:18px">Wie hat sich dein Training angefühlt?</div>
+    <div class="ob-opts" style="margin-top:14px">${CI_FEELS.map(f => `
+      <button class="ob-opt${_ciFeel===f.v?' on':''}" onclick="_ciSetFeel(${f.v})">
+        <div class="ob-opt-ico">${ICO[f.ico]({s:20})}</div>
+        <div><div class="ob-opt-title">${f.label}</div></div>
+      </button>`).join('')}
+    </div>
+    <div class="s-title" style="margin:20px 0 8px">Energielevel</div>
+    <div class="fmode-wrap" style="margin:0">${CI_ENERGIES.map(en => `
+      <button class="fmode-btn${_ciEnergy===en.v?' on':''}" onclick="_ciSetEnergy(${en.v})">${en.label}</button>`).join('')}
+    </div>
+    <button class="btn btn-acc" style="margin-top:22px" onclick="_ciConfirm()">Fertig</button>
+    <button class="ob-skip" style="display:block;margin:10px auto 0;text-align:center" onclick="_ciSkip()">Überspringen</button>
+  `;
+}
+function _ciConfirm() {
+  if (_ciFeel) {
+    S.checkins = S.checkins || [];
+    S.checkins.push({ sid: _checkinSess?.id, d: _checkinSess?.date, feel: _ciFeel, en: _ciEnergy || 2 });
+    while (S.checkins.length > 400) S.checkins.shift();
+    persist();
+  }
+  closeOv('ov-checkin');
+}
+function _ciSkip() { closeOv('ov-checkin'); }
+
 function cancelWk() {
   if (!confirm('Training abbrechen? Eingetragene Daten werden verworfen.')) return;
   _activePlanSrc = null;
+  try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   _endLiveActivity();
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
@@ -14844,6 +15468,32 @@ const ICO = {
   check:o=>_svg('<path d="M20 6 9 17l-5-5"/>',o),
   wifiOff:o=>_svg('<path d="M2 8.8C5 6.4 8.4 5.2 12 5.2c1.3 0 2.6.2 3.8.5M18.4 8a13 13 0 0 1 3.6 2.8M8.5 12.2A8 8 0 0 1 12 11c1.3 0 2.4.3 3.4.9M12 20l.01 0M9.4 15.6A4 4 0 0 1 12 14.8M2 2l20 20"/>',o),
 };
+// Premium/KI-Coach-Icons (Vektor, kein Emoji — UI-Regel)
+Object.assign(ICO, {
+  sparkle:o=>_svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9z"/>',o),
+  robot:o=>_svg('<rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 8V4.8M12 4.8a1.4 1.4 0 1 0-.01 0z"/><circle cx="9.2" cy="13" r="1.1"/><circle cx="14.8" cy="13" r="1.1"/><path d="M9.5 16.2h5"/>',o),
+  chart2:o=>_svg('<path d="M3.5 20h17M6.5 16.5v-6M11 16.5V4.5M15.5 16.5v-8M20 16.5v-4"/>',o),
+  crown:o=>_svg('<path d="M4 8.5 7.5 12l4.5-6 4.5 6L20 8.5V17a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17z"/>',o),
+});
+// Phase C: KI-Coach-Bubble/Radialmenü-Icons (Vektor, kein Emoji — UI-Regel)
+Object.assign(ICO, {
+  chatBubble:o=>_svg('<rect x="3.5" y="5" width="17" height="12" rx="4"/><path d="M8 17v3l4-3"/><path d="M8 10h8M8 13h5"/>',o),
+  planAdd:o=>_svg('<rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v6M9 16h6"/>',o),
+  trendUp:o=>_svg('<path d="M3.5 17l6-6 4 4 7-8"/><path d="M15.5 6.5H20.5V11.5"/>',o),
+  gear:o=>_svg('<circle cx="12" cy="12" r="3"/><path d="M12 4v2.4M12 17.6V20M20 12h-2.4M6.4 12H4M17.66 6.34l-1.7 1.7M8.04 15.96l-1.7 1.7M17.66 17.66l-1.7-1.7M8.04 8.04L6.34 6.34"/>',o),
+});
+// Phase E: Check-in-Anstrengungs-Gauge (4 Balken, 1..4 davon gefüllt = Intensität)
+Object.assign(ICO, {
+  effort1:o=>_svg('<rect x="2" y="15" width="3.5" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="7.5" y="12" width="3.5" height="9" rx="1.2"/><rect x="13" y="9" width="3.5" height="12" rx="1.2"/><rect x="18.5" y="6" width="3.5" height="15" rx="1.2"/>',o),
+  effort2:o=>_svg('<rect x="2" y="15" width="3.5" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="7.5" y="12" width="3.5" height="9" rx="1.2" fill="currentColor" stroke="none"/><rect x="13" y="9" width="3.5" height="12" rx="1.2"/><rect x="18.5" y="6" width="3.5" height="15" rx="1.2"/>',o),
+  effort3:o=>_svg('<rect x="2" y="15" width="3.5" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="7.5" y="12" width="3.5" height="9" rx="1.2" fill="currentColor" stroke="none"/><rect x="13" y="9" width="3.5" height="12" rx="1.2" fill="currentColor" stroke="none"/><rect x="18.5" y="6" width="3.5" height="15" rx="1.2"/>',o),
+  effort4:o=>_svg('<rect x="2" y="15" width="3.5" height="6" rx="1.2" fill="currentColor" stroke="none"/><rect x="7.5" y="12" width="3.5" height="9" rx="1.2" fill="currentColor" stroke="none"/><rect x="13" y="9" width="3.5" height="12" rx="1.2" fill="currentColor" stroke="none"/><rect x="18.5" y="6" width="3.5" height="15" rx="1.2" fill="currentColor" stroke="none"/>',o),
+});
+// Phase F: Statistik-Einblicke-Icons
+Object.assign(ICO, {
+  dumbbell:o=>_svg('<path d="M7 9v6M17 9v6M4.5 10.2v3.6M19.5 10.2v3.6M7 12h10"/>',o),
+  calendar:o=>_svg('<rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',o),
+});
 /* Flammen-Icon gefüllt (Reaction-Button/Verlauf) — eigenes Verlaufs-SVG. */
 function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="flg${s}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd24a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient></defs><path d="M12 2.5c.5 3.2-2 4.5-3.5 6.4C6.8 11.4 6.8 14.2 8.4 16.2 9.6 17.7 11 18.5 12 18.5s2.4-.8 3.6-2.3c1.6-2 1.6-5 0-7.1-.8-1-1.7-1.8-2-3.1-.7 1.1-1.4 1.8-2.2 2.2C11 5.9 11.5 4 12 2.5z" fill="url(#flg${s})"/></svg>`; }
 /* Gründer-Kennzeichnung: Neon-Krone neben dem Namen im Community-Feed.
@@ -14851,6 +15501,24 @@ function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}
 const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 function _founderBadge(){ return `<span class="founder-tag" title="Founder" aria-label="Founder">Founder</span>`; }
 function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
+
+/* Phase G: Community-Premium-Abzeichen — kleine Hantel in festem Metallic-Silber-
+   Verlauf (KEIN var(--acc)), damit sie in allen 5 Themes gleich „wertig" aussieht. */
+function _premBadgeSVG(s){
+  s = s || 13;
+  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="premg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9ccd4"/><stop offset=".5" stop-color="#eef0f4"/><stop offset="1" stop-color="#9aa0ab"/></linearGradient></defs><g fill="none" stroke="url(#premg${s})" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9v6M17 9v6M4.5 10.2v3.6M19.5 10.2v3.6M7 12h10"/></g></svg>`;
+}
+ICO.premBadge = o => _premBadgeSVG(o && o.s);
+/* „Premium"-Abzeichen neben Namen — analog _lvlTagForUid/_founderTag: eigener Status
+   direkt aus isPremium(), fremder aus _socCache (dort spiegelt _pushSocialProfile das
+   premium-Feld, s. Phase B). */
+function _premTagForUid(uid, s){
+  if (!uid) return '';
+  const has = uid === _fbUser?.uid
+    ? isPremium()
+    : !!(((_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null)?.premium);
+  return has ? `<span class="prem-tag" title="Premium" aria-label="Premium">${_premBadgeSVG(s)}</span>` : '';
+}
 
 /* ── Canvas-Icons für die Share-Card (statt Emoji auf dem Bild) ── */
 function _cvPin(ctx, cx, cy, r, col){
@@ -15621,6 +16289,7 @@ function renderSettings() {
   updateCompanionSettingsRow();
   updateAdminUI();
   updateSocialUI();
+  renderPremiumSettings();
   // Unit-Toggle aktuellen Stand anzeigen
   document.querySelectorAll('[data-unit-btn]').forEach(b => {
     b.classList.toggle('on', b.dataset.unitBtn === (S.unitMode||'kg'));
@@ -17090,6 +17759,7 @@ async function _pushSocialProfile(){
     live: liveOn ? { on:true, start:timerTs, gym: P.gym ? (S.gymName || null) : null } : null,
     stats: P.stats ? _socOwnStats() : null,
     friends: S.friends || [],
+    premium: (typeof isPremium === 'function') ? isPremium() : false,
     updatedAt: Date.now()
   };
   if (_pushToken) payload.pushToken = _pushToken;   // APNs-Token fürs Sperrbild-Push mitschreiben (merge:false würde ihn sonst löschen)
@@ -18011,7 +18681,7 @@ function _renderLevelBadge(){
   if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
   const L = _levelOf(_xpSelf());
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
-    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>${isPremium() ? `<span class="prem-tag" style="margin-left:4px">${_premBadgeSVG(12)}</span>` : ''}
   </div>`;
 }
 /* Eigene Level-Karte (Community-Übersicht). */
@@ -18166,7 +18836,7 @@ async function openFrProfile(uid){
         <div class="fr-ava lg">${p.photo?`<img src="${esc(p.photo)}" alt="">`:_socInitials(p.name)}</div>
         <div class="fr-dot${live||_frPresence[uid]?' on':''}" style="width:17px;height:17px"></div>
       </div>
-      <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}${_founderTag(uid, 18)}</div>
+      <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}${_founderTag(uid, 18)}${_premTagForUid(uid, 16)}</div>
       ${p.gymName ? `<div class="fr-sub" style="justify-content:center">${esc(p.gymName)}</div>` : ''}
       ${uid === FOUNDER_UID ? `<div class="frp-founder"><span>${tr('Gründer von MyGymTrack')}</span></div>` : ''}
       <div class="frp-level" onclick="event.stopPropagation()">${tr('Level')} ${_socLevel(p)}<span class="frp-xp">${_fmtXP(_xpOf(p))} ${tr('Punkte')}</span></div>
@@ -18512,7 +19182,7 @@ function _cpgCardHTML(it, pos){
       <div class="cpg-topfade"></div>
       <div class="cpg-head">
         <div class="cpg-ava">${ava}</div>
-        <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+        <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
         <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       </div>
       ${rawInfo}
@@ -18528,7 +19198,7 @@ function _cpgCardHTML(it, pos){
     <div class="cpg-water">MYGYMTRACK</div>
     <div class="cpg-head">
       <div class="cpg-ava">${ava}</div>
-      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+      <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
       <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
     <div class="cpg-vdate">${vdate}</div>
@@ -19551,6 +20221,897 @@ function _purgeDemoData(obj){
   return hit;
 }
 
+// ═══════════════════════════════════════════════════════
+// PREMIUM — ABO (StoreKit 2) · PAYWALL · KI-COACH-CORE
+// Status NUR lokal (localStorage 'gt_premium'), NICHT im users-Doc — keine
+// Rules-Änderung nötig, kein Sync-Bruch. Quelle der Wahrheit ist StoreKit
+// (Transaction.currentEntitlements), der JWS ist der Abo-Beweis für den
+// KI-Worker (serverseitige Verifikation gegen Apple-Zertifikate).
+// Einziger Firestore-Spiegel: profiles/{uid}.premium (Community-Badge) —
+// läuft über den bestehenden _pushSocialProfile-Weg, kein zweiter Schreibpfad.
+// ═══════════════════════════════════════════════════════
+const AI_WORKER_URL = 'https://gymtrack-ai.wolterlenny362.workers.dev';
+const PREM_MONTHLY  = 'gymtrack.premium.monthly';
+const PREM_YEARLY   = 'gymtrack.premium.yearly';
+
+let PREM = (() => {
+  const base = { active:false, plan:null, exp:null, jws:null, src:null };
+  try { return Object.assign(base, JSON.parse(localStorage.getItem('gt_premium')) || {}); }
+  catch(_) { return base; }
+})();
+function _premSave(){ try { localStorage.setItem('gt_premium', JSON.stringify(PREM)); } catch(_){} }
+
+function isPremium(){
+  // try/catch: _fbUser ist ein späteres top-level `let` — bei frühem Aufruf
+  // (z. B. beim Boot-Rendering vor dem Erreichen der KONTO-Sektion) wäre der
+  // Zugriff sonst ein TDZ-ReferenceError, der den kompletten Boot abbricht!
+  try { if (_fbUser && _fbUser.uid === FOUNDER_UID) return true; } catch(_){} // Founder immer Premium
+  if (localStorage.getItem('gt_premiumDev') === '1') return true;             // Dev-Unlock (nur UI, kein echtes Abo)
+  if (!PREM.active) return false;
+  return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
+}
+
+// ── StoreKit-Bridge (PremiumPlugin, nur nativ — _cap() liefert null im Web) ──
+let _pwProducts = null; // [{id, displayPrice, price, period}]
+async function _premLoadProducts(){
+  const P = _cap('PremiumPlugin'); if (!P) return [];
+  try { const r = await P.loadProducts(); _pwProducts = r.products || []; return _pwProducts; }
+  catch(e){ console.log('[PREM] Produkte laden:', e?.message||e); return []; }
+}
+function _premApply(res){
+  if (!res) return;
+  if (res.active) {
+    PREM = { active:true, plan: res.productId === PREM_YEARLY ? 'yearly' : 'monthly',
+             exp: res.expiresMs || 0, jws: res.jws || PREM.jws || null, src:'store' };
+  } else if (res.status === 'none') {
+    PREM = { active:false, plan:null, exp:null, jws:null, src:null };
+  }
+  _premSave();
+  try { premRefreshUI(); } catch(_){}
+}
+// Premium-Status in profiles/{uid} spiegeln (Community-Badge) — nutzt den
+// bestehenden Social-Profil-Push, damit KEIN zweiter Firestore-Schreibpfad entsteht.
+async function _syncPremiumProfile(){
+  try { if (typeof _pushSocialProfile === 'function') await _pushSocialProfile(); } catch(_){}
+}
+async function premBuy(productId){
+  const P = _cap('PremiumPlugin');
+  if (!P) { _dndToast('Premium schließt du in der MyGymTrack iOS-App ab.'); return null; }
+  const btn = document.getElementById('pw-cta');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Kauf läuft…'; }
+  try {
+    const res = await P.purchase({ productId });
+    if (res && res.active) {
+      _premApply(res);
+      await _syncPremiumProfile();
+      haptic(30);
+      if (btn) btn.textContent = 'Premium aktiv ✓';
+      setTimeout(() => { try { closeOv('ov-paywall'); } catch(_){} }, 700);
+    } else if (res && res.status === 'pending') {
+      _dndToast('Kauf wartet auf Bestätigung (z. B. Familienfreigabe).');
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
+    } else if (btn) { btn.disabled = false; btn.textContent = origText; }
+    return res;
+  } catch(e) {
+    _dndToast('Kauf fehlgeschlagen: ' + (e?.message||e));
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+    return null;
+  }
+}
+async function premRestore(){
+  const P = _cap('PremiumPlugin');
+  if (!P) { _dndToast('Käufe wiederherstellen geht nur in der iOS-App.'); return null; }
+  try {
+    const res = await P.restore();
+    _premApply(res);
+    await _syncPremiumProfile();
+    _dndToast(res && res.active ? 'Premium aktiv — willkommen zurück!' : 'Kein aktives Abo gefunden.');
+    return res;
+  } catch(e) { _dndToast('Wiederherstellung fehlgeschlagen: ' + (e?.message||e)); return null; }
+}
+async function premManage(){
+  const P = _cap('PremiumPlugin');
+  if (!P) { _dndToast('Abo verwalten geht nur in der iOS-App.'); return; }
+  try { await P.manageSubs(); setTimeout(premRefreshEntitlement, 1500); } catch(_){}
+}
+async function premRefreshEntitlement(){
+  const P = _cap('PremiumPlugin'); if (!P) return;
+  try { _premApply(await P.getEntitlement()); await _syncPremiumProfile(); } catch(_){}
+}
+function premGate(feature){ if (isPremium()) return true; openPaywall(feature); return false; }
+// Premium-abhängige UI aktualisieren, sofern gerade sichtbar (Settings-Sektion/Paywall).
+function premRefreshUI(){
+  try { if (document.getElementById('pg-settings')?.classList.contains('on')) renderPremiumSettings(); } catch(_){}
+  try { if (document.getElementById('ov-paywall')?.classList.contains('on')) _pwRender(); } catch(_){}
+}
+
+// ── KI-Worker (Chat/Live-Coach/Analyse) ───────────────
+// aiCall('chat'|'coach'|'analyze', payload) → POST AI_WORKER_URL/<kind> mit
+// idToken (wer bist du) + jws (bist du Premium) + lang. 402 = kein Premium
+// (Paywall öffnen), 429 = Monatslimit erreicht (Toast, quota trotzdem übernehmen).
+async function aiCall(kind, payload){
+  if (!(window.FB && window.FB.configured && _fbUser)) { _dndToast('Bitte zuerst anmelden.'); return null; }
+  let idToken;
+  try { idToken = await _fbUser.getIdToken(); }
+  catch(_) { _dndToast('Bitte zuerst anmelden.'); return null; }
+  try {
+    const res = await fetch(AI_WORKER_URL + '/' + kind, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken, jws: PREM.jws || null, lang: GT_LANG, ...payload }),
+    });
+    let j = null; try { j = await res.json(); } catch(_){}
+    if (res.status === 402) {
+      await premRefreshEntitlement();
+      openPaywall(kind);
+      return null;
+    }
+    if (res.status === 429) {
+      if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} }
+      _dndToast((j && j.error) || 'Du hast dein monatliches KI-Limit erreicht.');
+      return null;
+    }
+    if (!res.ok) { _dndToast((j && j.error) || 'KI gerade nicht erreichbar.'); return null; }
+    if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} }
+    return j;
+  } catch(e) { _dndToast('KI gerade nicht erreichbar.'); return null; }
+}
+
+// ── KI-Coach: LIVE-COACH IM TRAINING (Phase D) ─────────
+// Wertet neu eingetragene Sätze im aktiven Training aus (Hook: confirmWheel) und
+// zeigt bei auffälligen Mustern (Sprung/Einbruch/Ermüdung/Wdh-Bereich-Ende/Stagnation)
+// eine kompakte Vorschlagskarte über der Satzliste der betroffenen Übung (renderLogCards).
+// Läuft komplett defensiv — jeder Fehlerpfad bricht NUR den Vorschlag ab, nie das
+// aktive Training (try/catch an jeder Einstiegsstelle).
+function _coachDefaultState() { return { calls:0, perExercise:{}, seen:[], lastCallTs:0 }; }
+function _coachNormalizeState(s) {
+  if (!s || typeof s !== 'object') return _coachDefaultState();
+  return {
+    calls: typeof s.calls === 'number' ? s.calls : 0,
+    perExercise: (s.perExercise && typeof s.perExercise === 'object') ? s.perExercise : {},
+    seen: Array.isArray(s.seen) ? s.seen : [],
+    lastCallTs: typeof s.lastCallTs === 'number' ? s.lastCallTs : 0,
+  };
+}
+// Client-seitiger Vorab-Check des Monats-Limits (spart einen Roundtrip — der Worker
+// prüft das Limit ohnehin autoritativ). Defensiv: kaputter/fehlender localStorage-Wert
+// → lieber erlauben als fälschlich blockieren.
+function _coachQuotaExhausted() {
+  try {
+    const q = JSON.parse(localStorage.getItem('gt_aiQuota') || 'null');
+    if (!q || typeof q.limit !== 'number' || typeof q.used !== 'number') return false;
+    return q.used >= q.limit;
+  } catch(_) { return false; }
+}
+function _wkCoachPillSync() {
+  const el = document.getElementById('wk-coach-pill'); if (!el) return;
+  el.style.display = (isPremium() && S.aiCoach && S.aiCoach.live !== false) ? '' : 'none';
+}
+function _coachClearCard() {
+  if (_coachCard && _coachCard.timer) clearTimeout(_coachCard.timer);
+  _coachCard = null;
+}
+
+// Debounce (~1.2s je Satz, Key = "li_si") — wird vom Gewicht/Wdh-Commit (confirmWheel)
+// aufgerufen. Mehrere schnelle Edits desselben Satzes (erst Gewicht, dann Wdh) lösen
+// dank gleichem Key nur EINE Auswertung nach dem letzten Edit aus.
+function _coachEval(li, si) {
+  const key = li + '_' + si;
+  if (_coachEvalTimers[key]) clearTimeout(_coachEvalTimers[key]);
+  _coachEvalTimers[key] = setTimeout(() => {
+    delete _coachEvalTimers[key];
+    try { _coachEvalRun(li, si); } catch(e) { console.warn('[Coach] eval:', e); }
+  }, 1200);
+}
+
+// Alle bisher geloggten Arbeitssätze (kein Aufwärmen) dieser Übung im laufenden
+// Training am/über dem oberen Ende des Ziel-Wdh-Bereichs?
+function _coachAllSetsAtRepMax(log, ex) {
+  const mainSets = _workSets(log.sets || []);
+  if (!mainSets.length) return false;
+  const { max } = repRange(ex);
+  return mainSets.every(s => s.type === 'fail' || parseInt(s.r) >= max);
+}
+// Schwerster Arbeitssatz (kein Aufwärmen) einer Satz-Liste.
+function _coachTopSet(sets) {
+  const work = (sets || []).filter(s => (s.type || 'normal') !== 'warmup' && s.w && s.r);
+  if (!work.length) return null;
+  return work.slice().sort((a,b) => (parseFloat(b.w)||0) - (parseFloat(a.w)||0))[0];
+}
+// Top-Satz (Gewicht × Wdh) über die letzten 3 Einheiten (2 vergangene + die aktuelle)
+// identisch → Stagnation.
+function _coachIsStalled(exId, log) {
+  const hist = exHistory(exId);
+  if (hist.length < 2) return false;
+  const curTop = _coachTopSet(log.sets);
+  if (!curTop) return false;
+  const curW = parseFloat(curTop.w) || 0, curR = parseInt(curTop.r) || 0;
+  if (!curW || !curR) return false;
+  return hist.slice(-2).every(h => {
+    const top = _coachTopSet(h.sets);
+    return !!top && (parseFloat(top.w)||0) === curW && (parseInt(top.r)||0) === curR;
+  });
+}
+// Grobe %-Volumenänderung dieser Übung ggü. der letzten Einheit (best effort, optional).
+function _coachVolDelta(exId, li) {
+  try {
+    const hist = exHistory(exId);
+    if (!hist.length) return null;
+    const lastVol = setsVolume(hist[hist.length-1].sets || []);
+    if (!(lastVol > 0)) return null;
+    const curVol = setsVolume(_workSets((wkLogs[li] && wkLogs[li].sets) || []));
+    if (!(curVol > 0)) return null;
+    return Math.round(((curVol - lastVol) / lastVol) * 100);
+  } catch(_) { return null; }
+}
+
+function _coachEvalRun(li, si) {
+  if (!isPremium() || !S.aiCoach || S.aiCoach.live === false) return;
+  if (navigator.onLine === false) return;
+  const log = wkLogs[li]; if (!log) return;
+  const set = log.sets && log.sets[si]; if (!set) return;
+  const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
+  if ((set.type || 'normal') === 'warmup') return;
+  const w = parseFloat(set.w), r = parseInt(set.r);
+  if (!(w > 0) || !(r > 0)) return; // erst wenn BEIDES eingetragen ist
+
+  // Client-seitige Rate-Limits — VOR jeder Auswertung prüfen (spart Rechenzeit/Calls)
+  if (!_coachState) _coachState = _coachDefaultState();
+  if (_coachState.calls >= 3) return;                                    // max. 3 Calls/Training
+  if (_coachState.perExercise[log.exerciseId]) return;                   // max. 1 Call/Übung/Training
+  if (Date.now() - (_coachState.lastCallTs || 0) < 90 * 1000) return;    // 90s Cooldown
+  if (_coachQuotaExhausted()) return;                                    // Monatslimit clientseitig schon voll
+
+  // Vergleichs-Basis: letzte VERGANGENE Einheit mit dieser Übung. exHistory() liest
+  // nur S.sessions — das laufende Training landet dort erst in finishWk(), zählt
+  // hier also nie versehentlich mit.
+  const hist = exHistory(log.exerciseId);
+  if (!hist.length) return;
+  const lastSets = hist[hist.length - 1].sets || [];
+  let base = lastSets[si];
+  if (!base || !(parseFloat(base.w) > 0)) {
+    const work = lastSets.filter(s => (s.type || 'normal') !== 'warmup');
+    base = work.slice().sort((a,b) => (parseFloat(b.w)||0) - (parseFloat(a.w)||0))[0] || null;
+  }
+  if (!base) return;
+  const lastW = parseFloat(base.w) || 0, lastR = parseInt(base.r) || 0;
+  if (!(lastW > 0) || !(lastR > 0)) return;
+  const lastE1RM = epley1RM(lastW, lastR);
+  const curE1RM  = epley1RM(w, r);
+  if (!(lastE1RM > 0) || !(curE1RM > 0)) return;
+
+  const mg = ex.muscleGroup || '';
+  let fatPct = 0;
+  try { const mgRec = getMuscleGroupRecovery(); if (mg && mgRec[mg]) fatPct = mgRec[mg].fatPct || 0; } catch(_) {}
+
+  // Trigger-Priorität — beim ersten Treffer stoppen (max. 1 Trigger-Typ pro Call).
+  let type = null;
+  if (fatPct >= 60 && curE1RM <= lastE1RM * 0.90) type = 'fatigue';
+  else if (si >= 1 && curE1RM <= lastE1RM * 0.90) type = 'drop';
+  else if (curE1RM >= lastE1RM * 1.07) type = 'jump';
+  else if (_coachAllSetsAtRepMax(log, ex)) type = 'repmax';
+  else if (_coachIsStalled(log.exerciseId, log)) type = 'stall';
+  if (!type) return;
+
+  const dedupeKey = log.exerciseId + '|' + type;
+  if (_coachState.seen.indexOf(dedupeKey) !== -1) return; // Trigger-Typ für diese Übung schon mal gefeuert
+
+  // Rate-Limits SOFORT buchen (nicht erst nach Antwort) — verhindert Doppel-Feuer,
+  // während der Call noch läuft; wird per _saveActiveWk() gleich gesichert.
+  _coachState.calls++;
+  _coachState.perExercise[log.exerciseId] = true;
+  _coachState.seen.push(dedupeKey);
+  _coachState.lastCallTs = Date.now();
+  try { _saveActiveWk(); } catch(_) {}
+
+  const payload = {
+    type, ex: ex.name, mg,
+    goal: S.obGoal || null,
+    set: { n: si + 1, of: (log.sets || []).length, w, r },
+    last: { w: lastW, r: lastR, e1rm: Math.round(lastE1RM * 10) / 10 },
+    cur: { e1rm: Math.round(curE1RM * 10) / 10 },
+    fat: fatPct,
+  };
+  const volDelta = _coachVolDelta(log.exerciseId, li);
+  if (volDelta != null) payload.volDelta = volDelta;
+
+  (async () => {
+    try {
+      const res = await aiCall('coach', { t: payload }); // aiCall zeigt Fehler/Paywall/Quota-Toast bereits selbst
+      if (!res || !res.c) return; // laut Vorgabe: fehlgeschlagener Call → still überspringen, kein Fehler-UI
+      _coachCard = { exId: log.exerciseId, c: res.c, applied:false, baseW: w, timer:null };
+      renderLogCards();
+      // Auto-Dismiss nach 45s, wenn unangetastet
+      _coachCard.timer = setTimeout(() => {
+        if (_coachCard && _coachCard.exId === log.exerciseId && !_coachCard.applied) {
+          _coachClearCard(); renderLogCards();
+        }
+      }, 45000);
+    } catch(e) { console.warn('[Coach] call:', e); }
+  })();
+}
+
+// ── Vorschlagskarte: Rendering + Annehmen/Ignorieren ──
+function _coachCardHTML() {
+  // Läuft INNERHALB des renderLogCards()-Template-Literals (map über alle
+  // Übungen) — ein Fehler hier würde ohne dieses try/catch das komplette
+  // Satz-Log zum Absturz bringen. Im Fehlerfall lieber keine Karte als ein
+  // kaputtes Trainings-Screen.
+  try {
+    if (!_coachCard) return '';
+    const c = _coachCard.c || {};
+    if (_coachCard.applied) {
+      return `<div class="coach-card"><div class="coach-card-bar"></div>
+        <div class="coach-card-body coach-card-applied">${ICO.check({s:16})}<span>Übernommen</span></div></div>`;
+    }
+    return `<div class="coach-card" id="coach-card-live">
+      <div class="coach-card-bar"></div>
+      <div class="coach-card-body">
+        <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(c.title||'')}</span></div>
+        <div class="coach-card-text">${esc(c.text||'')}</div>
+        <div class="coach-card-btns">
+          <button type="button" class="coach-card-btn accept" onclick="_coachAccept()">Annehmen</button>
+          <button type="button" class="coach-card-btn dismiss" onclick="_coachDismiss()">Ignorieren</button>
+        </div>
+      </div>
+    </div>`;
+  } catch(e) { console.warn('[Coach] card render:', e); return ''; }
+}
+function _coachDismiss() {
+  try { _coachClearCard(); renderLogCards(); } catch(e) { console.warn('[Coach] dismiss:', e); }
+}
+function _coachNextSetIdx(log) {
+  const idx = log.sets.findIndex(s => !s.done);
+  return idx >= 0 ? idx : log.sets.length - 1;
+}
+// Wendet res.c.action auf das nächste noch nicht abgehakte Set der Übung an.
+function _coachApplyAction(li, action, baseW) {
+  if (!action || !action.kind || action.kind === 'none') return;
+  const log = wkLogs[li]; if (!log || !log.sets || !log.sets.length) return;
+  const val = (typeof action.value === 'number' && isFinite(action.value)) ? action.value : null;
+  switch (action.kind) {
+    case 'weight': {
+      const si = _coachNextSetIdx(log);
+      if (si >= 0 && val != null) log.sets[si].w = String(roundToStep(val));
+      break;
+    }
+    case 'dropSet': {
+      const si = _coachNextSetIdx(log);
+      if (si >= 0) {
+        if (val != null) log.sets[si].w = String(roundToStep(val));
+        log.sets[si].type = 'drop'; // visuell flaggen, auch ohne Gewichtswert
+      }
+      break;
+    }
+    case 'deload': {
+      const si = _coachNextSetIdx(log);
+      if (si >= 0 && baseW > 0) log.sets[si].w = String(roundToStep(baseW * 0.9));
+      break;
+    }
+    case 'extraSet':
+      addSet(li); // bestehende Funktion — rendert bereits selbst neu
+      break;
+    case 'rest':
+      // Nur wenn GERADE eine Pause läuft, sinnvoll verlängerbar. S.restTimerSecs ist
+      // ein persistentes, globales Nutzer-Setting — das für einen einzelnen Coach-Tipp
+      // zu verändern wäre ein zu großer Nebeneffekt. Ohne laufende Pause bleibt es beim
+      // reinen Hinweistext der Karte (No-Op, siehe Deploy-Report).
+      if (_restInt !== null) { try { adjustRest(30); } catch(_) {} }
+      break;
+  }
+  try { _saveActiveWk(); } catch(_) {}
+}
+function _coachAccept() {
+  try {
+    if (!_coachCard || _coachCard.applied) return;
+    if (_coachCard.timer) { clearTimeout(_coachCard.timer); _coachCard.timer = null; }
+    const c = _coachCard.c || {};
+    const li = wkLogs.findIndex(l => l.exerciseId === _coachCard.exId);
+    try { if (li >= 0) _coachApplyAction(li, c.action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
+    _coachCard.applied = true;
+    try { haptic(14); } catch(_) {}
+    renderLogCards(); // zeigt kurz die Checkmark-Bestätigung (applied-Zweig von _coachCardHTML)
+    setTimeout(() => { _coachClearCard(); renderLogCards(); }, 1000);
+  } catch(e) {
+    console.warn('[Coach] accept:', e);
+    try { _coachClearCard(); renderLogCards(); } catch(_) {}
+  }
+}
+
+// ── Paywall ────────────────────────────────────────────
+let _pwPlan = 'yearly';
+function _pwPrice(plan){
+  const id = plan === 'yearly' ? PREM_YEARLY : PREM_MONTHLY;
+  const p = (_pwProducts||[]).find(x => x.id === id);
+  if (p && p.displayPrice) return p.displayPrice;
+  return plan === 'yearly' ? '19,99 €' : '2,99 €';
+}
+const _PW_FEATS = {
+  chat:     { ico:'robot',   t:'KI-Chat',               s:'Frag deinen Coach zu Übungen, Plänen & Fortschritt' },
+  coach:    { ico:'bolt',    t:'Live-Coach im Training', s:'Tipps & Anpassungen direkt während des Satzes' },
+  analyze:  { ico:'chart2',  t:'Trainingsanalyse',       s:'KI bewertet Volumen, Balance & Technik-Trends' },
+  insights: { ico:'sparkle', t:'Fortschritts-Insights',  s:'Automatische Auswertung deiner Statistik' },
+};
+function _pwFeatRowsHTML(keys){
+  return keys.map(k => { const f = _PW_FEATS[k]; if (!f) return '';
+    return `<div class="pw-feat"><div class="pw-feat-ico">${ICO[f.ico]({s:19})}</div>
+      <div><div class="pw-feat-t">${f.t}</div><div class="pw-feat-s">${f.s}</div></div></div>`; }).join('');
+}
+function pwPickPlan(p){ _pwPlan = p; haptic(6); _pwRender(); }
+function _pwPlanCardsHTML(){
+  return `
+    <div class="pw-plan${_pwPlan==='yearly'?' on':''}" onclick="pwPickPlan('yearly')">
+      <span class="pw-plan-save">Spare 44 %</span>
+      <div class="pw-plan-name">Jährlich</div>
+      <div class="pw-plan-price">${_pwPrice('yearly')}</div>
+      <div class="pw-plan-per">pro Jahr · 1,67 €/Monat</div>
+    </div>
+    <div class="pw-plan${_pwPlan==='monthly'?' on':''}" onclick="pwPickPlan('monthly')">
+      <div class="pw-plan-name">Monatlich</div>
+      <div class="pw-plan-price">${_pwPrice('monthly')}</div>
+      <div class="pw-plan-per">pro Monat</div>
+    </div>`;
+}
+function openPaywall(feature){
+  _pwRender(feature);
+  openOv('ov-paywall');
+  if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRender(feature));
+}
+function _pwRender(feature){
+  const el = document.getElementById('pw-body'); if (!el) return;
+  const native = _isNative();
+  const f = _PW_FEATS[feature];
+  el.innerHTML = `
+    <div class="pw-hero">
+      <div class="pw-hero-badge">${ICO.sparkle({s:30})}</div>
+      <div class="pw-title">${f ? f.t : 'Dein KI-Coach für MyGymTrack'}</div>
+      <div class="pw-sub">Chat, Live-Tipps im Training und automatische Trainingsanalyse — für weniger als einen Proteinriegel im Monat.</div>
+    </div>
+    <div class="pw-feats">${_pwFeatRowsHTML(['chat','coach','analyze','insights'])}</div>
+    <div class="pw-plans">${_pwPlanCardsHTML()}</div>
+    ${native
+      ? `<button class="pw-cta" id="pw-cta" onclick="premBuy(_pwPlan==='yearly'?PREM_YEARLY:PREM_MONTHLY)">Premium freischalten</button>`
+      : `<div class="card" style="padding:14px;text-align:center;font-size:14px;line-height:1.5">Premium schließt du in der MyGymTrack iOS-App ab.</div>`}
+    <div class="pw-foot">${_pwPlan==='yearly' ? _pwPrice('yearly')+' pro Jahr' : _pwPrice('monthly')+' pro Monat'} · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen</div>
+    <div class="pw-links"><button onclick="premRestore()">Käufe wiederherstellen</button></div>`;
+}
+
+// ── Settings-Sektion "MyGymTrack Premium" ─────────────
+function _premStatusSub(){
+  if (PREM.exp) return (PREM.plan==='yearly'?'Jahresabo':'Monatsabo') + ' · läuft ab am ' + new Date(PREM.exp).toLocaleDateString(GT_LOCALE);
+  return 'Premium aktiv';
+}
+function _premQuotaText(){
+  let q = null; try { q = JSON.parse(localStorage.getItem('gt_aiQuota') || 'null'); } catch(_){}
+  if (!q || typeof q.limit !== 'number') return null;
+  const left = Math.max(0, (q.limit||0) - (q.used||0));
+  return `Noch ${left} von ${q.limit} KI-Anfragen diesen Monat`;
+}
+function setAiCoachOpt(key, val){
+  S.aiCoach = S.aiCoach || { live:true, insights:true };
+  S.aiCoach[key] = !!val;
+  persist();
+  try { if (typeof _wkCoachPillSync === 'function') _wkCoachPillSync(); } catch(_) {}
+}
+function renderPremiumSettings(){
+  const el = document.getElementById('prem-settings-body'); if (!el) return;
+  const prem = isPremium();
+  const chev = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>`;
+  const rows = [];
+  rows.push(`
+    <div class="row"${prem ? '' : ` onclick="openPaywall('settings')" style="cursor:pointer"`}>
+      <div class="ico" style="background:rgba(247,201,72,.14);border-color:rgba(247,201,72,.32);color:#b8860b">${ICO.crown({s:20})}</div>
+      <div class="row-body">
+        <div class="row-title">${prem ? 'Premium aktiv' : 'Kein Premium'}</div>
+        <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:2px">${prem ? esc(_premStatusSub()) : 'KI-Chat, Live-Coach &amp; Trainingsanalyse freischalten'}</div>
+      </div>
+      ${prem ? '' : chev}
+    </div>`);
+  if (prem) {
+    rows.push(`
+    <div class="row" onclick="premManage()" style="cursor:pointer">
+      <div class="row-body"><div class="row-title">Abo verwalten</div><div class="row-sub">In den App-Store-Einstellungen öffnen</div></div>
+      ${chev}
+    </div>
+    <div class="row" onclick="premRestore()" style="cursor:pointer">
+      <div class="row-body"><div class="row-title">Käufe wiederherstellen</div><div class="row-sub">Abo auf diesem Gerät erneut aktivieren</div></div>
+      ${chev}
+    </div>`);
+    const quotaText = _premQuotaText();
+    if (quotaText) rows.push(`
+    <div class="row">
+      <div class="row-body"><div class="row-title">KI-Anfragen</div><div class="row-sub">${esc(quotaText)}</div></div>
+    </div>`);
+    rows.push(`
+    <div class="row">
+      <div class="row-body"><div class="row-title">Live-Coach im Training</div><div class="row-sub">Tipps während des Satzes</div></div>
+      <label class="tgl" onclick="event.stopPropagation()">
+        <input type="checkbox" ${S.aiCoach?.live !== false ? 'checked' : ''} onchange="setAiCoachOpt('live', this.checked)">
+        <span class="tgl-track"></span>
+      </label>
+    </div>
+    <div class="row">
+      <div class="row-body"><div class="row-title">KI-Insights in Statistik</div><div class="row-sub">Automatische Auswertung deiner Trainingsdaten</div></div>
+      <label class="tgl" onclick="event.stopPropagation()">
+        <input type="checkbox" ${S.aiCoach?.insights !== false ? 'checked' : ''} onchange="setAiCoachOpt('insights', this.checked)">
+        <span class="tgl-track"></span>
+      </label>
+    </div>`);
+  }
+  el.innerHTML = rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// KI-COACH: SCHWEBENDE BUBBLE + RADIALMENÜ (Phase C)
+// ═══════════════════════════════════════════════════════
+const _AI_RADIAL_ITEMS = [
+  { kind:'chat',     ico:'chatBubble', label:'KI-Chat' },
+  { kind:'training',  ico:'chart2',    label:'Trainingsanalyse' },
+  { kind:'plan',      ico:'planAdd',   label:'Trainingsplan erstellen' },
+  { kind:'workout',   ico:'bolt',      label:'Workout optimieren' },
+  { kind:'progress',  ico:'trendUp',   label:'Fortschritt analysieren' },
+  { kind:'settings',  ico:'gear',      label:'KI-Einstellungen' },
+];
+function _aibRender(){
+  const b = document.getElementById('ai-bubble');
+  if (b) b.innerHTML = '<img src="icon-192.png" alt="" aria-hidden="true">';
+  const radial = document.getElementById('ai-radial');
+  if (radial) radial.innerHTML = _AI_RADIAL_ITEMS.map(it => `
+    <button type="button" class="ai-r-item" aria-label="${esc(it.label)}" onclick="aiRadialAction('${it.kind}')">
+      ${ICO[it.ico]({s:19})}<span class="ai-r-lbl">${esc(it.label)}</span>
+    </button>`).join('');
+}
+// Sichtbarer Bereich für Bubble/Menü: unter Statusleiste, über der Tab-Leiste,
+// 12px Rand links/rechts. Tab-Leiste live gemessen (bewegt sich mit --sab).
+function _aibSafeBounds(){
+  const cs  = getComputedStyle(document.documentElement);
+  const sat = parseFloat(cs.getPropertyValue('--sat')) || 0;
+  const sab = parseFloat(cs.getPropertyValue('--sab')) || 0;
+  const tabbar = document.querySelector('.tabbar');
+  const tbTop  = tabbar ? tabbar.getBoundingClientRect().top : (window.innerHeight - 74 - sab);
+  const top    = sat + 54;
+  const bottom = Math.max(top + 60, tbTop - 6);
+  return { top, bottom, left:12, right: window.innerWidth - 12 };
+}
+// Bubble ist fest rechts neben der (gestauchten) Tableiste angedockt (CSS) —
+// kein Drag mehr, nur Tap → Menü auf/zu. gt_aiBubblePos wird nicht mehr genutzt.
+// ── Radialmenü → vertikaler Stapel: klappt direkt über der Bubble nach oben raus,
+// dockt an derselben Kante (links/rechts) wie die Bubble. Abgedunkelter Blur-Hintergrund
+// sorgt dafür, dass die Pillen unabhängig vom Seiteninhalt gut lesbar bleiben.
+let _aibOpenState = false;
+function toggleAiRadial(){ _aibOpenState ? closeAiRadial() : openAiRadial(); }
+function openAiRadial(){
+  const b = document.getElementById('ai-bubble'); if (!b) return;
+  const r = b.getBoundingClientRect();
+  const side = (r.left + r.width / 2) < window.innerWidth / 2 ? 'l' : 'r';
+  const bounds = _aibSafeBounds();
+  const radial = document.getElementById('ai-radial');
+  radial.dataset.side = side;
+  radial.style.bottom = (window.innerHeight - r.top + 14) + 'px';
+  radial.style.left  = side === 'l' ? '14px' : 'auto';
+  radial.style.right = side === 'r' ? '14px' : 'auto';
+  radial.style.maxWidth = (bounds.right - bounds.left) + 'px';
+  const items = document.querySelectorAll('.ai-r-item');
+  items.forEach((el, i) => { el.style.transitionDelay = (i * 28) + 'ms'; });
+  document.getElementById('ai-radial-backdrop')?.classList.add('on');
+  requestAnimationFrame(() => items.forEach(el => el.classList.add('on')));
+  _aibOpenState = true;
+  haptic(6);
+}
+function closeAiRadial(){
+  document.querySelectorAll('.ai-r-item').forEach(el => { el.classList.remove('on'); el.style.transitionDelay = '0ms'; });
+  document.getElementById('ai-radial-backdrop')?.classList.remove('on');
+  _aibOpenState = false;
+}
+function aiRadialAction(kind){
+  closeAiRadial();
+  if (kind === 'settings') {
+    openSettingsPage();
+    setTimeout(() => { document.getElementById('prem-settings-body')?.scrollIntoView({behavior:'smooth', block:'start'}); }, 260);
+    return;
+  }
+  if (!premGate('ai')) return;
+  if (kind === 'chat')          openAiChat();
+  else if (kind === 'plan')     openAiChat(tr('Erstelle mir einen Trainingsplan'));
+  else if (kind === 'training') openAiAnalyze('training');
+  else if (kind === 'workout')  openAiAnalyze('workout');
+  else if (kind === 'progress') openAiAnalyze('progress');
+}
+// ── Sichtbarkeit: aus während Onboarding/Login-Gate/offenem Sheet ──
+function _aibSyncVisibility(){
+  // Bubble verhält sich wie die Tableiste: bleibt bei offenen Sheets sichtbar
+  // (Sheets liegen mit z-index 900 unter Tabbar 1000/Bubble 1060) — versteckt
+  // wird sie nur im Onboarding und hinter dem Auth-Gate.
+  const hide = document.getElementById('ob-screen')?.classList.contains('on')
+            || document.getElementById('auth-gate')?.classList.contains('on');
+  document.body.classList.toggle('ai-hidden', hide);
+  if (_aibOpenState && (hide || document.querySelector('.ov.on'))) closeAiRadial();
+}
+// Bubble-Durchmesser = gemessene Tableisten-Höhe (gleiche Unterkante per CSS-bottom):
+// Bubble folgt damit auch dem tabbar--min-Schrumpfen beim Scrollen.
+function _aibDock(){
+  const b = document.getElementById('ai-bubble');
+  const tb = document.querySelector('.tabbar');
+  if (!b || !tb) return;
+  const h = Math.round(tb.getBoundingClientRect().height);
+  if (h > 40) {
+    // Etwas kleiner als die Tableiste, dafür vertikal mittig zu ihr ausgerichtet
+    const d = Math.round(h * 0.8);
+    b.style.width = d + 'px'; b.style.height = d + 'px';
+    b.style.bottom = 'calc(6px + var(--sab) + ' + Math.round((h - d) / 2) + 'px)';
+  }
+}
+function _aibInit(){
+  const b = document.getElementById('ai-bubble'); if (!b) return;
+  _aibRender();
+  b.addEventListener('click', toggleAiRadial);
+  ['ob-screen', 'auth-gate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) new MutationObserver(_aibSyncVisibility).observe(el, { attributes:true, attributeFilter:['class'] });
+  });
+  const tb = document.querySelector('.tabbar');
+  if (tb) {
+    new MutationObserver(_aibDock).observe(tb, { attributes:true, attributeFilter:['class'] });
+    // Tabbar-Padding animiert selbst über .32s (transition:padding) — einmal exakt
+    // nachmessen, wenn diese Transition fertig ist, damit Bubble nie neben der
+    // tatsächlichen (fertig eingerasteten) Tableisten-Höhe hängen bleibt.
+    tb.addEventListener('transitionend', e => { if (e.propertyName === 'padding') _aibDock(); });
+  }
+  window.addEventListener('resize', _aibDock);
+  _aibDock();
+  setTimeout(_aibDock, 600);   // nach Font-/Layout-Settling nachmessen
+  _aibSyncVisibility();
+}
+
+// ── KI-Chat ────────────────────────────────────────────
+let _aicHist = (() => { try { const h = JSON.parse(localStorage.getItem('gt_aiChat')); return Array.isArray(h) ? h : []; } catch(_){ return []; } })();
+let _aicBusy = false, _aicPlanPending = null;
+function _aicPush(role, content){
+  _aicHist.push({ role, content });
+  if (_aicHist.length > 30) _aicHist = _aicHist.slice(-30);
+  try { localStorage.setItem('gt_aiChat', JSON.stringify(_aicHist)); } catch(_){}
+}
+function openAiChat(seed){
+  openOv('ov-ai-chat');
+  _aicRenderLog();
+  _aicRenderSugg();
+  if (seed) {
+    const inp = document.getElementById('aic-in');
+    if (inp) inp.value = seed;
+    setTimeout(() => aicSend(), 60);
+  }
+}
+function _aicGrow(ta){ ta.style.height = 'auto'; ta.style.height = Math.min(110, ta.scrollHeight) + 'px'; }
+// Mini-Markdown NACH esc(): nur **fett** + Listenpunkte — Text bleibt sicher escaped.
+function _aicMd(t){
+  return esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/^[-•] /gm, '· ');
+}
+function _aicRenderLog(){
+  const log = document.getElementById('aic-log'); if (!log) return;
+  if (!_aicHist.length) {
+    log.innerHTML = `<div class="aic-msg aic-bot">${tr('Frag mich zu Übungen, Technik oder lass dir einen kompletten Trainingsplan erstellen.')}</div>`;
+  } else {
+    log.innerHTML = _aicHist.map(m =>
+      `<div class="aic-msg ${m.role === 'user' ? 'aic-user' : 'aic-bot'}">${m.role === 'user' ? esc(m.content) : _aicMd(m.content)}</div>`).join('');
+  }
+  if (_aicPlanPending) log.innerHTML += `<button type="button" class="aic-plan-btn" onclick="aicApplyPlan()">${tr('Plan importieren')}</button>`;
+  if (_aicBusy) log.innerHTML += `<div class="aic-typing"><span></span><span></span><span></span></div>`;
+  log.scrollTop = log.scrollHeight + 999;
+}
+function _aicRenderSugg(){
+  const el = document.getElementById('aic-sugg'); if (!el) return;
+  if (_aicHist.length) { el.innerHTML = ''; return; }
+  const sugg = ['Erstelle mir einen Trainingsplan', 'Alternative zu einer Übung finden', 'Wie kann ich mein Volumen steigern?', 'Wo bin ich unausgeglichen?'];
+  el.innerHTML = sugg.map(s => `<button type="button" onclick="document.getElementById('aic-in').value='${s.replace(/'/g,"\\'")}';aicSend()">${s}</button>`).join('');
+}
+// Kompakter Trainingskontext für die KI — bewusst klein gehalten (Kosten!):
+// Profil-Eckdaten, Übungsnamen (Cap 60), letzte 5 Einheiten mit Bestsatz je Übung.
+function _aicContext(){
+  return {
+    profile: { goal: S.obGoal || null, exp: S.obExp || null, freq: S.obFreq || null },
+    exerciseNames: (S.exercises || []).slice(0, 60).map(e => e.name),
+    recentSessions: (S.sessions || []).slice(-5).map(s => ({
+      date: (s.date || '').slice(0, 10),
+      exercises: (s.logs || []).map(l => {
+        const ex = exById(l.exerciseId); if (!ex) return null;
+        const best = (l.sets || []).filter(x => x.type !== 'warmup')
+          .sort((a, b) => (parseFloat(b.w) || 0) - (parseFloat(a.w) || 0))[0];
+        return best ? { name: ex.name, w: parseFloat(best.w) || 0, r: parseInt(best.r) || 0 } : { name: ex.name };
+      }).filter(Boolean),
+    })),
+  };
+}
+async function aicSend(){
+  if (_aicBusy) return;
+  const ta = document.getElementById('aic-in');
+  const t = (ta?.value || '').trim();
+  if (!t) return;
+  if (ta) { ta.value = ''; _aicGrow(ta); }
+  _aicPush('user', t);
+  _aicBusy = true; _aicPlanPending = null;
+  _aicRenderLog(); _aicRenderSugg();
+  const send = document.getElementById('aic-send'); if (send) send.disabled = true;
+  const msgs = _aicHist.slice(-16).map(m => ({ role: m.role, content: m.content }));
+  const res = await aiCall('chat', { messages: msgs, context: _aicContext() });
+  _aicBusy = false;
+  if (send) send.disabled = false;
+  if (!res) { _aicRenderLog(); return; }   // aiCall zeigt Fehler/Paywall bereits per Toast
+  let txt = res.text || '';
+  const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);
+  if (pm) {
+    try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
+    txt = txt.replace(pm[0], '').trim();
+  }
+  _aicPush('assistant', txt || tr('Hier ist dein Plan:'));
+  _aicRenderLog();
+}
+// Plan-Import: gleicher Mechanismus wie _applyTemplateCore (Presets/weekPlan/exIds/
+// Farbe, persist()) — nur die Übungsauflösung ist erweitert: statt reiner
+// Namens-Suche in EX_LIBRARY werden unbekannte KI-Übungen direkt aus den
+// mitgelieferten Feldern (muscleGroup/sets/repMin/repMax) neu angelegt.
+function aicApplyPlan(){
+  const p = _aicPlanPending; if (!p || !p.days) return;
+  const hasPlan = Object.values(S.weekPlan || {}).some(v => v && v.type !== 'none');
+  if (hasPlan && !confirm('Dein aktueller Wochenplan wird ersetzt. Weiter?')) return;
+  const validMg = ['brust','ruecken','beine','arme','schultern','core'];
+  const byLabel = {};
+  let colorIdx = (S.workoutPresets || []).length;
+  const newPlan = {};
+  ['mon','tue','wed','thu','fri','sat','sun'].forEach(k => {
+    const day = p.days[k];
+    if (!day || day.rest || !Array.isArray(day.exercises) || !day.exercises.length) { newPlan[k] = {type:'none'}; return; }
+    const ids = [];
+    day.exercises.slice(0, 10).forEach(de => {
+      const nm = String(de.name || '').trim().slice(0, 60); if (!nm) return;
+      let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
+      if (!ex) {
+        if (S.exercises.length >= 500) return;
+        const libItem = EX_LIBRARY.find(it => it.n.toLowerCase() === nm.toLowerCase());
+        ex = {
+          id: uid(), name: libItem ? libItem.n : nm, emoji: libItem ? libItem.e : '🏋️',
+          muscleGroup: validMg.includes(de.muscleGroup) ? de.muscleGroup : (libItem ? libItem.mg : ''),
+          targetSets: Math.max(1, Math.min(8, parseInt(de.sets) || libItem?.s || 3)),
+          targetReps: Math.max(1, Math.min(30, parseInt(de.repMax) || libItem?.r || 10)),
+          targetWeight: 0, targetType: 'reps',
+          repMin: Math.max(1, Math.min(29, parseInt(de.repMin) || Math.max(1, (libItem?.r || 10) - 2))),
+          repMax: Math.max(1, Math.min(30, parseInt(de.repMax) || (libItem?.r || 10) + 2)),
+          weightScheme: 'straight',
+        };
+        S.exercises.push(ex);
+      }
+      ids.push(ex.id);
+    });
+    if (!ids.length) { newPlan[k] = {type:'none'}; return; }
+    const label = String(day.label || p.name || 'Training').slice(0, 30);
+    let pr = byLabel[label];
+    if (!pr) { pr = { id: uid(), name: label, exIds: [], color: SPLIT_PALETTE[(colorIdx++) % SPLIT_PALETTE.length], _ai:true }; byLabel[label] = pr; }
+    ids.forEach(id => { if (!pr.exIds.includes(id)) pr.exIds.push(id); });
+    newPlan[k] = { type:'preset', id: pr.id };
+  });
+  S.workoutPresets = [...(S.workoutPresets || []).filter(x => !x._ai), ...Object.values(byLabel)];
+  S.weekPlan = newPlan;
+  persist();
+  try { scheduleWorkoutNotifications(); } catch(_){}
+  try { renderHome(); renderExList(); } catch(_){}
+  _aicPlanPending = null;
+  _aicRenderLog();
+  _dndToast('Plan importiert — du findest ihn im Heute-Tab.');
+  haptic(25);
+}
+
+// ── KI-Analyse (Training/Workout/Fortschritt) ─────────
+const _AIA_TITLES = { training:'Trainingsanalyse', workout:'Workout optimieren', progress:'Fortschritt analysieren' };
+function _aiaData(mode){
+  if (mode === 'workout') {
+    const s = (S.sessions || [])[S.sessions.length - 1];
+    if (!s) return {};
+    return {
+      date: (s.date || '').slice(0, 10),
+      durationMin: Math.round((s.duration || 0) / 60),
+      exercises: (s.logs || []).map(l => {
+        const ex = exById(l.exerciseId);
+        return { name: ex ? ex.name : '?', muscleGroup: ex ? ex.muscleGroup : '',
+                 sets: (l.sets || []).map(st => ({ w: parseFloat(st.w) || 0, r: parseInt(st.r) || 0, type: st.type || 'normal' })) };
+      }),
+    };
+  }
+  if (mode === 'training') {
+    const days = _PL_DAY_KEYS.map(k => {
+      const d = S.weekPlan && S.weekPlan[k];
+      if (!d || d.type === 'none') return { day:k, rest:true };
+      let names = [];
+      if (d.type === 'preset') { const pr = presetById(d.id); names = pr ? (pr.exIds || []).map(id => exById(id)?.name).filter(Boolean) : []; }
+      else if (d.type === 'exercises') { names = (d.exIds || []).map(id => exById(id)?.name).filter(Boolean); }
+      return { day:k, rest: !names.length, exercises: names };
+    });
+    const since = Date.now() - 28 * 864e5;
+    const volByMg = {};
+    (S.sessions || []).forEach(s => {
+      if (new Date(s.date).getTime() < since) return;
+      (s.logs || []).forEach(l => {
+        const ex = exById(l.exerciseId); if (!ex || !ex.muscleGroup) return;
+        volByMg[ex.muscleGroup] = (volByMg[ex.muscleGroup] || 0) + setsVolume(l.sets || []);
+      });
+    });
+    return {
+      days, activeDaysPerWeek: days.filter(d => !d.rest).length, targetFreqPerWeek: S.obFreq || null,
+      volume4wByMuscle: Object.fromEntries(Object.entries(volByMg).map(([k, v]) => [k, Math.round(v)])),
+    };
+  }
+  if (mode === 'progress') {
+    const weeks = [];
+    for (let i = 0; i < 8; i++) {
+      const end = Date.now() - i * 7 * 864e5, start = end - 7 * 864e5;
+      let vol = 0, sets = 0, sessions = 0;
+      (S.sessions || []).forEach(s => {
+        const t = new Date(s.date).getTime();
+        if (t < start || t >= end) return;
+        sessions++;
+        (s.logs || []).forEach(l => { vol += setsVolume(l.sets || []); sets += (l.sets || []).length; });
+      });
+      weeks.unshift({ weeksAgo:i, sessions, sets, volumeKg: Math.round(vol) });
+    }
+    const cutoff = Date.now() - 28 * 864e5;
+    let prCount = 0;
+    const e1rmByEx = {};
+    (S.exercises || []).forEach(ex => {
+      const hist = exHistory(ex.id); if (!hist.length) return;
+      const recent = hist.filter(h => new Date(h.date).getTime() >= cutoff);
+      const older   = hist.filter(h => new Date(h.date).getTime() <  cutoff);
+      const bestRecent = recent.reduce((m, h) => Math.max(m, setsBest1RM(h.sets)), 0);
+      const bestOlder  = older.reduce((m, h) => Math.max(m, setsBest1RM(h.sets)), 0);
+      if (bestRecent > 0 && bestRecent > bestOlder) prCount++;
+      if (bestRecent > 0) e1rmByEx[ex.name] = Math.round(bestRecent * 10) / 10;
+    });
+    const topLiftsE1RM = Object.entries(e1rmByEx).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, e1rm]) => ({ name, e1rm }));
+    const out = { weeks, prCountLast4w: prCount, topLiftsE1RM };
+    if (S.checkins) out.checkins = S.checkins;   // Phase E noch nicht gelandet — nur wenn vorhanden
+    return out;
+  }
+  return {};
+}
+function _aiaShow(a){
+  const el = document.getElementById('aia-body'); if (!el) return;
+  const hasScore = typeof a.score === 'number';
+  const score = hasScore ? Math.max(0, Math.min(100, Math.round(a.score))) : null;
+  const circ = 2 * Math.PI * 38;
+  const hasPoints = Array.isArray(a.points) && a.points.length;
+  const hasRecos  = Array.isArray(a.recos)  && a.recos.length;
+  el.innerHTML = `
+    ${hasScore ? `
+    <div class="aia-score-wrap">
+      <div class="aia-ring"><svg width="86" height="86">
+        <circle cx="43" cy="43" r="38" stroke="var(--inp-bg)" stroke-width="8" fill="none"/>
+        <circle cx="43" cy="43" r="38" stroke="var(--acc)" stroke-width="8" fill="none" stroke-linecap="round"
+          stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - score / 100)}"/></svg>
+        <div class="aia-ring-num">${score}</div>
+      </div>
+      <div style="flex:1;font-size:14.5px;line-height:1.55">${esc(a.summary || '')}</div>
+    </div>` : (a.summary ? `<div class="card" style="padding:14px;font-size:14.5px;line-height:1.55">${esc(a.summary)}</div>` : '')}
+    ${hasPoints ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Beobachtungen')}</div>
+      ${a.points.map(p => `<div class="aia-item"><div class="aia-dot"></div><div>${esc(p)}</div></div>`).join('')}</div>` : ''}
+    ${hasRecos ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Empfehlungen')}</div>
+      ${a.recos.map(r => `<div class="aia-item"><div class="aia-dot" style="background:#2ea84a"></div><div>${esc(r)}</div></div>`).join('')}</div>` : ''}
+    ${(!hasScore && !a.summary && !hasPoints && !hasRecos) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
+  `;
+}
+async function openAiAnalyze(mode){
+  const el = document.getElementById('aia-body'); if (!el) return;
+  const titleEl = document.getElementById('aia-title');
+  if (titleEl) titleEl.textContent = tr(_AIA_TITLES[mode] || 'Analyse');
+  openOv('ov-ai-analyze');
+  el.innerHTML = `<div style="text-align:center;padding:34px 12px;color:var(--text2);font-size:14.5px">
+    <div class="aic-typing" style="justify-content:center;display:flex;margin:0 auto 14px"><span></span><span></span><span></span></div>
+    ${tr('Wird analysiert…')}</div>`;
+  const data = _aiaData(mode);
+  const res = await aiCall('analyze', { mode, data });
+  if (!res || !res.a) {
+    el.innerHTML = `<div style="text-align:center;padding:28px 12px;color:var(--text2);font-size:14px;line-height:1.6">${tr('Analyse gerade nicht möglich.')}</div>`;
+    return;
+  }
+  _aiaShow(res.a);
+}
+
 // ── INIT ──────────────────────────────────────────────
 setTheme(S.theme);
 setGlass(S.glass);
@@ -19564,6 +21125,7 @@ initTabIndicator();
 initSheetSwipe();
 initTabDrag();
 initPageSwipe();
+_aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 maybeStartOnboarding();   // Ersteinrichtung für neue Nutzer
 try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
@@ -20061,6 +21623,7 @@ async function _pushToCloud() {
       gymName:    S.gymName || null,
       gymLat:     S.gymLat ?? null,
       gymLng:     S.gymLng ?? null,
+      checkins:   S.checkins || [],
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
@@ -20279,7 +21842,10 @@ function _onLogout() {
 function _authGateNeeded(){
   if (!window.FB || !window.FB.configured) return false;  // ohne Firebase kein Login möglich → nicht aussperren
   if (!_authSettled) return false;                        // Auth-Restore abwarten (kein Flackern für eingeloggte User)
-  return !_fbUser || _fbUser.isAnonymous;
+  // TEMP-DEV-BYPASS (NICHT COMMITTEN): anonyme Auth zählt hier vorübergehend als
+  // Login, nur damit der Simulator ohne echten Apple/Google-Account testbar ist.
+  // Vor jedem Commit zurück auf: return !_fbUser || _fbUser.isAnonymous;
+  return !_fbUser;
 }
 function _maybeAuthGate(){
   if (_ob) return;                                  // Onboarding läuft — Gate kommt direkt danach (_obClose)
@@ -20381,11 +21947,16 @@ async function analyticsStart(user) {
     // getDoc-Aufruf lief bei JEDEM normalen Nutzer auf permission-denied →
     // Tracking schaltete sich ab (deshalb existierte nur 1 analytics_users-Doc).
     // Stattdessen: update-first, bei not-found (Erstbesuch) anlegen.
+    // isPremium/premPlan hier (analytics_users, admin-only lesbar) sind KEIN
+    // Widerspruch zur "nicht im users-Doc"-Regel oben — das gilt nur für den
+    // Sync-Doc jedes Nutzers selbst; hier ist es ein aggregiertes Admin-Feld
+    // fürs Dashboard (Premium-Nutzer zählen/Umsatz schätzen).
+    const premFields = { isPremium: isPremium(), premPlan: (PREM.active && PREM.plan) || null };
     try {
       await window.FB.updateDoc(userRef, {
         lastSeen: window.FB.serverTimestamp(),
         totalSessions: window.FB.increment(1),
-        isAnon
+        isAnon, ...premFields
       });
     } catch (e) {
       if ((e?.code || '') !== 'not-found') throw e;
@@ -20395,7 +21966,7 @@ async function analyticsStart(user) {
         lastSeen:  window.FB.serverTimestamp(),
         totalSessions: 1,
         totalSec: 0,
-        isAnon
+        isAnon, ...premFields
       });
     }
     _anaSessionRef = await window.FB.addDoc(window.FB.collection('analytics_sessions'), {
@@ -20434,6 +22005,7 @@ async function _analyticsBeat(force = false) {
       const userRef = window.FB.doc('analytics_users', _fbUser.uid);
       await window.FB.updateDoc(userRef, {
         lastSeen: window.FB.serverTimestamp(),
+        isPremium: isPremium(), premPlan: (PREM.active && PREM.plan) || null,
         ...(deltaSec > 0 ? { totalSec: window.FB.increment(deltaSec) } : {})
       });
     }

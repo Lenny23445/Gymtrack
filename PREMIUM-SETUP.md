@@ -26,12 +26,14 @@ Genau wie beim Push-Worker:
 
 1. dash.cloudflare.com → Workers & Pages → **Create Worker** → Name: `gymtrack-ai` (Ergebnis-URL muss `https://gymtrack-ai.wolterlenny362.workers.dev` sein — steht so in index.html).
 2. Quick Edit → kompletten Inhalt von `ai-worker/worker.js` reinkopieren → Deploy.
-3. Settings → Variables and Secrets → **2 Secrets** anlegen:
-   - `ANTHROPIC_API_KEY` → console.anthropic.com → API Keys → neuen Key erstellen (Kreditkarte hinterlegen; Kosten: grob 5–10 Cent pro aktivem Premium-Nutzer/Monat mit Haiku).
+3. **KV-Namespace anlegen** (fürs monatliche 50er-Limit): Workers & Pages → KV → Create Namespace, Name `gymtrack-ai-quota`. Danach am Worker: Settings → Bindings → KV Namespace binden, Variablenname exakt `AI_QUOTA`, Namespace `gymtrack-ai-quota`. Ohne diese Bindung läuft der Worker trotzdem (Monatslimit wird dann nicht durchgesetzt — nur die Tageslimits greifen).
+4. Settings → Variables and Secrets → Secrets anlegen:
+   - `GEMINI_API_KEY` → aistudio.google.com/apikey → neuen Key erstellen (Standardmodell: Gemini 2.5 Flash, sehr günstig).
    - `FIREBASE_API_KEY` → derselbe `apiKey` wie in index.html im `FIREBASE_CONFIG`-Block.
-4. Optional (Vars, kein Secret): `MODEL` (Default `claude-haiku-4-5`; für bessere Antworten z. B. `claude-sonnet-5` — kostet ~3× mehr), `CHAT_DAILY` (Default 100), `REPORT_DAILY` (Default 5).
+   - Nur falls du auf Claude zurückwechseln willst: zusätzlich `ANTHROPIC_API_KEY` setzen und Var `PROVIDER=claude`.
+5. Optional (Vars, kein Secret): `MODEL` (Gemini-Modell, Default `gemini-2.5-flash`), `MONTHLY_LIMIT` (Default 50), `CHAT_DAILY`/`COACH_DAILY`/`ANALYZE_DAILY` (Tageslimits als Missbrauchsbremse, Defaults 100/60/10).
 
-**Test:** Mit deinem Founder-Account (du bist automatisch Premium, auch ohne Kauf) in der App → Heute → KI-Coach-Karte → Chat: Frage stellen. Kommt eine Antwort → Worker läuft.
+**Test:** Mit deinem Founder-Account (du bist automatisch Premium, auch ohne Kauf) in der App → KI-Bubble → Chat: Frage stellen. Kommt eine Antwort → Worker läuft.
 
 ## 3. Xcode einmalig (nur fürs Live-Simulator-Panel in Claude)
 
@@ -43,11 +45,11 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
 | Feature | Ohne Setup | Nach Setup |
 |---|---|---|
-| Paywall, Onboarding-Schritt, Premium-UI | ✅ sichtbar | ✅ |
-| Kauf/Restore | ❌ „Produkt nicht gefunden" | ✅ |
-| KI-Chat + Wochenbericht | ❌ (Worker fehlt) | ✅ |
-| Übungsdatenbank | ✅ (Founder/nach Kauf; freie Quellen, keine Kosten) | ✅ |
-| Pro-Analyse, Körper-Tracking, Export, Themes, App-Icons | ✅ (Founder/nach Kauf) | ✅ |
+| KI-Bubble, Paywall, Premium-Settings | ✅ sichtbar | ✅ |
+| Kauf/Restore (App Store Connect) | ❌ „Produkt nicht gefunden" | ✅ |
+| KI-Chat, Live-Coach, Trainingsanalyse, AI Insights (Cloudflare Worker) | ❌ (Worker fehlt) | ✅ |
+| Monatslimit 50 KI-Anfragen (KV-Namespace) | ⚠️ nicht durchgesetzt (nur Tageslimits) | ✅ |
+| Post-Workout-Check-In, Community-Premium-Badge | ✅ (unabhängig vom Worker) | ✅ |
 
 ## Sicherheit (Kurzfassung)
 

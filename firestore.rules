@@ -16,7 +16,8 @@ service cloud.firestore {
              'smartRestEnabled','smartRest',
              'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs',
              'onboarded','userName','obGoal','obExp','obFreq',
-             'socialOn','friendCode','friends','gymName','gymLat','gymLng'
+             'socialOn','friendCode','friends','gymName','gymLat','gymLng',
+             'checkins','aiCoach'
            ])
         && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
         && (!('exercises' in request.resource.data) || request.resource.data.exercises.size() <= 500);
@@ -28,7 +29,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
              'name','code','photo','gymName','gymLat','gymLng',
              'week','month','streak','lastWk','live','stats','friends','updatedAt',
-             'pushToken'
+             'pushToken','premium'
            ])
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 30
@@ -96,7 +97,7 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
       allow create, update: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon']);
+        && request.resource.data.keys().hasOnly(['uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon','isPremium','premPlan']);
     }
     // Marketing-Content-Studio (gymtrack-marketing): geteilte Screenshot-Bibliothek
     // + geteilte Post-Datenbank. Jeder angemeldete (auch anonyme) Nutzer des Tools

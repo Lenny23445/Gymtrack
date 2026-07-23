@@ -127,7 +127,7 @@ S = {
 
 ## Premium (Abo)
 
-2,99 €/Monat · 19,99 €/Jahr, direkt StoreKit 2 (kein RevenueCat). Produkt-IDs `gymtrack.premium.monthly`/`.yearly` (müssen in App Store Connect existieren — Setup-Schritte in `PREMIUM-SETUP.md`). Status NUR lokal in `localStorage['gt_premium']` (bewusst NICHT im users-Doc → keine Rules-Änderung, kein Sync-Bruch); Quelle der Wahrheit = StoreKit-Entitlement, `PremiumPlugin.swift` liefert JWS als Abo-Beweis. `isPremium()`: Founder-UID immer Premium; `localStorage['gt_premiumDev']='1'` = UI-Dev-Unlock. Gating via `premGate(feature)` → Paywall (`ov-paywall`). Einstieg: Heute-Widget `premium` (hwPremium → `openPremHub()`), Onboarding-Schritt 6, Settings-Sektion. KI (`ov-ai-report`, `ov-ai-chat`) läuft über `AI_WORKER_URL` (`ai-worker/worker.js`, Cloudflare): prüft Firebase-idToken + StoreKit-JWS inkl. Zertifikatskette bis gepinnte Apple Root CA G3; Secrets ANTHROPIC_API_KEY + FIREBASE_API_KEY; Modell via `MODEL`-Var (Default claude-haiku-4-5). KI-Plan-Import: ```gtplan-Block → `aicApplyPlan()`. Übungsdatenbank (`ov-exdb`): exercisedb.dev → Fallback free-exercise-db (jsDelivr), Cache `localStorage['gt_exdb_v1']`. Körper-Tracking `localStorage['gt_bodyLog']` (Fotos base64, max 30, NUR lokal). Premium-Themes gold/mitternacht/smaragd (setTheme(t, silent) — Boot-Aufruf mit silent=true!). App-Icons: `CFBundleAlternateIcons` in Info.plist + `AppIcon{Gold,White}@{2x,3x}.png` in `ios/App/App/` (pbxproj: App-Gruppe, NICHT Plugins-Gruppe — deren Pfad ist App/Plugins/). Neue Web-Assets in `build.js`-Kopierliste eintragen!
+2,99 €/Monat · 19,99 €/Jahr, direkt StoreKit 2 (kein RevenueCat). Produkt-IDs `gymtrack.premium.monthly`/`.yearly` (müssen in App Store Connect existieren — Setup-Schritte in `PREMIUM-SETUP.md`). Status NUR lokal in `localStorage['gt_premium']` (bewusst NICHT im users-Doc → keine Rules-Änderung, kein Sync-Bruch); Quelle der Wahrheit = StoreKit-Entitlement, `PremiumPlugin.swift` liefert JWS als Abo-Beweis. `isPremium()`: Founder-UID immer Premium; `localStorage['gt_premiumDev']='1'` = UI-Dev-Unlock. Gating via `premGate(feature)` → Paywall (`ov-paywall`). Einstieg: Heute-Widget `premium` (hwPremium → `openPremHub()`), Onboarding-Schritt 6, Settings-Sektion. KI (`ov-ai-report`, `ov-ai-chat`) läuft über `AI_WORKER_URL` (`ai-worker/worker.js`, Cloudflare): prüft Firebase-idToken + StoreKit-JWS inkl. Zertifikatskette bis gepinnte Apple Root CA G3; Provider austauschbar über `PROVIDER`-Var (Default `gemini`, Modell `MODEL`-Var Default `gemini-2.5-flash`, Secret `GEMINI_API_KEY`) oder `claude` (Secret `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`-Var Default claude-haiku-4-5); dazu immer `FIREBASE_API_KEY`. Founder-UID kommt ohne JWS + ohne Monatslimit durch (`monthlyUse()`/JWS-Check in `worker.js` überspringen ihn) — bestes Test-Konto für ausgiebige KI-Tests (auch im Simulator), da client- UND serverseitig als Premium gilt. KI-Plan-Import: ```gtplan-Block → `aicApplyPlan()`. Übungsdatenbank (`ov-exdb`): exercisedb.dev → Fallback free-exercise-db (jsDelivr), Cache `localStorage['gt_exdb_v1']`. Körper-Tracking `localStorage['gt_bodyLog']` (Fotos base64, max 30, NUR lokal). Premium-Themes gold/mitternacht/smaragd (setTheme(t, silent) — Boot-Aufruf mit silent=true!). App-Icons: `CFBundleAlternateIcons` in Info.plist + `AppIcon{Gold,White}@{2x,3x}.png` in `ios/App/App/` (pbxproj: App-Gruppe, NICHT Plugins-Gruppe — deren Pfad ist App/Plugins/). Neue Web-Assets in `build.js`-Kopierliste eintragen!
 
 ## Firebase / Cloud-Sync
 
@@ -246,7 +246,7 @@ service cloud.firestore {
       allow create, update: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly([
-             'uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon'
+             'uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon','isPremium','premPlan'
            ]);
     }
     match /analytics_sessions/{sid} {
@@ -332,10 +332,12 @@ return true   // Capacitor 8.x: kein ApplicationDelegateProxy hier (Methode exis
 ## Analytics / Admin
 
 **Datenmodell:**
-- `analytics_users/{uid}` — `{uid, firstSeen, lastSeen, totalSessions, totalSec, isAnon}`
+- `analytics_users/{uid}` — `{uid, firstSeen, lastSeen, totalSessions, totalSec, isAnon, isPremium, premPlan}` (`premPlan`: `'monthly'|'yearly'|null`; beide bei jedem Session-Start + Heartbeat aus `isPremium()`/`PREM` neu geschrieben — deckt ALLE getrackten Nutzer ab, nicht nur Community-Opt-in)
 - `analytics_sessions/{auto}` — `{uid, start, lastBeat, duration, isAnon}` (Heartbeat alle 60 s)
 - RTDB `presence/{uid}` — Live-Online-Count
 
 **Admin aktivieren:** Einstellungen → 5× auf „Version"-Zeile tippen → bestätigen → UID in Rules einsetzen → `📊 App-Statistiken` erscheint (Live-Online, DAU/WAU/MAU, Ø Duration, Retention D1/D7/D30).
 
 **Auto-Tracking:** App-Start: Auto-Login (anonym), Session-Doc + User-Update, Heartbeat alle 60 s. Ende: finaler Heartbeat bei `visibilitychange`/`pagehide`/`beforeunload`.
+
+**Separates Web-Dashboard** (`dashboard/index.html`, live: lenny23445.github.io/Gymtrack/dashboard/, Google-Login nur Admin-UID): fragt Firestore direkt aus dem Browser ab (Nutzer/Workouts/Community/Session-Tracking live; Auth-Zahlen + App-Store-Downloads kommen aus `admin/{auth,appstore}`, geschrieben vom Mac-Server). Abschnitt „Premium & Umsatz" liest `analytics_users` und zeigt Premium-Nutzer (gesamt/Monats/Jahres-Abo) + geschätzten MRR (`monthly*2.99 + yearly*19.99/12`) — Schätzung aus App-Tracking, NICHT Apples offizielle Zahlen (keine Provision/Steuern/Rückerstattungen abgezogen). Echte Umsatzzahlen: App Store Connect → Analyse/Abonnements bzw. Zahlungen und Finanzberichte.

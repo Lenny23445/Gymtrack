@@ -21,6 +21,7 @@
     --store: #c98500;      /* App Store */
     --extra: #9085e9;      /* Community / Apple */
     --anon: #566374;       /* Anonym (neutral) */
+    --premium: #d9a728;    /* Premium / Umsatz */
     --good: #0ca30c;
     --warn: #fab219;
     --crit: #d03b3b;
@@ -187,6 +188,7 @@
 'use strict';
 const $ = (s) => document.querySelector(s);
 const nf = new Intl.NumberFormat('de-DE');
+const nfEUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const fmt = (n) => n == null ? '—' : nf.format(n);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dShort = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
@@ -357,6 +359,17 @@ function render(D) {
     h += `</div>`;
   }
   h += `</section>`;
+
+  /* Premium & Umsatz */
+  if (T.ok && T.premium) {
+    const P = T.premium;
+    h += `<section>${secHead('var(--premium)', 'Premium & Umsatz', 'analytics_users — live, geschätzt', null)}<div class="tiles">`
+      + tile(fmt(P.total), 'Premium-Nutzer', 'aktuell aktiv', 'var(--premium)')
+      + tile(fmt(P.monthly), 'davon Monats-Abo', '2,99 €/Monat')
+      + tile(fmt(P.yearly), 'davon Jahres-Abo', '19,99 €/Jahr')
+      + tile(nfEUR.format(P.mrrEstimate), 'Ø Umsatz/Monat', 'geschätzt, brutto');
+    h += `</div><div class="note info">Schätzung aus App-Tracking, <b>nicht</b> Apples offiziellen Zahlen — ohne Apples Provision (15–30&nbsp;%), Steuern, Testphasen oder Rückerstattungen. Echte Zahlen: App Store Connect → Analyse/Abonnements bzw. Zahlungen und Finanzberichte. Bestehende Premium-Nutzer tauchen erst nach ihrer nächsten App-Session hier auf (Feld ist neu).</div></section>`;
+  }
 
   /* App Store */
   h += `<section>${secHead('var(--store)', 'App Store', 'Downloads aus App Store Connect', AS.ok ? null : AS)}`;
@@ -544,8 +557,10 @@ async function communityStats() {
 
 async function trackingStats() {
   const since = new Date(Date.now() - 7 * DAY);
-  const snap = await getDocs(query(
-    collection(db, 'analytics_sessions'), where('start', '>=', since), limit(20000)));
+  const [snap, userSnap] = await Promise.all([
+    getDocs(query(collection(db, 'analytics_sessions'), where('start', '>=', since), limit(20000))),
+    getDocs(collection(db, 'analytics_users')),
+  ]);
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const sessions = snap.docs.map(r => {
     const f = r.data();
@@ -561,6 +576,12 @@ async function trackingStats() {
     if (!dauByDay.has(iso)) dauByDay.set(iso, new Set());
     dauByDay.get(iso).add(s.uid);
   }
+  let premMonthly = 0, premYearly = 0;
+  for (const d of userSnap.docs) {
+    const f = d.data();
+    if (!f.isPremium) continue;
+    if (f.premPlan === 'yearly') premYearly++; else premMonthly++;
+  }
   return {
     fixDate: TRACKING_FIX_DATE,
     dauToday: new Set(today.map(s => s.uid)).size,
@@ -569,6 +590,10 @@ async function trackingStats() {
     users7: new Set(sessions.map(s => s.uid)).size,
     avgSessionMin: durs.length ? Math.round(durs.reduce((a, b) => a + b, 0) / durs.length / 60 * 10) / 10 : 0,
     dauByDay: [...dauByDay.entries()].sort().map(([date, set]) => ({ date, v: set.size })),
+    premium: {
+      total: premMonthly + premYearly, monthly: premMonthly, yearly: premYearly,
+      mrrEstimate: premMonthly * 2.99 + premYearly * (19.99 / 12),
+    },
   };
 }
 
