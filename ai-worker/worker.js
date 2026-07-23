@@ -204,7 +204,12 @@ export default {
       return json(result, 200, cors);
     } catch (e) {
       console.log("[AI] LLM-Fehler:", e.message);
-      return json({ error: "KI gerade nicht erreichbar — versuch es gleich nochmal" }, 502, cors);
+      // Founder-Konto bekommt den echten Grund im Klartext zurück (z. B.
+      // "Gemini HTTP 400 …") — ohne den ist von außen nicht zu unterscheiden,
+      // ob API-Key, Modellname oder Anbieter-Ausfall dahintersteckt.
+      // Alle anderen Nutzer sehen weiterhin nur die neutrale Meldung.
+      const detail = uid === FOUNDER_UID ? " [" + String((e && e.message) || e).slice(0, 300) + "]" : "";
+      return json({ error: "KI gerade nicht erreichbar — versuch es gleich nochmal" + detail }, 502, cors);
     }
   },
 };
