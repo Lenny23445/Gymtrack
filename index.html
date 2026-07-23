@@ -6330,7 +6330,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232143';
+const APP_VERSION = 'gymtrack-v202607232149';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -21159,12 +21159,11 @@ function openPaywall(feature){
 function _pwRender(feature){
   const el = document.getElementById('pw-body'); if (!el) return;
   const native = _isNative();
-  const f = _PW_FEATS[feature];
   const trustCheck = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>`;
   el.innerHTML = `
     <div class="pw-hero">
       <div class="pw-hero-badge">${ICO.sparkle({s:32})}</div>
-      <div class="pw-title">${f ? f.t : 'MyGymTrack Premium'}</div>
+      <div class="pw-title">MyGymTrack Premium</div>
       <div class="pw-sub">Dein persönlicher KI-Coach: Chat, Live-Tipps im Training, Analysen &amp; Geräte-Scanner.</div>
       <div class="pw-value-pill">${ICO.sparkle({s:13})} Weniger als ein Proteinriegel im Monat</div>
     </div>
@@ -22906,7 +22905,7 @@ function _onLogout() {
 function _authGateNeeded(){
   if (!window.FB || !window.FB.configured) return false;  // ohne Firebase kein Login möglich → nicht aussperren
   if (!_authSettled) return false;                        // Auth-Restore abwarten (kein Flackern für eingeloggte User)
-  return !_fbUser || _fbUser.isAnonymous;
+  return !_fbUser || _fbUser.isAnonymous;  // anonyme Auto-Anmeldung zählt NICHT als Login
 }
 function _maybeAuthGate(){
   if (_ob) return;                                  // Onboarding läuft — Gate kommt direkt danach (_obClose)
