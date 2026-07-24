@@ -6450,7 +6450,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240014';
+const APP_VERSION = 'gymtrack-v202607240015';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -20725,14 +20725,19 @@ function isPremium(){
   // try/catch: _fbUser ist ein späteres top-level `let` — bei frühem Aufruf
   // (z. B. beim Boot-Rendering vor dem Erreichen der KONTO-Sektion) wäre der
   // Zugriff sonst ein TDZ-ReferenceError, der den kompletten Boot abbricht!
+  // WICHTIG: _fbUser und _authSettled je EIGENER try/catch — ein TDZ-Error beim
+  // _fbUser-Zugriff darf den Cache-Fallback darunter nicht mit abwürgen (genau
+  // das war der Bug: beide standen in einem Block, die Cache-Zeile wurde beim
+  // allerersten Boot-Render dadurch NIE erreicht).
+  try { if (_fbUser && TEST_UIDS.has(_fbUser.uid)) { try{localStorage.setItem('gt_founderCache','1');}catch(_){} return true; } } catch(_){} // Founder/Tester immer Premium
+  // Kaltstart: Auth-Restore (_fbUser/_authSettled) noch nicht fertig (ggf. sogar
+  // TDZ, vor der `let`-Deklaration) → letzten bekannten Founder-Stand annehmen,
+  // sonst poppen Premium-Badge/KI-Karte erst nach dem Auth-Sync sichtbar auf.
   try {
-    if (_fbUser && TEST_UIDS.has(_fbUser.uid)) { try{localStorage.setItem('gt_founderCache','1');}catch(_){} return true; } // Founder/Tester immer Premium
-    // Kaltstart: Auth-Restore (_fbUser) noch nicht fertig → letzten bekannten Founder-
-    // Stand annehmen, sonst poppen Premium-Badge/KI-Karte erst nach dem Auth-Sync auf.
-    // Steht der echte Status fest (_authSettled) und ist kein Founder, greift wieder
-    // die normale Prüfung unten.
     if (!_authSettled && localStorage.getItem('gt_founderCache') === '1') return true;
-  } catch(_){}
+  } catch(_) {
+    if (localStorage.getItem('gt_founderCache') === '1') return true;   // _authSettled selbst noch TDZ → erst recht "nicht settled"
+  }
   if (localStorage.getItem('gt_premiumDev') === '1') return true;             // Dev-Unlock (nur UI, kein echtes Abo)
   if (!PREM.active) return false;
   return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
