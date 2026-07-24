@@ -8,6 +8,10 @@
 //   POST /vision   {idToken, jws, lang, img, mime}               → {v:{...}, quota}
 //                  img = base64-JPEG (ohne data:-Präfix) eines Gerätefotos
 //   GET  /stats    ?idToken=…  (nur Founder-UID)                 → {month, calls, inTok, outTok, costUsd, budgetUsd}
+//   GET  /admin-stats ?idToken=…  (nur Founder-UID)               → {auth:{...}, appstore:{...}}
+//                  Live-Ersatz für den alten Mac-Server-Cron (server.mjs schrieb das
+//                  vorher alle 5 Min nach Firestore admin/{auth,appstore} — lief nur,
+//                  solange der Mac wach war). Jetzt liefert der Worker live, kein Mac nötig.
 //
 // Sicherheit (beides muss passen):
 //   1. idToken   = Firebase-Login (wer bist du) — geprüft via accounts:lookup
@@ -20,7 +24,18 @@
 //   GEMINI_API_KEY    = Google-AI-Studio-Key (aistudio.google.com/apikey)
 //   ANTHROPIC_API_KEY = Claude-API-Key (console.anthropic.com) — nur bei PROVIDER=claude
 //   FIREBASE_API_KEY  = Web-API-Key des Firebase-Projekts (derselbe wie in index.html)
-// Optionale Vars:
+//   FIREBASE_SERVICE_ACCOUNT_JSON = kompletter Inhalt von firebase-service-account.json
+//                  (Firebase-Konsole → Projekteinstellungen → Dienstkonten → Neuen privaten Schlüssel generieren)
+//                  — nur für /admin-stats (Auth-Zahlen)
+//   APPSTORE_PRIVATE_KEY   = kompletter Inhalt der .p8-Datei (App Store Connect → Nutzer und Zugriff → Integrationen)
+//   APPSTORE_KEY_ID        = Key-ID aus dem .p8-Dateinamen (AuthKey_XXXXXXXXXX.p8 → XXXXXXXXXX)
+//   APPSTORE_ISSUER_ID     = Issuer-ID (App Store Connect → Integrationen, steht oben auf der Seite)
+//   APPSTORE_VENDOR_NUMBER = 8-stellige Vendor-Nummer (App Store Connect → Zahlungen und Finanzberichte)
+//                  — die vier APPSTORE_*-Secrets nur für /admin-stats (App-Store-Downloads)
+// Optionale Vars (nicht geheim, normale Cloudflare-„Variables"):
+//   OFFICIAL_DOWNLOADS / OFFICIAL_DOWNLOADS_AS_OF = Apples offizielle Gesamt-Downloads-Zahl als
+//                  Anker (App Store Connect → App-Analytics → Total Downloads), Stand-Datum YYYY-MM-DD.
+//                  Fehlt sie, rechnet /admin-stats nur aus der Sales-Report-Summe (etwas ungenauer).
 //   PROVIDER      = "gemini" (Default) oder "claude" — Modellwechsel ohne Code-Änderung
 //   MODEL         = Gemini-Modell (Default: gemini-2.5-flash)
 //   CLAUDE_MODEL  = Claude-Modell falls PROVIDER=claude (Default: claude-haiku-4-5)
@@ -147,6 +162,28 @@ export default {
         }
       } catch (e) { /* Historie optional — Hauptzahlen liefern trotzdem */ }
       return json({ ...stats, costUsd, budgetUsd, history }, 200, cors);
+    }
+
+    // ── GET /admin-stats — Auth- + App-Store-Zahlen fürs Live-Dashboard (nur Founder-UID) ──
+    if (path === "/admin-stats") {
+      if (request.method !== "GET") return json({ error: "GET only" }, 405, cors);
+      const idToken = url.searchParams.get("idToken");
+      if (!idToken) return json({ error: "idToken fehlt" }, 401, cors);
+      let uid;
+      try { uid = await verifyFirebaseToken(idToken, env); }
+      catch (e) { return json({ error: "Anmeldung ungültig" }, 401, cors); }
+      if (uid !== FOUNDER_UID) return json({ error: "kein Zugriff" }, 403, cors);
+      const wrap = async (fn) => {
+        try { return { ok: true, ...(await fn()) }; }
+        catch (e) { return { ok: false, error: String(e.message || e).slice(0, 250) }; }
+      };
+      let sa = null;
+      try { sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON); } catch (_) { /* fehlt/kaputt */ }
+      const [adminAuth, adminAppstore] = await Promise.all([
+        sa ? wrap(() => getAuthStats(sa)) : Promise.resolve({ ok: false, error: "FIREBASE_SERVICE_ACCOUNT_JSON fehlt" }),
+        wrap(() => getAppStoreStats(env)),
+      ]);
+      return json({ auth: adminAuth, appstore: adminAppstore }, 200, cors);
     }
 
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
@@ -426,13 +463,13 @@ async function runAnalyze(body, lang, env) {
   const mode = ["training", "workout", "progress"].includes(body.mode) ? body.mode : "training";
   const data = JSON.stringify(body.data || {}).slice(0, 8000);
   const focusDe = {
-    training: "die gesamte Trainingsplanung/-struktur des Nutzers (Split, Frequenz, Balance der Muskelgruppen)",
-    workout:  "das zuletzt geloggte einzelne Workout (Ausführungsqualität, Sinnhaftigkeit der Satz-/Gewichtswahl). WENN data.scope='split': stattdessen den übergebenen Split (Übungsauswahl, Satz-/Wdh-Ziele, Muskelbalance, Reihenfolge, fehlende/überflüssige Übungen)",
+    training: "die gesamte Trainingsplanung/-struktur des Nutzers (Split, Frequenz, Balance der Muskelgruppen). WENN data.recentCheckins vorhanden: subjektives Gefühl/Energielevel der letzten Einheiten explizit einbeziehen — bei wiederholt 'Sehr schwer'/'Niedrig' aktiv Deload oder Frequenz-/Volumenreduktion empfehlen",
+    workout:  "das zuletzt geloggte einzelne Workout (Ausführungsqualität, Sinnhaftigkeit der Satz-/Gewichtswahl). WENN data.scope='split': stattdessen den übergebenen Split (Übungsauswahl, Satz-/Wdh-Ziele, Muskelbalance, Reihenfolge, fehlende/überflüssige Übungen). WENN data.checkin vorhanden: gemeldetes Gefühl/Energielevel dieser Einheit in Bewertung und Empfehlungen einbeziehen",
     progress: "den langfristigen Fortschritt über die letzten Wochen (Volumen-Trend, PRs, Muskelgruppen-Entwicklung). WENN data.scope='exercise': GENAU diese eine Übung (e1RM-Verlauf, Stagnation, Wdh-Bereich, konkrete Progressions-/Techniktipps). WENN data.scope='split': nur diesen Split",
   }[mode];
   const focusEn = {
-    training: "the user's overall training plan/structure (split, frequency, muscle group balance)",
-    workout:  "the single most recently logged workout (execution quality, set/weight choices). IF data.scope='split': the given split instead (exercise selection, set/rep targets, balance, order, missing/redundant exercises)",
+    training: "the user's overall training plan/structure (split, frequency, muscle group balance). IF data.recentCheckins is present: explicitly factor in subjective feel/energy of recent sessions — actively recommend a deload or reduced frequency/volume if repeatedly 'Very hard'/'Low'",
+    workout:  "the single most recently logged workout (execution quality, set/weight choices). IF data.scope='split': the given split instead (exercise selection, set/rep targets, balance, order, missing/redundant exercises). IF data.checkin is present: factor the reported feel/energy of this session into the rating and recommendations",
     progress: "long-term progress over recent weeks (volume trend, PRs, muscle group development). IF data.scope='exercise': EXACTLY this one exercise (e1RM trend, stalls, rep range, concrete progression/technique tips). IF data.scope='split': only this split",
   }[mode];
   const sys = de
@@ -648,3 +685,216 @@ function b64ToBytes(b64) {
 function b64uToBytes(s) { return b64ToBytes(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)); }
 function td(bytes) { return new TextDecoder().decode(bytes); }
 function hex(bytes) { let s = ""; for (const b of bytes) s += b.toString(16).padStart(2, "0"); return s; }
+
+// ═══════════════ Admin-Dashboard: Auth + App Store (live, ersetzt Mac-Server-Cron) ═══════════════
+// Portiert aus analytics/server.mjs (lief vorher als Cron auf dem Mac) — Signaturen laufen
+// hier über Web Crypto statt node:crypto, Gzip über DecompressionStream statt zlib.
+
+const DAY = 86_400_000;
+
+function isoLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function seriesFromMap(map, days) {
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    const iso = isoLocal(d);
+    out.push({ date: iso, v: map.get(iso) || 0 });
+  }
+  return out;
+}
+function bytesToB64u(buf) {
+  let bin = "";
+  for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64uJson(obj) { return bytesToB64u(new TextEncoder().encode(JSON.stringify(obj))); }
+function pemToDer(pem) {
+  return b64ToBytes(pem.replace(/-----BEGIN [^-]+-----/, "").replace(/-----END [^-]+-----/, ""));
+}
+
+// ── Google-Service-Account → OAuth-Token (RS256-JWT) ──
+let _gTok = null; // { token, exp } — best effort pro Isolate (wie _quota oben)
+async function googleToken(sa) {
+  if (_gTok && _gTok.exp > Date.now() + 60_000) return _gTok.token;
+  const now = Math.floor(Date.now() / 1000);
+  const header  = b64uJson({ alg: "RS256", typ: "JWT" });
+  const payload = b64uJson({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/userinfo.email",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now, exp: now + 3600,
+  });
+  const key = await crypto.subtle.importKey(
+    "pkcs8", pemToDer(sa.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(`${header}.${payload}`));
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=${encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer")}&assertion=${header}.${payload}.${bytesToB64u(sig)}`,
+  });
+  if (!res.ok) throw new Error(`Google-Token ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const tok = await res.json();
+  _gTok = { token: tok.access_token, exp: Date.now() + (tok.expires_in - 300) * 1000 };
+  return _gTok.token;
+}
+
+// ── 1) Firebase Auth: Accounts (identitytoolkit accounts:batchGet) ──
+let _authStatsCache = { t: 0, data: null };
+async function getAuthStats(sa) {
+  if (_authStatsCache.data && Date.now() - _authStatsCache.t < 60_000) return _authStatsCache.data;
+  const token = await googleToken(sa);
+  const users = [];
+  let nextPageToken = "";
+  do {
+    const apiUrl = `https://identitytoolkit.googleapis.com/v1/projects/${sa.project_id}/accounts:batchGet?maxResults=500${nextPageToken ? "&nextPageToken=" + encodeURIComponent(nextPageToken) : ""}`;
+    const res = await fetch(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`Auth ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    users.push(...(data.users || []));
+    nextPageToken = data.nextPageToken || "";
+  } while (nextPageToken);
+
+  const now = Date.now();
+  let anon = 0, google = 0, apple = 0, other = 0, new7 = 0, new30 = 0;
+  const byDay = new Map(), byDayReal = new Map(), byDayApple = new Map(), byDayGoogle = new Map();
+  for (const u of users) {
+    const created = Number(u.createdAt || 0);
+    const providers = (u.providerUserInfo || []).map((p) => p.providerId);
+    const isGoogle = providers.includes("google.com");
+    const isApple = !isGoogle && providers.includes("apple.com");
+    const isReal = isGoogle || isApple;
+    if (isGoogle) google++;
+    else if (isApple) apple++;
+    else if (providers.length === 0) anon++;
+    else other++;
+    if (created) {
+      if (now - created < 7 * DAY) new7++;
+      if (now - created < 30 * DAY) new30++;
+      const iso = isoLocal(new Date(created));
+      byDay.set(iso, (byDay.get(iso) || 0) + 1);
+      if (isReal) byDayReal.set(iso, (byDayReal.get(iso) || 0) + 1);
+      if (isApple) byDayApple.set(iso, (byDayApple.get(iso) || 0) + 1);
+      if (isGoogle) byDayGoogle.set(iso, (byDayGoogle.get(iso) || 0) + 1);
+    }
+  }
+  const data = {
+    total: users.length, anon, google, apple, other, new7, new30,
+    signupsByDay: seriesFromMap(byDay, 60),
+    signupsByDayReal: seriesFromMap(byDayReal, 180),
+    signupsByDayApple: seriesFromMap(byDayApple, 60),
+    signupsByDayGoogle: seriesFromMap(byDayGoogle, 60),
+  };
+  _authStatsCache = { t: Date.now(), data };
+  return data;
+}
+
+// ── 2) App Store Connect: Sales Reports (ES256-JWT + Gzip via DecompressionStream) ──
+function loadAscConfig(env) {
+  const missing = [];
+  if (!env.APPSTORE_PRIVATE_KEY)   missing.push("APPSTORE_PRIVATE_KEY (.p8-Inhalt)");
+  if (!env.APPSTORE_KEY_ID)        missing.push("APPSTORE_KEY_ID");
+  if (!env.APPSTORE_ISSUER_ID)     missing.push("APPSTORE_ISSUER_ID");
+  if (!env.APPSTORE_VENDOR_NUMBER) missing.push("APPSTORE_VENDOR_NUMBER");
+  if (missing.length) return { ok: false, missing, keyId: env.APPSTORE_KEY_ID || null };
+  return { ok: true, cfg: {
+    issuerId: env.APPSTORE_ISSUER_ID, vendorNumber: String(env.APPSTORE_VENDOR_NUMBER),
+    keyId: env.APPSTORE_KEY_ID, privateKey: env.APPSTORE_PRIVATE_KEY,
+  } };
+}
+
+async function ascToken(cfg) {
+  const now = Math.floor(Date.now() / 1000);
+  const header  = b64uJson({ alg: "ES256", kid: cfg.keyId, typ: "JWT" });
+  const payload = b64uJson({ iss: cfg.issuerId, iat: now, exp: now + 1200, aud: "appstoreconnect-v1" });
+  const key = await crypto.subtle.importKey(
+    "pkcs8", pemToDer(cfg.privateKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(`${header}.${payload}`));
+  return `${header}.${payload}.${bytesToB64u(sig)}`;
+}
+
+async function gunzipText(buf) {
+  const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Response(stream).text();
+}
+
+async function ascReport(cfg, token, dateStr) {
+  const reportUrl = new URL("https://api.appstoreconnect.apple.com/v1/salesReports");
+  reportUrl.searchParams.set("filter[frequency]", "DAILY");
+  reportUrl.searchParams.set("filter[reportDate]", dateStr);
+  reportUrl.searchParams.set("filter[reportSubType]", "SUMMARY");
+  reportUrl.searchParams.set("filter[reportType]", "SALES");
+  reportUrl.searchParams.set("filter[vendorNumber]", cfg.vendorNumber);
+  const res = await fetch(reportUrl, { headers: { Authorization: `Bearer ${token}` } });
+  if (res.status === 404) return "";
+  if (!res.ok) throw new Error(`Apple API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return gunzipText(await res.arrayBuffer());
+}
+
+function loadOfficialAnchor(env) {
+  const dl = Number(env.OFFICIAL_DOWNLOADS);
+  const asOf = String(env.OFFICIAL_DOWNLOADS_AS_OF || "");
+  if (dl > 0 && /^\d{4}-\d{2}-\d{2}$/.test(asOf)) return { downloads: dl, asOf };
+  return null;
+}
+
+let _ascStatsCache = { t: 0, data: null };
+async function getAppStoreStats(env, days = 60) {
+  const official = loadOfficialAnchor(env);
+  const loaded = loadAscConfig(env);
+  if (!loaded.ok) return { configured: false, missing: loaded.missing, keyId: loaded.keyId, official };
+  if (_ascStatsCache.data && Date.now() - _ascStatsCache.t < 30 * 60_000) return { ..._ascStatsCache.data, official };
+
+  const token = await ascToken(loaded.cfg);
+  const dates = [];
+  for (let i = days; i >= 1; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    dates.push(isoLocal(d));
+  }
+  const apps = new Map();
+  const queue = [...dates];
+  async function worker() {
+    while (queue.length) {
+      const dateStr = queue.shift();
+      const tsv = await ascReport(loaded.cfg, token, dateStr);
+      const lines = tsv.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) continue;
+      const cols = lines[0].split("\t").map((c) => c.trim());
+      for (const line of lines.slice(1)) {
+        const vals = line.split("\t");
+        const row = {};
+        cols.forEach((c, i) => { row[c] = (vals[i] || "").trim(); });
+        const pt = row["Product Type Identifier"] || "";
+        const kind = /^F?1/.test(pt) ? "downloads" : /^F?7/.test(pt) ? "updates" : null;
+        if (!kind) continue;
+        const title = row["Title"] || row["SKU"] || "?";
+        if (!apps.has(title)) apps.set(title, new Map());
+        const byDate = apps.get(title);
+        const day = byDate.get(dateStr) || { downloads: 0, updates: 0 };
+        day[kind] += Number(row["Units"] || 0);
+        byDate.set(dateStr, day);
+      }
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()]);
+
+  const data = {
+    configured: true,
+    note: 'Apple liefert Tageszahlen erst am Folgetag — „heute" fehlt immer.',
+    apps: [...apps.entries()].map(([title, byDate]) => {
+      const series = dates.map((d) => ({ date: d, ...(byDate.get(d) || { downloads: 0, updates: 0 }) }));
+      const sum = (n, k) => series.slice(-n).reduce((s, x) => s + x[k], 0);
+      return {
+        title, series,
+        downloads7: sum(7, "downloads"), downloads30: sum(30, "downloads"),
+        downloadsTotal: series.reduce((s, x) => s + x.downloads, 0),
+        updates7: sum(7, "updates"),
+      };
+    }),
+  };
+  _ascStatsCache = { t: Date.now(), data };
+  return { ...data, official };
+}

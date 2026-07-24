@@ -487,12 +487,12 @@ body{
   background:var(--gl-bg);
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
-  padding:calc(var(--sat) + 16px) 20px 56px;
-  position:sticky;top:0;z-index:100;
+  padding:calc(var(--sat) + 16px) 20px 18px;
+  /* Header scrollt normal mit dem Inhalt weg (nicht mehr sticky), liegt also nie
+     über den anderen Elementen. Kein Mask-Fade mehr — sauberer Abschluss. */
+  position:relative;z-index:1;
   transition:background .4s;
   overflow:hidden;
-  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 60%,transparent 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 60%,transparent 100%);
 }
 .hdr::after{
   content:'';position:absolute;top:0;left:0;right:0;height:45%;
@@ -1780,8 +1780,8 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   border:1px solid rgba(255,255,255,0.55);
   box-shadow:0 1px 3px rgba(0,0,0,.08),
              0 4px 12px rgba(0,0,0,.06);
-  transition:transform .42s cubic-bezier(.34,1.56,.64,1),
-             width .42s cubic-bezier(.34,1.56,.64,1);
+  transition:transform .40s cubic-bezier(.32,.72,0,1),
+             width .40s cubic-bezier(.32,.72,0,1);
   pointer-events:none;
   z-index:1;
   will-change:transform,width;
@@ -6434,7 +6434,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240009';
+const APP_VERSION = 'gymtrack-v202607240011';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8657,7 +8657,10 @@ function closeSettingsPage() {
 // in der Feder-Animation ist die Rect gedehnt → schnelles Tippen kompoundierte
 // den Stretch, Bubble driftete/wurde überbreit statt zentriert.
 let _indX = null, _indW = null;
-const _IND_SPRING = 'transform .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+// Sauberes Gleiten statt Liquid-Blob: eine ruhige Ease-Kurve ohne Overshoot/Squish.
+// Der alte Stretch-dann-Einrasten-Trick sah bei schnellem Tippen „komisch" aus
+// (Bubble driftete/überschoss). Jetzt: Position + Breite direkt zum Ziel animieren.
+const _IND_SPRING = 'transform .40s cubic-bezier(.32,.72,0,1), width .40s cubic-bezier(.32,.72,0,1)';
 function moveTabIndicator(activeTab) {
   const bar = document.querySelector('.tabbar');
   const ind = document.getElementById('tab-indicator');
@@ -8685,32 +8688,10 @@ function moveTabIndicator(activeTab) {
     return;
   }
 
-  const curX = _indX, curW = _indW;
-
-  // Winzige Bewegung: nur sauber einrasten (kein Stretch).
-  if (Math.abs(newX - curX) < 4) {
-    ind.style.transition = _IND_SPRING;
-    ind.style.width      = newW + 'px';
-    ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
-    _indX = newX; _indW = newW;
-    return;
-  }
-
-  // Liquid-Blob: von der zuletzt festgeschriebenen Kante zur Zielkante dehnen.
-  const goRight  = newX > curX;
-  const stretchX = goRight ? curX  : newX;
-  const stretchW = goRight ? (newX + newW - curX) : (curX + curW - newX);
-
-  // Phase 1: sofort in gestreckte Form (kein Transition), Layout committen.
-  ind.style.transition = 'none';
-  ind.style.transform  = `translateX(${stretchX}px) scaleY(.96)`;
-  ind.style.width      = `${stretchW}px`;
-  ind.offsetHeight;                                 // Reflow erzwingen (deterministisch, kein rAF)
-
-  // Phase 2: mit Feder zur finalen Position zusammenziehen.
+  // Direkt und ruhig zum Ziel gleiten (kein Stretch, kein scaleY, kein Overshoot).
   ind.style.transition = _IND_SPRING;
   ind.style.width      = `${newW}px`;
-  ind.style.transform  = `translateX(${newX}px) scaleY(1)`;
+  ind.style.transform  = `translateX(${newX}px)`;
 
   _indX = newX; _indW = newW;                       // Ziel festschreiben (nicht Live-Rect!)
 }
@@ -10129,7 +10110,8 @@ function progStepFor(ex) {
 // Post-Workout-Check-in (Phase E) als Progressions-Bremse: wurde die letzte
 // Einheit als "Sehr schwer" bewertet, wird die Double-Progression EINMAL
 // ausgesetzt (kein Gewichts-Sprung + kein Wdh-Reset) — der Plan reagiert so
-// auf gemeldete Überlastung statt stur weiterzusteigern.
+// auf gemeldete Überlastung statt stur weiterzusteigern. Implizit premium-only:
+// S.checkins bekommt nur bei Premium-Nutzern Einträge (_checkinOpen-Gate).
 function _ciBlocksProgression(sessionId) {
   if (!sessionId) return false;
   const c = (S.checkins || []).find(c => c.sid === sessionId);
@@ -15499,10 +15481,11 @@ function finishWk() {
     const statsActive = document.getElementById('pg-stats')?.classList.contains('on');
     if (statsActive) renderRecoveryList();
   } catch(_) {}
-  // Post-Workout-Check-in (Phase E, für ALLE Nutzer — keine Premium-Sperre): der Rest
+  // Post-Workout-Check-in (Phase E, Premium+KI-exklusiv seit Phase H): der Rest
   // der Kette (PR-Erkennung, Share-Flow, renderHome, Meilensteine, Social-Push) läuft
   // NICHT mehr hier direkt weiter, sondern erst wenn das Check-in-Sheet zugeht —
   // s. _finishWkContinue()/_checkinOpen() weiter unten und der closeOv('ov-checkin')-Hook.
+  // Free-User überspringen das Sheet komplett (_checkinOpen prüft isPremium()).
   _checkinOpen(_newSess, _shareDayName);
 }
 
@@ -15527,12 +15510,16 @@ function _finishWkContinue(sess, dayName) {
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
 }
 
-/* ── POST-WORKOUT CHECK-IN (Phase E) ──────────────────────────────────
+/* ── POST-WORKOUT CHECK-IN (Phase E, Premium+KI-exklusiv seit Phase H) ──
    ov-checkin fragt „Wie hat sich dein Training angefühlt?" (feel 1-4) +
    Energielevel (en 1-3), bevor die finishWk-Kette (_finishWkContinue) weiterläuft.
    _checkinContinued ist der Wächter: egal ob der Nutzer speichert, überspringt
    oder das Sheet wegwischt/wegtippt — closeOv('ov-checkin') ruft am Ende IMMER
-   _finishWkContinue() auf, aber garantiert nur genau EINMAL pro Training. */
+   _finishWkContinue() auf, aber garantiert nur genau EINMAL pro Training.
+   Free-User bekommen das Sheet gar nicht erst zu sehen (kein Paywall-Popup,
+   einfach direkter Sprung in die finishWk-Kette wie beim Überspringen) — das
+   hält S.checkins zugleich implizit premium-only, worauf _ciBlocksProgression
+   und die KI-Analyse (_aiaData) sich verlassen. */
 let _checkinSess = null, _checkinDayName = null, _checkinContinued = false;
 let _ciFeel = null, _ciEnergy = 2;   // Energie startet neutral vorbelegt (Mittel)
 
@@ -15545,6 +15532,7 @@ const CI_FEELS = [
 const CI_ENERGIES = [ { v:1, label:'Niedrig' }, { v:2, label:'Mittel' }, { v:3, label:'Hoch' } ];
 
 function _checkinOpen(sess, dayName) {
+  if (!isPremium()) { _finishWkContinue(sess, dayName); return; }
   _checkinSess = sess;
   _checkinDayName = dayName;
   _checkinContinued = false;
@@ -22103,6 +22091,7 @@ function _aiaData(mode, scope){
   if (mode === 'workout') {
     const s = (S.sessions || [])[S.sessions.length - 1];
     if (!s) return {};
+    const ci = (S.checkins || []).find(c => c.sid === s.id);
     return {
       date: (s.date || '').slice(0, 10),
       durationMin: Math.round((s.duration || 0) / 60),
@@ -22111,6 +22100,9 @@ function _aiaData(mode, scope){
         return { name: ex ? ex.name : '?', muscleGroup: ex ? ex.muscleGroup : '',
                  sets: (l.sets || []).map(st => ({ w: parseFloat(st.w) || 0, r: parseInt(st.r) || 0, type: st.type || 'normal' })) };
       }),
+      // Check-in dieser Einheit (Premium-only, s. _checkinOpen) — Coach soll
+      // subjektives Gefühl/Energie in seine Bewertung einbeziehen, wenn vorhanden.
+      ...(ci ? { checkin: { feel: CI_FEELS.find(f => f.v === ci.feel)?.label || null, energy: CI_ENERGIES.find(e => e.v === ci.en)?.label || null } } : {}),
     };
   }
   if (mode === 'training') {
@@ -22131,9 +22123,17 @@ function _aiaData(mode, scope){
         volByMg[ex.muscleGroup] = (volByMg[ex.muscleGroup] || 0) + setsVolume(l.sets || []);
       });
     });
+    // Letzte Check-ins (Premium-only, s. _checkinOpen) — Coach soll bei wiederholt
+    // schwer/energiearm gemeldeten Einheiten z.B. einen Deload vorschlagen.
+    const recentCheckins = (S.checkins || []).slice(-5).map(c => ({
+      date: c.d ? String(c.d).slice(0, 10) : null,
+      feel: CI_FEELS.find(f => f.v === c.feel)?.label || null,
+      energy: CI_ENERGIES.find(e => e.v === c.en)?.label || null,
+    }));
     return {
       days, activeDaysPerWeek: days.filter(d => !d.rest).length, targetFreqPerWeek: S.obFreq || null,
       volume4wByMuscle: Object.fromEntries(Object.entries(volByMg).map(([k, v]) => [k, Math.round(v)])),
+      ...(recentCheckins.length ? { recentCheckins } : {}),
     };
   }
   if (mode === 'progress') {
