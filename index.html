@@ -4159,6 +4159,8 @@ html[data-glass][data-theme="dark"] .tabbar{
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.85),transparent);
   transform:skewX(-18deg);animation:premShine 3.4s ease-in-out infinite}
 .cpg-head .prem-tag{border-color:rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 0 6px rgba(255,246,216,.4)}
+/* Solo-Variante im Startseiten-Header: eigenständig zwischen Level und Streak, klickbar. */
+.prem-tag-solo{margin-left:0;vertical-align:baseline;padding:4px;cursor:pointer}
 @keyframes premPulse{0%,100%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 2px 7px rgba(217,165,52,.30),inset 0 0 6px rgba(255,246,216,.35)}
   50%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 3px 12px rgba(246,210,104,.60),inset 0 0 8px rgba(255,246,216,.55)}}
 @keyframes premShine{0%{left:-60%}55%,100%{left:130%}}
@@ -4689,6 +4691,7 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
     <div class="hdr-greet-row">
       <h1 id="greet-h">Heute</h1>
       <div id="level-badge-host"></div>
+      <div id="prem-badge-host"></div>
       <div id="streak-badge-host"></div>
     </div>
     <div class="sub" id="greet-d"></div>
@@ -6447,7 +6450,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240012';
+const APP_VERSION = 'gymtrack-v202607240013';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19094,8 +19097,13 @@ function _renderLevelBadge(){
   if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
   const L = _levelOf(_xpSelf());
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
-    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>${isPremium() ? `<span class="prem-tag" style="margin-left:5px">${_premBadgeSVG(14)}</span>` : ''}
+    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
+  // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht mehr in der Level-Pille).
+  const ph = document.getElementById('prem-badge-host');
+  if (ph) ph.innerHTML = isPremium()
+    ? `<span class="prem-tag prem-tag-solo" title="Premium" aria-label="Premium" onclick="openPremHub()">${_premBadgeSVG(17)}</span>`
+    : '';
 }
 /* Eigene Level-Karte (Community-Übersicht). */
 function _selfLevelCardHTML(){
