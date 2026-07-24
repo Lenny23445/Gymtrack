@@ -4232,57 +4232,147 @@ html[data-glass][data-theme="dark"] .tabbar{
    ohne eigenen z-index würde die Stapel-Reihenfolge nur vom DOM-Ort abhängen
    (beide sonst gleich 900) und das Login-Sheet könnte dahinter verschwinden. */
 #ov-account{z-index:1080}
-.pw-hero{text-align:center;padding:4px 4px 16px;position:relative}
-.pw-hero-badge{width:72px;height:72px;border-radius:24px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;
-  position:relative;color:#fff;
-  background:linear-gradient(140deg,var(--acc) 0%,rgba(var(--acc-rgb),.72) 100%);
-  box-shadow:0 10px 30px rgba(var(--acc-rgb),.45),inset 0 1px 0 rgba(255,255,255,.35)}
-.pw-hero-badge::after{content:'';position:absolute;inset:-9px;border-radius:30px;
-  border:1.5px solid rgba(var(--acc-rgb),.28);animation:pwRing 2.6s ease-in-out infinite;pointer-events:none}
-@keyframes pwRing{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.07);opacity:.35}}
-@media (prefers-reduced-motion:reduce){.pw-hero-badge::after{animation:none}}
-.pw-title{font-size:23px;font-weight:800;letter-spacing:-.4px;text-align:center}
-.pw-sub{font-size:14px;color:var(--text2);margin-top:6px;line-height:1.5;text-align:center}
-.pw-value-pill{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 12px;border-radius:999px;
-  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.22);color:var(--acc);
-  font-size:12px;font-weight:800}
-.pw-feats{display:flex;flex-direction:column;gap:8px;margin:14px 0}
-.pw-feat{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;
-  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
-.pw-feat-ico{width:36px;height:36px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.18);color:var(--acc)}
-.pw-feat-t{font-size:14.5px;font-weight:700}
-.pw-feat-s{font-size:12.5px;color:var(--text2);margin-top:1px;line-height:1.35}
-.pw-plans{display:flex;gap:10px;margin:6px 0 14px}
-.pw-plan{flex:1;position:relative;border:2px solid var(--gl-bdr);border-radius:18px;padding:16px 12px 13px;text-align:center;cursor:pointer;
-  background:var(--inp-bg);transition:border-color .15s,transform .15s,box-shadow .2s}
-.pw-plan.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.07);transform:scale(1.03);
-  box-shadow:0 8px 26px rgba(var(--acc-rgb),.22)}
-.pw-plan-name{font-size:12.5px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
-.pw-plan-price{font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.3px}
-.pw-plan-per{font-size:12px;color:var(--text2);margin-top:2px}
-.pw-plan-save{position:absolute;top:-10px;left:50%;transform:translateX(-50%);white-space:nowrap;
-  background:linear-gradient(120deg,var(--acc),rgba(var(--acc-rgb),.75));color:#fff;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:9px;
+/* ═══════════ PAYWALL v2 — Fullscreen, kein Scroll, clean/hell (Hevy-Stil) ═══════════
+   Ganzflächiges Sheet: obere Showcase mit wischbaren, animierten Vorteil-Karten,
+   unten die zwei Abomodelle + CTA. Alles auf EINEN Screen, nichts scrollt. */
+#ov-paywall{align-items:stretch}
+#ov-paywall .sheet{
+  height:100dvh;max-height:100dvh;min-height:100dvh;
+  border-radius:0;border:none;padding-bottom:0;overflow:hidden;
+  display:flex;flex-direction:column;
+  background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+#ov-paywall .sheet::after{display:none}
+#ov-paywall .sh-head{display:none}
+#ov-paywall .sh-handle{height:calc(var(--sat) + 16px);align-items:flex-end;padding-bottom:5px}
+#ov-paywall #pw-body{flex:1;min-height:0;display:flex;flex-direction:column;padding:0}
+
+.pw2{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.pw2-close{position:absolute;top:2px;right:14px;z-index:6;
+  width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--g5);color:var(--text2);display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:600;-webkit-tap-highlight-color:transparent}
+.pw2-close:active{opacity:.55}
+.pw2-brand{display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12.5px;font-weight:800;letter-spacing:.3px;color:var(--acc);
+  padding:4px 0 2px}
+.pw2-brand svg{color:var(--acc)}
+
+/* ── Showcase / wischbare Karten ── */
+.pw2-show{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding-top:4px}
+.pw2-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}
+.pw2-track::-webkit-scrollbar{display:none}
+.pw2-card{flex:0 0 100%;scroll-snap-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:4px 30px;text-align:center}
+.pw2-ct{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
+.pw2-cs{font-size:14.5px;color:var(--text2);line-height:1.5;margin-top:8px;max-width:290px}
+.pw2-dots{display:flex;gap:7px;justify-content:center;margin-top:18px}
+.pw2-dot{width:8px;height:8px;border-radius:50%;background:var(--sep);cursor:pointer;
+  transition:transform .3s,background .3s;-webkit-tap-highlight-color:transparent}
+.pw2-dot.on{transform:scale(1.6);background:var(--acc)}
+
+/* ── Animierte Bühne pro Karte ── */
+.pw2-stage{width:146px;height:146px;position:relative;margin-bottom:22px;
+  display:flex;align-items:center;justify-content:center}
+.pw2-stage::before{content:'';position:absolute;inset:0;border-radius:44px;
+  background:radial-gradient(circle at 50% 44%,rgba(var(--acc-rgb),.16),transparent 68%)}
+.pw2-orb{width:96px;height:96px;border-radius:30px;position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:center;color:var(--acc);
+  background:linear-gradient(155deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.04));
+  border:1px solid rgba(var(--acc-rgb),.22);
+  box-shadow:0 16px 36px rgba(var(--acc-rgb),.18),inset 0 1px 0 rgba(255,255,255,.55);
+  animation:pwFloat 3.4s ease-in-out infinite}
+@keyframes pwFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+/* coach: Puls-Ringe */
+.pwa-ring{position:absolute;width:96px;height:96px;border-radius:30px;z-index:1;
+  border:2px solid rgba(var(--acc-rgb),.45);animation:pwPulse 2.4s ease-out infinite}
+.pwa-ring.d2{animation-delay:1.2s}
+@keyframes pwPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.55);opacity:0}}
+/* chat: aufpoppende Blasen */
+.pwa-bub{position:absolute;z-index:3;border-radius:12px 12px 12px 3px;
+  background:var(--acc);box-shadow:0 6px 16px rgba(var(--acc-rgb),.35)}
+.pwa-bub.a{width:34px;height:22px;top:16px;right:14px;animation:pwPop 3s ease-in-out infinite}
+.pwa-bub.b{width:26px;height:18px;bottom:18px;left:14px;border-radius:12px 12px 3px 12px;
+  background:rgba(var(--acc-rgb),.55);animation:pwPop 3s ease-in-out .5s infinite}
+@keyframes pwPop{0%,70%,100%{transform:scale(0);opacity:0}12%,58%{transform:scale(1);opacity:1}}
+/* scan: durchlaufende Linie + Ecken */
+.pwa-scan{overflow:hidden}
+.pwa-scanline{position:absolute;left:8%;right:8%;height:2.5px;border-radius:2px;top:14px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);
+  box-shadow:0 0 12px 2px rgba(var(--acc-rgb),.55);animation:pwScan 2.2s ease-in-out infinite}
+@keyframes pwScan{0%,100%{top:16px}50%{top:76px}}
+/* analyze: wachsende Balken */
+.pwa-bars{gap:7px}
+.pwa-bars span{width:11px;border-radius:4px;background:var(--acc);
+  transform-origin:bottom;animation:pwGrow 1.8s ease-in-out infinite}
+.pwa-bars span:nth-child(1){height:30px;animation-delay:0s}
+.pwa-bars span:nth-child(2){height:52px;animation-delay:.18s}
+.pwa-bars span:nth-child(3){height:40px;animation-delay:.36s}
+.pwa-bars span:nth-child(4){height:60px;animation-delay:.54s}
+@keyframes pwGrow{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+/* insights: funkelnde Sparkles */
+.pwa-spk{position:absolute;z-index:3;color:var(--acc);animation:pwTwinkle 2.4s ease-in-out infinite}
+.pwa-spk.s1{top:12px;right:16px}
+.pwa-spk.s2{bottom:14px;left:14px;animation-delay:.8s}
+.pwa-spk.s3{top:50%;right:6px;animation-delay:1.5s}
+@keyframes pwTwinkle{0%,100%{transform:scale(.3) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .pw2-orb,.pwa-ring,.pwa-bub,.pwa-scanline,.pwa-bars span,.pwa-spk{animation:none!important}
+  .pwa-bub,.pwa-spk{opacity:1;transform:scale(1)}
+}
+
+/* ── Unterer Block: Pläne + CTA ── */
+.pw2-bot{flex-shrink:0;padding:12px 20px calc(12px + var(--sab));
+  display:flex;flex-direction:column;gap:11px}
+.pw2-plans{display:flex;gap:10px}
+.pw2-plan{flex:1;position:relative;border:2px solid var(--gl-bdr);border-radius:18px;
+  padding:15px 10px 12px;text-align:center;cursor:pointer;background:var(--inp-bg);
+  transition:border-color .16s,transform .16s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.pw2-plan.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.07);
+  box-shadow:0 8px 24px rgba(var(--acc-rgb),.20)}
+.pw2-plan-name{font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.pw2-plan-price{font-size:23px;font-weight:800;margin-top:5px;letter-spacing:-.4px}
+.pw2-plan-per{font-size:11.5px;color:var(--text2);margin-top:2px}
+.pw2-plan-save{position:absolute;top:-10px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  background:linear-gradient(120deg,var(--acc),rgba(var(--acc-rgb),.75));color:#fff;
+  font-size:10px;font-weight:800;padding:3px 9px;border-radius:8px;
   box-shadow:0 4px 12px rgba(var(--acc-rgb),.4)}
-.pw-plan-check{position:absolute;top:9px;right:9px;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:var(--acc);color:#fff;opacity:0;transform:scale(.5);transition:opacity .15s,transform .18s}
-.pw-plan.on .pw-plan-check{opacity:1;transform:none}
-.pw-cta{width:100%;border:none;border-radius:16px;padding:16px;font-size:16.5px;font-weight:800;font-family:inherit;cursor:pointer;
-  position:relative;overflow:hidden;
+.pw2-plan-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:var(--acc);color:#fff;
+  opacity:0;transform:scale(.5);transition:opacity .15s,transform .18s}
+.pw2-plan.on .pw2-plan-check{opacity:1;transform:none}
+.pw2-cta{width:100%;border:none;border-radius:16px;padding:16px;font-size:16.5px;font-weight:800;
+  font-family:inherit;cursor:pointer;position:relative;overflow:hidden;
   background:linear-gradient(120deg,var(--acc) 0%,rgba(var(--acc-rgb),.82) 100%);color:#fff;
-  box-shadow:0 10px 28px rgba(var(--acc-rgb),.40),inset 0 1px 0 rgba(255,255,255,.28)}
-.pw-cta::after{content:'';position:absolute;top:0;bottom:0;width:46%;left:-50%;
+  box-shadow:0 10px 26px rgba(var(--acc-rgb),.40),inset 0 1px 0 rgba(255,255,255,.28);
+  -webkit-tap-highlight-color:transparent}
+.pw2-cta::after{content:'';position:absolute;top:0;bottom:0;width:46%;left:-50%;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);
   animation:pwShine 3.2s ease-in-out infinite}
 @keyframes pwShine{0%,55%{transform:translateX(0)}85%,100%{transform:translateX(420%)}}
-@media (prefers-reduced-motion:reduce){.pw-cta::after{animation:none}}
-.pw-cta:disabled{opacity:.6}
-.pw-trust{display:flex;justify-content:center;gap:14px;margin-top:12px;flex-wrap:wrap}
-.pw-trust span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--text2)}
-.pw-trust svg{color:#30d158}
-.pw-foot{font-size:11px;color:var(--text2);line-height:1.5;text-align:center;margin-top:10px}
-.pw-links{display:flex;justify-content:center;gap:14px;margin-top:8px}
-.pw-links button{background:none;border:none;font-family:inherit;font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;padding:4px}
+@media (prefers-reduced-motion:reduce){.pw2-cta::after{animation:none}}
+.pw2-cta:active{transform:scale(.985)}
+.pw2-cta:disabled{opacity:.6}
+.pw2-legal{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  font-size:11px;color:var(--text2)}
+.pw2-legal .tk{display:inline-flex;align-items:center;gap:4px;font-weight:700}
+.pw2-legal .tk svg{color:#30d158}
+.pw2-legal button{background:none;border:none;font-family:inherit;font-size:11px;
+  color:var(--acc);font-weight:700;cursor:pointer;padding:2px}
+.pw2-webnote{padding:14px;text-align:center;font-size:14px;line-height:1.5;
+  border-radius:16px;background:var(--inp-bg);border:1px solid var(--gl-bdr)}
+/* kurze Screens: alles etwas kompakter, bleibt scrollfrei */
+@media (max-height:720px){
+  .pw2-stage{width:112px;height:112px;margin-bottom:16px}
+  .pw2-orb{width:78px;height:78px;border-radius:24px}
+  .pwa-ring{width:78px;height:78px;border-radius:24px}
+  .pw2-ct{font-size:20px}.pw2-cs{font-size:13.5px}
+  .pw2-dots{margin-top:12px}
+  .pw2-plan-price{font-size:21px}
+  .pw2-cta{padding:14px}
+}
 /* ═══════════════════ KI-COACH: SCHWEBENDE BUBBLE + RADIALMENÜ ═══════════════════ */
 /* Abgetrennter Kreis rechts neben der (gestauchten) Tableiste, gleiche Unterkante,
    feste Größe (kleiner als die Tabbar-Höhe). IMMER dunkles Glas — bewusst NICHT
@@ -6336,7 +6426,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240001';
+const APP_VERSION = 'gymtrack-v202607240003';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7216,6 +7306,7 @@ const CHANGELOG = {
     items: [
       '🔔 Beim Abmelden wird der Geräte-Push-Token jetzt aus dem Profil entfernt',
       '🚫 Verhindert, dass ein neu angemeldeter Account auf demselben Gerät Push-Benachrichtigungen für Reaktionen auf Posts des alten Kontos bekommt',
+      '🔴 Roter Zähler am App-Icon verschwindet jetzt beim Öffnen der App zuverlässig',
     ]
   },
   'cl-2026-07-23-live-coach-plus': {
@@ -21147,62 +21238,100 @@ function _pwPrice(plan){
   return plan === 'yearly' ? '19,99 €' : '2,99 €';
 }
 const _PW_FEATS = {
-  chat:     { ico:'robot',   t:'KI-Chat & Trainingsplan', s:'Dein Coach kennt dein Training — Pläne, Technik, Fortschritt' },
-  coach:    { ico:'bolt',    t:'Live-Coach im Training',  s:'Feedback nach jedem Satz, passende Satz-Empfehlungen in Echtzeit' },
-  scan:     { ico:'camera',  t:'Geräte-Scanner',          s:'Gerät fotografieren — Übungen & Ausführung sofort erklärt' },
-  analyze:  { ico:'chart2',  t:'Trainingsanalyse',        s:'KI bewertet Volumen, Balance & Technik-Trends mit Score' },
-  insights: { ico:'sparkle', t:'Fortschritts-Insights',   s:'Automatische Auswertung deiner Statistik' },
+  chat:     { anim:'chat',     t:'KI-Chat & Trainingsplan', s:'Dein Coach kennt dein Training — Pläne, Technik und Fortschritt, jederzeit im Chat.' },
+  coach:    { anim:'coach',    t:'Live-Coach im Training',  s:'Feedback nach jedem Satz und passende Empfehlungen in Echtzeit.' },
+  scan:     { anim:'scan',     t:'Geräte-Scanner',          s:'Gerät fotografieren — Übungen und Ausführung sofort erklärt.' },
+  analyze:  { anim:'analyze',  t:'Trainingsanalyse',        s:'KI bewertet Volumen, Balance und Technik-Trends mit klarem Score.' },
+  insights: { anim:'insights', t:'Fortschritts-Insights',   s:'Automatische Auswertung deiner Statistik — du siehst sofort, was wirkt.' },
 };
-function _pwFeatRowsHTML(keys){
-  return keys.map(k => { const f = _PW_FEATS[k]; if (!f) return '';
-    return `<div class="pw-feat"><div class="pw-feat-ico">${ICO[f.ico]({s:20})}</div>
-      <div><div class="pw-feat-t">${f.t}</div><div class="pw-feat-s">${f.s}</div></div></div>`; }).join('');
+// Animierte Bühne pro Vorteil (nur Vektor/CSS — kein Emoji, UI-Regel)
+function _pw2Stage(a){
+  const sp = s => ICO.sparkle({s});
+  if (a==='coach')    return `<div class="pw2-stage"><span class="pwa-ring"></span><span class="pwa-ring d2"></span><div class="pw2-orb">${ICO.bolt({s:48})}</div></div>`;
+  if (a==='chat')     return `<div class="pw2-stage"><div class="pw2-orb">${ICO.chatBubble({s:46})}</div><span class="pwa-bub a"></span><span class="pwa-bub b"></span></div>`;
+  if (a==='scan')     return `<div class="pw2-stage"><div class="pw2-orb pwa-scan">${ICO.camera({s:44})}<span class="pwa-scanline"></span></div></div>`;
+  if (a==='analyze')  return `<div class="pw2-stage"><div class="pw2-orb pwa-bars"><span></span><span></span><span></span><span></span></div></div>`;
+  return `<div class="pw2-stage"><div class="pw2-orb">${ICO.trendUp({s:46})}</div><span class="pwa-spk s1">${sp(16)}</span><span class="pwa-spk s2">${sp(12)}</span><span class="pwa-spk s3">${sp(10)}</span></div>`;
 }
-function pwPickPlan(p){ _pwPlan = p; haptic(6); _pwRender(); }
+function _pw2CardsHTML(keys){
+  return keys.map(k => { const f = _PW_FEATS[k]; if (!f) return '';
+    return `<div class="pw2-card">${_pw2Stage(f.anim)}<div class="pw2-ct">${f.t}</div><div class="pw2-cs">${f.s}</div></div>`;
+  }).join('');
+}
+function pwPickPlan(p){ _pwPlan = p; haptic(6); _pwRenderBot(); }
 function _pwPlanCardsHTML(){
   return `
-    <div class="pw-plan${_pwPlan==='yearly'?' on':''}" onclick="pwPickPlan('yearly')">
-      <span class="pw-plan-save">Spare 44 %</span>
-      <span class="pw-plan-check">${ICO.check({s:12})}</span>
-      <div class="pw-plan-name">Jährlich</div>
-      <div class="pw-plan-price">${_pwPrice('yearly')}</div>
-      <div class="pw-plan-per">pro Jahr · nur 1,67 €/Monat</div>
+    <div class="pw2-plan${_pwPlan==='yearly'?' on':''}" onclick="pwPickPlan('yearly')">
+      <span class="pw2-plan-save">Spare 44 %</span>
+      <span class="pw2-plan-check">${ICO.check({s:12})}</span>
+      <div class="pw2-plan-name">Jährlich</div>
+      <div class="pw2-plan-price">${_pwPrice('yearly')}</div>
+      <div class="pw2-plan-per">pro Jahr · 1,67 €/Monat</div>
     </div>
-    <div class="pw-plan${_pwPlan==='monthly'?' on':''}" onclick="pwPickPlan('monthly')">
-      <span class="pw-plan-check">${ICO.check({s:12})}</span>
-      <div class="pw-plan-name">Monatlich</div>
-      <div class="pw-plan-price">${_pwPrice('monthly')}</div>
-      <div class="pw-plan-per">pro Monat</div>
+    <div class="pw2-plan${_pwPlan==='monthly'?' on':''}" onclick="pwPickPlan('monthly')">
+      <span class="pw2-plan-check">${ICO.check({s:12})}</span>
+      <div class="pw2-plan-name">Monatlich</div>
+      <div class="pw2-plan-price">${_pwPrice('monthly')}</div>
+      <div class="pw2-plan-per">pro Monat</div>
     </div>`;
 }
+// Unterer Block (Pläne + CTA) — separat gerendert, damit ein Plan-Wechsel die
+// wischbare Showcase oben NICHT zurücksetzt.
+function _pwBotHTML(){
+  const native = _isNative();
+  const tk = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>`;
+  const cta = _pwPlan==='yearly' ? 'Jahresplan freischalten' : 'Monatsplan freischalten';
+  return `
+    <div class="pw2-plans">${_pwPlanCardsHTML()}</div>
+    ${native
+      ? `<button class="pw2-cta" id="pw-cta" onclick="premBuy(_pwPlan==='yearly'?PREM_YEARLY:PREM_MONTHLY)">${cta}</button>`
+      : `<div class="pw2-webnote">Premium schließt du in der MyGymTrack iOS-App ab.</div>`}
+    <div class="pw2-legal">
+      <span class="tk">${tk} Jederzeit kündbar · dein App Store</span>
+      <button onclick="premRestore()">Käufe wiederherstellen</button>
+    </div>`;
+}
+function _pwRenderBot(){ const b = document.getElementById('pw2-bot'); if (b) b.innerHTML = _pwBotHTML(); }
 function openPaywall(feature){
   _pwRender(feature);
   openOv('ov-paywall');
-  if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRender(feature));
+  if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRenderBot());
 }
 function _pwRender(feature){
   const el = document.getElementById('pw-body'); if (!el) return;
-  const native = _isNative();
-  const trustCheck = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>`;
+  const keys = ['chat','coach','scan','analyze','insights'];
   el.innerHTML = `
-    <div class="pw-hero">
-      <div class="pw-hero-badge">${ICO.sparkle({s:32})}</div>
-      <div class="pw-title">MyGymTrack Premium</div>
-      <div class="pw-sub">Dein persönlicher KI-Coach: Chat, Live-Tipps im Training, Analysen &amp; Geräte-Scanner.</div>
-      <div class="pw-value-pill">${ICO.sparkle({s:13})} Weniger als ein Proteinriegel im Monat</div>
-    </div>
-    <div class="pw-feats">${_pwFeatRowsHTML(['chat','coach','scan','analyze','insights'])}</div>
-    <div class="pw-plans">${_pwPlanCardsHTML()}</div>
-    ${native
-      ? `<button class="pw-cta" id="pw-cta" onclick="premBuy(_pwPlan==='yearly'?PREM_YEARLY:PREM_MONTHLY)">Jetzt freischalten</button>`
-      : `<div class="card" style="padding:14px;text-align:center;font-size:14px;line-height:1.5">Premium schließt du in der MyGymTrack iOS-App ab.</div>`}
-    <div class="pw-trust">
-      <span>${trustCheck} Jederzeit kündbar</span>
-      <span>${trustCheck} Über deinen App Store</span>
-      <span>${trustCheck} Sofort aktiv</span>
-    </div>
-    <div class="pw-foot">${_pwPlan==='yearly' ? _pwPrice('yearly')+' pro Jahr' : _pwPrice('monthly')+' pro Monat'} · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen</div>
-    <div class="pw-links"><button onclick="premRestore()">Käufe wiederherstellen</button></div>`;
+    <div class="pw2">
+      <button class="pw2-close" onclick="closeOv('ov-paywall')" aria-label="Schließen">✕</button>
+      <div class="pw2-brand">${ICO.sparkle({s:14})} MYGYMTRACK PREMIUM</div>
+      <div class="pw2-show">
+        <div class="pw2-track" id="pw2-track">${_pw2CardsHTML(keys)}</div>
+        <div class="pw2-dots" id="pw2-dots">${keys.map((_,i)=>`<span class="pw2-dot${i===0?' on':''}" onclick="pwGo(${i})"></span>`).join('')}</div>
+      </div>
+      <div class="pw2-bot" id="pw2-bot">${_pwBotHTML()}</div>
+    </div>`;
+  _pwCarInit();
+}
+// ── Showcase-Carousel: Auto-Wechsel + Punkte, pausiert kurz nach Nutzer-Wisch ──
+let _pwCarTimer = null, _pwCarIdx = 0, _pwCarPauseTs = 0;
+function _pwCarDots(i){ document.querySelectorAll('#pw2-dots .pw2-dot').forEach((d,x)=>d.classList.toggle('on', x===i)); }
+function pwGo(i){ const t = document.getElementById('pw2-track'); if (!t) return; _pwCarPauseTs = Date.now(); t.scrollTo({ left:i*t.clientWidth, behavior:'smooth' }); }
+function _pwCarInit(){
+  const tr = document.getElementById('pw2-track'); if (!tr) return;
+  _pwCarIdx = 0; tr.scrollLeft = 0;
+  tr.onscroll = () => { const w = tr.clientWidth||1; const i = Math.round(tr.scrollLeft / w);
+    if (i !== _pwCarIdx){ _pwCarIdx = i; _pwCarDots(i); } };
+  ['touchstart','pointerdown'].forEach(ev => tr.addEventListener(ev, () => { _pwCarPauseTs = Date.now(); }, { passive:true }));
+  if (_pwCarTimer) clearInterval(_pwCarTimer);
+  _pwCarTimer = setInterval(() => {
+    const ov = document.getElementById('ov-paywall');
+    const t  = document.getElementById('pw2-track');
+    if (!ov || !ov.classList.contains('on') || !t){ clearInterval(_pwCarTimer); _pwCarTimer = null; return; }
+    if (Date.now() - _pwCarPauseTs < 5000) return;          // nach Wisch kurz Ruhe
+    const n = document.querySelectorAll('#pw2-track .pw2-card').length || 1;
+    const next = (_pwCarIdx + 1) % n;
+    t.scrollTo({ left: next * t.clientWidth, behavior:'smooth' });
+  }, 3600);
 }
 
 // ── Settings-Sektion "MyGymTrack Premium" ─────────────

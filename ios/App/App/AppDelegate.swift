@@ -79,6 +79,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
            let wv = rootVC.bridge?.webView {
             _applyScrollSettings(wv)
         }
+        // App-Icon-Badge zurücksetzen: der Push-Worker schickt kein Badge mehr mit,
+        // also muss die App selbst dafür sorgen, dass die rote Zahl beim Öffnen weggeht.
+        application.applicationIconBadgeNumber = 0
     }
 
     func applicationWillTerminate(_ application: UIApplication) {}

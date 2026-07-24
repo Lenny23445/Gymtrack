@@ -54,7 +54,10 @@ export default {
           alert: { title: "MyGymTrack",
                    body: `${sanitize(fromName) || "Jemand"} hat mit einer Flamme reagiert` },
           sound: "default",
-          badge: 1,
+          // Kein hardcodiertes badge:1 mehr — der Worker kennt die echte Unread-Zahl
+          // nicht (stateless) und hätte bei jeder Push den Badge wieder auf 1 gesetzt,
+          // selbst wenn die App ihn gerade erst auf 0 zurückgesetzt hatte. Badge wird
+          // jetzt ausschließlich clientseitig verwaltet (AppDelegate: Reset bei App-Start).
         },
       });
       const send = (host) => fetch(`${host}/3/device/${token}`, {
