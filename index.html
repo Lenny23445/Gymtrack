@@ -4605,7 +4605,7 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
    animiertem box-shadow — box-shadow-Keyframes repainted jeden Frame und ruckelt
    auf älteren Geräten. */
 .ex-card.coach-aura{position:relative;border-color:rgba(var(--acc-rgb),.50)}
-.ex-card.coach-aura::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;
+.ex-card.coach-aura::after{content:'';position:absolute;inset:0;height:auto;background:none;border-radius:inherit;pointer-events:none;z-index:0;
   box-shadow:inset 0 0 0 2px rgba(var(--acc-rgb),.55),0 0 26px 5px rgba(var(--acc-rgb),.34);opacity:.45}
 @media (prefers-reduced-motion:no-preference){
   .ex-card.coach-aura::after{animation:coachAuraOp 2.2s ease-in-out infinite}
@@ -6443,7 +6443,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240005';
+const APP_VERSION = 'gymtrack-v202607240007';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -6847,6 +6847,7 @@ const I18N_EN = {
   'Name oder Code suchen':'Search name or code','Dein Code':'Your code','QR-Code':'QR code','Suche…':'Searching…',
   'Befreundet':'Friends','Das bist du selbst.':"That's you.",'Ihr seid schon Freunde.':"You're already friends.",
   'Dieser Nutzer ist blockiert.':'This user is blocked.','Anfrage fehlgeschlagen:':'Request failed:',
+  'Anfragen':'Add friend','Angefragt':'Requested',
   'Freund aus deiner Liste entfernen?':'Remove this friend from your list?',
   'Nutzer blockieren? Er kann dir keine Anfragen mehr senden und verschwindet aus deiner Liste.':'Block this user? They can no longer send you requests and will disappear from your list.',
   'Niemanden gefunden. Tipp: 6-stelliger Code funktioniert immer.':'No one found. Tip: the 6-digit code always works.',
@@ -7318,6 +7319,13 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-24-coach-aura-border-fix': {
+    label: '24.07.2026 · Fix: KI-Coach-Rahmen im Training',
+    items: [
+      '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang',
+      '✨ Vorher schnitt der Glow durch die Übungskarte statt außen umzulaufen',
+    ]
+  },
   'cl-2026-07-24-push-token-signout-fix': {
     label: '24.07.2026 · Fix: Falsche Flammen-Benachrichtigungen nach Konto-Wechsel',
     items: [
@@ -18928,9 +18936,9 @@ async function declineRequest(id){
   renderFriendsTab();
 }
 async function _sendRequest(toUid, toName){
-  if (toUid === _fbUser.uid) { alert('Das bist du selbst.'); return; }
-  if (S.friends.includes(toUid)) { alert('Ihr seid schon Freunde.'); return; }
-  if ((S.blocked||[]).includes(toUid)) { alert('Dieser Nutzer ist blockiert.'); return; }
+  if (toUid === _fbUser.uid) { alert('Das bist du selbst.'); return false; }
+  if (S.friends.includes(toUid)) { alert('Ihr seid schon Freunde.'); return false; }
+  if ((S.blocked||[]).includes(toUid)) { alert('Dieser Nutzer ist blockiert.'); return false; }
   try {
     await window.FB.addDoc(window.FB.collection('requests'), {
       from:_fbUser.uid, to:toUid,
@@ -18939,7 +18947,14 @@ async function _sendRequest(toUid, toName){
     });
     haptic(15);
     alert('Anfrage an ' + toName + ' gesendet.');
-  } catch(e) { alert('Anfrage fehlgeschlagen: ' + (e?.code || e?.message || e)); }
+    return true;
+  } catch(e) { alert('Anfrage fehlgeschlagen: ' + (e?.code || e?.message || e)); return false; }
+}
+async function _frProfileSendReq(btn, uid, name){
+  btn.disabled = true;
+  const ok = await _sendRequest(uid, name);
+  if (ok) btn.textContent = tr('Angefragt');
+  else btn.disabled = false;
 }
 function removeFriend(uid){
   if (!confirm('Freund aus deiner Liste entfernen?')) return;
@@ -19251,6 +19266,7 @@ function _xpGainOnFinish(){
 async function openFrProfile(uid){
   haptic(8);
   const p = (_socCache||[]).find(x => x.uid === uid); if (!p) return;
+  const isFriend = (S.friends||[]).includes(uid);
   const t = document.getElementById('frp-title'); if (t) t.textContent = p.name || 'Profil';
   const body = document.getElementById('frp-body'); if (!body) return;
   const live = !!(p.live && p.live.on);
@@ -19306,7 +19322,9 @@ async function openFrProfile(uid){
     <div class="frp-sec">Aktivität</div>
     <div id="frp-feed"><div class="soc-empty" style="padding:10px">Lade…</div></div>
     <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-gray" style="flex:1" onclick="removeFriend('${uid}')">Entfernen</button>
+      ${isFriend
+        ? `<button class="btn btn-gray" style="flex:1" onclick="removeFriend('${uid}')">Entfernen</button>`
+        : `<button class="btn fr-req-ok" style="flex:1" onclick="_frProfileSendReq(this,'${uid}','${esc(p.name||'')}')">Anfragen</button>`}
       <button class="btn btn-gray" style="flex:1;color:#ff453a" onclick="blockUser('${uid}')">Blockieren</button>
     </div>`;
   openOv('ov-frprofile');
