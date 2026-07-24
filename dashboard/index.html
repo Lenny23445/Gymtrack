@@ -457,7 +457,7 @@ function render(D) {
     + tile(S.ok && S.workouts ? fmt(S.workouts.last7) : '—', 'Workouts · 7 Tage');
   ov += `</div></section>`;
   if (A.ok) ov += `<section>${secHead('Neue Nutzer', 'Neuregistrierungen = neue Installationen', null)}
-    <div class="cards">${chartCard('Neue Accounts pro Tag', A.signupsByDay, 'Accounts', { wide: true })}</div></section>`;
+    <div class="cards">${chartCard('Neue Accounts pro Tag', realSeries, 'Accounts', { wide: true })}</div></section>`;
 
   /* ── Downloads ── */
   let dlh = `<section>${secHead('Downloads · live', 'Basis = Apple offiziell, live ergänzt um neue Konten', AS.ok ? (A.ok ? staleErr : A) : AS)}<div class="tiles">`;
