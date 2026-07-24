@@ -4146,10 +4146,23 @@ html[data-glass][data-theme="dark"] .tabbar{
 .founder-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:800;
   vertical-align:1px;letter-spacing:.3px;background:#0b0b0d;color:#fff;border:1px solid rgba(255,255,255,.16)}
 .cpg-head .founder-tag{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.24)}
-/* Phase G: Premium-Abzeichen neben Namen — nur das Metallic-SVG, keine Pille (bleibt
-   in jedem Theme gleich edel statt sich der Akzentfarbe anzupassen). */
-.prem-tag{display:inline-flex;align-items:center;margin-left:5px;vertical-align:-2px}
-.prem-tag svg{display:block}
+/* Premium-Abzeichen neben Namen/Level — goldene Glow-Pille mit Shine-Sweep + sanftem
+   Puls, damit es in der Community präsenter neben dem Level sitzt. Theme-unabhängig gold. */
+.prem-tag{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  margin-left:6px;vertical-align:-3px;padding:3px;border-radius:999px;overflow:hidden;
+  background:radial-gradient(circle at 35% 30%,rgba(255,240,200,.30),rgba(217,165,52,.16) 70%,rgba(217,165,52,.05));
+  border:1px solid rgba(246,210,104,.55);
+  box-shadow:0 0 0 1px rgba(0,0,0,.04),0 2px 7px rgba(217,165,52,.35),inset 0 0 6px rgba(255,246,216,.35);
+  animation:premPulse 2.6s ease-in-out infinite}
+.prem-tag svg{display:block;position:relative;z-index:1;filter:drop-shadow(0 0 2px rgba(255,224,140,.6))}
+.prem-tag::after{content:"";position:absolute;top:0;left:-60%;width:55%;height:100%;z-index:2;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.85),transparent);
+  transform:skewX(-18deg);animation:premShine 3.4s ease-in-out infinite}
+.cpg-head .prem-tag{border-color:rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 0 6px rgba(255,246,216,.4)}
+@keyframes premPulse{0%,100%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 2px 7px rgba(217,165,52,.30),inset 0 0 6px rgba(255,246,216,.35)}
+  50%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 3px 12px rgba(246,210,104,.60),inset 0 0 8px rgba(255,246,216,.55)}}
+@keyframes premShine{0%{left:-60%}55%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.prem-tag{animation:none}.prem-tag::after{display:none}}
 .cpg-menu{width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.3);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
 /* Snap-Card: das Bild ist bereits die fertig gestaltete Share-Card (Name, Tag, Stats,
    Gym, Wasserzeichen alles eingebacken) — deshalb NUR die Controls drüberlegen,
@@ -6434,7 +6447,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240011';
+const APP_VERSION = 'gymtrack-v202607240012';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15787,8 +15800,8 @@ function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''
 /* Phase G: Community-Premium-Abzeichen — kleine Hantel in festem Metallic-Silber-
    Verlauf (KEIN var(--acc)), damit sie in allen 5 Themes gleich „wertig" aussieht. */
 function _premBadgeSVG(s){
-  s = s || 13;
-  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="premg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9ccd4"/><stop offset=".5" stop-color="#eef0f4"/><stop offset="1" stop-color="#9aa0ab"/></linearGradient></defs><g fill="none" stroke="url(#premg${s})" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9v6M17 9v6M4.5 10.2v3.6M19.5 10.2v3.6M7 12h10"/></g></svg>`;
+  s = s || 15;
+  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="display:block"><defs><linearGradient id="premg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6d268"/><stop offset=".5" stop-color="#fff6d8"/><stop offset="1" stop-color="#d9a534"/></linearGradient></defs><g fill="none" stroke="url(#premg${s})" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9v6M17 9v6M4.5 10.2v3.6M19.5 10.2v3.6M7 12h10"/></g></svg>`;
 }
 ICO.premBadge = o => _premBadgeSVG(o && o.s);
 /* „Premium"-Abzeichen neben Namen — analog _lvlTagForUid/_founderTag: eigener Status
@@ -19081,7 +19094,7 @@ function _renderLevelBadge(){
   if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
   const L = _levelOf(_xpSelf());
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
-    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>${isPremium() ? `<span class="prem-tag" style="margin-left:4px">${_premBadgeSVG(12)}</span>` : ''}
+    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>${isPremium() ? `<span class="prem-tag" style="margin-left:5px">${_premBadgeSVG(14)}</span>` : ''}
   </div>`;
 }
 /* Eigene Level-Karte (Community-Übersicht). */
