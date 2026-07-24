@@ -6450,7 +6450,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240013';
+const APP_VERSION = 'gymtrack-v202607240014';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -20044,8 +20044,11 @@ function _friendPostNotifStart(){
       const q = window.FB.query(window.FB.collection('profiles/' + fuid + '/posts'),
         window.FB.orderBy('ts','desc'), window.FB.limit(3));
       const un = window.FB.onSnapshot(q, snap => {
-        // Jede Änderung (auch Löschungen) → offenen Feed live nachladen.
-        if (document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
+        // Nur neue/gelöschte Posts laden den offenen Feed live nach — reine Feld-Updates
+        // (Flamme/Reaktion auf einen bereits gerenderten Post, auch die eigene) würden sonst
+        // bei JEDEM Flamme-Tap den kompletten Feed sichtbar neu rendern.
+        const structural = snap.docChanges().some(c => c.type !== 'modified');
+        if (structural && document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
         const fresh = [];
         let maxTs = S.friendPostTs || 0;
         snap.forEach(d => {
@@ -20107,8 +20110,11 @@ function _communityNotifStart(){
 function _communitySub(ordered){
   const me = _fbUser?.uid;
   const onSnap = snap => {
-    // Jede Änderung (auch Löschungen) → offenen Feed live nachladen.
-    if (document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
+    // Nur neue/gelöschte Posts laden den offenen Feed live nach — reine Feld-Updates
+    // (Flamme/Reaktion auf einen bereits gerenderten Post, auch die eigene) würden sonst
+    // bei JEDEM Flamme-Tap den kompletten Feed sichtbar neu rendern.
+    const structural = snap.docChanges().some(c => c.type !== 'modified');
+    if (structural && document.getElementById('pg-freunde')?.classList.contains('on')) _liveFeedRefreshSoon();
     let maxTs = S.communityPostTs || 0, freshN = 0;
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;
@@ -20719,7 +20725,14 @@ function isPremium(){
   // try/catch: _fbUser ist ein späteres top-level `let` — bei frühem Aufruf
   // (z. B. beim Boot-Rendering vor dem Erreichen der KONTO-Sektion) wäre der
   // Zugriff sonst ein TDZ-ReferenceError, der den kompletten Boot abbricht!
-  try { if (_fbUser && TEST_UIDS.has(_fbUser.uid)) return true; } catch(_){} // Founder/Tester immer Premium
+  try {
+    if (_fbUser && TEST_UIDS.has(_fbUser.uid)) { try{localStorage.setItem('gt_founderCache','1');}catch(_){} return true; } // Founder/Tester immer Premium
+    // Kaltstart: Auth-Restore (_fbUser) noch nicht fertig → letzten bekannten Founder-
+    // Stand annehmen, sonst poppen Premium-Badge/KI-Karte erst nach dem Auth-Sync auf.
+    // Steht der echte Status fest (_authSettled) und ist kein Founder, greift wieder
+    // die normale Prüfung unten.
+    if (!_authSettled && localStorage.getItem('gt_founderCache') === '1') return true;
+  } catch(_){}
   if (localStorage.getItem('gt_premiumDev') === '1') return true;             // Dev-Unlock (nur UI, kein echtes Abo)
   if (!PREM.active) return false;
   return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
@@ -22983,6 +22996,9 @@ async function _onLogin(user) {
   _fbUser = user;
   if (!user.isAnonymous) { try { localStorage.setItem('gt_signedIn','1'); } catch(_){} _hideAuthGate(); } else _maybeAuthGate();
   updateAccountUI();
+  // Premium-Badge + KI-Karte SOFORT mit dem frischen Auth-Status neu bewerten, statt
+  // auf den Cloud-Doc-Fetch weiter unten zu warten — sonst poppen sie sichtbar verzögert auf.
+  try { _renderLevelBadge(); renderCoachTodayCard(); } catch(_){}
   _refreshFriendsIfVisible();   // falls User auf dem Freunde-Tab wartet, sofort echten Inhalt zeigen
   if (!window.FB || !window.FB.configured) return;
 
