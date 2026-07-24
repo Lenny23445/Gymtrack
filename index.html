@@ -3797,6 +3797,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .fr-pills{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .fr-pill{display:inline-flex;align-items:center;gap:5px;background:var(--soft);color:var(--text);font-size:12px;font-weight:700;border-radius:9px;padding:4px 9px}
 .fr-pill svg{width:12px;height:12px}
+.fr-pill .fl svg{width:100%;height:100%}
 .fr-pill.fire{color:#ff9f0a;background:rgba(255,159,10,.13)}
 .fr-chev{flex-shrink:0;color:var(--text2);opacity:.55}
 .fr-empty-hero{text-align:center;padding:40px 22px;display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -4917,16 +4918,6 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
             style="background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:10px;
                    padding:7px 10px;font-size:15px;font-family:inherit;color:var(--text);
                    outline:none;cursor:pointer;flex-shrink:0;width:auto">
-        </div>
-        <div class="row">
-          <div class="row-body">
-            <div class="row-title">Push testen</div>
-            <div class="row-sub" id="pushtest-sub">Schickt dir eine Test-Benachrichtigung</div>
-          </div>
-          <button onclick="_pushSelfTest()"
-            style="background:var(--acc);color:#fff;border:none;border-radius:10px;
-                   padding:8px 14px;font-size:14px;font-weight:700;font-family:inherit;
-                   cursor:pointer;flex-shrink:0">Testen</button>
         </div>
       </div>
     </div>
@@ -6443,7 +6434,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240007';
+const APP_VERSION = 'gymtrack-v202607240009';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7129,6 +7120,10 @@ const I18N_EN = {
   '🧠 Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'🧠 Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
   '📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch':'📉 A "Very hard" check-in now automatically holds back the weight increase for your next workout',
   '🎯 Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor':'🎯 New recommendation on the Today tab: on a free day, suggests your most recovered muscle group',
+  /* Changelog: KI-Coach-Rahmen-Fix (24.07.2026) */
+  '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
+  '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
+  '✨ Vorher schnitt der Glow durch die Übungskarte statt außen umzulaufen':'✨ Previously the glow cut through the exercise card instead of tracing the outer edge',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -18183,41 +18178,6 @@ async function _notifyFlamePush(toUid){
 
 /* Selbsttest: registriert, schickt eine Push an DICH SELBST und zeigt in Klartext,
    woran es hängt. Ein Gerät reicht, keine Cloudflare-Logs nötig. */
-async function _pushSelfTest(){
-  const PN = _cap('PushNotifications');
-  if (!PN) { alert('Push geht nur in der installierten App (nicht im Browser).'); return; }
-  if (!_fbUser || _fbUser.isAnonymous) { alert('Bitte zuerst einloggen (nicht anonym).'); return; }
-  if (!S.socialOn) { alert('Bitte zuerst Community/Freunde aktivieren.'); return; }
-  alert('Registriere Push… gleich kommt evtl. der Erlauben-Dialog. Danach nochmal „Testen" tippen.');
-  _pushReg = false;              // Registrierung erzwingen
-  await _pushRegister();
-  // kurz auf den Token warten (registration-Event ist asynchron)
-  for (let i = 0; i < 20 && !_pushToken; i++) { await new Promise(r => setTimeout(r, 250)); }
-  if (!_pushToken) {
-    alert('❌ Kein Push-Token bekommen.\nErlaubnis erteilt? Und ist es ein TestFlight/Store-Build (nicht Simulator)? Ohne Token kann keine Push kommen.');
-    return;
-  }
-  try { await _pushSocialProfile(); } catch(_){}   // Token sicher ins Profil schreiben
-  await new Promise(r => setTimeout(r, 400));
-  let idToken;
-  try { idToken = await _fbUser.getIdToken(); }
-  catch(e) { alert('❌ Firebase-Login-Token fehlgeschlagen: ' + (e && e.message || e)); return; }
-  try {
-    // Bewusst OHNE Content-Type-Header: einfacher CORS-Request, kein Preflight
-    // (WKWebView meldete "Load failed" trotz erreichbarem Worker).
-    const res = await fetch(PUSH_WORKER_URL, {
-      method: 'POST',
-      body: JSON.stringify({ toUid: _fbUser.uid, idToken, fromName: 'Test' })
-    });
-    const j = await res.json().catch(() => ({}));
-    if (j.ok && !j.skipped) alert('✅ Push wurde an Apple übergeben. Sperre das Handy — sie sollte in Sekunden kommen. (Token: …' + _pushToken.slice(-6) + ')');
-    else if (j.skipped === 'no pushToken') alert('⚠️ Token noch nicht im Profil gespeichert.\nHast du die Firestore-Rules mit „pushToken" veröffentlicht? Sonst wird der Token abgelehnt.');
-    else if (j.error === 'apns failed') alert('❌ Apple lehnt ab (' + j.status + '): ' + (j.detail || '') + '\nSchick mir genau diese Zeile.');
-    else if (j.error === 'auth/profile read failed') alert('❌ Login/Profil-Lesen fehlgeschlagen (' + j.status + ').');
-    else alert('Antwort: ' + JSON.stringify(j));
-  } catch(e) { alert('❌ Worker nicht erreichbar: ' + (e && e.message || e)); }
-}
-
 function toggleSocial(on){
   S.socialOn = !!on;
   persist();
@@ -18376,7 +18336,7 @@ function _demoCard(p){
       ${sub}
       <div class="fr-pills">
         <span class="fr-pill">${wses}× diese Woche</span>
-        ${p.streak ? `<span class="fr-pill fire">${_FLAME_MINI}${p.streak} Wo.</span>` : ''}
+        ${p.streak ? `<span class="fr-pill fire">${_flameSVG(12)}${p.streak} Wo.</span>` : ''}
       </div>
     </div>
     <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -18748,7 +18708,6 @@ async function _renderSocBoard(body){
     `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>`;
 }
 /* ── Freunde-Übersicht (Karten mit Live-Status) ── */
-const _FLAME_MINI = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2s5 4.6 5 9.8A5.2 5.2 0 0 1 12 17a5.2 5.2 0 0 1-5-5.2C7 6.6 12 2 12 2z"/></svg>';
 function _timeAgo(ts){
   if (!ts) return '';
   const d = Date.now() - ts;
@@ -18817,7 +18776,7 @@ function _frCardHTML(p){
       ${sub}
       <div class="fr-pills">
         <span class="fr-pill">${wses}× diese Woche</span>
-        ${p.streak ? `<span class="fr-pill fire">${_FLAME_MINI}${p.streak} Wo.</span>` : ''}
+        ${p.streak ? `<span class="fr-pill fire">${_flameSVG(12)}${p.streak} Wo.</span>` : ''}
       </div>
     </div>
     <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
