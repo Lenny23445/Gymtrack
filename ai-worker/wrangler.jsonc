@@ -1,0 +1,15 @@
+{
+  // Deploy-Config für den KI-Worker. Enthält bewusst KEINE Secrets/API-Keys
+  // (GEMINI_API_KEY etc. bleiben Dashboard-Variablen und werden beim Deploy via
+  // `--keep-vars` bewahrt). KV-Binding + öffentliche Vars sind hier reproduzierbar.
+  "name": "gymtrack-ai",
+  "main": "worker.js",
+  "compatibility_date": "2026-07-23",
+  "kv_namespaces": [
+    { "binding": "AI_QUOTA", "id": "4ea529992cc548eb852b7e3b0818a03b" }
+  ],
+  "vars": {
+    "MODEL": "gemini-3.5-flash-lite",
+    "MONTHLY_LIMIT": "150"
+  }
+}

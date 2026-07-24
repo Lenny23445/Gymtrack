@@ -109,10 +109,12 @@ async function monthlyStats(env) {
 }
 // Nach jedem erfolgreichen LLM-Call — bewusst separat von monthlyUse() (Call-Zähler
 // pro User), das hier ist die Kosten-Summe über ALLE User für Spend-Cap + Dashboard.
-async function recordUsage(env, usage) {
+// Zusätzlich pro-Nutzer-Verbrauch (utok:{uid}:{month}) fürs Kosten-pro-Kunde-Dashboard.
+async function recordUsage(env, uid, usage) {
   const kv = env.AI_QUOTA;
   if (!kv || !usage) return;
   const month = new Date().toISOString().slice(0, 7);
+  // 1) Global (Spend-Cap + Gesamtzahlen)
   const key = "stats:" + month;
   const raw = await kv.get(key);
   const s = raw ? JSON.parse(raw) : { calls: 0, inTok: 0, outTok: 0 };
@@ -120,6 +122,17 @@ async function recordUsage(env, usage) {
   s.inTok  += usage.inTok  || 0;
   s.outTok += usage.outTok || 0;
   await kv.put(key, JSON.stringify(s), { expirationTtl: 400 * 86400 });
+  // 2) Pro Nutzer (Tokens/Kosten je Account). Founder/Tester zählen NICHT mit
+  //    (sie umgehen das Limit → würden das Dashboard verfälschen).
+  if (uid && !TEST_UIDS.has(uid)) {
+    const uk = "utok:" + uid + ":" + month;
+    const ur = await kv.get(uk);
+    const u = ur ? JSON.parse(ur) : { calls: 0, inTok: 0, outTok: 0 };
+    u.calls++;
+    u.inTok  += usage.inTok  || 0;
+    u.outTok += usage.outTok || 0;
+    await kv.put(uk, JSON.stringify(u), { expirationTtl: 400 * 86400 });
+  }
 }
 
 export default {
@@ -161,7 +174,45 @@ export default {
           }))).filter(Boolean).sort((a, b) => a.month < b.month ? -1 : 1);
         }
       } catch (e) { /* Historie optional — Hauptzahlen liefern trotzdem */ }
-      return json({ ...stats, costUsd, budgetUsd, history }, 200, cors);
+      // ── Pro-Nutzer-Verbrauch (aktueller Monat): Tokens, Kosten, Request-Zähler ──
+      // utok:{uid}:{month} = {calls,inTok,outTok}; q:{uid}:{month} = Request-Zähler (Zahl).
+      let users = [];
+      try {
+        const kv = env.AI_QUOTA;
+        if (kv) {
+          const month = new Date().toISOString().slice(0, 7);
+          const suf = ":" + month;
+          const ut = await kv.list({ prefix: "utok:" });
+          const rows = await Promise.all(ut.keys
+            .filter((k) => k.name.endsWith(suf))
+            .map(async (k) => {
+              const uid2 = k.name.slice(5, -(suf.length)); // "utok:".length = 5
+              const raw = await kv.get(k.name);
+              if (!raw) return null;
+              const u = JSON.parse(raw);
+              const reqRaw = await kv.get("q:" + uid2 + suf);
+              return {
+                uid: uid2,
+                reqCount: Math.ceil(parseFloat(reqRaw) || 0),   // gezählte Anfragen (Limit-relevant)
+                calls: u.calls || 0,                             // erfolgreiche LLM-Calls
+                inTok: u.inTok || 0,
+                outTok: u.outTok || 0,
+                costUsd: estCostUsd(env, u.inTok || 0, u.outTok || 0),
+              };
+            }));
+          users = rows.filter(Boolean).sort((a, b) => b.costUsd - a.costUsd);
+        }
+      } catch (e) { /* Pro-Nutzer optional */ }
+      // Konfig-Selbstcheck: greift das Pro-Nutzer-Monatslimit wirklich?
+      // kvBound=false ⇒ monthlyUse() fällt in den fail-open-Pfad (Zeile ~85),
+      // dann ist das Limit für ECHTE Nutzer NICHT wirksam (jeder unbegrenzt).
+      const cfg = {
+        kvBound: !!env.AI_QUOTA,
+        monthlyLimit: parseInt(env.MONTHLY_LIMIT) || 50,
+        limitEnforced: !!env.AI_QUOTA,   // nur mit gebundenem KV echt durchgesetzt
+        globalBudgetUsd: budgetUsd,
+      };
+      return json({ ...stats, costUsd, budgetUsd, history, cfg, users }, 200, cors);
     }
 
     // ── GET /admin-stats — Auth- + App-Store-Zahlen fürs Live-Dashboard (nur Founder-UID) ──
@@ -235,7 +286,7 @@ export default {
       else if (path === "/coach")   result = await runCoach(body, lang, env);
       else if (path === "/vision")  result = await runVision(body, lang, env);
       else                           result = await runAnalyze(body, lang, env);
-      try { await recordUsage(env, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
+      try { await recordUsage(env, uid, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
       delete result.usage; // interne Kosten-Info, nicht an den Client
       result.quota = quota;
       return json(result, 200, cors);

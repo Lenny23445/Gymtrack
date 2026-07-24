@@ -588,6 +588,8 @@ function render(D) {
     const hasBudget = typeof AI.budgetUsd === 'number' && AI.budgetUsd > 0;
     const pct = hasBudget ? Math.min(100, Math.round((AI.costUsd / AI.budgetUsd) * 100)) : null;
     const H = Array.isArray(AI.history) ? AI.history : null;
+    const U = Array.isArray(AI.users) ? AI.users : null;
+    const monthLimit = (AI.cfg && AI.cfg.monthlyLimit) || 150;
     const avgMonth = H && H.length ? H.reduce((a, m) => a + (m.costUsd || 0), 0) / H.length : null;
     ai += `<div class="tiles">`
       + tile(nfUSD.format(AI.costUsd || 0), 'Kosten diesen Monat', 'Gemini, geschätzt', true)
@@ -595,6 +597,7 @@ function render(D) {
       + tile(fmt(AI.calls), 'KI-Anfragen', 'diesen Monat')
       + tile(fmt(AI.inTok), 'Input-Token', 'diesen Monat')
       + tile(fmt(AI.outTok), 'Output-Token', 'diesen Monat')
+      + (U ? tile(fmt(U.length), 'Aktive KI-Nutzer', 'mit Verbrauch diesen Monat') : '')
       + (hasBudget ? tile(pct + ' %', 'Budget-Auslastung', nfUSD.format(AI.costUsd) + ' von ' + nfUSD.format(AI.budgetUsd)) : '');
     ai += `</div>`;
     if (H && H.length > 1) {
@@ -602,6 +605,17 @@ function render(D) {
         <tr><th>Monat</th><th>Anfragen</th><th>Input-Token</th><th>Output-Token</th><th>Kosten</th></tr>
         ${H.slice().reverse().map(m => `<tr><td>${esc(m.month)}</td><td>${fmt(m.calls)}</td><td>${fmt(m.inTok)}</td><td>${fmt(m.outTok)}</td><td>${nfUSD.format(m.costUsd || 0)}</td></tr>`).join('')}
       </table></div></div></div>`;
+    }
+    // Kosten pro Kunde (aktueller Monat) — nach höchsten Kosten sortiert
+    if (U && U.length) {
+      const totCost = U.reduce((a, u) => a + (u.costUsd || 0), 0);
+      ai += `<div class="cards"><div class="card wide"><h3>Kosten pro Kunde · diesen Monat</h3><div class="tblwrap"><table>
+        <tr><th>Account</th><th>Anfragen</th><th>Input-Token</th><th>Output-Token</th><th>Kosten</th></tr>
+        ${U.map(u => `<tr><td title="${esc(u.uid)}"><code>${esc(u.uid.slice(0, 10))}…</code></td><td>${fmt(u.reqCount)} / ${fmt(monthLimit)}</td><td>${fmt(u.inTok)}</td><td>${fmt(u.outTok)}</td><td>${nfUSD.format(u.costUsd || 0)}</td></tr>`).join('')}
+        <tr style="font-weight:700;border-top:2px solid var(--line)"><td>Summe (${fmt(U.length)})</td><td>—</td><td>${fmt(U.reduce((a,u)=>a+(u.inTok||0),0))}</td><td>${fmt(U.reduce((a,u)=>a+(u.outTok||0),0))}</td><td>${nfUSD.format(totCost)}</td></tr>
+      </table></div></div></div>`;
+    } else if (U) {
+      ai += `<div class="note">Noch kein KI-Verbrauch von echten Nutzern diesen Monat — die Tabelle füllt sich automatisch, sobald zahlende Premium-Nutzer den KI-Coach verwenden. (Dein Founder-Konto zählt bewusst nicht mit.)</div>`;
     }
     ai += `<div class="note">Schätzung auf Basis der im Worker hinterlegten Listenpreise (PRICE_IN_PER_M/PRICE_OUT_PER_M) — keine offizielle Abrechnung. ${
       hasBudget
