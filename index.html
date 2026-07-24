@@ -6336,7 +6336,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607232208';
+const APP_VERSION = 'gymtrack-v202607240001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7211,6 +7211,13 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-24-push-token-signout-fix': {
+    label: '24.07.2026 · Fix: Falsche Flammen-Benachrichtigungen nach Konto-Wechsel',
+    items: [
+      '🔔 Beim Abmelden wird der Geräte-Push-Token jetzt aus dem Profil entfernt',
+      '🚫 Verhindert, dass ein neu angemeldeter Account auf demselben Gerät Push-Benachrichtigungen für Reaktionen auf Posts des alten Kontos bekommt',
+    ]
+  },
   'cl-2026-07-23-live-coach-plus': {
     label: '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor',
     items: [
@@ -23808,6 +23815,11 @@ async function doAppleSignIn() {
 async function doSignOut() {
   if (!window.FB || !window.FB.configured || !_fbUser) return;
   if (!confirm('Wirklich abmelden? Deine lokalen Daten bleiben erhalten.')) return;
+  // Push-Token dieses Geräts aus dem Profil löschen — sonst bleibt er im Konto
+  // stehen und der nächste Account, der sich auf DIESEM Gerät anmeldet, bekommt
+  // fälschlich Flammen-Push-Benachrichtigungen für Posts des alten Kontos.
+  if (_socReady()) { try { await window.FB.updateDoc(window.FB.doc('profiles', _fbUser.uid), { pushToken: null }); } catch(_){} }
+  _pushToken = null;
   try { await window.FB.signOut(); } catch(e) { console.warn(e); }
 }
 
