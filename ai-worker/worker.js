@@ -338,6 +338,7 @@ export default {
       else                           result = await runAnalyze(body, lang, env);
       try { await recordUsage(env, uid, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
       delete result.usage; // interne Kosten-Info, nicht an den Client
+      result = stripEmojis(result); // No-Emoji-Garantie über ALLE Endpunkte
       result.quota = quota;
       return json(result, 200, cors);
     } catch (e) {
@@ -506,14 +507,16 @@ Wenn der Nutzer einen Trainingsplan möchte: Stelle höchstens EINE kurze Rückf
 {"name":"Planname","days":{"mon":{"label":"Push","exercises":[{"name":"Bankdrücken","muscleGroup":"brust","sets":3,"repMin":8,"repMax":12}]},"tue":{"rest":true},"wed":{"label":"…","exercises":[]},"thu":{"rest":true},"fri":{"label":"…","exercises":[]},"sat":{"rest":true},"sun":{"rest":true}}}
 \`\`\`
 muscleGroup nur aus: brust, ruecken, beine, arme, schultern, core. Nutze bevorzugt Übungen, die der Nutzer schon hat (exakte Namen aus der Übungsliste), ergänze sinnvoll. Alle 7 Tage (mon-sun) angeben, Ruhetage als {"rest":true}. Vor dem Codeblock den Plan kurz menschlich zusammenfassen.
-Keine medizinischen Diagnosen — bei Schmerzen/Verletzungen zum Arzt raten. Bleib beim Thema Training, grobe Ernährungsfragen sind ok.`
+Keine medizinischen Diagnosen — bei Schmerzen/Verletzungen zum Arzt raten. Bleib beim Thema Training, grobe Ernährungsfragen sind ok.
+ABSOLUT VERBOTEN: Emojis und Symbol-Piktogramme jeder Art — weder im Antworttext noch im Plan (Planname, Tages-Labels, Übungsnamen). Die App stellt Symbole selbst dar; deine Ausgabe ist reiner Text.`
     : `You are the personal AI coach in the MyGymTrack fitness app. You know the user's complete training (JSON below: profile, weekly stats, exercise list, recent sessions with best sets, week plan). STYLE: short and punchy — 2-4 sentences, 80 words max. Start with the answer, no preamble, no restating the question, no closing summary. Prefer a concrete number over an explanatory sentence. Use **bold** sparingly for the key point. Only go longer when building a plan. Reference their real data and exercise names. For exercise alternatives: give 2-3 options for the same muscle group with a short why.
 When the user wants a training plan: ask at most ONE short clarifying question if needed, otherwise build it directly matching goal, experience and frequency from the profile. ALWAYS also output the plan as a code block:
 \`\`\`gtplan
 {"name":"Plan name","days":{"mon":{"label":"Push","exercises":[{"name":"Bench Press","muscleGroup":"brust","sets":3,"repMin":8,"repMax":12}]},"tue":{"rest":true},"wed":{"label":"…","exercises":[]},"thu":{"rest":true},"fri":{"label":"…","exercises":[]},"sat":{"rest":true},"sun":{"rest":true}}}
 \`\`\`
 muscleGroup only from: brust, ruecken, beine, arme, schultern, core. Prefer exercises the user already has (exact names from the list). All 7 days mon-sun, rest days as {"rest":true}. Summarize the plan briefly before the code block.
-No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.`) +
+No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.
+STRICTLY FORBIDDEN: emojis and pictographic symbols of any kind — neither in the answer text nor in the plan (plan name, day labels, exercise names). The app renders its own icons; your output is plain text.`) +
     "\n\n=== NUTZERDATEN ===\n" + ctx;
   const { text, usage } = await llm(env, { system: sys, messages: msgs, maxTokens: 1200 });
   return { text, usage };
@@ -560,7 +563,8 @@ Gib ENTWEDER "action" ODER "options" zurück (nie beide, nie leer bei reinem Lob
 - Reines Lob ohne konkrete Aktion: "action":{"kind":"none"}, kein "options".
 action.kind: "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz), "dropSet" (Dropsatz), "topSet" (nächster Satz = neuer Bestwert/Top-Satz), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (keine Aktion).
 Trigger-Typen: jump=deutliche Leistungssteigerung, drop=deutlicher Leistungsabfall, repmax=alle Sätze am oberen Wiederholungsende (Gewicht könnte steigen), fatigue=hohe Ermüdung erkannt, stall=Stagnation über mehrere Einheiten.
-Steht "readiness" in den Daten, stammt sie aus dem Post-Workout-Check-in und die App hat die Vorschläge BEREITS angepasst. Respektiere sie: bei state "deload"/"hold"/"easy" niemals Gewicht erhöhen oder Zusatzsätze vorschlagen (eher "rest", "none", saubere Ausführung); bei "push" darfst du offensiv steigern.`
+Steht "readiness" in den Daten, stammt sie aus dem Post-Workout-Check-in und die App hat die Vorschläge BEREITS angepasst. Respektiere sie: bei state "deload"/"hold"/"easy" niemals Gewicht erhöhen oder Zusatzsätze vorschlagen (eher "rest", "none", saubere Ausführung); bei "push" darfst du offensiv steigern.
+Keine Emojis — nirgends, auch nicht in title oder Button-Labels.`
     : `You are a sports-science-grounded fitness coach in the MyGymTrack app giving a VERY short live assessment during an active set. You get compact trigger data (current set vs last session, fatigue, goal). Reply in max 2 short sentences, concrete, no filler, no greeting.
 title: max 4 words. text: 1-2 sentences assessment + recommendation.
 Return EITHER "action" OR "options" (never both, never empty on pure praise):
@@ -568,7 +572,8 @@ Return EITHER "action" OR "options" (never both, never empty on pure praise):
 - Multiple sensible paths (e.g. drop set OR one more set OR continue as planned): set "options" with 2-3 entries {label: short button text max 3 words, action}.
 - Pure praise, no concrete action: "action":{"kind":"none"}, no "options".
 action.kind: "weight" (adjust weight, value=new kg), "extraSet", "dropSet", "topSet" (next set = new best/top set), "rest", "deload", "none".
-Trigger types: jump=clear performance increase, drop=clear performance drop, repmax=all sets at top of rep range, fatigue=high fatigue detected, stall=stagnation across sessions.`;
+Trigger types: jump=clear performance increase, drop=clear performance drop, repmax=all sets at top of rep range, fatigue=high fatigue detected, stall=stagnation across sessions.
+No emojis — anywhere, including title and button labels.`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: JSON.stringify(t).slice(0, 2000) }],
@@ -667,7 +672,8 @@ metrics: 3-4 Kennzahlen, die den Kern belegen. label max. 3 Wörter, value nur d
 bars: 0-6 Zeilen Ist-gegen-Soll, wenn die Daten das hergeben (z.B. Wochensätze je Muskelgruppe gegen den Richtwert 10-20). value = Ist, target = Richtwert.
 points: 3-4 Beobachtungen, jeweils EIN Satz mit max. 12 Wörtern und mindestens einer Zahl.
 recos: 2-3 Empfehlungen, jeweils max. 14 Wörter, konkret und mit Zahl ("Brust auf 14 Sätze/Woche, +5 pro Woche steigern").
-actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.`
+actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.
+Keine Emojis — in keinem Feld (summary, points, recos, labels).`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
 IF data.readiness is present: the app has ALREADY adjusted the training suggestions from the post-workout check-in (see readiness.appliedByApp). Reference it and do not contradict it — for state "deload"/"hold"/"easy" never recommend adding load, focus on recovery/technique/volume management; for "push" you may push progression.
 STYLE: numbers over prose. The app renders your answer as a metric grid and bars — text is only the frame. Every statement carries a number from the data. No filler, no repetition, no "overall we can see" openers.
@@ -678,7 +684,8 @@ metrics: 3-4 key figures backing the verdict. label max 3 words, value the numbe
 bars: 0-6 actual-vs-target rows where the data supports it (e.g. weekly sets per muscle group against the 10-20 landmark). value = actual, target = landmark.
 points: 3-4 observations, one sentence each, max 12 words, at least one number.
 recos: 2-3 recommendations, max 14 words each, concrete and with a number.
-actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.`;
+actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.
+No emojis — in any field (summary, points, recos, labels).`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],
@@ -741,7 +748,8 @@ muscleGroups: NUR aus brust, ruecken, beine, arme, schultern, core.
 exercises: 1-3 Übungen, die WIRKLICH an genau diesem Gerät gemacht werden, wichtigste zuerst. Keine Übungen ergänzen, die nur „auch Sinn ergeben". Bei confidence<=0.5: höchstens 1 Eintrag oder leer.
 nameEn: der gebräuchliche englische Standardname der Übung, so wie er in offenen Übungsdatenbanken steht — Grundform, kein Plural, keine Marken-/Herstellernamen, keine Zusätze wie "machine" oder "variation" (richtig: "Lat Pulldown", "Leg Press", "Seated Cable Row", "Chest Fly"). Der Client sucht damit exakt; ein ungenauer Name führt zu gar keiner Animation.
 howTo: 3-5 kurze Schritte, wie man die WICHTIGSTE Übung sauber ausführt (duzen, je max. 12 Wörter). Diese Schritte sind der eigentliche Wert — sie müssen auch dann tragen, wenn keine Animation gefunden wird.
-caution: 1 Satz — häufigster Fehler an diesem Gerät.`
+caution: 1 Satz — häufigster Fehler an diesem Gerät.
+Keine Emojis — in keinem Feld.`
     : `You are the machine scanner of the MyGymTrack fitness app. You get a gym photo and identify the training machine/equipment (including free-weight/rack setups).
 NEVER guess. An honest "unsure" beats a wrong or merely "similar" machine.
 isGym: false if NO training equipment is visible (leave the rest empty, describe briefly in device).
@@ -751,7 +759,8 @@ muscleGroups: ONLY from brust, ruecken, beine, arme, schultern, core.
 exercises: 1-3 exercises actually performed on THIS machine, most important first. Do not add exercises that merely "would also make sense". With confidence<=0.5: at most 1 entry, or empty.
 nameEn: the common English standard name as found in open exercise databases — base form, no plural, no brand names, no extras like "machine" or "variation" (correct: "Lat Pulldown", "Leg Press", "Seated Cable Row", "Chest Fly"). The client matches on it exactly; a loose name yields no animation at all.
 howTo: 3-5 short steps for the MAIN exercise (max 12 words each). These steps are the real value — they must stand on their own when no animation is found.
-caution: 1 sentence — most common mistake on this machine.`;
+caution: 1 sentence — most common mistake on this machine.
+No emojis — in any field.`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{
@@ -885,6 +894,22 @@ async function certSignedBy(childDer, parentDer) {
 }
 
 // ── kleine Helfer ──
+// Harte No-Emoji-Garantie (App-Regel: KEINE Emojis in der Oberfläche). Die
+// Prompts verbieten Emojis zwar, aber Modelle rutschen trotzdem gelegentlich
+// welche rein — deshalb wird JEDE Antwort (Text, Plan-JSON, Labels, Options)
+// serverseitig gesäubert, bevor sie den Client erreicht.
+const EMOJI_RE = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}]/gu;
+function stripEmojis(v) {
+  if (typeof v === "string") {
+    return v.replace(EMOJI_RE, "")
+            .replace(/[ \t]{2,}/g, " ")
+            .replace(/[ \t]+$/gm, "").replace(/^[ \t]+(?=[.,!?:;])/gm, "")
+            .replace(/^[ \t]+/, "");
+  }
+  if (Array.isArray(v)) return v.map(stripEmojis);
+  if (v && typeof v === "object") { for (const k of Object.keys(v)) v[k] = stripEmojis(v[k]); return v; }
+  return v;
+}
 function json(obj, status, cors) {
   return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", ...cors } });
 }
