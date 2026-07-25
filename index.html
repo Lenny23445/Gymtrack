@@ -4742,16 +4742,18 @@ html:not([data-glass="off"]) #tab-indicator{
 .pw2-dot.on{transform:scale(1.6);background:var(--acc)}
 
 /* ── Animierte Bühne pro Karte ── */
+/* Float sitzt auf der GANZEN Bühne, nicht nur auf dem Orb — sonst wandert das
+   Symbol aus seinem Glow-Layer und den Puls-Ringen raus (die floaten nicht mit). */
 .pw2-stage{width:146px;height:146px;position:relative;margin-bottom:22px;
-  display:flex;align-items:center;justify-content:center}
+  display:flex;align-items:center;justify-content:center;
+  animation:pwFloat 3.4s ease-in-out infinite}
 .pw2-stage::before{content:'';position:absolute;inset:0;border-radius:44px;
-  background:radial-gradient(circle at 50% 44%,rgba(var(--acc-rgb),.16),transparent 68%)}
+  background:radial-gradient(circle at 50% 50%,rgba(var(--acc-rgb),.16),transparent 68%)}
 .pw2-orb{width:96px;height:96px;border-radius:30px;position:relative;z-index:2;
   display:flex;align-items:center;justify-content:center;color:var(--acc);
   background:linear-gradient(155deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.04));
   border:1px solid rgba(var(--acc-rgb),.22);
-  box-shadow:0 16px 36px rgba(var(--acc-rgb),.18),inset 0 1px 0 rgba(255,255,255,.55);
-  animation:pwFloat 3.4s ease-in-out infinite}
+  box-shadow:0 16px 36px rgba(var(--acc-rgb),.18),inset 0 1px 0 rgba(255,255,255,.55)}
 @keyframes pwFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 /* coach: Puls-Ringe */
 .pwa-ring{position:absolute;width:96px;height:96px;border-radius:30px;z-index:1;
@@ -4761,18 +4763,22 @@ html:not([data-glass="off"]) #tab-indicator{
 /* chat: aufpoppende Blasen */
 .pwa-bub{position:absolute;z-index:3;border-radius:12px 12px 12px 3px;
   background:var(--acc);box-shadow:0 6px 16px rgba(var(--acc-rgb),.35)}
-.pwa-bub.a{width:34px;height:22px;top:16px;right:14px;animation:pwPop 3s ease-in-out infinite}
-.pwa-bub.b{width:26px;height:18px;bottom:18px;left:14px;border-radius:12px 12px 3px 12px;
+/* Deko in % der Bühne — sonst behalten die px-Werte im kleinen Breakpoint
+   (Bühne 112 statt 146) ihren Abstand und rutschen aufs Symbol. */
+.pwa-bub.a{width:23%;height:15%;top:11%;right:9.5%;animation:pwPop 3s ease-in-out infinite}
+.pwa-bub.b{width:18%;height:12.5%;bottom:12%;left:9.5%;border-radius:12px 12px 3px 12px;
   background:rgba(var(--acc-rgb),.55);animation:pwPop 3s ease-in-out .5s infinite}
 @keyframes pwPop{0%,70%,100%{transform:scale(0);opacity:0}12%,58%{transform:scale(1);opacity:1}}
 /* scan: durchlaufende Linie + Ecken */
 .pwa-scan{overflow:hidden}
-.pwa-scanline{position:absolute;left:8%;right:8%;height:2.5px;border-radius:2px;top:14px;
+.pwa-scanline{position:absolute;left:8%;right:8%;height:2.5px;border-radius:2px;top:17%;
   background:linear-gradient(90deg,transparent,var(--acc),transparent);
   box-shadow:0 0 12px 2px rgba(var(--acc-rgb),.55);animation:pwScan 2.2s ease-in-out infinite}
-@keyframes pwScan{0%,100%{top:16px}50%{top:76px}}
-/* analyze: wachsende Balken */
-.pwa-bars{gap:7px}
+/* % statt px: Weg bleibt im kleinen Orb (78px) symmetrisch zur Mitte */
+@keyframes pwScan{0%,100%{top:17%}50%{top:79%}}
+/* analyze: wachsende Balken — gemeinsame Grundlinie (transform-origin:bottom),
+   sonst wächst jeder Balken aus seiner eigenen Mitte und die Gruppe wirkt schief. */
+.pwa-bars{gap:7px;align-items:flex-end;padding-bottom:18px}
 .pwa-bars span{width:11px;border-radius:4px;background:var(--acc);
   transform-origin:bottom;animation:pwGrow 1.8s ease-in-out infinite}
 .pwa-bars span:nth-child(1){height:30px;animation-delay:0s}
@@ -4782,12 +4788,13 @@ html:not([data-glass="off"]) #tab-indicator{
 @keyframes pwGrow{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
 /* insights: funkelnde Sparkles */
 .pwa-spk{position:absolute;z-index:3;color:var(--acc);animation:pwTwinkle 2.4s ease-in-out infinite}
-.pwa-spk.s1{top:12px;right:16px}
-.pwa-spk.s2{bottom:14px;left:14px;animation-delay:.8s}
-.pwa-spk.s3{top:50%;right:6px;animation-delay:1.5s}
+.pwa-spk.s1{top:8%;right:11%}
+.pwa-spk.s2{bottom:9.5%;left:9.5%;animation-delay:.8s}
+/* margin-top statt translateY: die Twinkle-Animation belegt transform schon */
+.pwa-spk.s3{top:50%;margin-top:-5px;right:4%;animation-delay:1.5s}
 @keyframes pwTwinkle{0%,100%{transform:scale(.3) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
 @media (prefers-reduced-motion:reduce){
-  .pw2-orb,.pwa-ring,.pwa-bub,.pwa-scanline,.pwa-bars span,.pwa-spk{animation:none!important}
+  .pw2-stage,.pw2-orb,.pwa-ring,.pwa-bub,.pwa-scanline,.pwa-bars span,.pwa-spk{animation:none!important}
   .pwa-bub,.pwa-spk{opacity:1;transform:scale(1)}
 }
 
@@ -4826,9 +4833,14 @@ html:not([data-glass="off"]) #tab-indicator{
 .pw2-legal{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
   font-size:11px;color:var(--text2)}
 .pw2-legal .tk{display:inline-flex;align-items:center;gap:4px;font-weight:700}
-.pw2-legal .tk svg{color:#30d158}
+.pw2-legal .tk svg{color:#30d158;flex-shrink:0}
 .pw2-legal button{background:none;border:none;font-family:inherit;font-size:11px;
   color:var(--acc);font-weight:700;cursor:pointer;padding:2px}
+/* Abo-Bedingungen (Länge/Preis/Auto-Verlängerung) über den Pflicht-Links */
+.pw2-legal{flex-direction:column;gap:5px}
+.pw2-legal .tk{max-width:320px;text-align:center;line-height:1.45;
+  align-items:flex-start;font-weight:600}
+.pw2-legal-links{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
 .pw2-webnote{padding:14px;text-align:center;font-size:14px;line-height:1.5;
   border-radius:16px;background:var(--inp-bg);border:1px solid var(--gl-bdr)}
 /* kurze Screens: alles etwas kompakter, bleibt scrollfrei */
@@ -4836,6 +4848,7 @@ html:not([data-glass="off"]) #tab-indicator{
   .pw2-stage{width:112px;height:112px;margin-bottom:16px}
   .pw2-orb{width:78px;height:78px;border-radius:24px}
   .pwa-ring{width:78px;height:78px;border-radius:24px}
+  .pwa-bars{padding-bottom:9px}   /* Grundlinie mittig halten: (78 − 60) / 2 */
   .pw2-ct{font-size:20px}.pw2-cs{font-size:13.5px}
   .pw2-dots{margin-top:12px}
   .pw2-plan-price{font-size:21px}
@@ -5270,7 +5283,8 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-ringbox{position:relative;width:62px;height:62px;flex-shrink:0}
 .aic-r-bg{fill:none;stroke:rgba(var(--acc-rgb),.16);stroke-width:5}
 .aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
-.aic-r-val{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;font-weight:900;letter-spacing:-.3px}
+.aic-r-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  white-space:nowrap;font-size:15px;font-weight:900;letter-spacing:-.3px}
 .aic-r-val span{font-size:9px;font-weight:800;opacity:.75;margin-left:1px}
 .aic-txt{flex:1;min-width:0}
 .aic-head{font-size:17px;font-weight:900;line-height:1.18;color:var(--text);letter-spacing:-.35px}
@@ -6170,7 +6184,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       </div>
       <button class="btn btn-acc" onclick="saveEx()">Speichern</button>
       <div class="gap" style="height:10px"></div>
- <button class="btn btn-danger btn-sm"id="del-ex-btn"onclick="deleteEx()"style="display:none">Übung löschen</button>
+      <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
     </div>
   </div>
 </div>
@@ -7079,7 +7093,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-checkin" onclick="if(event.target===this)closeOv('ov-checkin')">
  <div class="sheet">
     <div class="sh-handle"></div>
- <div class="sh-head"><h2>Check-in</h2><button class="x-btn"onclick="closeOv('ov-checkin')"></button></div>
+    <div class="sh-head"><h2>Check-in</h2><button class="x-btn" onclick="closeOv('ov-checkin')">✕</button></div>
     <div class="px" id="checkin-body" style="padding-bottom:26px"></div>
   </div>
 </div>
@@ -7094,7 +7108,7 @@ const ICON_CATS = [
   { label:'🫀 Körper',   icons:['🫀','🫁','🦴','🦷','🧠','👁️','🦶','🦵','💪','🦾','🦿','🩺','🩹','🩻','💊','🩸','🧬','🌡️','🏥','💆','🛁','🚿','🧖','🫶','🤲','👐','🙌','🤝','👊','✊'] },
   { label:'🏆 Erfolg',   icons:['🏆','🥇','🥈','🥉','🎖️','🏅','⭐','🌟','✨','💫','🎯','👑','🔱','⚜️','🌈','🌠','🦋','🦅','🦁','🐯','🦊','🐺','🦄','🐉','🦈','🦏','🏔️','🌋','🗻','🌅'] },
   { label:'⚡ Power',     icons:['⚡','🔥','💥','🚀','💢','🌪️','⚔️','🛡️','🗡️','🔮','💠','❇️','✴️','🌀','☄️','🌩️','💡','🔋','⚙️','🔩','🧲','🔧','🔨','⛏️','🪛','🪚','💣','🎆','🎇','🧨'] },
- { label:'Nutrition', icons:['','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''] },
+  { label:'🥩 Nutrition', icons:['🥩','🍗','🥚','🥛','🧃','💧','🫗','🥑','🥦','🥕','🍌','🍎','🍊','🥝','🍇','🫐','🍓','🥜','🫘','🌾','🍚','🥗','🫙','🧈','🫒','🍳','🥞','🍱','🥣','🧇','🫕','🧆'] },
   { label:'🎨 Symbole',  icons:['🔴','🟡','🟢','🟣','🔵','🟠','⚫','⚪','🔶','🔷','🔸','🔹','💎','♾️','📊','📈','📉','⏱️','⏰','🕐','🎮','🎲','🃏','🎪','🎨','✏️','📌','🔑','🗝️','🪬','🧿','☯️','☮️','✡️','🔯'] },
   { label:'🐾 Tiere',    icons:['🦁','🐯','🐻','🦊','🐺','🦅','🦆','🐧','🦋','🐝','🦎','🐬','🦈','🐙','🦑','🦞','🦀','🐊','🦏','🦛','🦒','🐘','🦓','🏇','🐎','🦌','🦬','🐂','🦣','🫏'] },
 ];
@@ -7103,7 +7117,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250004';
+const APP_VERSION = 'gymtrack-v202607250005';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7677,8 +7691,9 @@ const I18N_EN = {
   'Live-Coach im Training':'Live coach during training','Tipps & Anpassungen direkt während des Satzes':'Tips & adjustments right during your set',
   'Trainingsanalyse':'Workout analysis','KI bewertet Volumen, Balance & Technik-Trends':'AI evaluates volume, balance & technique trends',
   'Fortschritts-Insights':'Progress insights','Automatische Auswertung deiner Statistik':'Automatic evaluation of your stats',
-  'Spare 44 %':'Save 44%','Jährlich':'Yearly','Monatlich':'Monthly',
-  'pro Jahr · 1,67 €/Monat':'per year · €1.67/month','pro Monat':'per month',
+  'Jährlich':'Yearly','Monatlich':'Monthly',
+  'pro Jahr':'per year','pro Monat':'per month',
+  'Nutzungsbedingungen':'Terms of Use','Datenschutz':'Privacy',
   'Premium freischalten':'Unlock Premium','Premium schließt du in der MyGymTrack iOS-App ab.':'You unlock Premium in the MyGymTrack iOS app.',
   'Kauf läuft…':'Purchase in progress…','Premium aktiv ✓':'Premium active ✓',
   'Kauf wartet auf Bestätigung (z. B. Familienfreigabe).':'Purchase awaiting approval (e.g. Family Sharing).',
@@ -7911,6 +7926,14 @@ const I18N_RX = [
   [/Monatsabo · läuft ab am /g, 'Monthly plan · renews on '],
   [/ pro Jahr · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per year · renews automatically · cancel anytime in the App Store settings'],
   [/ pro Monat · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per month · renews automatically · cancel anytime in the App Store settings'],
+  // Paywall: Preise/Ersparnis kommen live aus StoreKit → nur Regex, keine festen Phrasen
+  [/ pro Jahr, verlängert sich automatisch\. Jederzeit im App Store kündbar\./g,
+   ' per year, renews automatically. Cancel anytime in the App Store.'],
+  [/ pro Monat, verlängert sich automatisch\. Jederzeit im App Store kündbar\./g,
+   ' per month, renews automatically. Cancel anytime in the App Store.'],
+  [/Spare (\d+) %/g, 'Save $1%'],
+  [/\/Monat\b/g, '/month'],
+  [/per year·/g, 'per year · '],   // ' · '-Segmentsplit in tr() joint ohne Spaces
   [/Kauf fehlgeschlagen: /g, 'Purchase failed: '],
  [/Wiederherstellung fehlgeschlagen: /g,'Restore failed:'],
  // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
@@ -10302,11 +10325,11 @@ function _coachTodaySuggestion() {
     if (didToday) {
       return { kind:'done', pct: overall, ringLbl: _cm('Erholung','Recovery'),
         head: _cm('Einheit im Kasten', 'Session in the bag'),
-        text: (rd
-          ? _cm(`Dein Check-in ist eingerechnet: ${rd.text.charAt(0).toLowerCase()}${rd.text.slice(1)}`,
-                `Your check-in is factored in: ${rd.text.charAt(0).toLowerCase()}${rd.text.slice(1)}`)
-          : _cm('Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, wenn wieder was bereit ist.',
-                'Recovery is running. I am watching your muscle groups and will speak up when something is ready again.')),
+        text: (rd && rd.short
+          ? _cm(`Check-in eingerechnet — ${rd.short.charAt(0).toLowerCase()}${rd.short.slice(1)}`,
+                `Check-in factored in — ${rd.short.charAt(0).toLowerCase()}${rd.short.slice(1)}`)
+          : _cm('Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, sobald wieder was bereit ist.',
+                'Recovery is running. I am watching your muscle groups and will speak up when something is ready.')),
         chip: _cm('Heute trainiert','Trained today'), chip2, cta:null };
     }
 
@@ -10319,7 +10342,8 @@ function _coachTodaySuggestion() {
       const base = _cm(`${lbl} steht heute an.`, `${lbl} is on the plan today.`);
       return { kind:'plan', pct: overall, ringLbl: _cm('Bereit','Ready'),
         head: lbl,
-        text: rd ? `${base} ${rd.text}` : `${base} ${_cm(`Deine Muskulatur ist im Schnitt zu ${overall} % erholt.`, `Your muscles are ${overall}% recovered on average.`)}`,
+        text: rd && rd.short ? `${base} ${rd.short}`
+                             : `${base} ${_cm(`Im Schnitt bist du zu ${overall} % erholt.`, `You are ${overall}% recovered on average.`)}`,
         chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Training starten','Start workout'), on } };
     }
 
@@ -10327,11 +10351,13 @@ function _coachTodaySuggestion() {
     if (best && best.r.recPct >= 70) {
       let text = _cm(`${muscleLabel(best.mg.id)} ist zu ${best.r.recPct} % erholt — der beste Fokus für heute.`,
                      `${muscleLabel(best.mg.id)} is ${best.r.recPct}% recovered — your best focus today.`);
-      if (worst && worst.mg.id !== best.mg.id && worst.r.recPct < 40) {
+      // Höchstens ZWEI Aussagen pro Karte — die Check-in-Anpassung hat Vorrang
+      // vor dem "schone Muskelgruppe X"-Hinweis, sonst wird der Text zur Wand.
+      if (rd && rd.short) text += ' ' + rd.short;
+      else if (worst && worst.mg.id !== best.mg.id && worst.r.recPct < 40) {
         text += ' ' + _cm(`${muscleLabel(worst.mg.id)} liegt bei ${worst.r.recPct} % — heute lieber schonen.`,
                           `${muscleLabel(worst.mg.id)} is at ${worst.r.recPct}% — better to spare it today.`);
       }
-      if (rd && rd.mode !== 'steady') text += ' ' + rd.text;
       return { kind:'focus', pct: best.r.recPct, ringLbl: muscleLabel(best.mg.id), mgId: best.mg.id,
         head: _cm(`${muscleLabel(best.mg.id)} ist bereit`, `${muscleLabel(best.mg.id)} is ready`),
         text, chip: _cm('Empfehlung für heute','Recommendation for today'), chip2,
@@ -10342,10 +10368,10 @@ function _coachTodaySuggestion() {
     return { kind:'rest', pct: overall, ringLbl: _cm('Erholung','Recovery'),
       head: _cm('Heute Erholungstag', 'Recovery day today'),
       text: (best
-        ? _cm(`Nichts ist wieder voll da — ${muscleLabel(best.mg.id)} liegt bei ${best.r.recPct} %. Ein ruhiger Tag bringt dich morgen weiter.`,
-              `Nothing is fully back — ${muscleLabel(best.mg.id)} is at ${best.r.recPct}%. A calm day will pay off tomorrow.`)
-        : _cm('Deine Muskulatur erholt sich noch. Ein ruhiger Tag bringt dich morgen weiter.',
-              'Your muscles are still recovering. A calm day will pay off tomorrow.')),
+        ? _cm(`Nichts ist wieder voll da — ${muscleLabel(best.mg.id)} liegt bei ${best.r.recPct} %. Ein ruhiger Tag zahlt sich morgen aus.`,
+              `Nothing is fully back — ${muscleLabel(best.mg.id)} is at ${best.r.recPct}%. A calm day pays off tomorrow.`)
+        : _cm('Deine Muskulatur erholt sich noch. Ein ruhiger Tag zahlt sich morgen aus.',
+              'Your muscles are still recovering. A calm day pays off tomorrow.')),
       chip: _cm('Empfehlung für heute','Recommendation for today'), chip2, cta:null };
   } catch(e) { console.warn('[Coach] today suggestion:', e); return null; }
 }
@@ -10390,7 +10416,7 @@ function renderCoachTodayCard() {
           </div>
         </div>
         ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span>
-          <span class="aic-chip ghost">${esc(s.ringLbl)} ${pct} %</span></div>` : ''}
+          ${s.kind === 'focus' ? '' : `<span class="aic-chip ghost">${esc(s.ringLbl)} ${pct} %</span>`}</div>` : ''}
         ${s.cta ? `<div class="aic-btns">
           <button type="button" class="aic-go" onclick="${s.cta.on}">${esc(s.cta.label)}</button>
           <button type="button" class="aic-later" onclick="_coachTodayDismiss()">${esc(tr('Später'))}</button>
@@ -11022,6 +11048,7 @@ function _ciReadinessCalc(all, last) {
       head:  _cm('Erholung geht heute vor', 'Recovery comes first today'),
       text:  _cm('Deine letzten Einheiten waren schwer bei wenig Energie. Ich nehme rund 8 % Gewicht raus und gebe dir längere Pausen.',
                  'Your recent sessions were hard on low energy. I am taking about 8% off the weights and giving you longer rest.'),
+      short: _cm('Deload aktiv: ~8 % weniger Gewicht, längere Pausen.', 'Deload active: ~8% less weight, longer rest.'),
       bar:   _cm('Deload: ich habe die Vorschläge um ~8 % gesenkt und die Pausen verlängert.',
                  'Deload: I lowered today’s suggestions by ~8% and extended your rest.'),
       plain: 'Letzte Einheiten mehrfach schwer bei niedriger Energie — App hat Gewichte um 8 % gesenkt und Pausen um 25 % verlängert.' };
@@ -11033,6 +11060,7 @@ function _ciReadinessCalc(all, last) {
       head:  _cm('Heute halten, nicht steigern', 'Hold today, don’t add weight'),
       text:  _cm('Dein letztes Training war sehr schwer. Gleiche Gewichte, etwas mehr Pause — sauber wiederholen schlägt heute jeden Sprung.',
                  'Your last session was very hard. Same weights, a little more rest — a clean repeat beats any jump today.'),
+      short: _cm('Heute Gewichte halten statt steigern.', 'Hold the weights today instead of adding.'),
       bar:   _cm('Nach deinem Check-in: Gewichte halten, Pausen etwas länger.',
                  'After your check-in: hold the weights, rest a little longer.'),
       plain: 'Letzte Einheit als „Sehr schwer" bewertet — App setzt Progression aus und verlängert Pausen um 20 %.' };
@@ -11044,6 +11072,7 @@ function _ciReadinessCalc(all, last) {
       head:  _cm('Etwas zurückgenommen', 'Dialed back a little'),
       text:  _cm('Anstrengend bei niedriger Energie — ich habe die Vorschläge leicht gesenkt und die Pausen verlängert.',
                  'Hard session on low energy — I eased the suggestions a little and extended your rest.'),
+      short: _cm('Leicht gesenkt, Pausen etwas länger.', 'Eased a little, rest extended.'),
       bar:   _cm('Energie war niedrig: Vorschläge leicht gesenkt, Pausen länger.',
                  'Energy was low: suggestions eased, rest extended.'),
       plain: 'Letzte Einheit anstrengend bei niedriger Energie — App hat Gewichte um 4 % gesenkt.' };
@@ -11055,6 +11084,7 @@ function _ciReadinessCalc(all, last) {
       head:  _cm('Du hast Luft nach oben', 'You have room to push'),
       text:  _cm('Letztes Training locker bei voller Energie — ich gebe die größere Steigerung frei und kürze die Pausen leicht.',
                  'Last session felt easy on full energy — I unlocked the bigger jump and shortened rest slightly.'),
+      short: _cm('Größere Steigerung ist freigegeben.', 'The bigger jump is unlocked.'),
       bar:   _cm('Check-in war stark: größere Steigerung freigegeben.',
                  'Strong check-in: bigger jump unlocked.'),
       plain: 'Letzte Einheit leicht bei hoher Energie — App gibt größere Steigerung frei und kürzt Pausen um 8 %.' };
@@ -11064,6 +11094,7 @@ function _ciReadinessCalc(all, last) {
     head:  _cm('Alles im grünen Bereich', 'Everything on track'),
     text:  _cm('Dein letzter Check-in passt zum Plan — normale Progression, normale Pausen.',
                'Your last check-in fits the plan — normal progression, normal rest.'),
+    short: '',
     bar:   null,
     plain: 'Letzter Check-in unauffällig — normale Progression.' };
 }
@@ -22643,11 +22674,38 @@ function _coachPickOption(idx) {
 
 // ── Paywall ────────────────────────────────────────────
 let _pwPlan = 'yearly';
-function _pwPrice(plan){
+// StoreKit liefert lokalisierte Preise (andere Währung, Apple-Preisanpassung,
+// Rabattaktion). Alles Abgeleitete — Monatspreis im Jahresabo und die Ersparnis —
+// MUSS daraus gerechnet werden, sonst behauptet die Paywall Zahlen, die der
+// App Store nicht berechnet. Ohne Produkte (Web/Simulator): deutsche Defaults.
+const _PW_FALLBACK = { yearly:19.99, monthly:2.99 };
+function _pwProd(plan){
   const id = plan === 'yearly' ? PREM_YEARLY : PREM_MONTHLY;
-  const p = (_pwProducts||[]).find(x => x.id === id);
+  return (_pwProducts||[]).find(x => x.id === id) || null;
+}
+function _pwPrice(plan){
+  const p = _pwProd(plan);
   if (p && p.displayPrice) return p.displayPrice;
   return plan === 'yearly' ? '19,99 €' : '2,99 €';
+}
+function _pwPriceNum(plan){
+  const p = _pwProd(plan);
+  return (p && typeof p.price === 'number' && p.price > 0) ? p.price : _PW_FALLBACK[plan];
+}
+// Betrag im Format des Store-Preises ausgeben: Zahl im displayPrice ersetzen,
+// damit Währungssymbol, Position und Trennzeichen exakt die des Stores bleiben.
+function _pwFmtLike(plan, value){
+  const num = new Intl.NumberFormat(GT_LOCALE, { minimumFractionDigits:2, maximumFractionDigits:2 }).format(value);
+  const tpl = _pwPrice(plan);
+  const out = tpl.replace(/\d[\d.,\s ]*\d|\d/, num);
+  return out === tpl ? num : out;   // kein Zahlen-Treffer (exotisches Format) → nackte Zahl
+}
+// Ersparnis Jahres- ggü. Monatsabo in ganzen Prozent; null = nicht bewerbbar.
+function _pwSavePct(){
+  const y = _pwPriceNum('yearly'), m = _pwPriceNum('monthly');
+  if (!(y > 0) || !(m > 0)) return null;
+  const pct = Math.round((1 - y / (m * 12)) * 100);
+  return pct >= 5 ? pct : null;
 }
 const _PW_FEATS = {
   chat:     { anim:'chat',     t:'KI-Chat & Trainingsplan', s:'Dein Coach kennt dein Training — Pläne, Technik und Fortschritt, jederzeit im Chat.' },
@@ -22672,13 +22730,15 @@ function _pw2CardsHTML(keys){
 }
 function pwPickPlan(p){ _pwPlan = p; haptic(6); _pwRenderBot(); }
 function _pwPlanCardsHTML(){
+  const save  = _pwSavePct();
+  const perMo = _pwFmtLike('yearly', _pwPriceNum('yearly') / 12);
   return `
     <div class="pw2-plan${_pwPlan==='yearly'?' on':''}" onclick="pwPickPlan('yearly')">
-      <span class="pw2-plan-save">Spare 44 %</span>
+      ${save ? `<span class="pw2-plan-save">Spare ${save} %</span>` : ''}
       <span class="pw2-plan-check">${ICO.check({s:12})}</span>
       <div class="pw2-plan-name">Jährlich</div>
       <div class="pw2-plan-price">${_pwPrice('yearly')}</div>
-      <div class="pw2-plan-per">pro Jahr · 1,67 €/Monat</div>
+      <div class="pw2-plan-per">pro Jahr · ${perMo}/Monat</div>
     </div>
     <div class="pw2-plan${_pwPlan==='monthly'?' on':''}" onclick="pwPickPlan('monthly')">
       <span class="pw2-plan-check">${ICO.check({s:12})}</span>
@@ -22693,14 +22753,23 @@ function _pwBotHTML(){
   const native = _isNative();
   const tk = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>`;
   const cta = _pwPlan==='yearly' ? 'Jahresplan freischalten' : 'Monatsplan freischalten';
+  // App-Review 3.1.2 verlangt auf der Kaufseite: Abo-Länge, Preis pro Periode,
+  // Hinweis auf automatische Verlängerung sowie Links zu EULA + Datenschutz.
+  const abo = _pwPlan==='yearly'
+    ? `${_pwPrice('yearly')} pro Jahr, verlängert sich automatisch. Jederzeit im App Store kündbar.`
+    : `${_pwPrice('monthly')} pro Monat, verlängert sich automatisch. Jederzeit im App Store kündbar.`;
   return `
     <div class="pw2-plans">${_pwPlanCardsHTML()}</div>
     ${native
       ? `<button class="pw2-cta" id="pw-cta" onclick="premBuy(_pwPlan==='yearly'?PREM_YEARLY:PREM_MONTHLY)">${cta}</button>`
       : `<div class="pw2-webnote">Premium schließt du in der MyGymTrack iOS-App ab.</div>`}
     <div class="pw2-legal">
-      <span class="tk">${tk} Jederzeit kündbar · dein App Store</span>
-      <button onclick="premRestore()">Käufe wiederherstellen</button>
+      <span class="tk">${tk} ${abo}</span>
+      <span class="pw2-legal-links">
+        <button onclick="_openExternal('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')">Nutzungsbedingungen</button>
+        <button onclick="_openExternal('https://lenny23445.github.io/Gymtrack/privacy.html')">Datenschutz</button>
+        <button onclick="premRestore()">Käufe wiederherstellen</button>
+      </span>
     </div>`;
 }
 function _pwRenderBot(){ const b = document.getElementById('pw2-bot'); if (b) b.innerHTML = _pwBotHTML(); }
@@ -22709,28 +22778,46 @@ function openPaywall(feature){
   openOv('ov-paywall');
   if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRenderBot());
 }
+// Aufrufer-Kürzel → Showcase-Slide. premGate/aiCall reichen ihre eigenen Namen
+// durch ('ai', 'vision', …); ohne das Mapping startet die Paywall immer auf
+// Slide 0 und der Nutzer sieht nicht das Feature, das er gerade wollte.
+const _PW_FEAT_ALIAS = { ai:'chat', chat:'chat', coach:'coach', live:'coach',
+  scan:'scan', vision:'scan', analyze:'analyze', report:'analyze', training:'analyze',
+  plan:'chat', insights:'insights', stats:'insights' };
 function _pwRender(feature){
   const el = document.getElementById('pw-body'); if (!el) return;
   const keys = ['chat','coach','scan','analyze','insights'];
+  const start = Math.max(0, keys.indexOf(_PW_FEAT_ALIAS[feature] || feature));
   el.innerHTML = `
     <div class="pw2">
       <button class="pw2-close" onclick="closeOv('ov-paywall')" aria-label="Schließen">✕</button>
       <div class="pw2-brand">${ICO.sparkle({s:14})} MYGYMTRACK PREMIUM</div>
       <div class="pw2-show">
         <div class="pw2-track" id="pw2-track">${_pw2CardsHTML(keys)}</div>
-        <div class="pw2-dots" id="pw2-dots">${keys.map((_,i)=>`<span class="pw2-dot${i===0?' on':''}" onclick="pwGo(${i})"></span>`).join('')}</div>
+        <div class="pw2-dots" id="pw2-dots">${keys.map((_,i)=>`<span class="pw2-dot${i===start?' on':''}" onclick="pwGo(${i})"></span>`).join('')}</div>
       </div>
       <div class="pw2-bot" id="pw2-bot">${_pwBotHTML()}</div>
     </div>`;
-  _pwCarInit();
+  _pwCarInit(start);
 }
 // ── Showcase-Carousel: Auto-Wechsel + Punkte, pausiert kurz nach Nutzer-Wisch ──
 let _pwCarTimer = null, _pwCarIdx = 0, _pwCarPauseTs = 0;
 function _pwCarDots(i){ document.querySelectorAll('#pw2-dots .pw2-dot').forEach((d,x)=>d.classList.toggle('on', x===i)); }
 function pwGo(i){ const t = document.getElementById('pw2-track'); if (!t) return; _pwCarPauseTs = Date.now(); t.scrollTo({ left:i*t.clientWidth, behavior:'smooth' }); }
-function _pwCarInit(){
+function _pwCarInit(start){
   const tr = document.getElementById('pw2-track'); if (!tr) return;
-  _pwCarIdx = 0; tr.scrollLeft = 0;
+  _pwCarIdx = start|0; tr.scrollLeft = 0;
+  // Startslide erst setzen, wenn das Sheet gelayoutet ist — direkt nach dem
+  // innerHTML ist clientWidth im noch geschlossenen Overlay 0.
+  if (_pwCarIdx > 0) {
+    const jump = (tries) => {
+      const w = tr.clientWidth;
+      if (!w) { if (tries > 0) setTimeout(() => jump(tries-1), 60); return; }
+      tr.scrollLeft = _pwCarIdx * w;
+      _pwCarDots(_pwCarIdx);
+    };
+    requestAnimationFrame(() => jump(6));
+  }
   tr.onscroll = () => { const w = tr.clientWidth||1; const i = Math.round(tr.scrollLeft / w);
     if (i !== _pwCarIdx){ _pwCarIdx = i; _pwCarDots(i); } };
   ['touchstart','pointerdown'].forEach(ev => tr.addEventListener(ev, () => { _pwCarPauseTs = Date.now(); }, { passive:true }));
@@ -23198,17 +23285,22 @@ function _pwzStart(){
   openAiChat(seed);
 }
 
-// ── KI-CHAT: DIKTIERFUNKTION (Web Speech API, nur wo verfügbar) ─────────
-let _aicRec = null, _aicRecOn = false;
+// ── KI-CHAT: DIKTIERFUNKTION ─────────
+// Native App (WKWebView) kennt die Web Speech API NICHT → dort läuft Diktat über
+// das eigene SpeechPlugin.swift (SFSpeechRecognizer). Web/PWA nutzt weiter die
+// Web Speech API, wo verfügbar (Safari Desktop, Chrome).
+let _aicRec = null, _aicRecOn = false, _aicSpeechListener = null;
 function _aicMicInit(){
   const btn = document.getElementById('aic-mic'); if (!btn) return;
+  if (_isNative()) { btn.style.display = _cap('SpeechPlugin') ? '' : 'none'; return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  btn.style.display = SR ? '' : 'none';   // iOS ohne Support: Diktat über die Tastatur-Mikrofontaste
+  btn.style.display = SR ? '' : 'none';   // iOS Safari ohne Support: Diktat über die Tastatur-Mikrofontaste
 }
 function aicMicToggle(){
+  const btn = document.getElementById('aic-mic'); if (!btn) return;
+  if (_isNative()) return _aicMicToggleNative(btn);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const btn = document.getElementById('aic-mic');
-  if (!SR || !btn) return;
+  if (!SR) return;
   if (_aicRecOn) { try { _aicRec && _aicRec.stop(); } catch(_){} return; }
   const inp = document.getElementById('aic-in');
   const baseText = inp ? inp.value : '';
@@ -23225,6 +23317,29 @@ function aicMicToggle(){
   rec.onerror = () => { _aicRecOn = false; _aicRec = null; btn.classList.remove('rec'); };
   try { rec.start(); _aicRec = rec; _aicRecOn = true; btn.classList.add('rec'); haptic(8); }
   catch(_) { _aicRecOn = false; _aicRec = null; }
+}
+async function _aicMicToggleNative(btn){
+  const SP = _cap('SpeechPlugin'); if (!SP) return;
+  if (_aicRecOn) {
+    try { await SP.stop(); } catch(_){}
+    _aicRecOn = false; btn.classList.remove('rec');
+    if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; }
+    return;
+  }
+  const inp = document.getElementById('aic-in');
+  const baseText = inp ? inp.value : '';
+  try {
+    _aicSpeechListener = await SP.addListener('result', (ev) => {
+      if (inp) { inp.value = (baseText ? baseText + ' ' : '') + String(ev.transcript || '').trim(); _aicGrow(inp); }
+      if (ev.isFinal) { _aicRecOn = false; btn.classList.remove('rec'); if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; } }
+    });
+    await SP.start({ lang: GT_LANG === 'en' ? 'en-US' : 'de-DE' });
+    _aicRecOn = true; btn.classList.add('rec'); haptic(8);
+  } catch(e) {
+    _aicRecOn = false; btn.classList.remove('rec');
+    if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; }
+    console.warn('[KI-Chat] Diktat:', e);
+  }
 }
 
 // ── GERÄTE-SCANNER (Kamera → /vision → Übungs-Animation) ─────────
