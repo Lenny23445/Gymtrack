@@ -484,6 +484,36 @@ const ANALYZE_SCHEMA = {
   properties: {
     score:   { type: "integer" },
     summary: { type: "string" },
+    // Kennzahlen-Kacheln: die App rendert sie als Zahlenraster mit Trendpfeil.
+    // Sie tragen die Aussage, der Text bleibt bewusst kurz.
+    metrics: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },   // max. 3 Wörter
+          value: { type: "string" },   // reine Zahl, z.B. "18" oder "-12"
+          unit:  { type: "string" },   // "kg", "%", "Sätze/Wo", "" …
+          trend: { type: "string" },   // "up" | "down" | "flat"
+          good:  { type: "boolean" },  // true = positiv zu werten
+        },
+        required: ["label", "value"],
+      },
+    },
+    // Balken-Vergleich: Ist gegen Soll je Zeile (z.B. Wochensätze pro Muskelgruppe).
+    bars: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label:  { type: "string" },
+          value:  { type: "number" },
+          target: { type: "number" },
+          unit:   { type: "string" },
+        },
+        required: ["label", "value"],
+      },
+    },
     points:  { type: "array", items: { type: "string" } },
     recos:   { type: "array", items: { type: "string" } },
     // Direkt umsetzbare Vorschläge — die App zeigt pro Action einen "Übernehmen"-
@@ -525,21 +555,31 @@ async function runAnalyze(body, lang, env) {
   }[mode];
   const sys = de
     ? `Du bist ein sportwissenschaftlich fundierter Personal Trainer in der App MyGymTrack. Analysiere ${focusDe} anhand der mitgelieferten aggregierten JSON-Daten. Duze den Nutzer, sei konkret, beziehe dich auf echte Zahlen/Übungsnamen aus den Daten.
-Sei AUSFÜHRLICH und sportwissenschaftlich fundiert (Volumen-Richtwerte pro Muskelgruppe, progressive Überlastung, Erholung/Frequenz) — der Nutzer zahlt für eine echte Experten-Einschätzung, nicht für Allgemeinplätze.
+STIL: Zahlen statt Prosa. Die App zeigt deine Antwort als Kennzahlen-Raster und Balken — Fließtext ist nur die Klammer drumherum. Jede Aussage trägt eine Zahl aus den Daten. Keine Allgemeinplätze, keine Wiederholungen, keine Einleitungen wie "Insgesamt zeigt sich".
+Sportwissenschaftlich fundiert bleiben (Volumen-Richtwerte pro Muskelgruppe, progressive Überlastung, Erholung/Frequenz) — aber verdichtet.
 score: 0-100 ehrliche Gesamtbewertung.
-summary: 3-4 Sätze Gesamtfazit.
-points: 3-5 konkrete Beobachtungen (positiv wie kritisch), jeweils mit Zahl aus den Daten.
-recos: 3-6 konkrete, umsetzbare Empfehlungen mit kurzem sportwissenschaftlichem Warum.
+summary: HÖCHSTENS 2 kurze Sätze (zusammen max. 30 Wörter) — das Fazit, nicht die Herleitung.
+metrics: 3-4 Kennzahlen, die den Kern belegen. label max. 3 Wörter, value nur die Zahl (Vorzeichen erlaubt), unit die Einheit, trend up/down/flat, good ob der Wert positiv zu werten ist. Beispiel: {label:"Wochensätze Brust", value:"9", unit:"Sätze", trend:"down", good:false}.
+bars: 0-6 Zeilen Ist-gegen-Soll, wenn die Daten das hergeben (z.B. Wochensätze je Muskelgruppe gegen den Richtwert 10-20). value = Ist, target = Richtwert.
+points: 3-4 Beobachtungen, jeweils EIN Satz mit max. 12 Wörtern und mindestens einer Zahl.
+recos: 2-3 Empfehlungen, jeweils max. 14 Wörter, konkret und mit Zahl ("Brust auf 14 Sätze/Woche, +5 pro Woche steigern").
 actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
-Be THOROUGH and sports-science-grounded (volume landmarks per muscle group, progressive overload, recovery/frequency) — the user pays for a real expert assessment.
+STYLE: numbers over prose. The app renders your answer as a metric grid and bars — text is only the frame. Every statement carries a number from the data. No filler, no repetition, no "overall we can see" openers.
+Stay sports-science-grounded (volume landmarks per muscle group, progressive overload, recovery/frequency) but condensed.
 score: 0-100 honest overall rating.
-summary: 3-4 sentences. points: 3-5 concrete observations, each with a number from the data. recos: 3-6 actionable recommendations with a short scientific why.
+summary: AT MOST 2 short sentences (30 words total) — the verdict, not the derivation.
+metrics: 3-4 key figures backing the verdict. label max 3 words, value the number only (sign allowed), unit the unit, trend up/down/flat, good whether the value is positive. Example: {label:"Weekly chest sets", value:"9", unit:"sets", trend:"down", good:false}.
+bars: 0-6 actual-vs-target rows where the data supports it (e.g. weekly sets per muscle group against the 10-20 landmark). value = actual, target = landmark.
+points: 3-4 observations, one sentence each, max 12 words, at least one number.
+recos: 2-3 recommendations, max 14 words each, concrete and with a number.
 actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.`;
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],
-    maxTokens: 1500,
+    // Kürzeres Zielformat (Kennzahlen statt Fließtext) braucht weniger Ausgabe —
+    // 1100 lässt Luft für metrics+bars, deckelt aber Textwände.
+    maxTokens: 1100,
     schema: ANALYZE_SCHEMA,
   });
   return { a: JSON.parse(text), usage };
@@ -552,6 +592,10 @@ const VISION_SCHEMA = {
   properties: {
     isGym:   { type: "boolean" },  // false = kein Trainingsgerät erkennbar
     device:  { type: "string" },
+    // 0..1 — wie sicher ist die Geräte-Bestimmung. Der Client zeigt unter 0.6
+    // KEINE Ausführungs-Animation mehr, sondern nur die Schritt-Erklärung:
+    // ein plausibel aussehendes, aber falsches Gerät ist schlimmer als keins.
+    confidence: { type: "number" },
     muscleGroups: { type: "array", items: { type: "string" } },
     exercises: {
       type: "array",
@@ -580,18 +624,24 @@ async function runVision(body, lang, env) {
   const mime = body.mime === "image/png" ? "image/png" : "image/jpeg";
   const sys = de
     ? `Du bist der Geräte-Scanner der Fitness-App MyGymTrack. Du bekommst ein Foto aus einem Fitnessstudio und erkennst das abgebildete Trainingsgerät (auch Freihantel-/Rack-Aufbauten).
+RATE NIE. Lieber ehrlich unsicher als ein falsches Gerät: eine erfundene oder „ähnliche" Zuordnung ist für den Nutzer schlechter als gar keine.
 isGym: false, wenn KEIN Trainingsgerät/Equipment erkennbar ist (dann alles andere leer lassen bzw. device kurz beschreiben, was zu sehen ist).
-device: kurzer deutscher Gerätename (z.B. "Latzug", "Beinpresse", "Kabelzug-Turm").
+confidence: 0..1, wie sicher du das konkrete Gerät bestimmst. Nur >0.8, wenn du die Bauart eindeutig siehst (Polster, Hebel, Zugweg, Beschriftung). Bei angeschnittenem/unscharfem Bild, mehreren Geräten oder generischem Rahmen: <=0.5.
+device: kurzer deutscher Gerätename (z.B. "Latzug", "Beinpresse", "Kabelzug-Turm"). Bei confidence<=0.5 den Gerätetyp bewusst allgemein halten statt ein Modell zu erfinden.
 muscleGroups: NUR aus brust, ruecken, beine, arme, schultern, core.
-exercises: 1-3 sinnvolle Übungen an diesem Gerät, wichtigste zuerst. name = deutscher Name, nameEn = gebräuchlicher englischer Name wie in Übungsdatenbanken (z.B. "Lat Pulldown", "Leg Press", "Seated Cable Row"), muscleGroup aus der Liste oben, tip = 1 kurzer Technik-Tipp.
-howTo: 3-5 kurze Schritte, wie man die WICHTIGSTE Übung sauber ausführt (duzen, je max. 12 Wörter).
+exercises: 1-3 Übungen, die WIRKLICH an genau diesem Gerät gemacht werden, wichtigste zuerst. Keine Übungen ergänzen, die nur „auch Sinn ergeben". Bei confidence<=0.5: höchstens 1 Eintrag oder leer.
+nameEn: der gebräuchliche englische Standardname der Übung, so wie er in offenen Übungsdatenbanken steht — Grundform, kein Plural, keine Marken-/Herstellernamen, keine Zusätze wie "machine" oder "variation" (richtig: "Lat Pulldown", "Leg Press", "Seated Cable Row", "Chest Fly"). Der Client sucht damit exakt; ein ungenauer Name führt zu gar keiner Animation.
+howTo: 3-5 kurze Schritte, wie man die WICHTIGSTE Übung sauber ausführt (duzen, je max. 12 Wörter). Diese Schritte sind der eigentliche Wert — sie müssen auch dann tragen, wenn keine Animation gefunden wird.
 caution: 1 Satz — häufigster Fehler an diesem Gerät.`
     : `You are the machine scanner of the MyGymTrack fitness app. You get a gym photo and identify the training machine/equipment (including free-weight/rack setups).
+NEVER guess. An honest "unsure" beats a wrong or merely "similar" machine.
 isGym: false if NO training equipment is visible (leave the rest empty, describe briefly in device).
-device: short machine name (e.g. "Lat Pulldown", "Leg Press").
+confidence: 0..1 for how certain the machine identification is. Only >0.8 when the build is unambiguous (pads, levers, cable path, labels). Cropped/blurry shots, several machines or a generic frame: <=0.5.
+device: short machine name (e.g. "Lat Pulldown", "Leg Press"). With confidence<=0.5 stay deliberately generic instead of inventing a model.
 muscleGroups: ONLY from brust, ruecken, beine, arme, schultern, core.
-exercises: 1-3 sensible exercises on this machine, most important first. name = display name, nameEn = common database name (e.g. "Lat Pulldown"), muscleGroup from the list above, tip = 1 short technique tip.
-howTo: 3-5 short steps for the MAIN exercise (max 12 words each).
+exercises: 1-3 exercises actually performed on THIS machine, most important first. Do not add exercises that merely "would also make sense". With confidence<=0.5: at most 1 entry, or empty.
+nameEn: the common English standard name as found in open exercise databases — base form, no plural, no brand names, no extras like "machine" or "variation" (correct: "Lat Pulldown", "Leg Press", "Seated Cable Row", "Chest Fly"). The client matches on it exactly; a loose name yields no animation at all.
+howTo: 3-5 short steps for the MAIN exercise (max 12 words each). These steps are the real value — they must stand on their own when no animation is found.
 caution: 1 sentence — most common mistake on this machine.`;
   const { text, usage } = await llm(env, {
     system: sys,

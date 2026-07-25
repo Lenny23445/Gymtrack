@@ -13,6 +13,34 @@
 <meta name="application-name" content="MyGymTrack">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" id="pwa-icon" sizes="512x512" href="">
+<script>
+/* ── START OHNE FLACKERN ──────────────────────────────────────────────────
+   1) Theme/Glas VOR dem ersten Paint setzen. setTheme()/setGlass() laufen erst
+      am Ende des ~24k-Zeilen-Skripts — bis dahin stand die Seite auf dem
+      HTML-Default (dunkel + Glas an) und sprang danach sichtbar um.
+   2) #boot-splash deckt den Aufbau ab und sieht exakt aus wie der native
+      LaunchScreen (schwarz, blaue Hantel mittig). Die native Startgrafik geht
+      dadurch nahtlos in die Web-Ansicht über, statt kurz weiß/dunkel
+      dazwischenzublitzen. Ausgeblendet wird sie am Ende des INIT-Blocks
+      (_bootSplashDone) — plus Notbremse per Timeout, falls das INIT wirft:
+      lieber eine unfertige App als ein Splash, der nie verschwindet. */
+(function(){
+  var d = document.documentElement;
+  try {
+    var s = JSON.parse(localStorage.getItem('ft4') || '{}') || {};
+    if (typeof s.theme === 'string' && /^[a-zäöüß]{2,20}$/i.test(s.theme)) d.setAttribute('data-theme', s.theme);
+    d.setAttribute('data-glass', s.glass === false ? 'off' : 'on');
+  } catch(e){}
+  window._bootSplashDone = function(){
+    var el = document.getElementById('boot-splash');
+    if (!el || el.dataset.off) return;
+    el.dataset.off = '1';
+    el.classList.add('gone');
+    setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 420);
+  };
+  setTimeout(function(){ try { window._bootSplashDone(); } catch(e){} }, 4000);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <!-- ── Google Identity Services (für iOS-PWA-fähigen Login) ── -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -330,6 +358,29 @@
 [data-glass="off"] .companion-card::after,[data-glass="off"] .sheet::after,
 [data-glass="off"] .tabbar::after,[data-glass="off"] .hdr::after{display:none}
 [data-glass="off"] *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+/* Ausnahme: Der Hintergrund des KI-Menüs bleibt IMMER unscharf. Die Menü-Pillen
+   sind bewusst solide (WebKit-Compositing-Bug, s. #ai-radial) und stehen sonst
+   direkt auf dem Seiteninhalt — ohne Blur ist das Menü kaum lesbar. Höhere
+   Spezifität (ID) als der *-Reset darüber, deshalb gewinnt es trotz !important. */
+[data-glass="off"] #ai-radial-backdrop{
+  backdrop-filter:blur(14px) saturate(1.15)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(1.15)!important;
+}
+
+/* ── Boot-Splash (s. Kopf-Skript): deckt den ersten Aufbau ab ──
+   Schwarz + zentrierte Hantel = 1:1 der native LaunchScreen, damit der Übergang
+   nativ → WebView nicht als Aufflackern sichtbar wird. z-index über allem,
+   inkl. Rotate-Lock (99999). */
+#boot-splash{
+  position:fixed;inset:0;z-index:100000;background:#000;
+  display:flex;align-items:center;justify-content:center;
+  opacity:1;transition:opacity .38s ease;
+}
+#boot-splash.gone{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  #boot-splash svg{animation:bootPulse 1.9s ease-in-out infinite}
+}
+@keyframes bootPulse{0%,100%{transform:scale(1);opacity:.92}50%{transform:scale(1.045);opacity:1}}
 
 /* ── Querformat-Sperre: Hinweis nur auf Smartphones im Landscape ── */
 #rotate-lock{
@@ -3943,37 +3994,171 @@ html:not([data-glass="off"])[data-theme="dark"] .erf-badge{
 html:not([data-glass="off"])[data-theme="dark"] .wheel-typein-inp{background:var(--inp-focus)}
 
 /* ===================================================================
-   LIQUID GLASS (iOS 26, WebKit-sicher) — EXPERIMENT · START
-   Nur Navigations-/Steuerungsschicht + Sheets. Content (Cards, Listen,
-   Felder) bleibt solide. Nur Dark-Theme. Reversibel (Backup .index.pre-lg.bak).
-   Kein SVG-Refraktions-Filter (in WKWebView unzuverlässig) — Rim-Light via
-   Gradient-Fill + inset-Shadow statt echter Brechung.
+   LIQUID GLASS v3 — appweit, ALLE Themes (WebKit/WKWebView-sicher)
+   Rezeptur (wie macOS-Tahoe-Widgets):
+     1. SUBSTRAT: Wallpaper mit großen, weichen Lichtformen (Bögen/Streiflicht).
+        Ohne Struktur hinter dem Glas gibt es nichts zu brechen → grauer Kasten.
+     2. FLÄCHE: fast leer (Dark ~5 % Weiß), dafür sehr starker Blur.
+     3. LICHT: sitzt an der KANTE (Rim + Top-Edge), NICHT als Milchschleier innen.
+   Kein SVG-Refraktionsfilter und kein `mask` auf blur-Elementen (bricht WKWebView) —
+   Kanten kommen aus inset-Shadows + 1px-Pseudo mit mask (Pseudo ist unblurred).
+   Ersetzt den alten „EXPERIMENT"-Block (der nur Dark abdeckte und Tabbar/Buttons
+   mit einem milchigen Weiß-Fill zugedeckt hat).
    =================================================================== */
-[data-theme="dark"]{
-  --lg-fill:linear-gradient(180deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.10) 24%,rgba(255,255,255,.055) 100%);
-  --lg-fill-sheet:linear-gradient(180deg,rgba(40,40,48,.55) 0%,rgba(20,20,26,.68) 100%);
-  --lg-blur-c:22px; --lg-sat-c:180%;
-  --lg-bdr-c:rgba(255,255,255,.16);
-  --lg-accent-rgb:10,132,255;
-  --lg-rim:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(255,255,255,.06);
-  --lg-elev:0 8px 24px rgba(0,0,0,.35);
-  /* Moderner, ruhiger Apple-Wallpaper-Look: tiefes Dunkel + sanfte, weiche
-     Lichtinseln (kühl/neutral) — KEIN harter Diagonal-Schein. Gibt dem Glas
-     etwas zum Brechen, bleibt aber dezent genug für lesbaren Content. */
-  --mesh:
-    radial-gradient(70% 55% at 18% 12%,rgba(150,160,185,.12) 0%,transparent 60%),
-    radial-gradient(65% 50% at 88% 22%,rgba(120,140,190,.11) 0%,transparent 60%),
-    radial-gradient(90% 65% at 60% 108%,rgba(90,105,150,.12) 0%,transparent 60%),
-    linear-gradient(180deg,#0a0b10 0%,#070709 60%,#050506 100%);
+
+/* ── 1 · SUBSTRAT ─────────────────────────────────────────────────
+   #bg  = Grundfläche (--mesh) · #bg::before = Korn · #bg::after = Lichtformen.
+   Die Bögen sind riesige, sehr weiche Radial-Ringe mit Zentrum außerhalb des
+   Viewports → wirken wie gekrümmte Lichtkanten auf einem Apple-Wallpaper. */
+#bg::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:var(--wall,none);
+  transition:background .4s cubic-bezier(.4,0,.2,1);
 }
-/* ---- Nav-Schicht: Tab-Leiste ---- */
-html[data-glass][data-theme="dark"] .tabbar{
-  background:var(--lg-fill)!important;
-  -webkit-backdrop-filter:blur(var(--lg-blur-c)) saturate(var(--lg-sat-c))!important;
-  backdrop-filter:blur(var(--lg-blur-c)) saturate(var(--lg-sat-c))!important;
-  border:.5px solid var(--lg-bdr-c)!important;
-  box-shadow:var(--lg-rim),var(--lg-elev)!important;
+[data-theme="dark"]{
+  --mesh:linear-gradient(180deg,#08080b 0%,#050507 52%,#000000 100%);
+  --wall:
+    /* Sehr dezente Lichtbögen (Zentrum außerhalb) — reine Funktion: das Glas
+       braucht Struktur zum Brechen. Kein Show-Effekt. */
+    radial-gradient(circle 760px at 108% 10%,transparent 46%,rgba(255,255,255,.13) 56%,rgba(255,255,255,.04) 63%,transparent 73%),
+    radial-gradient(circle 1150px at 118% 50%,transparent 54%,rgba(255,255,255,.09) 61%,rgba(255,255,255,.025) 67%,transparent 76%),
+    radial-gradient(circle 720px at -20% 76%,transparent 46%,rgba(255,255,255,.08) 56%,transparent 70%),
+    linear-gradient(108deg,transparent 14%,rgba(255,255,255,.028) 36%,rgba(255,255,255,.05) 47%,rgba(255,255,255,.02) 59%,transparent 78%),
+    radial-gradient(120% 60% at 88% -12%,rgba(255,255,255,.05) 0%,transparent 62%);
+}
+[data-theme="light"]{
+  --wall:
+    radial-gradient(circle 1050px at 118% 15%,transparent 55%,rgba(255,255,255,.95) 62%,transparent 74%),
+    radial-gradient(circle 1500px at 128% 62%,transparent 58%,rgba(118,126,142,.11) 64%,transparent 72%),
+    radial-gradient(circle 900px at -26% 86%,transparent 52%,rgba(118,126,142,.10) 60%,transparent 70%),
+    linear-gradient(116deg,transparent 28%,rgba(255,255,255,.80) 48%,transparent 66%);
+}
+[data-theme="rosa"]{
+  --wall:
+    radial-gradient(circle 1050px at 118% 15%,transparent 55%,rgba(255,255,255,.92) 62%,transparent 74%),
+    radial-gradient(circle 1500px at 128% 62%,transparent 58%,rgba(178,110,148,.13) 64%,transparent 72%),
+    radial-gradient(circle 900px at -26% 86%,transparent 52%,rgba(178,110,148,.11) 60%,transparent 70%),
+    linear-gradient(116deg,transparent 28%,rgba(255,255,255,.78) 48%,transparent 66%);
+}
+[data-theme="blau"]{
+  --wall:
+    radial-gradient(circle 1050px at 118% 15%,transparent 55%,rgba(255,255,255,.95) 62%,transparent 74%),
+    radial-gradient(circle 1500px at 128% 62%,transparent 58%,rgba(90,130,190,.13) 64%,transparent 72%),
+    radial-gradient(circle 900px at -26% 86%,transparent 52%,rgba(90,130,190,.11) 60%,transparent 70%),
+    linear-gradient(116deg,transparent 28%,rgba(255,255,255,.80) 48%,transparent 66%);
+}
+[data-theme="grün"]{
+  --wall:
+    radial-gradient(circle 1050px at 118% 15%,transparent 55%,rgba(255,255,255,.95) 62%,transparent 74%),
+    radial-gradient(circle 1500px at 128% 62%,transparent 58%,rgba(85,150,105,.13) 64%,transparent 72%),
+    radial-gradient(circle 900px at -26% 86%,transparent 52%,rgba(85,150,105,.11) 60%,transparent 70%),
+    linear-gradient(116deg,transparent 28%,rgba(255,255,255,.80) 48%,transparent 66%);
+}
+/* Glas aus → kein Substrat-Spiel, ruhige Fläche */
+[data-glass="off"] #bg::after{display:none}
+
+/* ── 2 · ZENTRALE GLAS-TOKENS (pro Theme) ──────────────────────────
+   --gl-chrome = Nav-/Steuerschicht (Tabbar, Floating)
+   --gl-sheet  = Modals/Bottom-Sheets (dichter, Content muss lesbar bleiben)
+   --gl-ctrl   = kleine Controls (Buttons, Chips, Close)
+   --gl-rim    = Kantenlicht (oben hell, unten dezenter Reflex)               */
+[data-theme="dark"]{
+  /* SCHWARZE MILCH (Referenz macOS-Widgets): die Fläche ist ein dunkler,
+     rauchiger Film — sie DÄMPFT das Licht dahinter (siehe --gl-lift), statt es
+     aufzuhellen. Weiß gibt es nur an der Kante. Innen oben minimal heller. */
+  --gl-bg:linear-gradient(180deg,rgba(26,26,31,.58) 0%,rgba(9,9,13,.74) 100%);
+  --gl-bg-h:linear-gradient(180deg,rgba(30,30,36,.66) 0%,rgba(11,11,15,.80) 100%);
+  --gl-bg-t:rgba(20,20,25,.52);
+  --gl-chrome:linear-gradient(180deg,rgba(30,30,36,.56) 0%,rgba(11,11,15,.72) 100%);
+  --gl-sheet:linear-gradient(180deg,rgba(24,24,30,.78) 0%,rgba(8,8,12,.88) 100%);
+  --gl-ctrl:linear-gradient(180deg,rgba(38,38,45,.62) 0%,rgba(16,16,21,.76) 100%);
+  --gl-bdr:rgba(255,255,255,.15); --gl-bdr2:rgba(255,255,255,.07);
+  --gl-rim:
+    inset 0 1px 0 rgba(255,255,255,.34),
+    inset 0 0 0 1px rgba(255,255,255,.045),
+    inset 0 -1px 0 rgba(255,255,255,.075);
+  --gl-hi:var(--gl-rim);
+  /* Dezenter Milchschleier oben — im Mac-Widget sitzt das Licht an der Kante,
+     die Fläche selbst ist aber sichtbar milchig, nicht schwarz. */
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.045) 0%,transparent 60%);
+  /* Rauchglas dämpft: das helle Wallpaper hinter der Scheibe wird runtergezogen
+     und nur diffus angedeutet → „schwarze Milch". Volle Helligkeit behalten die
+     Lücken ZWISCHEN den Flächen, dort blitzen die Lichtbögen. */
+  --gl-lift:brightness(.42) contrast(1.05);
+  --gl-blur:52px; --gl-blur-lg:88px; --gl-blur-sm:26px; --gl-sat:210%;
+  --inp-bg:rgba(255,255,255,.055); --inp-focus:rgba(255,255,255,.11);
+}
+[data-theme="light"],[data-theme="rosa"],[data-theme="blau"],[data-theme="grün"]{
+  /* Heller: Fläche bewusst dünner als vorher (.58 → .46), damit die Lichtformen
+     durchscheinen und es nach Glas aussieht statt nach weißem Karton. */
+  --gl-bg:linear-gradient(180deg,rgba(255,255,255,.46) 0%,rgba(255,255,255,.28) 100%);
+  --gl-bg-h:linear-gradient(180deg,rgba(255,255,255,.66) 0%,rgba(255,255,255,.46) 100%);
+  --gl-bg-t:rgba(255,255,255,.26);
+  --gl-chrome:linear-gradient(180deg,rgba(255,255,255,.60) 0%,rgba(255,255,255,.40) 100%);
+  --gl-sheet:linear-gradient(180deg,rgba(255,255,255,.80) 0%,rgba(255,255,255,.68) 100%);
+  --gl-ctrl:linear-gradient(180deg,rgba(255,255,255,.58) 0%,rgba(255,255,255,.36) 100%);
+  --gl-rim:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 0 0 1px rgba(255,255,255,.32),
+    inset 0 -1px 0 rgba(255,255,255,.45);
+  --gl-hi:var(--gl-rim);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.16) 0%,transparent 70%);
+  --gl-blur:40px; --gl-blur-lg:66px; --gl-blur-sm:24px; --gl-sat:185%;
+  --gl-lift:brightness(1.06);
+}
+
+/* ── 2b · WENIGER KASTEN ────────────────────────────────────────
+   Im Referenz-Widget gibt es KEINE durchgezogene 1px-Linie: die Kante ist nur
+   dort hell, wo Licht drauf fällt (oben/links). Rahmen daher fast unsichtbar,
+   das sichtbare Kantenlicht macht der ::before-Rim. Größere Radien = weicher. */
+:root{--r-lg:26px; --r-xl:32px}
+html:not([data-glass="off"])[data-theme="dark"]{
+  --gl-bdr:rgba(255,255,255,.055); --gl-bdr2:rgba(255,255,255,.035);
+  --gl-rim:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    inset 1px 0 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(255,255,255,.045);
+}
+html:not([data-glass="off"]) .card,
+html:not([data-glass="off"]) .ex-card,
+html:not([data-glass="off"]) .hw-card,
+html:not([data-glass="off"]) .hw-quick{border-radius:var(--r-lg)}
+/* Innenkästen weg: Zeilen in einer Glasfläche tragen keinen eigenen Rahmen */
+html:not([data-glass="off"]) .card .rec-row,
+html:not([data-glass="off"]) .card .row{border-color:transparent}
+html:not([data-glass="off"]) .card .rec-row + .rec-row{border-top:1px solid var(--sep)}
+
+/* ── 3 · HEADER: kein Kasten mehr ─────────────────────────────────
+   Der Header scrollt mit; als eigene Glasplatte wirkt er wie ein Balken.
+   Transparent lassen = das Wallpaper läuft bis unter die Statusbar. */
+html:not([data-glass="off"]) .hdr{
+  background:transparent!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  box-shadow:none!important;border:none!important;
+}
+html:not([data-glass="off"]) .hdr::after{display:none}
+
+/* ── 4 · TABBAR ───────────────────────────────────────────────────
+   Kapsel aus fast leerem Glas: das Wallpaper wandert sichtbar dahinter durch,
+   das Licht sitzt auf der Kante. Gilt für alle Themes. */
+html:not([data-glass="off"]) .tabbar{
+  background:var(--gl-bg)!important;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  border:1px solid var(--gl-bdr)!important;
+  box-shadow:var(--gl-rim),var(--gl-shad-lg)!important;
   transition:max-width .3s cubic-bezier(.32,1,.32,1),padding .3s cubic-bezier(.32,1,.32,1),transform .3s;
+}
+html:not([data-glass="off"]) .tabbar::after{display:none}   /* Sheen weg */
+html:not([data-glass="off"]) .tabbar::before{
+  background:linear-gradient(150deg,
+    rgba(255,255,255,.75) 0%,rgba(255,255,255,.20) 26%,
+    transparent 52%,rgba(255,255,255,.10) 76%,rgba(255,255,255,.32) 100%);
+}
+html:not([data-glass="off"])[data-theme="dark"] .tabbar::before{
+  background:linear-gradient(150deg,
+    rgba(255,255,255,.58) 0%,rgba(255,255,255,.14) 24%,
+    transparent 50%,rgba(255,255,255,.05) 74%,rgba(255,255,255,.20) 100%);
 }
 /* Tab-Bar minimiert beim Runterscrollen → kompakte Kapsel (nur Icons).
    Gilt für ALLE Themes; explizite max-height auf dem Label ist Pflicht —
@@ -3982,85 +4167,130 @@ html[data-glass][data-theme="dark"] .tabbar{
 .tabbar .tab span{ transition:opacity .18s ease,max-height .28s cubic-bezier(.32,1,.32,1); overflow:hidden; max-height:16px; }
 .tabbar.tabbar--min .tab span{ opacity:0; max-height:0; }
 .tabbar.tabbar--min .tab{ padding-top:9px; padding-bottom:9px; }
-/* ---- Nav-Schicht: sticky Header ---- */
-[data-theme="dark"] .hdr{
-  background:linear-gradient(180deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 60%,transparent 100%)!important;
-  -webkit-backdrop-filter:blur(var(--lg-blur-c)) saturate(var(--lg-sat-c))!important;
-  backdrop-filter:blur(var(--lg-blur-c)) saturate(var(--lg-sat-c))!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+
+/* KI-Bubble neben der Tabbar: gleiches Material, sonst wirkt sie wie ein Fremdkörper */
+html:not([data-glass="off"]) #ai-bubble{
+  background:var(--gl-bg)!important;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  border:1px solid var(--gl-bdr)!important;
+  box-shadow:var(--gl-rim),var(--gl-shad-lg)!important;
 }
-/* ---- Sekundäre Buttons / Chips / Close = neutrales Glas ---- */
-[data-theme="dark"] .btn,
-[data-theme="dark"] .btn-gray,
-[data-theme="dark"] .x-btn,
-[data-theme="dark"] .fmode-btn,
-[data-theme="dark"] .soc-chip,
-[data-theme="dark"] .hdr-icon-btn{
-  position:relative;
-  background:var(--lg-fill)!important;
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  backdrop-filter:blur(18px) saturate(160%);
-  border:.5px solid var(--lg-bdr-c)!important;
-  box-shadow:var(--lg-rim),0 4px 14px rgba(0,0,0,.3)!important;
-  color:var(--text)!important;
+html:not([data-glass="off"]) #ai-bubble::after{display:none}
+
+/* ── 5 · KARTEN / FLÄCHEN (alle Themes, nicht mehr nur Dark) ────── */
+html:not([data-glass="off"]) .card,
+html:not([data-glass="off"]) .ex-card,
+html:not([data-glass="off"]) .hw-card,
+html:not([data-glass="off"]) .hw-quick,
+html:not([data-glass="off"]) .companion-card,
+html:not([data-glass="off"]) .fr-card,
+html:not([data-glass="off"]) .feed-item,
+html:not([data-glass="off"]) .frp-stat,
+html:not([data-glass="off"]) .frp-vs,
+html:not([data-glass="off"]) .plimp-card,
+html:not([data-glass="off"]) .soc-search-res,
+html:not([data-glass="off"]) .soc-map-foot,
+html:not([data-glass="off"]) .erf-tile,
+html:not([data-glass="off"]) .ob-opt:not(.on),
+html:not([data-glass="off"]) .ob-tpl:not(.on),
+html:not([data-glass="off"]) .ob-name-in,
+html:not([data-glass="off"]) .ob-freq button:not(.on),
+html:not([data-glass="off"]) .wk-preset-card:not(.on){
+  background:var(--gl-bg);
+  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat)) var(--gl-lift);
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat)) var(--gl-lift);
+  border-color:var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad);
+}
+/* Verschachtelung: Glas IN Glas wird matschig (der Kind-Blur sampelt die schon
+   geblurrte Elternfläche). Kinder innerhalb einer Glasfläche daher ohne Blur. */
+html:not([data-glass="off"]) .card .erf-tile,
+html:not([data-glass="off"]) .card .frp-stat,
+html:not([data-glass="off"]) .card .frp-vs{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  background:var(--gl-bg-t);
+}
+
+/* ── 6 · CONTROLS: Buttons, Chips, Close, Segmente ──────────────── */
+html:not([data-glass="off"]) .btn-gray,
+html:not([data-glass="off"]) .btn:not(.btn-acc):not(.btn-danger):not(.fr-req-ok),
+html:not([data-glass="off"]) .x-btn,
+html:not([data-glass="off"]) .hdr-icon-btn,
+html:not([data-glass="off"]) .fmode-btn:not(.on),
+html:not([data-glass="off"]) .soc-chip:not(.on),
+html:not([data-glass="off"]) .day-pill:not(.on),
+html:not([data-glass="off"]) .soc-code-btns button,
+html:not([data-glass="off"]) .pc-cfg-btn,
+html:not([data-glass="off"]) .cs-preset-btn{
+  background:var(--gl-ctrl);
+  backdrop-filter:blur(var(--gl-blur-sm)) saturate(var(--gl-sat)) var(--gl-lift);
+  -webkit-backdrop-filter:blur(var(--gl-blur-sm)) saturate(var(--gl-sat)) var(--gl-lift);
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad);
+  color:var(--text);
   transition:transform .14s ease,filter .14s ease,box-shadow .16s;
 }
-/* ---- Primäre Aktion: prominentes Glas mit Akzent-Tint (nur hier) ---- */
-[data-theme="dark"] .btn-acc{
-  background:linear-gradient(180deg,rgba(var(--lg-accent-rgb),.92) 0%,rgba(var(--lg-accent-rgb),.66) 100%)!important;
-  -webkit-backdrop-filter:blur(18px) saturate(170%);
-  backdrop-filter:blur(18px) saturate(170%);
-  border:.5px solid rgba(255,255,255,.30)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 8px rgba(var(--lg-accent-rgb),.4),0 10px 26px rgba(0,0,0,.4)!important;
-  color:#fff!important;
-  transition:transform .14s ease,filter .14s ease,box-shadow .16s;
+html:not([data-glass="off"]) .btn-gray:active,
+html:not([data-glass="off"]) .x-btn:active,
+html:not([data-glass="off"]) .hdr-icon-btn:active,
+html:not([data-glass="off"]) .fmode-btn:active,
+html:not([data-glass="off"]) .soc-chip:active{
+  transform:scale(.965);filter:brightness(1.10);
 }
-/* Segmented (Modus-Umschalter): leichter, flacher — nicht als schwere Box */
-[data-theme="dark"] .fmode-btn{
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.22)!important;
-  border-color:rgba(255,255,255,.08)!important;
-  -webkit-backdrop-filter:blur(14px) saturate(150%);
-  backdrop-filter:blur(14px) saturate(150%);
+/* Primäre Aktion bleibt farbig (Apple: genau EIN prominentes Element) */
+html:not([data-glass="off"]) .btn-acc{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 48%),
+    linear-gradient(160deg,rgba(var(--acc-rgb),1) 0%,rgba(var(--acc-rgb),.82) 100%);
+  border:1px solid rgba(255,255,255,.28);
+  color:#fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 2px 8px rgba(var(--acc-rgb),.34),
+    0 14px 34px rgba(var(--acc-rgb),.28);
 }
-/* Aktiver Chip: bleibt Akzent (aber ohne flächigen Tint aufs Glas außen) */
-[data-theme="dark"] .fmode-btn.on,
-[data-theme="dark"] .soc-chip.on{
-  background:linear-gradient(180deg,rgba(var(--lg-accent-rgb),.85),rgba(var(--lg-accent-rgb),.6))!important;
-  border-color:rgba(255,255,255,.3)!important;
-  color:#fff!important;
+
+/* ── 7 · SHEETS / MODALS ──────────────────────────────────────────
+   Dichter als Karten (Content dahinter darf nicht durchlesen), aber weiter Glas. */
+html:not([data-glass="off"]) .sheet{
+  background:var(--gl-sheet)!important;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad-lg);
 }
-/* Press-Feedback (interactive) */
-[data-theme="dark"] .btn:active,[data-theme="dark"] .btn-acc:active,
-[data-theme="dark"] .btn-gray:active,[data-theme="dark"] .x-btn:active,
-[data-theme="dark"] .fmode-btn:active,[data-theme="dark"] .soc-chip:active,
-[data-theme="dark"] .hdr-icon-btn:active{ transform:scale(.965); filter:brightness(1.12); }
-/* ---- Sheets/Modals = Glas, etwas opaker + Scrim (via .ov) ---- */
-[data-theme="dark"] .sheet{
-  background:var(--lg-fill-sheet)!important;
-  -webkit-backdrop-filter:blur(30px) saturate(170%)!important;
-  backdrop-filter:blur(30px) saturate(170%)!important;
-  border:.5px solid var(--lg-bdr-c);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 -8px 40px rgba(0,0,0,.5);
+
+/* ── 8 · EINGABEFELDER ────────────────────────────────────────────*/
+html:not([data-glass="off"]) .f-in,
+html:not([data-glass="off"]) .set-in{
+  background:var(--inp-bg);
+  backdrop-filter:blur(var(--gl-blur-sm));-webkit-backdrop-filter:blur(var(--gl-blur-sm));
+  border:1px solid var(--gl-bdr);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
 }
-/* ---- Accessibility ---- */
+
+/* ── 9 · BARRIEREFREIHEIT ─────────────────────────────────────────*/
 @media (prefers-reduced-transparency: reduce){
-  [data-theme="dark"] .tabbar,[data-theme="dark"] .hdr,[data-theme="dark"] .btn,
-  [data-theme="dark"] .btn-gray,[data-theme="dark"] .x-btn,[data-theme="dark"] .fmode-btn,
-  [data-theme="dark"] .soc-chip,[data-theme="dark"] .hdr-icon-btn,[data-theme="dark"] .sheet{
-    -webkit-backdrop-filter:none!important; backdrop-filter:none!important;
-    background:#1c1c22!important;
+  html:not([data-glass="off"]) .tabbar,html:not([data-glass="off"]) .sheet,
+  html:not([data-glass="off"]) .card,html:not([data-glass="off"]) .ex-card,
+  html:not([data-glass="off"]) .btn-gray,html:not([data-glass="off"]) .x-btn,
+  html:not([data-glass="off"]) .fmode-btn,html:not([data-glass="off"]) .soc-chip,
+  html:not([data-glass="off"]) .hdr-icon-btn{
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
   }
-  [data-theme="dark"] .btn-acc{ background:#0A84FF!important; }
+  [data-theme="dark"] .tabbar,[data-theme="dark"] .sheet,
+  [data-theme="dark"] .card,[data-theme="dark"] .ex-card{background:#1c1c22!important}
+  html:not([data-glass="off"]) #bg::after{display:none}
 }
 @media (prefers-reduced-motion: reduce){
-  [data-theme="dark"] .btn,[data-theme="dark"] .btn-acc,.tabbar,
-  .tabbar .tab,.tabbar .tab span{ transition:none!important; }
-  [data-theme="dark"] .btn:active,[data-theme="dark"] .btn-acc:active{ transform:none!important; }
+  .btn,.btn-acc,.tabbar,.tabbar .tab,.tabbar .tab span{transition:none!important}
+  .btn:active,.btn-acc:active{transform:none!important}
 }
 @media (prefers-contrast: more){
-  [data-theme="dark"]{ --lg-bdr-c:rgba(255,255,255,.4); }
+  [data-theme="dark"]{--gl-bdr:rgba(255,255,255,.34)}
 }
-/* ===== LIQUID GLASS — EXPERIMENT · ENDE ===== */
+/* ===== LIQUID GLASS v3 — ENDE ===== */
 /* ── WORKOUT-SHARE-FLOW (Rattle → Kamera → Editor → Teilen) ── */
 #ov-share{align-items:stretch!important;background:#07080d!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
 .shf-screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;color:#fff;overflow:hidden;
@@ -4518,8 +4748,9 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .aia-bar b{font-size:9px;font-weight:700;color:var(--text2);white-space:nowrap}
 .aia-hrow{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12.5px}
 .aia-hrow-l{width:74px;flex-shrink:0;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.aia-hrow-bar{flex:1;height:8px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
-.aia-hrow-fill{height:100%;border-radius:5px;background:var(--acc)}
+/* position:relative trägt die Richtwert-Markierung (<i>) in _aiaBarsHTML */
+.aia-hrow-bar{position:relative;flex:1;height:8px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
+.aia-hrow-fill{height:100%;border-radius:5px;background:var(--acc);transition:width .5s cubic-bezier(.2,.8,.3,1)}
 .aia-hrow-v{width:52px;flex-shrink:0;text-align:right;font-weight:700}
 .aia-act{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;margin-top:8px;
   background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
@@ -4633,18 +4864,55 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
 .wk-head-title-row{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
 @keyframes coachPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.35)}}
 /* Feste Coach-Leiste — durchgehend sichtbar im aktiven Training (Status + Live-Reaktionen) */
-.coach-bar{margin:0 0 10px;padding:9px 12px;border-radius:14px;transition:border-color .3s;
-  background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.30);
-  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
-[data-glass="off"] .coach-bar{background:var(--inp-bg);backdrop-filter:none;-webkit-backdrop-filter:none}
-.coach-bar-head{display:flex;align-items:center;gap:7px}
-.coach-bar-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex-shrink:0}
-@media (prefers-reduced-motion:no-preference){
-  .coach-bar-dot{animation:coachPulse 2.4s ease-in-out infinite}
-  .coach-bar.thinking .coach-bar-dot{animation:coachPulse .9s ease-in-out infinite}
+/* ── Coach-Leiste ──────────────────────────────────────────────────────────
+   Bewusst OHNE backdrop-filter: die Leiste hat overflow:hidden für Aura und
+   Shimmer, und genau diese Kombination (Filter + eigener Clip/Stacking-Context)
+   rendert WKWebView als durchgehende dunkle Fläche — derselbe Bug wie bei den
+   KI-Menü-Pillen und der Snap-Card. Der Farbverlauf trägt den Glas-Eindruck
+   allein und sieht auf jedem Untergrund gleich aus. */
+.coach-bar{
+  position:relative;overflow:hidden;isolation:isolate;
+  margin:0 0 10px;padding:10px 13px;border-radius:16px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--gl-bg-h);
+  border:1px solid rgba(var(--acc-rgb),.32);
+  box-shadow:0 4px 18px rgba(var(--acc-rgb),.13);
+  transition:border-color .35s,box-shadow .35s;
 }
-.coach-bar-lbl{font-size:12px;font-weight:700;color:var(--acc);letter-spacing:.2px}
-.coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:4px;line-height:1.4;font-weight:600}
+/* Aura: langsam wanderndes Licht — signalisiert "läuft mit", ohne zu blinken. */
+.coach-bar::before{
+  content:'';position:absolute;inset:-45% -20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 62% at 22% 50%,rgba(var(--acc-rgb),.42),transparent 72%);
+}
+/* Shimmer: einmaliger Lichtstreifen, wenn eine neue Coach-Nachricht eintrifft. */
+.coach-bar::after{
+  content:'';position:absolute;top:0;bottom:0;left:0;width:42%;z-index:-1;pointer-events:none;opacity:0;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:translateX(-170%);
+}
+.coach-bar.thinking{border-color:rgba(var(--acc-rgb),.58);box-shadow:0 6px 26px rgba(var(--acc-rgb),.26)}
+@media (prefers-reduced-motion:no-preference){
+  .coach-bar::before{animation:coachAuraDrift 7.5s ease-in-out infinite}
+  .coach-bar.flash::after{animation:coachSweep .95s cubic-bezier(.4,0,.2,1)}
+  .coach-bar-msg{animation:coachMsgIn .34s cubic-bezier(.2,.9,.3,1)}
+}
+@keyframes coachAuraDrift{0%,100%{transform:translateX(-12%)}50%{transform:translateX(30%)}}
+@keyframes coachSweep{0%{transform:translateX(-170%);opacity:1}100%{transform:translateX(330%);opacity:0}}
+@keyframes coachMsgIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+[data-glass="off"] .coach-bar{background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--inp-bg)}
+.coach-bar-head{position:relative;display:flex;align-items:center;gap:8px}
+/* Equalizer statt statischem Punkt: drei atmende Balken lesen sich als "hört zu",
+   ein Blink-Punkt eher als Statuslampe. */
+.coach-bar-eq{display:flex;align-items:flex-end;gap:2.5px;height:13px;flex-shrink:0}
+.coach-bar-eq i{width:2.5px;height:4px;border-radius:2px;background:var(--acc);display:block}
+@media (prefers-reduced-motion:no-preference){
+  .coach-bar-eq i{animation:coachEq 1.7s ease-in-out infinite}
+  .coach-bar-eq i:nth-child(2){animation-delay:.24s}
+  .coach-bar-eq i:nth-child(3){animation-delay:.48s}
+  .coach-bar.thinking .coach-bar-eq i{animation-duration:.6s}
+}
+@keyframes coachEq{0%,100%{height:4px;opacity:.5}45%{height:13px;opacity:1}}
+.coach-bar-lbl{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.3px}
+.coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
 .coach-card{position:relative;display:flex;border-radius:14px;overflow:hidden;margin-bottom:10px;
   background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
 .coach-card-bar{width:4px;flex-shrink:0;background:var(--acc)}
@@ -4666,6 +4934,22 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
 </style>
 </head>
 <body>
+
+<!-- Boot-Splash: optische Fortsetzung des nativen LaunchScreen (schwarz + blaue
+     Hantel). Bleibt liegen, bis der INIT-Block durch ist, und blendet dann weich
+     aus. Inline-SVG statt <img>, damit kein Bild-Request und kein Nachladen
+     sichtbar wird. Wird von _bootSplashDone() entfernt (s. Kopf-Skript). -->
+<div id="boot-splash" aria-hidden="true">
+  <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="bsG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5AC8FA"/><stop offset="1" stop-color="#0A84FF"/></linearGradient></defs>
+    <g fill="url(#bsG)">
+      <rect x="16" y="26" width="14" height="48" rx="7"/>
+      <rect x="70" y="26" width="14" height="48" rx="7"/>
+      <rect x="28" y="43.5" width="44" height="13" rx="3"/>
+    </g>
+  </svg>
+</div>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
 
@@ -6450,12 +6734,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607240015';
+const APP_VERSION = 'gymtrack-v202607250002';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = true;    // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -6490,6 +6774,9 @@ const I18N_EN = {
   'Erlaube die Kamera in den iOS-Einstellungen oder wähle ein Foto aus der Galerie.':'Allow camera access in iOS Settings or pick a photo from your library.',
   'Aus Galerie wählen':'Choose from library','Ohne Foto weiter':'Continue without photo','Layout wählen':'Pick a layout','Farbe wählen':'Choose color',
   'Nur dein Freundeskreis':'Only your friends','Öffentlich für alle MyGymTrack-Nutzer':'Public for all MyGymTrack users',
+  // Kopfzeile des Community-Pagers (cpg-zone) — wird per tr() zur Laufzeit gebaut,
+  // deshalb greift der DOM-MutationObserver nicht und der Eintrag muss hier stehen.
+  'Alle MyGymTrack-Nutzer':'All MyGymTrack users','Nur deine Freunde':'Friends only',
   'Community aus':'Community off',
   'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
   'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…','Gründer':'Founder',
@@ -7052,6 +7339,12 @@ const I18N_EN = {
   'Analyse':'Analysis',
   /* KI-Coach — Live-Coach im Training (Phase D) */
   'KI-Coach aktiv':'AI coach active','Annehmen':'Accept','Ignorieren':'Ignore','Übernommen':'Applied',
+  'Coach aktiv':'Coach live','Coach denkt nach…':'Coach is thinking…',
+  'Ist gegen Richtwert':'Actual vs. target',
+  // Rückmeldung nach „Übernehmen" in der KI-Analyse (Toast wird aus Fragmenten gebaut)
+  'Ziel angepasst':'Target updated','neues Ziel':'new target','ergänzt in':'added to',
+  'zu deinen Übungen hinzugefügt':'added to your exercises',
+  'im laufenden Training aktualisiert':'updated in your live workout',
   /* Post-Workout-Check-in (Phase E) */
   'Wie hat sich dein Training angefühlt?':'How did your workout feel?',
   'Sehr leicht':'Very easy','Gut':'Good','Anstrengend':'Tough','Sehr schwer':'Very hard',
@@ -7077,6 +7370,7 @@ const I18N_EN = {
   'KI-Chat & Trainingsplan':'AI chat & training plan','Dein Coach kennt dein Training — Pläne, Technik, Fortschritt':'Your coach knows your training — plans, technique, progress',
   'Feedback nach jedem Satz, passende Satz-Empfehlungen in Echtzeit':'Feedback after every set, smart set recommendations in real time',
   'Geräte-Scanner':'Machine scanner','Gerät fotografieren — Übungen & Ausführung sofort erklärt':'Snap a machine — exercises & form explained instantly',
+  'Nicht eindeutig erkannt — halte dich an die Schritte':'Not clearly identified — follow the steps below',
   'KI bewertet Volumen, Balance & Technik-Trends mit Score':'AI rates volume, balance & technique trends with a score',
   'Jetzt freischalten':'Unlock now','Jederzeit kündbar':'Cancel anytime','Über deinen App Store':'Via your App Store','Sofort aktiv':'Active instantly',
   'nur 1,67 €/Monat':'just €1.67/month','NEU':'NEW',
@@ -8380,11 +8674,37 @@ function setNotifTime(val) {
 const uid  = () => '_' + Math.random().toString(36).slice(2);
 const exById = id => S.exercises.find(e => e.id === id);
 
+// ── Sessions-Index: exerciseId → chronologisch sortierte Einheiten ──────────
+// exHistory() scannte pro Aufruf ALLE Sessions inkl. new Date()-Parsing und
+// Sortierung. renderExList() ruft es einmal pro Zeile auf, exProgressStatus()
+// noch einmal — bei jedem Tastendruck in der Suchleiste also
+// O(Übungen × Sessions) Date-Parses. Genau das war das spürbare Ruckeln.
+// Der Index wird einmal je Datenstand gebaut; Key = Anzahl Sessions + updatedAt
+// (persist() bumpt updatedAt, der Cloud-Merge übernimmt es aus dem Remote-Doc),
+// damit jede Änderung den Cache sicher verwirft.
+let _exIdx = null, _exIdxKey = '';
+function _exIdxAll() {
+  const key = (S.sessions ? S.sessions.length : 0) + '|' + (S.updatedAt || 0);
+  if (_exIdx && _exIdxKey === key) return _exIdx;
+  const idx = Object.create(null);
+  (S.sessions || []).forEach(s => {
+    const t = new Date(s.date).getTime();
+    const seen = Object.create(null);
+    (s.logs || []).forEach(l => {
+      // Wie bisher s.logs.find(): pro Session zählt nur der ERSTE Log je Übung.
+      if (!l || !l.exerciseId || seen[l.exerciseId]) return;
+      seen[l.exerciseId] = 1;
+      (idx[l.exerciseId] || (idx[l.exerciseId] = [])).push({ id: s.id, date: s.date, _t: t, sets: l.sets });
+    });
+  });
+  for (const k in idx) idx[k].sort((a, b) => a._t - b._t);
+  _exIdx = idx; _exIdxKey = key;
+  return _exIdx;
+}
+// Rückgabe ist der gecachte Array — Aufrufer lesen nur (geprüft). Wer die Liste
+// umbauen will, muss vorher kopieren (slice), sonst kippt der Cache.
 function exHistory(exId) {
-  return S.sessions
-    .map(s => { const l = s.logs.find(l => l.exerciseId === exId); return l ? {id:s.id, date:s.date, sets:l.sets} : null; })
-    .filter(Boolean)
-    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  return _exIdxAll()[exId] || [];
 }
 
 function maxW(sets) {
@@ -8451,6 +8771,21 @@ function schemeMult(scheme, i, n){
 
 // Plant die Sätze fürs nächste Training: übernimmt die Satz-Typen aus der
 // letzten Einheit und berechnet pro Satz das Gewicht (Schema + Aufwärm-%).
+// Bringt die Satz-Typen der letzten Einheit auf eine neue Ziel-Satzzahl:
+// auffüllen immer mit Arbeitssätzen, kürzen bevorzugt bei Arbeitssätzen —
+// Aufwärmsätze bleiben stehen, solange es noch Arbeitssätze zu streichen gibt.
+function fitSetTypes(types, n){
+  const out = types.slice();
+  n = Math.max(1, Math.min(12, parseInt(n) || out.length));
+  while (out.length < n) out.push('normal');
+  while (out.length > n) {
+    let i = out.length - 1;
+    while (i > 0 && out[i] === 'warmup') i--;
+    out.splice(i, 1);
+  }
+  return out;
+}
+
 function buildPlannedSets(ex){
   const isTime = ex.targetType === 'time';
   const prev   = lastSessionSetsFor(ex.id);
@@ -8458,6 +8793,17 @@ function buildPlannedSets(ex){
     ? prev.map(s => s.type || 'normal')
     : Array.from({length: ex.targetSets || 3}, () => 'normal');
   if(!types.length) types = ['normal'];
+  // Die Planung kopiert bewusst die Satz-Struktur der letzten Einheit (Aufwärmsätze
+  // bleiben so erhalten). Dadurch kam eine GEÄNDERTE Ziel-Satzzahl aber nie im
+  // Training an — weder aus einer übernommenen KI-Empfehlung noch aus einer
+  // manuellen Änderung. targetSetsAt merkt sich, wann das Ziel zuletzt geändert
+  // wurde: liegt das NACH der letzten Einheit, gewinnt das Ziel über die Kopie.
+  const changedAt = ex.targetSetsAt || 0;
+  if (changedAt) {
+    const hist = exHistory(ex.id);
+    const lastAt = hist.length ? new Date(hist[hist.length-1].date).getTime() : 0;
+    if (changedAt > lastAt) types = fitSetTypes(types, ex.targetSets);
+  }
 
   const baseW  = getSuggestedWeight(ex);     // schwerstes Arbeitsgewicht (oder null)
   const sugR   = String(getSuggestedReps(ex));
@@ -8613,7 +8959,8 @@ function resumeWorkout() {
   updateWkMiniVisibility();
 }
 function goTab(id, btn) {
-  haptic(6);
+  // Bewusst KEIN haptic() beim Tab-Wechsel — Vibration bei jedem Antippen der
+  // Tab-Leiste wirkt unruhig. Haptik bleibt Aktionen mit echtem Ergebnis vorbehalten.
   // Close all open overlays before switching tabs
   _suppressWkRestore = true;   // Workout-Sheet beim Tab-Wechsel NICHT wieder aufpoppen lassen
   document.querySelectorAll('.ov.on').forEach(ov => {
@@ -10849,13 +11196,12 @@ function initCompactHistSwipe() {
 
 // ── EXERCISE LIST ─────────────────────────────────────
 function exProgressStatus(exId) {
-  const sessions = (S.sessions || [])
-    .filter(s => s.logs && s.logs.some(l => l.exerciseId === exId))
-    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  // Nutzt denselben Index wie exHistory() statt eigenem Full-Scan (s. _exIdxAll).
+  const sessions = exHistory(exId);
   if (sessions.length < 1) return null;
   if (sessions.length < 2) return 'new';
-  const last = sessions[sessions.length-1].logs.find(l => l.exerciseId === exId);
-  const prev = sessions[sessions.length-2].logs.find(l => l.exerciseId === exId);
+  const last = sessions[sessions.length-1];
+  const prev = sessions[sessions.length-2];
   const lastW = last ? (maxW(last.sets)||0) : 0;
   const prevW = prev ? (maxW(prev.sets)||0) : 0;
   if (lastW > prevW) return 'up';
@@ -10863,20 +11209,26 @@ function exProgressStatus(exId) {
   return 'same';
 }
 
-function renderExList() {
+// opts.listOnly = nur die Übungsliste neu bauen. Splits-Rail, Wochenvorschau und
+// die Gruppen-Pills hängen NICHT an der Suche — sie beim Tippen mitzurendern war
+// der zweite Teil des Such-Ruckelns (kompletter Umbau von drei Bereichen je Zeichen).
+function renderExList(opts) {
+  const listOnly = !!(opts && opts.listOnly);
   const sub = document.getElementById('ex-sub');
   const el  = document.getElementById('ex-list');
 
   // Fokus: Splits + Wochen-Rail
-  renderSplitList();
-  renderWeekPreview(); // immer zuerst — darf nicht an frühen Empty-Returns unten scheitern
+  if (!listOnly) {
+    renderSplitList();
+    renderWeekPreview(); // immer zuerst — darf nicht an frühen Empty-Returns unten scheitern
+  }
   const _sc = (S.workoutPresets || []).length;
   const _td = DAYS.filter(d => planFor(d.key).type !== 'none').length;
   if (sub) sub.textContent = `${_sc} Split${_sc!==1?'s':''} · ${_td} Trainingstag${_td!==1?'e':''}`;
   const _dbc = document.getElementById('ex-db-count');
   if (_dbc) _dbc.textContent = ' · ' + (S.exercises.length || 0);
 
-  if (!el) { renderWeekPreview(); return; }
+  if (!el) { if (!listOnly) renderWeekPreview(); return; }
 
   // Filter reduziert: nur Muskelgruppen (kein Modus-Switcher mehr)
   if (S.exFilterMode !== 'muskel') { S.exFilterMode = 'muskel'; persist(); }
@@ -10886,7 +11238,7 @@ function renderExList() {
   // Falls der aktive Filter nicht mehr im neuen Modus existiert → auf 'alle' zurück
   if (!mode.groups.some(g => g.id === exCatFilter)) exCatFilter = 'alle';
 
-  const filterBar = document.getElementById('ex-filter-bar');
+  const filterBar = listOnly ? null : document.getElementById('ex-filter-bar');
   if (filterBar) {
     filterBar.innerHTML = mode.groups.map(g => {
       // 'alle' nur tap-bar; echte Gruppen tap (filtern) ODER ziehbar (in Wochentag)
@@ -10954,7 +11306,7 @@ function renderExList() {
     </div>`;
   }).join('')}</div>`;
 
-  renderWeekPreview();
+  if (!listOnly) renderWeekPreview();
   initExSwipes();
 }
 
@@ -12162,7 +12514,9 @@ function applyRepRange() {
   ex.repMin = _rrEdit.min;
   ex.repMax = _rrEdit.max;
   ex.targetReps = _rrEdit.max; // Ziel = oberes Ende (Kompatibilität)
+  ex.targetSetsAt = Date.now(); // s. buildPlannedSets: neues Ziel schlägt die Kopie der letzten Einheit
   persist();
+  syncTargetToActiveWk(ex.id);
   haptic && haptic(8);
   closeOv('ov-ex-edit');
   renderLogCards();
@@ -12591,7 +12945,10 @@ function saveEx() {
   const patch = { name, emoji:'', muscleGroup:selMuscle, targetSets:sets, targetReps:reps,
                   targetType:selExType, repMin, repMax, weightScheme:scheme, progStep,
                   showPlateCalc: selExType !== 'time' ? selShowPlates : false,
-                  img: selExImg || null };
+                  img: selExImg || null,
+                  // s. buildPlannedSets: markiert, dass das Satz-/Wdh-Ziel neuer ist als
+                  // die letzte Einheit — sonst plant das nächste Training weiter alt.
+                  targetSetsAt: Date.now() };
 
   let savedId;
   if (editId) {
@@ -15380,6 +15737,9 @@ function toggleSetDone(li,si) {
   if (next) {
     // Satz jetzt bestätigt → erst jetzt auf PR prüfen und ggf. feiern.
     try { checkLiveSetPR(li, si); } catch(_) {}
+    // Der Coach meldet sich im Moment des Abhakens — das ist der Punkt, an dem
+    // der Nutzer den Satz als erledigt erlebt (Aufwärmsätze eingeschlossen).
+    try { _coachMicroReact(li, si); } catch(_) {}
     const log = wkLogs[li];
     if (log.ssGroup) {
       // Superset: Pause erst, wenn ALLE gekoppelten Übungen Satz Nr. si fertig haben
@@ -15414,6 +15774,41 @@ function delSet(li,si) {
   wkLogs[li].sets.splice(si,1);
   renderLogCards();
   _syncLiveActivity();
+}
+
+// Ziel-Satzzahl einer Übung SOFORT in ein laufendes Training spiegeln.
+// Ohne das passiert nach „Übernehmen" in der offenen Trainingsansicht sichtbar
+// nichts — die Empfehlung würde erst beim nächsten Training greifen, und genau so
+// fühlte es sich an, als käme sie gar nicht an. Bereits abgehakte Sätze bleiben
+// unangetastet: angepasst werden nur die noch offenen Zeilen am Ende.
+// Rückgabe: true, wenn die Übung im laufenden Training vorkam.
+function syncTargetToActiveWk(exId){
+  try {
+    if (!Array.isArray(wkLogs) || !wkLogs.length) return false;
+    const li = wkLogs.findIndex(l => l && l.exerciseId === exId);
+    if (li < 0) return false;
+    const ex = exById(exId); if (!ex) return false;
+    const log = wkLogs[li];
+    const sets = log.sets || (log.sets = []);
+    const target = Math.max(1, Math.min(12, parseInt(ex.targetSets) || sets.length));
+    const isTime = ex.targetType === 'time';
+    while (sets.length < target) {
+      const p = sets[sets.length - 1];
+      sets.push(isTime ? { w:(p && p.w) || '', tElapsed:0, tRunning:false, tStart:null }
+                       : { w:(p && p.w) || '', r:(p && p.r) || '' });
+    }
+    // Kürzen nur von hinten und nur solange die letzte Zeile weder abgehakt noch
+    // ausgefüllt ist — geloggte Arbeit darf eine Empfehlung nie löschen.
+    while (sets.length > target && sets.length > 1) {
+      const last = sets[sets.length - 1];
+      if (last.done || last.r || last.tElapsed) break;
+      sets.pop();
+    }
+    renderLogCards();
+    try { _saveActiveWk(); } catch(_){}
+    try { _syncLiveActivity(); } catch(_){}
+    return true;
+  } catch(e) { console.warn('[Ziel] Sync ins Training:', e); return false; }
 }
 
 /* Übungen, die im Training ersetzt/hinzugefügt wurden, bleiben zunächst nur für
@@ -17160,6 +17555,7 @@ function openStreakDetail() {
 
 // ── SUCHE im Übungen-Tab ──────────────────────────────
 let exSearchText = '';
+let _exSearchTimer = null;
 function setExSearch(v, clearInput){
   exSearchText = (v||'').trim();
   const clr = document.getElementById('ex-search-clr');
@@ -17168,7 +17564,12 @@ function setExSearch(v, clearInput){
     const inp = document.getElementById('ex-search');
     if (inp) inp.value = '';
   }
-  renderExList();
+  // Tippen darf nicht auf das Rendern warten: schnelle Anschläge zu einem Render
+  // zusammenfassen und dabei nur die Liste neu bauen. Das ✕ (clearInput) rendert
+  // sofort, sonst fühlt sich der Tap träge an.
+  if (_exSearchTimer) { clearTimeout(_exSearchTimer); _exSearchTimer = null; }
+  if (clearInput) { renderExList({ listOnly:true }); return; }
+  _exSearchTimer = setTimeout(() => { _exSearchTimer = null; renderExList({ listOnly:true }); }, 90);
 }
 
 // ── HEATMAP (letzte 12 Monate, Wochen × Tage) ─────────
@@ -20915,9 +21316,19 @@ function _coachBarRender() {
   if (!on) { el.style.display = 'none'; return; }
   el.style.display = '';
   const thinking = _coachBarState.mode === 'thinking';
+  const msg = _coachBarState.msg || '';
   el.className = 'coach-bar' + (thinking ? ' thinking' : '');
-  el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-dot"></span><span class="coach-bar-lbl">${thinking ? 'Coach denkt nach…' : 'Coach aktiv'}</span><span class="coach-ki-tag">KI</span></div>` +
-    (_coachBarState.msg ? `<div class="coach-bar-msg">${esc(_coachBarState.msg)}</div>` : '');
+  el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
+    `<span class="coach-bar-lbl">${thinking ? tr('Coach denkt nach…') : tr('Coach aktiv')}</span><span class="coach-ki-tag">KI</span></div>` +
+    (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
+  // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
+  // (z.B. Satz-Liste neu gebaut) die Animation erneut auslösen und flackern.
+  if (msg && msg !== _coachBarRender._last) {
+    el.classList.remove('flash');
+    void el.offsetWidth;            // Reflow: Keyframe von vorn starten
+    el.classList.add('flash');
+  }
+  _coachBarRender._last = msg;
 }
 function _coachClearCard() {
   if (_coachCard && _coachCard.timer) clearTimeout(_coachCard.timer);
@@ -20986,14 +21397,48 @@ function _coachMicroPick(arr) {
   let m; do { m = arr[Math.floor(Math.random() * arr.length)]; } while (arr.length > 1 && m === _coachMicroLast);
   _coachMicroLast = m; return m;
 }
+// Kurzform für zweisprachige Coach-Phrasen. Die Leiste wird per innerHTML neu
+// gebaut und enthält Zahlen — der Wörterbuch-Weg (I18N_EN) trifft solche Sätze
+// nicht, deshalb hier direkt beide Sprachen.
+function _cm(de, en) { return GT_LANG === 'en' ? en : de; }
+
 function _coachMicroReact(li, si) {
   if (!isPremium() || !S.aiCoach || S.aiCoach.live === false) return;
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
   const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
-  if ((set.type || 'normal') === 'warmup') return;
   const w = parseFloat(set.w), r = parseInt(set.r);
-  if (!(w > 0) || !(r > 0)) return; // erst wenn BEIDES eingetragen ist
+
+  // Aufwärmsätze wurden bisher komplett übersprungen — genau dort fiel auf, dass
+  // der Coach "nicht immer da" ist. Sie bekommen jetzt eine eigene Reaktion, die
+  // das Aufwärmgewicht ins Verhältnis zum Arbeitsgewicht setzt.
+  if ((set.type || 'normal') === 'warmup') {
+    if (!(w > 0) && !(r > 0)) return;
+    let wm = null;
+    try {
+      const target = getSuggestedWeight(ex);
+      if (target > 0 && w > 0) {
+        const pct = Math.round(w / target * 100);
+        wm = pct < 95
+          ? _coachMicroPick([
+              _cm('Aufwärmsatz bei ' + pct + ' % vom Arbeitsgewicht — gut dosiert.',
+                  'Warm-up at ' + pct + '% of your working weight — well judged.'),
+              _cm(pct + ' % vom Arbeitsgewicht. Locker bleiben, Kraft sparen.',
+                  pct + '% of working weight. Stay loose, save your strength.')])
+          : _coachMicroPick([
+              _cm('Das ist fast schon Arbeitsgewicht — nächster Satz zählt richtig.',
+                  'That is nearly your working weight — the next set counts.'),
+              _cm('Warm genug. Ab jetzt Arbeitssätze.', 'Warm enough. Working sets from here.')]);
+      }
+    } catch(_) {}
+    if (!wm) wm = _coachMicroPick([
+      _cm('Aufwärmsatz notiert — Technik sitzt schon.', 'Warm-up logged — your form is already there.'),
+      _cm('Aufgewärmt. Jetzt sauber ins Arbeitsgewicht.', 'Warmed up. Now step into your working weight.')]);
+    try { _coachBarSet('msg', wm, 4000); } catch(_) {}
+    return;
+  }
+
+  if (!(w > 0) || !(r > 0)) return; // Arbeitssatz: erst wenn BEIDES eingetragen ist
 
   let msg = null;
   try {
@@ -21024,10 +21469,40 @@ function _coachMicroReact(li, si) {
     }
   } catch(_) {}
   if (!msg) {
-    // Kein Vergleich möglich/neutral: nur beim ersten Satz der Übung bestätigen,
-    // sonst würde die Leiste bei jedem einzelnen Satz aufblitzen und nerven.
-    if (si === 0 || (set.type || 'normal') === 'fail') msg = _coachMicroPick(['Sauber.', 'Sitzt.', 'Gebucht.', 'Notiert.']);
-    else return;
+    // Früher schwieg der Coach hier ab dem zweiten Satz — dadurch wirkte er
+    // abwesend. Jetzt kommt IMMER eine Rückmeldung, aber mit echtem Bezug
+    // (welcher Satz von wie vielen, was als Nächstes ansteht) statt eines
+    // beliebigen "Sauber." bei jedem Antippen.
+    const all  = log.sets || [];
+    let work = 0, doneWork = 0;
+    all.forEach((s, i) => {
+      if ((s.type || 'normal') === 'warmup') return;
+      work++;
+      if (i <= si && parseFloat(s.w) > 0 && parseInt(s.r) > 0) doneWork++;
+    });
+    const leftWork = Math.max(0, work - doneWork);
+    if ((set.type || 'normal') === 'fail') {
+      msg = _coachMicroPick([
+        _cm('Bis zum Versagen — den Reiz hast du gesetzt.', 'To failure — the stimulus is set.'),
+        _cm('Alles rausgeholt. Jetzt vollständig pausieren.', 'Everything out. Now rest properly.')]);
+    } else if (leftWork === 0) {
+      const vd = _coachVolDelta(log.exerciseId, li);
+      msg = (vd != null && Math.abs(vd) >= 5)
+        // _coachBarRender escaped die Nachricht bereits — hier KEIN esc().
+        ? _cm(ex.name + ' fertig — Volumen ' + (vd > 0 ? '+' : '') + vd + ' % zur letzten Einheit.',
+              ex.name + ' done — volume ' + (vd > 0 ? '+' : '') + vd + '% vs. last session.')
+        : _coachMicroPick([
+            _cm('Übung abgeschlossen. Sauber durchgezogen.', 'Exercise complete. Solid work.'),
+            _cm('Letzter Satz steht — weiter zur nächsten Übung.', 'Last set is in — on to the next exercise.')]);
+    } else {
+      msg = _coachMicroPick([
+        _cm('Satz ' + doneWork + ' von ' + work.length + ' — noch ' + leftWork + '.',
+            'Set ' + doneWork + ' of ' + work.length + ' — ' + leftWork + ' to go.'),
+        _cm('Notiert. Noch ' + leftWork + ' ' + (leftWork === 1 ? 'Satz' : 'Sätze') + ' auf dem Plan.',
+            'Logged. ' + leftWork + ' set' + (leftWork === 1 ? '' : 's') + ' left on the plan.'),
+        _cm(kgToDisp(w) + ' ' + unitLabel() + ' × ' + r + ' gebucht. Gleiches Tempo halten.',
+            kgToDisp(w) + ' ' + unitLabel() + ' × ' + r + ' logged. Keep that pace.')]);
+    }
   }
   try { _coachBarSet('msg', msg, 4000); } catch(_) {}
 }
@@ -21861,23 +22336,50 @@ function _fedbLoad(){
   return _fedbLoading;
 }
 function _fedbNorm(s){ return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
-// Bester DB-Treffer für einen englischen Übungsnamen: exakt → enthält → Wort-Overlap.
+// Füllwörter und Plural-s raus, damit "Seated Cable Rows" und "Seated Cable Row"
+// dieselben Tokens ergeben.
+// "machine" bleibt bewusst DRIN als bedeutungstragendes Wort: sonst würde
+// "Machine Bench Press" als Treffer für "Bench Press" durchgehen.
+const _FEDB_STOP = { the:1, a:1, an:1, and:1, with:1, on:1, in:1, of:1, to:1, for:1, exercise:1 };
+// Zusatzwörter, die nur die Griff-/Handhaltung beschreiben und die gezeigte
+// Bewegung praktisch nicht ändern. Alles andere (Gerät, Position, Seitigkeit)
+// gilt als andere Übung.
+const _FEDB_SOFT = { wide:1, close:1, narrow:1, grip:1, medium:1, neutral:1,
+  overhand:1, underhand:1, alternate:1, alternating:1, parallel:1 };
+function _fedbTokens(s){
+  return _fedbNorm(s).split(' ')
+    .map(w => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) ? w.slice(0, -1) : w)
+    .filter(w => w.length > 1 && !_FEDB_STOP[w]);
+}
+// Bester DB-Treffer für einen englischen Übungsnamen — bewusst STRENG.
+// Die alte Fassung nahm jeden Substring-Treffer ("Row" passte auf "Seated Cable
+// Row") und sonst den besten Kandidaten ab (Wortanzahl-1) Überschneidung. Damit
+// lief regelmäßig die Animation einer anderen Übung — genau der gemeldete Fehler.
+// Jetzt zählt beides: Wie viel der Anfrage deckt der DB-Name ab (cover) UND wie
+// viel Fremdes bringt er mit (precision). Kein klarer Treffer → null, und der
+// Scanner zeigt dann nur die Schritt-Erklärung statt eines falschen Bildes.
 function _fedbMatch(db, nameEn){
   const q = _fedbNorm(nameEn); if (!q || !db.length) return null;
-  let hit = db.find(e => _fedbNorm(e.name) === q && (e.images || []).length);
-  if (hit) return hit;
-  hit = db.find(e => (e.images || []).length && (_fedbNorm(e.name).includes(q) || q.includes(_fedbNorm(e.name))));
-  if (hit) return hit;
-  const qw = q.split(' ').filter(w => w.length > 2);
-  if (!qw.length) return null;
-  let best = null, bestScore = 0;
-  db.forEach(e => {
-    if (!(e.images || []).length) return;
-    const n = _fedbNorm(e.name);
-    const score = qw.reduce((a, w) => a + (n.includes(w) ? 1 : 0), 0);
-    if (score > bestScore) { bestScore = score; best = e; }
+  const withImg = db.filter(e => (e.images || []).length);
+  const exact = withImg.find(e => _fedbNorm(e.name) === q);
+  if (exact) return exact;
+  const qt = _fedbTokens(nameEn);
+  if (qt.length < 2) return null;   // Ein-Wort-Anfragen ("Row", "Press") sind nie eindeutig
+  let best = null, bestExtra = 99;
+  withImg.forEach(e => {
+    const nt = _fedbTokens(e.name);
+    if (nt.length < qt.length) return;
+    // Jedes Wort der Anfrage MUSS vorkommen — Teiltreffer sind der Grund, warum
+    // vorher fremde Übungen durchkamen.
+    if (!qt.every(w => nt.indexOf(w) !== -1)) return;
+    // Zusatzwörter im DB-Namen dürfen die Übung nicht verändern. "Wide-Grip Lat
+    // Pulldown" ist dieselbe Bewegung wie "Lat Pulldown"; "Ball Leg Curl" oder
+    // "Cable Chest Press" sind es NICHT — anderes Gerät, andere Ausführung.
+    const extra = nt.filter(w => qt.indexOf(w) === -1);
+    if (!extra.every(w => _FEDB_SOFT[w])) return;
+    if (extra.length < bestExtra) { bestExtra = extra.length; best = e; }
   });
-  return bestScore >= Math.max(1, qw.length - 1) ? best : null;
+  return best;
 }
 function _scnStopAnim(){ if (_scnAnimT) { clearInterval(_scnAnimT); _scnAnimT = null; } }
 // Ecken-Rahmen fürs Kamera-Sucherbild (geteilt mit dem Workout-Snap)
@@ -21986,13 +22488,17 @@ function _scnRenderResult(){
   }
   const exs = (v.exercises || []).slice(0, 3);
   const mgs = (v.muscleGroups || []).map(m => muscleLabel(m) || m);
+  // Unsichere Erkennung offen benennen statt Sicherheit vorzutäuschen — und die
+  // Ausführungs-Animation bleibt dann weg (s. _scnLoadAnim).
+  const conf = typeof v.confidence === 'number' ? v.confidence : 1;
+  const unsure = conf < 0.6;
   el.innerHTML = `
     <img class="scn-preview" src="${_scnPhoto}" alt="">
     <div class="scn-device">
       <div class="scn-device-ico">${ICO.check({s:20})}</div>
       <div style="flex:1;min-width:0">
         <div class="scn-device-t">${esc(v.device || '')}</div>
-        <div class="scn-device-s">${tr('Erkannt von deinem KI-Coach')}</div>
+        <div class="scn-device-s">${unsure ? tr('Nicht eindeutig erkannt — halte dich an die Schritte') : tr('Erkannt von deinem KI-Coach')}</div>
       </div>
     </div>
     ${mgs.length ? `<div class="scn-mg">${mgs.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
@@ -22022,6 +22528,10 @@ function _scnPick(i){ _scnSel = i; haptic(5); _scnRenderResult(); }
 async function _scnLoadAnim(){
   const wrap = document.getElementById('scn-anim-wrap'); if (!wrap || !_scnResult) return;
   const ex = (_scnResult.exercises || [])[_scnSel]; if (!ex) return;
+  // Unsichere Erkennung → gar keine Animation. Ein Bild, das nicht zum Gerät vor
+  // dem Nutzer passt, ist schlechter als keins; die Schritt-Erklärung trägt allein.
+  const conf = typeof _scnResult.confidence === 'number' ? _scnResult.confidence : 1;
+  if (conf < 0.6) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = `<div class="soc-empty" style="padding:14px">${tr('Lade Ausführungs-Animation…')}</div>`;
   const db = await _fedbLoad();
   const hit = _fedbMatch(db, ex.nameEn || ex.name);
@@ -22272,37 +22782,106 @@ function _aiaLocalHTML(mode, data){
 }
 // KI-Vorschläge mit "Übernehmen"-Button: schreiben direkt in die Übungs-Ziele
 let _aiaActions = [];
+// Fokus der zuletzt geöffneten Analyse ({preset:id} / {exercise:id} / null). Wird
+// beim Übernehmen gebraucht: eine neue Übung gehört in DEN Split, den die KI
+// gerade bewertet hat — sonst landet sie nur in der Bibliothek und der Nutzer
+// sieht im Training weiterhin nichts davon.
+let _aiaScope = null;
 function _aiaApply(i){
   const ac = _aiaActions[i]; if (!ac) return;
   const validMg = ['brust','ruecken','beine','arme','schultern','core'];
   const nm = String(ac.exercise || '').trim().slice(0, 60); if (!nm) return;
   const clampI = (v, lo, hi, dflt) => { v = parseInt(v); return isNaN(v) ? dflt : Math.max(lo, Math.min(hi, v)); };
   let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
+  let where = tr('Ziel angepasst');
   if (ac.kind === 'addEx') {
     if (ex) { _dndToast('Übung ist schon in deiner Liste.'); }
     else if (S.exercises.length >= 500) { _dndToast('Übungslimit erreicht.'); return; }
     else {
       const rMin = clampI(ac.repMin, 1, 29, 8), rMax = Math.max(rMin, clampI(ac.repMax, 1, 30, 12));
-      S.exercises.push({
+      ex = {
         id: uid(), name: nm, emoji: '🏋️',
         muscleGroup: validMg.includes(ac.muscleGroup) ? ac.muscleGroup : '',
         targetSets: clampI(ac.sets, 1, 8, 3), targetReps: rMax, targetWeight: 0, targetType: 'reps',
         repMin: rMin, repMax: rMax, weightScheme: 'straight',
-      });
+      };
+      S.exercises.push(ex);
+      try { ensureExGroups(ex); } catch(_){}
+    }
+    // In den analysierten Split aufnehmen — das ist der Ort, an dem der Nutzer
+    // die Empfehlung erwartet ("direkt im Split übernommen").
+    const preset = ex && _aiaScope && _aiaScope.preset
+      ? (S.workoutPresets || []).find(p => p.id === _aiaScope.preset) : null;
+    if (preset) {
+      preset.exIds = Array.isArray(preset.exIds) ? preset.exIds : [];
+      if (preset.exIds.indexOf(ex.id) === -1) preset.exIds.push(ex.id);
+      where = tr('ergänzt in') + ' ' + preset.name;
+    } else {
+      where = tr('zu deinen Übungen hinzugefügt');
     }
   } else if (!ex) { _dndToast('Übung nicht gefunden — Name geändert?'); return; }
-  else if (ac.kind === 'sets') { ex.targetSets = clampI(ac.sets, 1, 8, ex.targetSets); }
-  else if (ac.kind === 'reps') {
+  else if (ac.kind === 'sets') {
+    ex.targetSets = clampI(ac.sets, 1, 8, ex.targetSets);
+    ex.targetSetsAt = Date.now();   // s. buildPlannedSets — sonst plant das nächste Training weiter alt
+    where = tr('neues Ziel') + ': ' + ex.targetSets + ' ' + tr('Sätze');
+  } else if (ac.kind === 'reps') {
     const rMin = clampI(ac.repMin, 1, 29, ex.repMin), rMax = Math.max(rMin, clampI(ac.repMax, 1, 30, ex.repMax));
     ex.repMin = rMin; ex.repMax = rMax; ex.targetReps = rMax;
+    ex.targetSetsAt = Date.now();
+    where = tr('neues Ziel') + ': ' + rMin + '–' + rMax + ' ' + tr('Wdh');
   } else return;
   persist();
+  // Läuft die Übung gerade im offenen Training? Dann direkt dort nachziehen.
+  const inWk = ex ? syncTargetToActiveWk(ex.id) : false;
   try { renderExList(); renderHome(); } catch(_){}
   const row = document.getElementById('aia-act-' + i);
   const btn = row && row.querySelector('button');
   if (btn) btn.outerHTML = `<span style="color:#30d158;font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:4px;flex-shrink:0">${ICO.check({s:14})} ${tr('Übernommen')}</span>`;
   haptic(16);
-  _dndToast('Übernommen — dein Training ist angepasst.');
+  // _dndToast setzt textContent — hier bewusst KEIN esc(), sonst stünden Entities drin.
+  _dndToast(nm + ' · ' + where + (inWk ? ' · ' + tr('im laufenden Training aktualisiert') : ''));
+}
+// Zahlen in Beobachtungen/Empfehlungen hervorheben — die Aussage soll beim
+// Überfliegen an der Zahl hängen bleiben, nicht am Satzbau. Läuft NACH esc(),
+// arbeitet also auf bereits escaptem Text (keine XSS-Lücke).
+function _aiaNums(s){
+  return esc(String(s || '')).replace(/([+−-]?\d+(?:[.,]\d+)?\s?(?:%|kg|lbs|x|×)?)/g,
+    '<b style="color:var(--text);font-weight:800">$1</b>');
+}
+// Kennzahlen-Raster der KI (3-4 Werte mit Trendpfeil). Ersetzt die frühere
+// Aufzählung in Fließtext — dieselbe Aussage, aber auf einen Blick erfassbar.
+function _aiaMetricsHTML(a){
+  const ms = Array.isArray(a.metrics) ? a.metrics.filter(m => m && m.label && m.value != null).slice(0, 4) : [];
+  if (!ms.length) return '';
+  const arrow = { up:'▲', down:'▼', flat:'▬' };
+  return `<div class="aia-stats" style="margin-top:4px">${ms.map(m => {
+    const t = String(m.trend || '').toLowerCase();
+    const col = m.good === false ? '#ff6b6b' : (m.good === true ? '#2ea84a' : 'var(--text2)');
+    return `<div class="aia-stat">
+      <div class="aia-stat-v">${esc(String(m.value))}${m.unit ? `<small> ${esc(String(m.unit))}</small>` : ''}</div>
+      <div class="aia-stat-l">${esc(String(m.label))}${arrow[t] ? ` <span style="color:${col}">${arrow[t]}</span>` : ''}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+// Ist-gegen-Soll-Balken. Der Soll-Wert steht als Markierung im Balken, damit
+// sofort sichtbar ist, ob ein Wert unter oder über dem Richtwert liegt.
+function _aiaBarsHTML(a){
+  const bs = Array.isArray(a.bars) ? a.bars.filter(b => b && b.label && typeof b.value === 'number').slice(0, 6) : [];
+  if (!bs.length) return '';
+  const max = Math.max(1, ...bs.map(b => Math.max(b.value || 0, b.target || 0)));
+  return `<div class="aia-sec"><div class="aia-sec-t">${tr('Ist gegen Richtwert')}</div>
+    ${bs.map(b => {
+      const pct = Math.round(Math.min(1, (b.value || 0) / max) * 100);
+      const tp  = typeof b.target === 'number' ? Math.round(Math.min(1, b.target / max) * 100) : null;
+      const low = tp != null && b.value < b.target;
+      return `<div class="aia-hrow">
+        <span class="aia-hrow-l">${esc(String(b.label))}</span>
+        <div class="aia-hrow-bar">
+          <div class="aia-hrow-fill" style="width:${pct}%${low ? ';background:#ff9f0a' : ''}"></div>
+          ${tp != null ? `<i style="position:absolute;left:${tp}%;top:0;bottom:0;width:2px;background:var(--text2);opacity:.75"></i>` : ''}
+        </div>
+        <span class="aia-hrow-v">${esc(String(b.value))}${b.unit ? ' ' + esc(String(b.unit)) : ''}</span></div>`;
+    }).join('')}</div>`;
 }
 function _aiaShow(a, localHTML){
   const el = document.getElementById('aia-body'); if (!el) return;
@@ -22324,16 +22903,18 @@ function _aiaShow(a, localHTML){
       </div>
       <div style="flex:1;font-size:14.5px;line-height:1.55">${esc(a.summary || '')}</div>
     </div>` : (a.summary ? `<div class="card" style="padding:14px;font-size:14.5px;line-height:1.55">${esc(a.summary)}</div>` : '')}
+    ${_aiaMetricsHTML(a)}
+    ${_aiaBarsHTML(a)}
     ${hasPoints ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Beobachtungen')}</div>
-      ${a.points.map(p => `<div class="aia-item"><div class="aia-dot"></div><div>${esc(p)}</div></div>`).join('')}</div>` : ''}
+      ${a.points.map(p => `<div class="aia-item"><div class="aia-dot"></div><div>${_aiaNums(p)}</div></div>`).join('')}</div>` : ''}
     ${hasRecos ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Empfehlungen')}</div>
-      ${a.recos.map(r => `<div class="aia-item"><div class="aia-dot" style="background:#2ea84a"></div><div>${esc(r)}</div></div>`).join('')}</div>` : ''}
+      ${a.recos.map(r => `<div class="aia-item"><div class="aia-dot" style="background:#2ea84a"></div><div>${_aiaNums(r)}</div></div>`).join('')}</div>` : ''}
     ${_aiaActions.length ? `<div class="aia-sec"><div class="aia-sec-t">${tr('Direkt übernehmen')}</div>
       ${_aiaActions.map((ac, i) => `<div class="aia-act" id="aia-act-${i}">
         <div style="flex:1;min-width:0"><div class="aia-act-t">${esc(ac.label)}</div>${ac.why ? `<div class="aia-act-s">${esc(ac.why)}</div>` : ''}</div>
         <button class="btn btn-acc" style="width:auto;padding:9px 14px;font-size:13px;flex-shrink:0" onclick="_aiaApply(${i})">${tr('Übernehmen')}</button>
       </div>`).join('')}</div>` : ''}
-    ${(!hasScore && !a.summary && !hasPoints && !hasRecos) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
+    ${(!hasScore && !a.summary && !hasPoints && !hasRecos && !(a.metrics||[]).length && !(a.bars||[]).length) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
   `;
 }
 async function openAiAnalyze(mode, scope){
@@ -22343,6 +22924,7 @@ async function openAiAnalyze(mode, scope){
   openOv('ov-ai-analyze');
   // Workout optimieren / Fortschritt: erst den Fokus wählen (gesamt/Split/Übung)
   if ((mode === 'workout' || mode === 'progress') && scope === undefined) { _aiaScopeUI(mode); return; }
+  _aiaScope = scope || null;   // s. _aiaApply: neue Übungen gehören in DEN analysierten Split
   const data = _aiaData(mode, scope);
   // Lokale Zahlen SOFORT zeigen — die KI-Bewertung kommt asynchron oben drauf
   const local = _aiaLocalHTML(mode, data);
@@ -22362,6 +22944,7 @@ setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
 try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
+try { if (DEMO_SEED) { S.theme='light'; } } catch(_){} /*TMP-LIGHTCHECK*/
 try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
@@ -22384,6 +22967,10 @@ else setTimeout(maybeStartOnboarding, 0);   // eingeloggtes Gerät: normaler Sta
 setTimeout(() => {
   if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
 }, 10000);
+// Aufbau ist durch (Home/Übungen gerendert, Gate bzw. Onboarding entschieden) —
+// jetzt erst den Boot-Splash wegblenden. Zwei rAF, damit der erste echte Frame
+// der App garantiert steht, bevor die Abdeckung geht.
+requestAnimationFrame(() => requestAnimationFrame(() => { try { window._bootSplashDone && window._bootSplashDone(); } catch(_){} }));
 try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
 if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
 // QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
@@ -23153,6 +23740,9 @@ function _postLoginFlow(tries){
   _maybeWelcomePaywall();
 }
 function _showAuthGate(){
+  // Demo-/Screenshot-Builds (DEMO_SEED) sind bewusst nicht gesperrt — sonst ist
+  // die App im Simulator ohne echtes Konto nicht prüfbar.
+  try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) return; } catch(_){}
   const el = document.getElementById('auth-gate');
   if (!el || el.classList.contains('on')) return;
   const ben = (ico, t, s) => `<div class="ag-ben"><div class="ag-ben-ico">${ico}</div><div><div class="ag-ben-title">${t}</div><div class="ag-ben-sub">${s}</div></div></div>`;
