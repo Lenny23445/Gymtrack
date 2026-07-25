@@ -3530,7 +3530,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
    pulsierender Akzent-Balken deutlich prominenter — kein Hochscrollen nötig. */
 /* Sticky-Stapel im Training: Coach-Leiste + Pause-Balken bleiben beim Scrollen
    gemeinsam oben sichtbar (der Wrapper klebt, nicht mehr der Balken allein). */
-#wk-sticky{position:sticky;top:6px;z-index:6}
+#wk-sticky{position:sticky;top:58px;z-index:4}
 .rest-bar{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:linear-gradient(135deg,rgba(var(--acc-rgb),.97),rgba(var(--acc-rgb),.80));
@@ -3781,7 +3781,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .soc-add-row button{background:var(--acc);color:#fff;border:none;border-radius:14px;padding:0 18px;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0}
 .soc-row{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:14px}
 .soc-row.me{background:var(--soft)}
-.soc-ava{width:42px;height:42px;border-radius:50%;background:rgba(var(--acc-rgb),.14);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14.5px;flex-shrink:0;letter-spacing:.5px}
+.soc-ava{width:42px;height:42px;border-radius:50%;background:rgba(var(--acc-rgb),.14);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14.5px;flex-shrink:0;letter-spacing:.5px;overflow:hidden}
+.soc-ava img{width:100%;height:100%;object-fit:cover}
 .soc-rank{width:24px;text-align:center;font-weight:800;color:var(--text2);font-size:15px;flex-shrink:0}
 .soc-rank.top{color:var(--acc)}
 .soc-name{font-size:15.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -7117,12 +7118,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250006';
+const APP_VERSION = 'gymtrack-v202607250008';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = true;   // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -19309,16 +19310,16 @@ async function _loadProfiles(force){
 // Cloud-Push. Nur für Marketing-Screenshots im Simulator.
 function DEMO_MODE(){ try { return localStorage.getItem('gt_demo') === '1'; } catch(_){ return false; } }
 const _DEMO_ROSTER = [
-  { uid:'demo1', name:'Max Berger',   gymName:'FitZone Mitte', ses:4, mon:14, vol:18400, streak:6,  agoMin:3,    live:true,  gymLat:52.5200, gymLng:13.4050 },
-  { uid:'demo2', name:'Lena Frank',   gymName:'McFit Nord',    ses:3, mon:11, vol:12900, streak:12, agoMin:130,  live:false, gymLat:52.5601, gymLng:13.4020 },
-  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false, gymLat:52.4890, gymLng:13.3420 },
-  { uid:'demo4', name:'Sara Weber',   gymName:'Body Culture',  ses:2, mon:9,  vol:9800,  streak:8,  agoMin:4320, live:false, gymLat:52.5060, gymLng:13.4520 },
-  { uid:'demo5', name:'Jonas Peters', gymName:'FitStar West',  ses:4, mon:13, vol:16100, streak:1,  agoMin:305,  live:false, gymLat:52.5150, gymLng:13.3010 },
+  { uid:'demo1', name:'Max Berger',   gymName:'FitZone Mitte', ses:4, mon:14, vol:18400, streak:6,  agoMin:3,    live:true,  gymLat:52.5200, gymLng:13.4050, photo:'https://i.pravatar.cc/150?img=12' },
+  { uid:'demo2', name:'Lena Frank',   gymName:'McFit Nord',    ses:3, mon:11, vol:12900, streak:12, agoMin:130,  live:false, gymLat:52.5601, gymLng:13.4020, photo:'https://i.pravatar.cc/150?img=47' },
+  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false, gymLat:52.4890, gymLng:13.3420, photo:'https://i.pravatar.cc/150?img=33' },
+  { uid:'demo4', name:'Sara Weber',   gymName:'Body Culture',  ses:2, mon:9,  vol:9800,  streak:8,  agoMin:4320, live:false, gymLat:52.5060, gymLng:13.4520, photo:'https://i.pravatar.cc/150?img=45' },
+  { uid:'demo5', name:'Jonas Peters', gymName:'FitStar West',  ses:4, mon:13, vol:16100, streak:1,  agoMin:305,  live:false, gymLat:52.5150, gymLng:13.3010, photo:'https://i.pravatar.cc/150?img=51' },
 ];
-function _demoMe(){ return { uid:'demo-me', name:(S.userName||'Lenny'), gymName:'FitZone Mitte', ses:5, mon:18, vol:24200, streak:9, agoMin:60, live:false, gymLat:52.5170, gymLng:13.3880 }; }
+function _demoMe(){ return { uid:'demo-me', name:(S.userName||'Lenny'), gymName:'FitZone Mitte', ses:5, mon:18, vol:24200, streak:9, agoMin:60, live:false, gymLat:52.5170, gymLng:13.3880, photo:'https://i.pravatar.cc/150?img=68' }; }
 function _demoProfile(d){
   return {
-    uid:d.uid, name:d.name, photo:null, gymName:d.gymName,
+    uid:d.uid, name:d.name, photo:d.photo||null, gymName:d.gymName,
     week:{ key:getWeekKey(), vol:d.vol, ses:d.ses },
     month:{ key:_monthKey(), ses:d.mon },
     streak:d.streak,
@@ -19349,12 +19350,12 @@ const _GYM_PHOTO_IMG = _GYM_PHOTO.map(url => {
   return im;
 });
 const _DEMO_POSTS = [
-  { name:'Max Berger',   dayName:'Push Day',     dur:3480, mgs:['Brust','Schulter','Trizeps'], gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[0], fl:14, agoMin:8    },
-  { name:'Lena Frank',   dayName:'Leg Day',      dur:3900, mgs:['Beine','Waden'],              gym:'McFit Nord',    prCount:1, photo:_GYM_PHOTO[1], fl:8,  agoMin:52   },
-  { name:'Tom Krause',   dayName:'Pull',         dur:3120, mgs:['Rücken','Bizeps'],            gym:'Gym 80',        prCount:0, photo:_GYM_PHOTO[2], fl:3,  agoMin:180  },
-  { name:'Sara Weber',   dayName:'Ganzkörper',   dur:2760, mgs:['Beine','Brust','Rücken'],     gym:'Body Culture',  prCount:3, photo:_GYM_PHOTO[3], fl:27, agoMin:1500 },
-  { name:'Jonas Peters', dayName:'Oberkörper',   dur:3300, mgs:['Brust','Rücken','Arme'],      gym:'FitStar West',  prCount:1, photo:_GYM_PHOTO[4], fl:5,  agoMin:340  },
-  { name:'Lenny',        dayName:'Beine schwer', dur:3660, mgs:['Beine','Po'],                 gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[5], fl:11, me:true, agoMin:60 },
+  { name:'Max Berger',   dayName:'Push Day',     dur:3480, mgs:['Brust','Schulter','Trizeps'], gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[0], ava:'https://i.pravatar.cc/150?img=12', fl:14, agoMin:8    },
+  { name:'Lena Frank',   dayName:'Leg Day',      dur:3900, mgs:['Beine','Waden'],              gym:'McFit Nord',    prCount:1, photo:_GYM_PHOTO[1], ava:'https://i.pravatar.cc/150?img=47', fl:8,  agoMin:52   },
+  { name:'Tom Krause',   dayName:'Pull',         dur:3120, mgs:['Rücken','Bizeps'],            gym:'Gym 80',        prCount:0, photo:_GYM_PHOTO[2], ava:'https://i.pravatar.cc/150?img=33', fl:3,  agoMin:180  },
+  { name:'Sara Weber',   dayName:'Ganzkörper',   dur:2760, mgs:['Beine','Brust','Rücken'],     gym:'Body Culture',  prCount:3, photo:_GYM_PHOTO[3], ava:'https://i.pravatar.cc/150?img=45', fl:27, agoMin:1500 },
+  { name:'Jonas Peters', dayName:'Oberkörper',   dur:3300, mgs:['Brust','Rücken','Arme'],      gym:'FitStar West',  prCount:1, photo:_GYM_PHOTO[4], ava:'https://i.pravatar.cc/150?img=51', fl:5,  agoMin:340  },
+  { name:'Lenny',        dayName:'Beine schwer', dur:3660, mgs:['Beine','Po'],                 gym:'FitZone Mitte', prCount:2, photo:_GYM_PHOTO[5], ava:'https://i.pravatar.cc/150?img=68', fl:11, me:true, agoMin:60 },
 ];
 // Fake-Flammen-Map mit n Reaktoren (nur Demo — für sichtbaren Reaktions-Zähler).
 function _demoFlames(n){ const o={}; for(let k=0;k<n;k++) o['demofan'+k]=Date.now()-k*60000; return o; }
@@ -19394,8 +19395,9 @@ function _demoCard(p){
     sub = `<div class="fr-sub">${p.lastWk ? 'Training ' + _timeAgo(p.lastWk) : 'Noch kein Training'}${p.gymName ? ' · ' + esc(p.gymName) : ''}</div>`;
   }
   const wses = (p.week && p.week.key === wk) ? p.week.ses : 0;
+  const ava = p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name);
   return `<div class="fr-card${online?' live':''}">
-    <div class="fr-ava-wrap"><div class="fr-ava">${_socInitials(p.name)}</div><div class="fr-dot${online?' on':''}"></div></div>
+    <div class="fr-ava-wrap"><div class="fr-ava">${ava}</div><div class="fr-dot${online?' on':''}"></div></div>
     <div style="flex:1;min-width:0">
       <div class="fr-name"><span>${esc(p.name)}</span>${_lvlPillFor(p)}</div>
       ${sub}
@@ -19439,7 +19441,8 @@ async function _renderDemoFeed(body){
     return {
       id: 'demo-post-' + i, uid: p.me ? 'demo-me' : ('demo' + (i + 1)), kind: 'post',
       // Gebackenes Layout → Bild IST die fertige Card (kein HTML-Overlay, kein rawImg).
-      name: nm, photo: null, img: layoutImg,
+      // photo = Kopf-Avatar (rund, oben im Post) — getrennt vom gebackenen Hintergrundfoto.
+      name: nm, photo: p.ava || null, img: layoutImg,
       dayName: p.dayName, dur: Math.round(p.dur / 60), gym: p.gym, mgs: p.mgs, prCount: p.prCount || 0,
       visibility: isPub ? 'public' : 'friends', ts, flames: _demoFlames(p.fl || 0)
     };
@@ -19464,7 +19467,7 @@ function _renderDemoBoard(body){
   el.innerHTML = rows.map((p,i)=>`
     <div class="soc-row${p.uid==='demo-me'?' me':''}">
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
-      <div class="soc-ava">${_socInitials(p.name)}</div>
+      <div class="soc-ava">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
         <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${_lvlPillFor(p)}${p.uid==='demo-me'?' (du)':''}</div>
         <div class="soc-sub">${_socMetric==='xp'?tr('Level')+' '+_levelOf(p._v).level:(p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
