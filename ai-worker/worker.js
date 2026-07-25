@@ -63,34 +63,75 @@ const GRACE_MS    = 3 * 864e5; // 3 Tage Kulanz nach Ablauf (wie App-seitig)
 // Quelle: https://www.apple.com/certificateauthority/ — ändert sich praktisch nie.
 const APPLE_ROOT_G3_SHA256 = "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179";
 
-// ── Tageslimit pro Nutzer (pro Isolate, best effort — Missbrauchsbremse) ──
-const _quota = new Map(); // uid → {day, chat, coach, analyze}
-function dailyOk(uid, kind, env) {
-  const day = new Date().toISOString().slice(0, 10);
-  let q = _quota.get(uid);
-  if (!q || q.day !== day) { q = { day, chat: 0, coach: 0, analyze: 0 }; _quota.set(uid, q); }
-  const limit = kind === "chat" ? (parseInt(env.CHAT_DAILY) || 100)
-              : kind === "coach" ? (parseInt(env.COACH_DAILY) || 60)
-              : kind === "vision" ? (parseInt(env.VISION_DAILY) || 20)
-              : (parseInt(env.ANALYZE_DAILY) || 10);
-  if (q[kind] >= limit) return false;
-  q[kind]++;
-  return true;
+// ── Tageslimit pro Nutzer (Missbrauchsbremse) ──
+// FRÜHER: Zähler in einer Map pro Isolate. Das war schlicht falsch — Cloudflare
+// startet/verwirft Isolates ständig, also zählte JEDES Isolate seinen eigenen Tag
+// mit. Für den Nutzer sah das so aus: "Tageslimit erreicht", zwei Stunden später
+// ging es wieder. Jetzt liegt der Zähler wie das Monatslimit in KV (Tages-Key,
+// TTL 2 Tage); ohne KV-Binding wird gar nicht getagesdeckelt (Monatslimit greift ohnehin).
+function dailyLimit(kind, env) {
+  return kind === "chat" ? (parseInt(env.CHAT_DAILY) || 100)
+       : kind === "coach" ? (parseInt(env.COACH_DAILY) || 60)
+       : kind === "vision" ? (parseInt(env.VISION_DAILY) || 20)
+       : (parseInt(env.ANALYZE_DAILY) || 25);
+}
+function dailyKey(uid, kind) {
+  return "d:" + uid + ":" + new Date().toISOString().slice(0, 10) + ":" + kind;
+}
+async function dailyUse(uid, kind, env) {
+  const limit = dailyLimit(kind, env);
+  if (TEST_UIDS.has(uid)) return { ok: true, used: 0, limit };
+  const kv = env.AI_QUOTA;
+  if (!kv) return { ok: true, used: 0, limit };
+  const key = dailyKey(uid, kind);
+  const used = parseFloat(await kv.get(key)) || 0;
+  if (used >= limit) return { ok: false, used, limit };
+  await kv.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
+  return { ok: true, used: used + 1, limit };
+}
+async function dailyRefund(uid, kind, env) {
+  const kv = env.AI_QUOTA;
+  if (!kv || TEST_UIDS.has(uid)) return;
+  const key = dailyKey(uid, kind);
+  const used = parseFloat(await kv.get(key)) || 0;
+  await kv.put(key, String(Math.max(0, used - 1)), { expirationTtl: 2 * 86400 });
 }
 
 // ── Monatslimit (autoritativ, Cloudflare KV) — Coach-Trigger zählen 0.5 ──
+function monthKey(uid) { return "q:" + uid + ":" + new Date().toISOString().slice(0, 7); }
 async function monthlyUse(uid, env, weight) {
   const limit = parseInt(env.MONTHLY_LIMIT) || 50;
   const month = new Date().toISOString().slice(0, 7);
   if (TEST_UIDS.has(uid)) return { ok: true, used: 0, limit, month };
   const kv = env.AI_QUOTA;
   if (!kv) return { ok: true, used: 0, limit, month }; // kein KV gebunden (z.B. lokaler Dev) → nicht blockieren
-  const key = "q:" + uid + ":" + month;
+  const key = monthKey(uid);
   const used = parseFloat(await kv.get(key)) || 0;
   if (used >= limit) return { ok: false, used, limit, month };
   const next = used + weight;
   await kv.put(key, String(next), { expirationTtl: 45 * 86400 });
   return { ok: true, used: next, limit, month };
+}
+// Der Zähler läuft VOR dem LLM-Aufruf hoch (sonst könnte man durch Abbrechen
+// unbegrenzt Anfragen feuern). Scheitert der Aufruf danach, bekommt der Nutzer
+// nichts geliefert — dann darf ihn das auch nichts kosten.
+async function monthlyRefund(uid, env, weight) {
+  const kv = env.AI_QUOTA;
+  if (!kv || TEST_UIDS.has(uid)) return;
+  const key = monthKey(uid);
+  const used = parseFloat(await kv.get(key)) || 0;
+  await kv.put(key, String(Math.max(0, used - weight)), { expirationTtl: 45 * 86400 });
+}
+// Reiner Kontostand-Abruf (verbraucht NICHTS) — die App zeigt damit im KI-Menü,
+// wie viele Anfragen noch übrig sind, ohne dafür eine Anfrage zu opfern.
+async function quotaPeek(uid, env) {
+  const limit = parseInt(env.MONTHLY_LIMIT) || 50;
+  const month = new Date().toISOString().slice(0, 7);
+  if (TEST_UIDS.has(uid)) return { used: 0, limit, month, unlimited: true };
+  const kv = env.AI_QUOTA;
+  if (!kv) return { used: 0, limit, month, unlimited: true };
+  const used = parseFloat(await kv.get(monthKey(uid))) || 0;
+  return { used: Math.ceil(used), limit, month };
 }
 
 // ── Globales Monats-Aggregat (Tokens/Kosten über ALLE Nutzer) — Kostendeckel + Dashboard ──
@@ -240,7 +281,7 @@ export default {
     }
 
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
-    if (path !== "/chat" && path !== "/coach" && path !== "/analyze" && path !== "/vision") return json({ error: "unknown endpoint" }, 404, cors);
+    if (path !== "/chat" && path !== "/coach" && path !== "/analyze" && path !== "/vision" && path !== "/quota") return json({ error: "unknown endpoint" }, 404, cors);
 
     let body;
     try { body = await request.json(); } catch (_) { return json({ error: "bad json" }, 400, cors); }
@@ -259,14 +300,19 @@ export default {
       catch (e) { console.log("[AI] JWS abgelehnt:", e.message); return json({ error: "Abo-Nachweis ungültig: " + e.message }, 402, cors); }
     }
 
+    // 2b) Reiner Kontostand — verbraucht nichts, zählt nichts hoch.
+    if (path === "/quota") return json({ quota: await quotaPeek(uid, env) }, 200, cors);
+
     // 3) Tageslimit (Missbrauchsbremse)
     const kind = path.slice(1); // "chat" | "coach" | "analyze" | "vision"
-    if (!dailyOk(uid, kind, env)) return json({ error: "Tageslimit erreicht — morgen geht's weiter" }, 429, cors);
+    const d = await dailyUse(uid, kind, env);
+    if (!d.ok) return json({ error: "Tageslimit erreicht — morgen geht's weiter" }, 429, cors);
 
     // 4) Monatslimit (autoritativ, sichtbar für den Nutzer) — Coach-Trigger zählen halb
     const weight = kind === "coach" ? 0.5 : 1.0;
     const q = await monthlyUse(uid, env, weight);
     if (!q.ok) {
+      await dailyRefund(uid, kind, env);   // Tages-Zähler nicht für eine abgelehnte Anfrage verbrennen
       return json({ error: "Du hast dein monatliches KI-Limit erreicht.", quota: { used: q.used, limit: q.limit, month: q.month } }, 429, cors);
     }
     const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month };
@@ -277,6 +323,8 @@ export default {
     if (budgetUsd > 0) {
       const stats = await monthlyStats(env);
       if (estCostUsd(env, stats.inTok, stats.outTok) >= budgetUsd) {
+        await dailyRefund(uid, kind, env);
+        await monthlyRefund(uid, env, weight);
         return json({ error: "KI-Monatsbudget erreicht — bitte später erneut versuchen" }, 429, cors);
       }
     }
@@ -585,9 +633,11 @@ actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, 
   const { text, usage } = await llm(env, {
     system: sys,
     messages: [{ role: "user", content: data }],
-    // Kürzeres Zielformat (Kennzahlen statt Fließtext) braucht weniger Ausgabe —
-    // 1100 lässt Luft für metrics+bars, deckelt aber Textwände.
-    maxTokens: 1100,
+    // Kürzeres Zielformat (Kennzahlen statt Fließtext) braucht weniger Ausgabe,
+    // aber score+summary+4 metrics+6 bars+4 points+3 recos+3 actions passen bei
+    // 1100 knapp nicht rein — Gemini schnitt die Antwort mitten im String ab
+    // ("Unterminated string in JSON"). 2000 lässt genug Luft ohne Textwände.
+    maxTokens: 2000,
     schema: ANALYZE_SCHEMA,
   });
   return { a: JSON.parse(text), usage };
