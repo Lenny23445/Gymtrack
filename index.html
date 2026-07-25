@@ -1121,7 +1121,7 @@ body{
 }
 .sheet::after{
   content:'';position:absolute;top:0;left:0;right:0;height:110px;
-  background:var(--sheen);pointer-events:none;border-radius:28px 28px 0 0;
+  background:var(--sheen);pointer-events:none;border-radius:var(--r-xl) var(--r-xl) 0 0;
 }
 @keyframes up{from{transform:translateY(100%)}}
 
@@ -4442,8 +4442,11 @@ h1,h2,.row-title,.s-title{text-wrap:balance}
 html:not([data-glass="off"]) .sheet,
 html:not([data-glass="off"]) .cal-card{
   border-radius:var(--r-xl) var(--r-xl) 0 0;
+  /* ACHTUNG: --gl-sheet ist ein GRADIENT (= background-image). Ein
+     background-image:none!important dahinter löscht ihn komplett → Sheet wird
+     durchsichtig und alle Bottom-Sheets sehen schwarz aus (Scrim dahinter).
+     Genau das war der „schwarze Kasten"-Bug vom 25.07. */
   background:var(--gl-sheet)!important;
-  background-image:none!important;
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
   -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
   border:1px solid var(--gl-bdr);border-bottom:none;
@@ -4459,16 +4462,17 @@ html:not([data-glass="off"]) .cal-card{
 .sheet .sh-head{
   position:sticky;top:0;z-index:5;
   padding-top:10px;padding-bottom:14px;
-  background:linear-gradient(180deg,
-    rgba(10,10,14,.96) 0%,rgba(10,10,14,.90) 62%,rgba(10,10,14,0) 100%);
-}
-html:not([data-theme="dark"]) .sheet .sh-head{
-  background:linear-gradient(180deg,
-    rgba(255,255,255,.96) 0%,rgba(255,255,255,.90) 62%,rgba(255,255,255,0) 100%);
+  /* KEINE eigene Fläche! Jeder Verlauf/Radius hier malt eine zweite Kante über
+     das Sheet-Glas („doppelter Rahmen"-Bug 25.07.). Das Sheet ist EIN Material,
+     der Titel liegt einfach drauf. */
+  background:transparent;
 }
 .sheet{scroll-padding-top:64px}
-.sheet .sh-handle{position:sticky;top:0;z-index:6;
-  background:inherit}
+/* Griff OHNE eigene Fläche: background:inherit malte den Sheet-Gradienten hier
+   nochmal komprimiert → heller Querbalken direkt unter der runden Kante, der
+   wie ein zweiter Rahmen aussah. Das Sheet-Glas läuft einfach durch; den
+   Schleier unterm Titel übernimmt .sh-head. */
+.sheet .sh-handle{position:sticky;top:0;z-index:6;background:transparent;border-radius:var(--r-xl) var(--r-xl) 0 0}
 
 /* ── 4 · KALENDER ─────────────────────────────────────────────────*/
 .cal-card{width:calc(100% - 16px);max-width:460px;padding:4px 14px calc(18px + var(--sab))}
@@ -7154,12 +7158,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250013';
+const APP_VERSION = 'gymtrack-v202607250014';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = false;  // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = true;  // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
