@@ -459,7 +459,8 @@ Gib ENTWEDER "action" ODER "options" zurück (nie beide, nie leer bei reinem Lob
 - Gibt es mehrere sinnvolle Wege (z. B. Dropsatz ODER ein Satz mehr ODER normal weiter): "options" mit 2-3 Einträgen {label: kurzer Button-Text max. 3 Wörter, action}.
 - Reines Lob ohne konkrete Aktion: "action":{"kind":"none"}, kein "options".
 action.kind: "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz), "dropSet" (Dropsatz), "topSet" (nächster Satz = neuer Bestwert/Top-Satz), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (keine Aktion).
-Trigger-Typen: jump=deutliche Leistungssteigerung, drop=deutlicher Leistungsabfall, repmax=alle Sätze am oberen Wiederholungsende (Gewicht könnte steigen), fatigue=hohe Ermüdung erkannt, stall=Stagnation über mehrere Einheiten.`
+Trigger-Typen: jump=deutliche Leistungssteigerung, drop=deutlicher Leistungsabfall, repmax=alle Sätze am oberen Wiederholungsende (Gewicht könnte steigen), fatigue=hohe Ermüdung erkannt, stall=Stagnation über mehrere Einheiten.
+Steht "readiness" in den Daten, stammt sie aus dem Post-Workout-Check-in und die App hat die Vorschläge BEREITS angepasst. Respektiere sie: bei state "deload"/"hold"/"easy" niemals Gewicht erhöhen oder Zusatzsätze vorschlagen (eher "rest", "none", saubere Ausführung); bei "push" darfst du offensiv steigern.`
     : `You are a sports-science-grounded fitness coach in the MyGymTrack app giving a VERY short live assessment during an active set. You get compact trigger data (current set vs last session, fatigue, goal). Reply in max 2 short sentences, concrete, no filler, no greeting.
 title: max 4 words. text: 1-2 sentences assessment + recommendation.
 Return EITHER "action" OR "options" (never both, never empty on pure praise):
@@ -555,6 +556,7 @@ async function runAnalyze(body, lang, env) {
   }[mode];
   const sys = de
     ? `Du bist ein sportwissenschaftlich fundierter Personal Trainer in der App MyGymTrack. Analysiere ${focusDe} anhand der mitgelieferten aggregierten JSON-Daten. Duze den Nutzer, sei konkret, beziehe dich auf echte Zahlen/Übungsnamen aus den Daten.
+WENN data.readiness vorhanden: die App hat die Trainingsvorschläge aus dem Post-Workout-Check-in BEREITS angepasst (readiness.appliedByApp zeigt wie). Nimm darauf Bezug und widersprich nicht — bei state "deload"/"hold"/"easy" keine Steigerung empfehlen, sondern Erholung/Technik/Volumensteuerung; bei "push" darf offensiv gesteigert werden.
 STIL: Zahlen statt Prosa. Die App zeigt deine Antwort als Kennzahlen-Raster und Balken — Fließtext ist nur die Klammer drumherum. Jede Aussage trägt eine Zahl aus den Daten. Keine Allgemeinplätze, keine Wiederholungen, keine Einleitungen wie "Insgesamt zeigt sich".
 Sportwissenschaftlich fundiert bleiben (Volumen-Richtwerte pro Muskelgruppe, progressive Überlastung, Erholung/Frequenz) — aber verdichtet.
 score: 0-100 ehrliche Gesamtbewertung.
@@ -565,6 +567,7 @@ points: 3-4 Beobachtungen, jeweils EIN Satz mit max. 12 Wörtern und mindestens 
 recos: 2-3 Empfehlungen, jeweils max. 14 Wörter, konkret und mit Zahl ("Brust auf 14 Sätze/Woche, +5 pro Woche steigern").
 actions: 0-3 DIREKT umsetzbare Änderungen (nur wenn die Daten sie wirklich hergeben, sonst leer). kind="sets": Ziel-Sätze einer Übung ändern (Feld sets, 1-8). kind="reps": Wiederholungsbereich ändern (repMin+repMax, 1-30). kind="addEx": fehlende Übung ergänzen (muscleGroup NUR aus brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXAKTER Übungsname aus den Daten (bei addEx der neue Name). label = kurzer Button-Text (max 5 Wörter, z.B. "Kniebeugen auf 4 Sätze"). why = 1 Satz Begründung mit Zahl aus den Daten.`
     : `You are a sports-science-grounded personal trainer in the MyGymTrack app. Analyze ${focusEn} using the provided aggregated JSON data. Be concrete, reference real numbers/exercise names.
+IF data.readiness is present: the app has ALREADY adjusted the training suggestions from the post-workout check-in (see readiness.appliedByApp). Reference it and do not contradict it — for state "deload"/"hold"/"easy" never recommend adding load, focus on recovery/technique/volume management; for "push" you may push progression.
 STYLE: numbers over prose. The app renders your answer as a metric grid and bars — text is only the frame. Every statement carries a number from the data. No filler, no repetition, no "overall we can see" openers.
 Stay sports-science-grounded (volume landmarks per muscle group, progressive overload, recovery/frequency) but condensed.
 score: 0-100 honest overall rating.
