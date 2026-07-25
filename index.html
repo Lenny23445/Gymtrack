@@ -41,7 +41,6 @@
   setTimeout(function(){ try { window._bootSplashDone(); } catch(e){} }, 4000);
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <!-- ── Google Identity Services (für iOS-PWA-fähigen Login) ── -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- ── FIREBASE (Google Login + Cloud Sync) ── -->
@@ -5344,6 +5343,15 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   </svg>
 </div>
 
+<!-- Chart.js stand früher im <head> und war ein PARSER-BLOCKER: der Browser kam
+     erst nach dem Netz-Download des CDN-Skripts zum <body> — bis dahin war die
+     WebView leer/schwarz. Genau das war die lange schwarze Lücke zwischen dem
+     nativen LaunchScreen und der App (sah aus wie zwei Startbildschirme, die
+     sich überlagern). Hier unter dem Boot-Splash geladen: der Splash steht sofort,
+     und weil Body-Skripte in Dokumentreihenfolge laufen, ist `Chart` weiterhin
+     definiert, bevor das Haupt-Skript weiter unten es benutzt. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
 
 <div id="update-toast"></div>
@@ -7140,7 +7148,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250012';
+const APP_VERSION = 'gymtrack-v202607250013';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -25722,13 +25730,11 @@ function _handleWidgetDeepLink(url) {
       if (typeof incrementTracker === 'function') incrementTracker(decodeURIComponent(t[1]));
       return;
     }
-    // Wochentag-Kreis im Widget angetippt → Statistik + Kalender öffnen.
-    // NUR für gymtrack://day/N. Vorher landete JEDER unbekannte gymtrack://-Link
-    // (auch ein simpler App-Start über das Widget) auf dem Statistik-Tab — die App
-    // öffnete sich dann scheinbar grundlos in der Statistik statt auf "Heute".
+    // Wochentag-Kreis im Widget angetippt → Kalender öffnen, aber Tab bleibt "Heute".
+    // NUR für gymtrack://day/N. App soll bei JEDEM Start (auch übers Widget)
+    // immer auf "Heute" landen, nie auf der Statistik.
     if (!/^gymtrack:\/\/day\/\d+/.test(url)) return;
-    goTabId('stats');
-    setTimeout(() => { if (typeof renderStats === 'function') renderStats(); }, 0);
+    goTabId('heute');
     setTimeout(() => { if (typeof openCalendarOverlay === 'function') openCalendarOverlay(); }, 120);
   } catch(e) {}
 }
