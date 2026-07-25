@@ -12,7 +12,13 @@
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <imageView key="view" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" id="snD-IY-ifK">
+                    <!-- contentMode="center": Logo in seiner NATÜRLICHEN Größe (92 pt) mittig auf
+                         Schwarz — exakt so groß und an exakt derselben Stelle wie im Web-Boot-Splash
+                         (#boot-splash, 92x92). Vorher scaleAspectFill mit einem 2732er-Quadrat: das
+                         wurde bildschirmfüllend hochskaliert, das Logo war rund 3x so groß wie im
+                         Web und sprang beim Übergang sichtbar zusammen — das sah aus, als lägen
+                         Launchscreen und App übereinander. -->
+                    <imageView key="view" userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" id="snD-IY-ifK">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -24,7 +30,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="Splash" width="1366" height="1366"/>
+        <image name="Splash" width="92" height="92"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

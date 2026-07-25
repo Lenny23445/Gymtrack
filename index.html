@@ -32,6 +32,12 @@
     d.setAttribute('data-glass', s.glass === false ? 'off' : 'on');
   } catch(e){}
   window._bootSplashDone = function(){
+    // Nativ liegt zusätzlich ein UIKit-Overlay über der WebView (identisch:
+    // schwarz + weisses Logo), das die Lücke bis zum ersten WebView-Frame
+    // abdeckt. Beides geht im selben Moment weg — sonst blitzt genau dort
+    // wieder ein Wechsel auf.
+    try { window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashOverlayPlugin
+          && window.Capacitor.Plugins.SplashOverlayPlugin.hide(); } catch(e){}
     var el = document.getElementById('boot-splash');
     if (!el || el.dataset.off) return;
     el.dataset.off = '1';

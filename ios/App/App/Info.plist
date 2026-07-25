@@ -71,7 +71,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2607241405</string>
+	<string>2607252016</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -82,10 +82,10 @@
 	<string>GymTrack liest dein Körpergewicht aus Apple Health.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>GymTrack speichert deine Workouts und dein Körpergewicht in Apple Health.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>GymTrack speichert exportierte Workout-Bilder in deiner Fotomediathek.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>GymTrack braucht das Mikrofon, um deine Nachricht im KI-Chat zu diktieren.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GymTrack speichert exportierte Workout-Bilder in deiner Fotomediathek.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>GymTrack braucht Zugriff auf deine Fotos, um Bilder für deine Übungen auszuwählen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

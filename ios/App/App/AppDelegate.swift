@@ -128,6 +128,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 // (window.Capacitor.Plugins.*) nicht verfügbar → "Plugin nicht verfügbar".
 
 class MainViewController: CAPBridgeViewController {
+    private var splashOverlay: UIView?
+
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(GoogleAuthPlugin())
         bridge?.registerPluginInstance(AppleSignInPlugin())
@@ -137,5 +139,67 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(WidgetDataPlugin())
         bridge?.registerPluginInstance(CameraPlugin())
         bridge?.registerPluginInstance(PremiumPlugin())
+        bridge?.registerPluginInstance(SplashOverlayPlugin())
+    }
+
+    // MARK: - Splash-Overlay (nahtloser Start)
+    // Der LaunchScreen verschwindet, sobald der ViewController steht — die
+    // WKWebView braucht danach aber noch rund eine Sekunde bis zum ersten Frame.
+    // In dieser Lücke sah man nur Schwarz, danach sprang der Web-Boot-Splash mit
+    // demselben Logo nach: es wirkte, als lägen Startbildschirm und App
+    // übereinander. Dieses Overlay ist optisch identisch mit dem LaunchScreen
+    // (Schwarz + weisses 92-pt-Logo) und liegt ÜBER der WebView, bis das JS
+    // meldet, dass die App fertig aufgebaut ist (SplashOverlayPlugin.hide() aus
+    // _bootSplashDone). Damit ist der Start eine durchgehende Ansicht ohne Sprung.
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let v = UIView(frame: view.bounds)
+        v.backgroundColor = .black
+        v.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        v.isUserInteractionEnabled = false
+        let logo = UIImageView(image: UIImage(named: "Splash"))
+        logo.contentMode = .center
+        logo.translatesAutoresizingMaskIntoConstraints = false
+        v.addSubview(logo)
+        NSLayoutConstraint.activate([
+            logo.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            logo.centerYAnchor.constraint(equalTo: v.centerYAnchor)
+        ])
+        view.addSubview(v)
+        splashOverlay = v
+        NotificationCenter.default.addObserver(forName: .gtHideSplashOverlay, object: nil, queue: .main) { [weak self] _ in
+            self?.hideSplashOverlay()
+        }
+        // Notbremse: lieber eine halbfertige App als ein Overlay, das nie geht
+        // (JS wirft, Bridge nicht da, …).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in self?.hideSplashOverlay() }
+    }
+
+    private func hideSplashOverlay() {
+        guard let v = splashOverlay else { return }
+        splashOverlay = nil
+        UIView.animate(withDuration: 0.22, animations: { v.alpha = 0 }, completion: { _ in v.removeFromSuperview() })
+    }
+}
+
+extension Notification.Name {
+    static let gtHideSplashOverlay = Notification.Name("GTHideSplashOverlay")
+}
+
+// Winziges Plugin, damit das JS das Overlay genau dann wegnimmt, wenn der erste
+// echte App-Frame steht (s. _bootSplashDone in index.html).
+@objc(SplashOverlayPlugin)
+public class SplashOverlayPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "SplashOverlayPlugin"
+    public let jsName = "SplashOverlayPlugin"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func hide(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .gtHideSplashOverlay, object: nil)
+        }
+        call.resolve()
     }
 }
