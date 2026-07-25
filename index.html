@@ -625,16 +625,18 @@ body{
 .erf-period-seg button.on{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(var(--acc-rgb),.3)}
 
 /* ── TAB-WECHSEL: INHALTE GESTAFFELT EINBLENDEN ── */
-@keyframes pg-content-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pg-content-in{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:none}}
+/* Kurz & knapp: 300 ms Einblenden, Staffelung max. 120 ms. Vorher lief die
+   Kette bis ~0,9 s — das liest das Auge als „App hängt", nicht als Politur. */
 .pg.on .pad>*,
-.pg.on #heute-grid>*{animation:pg-content-in .5s cubic-bezier(.22,1,.36,1) both}
-.pg.on .pad>*:nth-child(1),.pg.on #heute-grid>*:nth-child(1){animation-delay:.03s}
-.pg.on .pad>*:nth-child(2),.pg.on #heute-grid>*:nth-child(2){animation-delay:.09s}
-.pg.on .pad>*:nth-child(3),.pg.on #heute-grid>*:nth-child(3){animation-delay:.15s}
-.pg.on .pad>*:nth-child(4),.pg.on #heute-grid>*:nth-child(4){animation-delay:.21s}
-.pg.on .pad>*:nth-child(5),.pg.on #heute-grid>*:nth-child(5){animation-delay:.27s}
-.pg.on .pad>*:nth-child(6),.pg.on #heute-grid>*:nth-child(6){animation-delay:.33s}
-.pg.on .pad>*:nth-child(n+7),.pg.on #heute-grid>*:nth-child(n+7){animation-delay:.39s}
+.pg.on #heute-grid>*{animation:pg-content-in .30s cubic-bezier(.22,1,.36,1) both}
+.pg.on .pad>*:nth-child(1),.pg.on #heute-grid>*:nth-child(1){animation-delay:0s}
+.pg.on .pad>*:nth-child(2),.pg.on #heute-grid>*:nth-child(2){animation-delay:.03s}
+.pg.on .pad>*:nth-child(3),.pg.on #heute-grid>*:nth-child(3){animation-delay:.06s}
+.pg.on .pad>*:nth-child(4),.pg.on #heute-grid>*:nth-child(4){animation-delay:.09s}
+.pg.on .pad>*:nth-child(5),.pg.on #heute-grid>*:nth-child(5){animation-delay:.11s}
+.pg.on .pad>*:nth-child(6),.pg.on #heute-grid>*:nth-child(6){animation-delay:.13s}
+.pg.on .pad>*:nth-child(n+7),.pg.on #heute-grid>*:nth-child(n+7){animation-delay:.15s}
 @media (prefers-reduced-motion: reduce){
   .pg.on .pad>*,.pg.on #heute-grid>*{animation:none}
 }
@@ -1201,7 +1203,7 @@ body{
   background:var(--g5);
   font-size:22px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  transition:all .15s;
+  transition:transform .15s,background-color .15s,background .15s,color .15s,border-color .15s,box-shadow .15s,opacity .15s;
 }
 .emo-btn.on{
   border-color:var(--acc);
@@ -1224,7 +1226,7 @@ body{
   border-radius:20px;padding:6px 14px;
   font-size:13px;font-weight:600;color:var(--text2);
   cursor:pointer;white-space:nowrap;font-family:inherit;
-  transition:all .18s;
+  transition:transform .18s,background-color .18s,background .18s,color .18s,border-color .18s,box-shadow .18s,opacity .18s;
 }
 .icat.on{
   background:var(--acc);color:#fff;
@@ -1288,7 +1290,7 @@ body{
   border-radius:22px;padding:18px 12px 14px;
   text-align:center;cursor:pointer;
   position:relative;overflow:hidden;
-  transition:all .2s;
+  transition:transform .2s,background-color .2s,background .2s,color .2s,border-color .2s,box-shadow .2s,opacity .2s;
   box-shadow:var(--gl-shad),var(--gl-hi);
 }
 .companion-card::after{
@@ -1809,7 +1811,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   width:26px;height:26px;border-radius:50%;
   border:2px solid var(--sep);
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .18s;
+  flex-shrink:0;transition:transform .18s,background-color .18s,background .18s,color .18s,border-color .18s,box-shadow .18s,opacity .18s;
 }
 .wk-chk.on{background:var(--acc);border-color:var(--acc);color:#fff;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(var(--acc-rgb),.38)}
 
@@ -2853,7 +2855,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
   font-size:11px;font-weight:800;color:var(--text2);
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;padding:0;font-family:inherit;
-  transition:all .15s;letter-spacing:-.3px;
+  transition:transform .15s,background-color .15s,background .15s,color .15s,border-color .15s,box-shadow .15s,opacity .15s;letter-spacing:-.3px;
 }
 .set-type.normal{}
 .set-type.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
@@ -2922,7 +2924,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
   flex-shrink:0;background:var(--gl-bg);border:1px solid var(--gl-bdr);
   border-radius:18px;padding:7px 14px;font-size:13px;font-weight:600;
   color:var(--text);cursor:pointer;font-family:inherit;
-  transition:all .15s;
+  transition:transform .15s,background-color .15s,background .15s,color .15s,border-color .15s,box-shadow .15s,opacity .15s;
 }
 .lib-cat.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .lib-list{padding:0 20px 20px;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -3705,7 +3707,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 #ob-screen.on{display:flex}
 .ob-top{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sat) + 14px) 20px 4px;min-height:42px}
 .ob-dots{display:flex;gap:6px}
-.ob-dot{width:7px;height:7px;border-radius:4px;background:var(--sep);transition:all .3s var(--ease)}
+.ob-dot{width:7px;height:7px;border-radius:4px;background:var(--sep);transition:transform .3s,background-color .3s,background .3s,color .3s,border-color .3s,box-shadow .3s,opacity .3s var(--ease)}
 .ob-dot.on{background:var(--acc);width:22px}
 .ob-skip{background:none;border:none;color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;padding:8px 0 8px 12px;cursor:pointer}
 .ob-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 22px 16px;display:flex;flex-direction:column}
@@ -4290,7 +4292,132 @@ html:not([data-glass="off"]) .set-in{
 @media (prefers-contrast: more){
   [data-theme="dark"]{--gl-bdr:rgba(255,255,255,.34)}
 }
+
+/* ── 10 · SOLID-MODUS (Glas aus) ───────────────────────────────────
+   Kein „Glas ohne Blur"-Kompromiss, sondern ein eigenes, ruhiges Material:
+   flacher Grund, eine Flächenstufe darüber, Haarlinien statt Lichtkanten.
+   Vorher blieb hier der alte, deckende Header als grauer Balken stehen und der
+   Grund war nicht durchgezogen — beides ist die Ursache des billigen Looks. */
+[data-glass="off"][data-theme="dark"]{
+  --mesh:linear-gradient(180deg,#070709 0%,#050507 60%,#030304 100%);
+  --gl-bg:#141419; --gl-bg-h:#1a1a20; --gl-bg-t:#121217;
+  --gl-chrome:#16161c; --gl-sheet:#15151b; --gl-ctrl:#1e1e25;
+  --gl-bdr:rgba(255,255,255,.065); --gl-bdr2:rgba(255,255,255,.05);
+  --gl-rim:inset 0 1px 0 rgba(255,255,255,.05);
+  --gl-shad:0 1px 2px rgba(0,0,0,.45),0 10px 26px rgba(0,0,0,.40);
+  --gl-shad-lg:0 3px 10px rgba(0,0,0,.50),0 24px 56px rgba(0,0,0,.55);
+  --sheen:transparent; --sep:rgba(255,255,255,.06);
+  --inp-bg:#1c1c22; --inp-focus:#24242c;
+}
+[data-glass="off"]:not([data-theme="dark"]){
+  --gl-bg:#ffffff; --gl-bg-h:#ffffff; --gl-bg-t:#fbfbfd;
+  --gl-chrome:#ffffff; --gl-sheet:#ffffff; --gl-ctrl:#ffffff;
+  --gl-bdr:rgba(0,0,0,.07); --gl-bdr2:rgba(0,0,0,.05);
+  --gl-rim:inset 0 1px 0 rgba(255,255,255,.9);
+  --gl-shad:0 1px 2px rgba(0,0,0,.05),0 8px 22px rgba(0,0,0,.06);
+  --gl-shad-lg:0 2px 8px rgba(0,0,0,.07),0 20px 48px rgba(0,0,0,.10);
+  --sheen:transparent;
+}
+/* Header: auch im Solid-Modus KEIN Balken — er scrollt mit dem Inhalt. */
+[data-glass="off"] .hdr{
+  background:transparent!important;box-shadow:none!important;border:none!important;
+}
+[data-glass="off"] .hdr::after{display:none}
+/* Flächen: eine Stufe über dem Grund, Haarlinie, gleiche Radien wie im Glas */
+[data-glass="off"] .card,[data-glass="off"] .ex-card,[data-glass="off"] .hw-card,
+[data-glass="off"] .hw-quick,[data-glass="off"] .companion-card,
+[data-glass="off"] .fr-card,[data-glass="off"] .feed-item,
+[data-glass="off"] .frp-stat,[data-glass="off"] .frp-vs,
+[data-glass="off"] .plimp-card,[data-glass="off"] .soc-search-res,
+[data-glass="off"] .erf-tile{
+  background:var(--gl-bg);border:1px solid var(--gl-bdr);
+  border-radius:var(--r-lg);box-shadow:var(--gl-rim),var(--gl-shad);
+}
+[data-glass="off"] .tabbar{
+  background:var(--gl-chrome);border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad-lg);
+}
+[data-glass="off"] .sheet{
+  background:var(--gl-sheet);border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad-lg);
+}
+[data-glass="off"] #ai-bubble{
+  background:var(--gl-chrome);border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),var(--gl-shad-lg);
+}
+[data-glass="off"] .btn-gray,[data-glass="off"] .btn:not(.btn-acc):not(.btn-danger):not(.fr-req-ok),
+[data-glass="off"] .x-btn,[data-glass="off"] .hdr-icon-btn,
+[data-glass="off"] .fmode-btn:not(.on),[data-glass="off"] .soc-chip:not(.on){
+  background:var(--gl-ctrl);border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim);color:var(--text);
+}
 /* ===== LIQUID GLASS v3 — ENDE ===== */
+/* ===================================================================
+   FEEL-LAYER — Anfassgefühl (Motion · Press · Typo-Politur)
+   Ziel: jede Berührung antwortet sofort und weich, nichts ruckelt, nichts
+   „springt". Regeln: nur transform/opacity/filter animieren (Compositor),
+   Enter länger als Exit, immer explizite transition-Properties.
+   =================================================================== */
+:root{
+  --ease-out:cubic-bezier(.22,1,.36,1);      /* Standard: schnell an, weich aus */
+  --ease-in:cubic-bezier(.4,0,1,1);          /* Exits */
+  --press:cubic-bezier(.34,1.4,.64,1);       /* Loslassen federt minimal zurück */
+  --t-press:120ms; --t-enter:280ms; --t-exit:160ms;
+}
+
+/* ── 1 · PRESS-FEEDBACK auf ALLEM, was man antippt ────────────────
+   Ohne Press-State fühlt sich eine Fläche wie ein Bild an, nicht wie ein
+   Bedienelement. Sehr kleine Skalierung (Apple-Maß), sofortiges Antworten. */
+.card.tap,.row.tap,.hw-card,.hw-quick,.ex-card,.fr-card,.feed-item,
+.rec-row,.day-pill,.soc-chip,.fmode-btn,.erf-tile,.plate-chip,
+.cs-preset-btn,.ob-opt,.ob-tpl,.wk-preset-card,.frp-stat,.x-btn,
+.hdr-icon-btn,.hdr-plus,.pc-cfg-btn,.tab{
+  transition-property:transform,opacity,background-color,border-color,box-shadow;
+  transition-duration:var(--t-press);
+  transition-timing-function:var(--press);
+  will-change:transform;
+}
+.card.tap:active,.row.tap:active,.hw-card:active,.hw-quick:active,
+.ex-card:active,.fr-card:active,.feed-item:active,.rec-row:active,
+.erf-tile:active,.frp-stat:active,.ob-opt:active,.ob-tpl:active,
+.wk-preset-card:active,.plate-chip:active,.cs-preset-btn:active{
+  transform:scale(.978);
+}
+.day-pill:active,.soc-chip:active,.fmode-btn:active,.pc-cfg-btn:active{transform:scale(.94)}
+.x-btn:active,.hdr-icon-btn:active,.hdr-plus:active{transform:scale(.88)}
+/* Tab: Icon zuerst, Label folgt — wirkt „aufgehängt" statt starr */
+.tab:active{transform:scale(.94)}
+
+/* ── 2 · SHEETS: Enter weich, Exit kurz ───────────────────────────*/
+.ov{transition:opacity var(--t-enter) var(--ease-out)}
+.ov:not(.on){transition-duration:var(--t-exit)}
+.sheet{
+  transition-property:transform,opacity;
+  transition-duration:var(--t-enter);
+  transition-timing-function:var(--ease-out);
+  will-change:transform;
+}
+
+/* ── 3 · ZAHLEN & TEXT ────────────────────────────────────────────
+   Tabellenziffern: Zähler/Timer/Gewichte springen sonst in der Breite. */
+.erf-tile-val,.erf-hero-val,.hw-card b,.rec-row-sub,.pc-plate,
+.st-val,.stat-val,.set-in,.f-in,.rr-val,.frp-stat,.hdr .sub,
+.wk-hr b,.tab span{font-variant-numeric:tabular-nums}
+h1,h2,.row-title,.s-title{text-wrap:balance}
+.row-sub,.sub,.rec-row-sub,.cs-intro,.priv-hint{text-wrap:pretty}
+
+/* ── 4 · SCROLLEN ─────────────────────────────────────────────────
+   Kein Overscroll-Ketten (Sheet zieht sonst die Seite mit), Momentum an. */
+.pg,.sheet{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+@media (prefers-reduced-motion: reduce){
+  .card.tap,.row.tap,.hw-card,.hw-quick,.ex-card,.fr-card,.feed-item,
+  .rec-row,.tab,.x-btn,.hdr-icon-btn{transition:none!important}
+  .card.tap:active,.row.tap:active,.hw-card:active,.ex-card:active,
+  .tab:active,.x-btn:active,.hdr-icon-btn:active{transform:none!important}
+}
+/* ===== FEEL-LAYER — ENDE ===== */
+
 /* ── WORKOUT-SHARE-FLOW (Rattle → Kamera → Editor → Teilen) ── */
 #ov-share{align-items:stretch!important;background:#07080d!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
 .shf-screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;color:#fff;overflow:hidden;
@@ -4338,7 +4465,7 @@ html:not([data-glass="off"]) .set-in{
 .shf-stats .l{display:block;font-size:10.5px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.55);text-transform:uppercase}
 .shf-stats b{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .shf-stats i{font-style:normal;font-size:12px;font-weight:800;color:#30d158;margin-left:5px}
-.shf-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
+.shf-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:transform .2s,background-color .2s,background .2s,color .2s,border-color .2s,box-shadow .2s,opacity .2s}
 .shf-dot.on{background:var(--acc);width:20px;border-radius:4px}
 .shf-cta{position:absolute;bottom:calc(24px + var(--sab));left:24px;right:24px;z-index:30;display:flex;gap:10px}
 .shf-btn{flex:1;padding:16px;border-radius:18px;border:none;font-size:16px;font-weight:800;background:var(--acc);color:#fff}
@@ -4764,7 +4891,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .pwz-s{font-size:13px;color:var(--text2);text-align:center;line-height:1.5;margin-bottom:14px}
 .pwz-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .pwz-chip{border:1.5px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text);border-radius:13px;
-  padding:11px 16px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+  padding:11px 16px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s,background-color .15s,background .15s,color .15s,border-color .15s,box-shadow .15s,opacity .15s}
 .pwz-chip.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.10);color:var(--acc)}
 .pwz-ta{width:100%;box-sizing:border-box;margin-top:10px;background:var(--inp-bg);border:1px solid var(--gl-bdr);border-radius:14px;
   padding:12px 14px;font-size:15px;font-family:inherit;color:var(--text);outline:none;resize:none;min-height:64px;line-height:1.45}
@@ -4816,26 +4943,68 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .aic-mic.rec{border-color:#ff453a;color:#ff453a;background:rgba(255,69,58,.08);animation:micPulse 1.1s ease-in-out infinite}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,.35)}50%{box-shadow:0 0 0 7px rgba(255,69,58,0)}}
-/* ═══ PROFIL-EDITOR: SLIDER + CHIPS ═══ */
-.pf-sec{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:18px 0 8px}
+/* ═══ PROFIL-EDITOR: KOPFZEILE · MASSBAND · CHIPS ═══
+   Aufbau bewusst wie eine Visitenkarte: Foto links, Daten rechts. Darunter
+   Sektionen mit je einer Karte — keine mittigen Blöcke, keine Slider-Optik. */
+.pf-sec{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:20px 0 8px}
 .pf-chips{display:flex;flex-wrap:wrap;gap:7px}
 .pf-chip{border:1.5px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text);border-radius:11px;
-  padding:8px 13px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+  padding:8px 13px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s,background-color .15s,background .15s,color .15s,border-color .15s,box-shadow .15s,opacity .15s}
 .pf-chip.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.10);color:var(--acc)}
-.pf-exp-card{background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:16px;padding:14px 14px 12px}
-.pf-slider-wrap{padding:4px 2px}
-.pf-slider-val{text-align:center;font-size:16px;font-weight:800;color:var(--acc);margin-bottom:10px}
-.pf-slider-val.bump{animation:pfValBump .32s cubic-bezier(.34,1.56,.64,1)}
-@keyframes pfValBump{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
-input[type=range].pf-range{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;
-  background:linear-gradient(90deg,var(--acc) var(--fill,0%),var(--inp-bg) var(--fill,0%));outline:none}
-input[type=range].pf-range::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
-  background:#fff;border:2px solid var(--acc);box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;
-  transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s}
-input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);box-shadow:0 3px 14px rgba(var(--acc-rgb),.5)}
-.pf-exp-ticks{display:flex;justify-content:space-between;margin-top:9px;padding:0 1px}
-.pf-exp-ticks span{font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.2px}
+.pf-chip:active{transform:scale(.94)}
 .pf-count{font-size:11px;color:var(--text2);text-align:right;margin-top:4px}
+/* Kopfzeile: Foto links, Felder rechts */
+.pf-head{display:flex;gap:14px;align-items:flex-start;margin:2px 0 4px}
+.pf-photo{position:relative;width:92px;height:92px;flex-shrink:0;border-radius:26px;overflow:hidden;cursor:pointer;
+  background:rgba(var(--acc-rgb),.15);color:var(--acc);border:1px solid var(--gl-bdr);
+  display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:800;letter-spacing:-.5px;
+  transition:transform .18s var(--spring)}
+.pf-photo:active{transform:scale(.96)}
+.pf-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-cam{position:absolute;right:5px;bottom:5px;width:27px;height:27px;border-radius:50%;background:var(--acc);color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 9px rgba(0,0,0,.35);pointer-events:none}
+.pf-cam svg{width:14px;height:14px}
+.pf-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.pf-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin:0 0 5px 2px}
+.pf-inp{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:13px;border:1px solid var(--gl-bdr);
+  background:var(--inp-bg);color:var(--text);font-size:15.5px;font-weight:600;font-family:inherit;-webkit-appearance:none;appearance:none}
+.pf-inp:focus{outline:none;border-color:rgba(var(--acc-rgb),.65)}
+.pf-inp[type=date]{min-height:44px;line-height:1.2}
+.pf-datewrap{display:flex;gap:8px;align-items:center}
+.pf-age{display:inline-flex;align-items:center;height:44px;padding:0 12px;border-radius:13px;flex-shrink:0;
+  background:rgba(var(--acc-rgb),.10);color:var(--acc);font-size:13px;font-weight:800;white-space:nowrap}
+.pf-photo-rm{background:none;border:none;color:#ff453a;font-family:inherit;font-size:12px;font-weight:700;
+  padding:7px 0 0;cursor:pointer;width:92px;text-align:center}
+/* Maßband für die Trainingserfahrung — viele Striche, rastet an jedem ein */
+.pf-ruler{position:relative;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:18px;padding:14px 0 8px;overflow:hidden}
+.pf-ruler-val{text-align:center;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+.pf-ruler-val.bump{animation:pfValBump .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pfValBump{0%{transform:scale(1)}45%{transform:scale(1.09)}100%{transform:scale(1)}}
+.pf-ruler-sub{text-align:center;font-size:11.5px;font-weight:800;color:var(--acc);margin-top:3px;text-transform:uppercase;letter-spacing:.7px}
+.pf-ruler-scroll{margin-top:12px;overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.pf-ruler-scroll::-webkit-scrollbar{display:none}
+.pf-ruler-strip{display:flex;align-items:flex-start;height:54px}
+.pf-ruler-pad{flex:0 0 calc(50% - 7px)}
+.pf-tick{flex:0 0 14px;height:54px;position:relative;display:flex;flex-direction:column;align-items:center;scroll-snap-align:center}
+.pf-tick i{display:block;width:2px;height:13px;border-radius:1px;background:var(--text2);opacity:.26;transition:height .18s var(--ease),opacity .18s,background-color .18s}
+.pf-tick.maj i{height:25px;opacity:.42}
+.pf-tick.on i{background:var(--acc);opacity:.9}
+.pf-tick.cur i{height:32px;opacity:1}
+.pf-tick b{position:absolute;bottom:2px;font-size:9.5px;font-weight:800;color:var(--text2);letter-spacing:.2px}
+.pf-tick.on b{color:var(--acc)}
+.pf-ruler-needle{position:absolute;left:50%;top:64px;transform:translateX(-50%);
+  width:3px;height:36px;border-radius:2px;background:var(--acc);box-shadow:0 0 14px rgba(var(--acc-rgb),.55);pointer-events:none}
+/* Lieblingsübungen: Suchfeld + Vorschlagsliste */
+.pf-exlist{margin-top:7px;border:1px solid var(--gl-bdr);border-radius:14px;overflow:hidden;background:var(--gl-bg-t)}
+.pf-exrow{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--gl-bdr2)}
+.pf-exrow:last-child{border-bottom:none}
+.pf-exrow:active{background:rgba(var(--acc-rgb),.08)}
+.pf-exrow-n{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-exrow-g{font-size:11.5px;font-weight:700;color:var(--text2);flex-shrink:0}
+.pf-selchip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--acc);background:rgba(var(--acc-rgb),.10);
+  color:var(--acc);border-radius:11px;padding:8px 10px 8px 13px;font-size:13px;font-weight:700}
+.pf-selchip button{background:none;border:none;color:inherit;font-family:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0 2px;opacity:.75}
 /* Freundesprofil: Über-mich-Sektion */
 .frp-about{background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:16px;padding:12px;margin-top:8px}
 .frp-exp-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -6604,39 +6773,52 @@ input[type=range].pf-range:active::-webkit-slider-thumb{transform:scale(1.18);bo
 
 <!-- SHEET: EIGENES PROFIL (Name + Bild) -->
 <div class="ov" id="ov-fredit" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fredit')">
-  <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap))">
+  <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Mein Profil</h2>
       <button class="x-btn" onclick="closeOv('ov-fredit')">✕</button>
     </div>
-    <div class="px" style="padding-bottom:26px">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin:6px 0 20px">
-        <div id="fredit-ava" style="width:96px;height:96px;border-radius:50%;overflow:hidden;background:rgba(var(--acc-rgb),.18);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800"></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-gray" style="width:auto;padding:9px 16px" onclick="document.getElementById('fredit-file').click()">Foto wählen</button>
-          <button id="fredit-remove" class="btn btn-gray" style="width:auto;padding:9px 16px;display:none" onclick="removeProfilePhoto()">Entfernen</button>
+    <div class="px" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(26px + var(--sab))">
+      <div class="pf-head">
+        <div>
+          <div class="pf-photo" id="fredit-ava" onclick="document.getElementById('fredit-file').click()"></div>
+          <button id="fredit-remove" class="pf-photo-rm" style="display:none" onclick="removeProfilePhoto()">Foto entfernen</button>
         </div>
-        <input type="file" id="fredit-file" accept="image/*" style="display:none" onchange="_pickProfilePhoto(this)">
+        <div class="pf-fields">
+          <div>
+            <div class="pf-lbl">Dein Name</div>
+            <input type="text" id="fredit-name" class="pf-inp" maxlength="30" placeholder="Name" autocomplete="off">
+          </div>
+          <div>
+            <div class="pf-lbl">Geburtsdatum</div>
+            <div class="pf-datewrap">
+              <input type="date" id="pf-birth" class="pf-inp" max="2026-12-31" min="1920-01-01" onchange="_pfBirthChanged()">
+              <span class="pf-age" id="pf-age" style="display:none"></span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="s-title" style="padding:0 0 6px">Dein Name</div>
-      <input type="text" id="fredit-name" maxlength="30" placeholder="Name" autocomplete="off" style="width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid var(--gl-bdr);background:var(--gl-bg-h);color:var(--text);font-size:16px;font-weight:600">
+      <input type="file" id="fredit-file" accept="image/*" style="display:none" onchange="_pickProfilePhoto(this)">
       <div class="pf-sec">Trainingserfahrung</div>
-      <div class="pf-exp-card">
-        <div class="pf-slider-wrap">
-          <div class="pf-slider-val" id="pf-exp-val">–</div>
-          <input type="range" class="pf-range" id="pf-exp" min="0" max="15" step="1" value="1" oninput="_pfExpChanged(this)">
-        </div>
-        <div class="pf-exp-ticks"><span>Einsteiger</span><span>Fortgeschritten</span><span>Erfahren</span><span>Profi</span></div>
+      <div class="pf-ruler">
+        <div class="pf-ruler-val" id="pf-exp-val">–</div>
+        <div class="pf-ruler-sub" id="pf-exp-lvl">–</div>
+        <div class="pf-ruler-needle"></div>
+        <div class="pf-ruler-scroll" id="pf-exp-scroll"><div class="pf-ruler-strip" id="pf-exp-strip"></div></div>
       </div>
+      <div class="pf-sec">Lieblingsübungen <span style="opacity:.6;text-transform:none;letter-spacing:0">(max. 3)</span></div>
+      <div class="pf-chips" id="pf-favex-sel"></div>
+      <input type="text" id="pf-favex-q" class="pf-inp" style="margin-top:8px" placeholder="Übung suchen" autocomplete="off" spellcheck="false" oninput="_pfExSearch(this.value)">
+      <div id="pf-favex-list"></div>
       <div class="pf-sec">Deine Stärken <span style="opacity:.6;text-transform:none;letter-spacing:0">(max. 3)</span></div>
       <div class="pf-chips" id="pf-strengths"></div>
       <div class="pf-sec">Lieblings-Muskelgruppen <span style="opacity:.6;text-transform:none;letter-spacing:0">(max. 3)</span></div>
       <div class="pf-chips" id="pf-favmg"></div>
       <div class="pf-sec">Über dich</div>
-      <textarea id="pf-bio" maxlength="140" rows="3" placeholder="Kurz &amp; knackig — was treibt dich an?" style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid var(--gl-bdr);background:var(--gl-bg-h);color:var(--text);font-size:14.5px;font-family:inherit;resize:none;line-height:1.45" oninput="document.getElementById('pf-bio-count').textContent=(140-this.value.length)"></textarea>
+      <textarea id="pf-bio" maxlength="140" rows="3" placeholder="Kurz &amp; knackig — was treibt dich an?" style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text);font-size:14.5px;font-family:inherit;resize:none;line-height:1.45" oninput="document.getElementById('pf-bio-count').textContent=(140-this.value.length)"></textarea>
       <div class="pf-count"><span id="pf-bio-count">140</span> Zeichen übrig</div>
-      <div class="soc-empty" style="padding:8px 2px 0;text-align:left;font-size:12.5px">So sehen dich deine Freunde in Rangliste, Feed, Karte und auf deinem Profil.</div>
+      <div class="soc-empty" style="padding:10px 2px 0;text-align:left;font-size:12.5px">So sehen dich deine Freunde in Rangliste, Feed, Karte und auf deinem Profil. Vom Geburtsdatum teilst du nur das Alter — das Datum selbst bleibt auf deinem Gerät.</div>
       <button class="btn btn-acc" style="margin-top:18px" onclick="saveProfileEdit()">Speichern</button>
     </div>
   </div>
@@ -6739,7 +6921,7 @@ const APP_VERSION = 'gymtrack-v202607250002';
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = true;    // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -8959,8 +9141,13 @@ function resumeWorkout() {
   updateWkMiniVisibility();
 }
 function goTab(id, btn) {
-  // Bewusst KEIN haptic() beim Tab-Wechsel — Vibration bei jedem Antippen der
-  // Tab-Leiste wirkt unruhig. Haptik bleibt Aktionen mit echtem Ergebnis vorbehalten.
+  // Feiner Selection-Tick NUR beim echten Wechsel (nicht beim Antippen des schon
+  // aktiven Tabs) — das ist das Verhalten native iOS-Tabbars, und es ist der
+  // Unterschied zwischen „Webseite" und „App". Kein Impact, nur selection.
+  try {
+    const _cur = document.querySelector('.pg.on');
+    if (!_cur || _cur.id !== 'pg-' + id) { hapticSelStart(); hapticTick(); hapticSelEnd(); }
+  } catch(_){}
   // Close all open overlays before switching tabs
   _suppressWkRestore = true;   // Workout-Sheet beim Tab-Wechsel NICHT wieder aufpoppen lassen
   document.querySelectorAll('.ov.on').forEach(ov => {
@@ -18947,10 +19134,10 @@ function _refreshFriendsIfVisible(){
 let _pendingProfilePhoto; // undefined = unverändert · null = entfernen · string = neues DataURL
 function _profilePhoto(){ try { return localStorage.getItem('gt_prof_photo') || null; } catch(_){ return null; } }
 function _profileName(){ return (S.userName || _fbUser?.displayName || '').slice(0,30); }
+const _PF_CAM_SVG = '<span class="pf-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-1.8h8.4L17.3 7h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.4"/></svg></span>';
 function _renderFreditAva(photo, name){
   const el = document.getElementById('fredit-ava'); if (!el) return;
-  if (photo) el.innerHTML = `<img style="width:100%;height:100%;object-fit:cover" src="${esc(photo)}" alt="">`;
-  else el.textContent = _socInitials(name || 'A');
+  el.innerHTML = (photo ? `<img src="${esc(photo)}" alt="">` : esc(_socInitials(name || 'A'))) + _PF_CAM_SVG;
   const rm = document.getElementById('fredit-remove'); if (rm) rm.style.display = photo ? '' : 'none';
 }
 /* ── Profil "Über mich": Erfahrung/Stärken/Lieblingsmuskeln/Bio ──
@@ -22944,7 +23131,6 @@ setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
 try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
-try { if (DEMO_SEED) { S.theme='light'; } } catch(_){} /*TMP-LIGHTCHECK*/
 try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
