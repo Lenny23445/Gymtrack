@@ -5226,10 +5226,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,rgba(var(--acc-rgb),.02)),var(--gl-bg-h);
   border:1px solid rgba(var(--acc-rgb),.30);
   box-shadow:0 12px 30px rgba(var(--acc-rgb),.15),inset 0 1px 0 rgba(255,255,255,.10);
-  opacity:0;transform:translateY(8px) scale(.985);
-  transition:opacity .42s cubic-bezier(.2,.9,.3,1),transform .42s cubic-bezier(.2,.9,.3,1)}
-.aic.in{opacity:1;transform:none}
-.aic.out{opacity:0;transform:translateY(-6px) scale(.985);transition-duration:.24s}
+  transition:opacity .24s ease,transform .24s ease}
+/* WICHTIG: Ruhezustand ist SICHTBAR. Ein-/Ausblenden läuft über Keyframes ohne
+   fill-mode — so bleibt die Karte auch dann lesbar, wenn eine Engine die
+   Animation gar nicht startet (Paint-Throttling, Snapshot-Renderer, reduzierte
+   Bewegung). Vorher lag die Karte auf opacity:0 und wartete auf .in — genau das
+   kann eine leere Fläche hinterlassen. */
+.aic.out{opacity:0;transform:translateY(-6px) scale(.985)}
 [data-glass="off"] .aic{background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,transparent),var(--inp-bg)}
 /* Aurora: zwei weiche Lichtfelder, die gegeneinander driften → "denkt mit" */
 .aic-aur{position:absolute;inset:-60% -25%;z-index:-2;pointer-events:none;
@@ -5246,17 +5249,15 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   .aic-aur{animation:aicAur 13s ease-in-out infinite}
   .aic.in .aic-sheen{animation:aicSheen 9s cubic-bezier(.4,0,.2,1) .35s infinite}
   .aic::after{animation:aicLine 7s linear infinite}
-  .aic.in .aic-top,.aic.in .aic-main,.aic.in .aic-chips,.aic.in .aic-btns{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) both}
-  .aic.in .aic-main{animation-delay:.07s}
-  .aic.in .aic-chips{animation-delay:.13s}
-  .aic.in .aic-btns{animation-delay:.19s}
-  .aic.in .aic-r-fg{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s both}
+  .aic.in{animation:aicIn .5s cubic-bezier(.2,.9,.3,1)}
+  .aic.in .aic-main{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .06s}
+  .aic.in .aic-chips{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .12s}
+  .aic.in .aic-btns{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .18s}
+  .aic.in .aic-r-fg{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s}
   .aic-orb::before{animation:aicOrb 3.4s ease-in-out infinite}
   .aic-live i{animation:aicDot 2.1s ease-in-out infinite}
-  .aic-head.shine{background:linear-gradient(100deg,var(--text) 34%,rgba(var(--acc-rgb),1) 50%,var(--text) 66%);
-    background-size:260% 100%;-webkit-background-clip:text;background-clip:text;
-    -webkit-text-fill-color:transparent;color:transparent;animation:aicShine 2.2s ease-out .3s 1 both}
 }
+@keyframes aicIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes aicAur{0%,100%{transform:translate3d(-6%,0,0) scale(1)}50%{transform:translate3d(10%,3%,0) scale(1.08)}}
 @keyframes aicSheen{0%{transform:translateX(-180%);opacity:0}4%{opacity:1}26%{transform:translateX(320%);opacity:0}100%{transform:translateX(320%);opacity:0}}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
@@ -5264,7 +5265,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
 @keyframes aicOrb{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.55);opacity:0}}
 @keyframes aicDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
-@keyframes aicShine{from{background-position:130% 0}to{background-position:-40% 0}}
 .aic-in{position:relative;z-index:1;padding:13px 15px 14px}
 .aic-top{display:flex;align-items:center;gap:8px}
 .aic-orb{position:relative;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;flex-shrink:0;
@@ -6409,7 +6409,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
         </div>
         </div>
         <div id="log-cards"></div>
-        <textarea id="wk-note" class="wk-note-inp" placeholder="📝 Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
+        <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
         <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
         <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
         <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
@@ -7117,12 +7117,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250005';
+const APP_VERSION = 'gymtrack-v202607250006';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = false;   // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = true;   // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -7201,7 +7201,7 @@ const I18N_EN = {
   'Training starten ▶':'Start workout ▶','Training starten':'Start workout','Aktives Training':'Active workout',
   'Training läuft':'Workout in progress','Welche Übungen heute?':'Which exercises today?',
   'Los geht’s':"Let's go","Los geht's!":"Let's go!",'Bereit für deine heutige Einheit?':"Ready for today's session?",
-  'Zeit fürs Training! 💪':'Time to work out! 💪',
+  'Zeit fürs Training!':'Time to work out!',
   'Letzte Trainings':'Recent workouts','Letztes Training':'Last workout','Letzte Einheiten':'Recent sessions',
   'Noch kein Training':'No workout yet','Noch keine Trainings':'No workouts yet','Noch keine Trainings.':'No workouts yet.',
   'Noch kein Training. Starte heute!':'No workout yet. Start today!','Noch keine Daten':'No data yet',
@@ -7219,7 +7219,7 @@ const I18N_EN = {
   'Start- und Zielgewicht wirklich zurücksetzen?':'Really reset starting and goal weight?',
   'Letzte 12 Wochen':'Last 12 weeks','Bester Streak':'Best streak','Trainingswochen gesamt':'Total training weeks',
   'Wochen-Streak':'Week streak','Gesamt-Volumen & Trend':'Total volume & trend','Gesamt-Volumen ·':'Total volume ·',
-  'Alle Muskeln erholt':'All muscles recovered','Alle Muskeln erholt 💪':'All muscles recovered 💪',
+  'Alle Muskeln erholt':'All muscles recovered','Alle Muskeln erholt':'All muscles recovered',
   'Trainingskalender':'Training calendar','Trainingsvolumen':'Training volume',
   'Keine Widgets.':'No widgets.','Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.':'Long-press the page or tap ＋ to add some.',
   'Widget hinzufügen':'Add widget','Größe ziehen':'Drag to resize','1RM-Best':'1RM best','Üb.':'ex.',
@@ -7329,9 +7329,9 @@ const I18N_EN = {
 'Trag mindestens einen Satz ein!':'Log at least one set!',
 'Training abbrechen? Eingetragene Daten werden verworfen.':'Cancel workout? Entered data will be discarded.',
 'Letztes Training wirklich löschen?':'Really delete your last workout?','Training beenden':'Finish workout',
-  'Training abbrechen':'Cancel workout','Pause':'Rest','Pause vorbei 💪':'Rest over 💪',
+  'Training abbrechen':'Cancel workout','Pause':'Rest','Pause vorbei':'Rest over',
   'Weiter geht’s – nächster Satz!':'Keep going – next set!','Partner-Übung':'partner exercise',
-  'Superset gelöst':'Superset removed','🔗 Superset erstellt':'🔗 Superset created','🔗 Superset lösen':'🔗 Remove superset',
+  'Superset gelöst':'Superset removed','Superset erstellt':'🔗 Superset created','Superset lösen':'🔗 Remove superset',
   'Beide Übungen im Wechsel — die Pause startet erst, wenn beide ihren Satz beendet haben.':'Both exercises alternate — the rest timer starts only when both have finished their set.',
   'Superset mit nächster Übung':'Superset with next exercise','Name (für dieses Training)':'Name (for this workout)',
   'Namen speichern':'Save name','Ziel: Sätze & Wiederholungen':'Goal: sets & reps','Wdh von':'Reps from','Wdh bis':'Reps to',
@@ -7480,34 +7480,34 @@ const I18N_EN = {
   'Bitte schreibe eine Nachricht.':'Please write a message.',
   'Cloud-Sync (noch nicht eingerichtet)':'Cloud sync (not set up yet)','Cloud-Sync aktiv – tippe für Details':'Cloud sync active – tap for details',
   'Gespeichert auf deinem Gerät + in der Cloud':'Stored on your device + in the cloud','Daten in der Cloud sichern':'Back up data in the cloud',
-  '☁️ Konto verbunden':'☁️ Account connected','Noch nicht eingerichtet':'Not set up yet',
+  'Konto verbunden':'☁️ Account connected','Noch nicht eingerichtet':'Not set up yet',
   'Damit du dich mit deinem Google-Konto anmelden kannst, muss zuerst':'Before you can sign in with your Google account,',
   'ein Firebase-Projekt eingerichtet werden.':'a Firebase project needs to be set up first.','Schau in die':'Check the',
-  'im Projektordner für die Anleitung.':'in the project folder for instructions.','☁️ Cloud-Sync aktiv':'☁️ Cloud sync active',
+  'im Projektordner für die Anleitung.':'in the project folder for instructions.','Cloud-Sync aktiv':'☁️ Cloud sync active',
   'Deine Daten werden automatisch in deinem Google-Konto gesichert.':'Your data is automatically backed up to your Google account.',
   'Wenn du die App löschst, kannst du dich einfach wieder anmelden und alles ist da.':'If you delete the app, just sign in again and everything is back.',
   'Abmelden':'Sign out','Konto löschen':'Delete account',
   'Löscht dein Konto und alle Cloud-Daten unwiderruflich.':'Deletes your account and all cloud data irreversibly.',
   'Wirklich abmelden? Deine lokalen Daten bleiben erhalten.':'Really sign out? Your local data will be kept.',
-  '⚠️ Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.':'⚠️ Permanently delete your account and all cloud data?\n\nYour workouts, exercises and settings in the cloud will be removed irreversibly. This can NOT be undone.',
+  'Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.':'Permanently delete your account and all cloud data?\n\nYour workouts, exercises and settings in the cloud will be removed irreversibly. This can NOT be undone.',
   'Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?':'Final warning — your account will be deleted now. Continue?',
   'Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.':'For security you need to sign in once more. Your account will then be deleted automatically.',
-  '✅ Dein Konto und alle Daten wurden gelöscht.':'✅ Your account and all data have been deleted.',
+  'Dein Konto und alle Daten wurden gelöscht.':'✅ Your account and all data have been deleted.',
   'Melde dich mit deinem Google-Konto an, damit deine Trainings automatisch':'Sign in with your Google account so your workouts are automatically',
   'in der Cloud gespeichert werden. So gehen sie nie verloren — auch wenn':'saved to the cloud. That way they’re never lost — even if',
   'du die App löschst oder das Handy wechselst.':'you delete the app or switch phones.',
   'Falls der Google-Button nicht erscheint:':"If the Google button doesn't appear:",'Alternative Methode':'Alternative method',
   'Daten aus der Browser-Version übertragen?':'Transfer data from the browser version?','Öffne':'Open',
   'im Browser, melde dich dort zuerst mit demselben Google-Konto an — dann werden deine Daten automatisch hier synchronisiert.':'in your browser and sign in there first with the same Google account — your data will then sync here automatically.',
-  '💡 Deine aktuellen Daten (':'💡 Your current data (',') bleiben erhalten und werden automatisch übernommen.':') will be kept and merged automatically.',
-  'aus der Cloud geladen':'loaded from the cloud','⚙️ Firebase nicht konfiguriert.':'⚙️ Firebase not configured.',
-  '⚙️ Firebase ist noch nicht konfiguriert.':'⚙️ Firebase is not configured yet.',
-  '⚠️ Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.':'⚠️ Google sign-in plugin unavailable.\nPlease restart the app.',
+  'Deine aktuellen Daten (':'💡 Your current data (',') bleiben erhalten und werden automatisch übernommen.':') will be kept and merged automatically.',
+  'aus der Cloud geladen':'loaded from the cloud','Firebase nicht konfiguriert.':'⚙️ Firebase not configured.',
+  'Firebase ist noch nicht konfiguriert.':'⚙️ Firebase is not configured yet.',
+  'Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.':'⚠️ Google sign-in plugin unavailable.\nPlease restart the app.',
   'Kein Identity Token von Apple erhalten':'No identity token received from Apple','Nicht angemeldet.':'Not signed in.',
   'Mit Google anmelden (Fallback)':'Sign in with Google (fallback)',
-  '⏳ Suche nach Updates…':'⏳ Checking for updates…','❌ Prüfung fehlgeschlagen':'❌ Check failed',
-  '🎉 Update wird installiert…':'🎉 Installing update…','App startet gleich neu…':'App will restart shortly…',
-  '✓ Bereits aktuell':'✓ Already up to date','❌ Kein Netz – bitte verbinden':'❌ No connection – please go online',
+  'Suche nach Updates…':'⏳ Checking for updates…','Prüfung fehlgeschlagen':'❌ Check failed',
+  'Update wird installiert…':'🎉 Installing update…','App startet gleich neu…':'App will restart shortly…',
+  '✓ Bereits aktuell':'✓ Already up to date','Kein Netz – bitte verbinden':'❌ No connection – please go online',
   'Updates · aktuell':'Updates · up to date',
   'Freund hinzufügen':'Add friend','Freunde hinzufügen':'Add friends','Aktivität':'Activity','Rangliste':'Leaderboard','Karte':'Map',
   'Community entdecken':'Discover the community','Dein persönlicher Fitness-Tracker':'Your personal fitness tracker',
@@ -7561,12 +7561,12 @@ const I18N_EN = {
   'Trainiere diese Woche, damit die Serie nicht reißt':"Train this week so the streak doesn't break",
   'Trainiere diese Woche, damit die Serie nicht reißt!':"Train this week so the streak doesn't break!",
   '✓ Trainiert':'✓ Trained','Noch nicht trainiert':'Not trained yet',
-  'Unglaublich! 3 Monate in Folge — du bist eine Maschine 💪':"Incredible! 3 months in a row — you're a machine 💪",
-  'Starke Serie! Bleib dran 🔥':'Strong streak! Keep it up 🔥',
-  'Super Konstanz! Du bist auf dem richtigen Weg 💪':"Great consistency! You're on the right track 💪",
-  'Gut gemacht! Halte die Serie am Leben 🔥':'Well done! Keep the streak alive 🔥',
-  'Guter Start! Trainiere nächste Woche wieder 💪':'Good start! Train again next week 💪',
-  'Trainiere diese Woche — starte deine Serie! 🔥':'Train this week — start your streak! 🔥',
+  'Unglaublich! 3 Monate in Folge — du bist eine Maschine':"Incredible! 3 months in a row — you're a machine",
+  'Starke Serie! Bleib dran':'Strong streak! Keep it up',
+  'Super Konstanz! Du bist auf dem richtigen Weg':"Great consistency! You're on the right track",
+  'Gut gemacht! Halte die Serie am Leben':'Well done! Keep the streak alive',
+  'Guter Start! Trainiere nächste Woche wieder':'Good start! Train again next week',
+  'Trainiere diese Woche — starte deine Serie!':'Train this week — start your streak!',
   'Gewicht aus Apple Health importiert':'Weight imported from Apple Health',
   'Workouts werden in Apple Health gespeichert':'Workouts are saved to Apple Health',
   'Aus – es gilt die feste Standard-Pause':'Off – the fixed default rest applies',
@@ -7877,9 +7877,9 @@ const I18N_RX = [
  [/\. Schaffst du in (\d+) Arbeitssätzen das obere Ende \((\d+)\), steigt das Gewicht — und du startest nächstes Mal wieder unten im Bereich \((\d+)\)\. Bis dahin baust du Satz für Satz Wiederholungen auf\./g,
 '. If you hit the top end ($2) in $1 working sets, the weight goes up — and next time you start again at the bottom of the range ($3). Until then you build up reps set by set.'],
  [/Gewichts-Steigerung bei vollem Wdh-Bereich \(/g,'Weight increase at full rep range ('],
-  [/🔗 Weiter mit /g, '🔗 Continue with '],
+  [/Weiter mit /g, 'Continue with '],
   [/Gekoppelt mit „/g, 'Paired with “'],
-  [/🔗 Superset mit „/g, '🔗 Superset with “'],
+  [/Superset mit „/g, 'Superset with “'],
   [/Leichter als die /g, 'Lighter than the '],
   [/-Stange — Kurzhantel oder Maschine\?/g, ' bar — dumbbell or machine?'],
   [/ pro Seite nicht steckbar \(kleinste Scheibe /g, ' per side not loadable (smallest plate '],
@@ -8945,7 +8945,7 @@ async function _scheduleNativeNotifications() {
       // → überlebt App-Schließen & Neustart, kein erneutes Planen nötig
       notifs = weekly.map((it, i) => ({
         id:       1000 + i,
-        title:    tr('Zeit fürs Training! 💪'),
+        title:    tr('Zeit fürs Training!'),
         body:     it.day + ': ' + tr(it.label),
         schedule: { on: { weekday: it.weekday, hour: it.hour, minute: it.minute },
                     repeats: true, allowWhileIdle: true },
@@ -8956,7 +8956,7 @@ async function _scheduleNativeNotifications() {
       // Kein Wochenplan hinterlegt → TÄGLICHE Erinnerung, damit der Schalter wirkt
       notifs = [{
         id:       1000,
-        title:    tr('Zeit fürs Training! 💪'),
+        title:    tr('Zeit fürs Training!'),
         body:     tr('Bereit für deine heutige Einheit?'),
         schedule: { on: { hour: h, minute: m }, repeats: true, allowWhileIdle: true },
         sound:    'default',
@@ -9339,7 +9339,7 @@ function celebrateLivePR(pr){
   }
   const el = document.createElement('div');
   el.className = 'pr-burst';
-  el.innerHTML = '<div>🏆 PR!</div><div class="pr-burst-sub">' + pr.label + ': <b>' + pr.val + '</b></div>';
+  el.innerHTML = '<div>PR!</div><div class="pr-burst-sub">' + pr.label + ': <b>' + pr.val + '</b></div>';
   host.appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
@@ -10326,8 +10326,7 @@ function _coachTodaySuggestion() {
       return { kind:'done', pct: overall, ringLbl: _cm('Erholung','Recovery'),
         head: _cm('Einheit im Kasten', 'Session in the bag'),
         text: (rd && rd.short
-          ? _cm(`Check-in eingerechnet — ${rd.short.charAt(0).toLowerCase()}${rd.short.slice(1)}`,
-                `Check-in factored in — ${rd.short.charAt(0).toLowerCase()}${rd.short.slice(1)}`)
+          ? _cm(`Check-in eingerechnet. ${rd.short}`, `Check-in factored in. ${rd.short}`)
           : _cm('Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, sobald wieder was bereit ist.',
                 'Recovery is running. I am watching your muscle groups and will speak up when something is ready.')),
         chip: _cm('Heute trainiert','Trained today'), chip2, cta:null };
@@ -10411,7 +10410,7 @@ function renderCoachTodayCard() {
             <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
           </div>
           <div class="aic-txt">
-            <div class="aic-head shine">${esc(s.head)}</div>
+            <div class="aic-head">${esc(s.head)}</div>
             <div class="aic-sub">${esc(s.text)}</div>
           </div>
         </div>
@@ -10426,9 +10425,6 @@ function renderCoachTodayCard() {
     const card = host.firstElementChild;
     if (card) {
       requestAnimationFrame(() => card.classList.add('in'));
-      // Der Text-Schimmer läuft genau einmal; danach zurück auf normale Farbe,
-      // damit background-clip:text nicht dauerhaft am Text hängt.
-      setTimeout(() => { try { card.querySelector('.aic-head')?.classList.remove('shine'); } catch(_) {} }, 2600);
     }
   } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
 }
@@ -10634,7 +10630,7 @@ function _buildGoalHtml(start, goal, cur, unit) {
   if (isDone) {
     return `<div class="weight-goal-section">
       <div class="wgt-goal-done">
-        <div class="wgt-goal-done-title">🎉 Ziel erreicht!</div>
+        <div class="wgt-goal-done-title">Ziel erreicht!</div>
         <div class="wgt-goal-done-sub">${done} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${goal} ${unit}</div>
       </div>
       <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
@@ -12692,7 +12688,7 @@ function openProgressionInfo(exId) {
     <b>Gleichbleibend:</b> alle gleich · <b>Aufsteigend:</b> letzter Satz am schwersten · <b>Pyramide:</b> hoch und wieder runter · <b>Umgekehrt:</b> schwerster Satz zuerst. MyGymTrack rechnet die Einzelgewichte pro Satz aus.</p>
     <p style="margin:0 0 10px"><b>5. Top-Satz &amp; Versagen</b><br>
     <b>Top-Satz (T):</b> ein schwerer Maximalsatz (RPE 8–10). <b>Bis zum Versagen (F):</b> gilt automatisch als oberes Bereich-Ende erreicht.</p>
-    <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert 🏆.</p>`;
+    <p style="margin:0;font-size:12px;color:var(--text2)">Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert.</p>`;
   openOv('ov-prog-info');
 }
 
@@ -13055,7 +13051,7 @@ function toggleSuperset() {
     const g = 'ss' + Date.now();
     log.ssGroup = g;
     nx.ssGroup = g;
-    _dndToast('🔗 Superset erstellt');
+    _dndToast('Superset erstellt');
   }
   haptic(12);
   closeOv('ov-ex-edit');
@@ -13077,7 +13073,7 @@ function openExEditMenu(li) {
   const _exDispName = l => l._overrideName || exById(l.exerciseId)?.name || 'Übung';
   if (log.ssGroup) {
     ssSec.style.display = '';
-    ssBtn.textContent = '🔗 Superset lösen';
+    ssBtn.textContent = 'Superset lösen';
     const partner = wkLogs.find((l, i) => i !== li && l.ssGroup === log.ssGroup);
     ssHint.textContent = partner ? `Gekoppelt mit „${_exDispName(partner)}"` : '';
   } else if (li < wkLogs.length - 1 && !wkLogs[li + 1].ssGroup) {
@@ -14605,7 +14601,7 @@ function renderRecoveryList() {
     .sort((a,b) => a.r.recPct - b.r.recPct);
 
   if (!rows.length) {
-    host.innerHTML = '<div class="rec-list-empty">Alle Muskeln erholt 💪</div>';
+    host.innerHTML = '<div class="rec-list-empty">Alle Muskeln erholt</div>';
     return;
   }
 
@@ -16309,7 +16305,7 @@ function _scheduleRestEndNotif(atTs) {
   try {
     LN.schedule({ notifications: [{
       id: REST_NOTIF_ID,
-      title: 'Pause vorbei 💪',
+      title: 'Pause vorbei',
       body: 'Weiter geht’s – nächster Satz!',
       schedule: { at: new Date(atTs), allowWhileIdle: true },
       sound: 'default',
@@ -16407,7 +16403,7 @@ function toggleSetDone(li,si) {
       } else {
         skipRest();
         const nextP = partners.find(p => p.sets[si] && !p.sets[si].done);
-        if (nextP) _dndToast('🔗 Weiter mit ' + (nextP._overrideName || exById(nextP.exerciseId)?.name || 'Partner-Übung'));
+        if (nextP) _dndToast('Weiter mit ' + (nextP._overrideName || exById(nextP.exerciseId)?.name || 'Partner-Übung'));
       }
     } else {
       startRestTimer(exById(log.exerciseId), log.sets[si]);
@@ -16787,7 +16783,7 @@ function celebratePRs(prs) {
     setTimeout(() => {
       const el = document.createElement('div');
       el.className = 'pr-burst';
-      el.innerHTML = '<div>🏆 NEUER PR</div>'
+      el.innerHTML = '<div>NEUER PR</div>'
         + '<div class="pr-burst-sub">' + pr.exName + '</div>'
         + '<div class="pr-burst-sub">' + pr.label + ': <b>' + pr.newVal + ' ' + pr.unit + '</b></div>'
         + (pr.prevVal ? '<div class="pr-burst-sub" style="opacity:.65;font-size:11px">vorher ' + pr.prevVal + ' ' + pr.unit + '</div>' : '');
@@ -17745,10 +17741,10 @@ function importData() {
         const parsed = JSON.parse(ev.target.result);
         if (parsed.exercises !== undefined || parsed.sessions !== undefined) {
           localStorage.setItem('ft4', ev.target.result);
-          alert('✅ Daten wiederhergestellt! App wird neu geladen.');
+          alert('Daten wiederhergestellt! App wird neu geladen.');
           location.reload();
-        } else { alert('❌ Ungültige Backup-Datei!'); }
-      } catch { alert('❌ Datei konnte nicht gelesen werden!'); }
+        } else { alert('Ungültige Backup-Datei!'); }
+      } catch { alert('Datei konnte nicht gelesen werden!'); }
     };
     reader.readAsText(file);
   };
@@ -18195,14 +18191,14 @@ function openStreakDetail() {
     return `<div class="${cls}" title="${date}"></div>`;
   }).join('');
   const msgs = [
-    [12, 'Unglaublich! 3 Monate in Folge — du bist eine Maschine 💪'],
-    [8,  'Starke Serie! Bleib dran 🔥'],
-    [4,  'Super Konstanz! Du bist auf dem richtigen Weg 💪'],
-    [2,  'Gut gemacht! Halte die Serie am Leben 🔥'],
-    [1,  'Guter Start! Trainiere nächste Woche wieder 💪'],
+    [12, 'Unglaublich! 3 Monate in Folge — du bist eine Maschine'],
+    [8,  'Starke Serie! Bleib dran'],
+    [4,  'Super Konstanz! Du bist auf dem richtigen Weg'],
+    [2,  'Gut gemacht! Halte die Serie am Leben'],
+    [1,  'Guter Start! Trainiere nächste Woche wieder'],
   ];
   const msg = !st.weeksThis && st.weeks === 0
-    ? 'Trainiere diese Woche — starte deine Serie! 🔥'
+    ? 'Trainiere diese Woche — starte deine Serie!'
     : !st.weeksThis
       ? 'Trainiere diese Woche, damit die Serie nicht reißt!'
       : (msgs.find(([min]) => st.weeks >= min) || [0,'Weiter so!'])[1];
@@ -21560,7 +21556,7 @@ async function _notifyFlames(fresh){
   const extra = fresh.length - 1;
   let body = name + ' ' + tr('hat mit einer Flamme auf deinen Post reagiert');
   if (extra > 0) body += ' +' + extra;
-  _fireLocalFlameNotif(tr('Neue Flamme') + ' 🔥', body);
+  _fireLocalFlameNotif(tr('Neue Flamme'), body);
   // Kein In-App-Toast mehr: nur die System-Push zeigen (blaue In-App-Leiste entfernt)
 }
 async function _fireLocalFlameNotif(title, body){
@@ -24401,7 +24397,7 @@ async function checkForUpdate() {
   const sub   = document.getElementById('update-sub');
   if (!title) return;
 
-  title.textContent = '⏳ Suche nach Updates…';
+  title.textContent = 'Suche nach Updates…';
   title.style.color = '';
   if (sub) sub.textContent = '';
 
@@ -24412,10 +24408,10 @@ async function checkForUpdate() {
     const m       = text.match(/gymtrack-v\d+/);
     const serverV = m ? m[0] : null;
 
-    if (!serverV) { title.textContent = '❌ Prüfung fehlgeschlagen'; return; }
+    if (!serverV) { title.textContent = 'Prüfung fehlgeschlagen'; return; }
 
     if (serverV !== APP_VERSION) {
-      title.textContent = '🎉 Update wird installiert…';
+      title.textContent = 'Update wird installiert…';
       if (sub) sub.textContent = 'App startet gleich neu…';
       await _doForceUpdate();
     } else {
@@ -24429,7 +24425,7 @@ async function checkForUpdate() {
     }
   } catch (err) {
     console.warn('[GymTrack] Update-Check fehlgeschlagen:', err);
-    title.textContent = '❌ Kein Netz – bitte verbinden';
+    title.textContent = 'Kein Netz – bitte verbinden';
     if (sub) sub.textContent = '';
     setTimeout(() => {
       title.textContent = 'Auf Updates prüfen';
@@ -24705,7 +24701,7 @@ async function _onLogin(user) {
     });
   } catch (e) {
     console.error('[GymTrack] ❌ Login-Sync fehlgeschlagen:', e);
-    alert('❌ Cloud-Sync fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e) +
+    alert('Cloud-Sync fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e) +
           '\n\nPrüfe in der Firebase Console:\n• Firestore Database wurde angelegt\n• Firestore-Regeln erlauben dem User Schreibzugriff');
   } finally {
     _syncing = false;
@@ -25313,7 +25309,7 @@ async function _handleGoogleCredential(response) {
     return;
   }
   if (!window.FB || !window.FB.configured) {
-    alert('⚙️ Firebase nicht konfiguriert.');
+    alert('Firebase nicht konfiguriert.');
     return;
   }
   _loginInProgress = true;
@@ -25332,7 +25328,7 @@ async function _handleGoogleCredential(response) {
     } catch (e2) {
       console.error('[GymTrack] ❌ Redirect-Fallback ebenfalls fehlgeschlagen:', e2);
     }
-    alert('❌ Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
+    alert('Login fehlgeschlagen:\n\n' + (e?.code || '') + '\n' + (e?.message || e));
   } finally {
     _loginInProgress = false;
   }
@@ -25355,7 +25351,7 @@ async function _pkceChallenge() {
 
 async function doGoogleSignIn() {
   if (!window.FB?.configured) {
-    alert('⚙️ Firebase ist noch nicht konfiguriert.');
+    alert('Firebase ist noch nicht konfiguriert.');
     return;
   }
   if (!_isNative()) {
@@ -25363,7 +25359,7 @@ async function doGoogleSignIn() {
     if (_isIosStandalonePWA()) {
       console.log('[GymTrack] → GIS-Prompt (iOS-PWA)');
       try { window.google?.accounts?.id?.prompt(); }
-      catch(e) { alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
+      catch(e) { alert('Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e)); }
       return;
     }
     // Desktop/Android-Web: signInWithPopup (zuverlässigster Weg, kein Redirect-Bug).
@@ -25378,9 +25374,9 @@ async function doGoogleSignIn() {
       // Popup blockiert / nicht unterstützt → Redirect als Fallback
       if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/operation-not-supported-in-this-environment') {
         try { localStorage.setItem('gt_pendingRedirect','1'); await window.FB.signInWithRedirect(); return; }
-        catch(e2) { try{localStorage.removeItem('gt_pendingRedirect');}catch(_){} alert('❌ Login fehlgeschlagen:\n' + (e2?.code||'') + '\n' + (e2?.message||e2)); return; }
+        catch(e2) { try{localStorage.removeItem('gt_pendingRedirect');}catch(_){} alert('Login fehlgeschlagen:\n' + (e2?.code||'') + '\n' + (e2?.message||e2)); return; }
       }
-      alert('❌ Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
+      alert('Login fehlgeschlagen:\n' + (e?.code||'') + '\n' + (e?.message||e));
     } finally {
       _loginInProgress = false;
     }
@@ -25402,7 +25398,7 @@ async function _doNativeGoogleSignInPKCE() {
   const GA = _cap('GoogleAuthPlugin');
   _adbg('Google: plugin=' + (GA ? 'OK' : 'NULL'));
   if (!GA) {
-    alert('⚠️ Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.');
+    alert('Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.');
     return;
   }
   try {
@@ -25503,7 +25499,7 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     _googlePKCE = null;
     _adbg('Google CB ERR: ' + (e?.code || '') + ' ' + String(e?.message||e).slice(0, 60));
     console.error('[GymTrack] ❌ Google OAuth Callback:', e);
-    alert('❌ Google:\n' + (e?.code || 'kein code') + '\n' + (e?.message || e) +
+    alert('Google:\n' + (e?.code || 'kein code') + '\n' + (e?.message || e) +
           '\n\nTrace:\n' + (window._ggTrace||[]).join('\n'));
   }
 }
@@ -25580,7 +25576,7 @@ async function doAppleSignIn() {
     _adbg('Apple: plugin(retry)=' + (ASP ? 'OK' : 'NULL'));
   }
   if (!ASP) { alert('Apple Sign In nicht verfügbar.\n_isNative: ' + _isNative()); return; }
-  if (!window.FB?.configured) { alert('⚙️ Firebase nicht konfiguriert.'); return; }
+  if (!window.FB?.configured) { alert('Firebase nicht konfiguriert.'); return; }
   _loginInProgress = true;
   try {
     const rawNonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
@@ -25631,7 +25627,7 @@ let _pendingDelete = false;
 
 async function doDeleteAccount() {
   if (!window.FB || !window.FB.configured || !_fbUser || _fbUser.isAnonymous) return;
-  if (!confirm('⚠️ Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.')) return;
+  if (!confirm('Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.')) return;
   if (!confirm('Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?')) return;
   await _runAccountDeletion();
 }
@@ -25660,7 +25656,7 @@ async function _runAccountDeletion() {
       } catch(err) { console.warn('[GymTrack] Re-Auth:', err); }
     } else {
       console.error('[GymTrack] Konto-Löschung fehlgeschlagen:', e);
-      alert('❌ Löschen fehlgeschlagen:\n' + (e && e.code || '') + '\n' + (e && e.message || e));
+      alert('Löschen fehlgeschlagen:\n' + (e && e.code || '') + '\n' + (e && e.message || e));
       _pendingDelete = false;
     }
   }
@@ -25671,7 +25667,7 @@ function _finishAccountWipe() {
     localStorage.removeItem('ft4');
     Object.keys(localStorage).filter(k => k.indexOf('gt_') === 0).forEach(k => localStorage.removeItem(k));
   } catch(e) {}
-  alert('✅ Dein Konto und alle Daten wurden gelöscht.');
+  alert('Dein Konto und alle Daten wurden gelöscht.');
   location.reload();
 }
 
