@@ -4071,7 +4071,7 @@ html:not([data-glass="off"])[data-theme="dark"] .wheel-typein-inp{background:var
   --gl-bg:linear-gradient(180deg,rgba(26,26,31,.58) 0%,rgba(9,9,13,.74) 100%);
   --gl-bg-h:linear-gradient(180deg,rgba(30,30,36,.66) 0%,rgba(11,11,15,.80) 100%);
   --gl-bg-t:rgba(20,20,25,.52);
-  --gl-chrome:linear-gradient(180deg,rgba(30,30,36,.56) 0%,rgba(11,11,15,.72) 100%);
+  --gl-chrome:linear-gradient(180deg,rgba(52,52,62,.34) 0%,rgba(20,20,27,.50) 100%);
   --gl-sheet:linear-gradient(180deg,rgba(24,24,30,.78) 0%,rgba(8,8,12,.88) 100%);
   --gl-ctrl:linear-gradient(180deg,rgba(38,38,45,.62) 0%,rgba(16,16,21,.76) 100%);
   --gl-bdr:rgba(255,255,255,.15); --gl-bdr2:rgba(255,255,255,.07);
@@ -4096,7 +4096,7 @@ html:not([data-glass="off"])[data-theme="dark"] .wheel-typein-inp{background:var
   --gl-bg:linear-gradient(180deg,rgba(255,255,255,.46) 0%,rgba(255,255,255,.28) 100%);
   --gl-bg-h:linear-gradient(180deg,rgba(255,255,255,.66) 0%,rgba(255,255,255,.46) 100%);
   --gl-bg-t:rgba(255,255,255,.26);
-  --gl-chrome:linear-gradient(180deg,rgba(255,255,255,.60) 0%,rgba(255,255,255,.40) 100%);
+  --gl-chrome:linear-gradient(180deg,rgba(255,255,255,.52) 0%,rgba(255,255,255,.34) 100%);
   --gl-sheet:linear-gradient(180deg,rgba(255,255,255,.80) 0%,rgba(255,255,255,.68) 100%);
   --gl-ctrl:linear-gradient(180deg,rgba(255,255,255,.58) 0%,rgba(255,255,255,.36) 100%);
   --gl-rim:
@@ -4144,9 +4144,12 @@ html:not([data-glass="off"]) .hdr::after{display:none}
    Kapsel aus fast leerem Glas: das Wallpaper wandert sichtbar dahinter durch,
    das Licht sitzt auf der Kante. Gilt für alle Themes. */
 html:not([data-glass="off"]) .tabbar{
-  background:var(--gl-bg)!important;
-  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
-  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  background:var(--gl-chrome)!important;
+  /* KEIN --gl-lift hier: die Karten daempfen bewusst ab (schwarze Milch), die
+     Navigations-Kapsel muss dagegen durchlaessig bleiben — sonst sieht man hinter
+     ihr nur Schwarz und der Glaseffekt verschwindet. */
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) brightness(1.14)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) brightness(1.14)!important;
   border:1px solid var(--gl-bdr)!important;
   box-shadow:var(--gl-rim),var(--gl-shad-lg)!important;
   transition:max-width .3s cubic-bezier(.32,1,.32,1),padding .3s cubic-bezier(.32,1,.32,1),transform .3s;
@@ -4172,9 +4175,9 @@ html:not([data-glass="off"])[data-theme="dark"] .tabbar::before{
 
 /* KI-Bubble neben der Tabbar: gleiches Material, sonst wirkt sie wie ein Fremdkörper */
 html:not([data-glass="off"]) #ai-bubble{
-  background:var(--gl-bg)!important;
-  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
-  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  background:var(--gl-chrome)!important;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) brightness(1.14)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) brightness(1.14)!important;
   border:1px solid var(--gl-bdr)!important;
   box-shadow:var(--gl-rim),var(--gl-shad-lg)!important;
 }
@@ -4417,6 +4420,97 @@ h1,h2,.row-title,.s-title{text-wrap:balance}
   .tab:active,.x-btn:active,.hdr-icon-btn:active{transform:none!important}
 }
 /* ===== FEEL-LAYER — ENDE ===== */
+/* ===================================================================
+   SHEETS & TABBAR — Politur (an Liquid Glass v3 angepasst)
+   =================================================================== */
+
+/* ── 1 · SCRIM: der Inhalt dahinter tritt zurück ───────────────────
+   Vorher blur(3px) + 50 % Schwarz → das Sheet „klebte" auf dem Inhalt. */
+.ov{
+  background:rgba(0,0,0,.58)!important;
+  backdrop-filter:blur(14px) saturate(110%)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(110%)!important;
+}
+
+/* ── 2 · SHEET-RAHMEN ─────────────────────────────────────────────*/
+html:not([data-glass="off"]) .sheet,
+html:not([data-glass="off"]) .cal-card{
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  background:var(--gl-sheet)!important;
+  background-image:none!important;
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  border:1px solid var(--gl-bdr);border-bottom:none;
+  box-shadow:var(--gl-rim),0 -18px 60px rgba(0,0,0,.45);
+}
+/* Griff: feiner und ruhiger */
+.sh-handle::after{width:36px;height:4px;opacity:.30}
+
+/* ── 3 · SHEET-KOPF bleibt stehen ─────────────────────────────────
+   Vorher rutschte der Inhalt hart unter den Titel (im Kalender sah die erste
+   Zeile abgeschnitten aus). Jetzt klebt der Kopf oben und der Inhalt läuft
+   unter einem weichen Verlauf durch — nichts wird optisch abgehackt. */
+.sheet .sh-head{
+  position:sticky;top:0;z-index:5;
+  padding-top:10px;padding-bottom:14px;
+  background:linear-gradient(180deg,
+    rgba(10,10,14,.96) 0%,rgba(10,10,14,.90) 62%,rgba(10,10,14,0) 100%);
+}
+html:not([data-theme="dark"]) .sheet .sh-head{
+  background:linear-gradient(180deg,
+    rgba(255,255,255,.96) 0%,rgba(255,255,255,.90) 62%,rgba(255,255,255,0) 100%);
+}
+.sheet{scroll-padding-top:64px}
+.sheet .sh-handle{position:sticky;top:0;z-index:6;
+  background:inherit}
+
+/* ── 4 · KALENDER ─────────────────────────────────────────────────*/
+.cal-card{width:calc(100% - 16px);max-width:460px;padding:4px 14px calc(18px + var(--sab))}
+.cal-scroll{padding-top:2px}
+.cal-weekhdr span{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.cal-grid{grid-auto-rows:42px;gap:5px}
+.cal-cell{
+  border-radius:12px;font-size:12.5px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+  background:var(--gl-bg-t);
+  transition-property:transform,background-color,box-shadow;
+  transition-duration:var(--t-press);transition-timing-function:var(--press);
+}
+[data-theme="dark"] .cal-cell{background:rgba(255,255,255,.045)}
+.cal-cell.l1{background:rgba(var(--acc-rgb),.22);color:var(--text)}
+.cal-cell.l2{background:rgba(var(--acc-rgb),.42);color:#fff}
+.cal-cell.l3{background:rgba(var(--acc-rgb),.66);color:#fff}
+.cal-cell.l4{background:linear-gradient(180deg,rgba(var(--acc-rgb),.95),rgba(var(--acc-rgb),.78));color:#fff;
+  box-shadow:0 2px 8px rgba(var(--acc-rgb),.28),inset 0 1px 0 rgba(255,255,255,.28)}
+/* Heute: Akzentring statt harter weißer Kontur */
+.cal-cell.today{outline:none;box-shadow:0 0 0 2px var(--acc),0 0 0 5px rgba(var(--acc-rgb),.20)}
+.cal-cell.has-sess:active{transform:scale(.92)}
+.cal-day-chip{
+  padding:6px 11px;border-radius:11px;font-size:12px;
+  background:var(--gl-ctrl);border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim);
+}
+.cal-month-title{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+
+/* ── 5 · TABBAR: mehr Luft, weniger Gedrängel ─────────────────────
+   5 Labels in einer schmalen Kapsel wirkten voll. Kapsel etwas breiter (die
+   KI-Kugel ist kleiner), Innenabstände knapper, Labels eine Spur kleiner. */
+.tabbar{left:12px;right:74px;padding:8px 6px}
+.tabbar .tab{padding:7px 2px 8px;gap:3px;min-width:0}
+.tabbar .tab span{font-size:9.5px;letter-spacing:0;white-space:nowrap}
+.tabbar .tab svg{width:21px;height:21px}
+#ai-bubble{width:52px;height:52px;bottom:calc(8px + var(--sab))}
+/* Aktiver Tab: KEINE eigene Farbfläche — das übernimmt die gleitende Bubble
+   (#tab-indicator). Zwei Highlights übereinander sahen doppelt/blau aus. */
+html:not([data-glass="off"]) #tab-indicator{
+  background:var(--gl-ctrl);
+  backdrop-filter:blur(var(--gl-blur-sm)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-sm)) saturate(var(--gl-sat));
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-rim),0 4px 14px rgba(0,0,0,.28);
+}
+/* ===== SHEETS & TABBAR — ENDE ===== */
+
 
 /* ── WORKOUT-SHARE-FLOW (Rattle → Kamera → Editor → Teilen) ── */
 #ov-share{align-items:stretch!important;background:#07080d!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
@@ -4954,27 +5048,34 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .pf-chip:active{transform:scale(.94)}
 .pf-count{font-size:11px;color:var(--text2);text-align:right;margin-top:4px}
 /* Kopfzeile: Foto links, Felder rechts */
-.pf-head{display:flex;gap:14px;align-items:flex-start;margin:2px 0 4px}
-.pf-photo{position:relative;width:92px;height:92px;flex-shrink:0;border-radius:26px;overflow:hidden;cursor:pointer;
+/* Foto und Feldstapel teilen sich EINE Mittellinie — vorher hing das Foto oben
+   und die beiden Felder rechts standen tiefer, das wirkte schief. */
+.pf-head{display:flex;gap:14px;align-items:center;margin:2px 0 4px}
+.pf-photo-col{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.pf-photo{position:relative;width:104px;height:104px;flex-shrink:0;border-radius:28px;overflow:hidden;cursor:pointer;
   background:rgba(var(--acc-rgb),.15);color:var(--acc);border:1px solid var(--gl-bdr);
-  display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:800;letter-spacing:-.5px;
+  display:flex;align-items:center;justify-content:center;font-size:35px;font-weight:800;letter-spacing:-.5px;
   transition:transform .18s var(--spring)}
 .pf-photo:active{transform:scale(.96)}
 .pf-photo img{width:100%;height:100%;object-fit:cover;display:block}
 .pf-cam{position:absolute;right:5px;bottom:5px;width:27px;height:27px;border-radius:50%;background:var(--acc);color:#fff;
   display:flex;align-items:center;justify-content:center;box-shadow:0 2px 9px rgba(0,0,0,.35);pointer-events:none}
 .pf-cam svg{width:14px;height:14px}
-.pf-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
-.pf-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);margin:0 0 5px 2px}
-.pf-inp{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:13px;border:1px solid var(--gl-bdr);
-  background:var(--inp-bg);color:var(--text);font-size:15.5px;font-weight:600;font-family:inherit;-webkit-appearance:none;appearance:none}
+.pf-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.pf-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);
+  margin:0 0 5px 2px;line-height:1.1}
+/* Beide Felder exakt gleich hoch — der Stapel bleibt dadurch ein sauberes Raster */
+.pf-inp{width:100%;box-sizing:border-box;height:46px;padding:0 13px;border-radius:13px;border:1px solid var(--gl-bdr);
+  background:var(--inp-bg);color:var(--text);font-size:15.5px;font-weight:600;font-family:inherit;
+  -webkit-appearance:none;appearance:none}
 .pf-inp:focus{outline:none;border-color:rgba(var(--acc-rgb),.65)}
-.pf-inp[type=date]{min-height:44px;line-height:1.2}
+.pf-inp[type=date]{line-height:46px;padding-right:8px}
+textarea.pf-inp{height:auto;padding:12px 13px}
 .pf-datewrap{display:flex;gap:8px;align-items:center}
-.pf-age{display:inline-flex;align-items:center;height:44px;padding:0 12px;border-radius:13px;flex-shrink:0;
+.pf-age{display:inline-flex;align-items:center;height:46px;padding:0 13px;border-radius:13px;flex-shrink:0;
   background:rgba(var(--acc-rgb),.10);color:var(--acc);font-size:13px;font-weight:800;white-space:nowrap}
 .pf-photo-rm{background:none;border:none;color:#ff453a;font-family:inherit;font-size:12px;font-weight:700;
-  padding:7px 0 0;cursor:pointer;width:92px;text-align:center}
+  padding:8px 0 0;cursor:pointer;width:104px;text-align:center}
 /* Maßband für die Trainingserfahrung — viele Striche, rastet an jedem ein */
 .pf-ruler{position:relative;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:18px;padding:14px 0 8px;overflow:hidden}
 .pf-ruler-val{text-align:center;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.4px}
@@ -5100,6 +5201,92 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   background:rgba(var(--acc-rgb),.08);cursor:pointer}
 .coach-card-skip{display:block;margin:7px auto 0;background:none;border:none;font-family:inherit;
   font-size:11.5px;color:var(--text2);cursor:pointer;padding:2px}
+
+/* ── KI-TAGESBRIEFING auf der Startseite (.aic) ───────────────────────────
+   Hochwertig statt laut: getönte Glasfläche, eine langsam wandernde Aurora,
+   ein einziger Lichtstreifen beim Erscheinen (danach nur alle 9 s dezent),
+   gestaffelt einlaufende Zeilen und ein Erholungsring, der sich aufbaut.
+   KEIN backdrop-filter: die Karte braucht overflow:hidden für Aurora/Sheen,
+   und genau diese Kombination rendert WKWebView als dunkle Fläche (gleicher
+   Bug wie bei Coach-Leiste und Snap-Card). Der Verlauf trägt das Glas allein. */
+.aic{position:relative;overflow:hidden;isolation:isolate;border-radius:20px;margin:0 0 12px;
+  background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,rgba(var(--acc-rgb),.02)),var(--gl-bg-h);
+  border:1px solid rgba(var(--acc-rgb),.30);
+  box-shadow:0 12px 30px rgba(var(--acc-rgb),.15),inset 0 1px 0 rgba(255,255,255,.10);
+  opacity:0;transform:translateY(8px) scale(.985);
+  transition:opacity .42s cubic-bezier(.2,.9,.3,1),transform .42s cubic-bezier(.2,.9,.3,1)}
+.aic.in{opacity:1;transform:none}
+.aic.out{opacity:0;transform:translateY(-6px) scale(.985);transition-duration:.24s}
+[data-glass="off"] .aic{background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,transparent),var(--inp-bg)}
+/* Aurora: zwei weiche Lichtfelder, die gegeneinander driften → "denkt mit" */
+.aic-aur{position:absolute;inset:-60% -25%;z-index:-2;pointer-events:none;
+  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.46),transparent 70%),
+             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.28),transparent 72%)}
+/* Lichtstreifen: einmal beim Erscheinen, danach als seltener Puls */
+.aic-sheen{position:absolute;top:0;bottom:0;left:0;width:38%;z-index:-1;pointer-events:none;opacity:0;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.20),transparent);transform:translateX(-180%)}
+/* Haarlinie oben: wandernder Farbverlauf statt statischer Kante */
+.aic::after{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),rgba(var(--acc-rgb),.95),transparent);
+  background-size:230% 100%}
+@media (prefers-reduced-motion:no-preference){
+  .aic-aur{animation:aicAur 13s ease-in-out infinite}
+  .aic.in .aic-sheen{animation:aicSheen 9s cubic-bezier(.4,0,.2,1) .35s infinite}
+  .aic::after{animation:aicLine 7s linear infinite}
+  .aic.in .aic-top,.aic.in .aic-main,.aic.in .aic-chips,.aic.in .aic-btns{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) both}
+  .aic.in .aic-main{animation-delay:.07s}
+  .aic.in .aic-chips{animation-delay:.13s}
+  .aic.in .aic-btns{animation-delay:.19s}
+  .aic.in .aic-r-fg{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s both}
+  .aic-orb::before{animation:aicOrb 3.4s ease-in-out infinite}
+  .aic-live i{animation:aicDot 2.1s ease-in-out infinite}
+  .aic-head.shine{background:linear-gradient(100deg,var(--text) 34%,rgba(var(--acc-rgb),1) 50%,var(--text) 66%);
+    background-size:260% 100%;-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;animation:aicShine 2.2s ease-out .3s 1 both}
+}
+@keyframes aicAur{0%,100%{transform:translate3d(-6%,0,0) scale(1)}50%{transform:translate3d(10%,3%,0) scale(1.08)}}
+@keyframes aicSheen{0%{transform:translateX(-180%);opacity:0}4%{opacity:1}26%{transform:translateX(320%);opacity:0}100%{transform:translateX(320%);opacity:0}}
+@keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
+@keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
+@keyframes aicOrb{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.55);opacity:0}}
+@keyframes aicDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+@keyframes aicShine{from{background-position:130% 0}to{background-position:-40% 0}}
+.aic-in{position:relative;z-index:1;padding:13px 15px 14px}
+.aic-top{display:flex;align-items:center;gap:8px}
+.aic-orb{position:relative;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  color:#fff;background:linear-gradient(140deg,var(--acc),rgba(var(--acc-rgb),.62));
+  box-shadow:0 3px 12px rgba(var(--acc-rgb),.45)}
+.aic-orb::before{content:'';position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(var(--acc-rgb),.85);opacity:.55}
+.aic-lbl{font-size:11.5px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:var(--acc)}
+.aic-live{display:flex;align-items:center;gap:5px;margin-left:auto;font-size:10.5px;font-weight:800;
+  color:var(--text2);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+.aic-live i{width:5px;height:5px;border-radius:50%;background:var(--acc);flex-shrink:0;
+  box-shadow:0 0 8px rgba(var(--acc-rgb),.9)}
+.aic-x{background:none;border:none;color:var(--text2);font-size:13px;line-height:1;padding:4px;margin:-4px -5px -4px 0;
+  cursor:pointer;opacity:.55;flex-shrink:0}
+.aic-main{display:flex;align-items:center;gap:13px;margin-top:11px}
+.aic-ringbox{position:relative;width:62px;height:62px;flex-shrink:0}
+.aic-r-bg{fill:none;stroke:rgba(var(--acc-rgb),.16);stroke-width:5}
+.aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
+.aic-r-val{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;font-weight:900;letter-spacing:-.3px}
+.aic-r-val span{font-size:9px;font-weight:800;opacity:.75;margin-left:1px}
+.aic-txt{flex:1;min-width:0}
+.aic-head{font-size:17px;font-weight:900;line-height:1.18;color:var(--text);letter-spacing:-.35px}
+.aic-sub{font-size:12.8px;line-height:1.45;color:var(--text2);margin-top:4px;font-weight:600}
+.aic-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.aic-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;letter-spacing:.2px;
+  padding:4px 9px;border-radius:999px;color:var(--acc);
+  background:rgba(var(--acc-rgb),.13);border:1px solid rgba(var(--acc-rgb),.26)}
+.aic-chip.ghost{color:var(--text2);background:rgba(127,127,127,.10);border-color:var(--gl-bdr)}
+.aic-btns{display:flex;gap:8px;margin-top:12px}
+.aic-go{flex:1;border:none;border-radius:13px;padding:11px 12px;font-family:inherit;font-size:13.5px;font-weight:800;
+  color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--acc),rgba(var(--acc-rgb),.74));
+  box-shadow:0 7px 20px rgba(var(--acc-rgb),.34);transition:transform .12s ease,box-shadow .12s ease}
+.aic-go:active{transform:scale(.975);box-shadow:0 4px 12px rgba(var(--acc-rgb),.28)}
+.aic-later{border:1px solid var(--gl-bdr);border-radius:13px;padding:11px 14px;font-family:inherit;
+  font-size:13px;font-weight:700;color:var(--text2);background:rgba(127,127,127,.08);cursor:pointer}
 </style>
 </head>
 <body>
@@ -5983,7 +6170,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
       </div>
       <button class="btn btn-acc" onclick="saveEx()">Speichern</button>
       <div class="gap" style="height:10px"></div>
-      <button class="btn btn-danger btn-sm" id="del-ex-btn" onclick="deleteEx()" style="display:none">Übung löschen</button>
+ <button class="btn btn-danger btn-sm"id="del-ex-btn"onclick="deleteEx()"style="display:none">Übung löschen</button>
     </div>
   </div>
 </div>
@@ -6762,7 +6949,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 
 <div class="ov" id="ov-privacy" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-privacy')">
   <div class="sheet" style="max-height:88vh;max-height:min(88vh,var(--sheet-cap))">
-    <div class="sh-handle"></div>
+ <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Privatsphäre</h2>
       <button class="x-btn" onclick="closeOv('ov-privacy')">✕</button>
@@ -6774,14 +6961,14 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 <!-- SHEET: EIGENES PROFIL (Name + Bild) -->
 <div class="ov" id="ov-fredit" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-fredit')">
   <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
-    <div class="sh-handle"></div>
+ <div class="sh-handle"></div>
     <div class="sh-head">
       <h2>Mein Profil</h2>
       <button class="x-btn" onclick="closeOv('ov-fredit')">✕</button>
     </div>
     <div class="px" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(26px + var(--sab))">
-      <div class="pf-head">
-        <div>
+ <div class="pf-head">
+        <div class="pf-photo-col">
           <div class="pf-photo" id="fredit-ava" onclick="document.getElementById('fredit-file').click()"></div>
           <button id="fredit-remove" class="pf-photo-rm" style="display:none" onclick="removeProfilePhoto()">Foto entfernen</button>
         </div>
@@ -6890,9 +7077,9 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 
 <!-- SHEET: POST-WORKOUT CHECK-IN (Phase E, für ALLE Nutzer) -->
 <div class="ov" id="ov-checkin" onclick="if(event.target===this)closeOv('ov-checkin')">
-  <div class="sheet">
+ <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head"><h2>Check-in</h2><button class="x-btn" onclick="closeOv('ov-checkin')">✕</button></div>
+ <div class="sh-head"><h2>Check-in</h2><button class="x-btn"onclick="closeOv('ov-checkin')"></button></div>
     <div class="px" id="checkin-body" style="padding-bottom:26px"></div>
   </div>
 </div>
@@ -6907,7 +7094,7 @@ const ICON_CATS = [
   { label:'🫀 Körper',   icons:['🫀','🫁','🦴','🦷','🧠','👁️','🦶','🦵','💪','🦾','🦿','🩺','🩹','🩻','💊','🩸','🧬','🌡️','🏥','💆','🛁','🚿','🧖','🫶','🤲','👐','🙌','🤝','👊','✊'] },
   { label:'🏆 Erfolg',   icons:['🏆','🥇','🥈','🥉','🎖️','🏅','⭐','🌟','✨','💫','🎯','👑','🔱','⚜️','🌈','🌠','🦋','🦅','🦁','🐯','🦊','🐺','🦄','🐉','🦈','🦏','🏔️','🌋','🗻','🌅'] },
   { label:'⚡ Power',     icons:['⚡','🔥','💥','🚀','💢','🌪️','⚔️','🛡️','🗡️','🔮','💠','❇️','✴️','🌀','☄️','🌩️','💡','🔋','⚙️','🔩','🧲','🔧','🔨','⛏️','🪛','🪚','💣','🎆','🎇','🧨'] },
-  { label:'🥩 Nutrition', icons:['🥩','🍗','🥚','🥛','🧃','💧','🫗','🥑','🥦','🥕','🍌','🍎','🍊','🥝','🍇','🫐','🍓','🥜','🫘','🌾','🍚','🥗','🫙','🧈','🫒','🍳','🥞','🍱','🥣','🧇','🫕','🧆'] },
+ { label:'Nutrition', icons:['','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''] },
   { label:'🎨 Symbole',  icons:['🔴','🟡','🟢','🟣','🔵','🟠','⚫','⚪','🔶','🔷','🔸','🔹','💎','♾️','📊','📈','📉','⏱️','⏰','🕐','🎮','🎲','🃏','🎪','🎨','✏️','📌','🔑','🗝️','🪬','🧿','☯️','☮️','✡️','🔯'] },
   { label:'🐾 Tiere',    icons:['🦁','🐯','🐻','🦊','🐺','🦅','🦆','🐧','🦋','🐝','🦎','🐬','🦈','🐙','🦑','🦞','🦀','🐊','🦏','🦛','🦒','🐘','🦓','🏇','🐎','🦌','🦬','🐂','🦣','🫏'] },
 ];
@@ -6916,7 +7103,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250002';
+const APP_VERSION = 'gymtrack-v202607250004';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -6964,7 +7151,7 @@ const I18N_EN = {
   'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…','Gründer':'Founder',
   'Gründer von MyGymTrack':'Founder of MyGymTrack',
   'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
-  'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
+'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
   'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
   'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
@@ -7041,34 +7228,34 @@ const I18N_EN = {
   'Bild (optional)':'Image (optional)','Bild wählen':'Choose image','Bild konnte nicht geladen werden.':'Image could not be loaded.',
   'Bild zu groß zum Speichern — bitte kleineres wählen.':'Image too large to save — please choose a smaller one.',
   'Ziel pro Einheit':'Goal per session','Wiederholungsbereich':'Rep range','Gewichts-Schema über die Sätze':'Weight scheme across sets',
-  'Um wie viel das Gewicht steigt, sobald du alle Sätze am oberen Bereichsende schaffst. Leer = globaler Standard.':'How much the weight increases once you hit the top of the range on all sets. Empty = global default.',
+'Um wie viel das Gewicht steigt, sobald du alle Sätze am oberen Bereichsende schaffst. Leer = globaler Standard.':'How much the weight increases once you hit the top of the range on all sets. Empty = global default.',
   'Scheiben-Rechner im Training':'Plate calculator in workout',
   'Zeigt beim Gewicht-Rad, welche Scheiben pro Seite aufzustecken sind — für Langhantel-Übungen.':'Shows in the weight wheel which plates to load per side — for barbell exercises.',
-  'Wochentag(e) für diese Übung':'Weekday(s) for this exercise',
+'Wochentag(e) für diese Übung':'Weekday(s) for this exercise',
   'Tippe Tage an, an denen du diese Übung trainieren willst — sie erscheint im Wochenplan.':'Tap the days you want to train this exercise — it will appear in your weekly plan.',
   'Erstelle deine eigenen Übungen und baue deinen Trainingsplan auf.':'Create your own exercises and build your training plan.',
   'Noch keine Übungen':'No exercises yet','Noch keine Übungen angelegt.':'No exercises created yet.',
   'Noch keine Übungen — füge zuerst Übungen hinzu.':'No exercises yet — add exercises first.',
   'Nichts gefunden':'Nothing found','Keine Übungen hier':'No exercises here','Keine Übungen in dieser Gruppe.':'No exercises in this group.',
-  'Keine Übungen gefunden.':'No exercises found.','Keine Übungen gefunden':'No exercises found','Keine Übung gefunden.':'No exercise found.',
+'Keine Übungen gefunden.':'No exercises found.','Keine Übungen gefunden':'No exercises found','Keine Übung gefunden.':'No exercise found.',
   'Keine passende Übung gefunden.':'No matching exercise found.',
   'Lege Übungen mit Muskelgruppen an, um hier eine Übersicht zu sehen.':'Create exercises with muscle groups to see an overview here.',
-  'z. B. Bankdrücken':'e.g. Bench Press','(schon im Training)':'(already in workout)','ohne MG':'no group',
+'z. B. Bankdrücken':'e.g. Bench Press','(schon im Training)':'(already in workout)','ohne MG':'no group',
   'Erstelle Übungen im Tab „Übungen".':'Create exercises in the “Exercises” tab.','Keine Übungen für':'No exercises for',
   'Wochenplan':'Weekly plan','Wochenplan öffnen':'Open weekly plan',
   'Plan teilen':'Share plan','Split teilen':'Share split','Plan importieren':'Import plan','Split importieren':'Import split',
   'Importieren':'Import','Trainingstage':'training days','Trainingsplan in MyGymTrack importieren':'Import training plan into MyGymTrack',
   'Freund scannt den Code mit der Kamera – der Plan öffnet direkt in GymTrack.':'A friend scans the code with their camera – the plan opens straight in GymTrack.',
   'Link teilen':'Share link','Link kopieren':'Copy link','Link kopiert':'Link copied','Kopieren nicht möglich':'Could not copy',
-  'QR offline nicht verfügbar – bitte mit Internet erneut öffnen.':'QR unavailable offline – reopen with internet.',
-  'Plan zu groß für einen QR-Code – teile einzelne Splits.':'Plan too large for a QR code – share single splits.',
-  'In der MyGymTrack-App öffnen':'Open in the MyGymTrack app',
-  'Dein Wochenplan ist noch leer.':'Your weekly plan is still empty.','Split zuerst speichern, dann teilen.':'Save the split first, then share.',
+'QR offline nicht verfügbar – bitte mit Internet erneut öffnen.':'QR unavailable offline – reopen with internet.',
+'Plan zu groß für einen QR-Code – teile einzelne Splits.':'Plan too large for a QR code – share single splits.',
+'In der MyGymTrack-App öffnen':'Open in the MyGymTrack app',
+'Dein Wochenplan ist noch leer.':'Your weekly plan is still empty.','Split zuerst speichern, dann teilen.':'Save the split first, then share.',
   'Dieser Split hat noch keine Übungen.':'This split has no exercises yet.','Ungültiger Plan-Link':'Invalid plan link',
   'Fehlende Übungen werden automatisch in deine Bibliothek angelegt.':'Missing exercises are added to your library automatically.',
-  'Beim Importieren wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch angelegt.':'Importing replaces your current weekly plan. Missing exercises are added automatically.',
-  'Keine Übungen im Split.':'No exercises in this split.','Importierter Split':'Imported split','(Import)':'(import)',
-  'Split importiert':'Split imported','Plan importiert':'Plan imported','Import fehlgeschlagen':'Import failed',
+'Beim Importieren wird dein aktueller Wochenplan ersetzt. Fehlende Übungen werden automatisch angelegt.':'Importing replaces your current weekly plan. Missing exercises are added automatically.',
+'Keine Übungen im Split.':'No exercises in this split.','Importierter Split':'Imported split','(Import)':'(import)',
+'Split importiert':'Split imported','Plan importiert':'Plan imported','Import fehlgeschlagen':'Import failed',
   'Plane pro Wochentag eine Trainingsgruppe oder einzelne Übungen. Wiederholt sich jede Woche.':'Plan a training group or individual exercises per weekday. Repeats every week.',
   'Vorlage laden':'Load template','PPL, Upper-Lower, Full Body … mit einem Tap übernehmen':'PPL, Upper-Lower, Full Body … apply with one tap',
   '⠿ Splits in einen Tag ziehen:':'⠿ Drag splits onto a day:','⠿ Übungen auf einen Tag ziehen, um sie hinzuzufügen':'⠿ Drag exercises onto a day to add them',
@@ -7117,17 +7304,17 @@ const I18N_EN = {
   'T-Bar Rudern':'T-Bar Row','Kreuzheben':'Deadlift','Rumänisches Kreuzheben':'Romanian Deadlift','Hyperextensions':'Back Extensions',
   'Überzüge':'Pullovers','Rückenheber':'Back Raises',
   'Kniebeugen':'Squats','Front-Kniebeuge':'Front Squat','Beinpresse':'Leg Press','Ausfallschritte':'Lunges',
-  'Beinstrecker':'Leg Extensions','Wadenheben':'Calf Raises',
-  'Schulterdrücken':'Overhead Press','KH-Schulterdrücken':'Dumbbell Shoulder Press','Seitheben':'Lateral Raises',
+'Beinstrecker':'Leg Extensions','Wadenheben':'Calf Raises',
+'Schulterdrücken':'Overhead Press','KH-Schulterdrücken':'Dumbbell Shoulder Press','Seitheben':'Lateral Raises',
   'Frontheben':'Front Raises','Aufrechtes Rudern':'Upright Row',
   'Bizeps-Curls (KH)':'Dumbbell Curls','Bizeps-Curls (LH)':'Barbell Curls','Hammer-Curls':'Hammer Curls',
   'Konzentrations-Curls':'Concentration Curls','Trizeps-Dips':'Triceps Dips','Trizepsdrücken (Kabel)':'Triceps Pushdown (Cable)',
-  'French Press':'Skull Crushers','Engers Bankdrücken':'Close-Grip Bench Press','Unterarm-Curls':'Wrist Curls',
-  'Seitlicher Plank':'Side Plank','Beinheben':'Leg Raises','Käfer':'Dead Bug','Hängendes Beinheben':'Hanging Leg Raises',
-  'Laufband':'Treadmill','Rad fahren':'Cycling','Rudern (Cardio)':'Rowing (Cardio)','Seilspringen':'Jump Rope',
-  'Trag mindestens einen Satz ein!':'Log at least one set!',
-  'Training abbrechen? Eingetragene Daten werden verworfen.':'Cancel workout? Entered data will be discarded.',
-  'Letztes Training wirklich löschen?':'Really delete your last workout?','Training beenden':'Finish workout',
+'French Press':'Skull Crushers','Engers Bankdrücken':'Close-Grip Bench Press','Unterarm-Curls':'Wrist Curls',
+'Seitlicher Plank':'Side Plank','Beinheben':'Leg Raises','Käfer':'Dead Bug','Hängendes Beinheben':'Hanging Leg Raises',
+'Laufband':'Treadmill','Rad fahren':'Cycling','Rudern (Cardio)':'Rowing (Cardio)','Seilspringen':'Jump Rope',
+'Trag mindestens einen Satz ein!':'Log at least one set!',
+'Training abbrechen? Eingetragene Daten werden verworfen.':'Cancel workout? Entered data will be discarded.',
+'Letztes Training wirklich löschen?':'Really delete your last workout?','Training beenden':'Finish workout',
   'Training abbrechen':'Cancel workout','Pause':'Rest','Pause vorbei 💪':'Rest over 💪',
   'Weiter geht’s – nächster Satz!':'Keep going – next set!','Partner-Übung':'partner exercise',
   'Superset gelöst':'Superset removed','🔗 Superset erstellt':'🔗 Superset created','🔗 Superset lösen':'🔗 Remove superset',
@@ -7141,91 +7328,91 @@ const I18N_EN = {
   'Bis zum Versagen':'To failure','Aufwärmen':'Warm-up',
   'Regulärer Arbeitssatz mit deinem normalen Trainingsgewicht. Zählt voll zum Trainingsvolumen.':'Regular working set with your normal training weight. Counts fully towards training volume.',
   'Leichter Satz mit weniger Gewicht (ca. 40–60 %), um Muskeln, Gelenke und Nervensystem aufzuwärmen. Zählt nicht zum Trainingsvolumen.':'Light set with less weight (approx. 40–60%) to warm up muscles, joints and the nervous system. Does not count towards training volume.',
-  'Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.':'Your heaviest working set of the day with maximum weight and high intensity (RPE 8–10). Usually just 1 set per exercise.',
-  'Direkt nach dem Versagen Gewicht um 20–40 % reduzieren und ohne Pause weitermachen, bis du erneut versagst. Sehr hohe Intensität.':'Right after failure, reduce the weight by 20–40% and continue without rest until you fail again. Very high intensity.',
+'Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.':'Your heaviest working set of the day with maximum weight and high intensity (RPE 8–10). Usually just 1 set per exercise.',
+'Direkt nach dem Versagen Gewicht um 20–40 % reduzieren und ohne Pause weitermachen, bis du erneut versagst. Sehr hohe Intensität.':'Right after failure, reduce the weight by 20–40% and continue without rest until you fail again. Very high intensity.',
   'Wiederholungen bis zur kompletten muskulären Erschöpfung — keine Reps in Reserve. Sparsam einsetzen wegen hoher Belastung.':'Reps until complete muscular exhaustion — no reps in reserve. Use sparingly due to the high strain.',
-  'Persönlicher Rekord!':'Personal record!','Neues Max-Gewicht':'New max weight','Neues 1RM (geschätzt)':'New estimated 1RM',
-  '🏆 NEUER PR':'🏆 NEW PR','Neue Bestleistung':'New personal best',
-  'Wert wählen':'Pick a value','oder eintippen':'or type it in','Scheiben pro Seite':'Plates per side',
+'Persönlicher Rekord!':'Personal record!','Neues Max-Gewicht':'New max weight','Neues 1RM (geschätzt)':'New estimated 1RM',
+'NEUER PR':'NEW PR','Neue Bestleistung':'New personal best',
+'Wert wählen':'Pick a value','oder eintippen':'or type it in','Scheiben pro Seite':'Plates per side',
   'Verfügbare Scheiben':'Available plates','Verfügbare Scheiben wählen':'Choose available plates',
-  'Wähle, welche Scheiben es in deinem Studio gibt. Der Rechner schlägt dann nur noch Scheiben vor, die du wirklich hast.':'Choose which plates your gym has. The calculator will then only suggest plates you actually have.',
-  'Alle Scheiben aktivieren':'Enable all plates','Wähle ein Gewicht …':'Pick a weight …',
-  'Nur die Stange — keine Scheiben nötig':'Just the bar — no plates needed',
-  'Training beendet!':'Workout complete!','Minuten':'Minutes','Max Gewicht':'Max weight','Meiste Sätze':'Most sets',
+'Wähle, welche Scheiben es in deinem Studio gibt. Der Rechner schlägt dann nur noch Scheiben vor, die du wirklich hast.':'Choose which plates your gym has. The calculator will then only suggest plates you actually have.',
+'Alle Scheiben aktivieren':'Enable all plates','Wähle ein Gewicht …':'Pick a weight …',
+'Nur die Stange — keine Scheiben nötig':'Just the bar — no plates needed',
+'Training beendet!':'Workout complete!','Minuten':'Minutes','Max Gewicht':'Max weight','Meiste Sätze':'Most sets',
   'Trainings gespeichert':'workouts saved','↑ Teilen':'↑ Share','Perfekt!':'Perfect!',
-  '📝 Notiz zum Training (optional)…':'📝 Workout note (optional)…',
-  '1RM-Verlauf':'1RM history','(geschätzt · Epley)':'(estimated · Epley)','Volumen-Verlauf':'Volume history',
-  'Noch kein Training für diese Muskelgruppe.':'No workout for this muscle group yet.',
-  'Deine letzten Einheiten':'Your recent sessions','Top-Übungen (Epley)':'Top exercises (Epley)','Bestes 1RM':'Best 1RM',
-  'Geschätztes 1RM':'Estimated 1RM','Sätze · Max':'Sets · Max','Wdh · 1RM':'Reps · 1RM','Letzte':'Last',
-  'Gesamterholung':'Overall recovery','Trainings-Historie':'Workout history','Trainings-Historie (7 Tage)':'Workout history (7 days)',
+'Notiz zum Training (optional)…':'Workout note (optional)…',
+'1RM-Verlauf':'1RM history','(geschätzt · Epley)':'(estimated · Epley)','Volumen-Verlauf':'Volume history',
+'Noch kein Training für diese Muskelgruppe.':'No workout for this muscle group yet.',
+'Deine letzten Einheiten':'Your recent sessions','Top-Übungen (Epley)':'Top exercises (Epley)','Bestes 1RM':'Best 1RM',
+'Geschätztes 1RM':'Estimated 1RM','Sätze · Max':'Sets · Max','Wdh · 1RM':'Reps · 1RM','Letzte':'Last',
+'Gesamterholung':'Overall recovery','Trainings-Historie':'Workout history','Trainings-Historie (7 Tage)':'Workout history (7 days)',
   'Übungen in dieser Gruppe':'Exercises in this group','Empfohlene Pause':'Recommended rest',
-  'Leichte Ermüdung':'Light fatigue','Mittlere Ermüdung':'Moderate fatigue','Starke Ermüdung':'Heavy fatigue',
-  'Vollständig erholt':'Fully recovered','Nicht erholt':'Not recovered','Wenig erholt':'Barely recovered','Fast bereit':'Almost ready','Bereit':'Ready',
-  'Erste Einheit':'First session','Muskel':'Muscle','Kraftaufbau':'Strength gain','Kraftsteigerung pro Muskel':'Strength gain per muscle',
-  'Meilensteine ·':'Milestones ·','Meilenstein erreicht':'Milestone reached','Ausgangskraft':'Starting strength','Zuwachs':'Gain',
+'Leichte Ermüdung':'Light fatigue','Mittlere Ermüdung':'Moderate fatigue','Starke Ermüdung':'Heavy fatigue',
+'Vollständig erholt':'Fully recovered','Nicht erholt':'Not recovered','Wenig erholt':'Barely recovered','Fast bereit':'Almost ready','Bereit':'Ready',
+'Erste Einheit':'First session','Muskel':'Muscle','Kraftaufbau':'Strength gain','Kraftsteigerung pro Muskel':'Strength gain per muscle',
+'Meilensteine ·':'Milestones ·','Meilenstein erreicht':'Milestone reached','Ausgangskraft':'Starting strength','Zuwachs':'Gain',
   'Tippen für Details ›':'Tap for details ›','Gruppe gesamt':'Group total',
-  'Noch keine verwertbaren Sätze für diese Gruppe.':'No usable sets for this group yet.',
-  'So entsteht der Wert:':'How this value is calculated:',
-  'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
-  'Gewicht × (1 + Wdh ÷ 30)':'Weight × (1 + reps ÷ 30)',
-  '. „Start" ist der beste Satz deiner':'. “Start” is the best set of your','ersten Einheit':'first session','einer Übung,':'of an exercise,',
-  '„Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'“Best” is your best set so far. The 1RMs of all exercises in the group are summed.',
+'Noch keine verwertbaren Sätze für diese Gruppe.':'No usable sets for this group yet.',
+'So entsteht der Wert:':'How this value is calculated:',
+'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
+'Gewicht × (1 + Wdh ÷ 30)':'Weight × (1 + reps ÷ 30)',
+'. „Start"ist der beste Satz deiner':'. “Start” is the best set of your','ersten Einheit':'first session','einer Übung,':'of an exercise,',
+'„Bestwert"dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'“Best” is your best set so far. The 1RMs of all exercises in the group are summed.',
   'Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.':'Log weight & reps to see your strength development per muscle.',
-  'In diesem Zeitraum gibt es noch nicht genug Trainings für eine Auswertung. Wähle einen längeren Zeitraum.':'Not enough workouts in this period for an analysis. Choose a longer period.',
-  'Dieser Monat':'This month','Dieses Jahr':'This year','aktueller Zeitraum':'current period','· Trainingszeit ·':'· training time ·',
-  'Erfolge':'Achievements','Zurück zu Erfolge':'Back to achievements','10 Std. Training':'10 h of training','50 Std. Training':'50 h of training',
-  '10 t Volumen':'10 t of volume','100 t Volumen':'100 t of volume','Geschafft':'Done',
-  'Logge dein erstes Workout, um deine Erholung zu sehen.':'Log your first workout to see your recovery.',
-  'Absolviere dein erstes Training, um Vorschläge zu erhalten.':'Complete your first workout to get suggestions.',
-  'Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.':'Add your first exercise and start your own training plan.',
-  'Vorschlag fürs nächste Mal:':'Suggestion for next time:','Top-Satz 2× geschafft':'Top set done 2×',
-  '2× alle Ziel-Wdh geschafft':'All target reps hit 2×','Fortschritt ↑':'Progress ↑','Rückgang ↓':'Decline ↓',
+'In diesem Zeitraum gibt es noch nicht genug Trainings für eine Auswertung. Wähle einen längeren Zeitraum.':'Not enough workouts in this period for an analysis. Choose a longer period.',
+'Dieser Monat':'This month','Dieses Jahr':'This year','aktueller Zeitraum':'current period','· Trainingszeit ·':'· training time ·',
+'Erfolge':'Achievements','Zurück zu Erfolge':'Back to achievements','10 Std. Training':'10 h of training','50 Std. Training':'50 h of training',
+'10 t Volumen':'10 t of volume','100 t Volumen':'100 t of volume','Geschafft':'Done',
+'Logge dein erstes Workout, um deine Erholung zu sehen.':'Log your first workout to see your recovery.',
+'Absolviere dein erstes Training, um Vorschläge zu erhalten.':'Complete your first workout to get suggestions.',
+'Füge deine erste Übung hinzu und starte deinen eigenen Trainingsplan.':'Add your first exercise and start your own training plan.',
+'Vorschlag fürs nächste Mal:':'Suggestion for next time:','Top-Satz 2× geschafft':'Top set done 2×',
+'2× alle Ziel-Wdh geschafft':'All target reps hit 2×','Fortschritt ↑':'Progress ↑','Rückgang ↓':'Decline ↓',
   'Gleichstand →':'No change →','Erstes Training':'First workout','Weniger anzeigen':'Show less',
   "Progression – so funktioniert's":'Progression – how it works','Ausführliche Erklärung':'Detailed explanation',
   'Wie MyGymTrack dein nächstes Gewicht und deine Wdh vorschlägt':'How MyGymTrack suggests your next weight and reps',
   'Gewicht erhöhen':'Increase weight',
-  'Wenn du alle Sätze am oberen Bereichsende schaffst → Gewicht steigt, Wdh starten wieder unten.':'If you hit the top of the range on all sets → weight goes up, reps restart at the bottom.',
-  'Wdh-Fokus':'Rep focus',
-  'Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren':'If not all sets are complete yet → keep the weight, optimise reps',
-  'Standard-Steigerung':'Default increment',
+'Wenn du alle Sätze am oberen Bereichsende schaffst → Gewicht steigt, Wdh starten wieder unten.':'If you hit the top of the range on all sets → weight goes up, reps restart at the bottom.',
+'Wdh-Fokus':'Rep focus',
+'Wenn noch nicht alle Sätze vollständig → Gewicht halten, Wdh optimieren':'If not all sets are complete yet → keep the weight, optimise reps',
+'Standard-Steigerung':'Default increment',
   'Gewichts-Schritt für alle Übungen ohne eigenen Wert. Leer = automatisch (+2,5 kg leicht / +5 kg schwer).':'Weight step for all exercises without their own value. Empty = automatic (+2.5 kg light / +5 kg heavy).',
   'So funktioniert Progression':'How progression works',
-  '1. Wiederholungsbereich (Double Progression)':'1. Rep range (double progression)',
+'1. Wiederholungsbereich (Double Progression)':'1. Rep range (double progression)',
   '2. Arbeitssätze zählen':'2. Working sets count','Nur':'Only','Normal-, Top- und Versagen-Sätze':'normal, top and failure sets',
-  'fließen in die Progression ein.':'feed into progression.','Aufwärmsätze (W)':'Warm-up sets (W)',
-  'werden ignoriert — ihr Gewicht wählst du frei (zuletzt genutztes wird vorbelegt).':'are ignored — you choose their weight freely (last used is prefilled).',
-  '3. Satz-Typen werden übernommen':'3. Set types carry over',
-  'Deine Typen (Aufwärmen, Top, Drop …) und das Schema werden ins nächste Training derselben Übung automatisch vorbelegt.':'Your types (warm-up, top, drop …) and the scheme are automatically prefilled in the next workout of the same exercise.',
-  '4. Gewichts-Schema über die Sätze':'4. Weight scheme across sets','Gleichbleibend:':'Straight:','Aufsteigend:':'Ascending:',
-  'letzter Satz am schwersten ·':'last set heaviest ·','Pyramide:':'Pyramid:','Umgekehrt:':'Reverse:',
-  'schwerster Satz zuerst. MyGymTrack rechnet die Einzelgewichte pro Satz aus.':'heaviest set first. MyGymTrack calculates the individual weights per set.',
-  '5. Top-Satz & Versagen':'5. Top set & failure','Top-Satz (T):':'Top set (T):','ein schwerer Maximalsatz (RPE 8–10).':'a heavy max set (RPE 8–10).',
-  'Bis zum Versagen (F):':'To failure (F):','gilt automatisch als oberes Bereich-Ende erreicht.':'automatically counts as hitting the top of the range.',
-  'Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert 🏆.':'Tip: if you log a record during your workout, it’s celebrated right in the input window 🏆.',
-  'Alle Arbeitssätze mit demselben Gewicht (Straight Sets).':'All working sets with the same weight (straight sets).',
-  'Jeder Satz etwas schwerer — der letzte Satz ist der schwerste.':'Each set a bit heavier — the last set is the heaviest.',
-  'Erst schwerer werden bis zur Mitte, danach wieder leichter.':'Get heavier up to the middle, then lighter again.',
-  'Schwerster Satz zuerst, danach von Satz zu Satz leichter (Reverse Pyramid).':'Heaviest set first, then lighter set by set (reverse pyramid).',
-  'Eigenen Split erstellen':'Create your own split','Split bearbeiten':'Edit split','Was ist ein Split?':'What is a split?',
-  'Ein Split ist dein':'A split is your','Trainingsplan':'training plan',
-  ': Du teilst dein Training in':': you divide your training into','Tage/Gruppen':'days/groups',
-  'auf (z. B. „Push" = Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die':'(e.g. “Push” = chest, shoulders, triceps). To each group you assign the',
-  'zu, die an dem Tag drankommen. Beim Training filterst du dann bequem nach diesen Gruppen.':'that are up that day. During your workout you can then conveniently filter by these groups.',
+'fließen in die Progression ein.':'feed into progression.','Aufwärmsätze (W)':'Warm-up sets (W)',
+'werden ignoriert — ihr Gewicht wählst du frei (zuletzt genutztes wird vorbelegt).':'are ignored — you choose their weight freely (last used is prefilled).',
+'3. Satz-Typen werden übernommen':'3. Set types carry over',
+'Deine Typen (Aufwärmen, Top, Drop …) und das Schema werden ins nächste Training derselben Übung automatisch vorbelegt.':'Your types (warm-up, top, drop …) and the scheme are automatically prefilled in the next workout of the same exercise.',
+'4. Gewichts-Schema über die Sätze':'4. Weight scheme across sets','Gleichbleibend:':'Straight:','Aufsteigend:':'Ascending:',
+'letzter Satz am schwersten ·':'last set heaviest ·','Pyramide:':'Pyramid:','Umgekehrt:':'Reverse:',
+'schwerster Satz zuerst. MyGymTrack rechnet die Einzelgewichte pro Satz aus.':'heaviest set first. MyGymTrack calculates the individual weights per set.',
+'5. Top-Satz & Versagen':'5. Top set & failure','Top-Satz (T):':'Top set (T):','ein schwerer Maximalsatz (RPE 8–10).':'a heavy max set (RPE 8–10).',
+'Bis zum Versagen (F):':'To failure (F):','gilt automatisch als oberes Bereich-Ende erreicht.':'automatically counts as hitting the top of the range.',
+'Tipp: Trägst du im Training einen Rekord ein, wird er direkt im Eingabe-Fenster gefeiert.':'Tip: if you log a record during your workout, it’s celebrated right in the input window.',
+'Alle Arbeitssätze mit demselben Gewicht (Straight Sets).':'All working sets with the same weight (straight sets).',
+'Jeder Satz etwas schwerer — der letzte Satz ist der schwerste.':'Each set a bit heavier — the last set is the heaviest.',
+'Erst schwerer werden bis zur Mitte, danach wieder leichter.':'Get heavier up to the middle, then lighter again.',
+'Schwerster Satz zuerst, danach von Satz zu Satz leichter (Reverse Pyramid).':'Heaviest set first, then lighter set by set (reverse pyramid).',
+'Eigenen Split erstellen':'Create your own split','Split bearbeiten':'Edit split','Was ist ein Split?':'What is a split?',
+'Ein Split ist dein':'A split is your','Trainingsplan':'training plan',
+': Du teilst dein Training in':': you divide your training into','Tage/Gruppen':'days/groups',
+'auf (z. B. „Push"= Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die':'(e.g. “Push” = chest, shoulders, triceps). To each group you assign the',
+'zu, die an dem Tag drankommen. Beim Training filterst du dann bequem nach diesen Gruppen.':'that are up that day. During your workout you can then conveniently filter by these groups.',
   'Schnell-Vorlage':'Quick template','1. Name des Splits':'1. Split name','2. Deine Trainings-Gruppen':'2. Your training groups',
-  '+ Gruppe hinzufügen':'+ Add group','Split löschen':'Delete split','Bitte gib dem Split einen Namen.':'Please give the split a name.',
-  'Mindestens eine Gruppe mit Muskeln benötigt.':'At least one group with muscles is required.',
-  'Diesen Split wirklich löschen?':'Really delete this split?','Bitte Namen eingeben!':'Please enter a name!',
+'+ Gruppe hinzufügen':'+ Add group','Split löschen':'Delete split','Bitte gib dem Split einen Namen.':'Please give the split a name.',
+'Mindestens eine Gruppe mit Muskeln benötigt.':'At least one group with muscles is required.',
+'Diesen Split wirklich löschen?':'Really delete this split?','Bitte Namen eingeben!':'Please enter a name!',
   'Gruppen-Name (z.B. Push A)':'Group name (e.g. Push A)','z. B. Mein PPL+':'e.g. My PPL+','z. B. Oberkörper 1':'e.g. Upper Body 1',
-  'Willkommen bei MyGymTrack':'Welcome to MyGymTrack',
-  'Dein Trainings-Tagebuch mit Gewichtsvorschlägen, Plänen, Statistiken und Freunde-Rangliste. In einer Minute eingerichtet.':'Your training log with weight suggestions, plans, stats and a friends leaderboard. Set up in one minute.',
-  'Wie heißt du?':"What's your name?",'Optional — wird in der Freunde-Rangliste angezeigt.':'Optional — shown in the friends leaderboard.',
-  'Dein Vorname':'Your first name','Was ist dein Ziel?':"What's your goal?",
-  'Hilft uns, dir die richtigen Vorschläge zu machen.':'Helps us make the right suggestions for you.',
+'Willkommen bei MyGymTrack':'Welcome to MyGymTrack',
+'Dein Trainings-Tagebuch mit Gewichtsvorschlägen, Plänen, Statistiken und Freunde-Rangliste. In einer Minute eingerichtet.':'Your training log with weight suggestions, plans, stats and a friends leaderboard. Set up in one minute.',
+'Wie heißt du?':"What's your name?",'Optional — wird in der Freunde-Rangliste angezeigt.':'Optional — shown in the friends leaderboard.',
+'Dein Vorname':'Your first name','Was ist dein Ziel?':"What's your goal?",
+'Hilft uns, dir die richtigen Vorschläge zu machen.':'Helps us make the right suggestions for you.',
   'Muskeln aufbauen':'Build muscle','Mehr Masse, bessere Form':'More mass, better shape','Stärker werden':'Get stronger',
-  'Mehr Gewicht auf der Stange':'More weight on the bar','Abnehmen':'Lose weight','Kalorien verbrennen, definieren':'Burn calories, get lean',
-  'Fit & gesund bleiben':'Stay fit & healthy','Regelmäßig in Bewegung':'Move regularly',
-  'Wie viel Erfahrung hast du?':'How much experience do you have?','Bestimmt, welcher Trainingsplan zu dir passt.':'Determines which training plan suits you.',
+'Mehr Gewicht auf der Stange':'More weight on the bar','Abnehmen':'Lose weight','Kalorien verbrennen, definieren':'Burn calories, get lean',
+'Fit & gesund bleiben':'Stay fit & healthy','Regelmäßig in Bewegung':'Move regularly',
+'Wie viel Erfahrung hast du?':'How much experience do you have?','Bestimmt, welcher Trainingsplan zu dir passt.':'Determines which training plan suits you.',
   'Anfänger':'Beginner','Unter 1 Jahr Training':'Less than 1 year of training','Fortgeschritten':'Intermediate',
   '1–3 Jahre Training':'1–3 years of training','Profi':'Advanced','Über 3 Jahre Training':'Over 3 years of training',
   'Wie oft pro Woche willst du trainieren?':'How often per week do you want to train?',
@@ -7371,13 +7558,13 @@ const I18N_EN = {
   'Aus – es gilt die feste Standard-Pause':'Off – the fixed default rest applies',
   'Aktiv – an deinen Trainingstagen um':'Active – on your training days at','Aktiv – täglich um':'Active – daily at',
   'Dein Browser unterstützt leider keine Benachrichtigungen.':"Unfortunately your browser doesn't support notifications.",
-  'Lade Daten…':'Loading data…','Jetzt online':'Online now','Nutzer aktiv':'users active','Aktive Nutzer':'Active users',
-  'Insgesamt':'Total','Verweildauer (Sessions)':'Session duration','Sessions / 7 Tage':'Sessions / 7 days',
-  'Sessions / 30 Tage':'Sessions / 30 days','Wiederkehr (Retention)':'Retention','D1 · nach 1 Tag':'D1 · after 1 day',
+'Lade Daten…':'Loading data…','Jetzt online':'Online now','Nutzer aktiv':'users active','Aktive Nutzer':'Active users',
+'Insgesamt':'Total','Verweildauer (Sessions)':'Session duration','Sessions / 7 Tage':'Sessions / 7 days',
+'Sessions / 30 Tage':'Sessions / 30 days','Wiederkehr (Retention)':'Retention','D1 · nach 1 Tag':'D1 · after 1 day',
   'D7 · nach 7 Tagen':'D7 · after 7 days','D30 · nach 30 Tagen':'D30 · after 30 days','Neu · 7 Tage':'New · 7 days',
   '↻ Neu laden':'↻ Reload','Aktualisiert sich automatisch alle 30 Sekunden.':'Refreshes automatically every 30 seconds.',
-  'WAU · 7 Tage':'WAU · 7 days','MAU · 30 Tage':'MAU · 30 days','Zuletzt aktualisiert:':'Last updated:',
-  '24.06.2026 · Plan-Widget startet wie der normale Trainingsstart':'24 Jun 2026 · Plan widget now starts like a normal workout',
+'WAU · 7 Tage':'WAU · 7 days','MAU · 30 Tage':'MAU · 30 days','Zuletzt aktualisiert:':'Last updated:',
+'24.06.2026 · Plan-Widget startet wie der normale Trainingsstart':'24 Jun 2026 · Plan widget now starts like a normal workout',
   'Plan aus dem Widget öffnet jetzt zuerst die Übungs-Auswahl — du kannst Übungen prüfen, hinzufügen oder abwählen':'Starting a plan from the widget now opens the exercise selection first — review, add or deselect exercises',
   '▶️ Erst der finale „Training starten"-Button führt ins aktive Training (vorher sprang das Widget direkt rein)':'▶️ Only the final “Start workout” button enters the active workout (previously the widget jumped straight in)',
   '✅ Identischer Ablauf wie beim normalen Trainingsstart, inkl. Plan-Hinweis und Vorauswahl':'✅ Identical flow to a normal workout start, incl. plan hint and preselection',
@@ -7421,9 +7608,9 @@ const I18N_EN = {
   '🚫 Icons komplett entfernt: keine Emoji-Auswahl beim Erstellen, keine Emojis vor Übungsnamen mehr':'🚫 Icons removed entirely: no emoji picker when creating, no more emojis in front of exercise names',
   'Satz-Typ-Button: Tap öffnet jetzt Auswahl-Popup mit Erklärungen zu Normal, Aufwärmsatz, Top-Satz, Drop-Satz & Bis-zum-Versagen':'Set-type button: tap now opens a picker popup explaining normal, warm-up, top, drop & to-failure sets',
   'Neuer Satz-Typ „T" (Top-Satz) für den schwersten Arbeitssatz des Tages':'New set type “T” (top set) for the heaviest working set of the day',
-  'Übungen-Liste: weißes Icon-Feld verschwindet, wenn kein Emoji gewählt wurde — Text rückt nach links':'Exercise list: the white icon box disappears when no emoji is chosen — text moves left',
+'Übungen-Liste: weißes Icon-Feld verschwindet, wenn kein Emoji gewählt wurde — Text rückt nach links':'Exercise list: the white icon box disappears when no emoji is chosen — text moves left',
   'Heute-Seite: Begrüßung & Vorschlagskarten ohne Emojis':'Today page: greeting & suggestion cards without emojis',
-  '🏃 Cardio-Timer: Ring pulsiert dynamisch mit umlaufendem Lichtbogen während Training':'🏃 Cardio timer: ring pulses dynamically with a moving light arc during workouts',
+'Cardio-Timer: Ring pulsiert dynamisch mit umlaufendem Lichtbogen während Training':'Cardio timer: ring pulses dynamically with a moving light arc during workouts',
   '✏️ Übungen-Tab: Tap auf Übung öffnet jetzt Bearbeiten statt Statistik':'✏️ Exercises tab: tapping an exercise now opens Edit instead of Stats',
   '➕ „Übung hinzufügen"-Button jetzt oben über der Liste':'➕ “Add exercise” button now at the top above the list',
   '🔄 Updates werden jetzt zuverlässig erkannt: regelmäßiger Check alle 3 Min + beim App-Wiederöffnen':'🔄 Updates are now detected reliably: regular check every 3 min + on app reopen',
@@ -7448,9 +7635,9 @@ const I18N_EN = {
   '📳 Haptisches Feedback beim Satz-Abhaken und Tab-Wechsel':'📳 Haptic feedback when checking off sets and switching tabs',
   '🟢 Grünes Theme zusätzlich zu Hell, Rosa, Dunkel, Blau':'🟢 Green theme in addition to Light, Pink, Dark, Blue',
   '🔔 Trainings-Erinnerungen täglich, Uhrzeit frei wählbar':'🔔 Daily workout reminders, time freely selectable',
-  '✅ Satz-Checkboxen: abhaken, Zeile wird ausgegraut':'✅ Set checkboxes: check off, the row is greyed out',
-  '💧 Flüssige Tab-Animation als Wasserblase':'💧 Fluid tab animation as a water bubble',
-  'Wochenplan: Übungen Tagen zuordnen (Mo–So)':'Weekly plan: assign exercises to days (Mon–Sun)',
+'Satz-Checkboxen: abhaken, Zeile wird ausgegraut':'Set checkboxes: check off, the row is greyed out',
+'Flüssige Tab-Animation als Wasserblase':'Fluid tab animation as a water bubble',
+'Wochenplan: Übungen Tagen zuordnen (Mo–So)':'Weekly plan: assign exercises to days (Mon–Sun)',
   '🗓️ Kalender-Symbol oben rechts in „Meine Übungen"':'🗓️ Calendar icon at the top right of “My Exercises”',
   '🎯 Pro Tag: Trainingsgruppe oder einzelne Übungen':'🎯 Per day: a training group or individual exercises',
   '👀 Wochenvorschau im Übungen-Tab':'👀 Week preview in the Exercises tab',
@@ -7545,7 +7732,7 @@ const I18N_EN = {
   'KI-Monatsanalyse':'AI monthly summary',
   'Tippen für eine KI-Zusammenfassung deines Monats.':'Tap for an AI summary of your month.',
   /* Check-in bremst Progression (Phase G) */
-  'Empfehlung für heute':'Recommendation for today','Ausblenden':'Dismiss',
+  'Empfehlung für heute':'Recommendation for today','Ausblenden':'Dismiss','Später':'Later',
   /* KI-Suite 2026-07: Paywall / Plan-Wizard / Geräte-Scanner / Profil-Ausbau / Chat */
   'Dein persönlicher KI-Coach: Chat, Live-Tipps im Training, Analysen & Geräte-Scanner.':'Your personal AI coach: chat, live tips during training, analyses & machine scanner.',
   'Weniger als ein Proteinriegel im Monat':'Less than a protein bar a month',
@@ -7571,94 +7758,103 @@ const I18N_EN = {
   'Plan übernehmen':'Apply plan','Trainingstage':'training days','Dein bisheriger Wochenplan wird ersetzt.':'Your current weekly plan will be replaced.',
   'Importieren — andere Übungen behalten':'Import — keep other exercises',
   'Importieren + nicht verplante Übungen löschen':'Import + delete unused exercises',
-  'Beim Löschen bleibt deine Trainings-Historie erhalten — nur die Übungen verschwinden aus deiner Liste.':'Deleting keeps your workout history — only the exercises disappear from your list.',
-  'Plan importiert & Übungsliste aufgeräumt.':'Plan imported & exercise list cleaned up.',
+'Beim Löschen bleibt deine Trainings-Historie erhalten — nur die Übungen verschwinden aus deiner Liste.':'Deleting keeps your workout history — only the exercises disappear from your list.',
+'Plan importiert & Übungsliste aufgeräumt.':'Plan imported & exercise list cleaned up.',
   'Gerät scannen':'Scan machine','Gerät fotografieren':'Photograph a machine',
   'Die KI erkennt das Gerät und zeigt dir passende Übungen mit Ausführung.':'The AI identifies the machine and shows matching exercises with form guides.',
   'Aus Fotos wählen':'Choose from photos','Gerät wird erkannt…':'Identifying machine…',
   'Kein Trainingsgerät erkannt.':'No training machine detected.',
   'Versuch es mit einem Foto, auf dem das Gerät komplett zu sehen ist.':'Try a photo showing the whole machine.',
-  'Nochmal fotografieren':'Take another photo','Erkannt von deinem KI-Coach':'Identified by your AI coach',
-  'Übungen an diesem Gerät':'Exercises on this machine','So führst du sie aus':'How to perform it',
-  'Häufigster Fehler:':'Most common mistake:','Neues Foto':'New photo','In meine Übungen':'Add to my exercises',
+'Nochmal fotografieren':'Take another photo','Erkannt von deinem KI-Coach':'Identified by your AI coach',
+'Übungen an diesem Gerät':'Exercises on this machine','So führst du sie aus':'How to perform it',
+'Häufigster Fehler:':'Most common mistake:','Neues Foto':'New photo','In meine Übungen':'Add to my exercises',
   'Lade Ausführungs-Animation…':'Loading form animation…','Ausführung':'Form',
   'Übung ist schon in deiner Liste.':'Exercise is already in your list.','Übungslimit erreicht.':'Exercise limit reached.',
   'Trainingserfahrung':'Training experience','Deine Stärken':'Your strengths','Über dich':'About you','Zeichen übrig':'characters left',
   'Bankdrücken':'Bench press','Kniebeugen':'Squats','Kreuzheben':'Deadlift','Schulterdrücken':'Overhead press','Klimmzüge':'Pull-ups','Ausdauer':'Endurance','Beweglichkeit':'Mobility','Disziplin':'Discipline',
   'Einsteiger':'Beginner','Fortgeschritten':'Intermediate','Erfahren':'Experienced','Profi':'Pro',
-  'Jahr':'year','Jahre':'years','unter 1 Jahr':'under 1 year',
-  'Über':'About','Stärken':'Strengths','Meist trainiert':'Most trained','Nachricht':'Message','Nachricht…':'Message…',
-  'Kurz & knackig — was treibt dich an?':'Short & sweet — what drives you?',
+'Jahr':'year','Jahre':'years','unter 1 Jahr':'under 1 year','Monat':'month','Monate':'months',
+'Über':'About','Stärken':'Strengths','Meist trainiert':'Most trained','Nachricht':'Message','Nachricht…':'Message…',
+'Kurz & knackig — was treibt dich an?':'Short & sweet — what drives you?',
   'So sehen dich deine Freunde in Rangliste, Feed, Karte und auf deinem Profil.':'This is how friends see you in the leaderboard, feed, map and on your profile.',
+  /* Profil-Ausbau 2026-07-25: Kopfzeile, Maßband, Lieblingsübungen, Anfragen-Feedback */
+  'Dein Name':'Your name','Geburtsdatum':'Date of birth','Alter':'Age','Foto entfernen':'Remove photo',
+  'Noch keine Erfahrung':'No experience yet','Lieblingsübungen':'Favourite exercises',
+  'Übung suchen':'Search exercise','Keine Übung gefunden':'No exercise found',
+'Noch keine gewählt — such unten nach deinen Übungen.':'None picked yet — search your exercises below.',
+'So sehen dich deine Freunde in Rangliste, Feed, Karte und auf deinem Profil. Vom Geburtsdatum teilst du nur das Alter — das Datum selbst bleibt auf deinem Gerät.':'This is how friends see you in the leaderboard, feed, map and on your profile. Only your age is shared — the date itself stays on your device.',
+'ist jetzt dein Freund':'is now your friend','Ihr seid jetzt Freunde':"You're friends now",
+  'Anfrage an':'Request to','gesendet':'sent','Anfrage zurückgezogen':'Request withdrawn',
+  'Anfragen wurden angenommen':'requests were accepted','möchte dir folgen':'wants to follow you','Code':'Code',
   'Noch keine Nachrichten — sag Hallo!':'No messages yet — say hi!','Chat gerade nicht verfügbar.':'Chat unavailable right now.',
   'Nachricht konnte nicht gesendet werden.':'Message could not be sent.',
   'Top-Satz-Chance':'Top-set opportunity','Top-Satz-Chance erkannt.':'Top-set opportunity detected.','Extra-Satz':'Extra set','Normal weiter':'Continue as planned',
   'Oberes Wdh-Ende erreicht — nächstes Mal ist mehr Gewicht drin.':'Top of rep range reached — more weight next time.',
-  'Bereichs-Maximum geschafft. Progression steht an.':'Range max done. Progression is due.',
-  'Dauer':'Duration','Gesamtvolumen':'Total volume','Top:':'Top:','Tage geplant':'Days planned','Dein Ziel':'Your goal',
+'Bereichs-Maximum geschafft. Progression steht an.':'Range max done. Progression is due.',
+'Dauer':'Duration','Gesamtvolumen':'Total volume','Top:':'Top:','Tage geplant':'Days planned','Dein Ziel':'Your goal',
   'Volumen 4 Wo.':'Volume 4 wks','Muskelgruppen-Balance (4 Wochen)':'Muscle group balance (4 weeks)',
   'PRs (4 Wo.)':'PRs (4 wks)','Ø pro Woche':'Avg per week','Volumen-Trend (8 Wochen)':'Volume trend (8 weeks)','jetzt':'now',
   'Stärkste Übungen (e1RM)':'Strongest lifts (e1RM)','Dein Coach bewertet die Zahlen…':'Your coach is scoring the numbers…',
   'Direkt übernehmen':'Apply directly','Übernommen — dein Training ist angepasst.':'Applied — your training is updated.',
   'Übung nicht gefunden — Name geändert?':'Exercise not found — renamed?',
-  'Kamera öffnen':'Open camera','Gerät mittig einfangen':'Center the machine','Schließen':'Close',
-  'im Training':'training now',
-  'Was möchtest du optimieren?':'What do you want to optimize?','Was möchtest du analysieren?':'What do you want to analyze?',
+'Kamera öffnen':'Open camera','Gerät mittig einfangen':'Center the machine','Schließen':'Close',
+'im Training':'training now',
+'Was möchtest du optimieren?':'What do you want to optimize?','Was möchtest du analysieren?':'What do you want to analyze?',
   'Letztes Workout':'Last workout','Gesamter Fortschritt':'Overall progress','Einzelne Übung':'Single exercise',
   'Welche Übung?':'Which exercise?','Split':'Split','Sessions':'Sessions','Aktive Zeit':'Active time',
   'Optional…':'Optional…','Diktieren':'Dictate',
   /* Changelog: Live-Coach Ausbau (23.07.2026) */
   '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
-  '🧠 Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'🧠 Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
-  '📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch':'📉 A "Very hard" check-in now automatically holds back the weight increase for your next workout',
-  '🎯 Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor':'🎯 New recommendation on the Today tab: on a free day, suggests your most recovered muscle group',
-  /* Changelog: KI-Coach-Rahmen-Fix (24.07.2026) */
+'Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
+'Check-in „Sehr schwer"bremst die Gewichtssteigerung beim nächsten Training automatisch':'A"Very hard"check-in now automatically holds back the weight increase for your next workout',
+'Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor':'New recommendation on the Today tab: on a free day, suggests your most recovered muscle group',
+ /* Changelog: KI-Coach-Rahmen-Fix (24.07.2026) */
   '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
   '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
   '✨ Vorher schnitt der Glow durch die Übungskarte statt außen umzulaufen':'✨ Previously the glow cut through the exercise card instead of tracing the outer edge',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
-   damit englische Ergebnisse Fixpunkte bleiben) */
+ damit englische Ergebnisse Fixpunkte bleiben) */
 const I18N_RX = [
-  // Inline-Icon-Buttons (Icon klebt im selben Textknoten wie der Text)
-  [/Training starten/g, 'Start workout'],
-  // Widget-/Kraft-Fragmente & Kürzel
+ // Inline-Icon-Buttons (Icon klebt im selben Textknoten wie der Text)
+ [/Training starten/g,'Start workout'],
+ // Widget-/Kraft-Fragmente & Kürzel
   [/ – tippen für Typ-Auswahl/g, ' – tap to pick type'],
   [/ — Kraftaufbau/g, ' — strength gain'],
   [/→ jetzt /g, '→ now '],
   [/(\d+) Üb\./g, '$1 ex.'],
   [/(\d+) Wo\./g, '$1 wk'],
-  [/Wdh bei/g, 'reps at'],
-  [/als neuen Top-Satz versuchen\./g, 'as your new top set.'],
-  [/nächstes Mal!/g, 'next time!'],
-  [/ Trainings diese Woche/g, ' workouts this week'],
+ [/Wdh bei/g,'reps at'],
+ [/als neuen Top-Satz versuchen\./g,'as your new top set.'],
+ [/nächstes Mal!/g,'next time!'],
+ [/ Trainings diese Woche/g,'workouts this week'],
   [/ Training diese Woche/g, ' workout this week'],
   [/\bTrainings\b/g, 'workouts'],
   [/vor (\d+) Min\.?/g, '$1 min ago'], [/vor (\d+) Std\.?/g, '$1 h ago'],
   [/vor (\d+) Tagen/g, '$1 days ago'], [/vor (\d+) Tag\b/g, '$1 day ago'],
   [/vor (\d+) Wochen/g, '$1 weeks ago'], [/vor (\d+) Woche\b/g, '$1 week ago'],
-  [/Du hast (\d+) Updates? verpasst — alles, was seitdem dazukam:/g, "You missed $1 update(s) — here's everything new since then:"],
-  [/✓ Update installiert – /g, '✓ Update installed – '],
-  [/: Gewicht erhöhen!/g, ': increase the weight!'],
-  [/Top-Satz geschafft\. Nächstes Mal:/g, 'Top set done. Next time:'],
-  [/ als neuen Top-Satz versuchen\./g, ' as your new top set.'],
-  [/Alle Ziel-Wdh erreicht\. Nächstes Mal:/g, 'All target reps hit. Next time:'],
-  [/Neue Reps-Bestleistung bei /g, 'New rep record at '],
+ [/Du hast (\d+) Updates? verpasst — alles, was seitdem dazukam:/g,"You missed $1 update(s) — here's everything new since then:"],
+ [/ Update installiert – /g,'Update installed –'],
+ [/: Gewicht erhöhen!/g,': increase the weight!'],
+ [/Top-Satz geschafft\. Nächstes Mal:/g,'Top set done. Next time:'],
+ [/ als neuen Top-Satz versuchen\./g,'as your new top set.'],
+ [/Alle Ziel-Wdh erreicht\. Nächstes Mal:/g,'All target reps hit. Next time:'],
+ [/Neue Reps-Bestleistung bei /g,'New rep record at'],
   [/Reps-Bestleistung bei /g, 'Rep record at '],
   [/Zuletzt nur ~/g, 'Last time only ~'],
   [/\. Versuche /g, '. Try '],
   [/ nächstes Mal!/g, ' next time!'],
   [/ Wdh bei /g, ' reps at '],
-  [/: Super!/g, ': great!'],
-  [/: Wdh aufbauen/g, ': build up reps'],
-  [/: Fokus /g, ': focus '],
-  [/\. Halte das Gewicht\./g, '. Keep the weight.'],
-  [/letztes Mal: /g, 'last time: '],
-  [/Du arbeitest in einem Bereich, z\. ?B\./g, 'You work within a range, e.g.'],
-  [/\. Schaffst du in (\d+) Arbeitssätzen das obere Ende \((\d+)\), steigt das Gewicht — und du startest nächstes Mal wieder unten im Bereich \((\d+)\)\. Bis dahin baust du Satz für Satz Wiederholungen auf\./g,
-   '. If you hit the top end ($2) in $1 working sets, the weight goes up — and next time you start again at the bottom of the range ($3). Until then you build up reps set by set.'],
-  [/Gewichts-Steigerung bei vollem Wdh-Bereich \(/g, 'Weight increase at full rep range ('],
+ [/: Super!/g,': great!'],
+ [/: Wdh aufbauen/g,': build up reps'],
+ [/: Fokus /g,': focus'],
+ [/\. Halte das Gewicht\./g,'. Keep the weight.'],
+ [/letztes Mal: /g,'last time:'],
+ [/Du arbeitest in einem Bereich, z\. ?B\./g,'You work within a range, e.g.'],
+ [/\. Schaffst du in (\d+) Arbeitssätzen das obere Ende \((\d+)\), steigt das Gewicht — und du startest nächstes Mal wieder unten im Bereich \((\d+)\)\. Bis dahin baust du Satz für Satz Wiederholungen auf\./g,
+'. If you hit the top end ($2) in $1 working sets, the weight goes up — and next time you start again at the bottom of the range ($3). Until then you build up reps set by set.'],
+ [/Gewichts-Steigerung bei vollem Wdh-Bereich \(/g,'Weight increase at full rep range ('],
   [/🔗 Weiter mit /g, '🔗 Continue with '],
   [/Gekoppelt mit „/g, 'Paired with “'],
   [/🔗 Superset mit „/g, '🔗 Superset with “'],
@@ -7673,10 +7869,10 @@ const I18N_RX = [
   [/ hinzu oder wähle eine andere Gruppe\./g, ' or choose another group.'],
   [/Aktuellen Wochenplan überschreiben mit „/g, 'Overwrite your current weekly plan with “'],
   [/✓ Plan übernommen: /g, '✓ Plan applied: '],
-  [/ löschen\?$/g, ' — delete?'],
-  [/Alle (\d+) anzeigen/g, 'Show all $1'],
-  [/Du hast die Übungen in diesem Training geändert\.\n\nSoll /g, 'You changed the exercises in this workout.\n\nShould '],
-  [/ dauerhaft mit diesen Übungen aktualisiert werden\?\n\n\(Deine Trainingsdaten werden so oder so gespeichert\.\)/g, ' be permanently updated with these exercises?\n\n(Your workout data is saved either way.)'],
+ [/ löschen\?$/g,'— delete?'],
+ [/Alle (\d+) anzeigen/g,'Show all $1'],
+ [/Du hast die Übungen in diesem Training geändert\.\n\nSoll /g,'You changed the exercises in this workout.\n\nShould'],
+ [/ dauerhaft mit diesen Übungen aktualisiert werden\?\n\n\(Deine Trainingsdaten werden so oder so gespeichert\.\)/g,'be permanently updated with these exercises?\n\n(Your workout data is saved either way.)'],
   [/×\/Woche\)/g, '×/week)'],
   [/Ziel ändern \(aktuell /g, 'Change goal (currently '],
   [/−1 rückgängig \(/g, '−1 undo ('],
@@ -7684,44 +7880,44 @@ const I18N_RX = [
   [/Trainiert gerade · seit /g, 'Working out · since '],
   [/Diese Woche · Du vs\. /g, 'This week · You vs. '],
   [/ einen neuen Rekord aufgestellt:/g, ' set a new record:'],
-  [/-Wochen-Streak/g, '-week streak'],
+ [/-Wochen-Streak/g,'-week streak'],
   [/Monats-Ranking — zählt Trainings im /g, 'Monthly ranking — counts workouts in '],
   [/❌ Login fehlgeschlagen:/g, '❌ Sign-in failed:'],
   [/❌ Cloud-Sync fehlgeschlagen:/g, '❌ Cloud sync failed:'],
   [/❌ Löschen fehlgeschlagen:/g, '❌ Delete failed:'],
   [/(\d+) Übungen/g, '$1 exercises'], [/(\d+) Übung\b/g, '$1 exercise'],
-  [/(\d+) Sätze/g, '$1 sets'], [/(\d+) Satz\b/g, '$1 set'],
-  [/(\d+) Wdh\.?/g, '$1 reps'],
-  [/(\d+) Einheiten/g, '$1 sessions'], [/(\d+) Einheit\b/g, '$1 session'],
-  [/(\d+) Trainings\b/g, '$1 workouts'], [/(\d+) Training\b/g, '$1 workout'],
-  [/(\d+) Wochen/g, '$1 weeks'], [/(\d+) Woche\b/g, '$1 week'],
-  [/(\d+) Minuten/g, '$1 minutes'], [/(\d+) Min\./g, '$1 min'],
+ [/(\d+) Sätze/g,'$1 sets'], [/(\d+) Satz\b/g,'$1 set'],
+ [/(\d+) Wdh\.?/g,'$1 reps'],
+ [/(\d+) Einheiten/g,'$1 sessions'], [/(\d+) Einheit\b/g,'$1 session'],
+ [/(\d+) Trainings\b/g,'$1 workouts'], [/(\d+) Training\b/g,'$1 workout'],
+ [/(\d+) Wochen/g,'$1 weeks'], [/(\d+) Woche\b/g,'$1 week'],
+ [/(\d+) Minuten/g,'$1 minutes'], [/(\d+) Min\./g,'$1 min'],
   [/(\d+(?:[.,]\d+)?) Std\./g, '$1 h'],
   [/(\d+) Tagen\b/g, '$1 days'], [/(\d+) Tage\b/g, '$1 days'], [/(\d+) Tag\b/g, '$1 day'],
   [/(\d) Uhr\b/g, '$1'],
   [/\bSätze\b/g, 'sets'], [/\bWdh\b/g, 'reps'], [/\bÜbungen\b/g, 'exercises'], [/\bÜbung\b/g, 'exercise'],
   [/\bdiese Woche\b/g, 'this week'], [/\bEinheiten\b/g, 'sessions'],
-  [/Woche (\d+)/g, 'Week $1'],
-  // Premium / KI-Coach — dynamische/zusammengesetzte Texte
-  [/Noch (\d+) von (\d+) KI-Anfragen diesen Monat/g, 'You have $1 of $2 AI requests left this month'],
+ [/Woche (\d+)/g,'Week $1'],
+ // Premium / KI-Coach — dynamische/zusammengesetzte Texte
+ [/Noch (\d+) von (\d+) KI-Anfragen diesen Monat/g,'You have $1 of $2 AI requests left this month'],
   [/Jahresabo · läuft ab am /g, 'Yearly plan · renews on '],
   [/Monatsabo · läuft ab am /g, 'Monthly plan · renews on '],
   [/ pro Jahr · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per year · renews automatically · cancel anytime in the App Store settings'],
   [/ pro Monat · verlängert sich automatisch · jederzeit kündbar in den App-Store-Einstellungen/g, ' per month · renews automatically · cancel anytime in the App Store settings'],
   [/Kauf fehlgeschlagen: /g, 'Purchase failed: '],
-  [/Wiederherstellung fehlgeschlagen: /g, 'Restore failed: '],
-  // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
-  [/ bekommt aktuell nur (\d+)% deines Trainingsvolumens\./g, ' currently gets only $1% of your training volume.'],
-  [/Im Bereich (.+) Wdh\. wächst dein 1RM am stärksten\./g, 'Your estimated 1RM grows fastest in the $1 rep range.'],
-  [/Du trainierst zuletzt Ø ([\d.,]+)×\/Woche — dein Ziel sind (\d+)×\./g, 'You’re averaging $1×/week lately — your goal is $2×.'],
-  [/Du erreichst dein Frequenz-Ziel von (\d+)× pro Woche\./g, 'You’re hitting your frequency goal of $1× per week.'],
-  [/(\d+) neue Bestleistungen in den letzten 4 Wochen\./g, '$1 new PRs in the last 4 weeks.'],
+ [/Wiederherstellung fehlgeschlagen: /g,'Restore failed:'],
+ // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
+ [/ bekommt aktuell nur (\d+)% deines Trainingsvolumens\./g,'currently gets only $1% of your training volume.'],
+ [/Im Bereich (.+) Wdh\. wächst dein 1RM am stärksten\./g,'Your estimated 1RM grows fastest in the $1 rep range.'],
+ [/Du trainierst zuletzt Ø ([\d.,]+)×\/Woche — dein Ziel sind (\d+)×\./g,'You’re averaging $1×/week lately — your goal is $2×.'],
+ [/Du erreichst dein Frequenz-Ziel von (\d+)× pro Woche\./g,'You’re hitting your frequency goal of $1× per week.'],
+ [/(\d+) neue Bestleistungen in den letzten 4 Wochen\./g,'$1 new PRs in the last 4 weeks.'],
   // Check-in bremst Progression (Phase G) + Tagesempfehlung
   [/: Erholung vor Steigerung/g, ': recovery before progression'],
   [/Du hast dein letztes Training als "Sehr schwer" bewertet\. Heute /g, 'You rated your last workout "Very hard". Today, '],
   [/ halten statt weiter steigern\./g, ' — hold instead of increasing further.'],
   [/ ist zu (\d+)% erholt — guter Fokus für heute\./g, ' is $1% recovered — good focus for today.'],
-  [/ ist noch bei (\d+)% — heute lieber schonen\./g, ' is still at $1% — better to rest that today.'],
+ [/ ist noch bei (\d+)% — heute lieber schonen\./g,'is still at $1% — better to rest that today.'],
 ];
 
 /* tr(): exakte Phrase → Segmente (· -getrennt) → Regex-Regeln */
@@ -7731,27 +7927,27 @@ function tr(s) {
   const key = str.trim();
   if (!key || !/[A-Za-zÄÖÜäöüß]/.test(key)) return s;
   const hit = I18N_EN[key];
-  if (hit !== undefined) return str.replace(key, hit);
-  // Führendes Icon/Symbol (z. B. "▶ Training starten") abtrennen und Rest exakt matchen
-  const pm = key.match(/^([^\p{L}]+?)([\p{L}].*)$/u);
+ if (hit !== undefined) return str.replace(key, hit);
+ // Führendes Icon/Symbol (z. B."Training starten") abtrennen und Rest exakt matchen
+ const pm = key.match(/^([^\p{L}]+?)([\p{L}].*)$/u);
   if (pm) { const rest = pm[2].trim(), rh = I18N_EN[rest];
     if (rh !== undefined) return str.replace(rest, rh); }
   let out = str;
   if (out.indexOf(' · ') !== -1) {
     out = out.split(' · ').map(p => {
       const t = p.trim(), h = I18N_EN[t];
-      return h !== undefined ? p.replace(t, h) : p;
-    }).join(' · ');
-  }
+ return h !== undefined ? p.replace(t, h): p;
+ }).join('·');
+ }
   for (let i = 0; i < I18N_RX.length; i++) out = out.replace(I18N_RX[i][0], I18N_RX[i][1]);
   return out;
 }
 
 /* DOM-Übersetzung: Boot-Pass + MutationObserver (nur bei EN aktiv) */
-const I18N_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+const I18N_ATTRS = ['placeholder','title','aria-label','alt'];
 function _trElAttrs(el) {
-  if (!el.getAttribute) return;
-  for (let i = 0; i < I18N_ATTRS.length; i++) {
+ if (!el.getAttribute) return;
+ for (let i = 0; i < I18N_ATTRS.length; i++) {
     const v = el.getAttribute(I18N_ATTRS[i]);
     if (v) { const t = tr(v); if (t !== v) el.setAttribute(I18N_ATTRS[i], t); }
   }
@@ -7806,6 +8002,16 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-25-checkin-autoregulation': {
+    label: '25.07.2026 · Dein Check-in steuert jetzt das nächste Training',
+    items: [
+      '🧠 Der KI-Coach wendet dein Post-Workout-Feedback wirklich an: Gewichtsvorschläge, Satzpausen und Progression passen sich automatisch an Gefühl & Energielevel an',
+      '📉 Mehrfach schwer bei wenig Energie → automatischer Deload (~8 % weniger Gewicht, längere Pausen)',
+      '🚀 Locker bei voller Energie → größere Steigerung wird sofort freigegeben',
+      '💬 Beim Trainingsstart sagt der Coach an, was er aus deinem Check-in gemacht hat',
+      '✨ Tagesempfehlung auf der Startseite komplett neu: Erholungsring, KI-Aura und tägliches Briefing — auch an Plan- und Erholungstagen',
+    ]
+  },
   'cl-2026-07-24-coach-aura-border-fix': {
     label: '24.07.2026 · Fix: KI-Coach-Rahmen im Training',
     items: [
@@ -8462,7 +8668,7 @@ function _updateLiveActivity(exerciseName, setsDone, totalSets, restSeconds, isR
 function _endLiveActivity() {
   if (!_liveActivityActive) return;
   _liveActivityActive = false;
-  const LA = _cap('LiveActivityPlugin'); if (!LA) return;
+ const LA = _cap('LiveActivityPlugin'); if (!LA) return;
   LA.end().catch(() => {});
 }
 // Berechnet den aktuellen Workout-Zustand und schiebt ihn in die Dynamic Island.
@@ -8473,7 +8679,7 @@ function _syncLiveActivity() {
     if (!l.sets) continue;
     totalSets += l.sets.length;
     doneSets  += l.sets.filter(s => s.done).length;
-  }
+ }
   // Aktuelle Übung: erste mit offenem Satz, sonst die letzte.
   const curLog = wkLogs.find(l => l.sets?.some(s => !s.done)) || wkLogs[wkLogs.length - 1];
   const exName = exById(curLog?.exerciseId)?.name || '';
@@ -10043,58 +10249,163 @@ function renderHome() {
   document.getElementById('greet-d').textContent = new Date().toLocaleDateString(GT_LOCALE,{weekday:'long',day:'numeric',month:'long'});
   renderStreak();
   _renderLevelBadge();
-  renderHeuteGrid();
+ renderHeuteGrid();
   renderCoachTodayCard();
 }
 
-// ── KI-Coach: TAGESEMPFEHLUNG NACH ERHOLUNG (Phase G) ──
-// Rein lokal berechnet (Recovery-Daten liegen längst vor) — kein KI-Call, kein
-// Kosten-/Quota-Verbrauch. Nur wenn heute noch kein Plan zugewiesen ist (sonst
-// würde die Empfehlung der eigenen Wochenplanung widersprechen).
+/* ── KI-COACH: TAGESBRIEFING AUF DER STARTSEITE (Phase G, neu gebaut Phase I) ──
+   Rein lokal berechnet (Erholung + Wochenplan + Post-Workout-Check-in liegen
+   längst vor) — kein KI-Call, kein Kosten-/Quota-Verbrauch. Anders als vorher
+   verschwindet die Karte NICHT, sobald ein Plan für heute steht: der Coach soll
+   sich anfühlen, als wäre er jeden Tag dabei, also kommentiert er auch geplante
+   Tage, den Tag nach dem Training und reine Erholungstage. Vier Lagen:
+     done  → heute schon trainiert (Erholung läuft, Check-in ist eingerechnet)
+     plan  → für heute ist ein Plan hinterlegt (+ Check-in-Anpassung ansagen)
+     focus → kein Plan, eine Muskelgruppe ist erholt genug
+     rest  → kein Plan, nichts ausreichend erholt → Erholungstag empfehlen */
+function _gtDayStr(d) {
+  const x = d ? new Date(d) : new Date();
+  if (isNaN(x)) return '';
+  return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
+}
 function _coachTodaySuggestion() {
   try {
     if (!isPremium() || !S.aiCoach || S.aiCoach.insights === false) return null;
-    if (planFor(todayKey()).type !== 'none') return null;
-    if (localStorage.getItem('gt_coachTodayDismiss') === todayKey()) return null;
-    const mgRec = getMuscleGroupRecovery();
-    const trained = MUSCLE_GROUPS
-      .map(mg => ({ mg, r: mgRec[mg.id] }))
-      .filter(c => c.r && c.r.lastTs);
-    if (!trained.length) return null;
-    trained.sort((a,b) => b.r.recPct - a.r.recPct);
-    const best = trained[0];
-    if (best.r.recPct < 75) return null;
-    const worst = trained[trained.length-1];
-    let text = `${muscleLabel(best.mg.id)} ist zu ${best.r.recPct}% erholt — guter Fokus für heute.`;
-    if (worst.mg.id !== best.mg.id && worst.r.recPct < 40) {
-      text += ` ${muscleLabel(worst.mg.id)} ist noch bei ${worst.r.recPct}% — heute lieber schonen.`;
+    // Ausblenden gilt für den KALENDERTAG. Vorher lag hier todayKey() ('mon'…) —
+    // damit blieb die Karte an jedem künftigen Montag ausgeblendet.
+    if (localStorage.getItem('gt_coachTodayDismiss') === _gtDayStr()) return null;
+
+    const rd     = _ciReadiness();
+    const mgRec  = getMuscleGroupRecovery();
+    const trained = MUSCLE_GROUPS.map(mg => ({ mg, r: mgRec[mg.id] })).filter(c => c.r && c.r.lastTs);
+    const plan   = planFor(todayKey());
+    const hasPlan = plan && plan.type !== 'none';
+    const today  = _gtDayStr();
+    const didToday = (S.sessions || []).some(s => _gtDayStr(s.date) === today);
+    if (!trained.length && !hasPlan) return null;   // ganz frischer Account: nichts erfinden
+
+    const overall = trained.length
+      ? Math.round(trained.reduce((s,c) => s + c.r.recPct, 0) / trained.length) : 100;
+    const sorted = trained.slice().sort((a,b) => b.r.recPct - a.r.recPct);
+    const best   = sorted[0] || null;
+    const worst  = sorted[sorted.length-1] || null;
+    const chip2  = rd ? rd.chip : null;
+
+    // 1) Heute schon trainiert → Erholungs-Briefing statt "starte jetzt"
+    if (didToday) {
+      return { kind:'done', pct: overall, ringLbl: _cm('Erholung','Recovery'),
+        head: _cm('Einheit im Kasten', 'Session in the bag'),
+        text: (rd
+          ? _cm(`Dein Check-in ist eingerechnet: ${rd.text.charAt(0).toLowerCase()}${rd.text.slice(1)}`,
+                `Your check-in is factored in: ${rd.text.charAt(0).toLowerCase()}${rd.text.slice(1)}`)
+          : _cm('Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, wenn wieder was bereit ist.',
+                'Recovery is running. I am watching your muscle groups and will speak up when something is ready again.')),
+        chip: _cm('Heute trainiert','Trained today'), chip2, cta:null };
     }
-    return { mgId: best.mg.id, text };
+
+    // 2) Plan für heute → Coach kommentiert den eigenen Plan (statt zu schweigen)
+    if (hasPlan) {
+      const lbl = _planLabelFor(todayKey()) || _cm('Trainingstag','Training day');
+      const on  = plan.type === 'preset' && plan.id
+        ? `startPresetDirect('${String(plan.id).replace(/'/g, "\\'")}')`
+        : `goTabId('uebungen')`;
+      const base = _cm(`${lbl} steht heute an.`, `${lbl} is on the plan today.`);
+      return { kind:'plan', pct: overall, ringLbl: _cm('Bereit','Ready'),
+        head: lbl,
+        text: rd ? `${base} ${rd.text}` : `${base} ${_cm(`Deine Muskulatur ist im Schnitt zu ${overall} % erholt.`, `Your muscles are ${overall}% recovered on average.`)}`,
+        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Training starten','Start workout'), on } };
+    }
+
+    // 3) Kein Plan, aber etwas ist erholt → konkreter Fokus
+    if (best && best.r.recPct >= 70) {
+      let text = _cm(`${muscleLabel(best.mg.id)} ist zu ${best.r.recPct} % erholt — der beste Fokus für heute.`,
+                     `${muscleLabel(best.mg.id)} is ${best.r.recPct}% recovered — your best focus today.`);
+      if (worst && worst.mg.id !== best.mg.id && worst.r.recPct < 40) {
+        text += ' ' + _cm(`${muscleLabel(worst.mg.id)} liegt bei ${worst.r.recPct} % — heute lieber schonen.`,
+                          `${muscleLabel(worst.mg.id)} is at ${worst.r.recPct}% — better to spare it today.`);
+      }
+      if (rd && rd.mode !== 'steady') text += ' ' + rd.text;
+      return { kind:'focus', pct: best.r.recPct, ringLbl: muscleLabel(best.mg.id), mgId: best.mg.id,
+        head: _cm(`${muscleLabel(best.mg.id)} ist bereit`, `${muscleLabel(best.mg.id)} is ready`),
+        text, chip: _cm('Empfehlung für heute','Recommendation for today'), chip2,
+        cta: { label: _cm('Training starten','Start workout'), on: `_coachTodayGoTrain('${best.mg.id}')` } };
+    }
+
+    // 4) Nichts ausreichend erholt → Erholungstag ist die Empfehlung
+    return { kind:'rest', pct: overall, ringLbl: _cm('Erholung','Recovery'),
+      head: _cm('Heute Erholungstag', 'Recovery day today'),
+      text: (best
+        ? _cm(`Nichts ist wieder voll da — ${muscleLabel(best.mg.id)} liegt bei ${best.r.recPct} %. Ein ruhiger Tag bringt dich morgen weiter.`,
+              `Nothing is fully back — ${muscleLabel(best.mg.id)} is at ${best.r.recPct}%. A calm day will pay off tomorrow.`)
+        : _cm('Deine Muskulatur erholt sich noch. Ein ruhiger Tag bringt dich morgen weiter.',
+              'Your muscles are still recovering. A calm day will pay off tomorrow.')),
+      chip: _cm('Empfehlung für heute','Recommendation for today'), chip2, cta:null };
   } catch(e) { console.warn('[Coach] today suggestion:', e); return null; }
 }
+// Signatur der zuletzt gerenderten Karte: verhindert, dass jeder renderHome()
+// (Tab-Wechsel, Sync, Timer) die Einblend-Animation erneut abfeuert.
+let _aicSig = null;
 function renderCoachTodayCard() {
   const host = document.getElementById('coach-today-card');
   if (!host) return;
   try {
     const s = _coachTodaySuggestion();
-    if (!s) { host.innerHTML = ''; return; }
-    host.innerHTML = `<div class="coach-card">
-      <div class="coach-card-bar"></div>
-      <div class="coach-card-body">
-        <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(tr('Empfehlung für heute'))}</span></div>
-        <div class="coach-card-text">${esc(s.text)}</div>
-        <div class="coach-card-btns">
-          <button type="button" class="coach-card-btn accept" onclick="_coachTodayGoTrain('${s.mgId}')">Training starten</button>
-          <button type="button" class="coach-card-btn dismiss" onclick="_coachTodayDismiss()">${esc(tr('Ausblenden'))}</button>
+    if (!s) { host.innerHTML = ''; _aicSig = null; return; }
+    const pct = Math.max(0, Math.min(100, Math.round(s.pct || 0)));
+    const sig = [s.kind, s.head, s.text, s.chip2, pct].join('|');
+    if (sig === _aicSig && host.firstElementChild) return;
+    _aicSig = sig;
+
+    const C   = 163.4;                       // Umfang r=26
+    const off = C * (1 - pct / 100);
+    const col = recoveryColor(pct);
+    host.innerHTML = `<div class="aic">
+      <span class="aic-aur" aria-hidden="true"></span>
+      <span class="aic-sheen" aria-hidden="true"></span>
+      <div class="aic-in">
+        <div class="aic-top">
+          <span class="aic-orb">${ICO.sparkle({s:14})}</span>
+          <span class="aic-lbl">${esc(tr('KI-Coach'))}</span>
+          <span class="aic-live"><i></i>${esc(s.chip)}</span>
+          <button type="button" class="aic-x" onclick="_coachTodayDismiss()" aria-label="${esc(tr('Ausblenden'))}">✕</button>
         </div>
+        <div class="aic-main">
+          <div class="aic-ringbox">
+            <svg viewBox="0 0 64 64" width="62" height="62" aria-hidden="true" focusable="false">
+              <circle class="aic-r-bg" cx="32" cy="32" r="26"/>
+              <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:${col};stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
+            </svg>
+            <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
+          </div>
+          <div class="aic-txt">
+            <div class="aic-head shine">${esc(s.head)}</div>
+            <div class="aic-sub">${esc(s.text)}</div>
+          </div>
+        </div>
+        ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span>
+          <span class="aic-chip ghost">${esc(s.ringLbl)} ${pct} %</span></div>` : ''}
+        ${s.cta ? `<div class="aic-btns">
+          <button type="button" class="aic-go" onclick="${s.cta.on}">${esc(s.cta.label)}</button>
+          <button type="button" class="aic-later" onclick="_coachTodayDismiss()">${esc(tr('Später'))}</button>
+        </div>` : ''}
       </div>
     </div>`;
+    const card = host.firstElementChild;
+    if (card) {
+      requestAnimationFrame(() => card.classList.add('in'));
+      // Der Text-Schimmer läuft genau einmal; danach zurück auf normale Farbe,
+      // damit background-clip:text nicht dauerhaft am Text hängt.
+      setTimeout(() => { try { card.querySelector('.aic-head')?.classList.remove('shine'); } catch(_) {} }, 2600);
+    }
   } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
 }
 function _coachTodayDismiss() {
-  try { localStorage.setItem('gt_coachTodayDismiss', todayKey()); } catch(_) {}
+  try { localStorage.setItem('gt_coachTodayDismiss', _gtDayStr()); } catch(_) {}
   const host = document.getElementById('coach-today-card');
-  if (host) host.innerHTML = '';
+  const card = host && host.firstElementChild;
+  _aicSig = null;
+  if (card) { card.classList.add('out'); setTimeout(() => { if (host) host.innerHTML = ''; }, 260); }
+  else if (host) host.innerHTML = '';
   haptic(8);
 }
 function _coachTodayGoTrain(mgId) {
@@ -10657,15 +10968,116 @@ function progStepFor(ex) {
   return null;
 }
 
-// Post-Workout-Check-in (Phase E) als Progressions-Bremse: wurde die letzte
-// Einheit als "Sehr schwer" bewertet, wird die Double-Progression EINMAL
-// ausgesetzt (kein Gewichts-Sprung + kein Wdh-Reset) — der Plan reagiert so
-// auf gemeldete Überlastung statt stur weiterzusteigern. Implizit premium-only:
-// S.checkins bekommt nur bei Premium-Nutzern Einträge (_checkinOpen-Gate).
+/* ── AUTOREGULATION (Phase I): der Check-in STEUERT das nächste Training ──
+   Vorher wurde das Post-Workout-Feedback nur gespeichert und der KI als Text
+   mitgegeben — angewendet hat es fast nichts (nur „Sehr schwer" bremste einmal
+   die Progression). _ciReadiness() leitet aus den letzten 3 Check-ins EINEN
+   Zustand ab, der überall greift, wo die App Trainingsentscheidungen trifft:
+     • getSuggestedWeight()  → Gewichtsvorschlag (Deload-Faktor / Halten / Push)
+     • getSuggestion()       → Begründung in der Übungs-Karte
+     • smartRestSecs()       → längere bzw. kürzere Satzpausen
+     • startActive()         → Ansage in der Coach-Leiste beim Trainingsstart
+     • Tagesempfehlung       → sichtbarer Status auf der Startseite
+     • _aiaData()            → dieselbe Lage geht an die KI, damit KI-Antwort
+                               und lokale Anpassung nicht widersprechen
+   Rein lokal (kein KI-Call, keine Quota). Implizit premium-only: S.checkins
+   bekommt nur bei Premium-Nutzern Einträge (_checkinOpen-Gate). Check-ins, die
+   älter als CI_STALE_DAYS sind, steuern nichts mehr — sonst würde eine schwere
+   Einheit von vor drei Wochen ewig bremsen. */
+const CI_STALE_DAYS = 10;
+let _ciReadyCache = { key: null, val: null };
+function _ciReadiness() {
+  try {
+    if (!isPremium()) return null;
+    const all = (S.checkins || []).filter(c => c && c.feel);
+    if (!all.length) return null;
+    const last = all[all.length - 1];
+    const key = all.length + ':' + (last.sid || '') + ':' + last.feel + ':' + (last.en || 2);
+    if (_ciReadyCache.key === key) return _ciReadyCache.val;
+    const val = _ciReadinessCalc(all, last);
+    _ciReadyCache = { key, val };
+    return val;
+  } catch(e) { console.warn('[CI] readiness:', e); return null; }
+}
+function _ciReadinessCalc(all, last) {
+  const lastTs = last.d ? new Date(last.d).getTime() : 0;
+  if (lastTs && Date.now() - lastTs > CI_STALE_DAYS * 864e5) return null;
+  const win   = all.slice(-3);
+  const hard  = win.filter(c => c.feel >= 3).length;
+  const avgEn = win.reduce((s, c) => s + (c.en || 2), 0) / win.length;
+  const en    = last.en || 2;
+  const base  = { sid: last.sid, feel: last.feel, en, wFactor: 1, restMult: 1, hold: false, bigStep: false };
+
+  // Mehrfach schwer bei wenig Energie → echter Deload: Gewicht runter + mehr Pause
+  if (win.length >= 2 && hard >= 2 && last.feel >= 3 && avgEn <= 1.7) {
+    return { ...base, mode: 'deload', wFactor: 0.92, restMult: 1.25, hold: true,
+      chip:  _cm('Deload aktiv', 'Deload active'),
+      head:  _cm('Erholung geht heute vor', 'Recovery comes first today'),
+      text:  _cm('Deine letzten Einheiten waren schwer bei wenig Energie. Ich nehme rund 8 % Gewicht raus und gebe dir längere Pausen.',
+                 'Your recent sessions were hard on low energy. I am taking about 8% off the weights and giving you longer rest.'),
+      bar:   _cm('Deload: ich habe die Vorschläge um ~8 % gesenkt und die Pausen verlängert.',
+                 'Deload: I lowered today’s suggestions by ~8% and extended your rest.'),
+      plain: 'Letzte Einheiten mehrfach schwer bei niedriger Energie — App hat Gewichte um 8 % gesenkt und Pausen um 25 % verlängert.' };
+  }
+  // Letzte Einheit „Sehr schwer" → Progression einmal aussetzen (bisheriges Verhalten)
+  if (last.feel === 4) {
+    return { ...base, mode: 'hold', restMult: 1.2, hold: true,
+      chip:  _cm('Gewicht halten', 'Hold weight'),
+      head:  _cm('Heute halten, nicht steigern', 'Hold today, don’t add weight'),
+      text:  _cm('Dein letztes Training war sehr schwer. Gleiche Gewichte, etwas mehr Pause — sauber wiederholen schlägt heute jeden Sprung.',
+                 'Your last session was very hard. Same weights, a little more rest — a clean repeat beats any jump today.'),
+      bar:   _cm('Nach deinem Check-in: Gewichte halten, Pausen etwas länger.',
+                 'After your check-in: hold the weights, rest a little longer.'),
+      plain: 'Letzte Einheit als „Sehr schwer" bewertet — App setzt Progression aus und verlängert Pausen um 20 %.' };
+  }
+  // Anstrengend + leerer Tank → leicht zurücknehmen statt stur weiter
+  if (last.feel === 3 && en === 1) {
+    return { ...base, mode: 'easy', wFactor: 0.96, restMult: 1.12, hold: true,
+      chip:  _cm('Leicht gedrosselt', 'Slightly eased'),
+      head:  _cm('Etwas zurückgenommen', 'Dialed back a little'),
+      text:  _cm('Anstrengend bei niedriger Energie — ich habe die Vorschläge leicht gesenkt und die Pausen verlängert.',
+                 'Hard session on low energy — I eased the suggestions a little and extended your rest.'),
+      bar:   _cm('Energie war niedrig: Vorschläge leicht gesenkt, Pausen länger.',
+                 'Energy was low: suggestions eased, rest extended.'),
+      plain: 'Letzte Einheit anstrengend bei niedriger Energie — App hat Gewichte um 4 % gesenkt.' };
+  }
+  // Locker + volle Energie → große Progressionsstufe freigeben, Pausen kürzer
+  if (last.feel <= 2 && en === 3) {
+    return { ...base, mode: 'push', restMult: 0.92, bigStep: true,
+      chip:  _cm('Volle Progression', 'Full progression'),
+      head:  _cm('Du hast Luft nach oben', 'You have room to push'),
+      text:  _cm('Letztes Training locker bei voller Energie — ich gebe die größere Steigerung frei und kürze die Pausen leicht.',
+                 'Last session felt easy on full energy — I unlocked the bigger jump and shortened rest slightly.'),
+      bar:   _cm('Check-in war stark: größere Steigerung freigegeben.',
+                 'Strong check-in: bigger jump unlocked.'),
+      plain: 'Letzte Einheit leicht bei hoher Energie — App gibt größere Steigerung frei und kürzt Pausen um 8 %.' };
+  }
+  return { ...base, mode: 'steady',
+    chip:  _cm('Plan läuft', 'On plan'),
+    head:  _cm('Alles im grünen Bereich', 'Everything on track'),
+    text:  _cm('Dein letzter Check-in passt zum Plan — normale Progression, normale Pausen.',
+               'Your last check-in fits the plan — normal progression, normal rest.'),
+    bar:   null,
+    plain: 'Letzter Check-in unauffällig — normale Progression.' };
+}
+// Gewichtsvorschlag nach Check-in-Lage anpassen (nur runter, nie hoch — hoch
+// passiert über die freigegebene größere Progressionsstufe, nicht per Faktor).
+function _ciAdjustW(w) {
+  const r = _ciReadiness();
+  const n = Number(w);
+  if (!r || r.wFactor === 1 || !isFinite(n) || n <= 0) return w;
+  const step = n >= 40 ? 2.5 : 1;
+  const out  = Math.round((n * r.wFactor) / step) * step;
+  return Math.min(n, Math.max(step, out));
+}
+// Progressions-Bremse: „Sehr schwer" bei genau dieser Einheit ODER ein aktuell
+// aktiver Halte-/Deload-Zustand (der bezieht sich immer auf die jüngste Einheit).
 function _ciBlocksProgression(sessionId) {
   if (!sessionId) return false;
   const c = (S.checkins || []).find(c => c.sid === sessionId);
-  return !!c && c.feel === 4;
+  if (c && c.feel === 4) return true;
+  const r = _ciReadiness();
+  return !!(r && r.hold && r.sid === sessionId);
 }
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
@@ -10719,13 +11131,15 @@ function getSuggestedWeight(ex) {
         const pAllReps = pMain.every(s => _repsOk(s, ex.targetReps));
         const pMax     = maxW(pMain);
         if (allReps && allSets && pAllReps && lMaxW === pMax) {
-          return lMaxW + stepBig;
+          return _ciAdjustW(lMaxW + stepBig);
         }
       }
     }
   }
-  if (!held && allReps && allSets) return lMaxW + stepSmall;
-  return lMaxW;
+  // Check-in „locker bei voller Energie" gibt die große Stufe schon nach EINER
+  // sauberen Einheit frei (sonst braucht es zwei identische Einheiten).
+  if (!held && allReps && allSets) return _ciAdjustW(lMaxW + (_ciReadiness()?.bigStep ? stepBig : stepSmall));
+  return _ciAdjustW(lMaxW);
 }
 
 function getSuggestion(ex) {
@@ -10753,6 +11167,16 @@ function getSuggestion(ex) {
   const held = _ciBlocksProgression(last.id);
 
   if (held) {
+    // Begründung kommt aus dem Check-in-Zustand (Deload/Halten/leicht gedrosselt),
+    // damit die Karte dasselbe sagt, was der Gewichtsvorschlag gerade tut.
+    const r = _ciReadiness();
+    const tgt = _ciAdjustW(lMaxW);
+    if (r && r.mode === 'deload') {
+      return { type:'hold', icon:'', title:`${ex.name}: Deload`, text:`Mehrere schwere Einheiten bei wenig Energie. Heute ${kgToDisp(tgt)} ${unitLabel()} statt ${kgToDisp(lMaxW)} ${unitLabel()} — bewusst leichter.` };
+    }
+    if (r && r.mode === 'easy') {
+      return { type:'hold', icon:'', title:`${ex.name}: leicht zurückgenommen`, text:`Letztes Training anstrengend bei niedriger Energie. Heute ${kgToDisp(tgt)} ${unitLabel()} und etwas mehr Pause.` };
+    }
     return { type:'hold', icon:'', title:`${ex.name}: Erholung vor Steigerung`, text:`Du hast dein letztes Training als "Sehr schwer" bewertet. Heute ${kgToDisp(lMaxW)} ${unitLabel()} halten statt weiter steigern.` };
   }
   if (hist.length >= 2) {
@@ -11765,7 +12189,7 @@ function exDragStart(e, exId) {
   e.stopPropagation();
   const ex = exById(exId);
   if (!ex) return;
-  _dndExId = exId;
+ _dndExId = exId;
   _dndSplitId = null;
 
   _dndGhost = document.createElement('div');
@@ -12150,12 +12574,12 @@ function _dndScroller() {
   const topEdge = hdr ? hdr.getBoundingClientRect().bottom : 0;
   return {
     node: document.scrollingElement || document.documentElement,
-    top: topEdge,
+ top: topEdge,
     bot: window.innerHeight - 80   // 80px für untere Nav-Leiste freilassen
   };
 }
 function _dndAutoScroll(y) {
-  _dndScrollLastY = y;
+ _dndScrollLastY = y;
   if (_dndScrollRaf) return; // läuft bereits
   const tick = () => {
     _dndScrollRaf = null;
@@ -13678,7 +14102,7 @@ const MUSCLES_BY_MG = MUSCLES.reduce((acc, m) => {
 const _CANON_MG = new Set(MUSCLE_GROUPS.map(g => g.id));
 
 /* Löst die kanonischen Muskelgruppen-ids einer Übung robust auf — auch wenn
-   ex.muscleGroup fehlt, englisch ist oder eine PPL-/Ober-Unter-/Split-Gruppe.
+ ex.muscleGroup fehlt, englisch ist oder eine PPL-/Ober-Unter-/Split-Gruppe.
    Ohne diese Auflösung fielen falsch getaggte Übungen komplett aus der
    Erholungs-Berechnung heraus (Muskel blieb „erholt", letztes Datum veraltet). */
 function _resolveMgIds(ex) {
@@ -15374,7 +15798,7 @@ function deletePreset() {
   persist();
   scheduleWorkoutNotifications();
   hapticSuccess();
-  closeOv('ov-preset');
+ closeOv('ov-preset');
   renderWkPresets();
   renderWeekPreview();
   renderSplitList();
@@ -15472,7 +15896,7 @@ function addExToActiveWorkout(exId) {
   const defaultR = String(getSuggestedReps(ex));
   wkLogs.push({ exerciseId:exId, sugW:defaultW, sugR:defaultR, sets: buildPlannedSets(ex) });
   closeOv('ov-mid-add');
-  openOv('ov-wk');           // Workout-Sheet wieder öffnen
+ openOv('ov-wk'); // Workout-Sheet wieder öffnen
   updateWkMiniVisibility();
   renderLogCards();
   // Zur neu hinzugefügten Karte scrollen
@@ -15491,6 +15915,9 @@ function startActive() {
   _coachClearCard();
   _coachEvalTimers = {};
   _coachBarState = { mode: 'idle', msg: '' };
+  // Der Coach eröffnet mit dem, was er aus dem letzten Check-in gemacht hat —
+  // so ist die Anpassung nicht nur in den Zahlen, sondern auch ausgesprochen.
+  try { const _rd = _ciReadiness(); if (_rd && _rd.bar) setTimeout(() => _coachBarSet('msg', _rd.bar, 9000), 400); } catch(_) {}
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
@@ -15808,6 +16235,11 @@ function smartRestSecs(ex, set) {
     }
   }
 
+  // Post-Workout-Check-in wirkt mit: schwer/energiearm → längere Pausen,
+  // locker bei voller Energie → etwas kürzere (s. _ciReadiness).
+  const rd = _ciReadiness();
+  if (rd && rd.restMult !== 1) secs *= rd.restMult;
+
   secs = Math.round(secs / 5) * 5;          // auf 5s runden
   return Math.max(45, Math.min(240, secs)); // sinnvolle Grenzen 45s–4min
 }
@@ -15844,7 +16276,7 @@ function _scheduleRestEndNotif(atTs) {
       schedule: { at: new Date(atTs), allowWhileIdle: true },
       sound: 'default',
       channelId: 'gymtrack-reminders'
-    }]}).catch(() => {});
+ }]}).catch(() => {});
   } catch (e) {}
 }
 function _cancelRestEndNotif() {
@@ -16802,7 +17234,7 @@ function startShareFlow(ses, prs, dayName) {
     im.onload = () => { _shfData._avaImg = im; };
     im.src = p;
   }
-  openOv('ov-share');
+ openOv('ov-share');
   _shfRattleStart();
 }
 function _shfExit() {
@@ -17252,11 +17684,11 @@ function exportData() {
     if (navigator.canShare({files:[file]})) {
       navigator.share({files:[file], title:'MyGymTrack Backup'}).catch(()=>{});
       return;
-    }
-  }
-  // Fallback: Download-Link
-  const url = URL.createObjectURL(new Blob([data],{type:'application/json'}));
-  const a   = Object.assign(document.createElement('a'),{href:url, download:filename});
+ }
+ }
+ // Fallback: Download-Link
+ const url = URL.createObjectURL(new Blob([data],{type:'application/json'}));
+ const a = Object.assign(document.createElement('a'),{href:url, download:filename});
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
 }
@@ -18681,6 +19113,13 @@ function _socOwnStats(){
   }
   return { total: ses.length, avgDur, favH: fav ? +fav[0] : null, topMg, prs };
 }
+/* Was vom „Über mich" wirklich in die Cloud darf. Das Geburtsdatum bleibt
+   bewusst LOKAL — geteilt wird nur die daraus errechnete Altersangabe. */
+function _socAboutPayload(){
+  const { birth, ...rest } = _profAbout();
+  const age = _pfAgeFrom(birth);
+  return age == null ? rest : { ...rest, age };
+}
 async function _pushSocialProfile(){
   if (!S.socialOn || !_socReady()) return;
   // Demo-/Marketing-Simulator pusht kein Community-Profil (Fake-"Lenny"-Profile)
@@ -18705,7 +19144,7 @@ async function _pushSocialProfile(){
     stats: P.stats ? _socOwnStats() : null,
     friends: S.friends || [],
     premium: (typeof isPremium === 'function') ? isPremium() : false,
-    about: _profAbout(),   // Erfahrung/Stärken/Lieblingsmuskeln/Bio fürs Freundesprofil
+    about: _socAboutPayload(),   // Erfahrung/Alter/Stärken/Lieblingsübungen/Bio fürs Freundesprofil
     updatedAt: Date.now()
   };
   if (_pushToken) payload.pushToken = _pushToken;   // APNs-Token fürs Sperrbild-Push mitschreiben (merge:false würde ihn sonst löschen)
@@ -19144,32 +19583,130 @@ function _renderFreditAva(photo, name){
    Bewusst in localStorage 'gt_prof_about' (wie gt_prof_photo), NICHT in S —
    umgeht die users-hasOnly-Regel. Sichtbar für Freunde via profiles.about. */
 const _PF_STRENGTHS = ['Bankdrücken','Kniebeugen','Kreuzheben','Schulterdrücken','Klimmzüge','Ausdauer','Beweglichkeit','Disziplin'];
+/* Erfahrung wird in MONATEN geführt (0–180 = 0–15 Jahre), damit das Maßband
+   feine Rasten hat. expYears bleibt als gerundeter Wert erhalten — ältere
+   Installationen und fremde Profile ohne expMonths lesen weiter darüber. */
+const _PF_EXP_STEP = 3;                       // Monate pro Strich
+const _PF_EXP_MAX  = 180;                     // 15 Jahre
+const _PF_EXP_N    = _PF_EXP_MAX / _PF_EXP_STEP + 1;   // 61 Striche
 let _pfSel = null;
 function _profAbout(){
   try {
     const a = JSON.parse(localStorage.getItem('gt_prof_about') || 'null') || {};
+    const yrs = typeof a.expYears === 'number' && isFinite(a.expYears) ? Math.max(0, Math.min(15, Math.round(a.expYears))) : null;
+    const mon = typeof a.expMonths === 'number' && isFinite(a.expMonths)
+      ? Math.max(0, Math.min(_PF_EXP_MAX, Math.round(a.expMonths)))
+      : (yrs == null ? null : yrs * 12);
     return {
-      expYears:  typeof a.expYears === 'number' && isFinite(a.expYears) ? Math.max(0, Math.min(15, Math.round(a.expYears))) : null,
+      expYears:  mon == null ? yrs : Math.round(mon / 12),
+      expMonths: mon,
+      birth:     /^\d{4}-\d{2}-\d{2}$/.test(a.birth || '') ? a.birth : '',
       strengths: Array.isArray(a.strengths) ? a.strengths.slice(0, 3).map(s => String(s).slice(0, 24)) : [],
       favMg:     Array.isArray(a.favMg) ? a.favMg.slice(0, 3) : [],
+      favEx:     Array.isArray(a.favEx) ? a.favEx.slice(0, 3).map(s => String(s).slice(0, 28)) : [],
       bio:       typeof a.bio === 'string' ? a.bio.slice(0, 140) : '',
     };
-  } catch(_){ return { expYears: null, strengths: [], favMg: [], bio: '' }; }
+  } catch(_){ return { expYears: null, expMonths: null, birth: '', strengths: [], favMg: [], favEx: [], bio: '' }; }
 }
+/* Alter aus dem Geburtsdatum. Nur die Zahl verlässt das Gerät (siehe _pushSocialProfile). */
+function _pfAgeFrom(iso){
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return null;
+  const b = new Date(iso + 'T00:00:00');
+  if (isNaN(b)) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return (age >= 10 && age <= 110) ? age : null;
+}
+function _pfExpStufe(mon){
+  return mon < 12 ? tr('Einsteiger') : mon < 60 ? tr('Fortgeschritten') : mon < 120 ? tr('Erfahren') : tr('Profi');
+}
+/* Klartext für ein Maßband-Ergebnis: „3 Jahre 6 Monate" / „unter 1 Jahr". */
+function _pfExpMonLabel(mon){
+  if (mon == null) return '–';
+  mon = Math.max(0, Math.min(_PF_EXP_MAX, Math.round(mon)));
+  if (mon === 0) return tr('Noch keine Erfahrung');
+  if (mon >= _PF_EXP_MAX) return '15+ ' + tr('Jahre');
+  const y = Math.floor(mon / 12), m = mon % 12;
+  const yTxt = y ? y + ' ' + (y === 1 ? tr('Jahr') : tr('Jahre')) : '';
+  const mTxt = m ? m + ' ' + (m === 1 ? tr('Monat') : tr('Monate')) : '';
+  return (yTxt && mTxt) ? yTxt + ' ' + mTxt : (yTxt || mTxt);
+}
+/* Rückwärtskompatible Kurzform (Jahre) — nutzt weiter das Freundesprofil. */
 function _pfExpLabel(y){
   if (y == null) return '–';
-  const lvl = y <= 1 ? tr('Einsteiger') : y <= 4 ? tr('Fortgeschritten') : y <= 9 ? tr('Erfahren') : tr('Profi');
-  const yrs = y === 0 ? tr('unter 1 Jahr') : y >= 15 ? '15+ ' + tr('Jahre') : y + ' ' + (y === 1 ? tr('Jahr') : tr('Jahre'));
-  return lvl + ' · ' + yrs;
+  return _pfExpStufe(y * 12) + ' · ' + (y === 0 ? tr('unter 1 Jahr') : y >= 15 ? '15+ ' + tr('Jahre') : y + ' ' + (y === 1 ? tr('Jahr') : tr('Jahre')));
 }
-function _pfExpChanged(el){
-  const v = parseInt(el.value) || 0;
-  el.style.setProperty('--fill', Math.round(v / 15 * 100) + '%');
-  const lbl = document.getElementById('pf-exp-val');
-  if (lbl) {
-    lbl.textContent = _pfExpLabel(v);
-    lbl.classList.remove('bump'); void lbl.offsetWidth; lbl.classList.add('bump');
+/* ── Maßband: viele Striche, rastet an jedem ein und klackt dabei ──
+   Native Scroll-Snap statt eigener Drag-Physik: iOS-Trägheit bleibt erhalten,
+   der scroll-Handler meldet nur den Rastwechsel (Haptik + Beschriftung). */
+let _pfExpMon = 0, _pfExpIdx = -1, _pfExpEndT = null;
+function _pfBuildRuler(mon){
+  const strip = document.getElementById('pf-exp-strip'); if (!strip) return;
+  let h = '<div class="pf-ruler-pad"></div>';
+  for (let i = 0; i < _PF_EXP_N; i++) {
+    const m = i * _PF_EXP_STEP, maj = m % 12 === 0;
+    h += `<div class="pf-tick${maj ? ' maj' : ''}" data-i="${i}"><i></i>${maj ? `<b>${m / 12}</b>` : ''}</div>`;
   }
+  strip.innerHTML = h + '<div class="pf-ruler-pad"></div>';
+  const sc = document.getElementById('pf-exp-scroll');
+  if (sc && !sc._pfBound) {
+    sc._pfBound = true;
+    sc.addEventListener('scroll', _pfExpOnScroll, { passive: true });
+    sc.addEventListener('touchstart', () => { try { hapticSelStart(); } catch(_){} }, { passive: true });
+  }
+  _pfExpIdx = -1;
+  _pfSetExp(mon == null ? 12 : mon, true);
+}
+/* Rasterposition anfahren (ohne Animation beim Öffnen — sonst scrollt das Band
+   sichtbar los, während das Sheet noch aufgeht). */
+function _pfSetExp(mon, jump){
+  const sc = document.getElementById('pf-exp-scroll'); if (!sc) return;
+  const idx = Math.max(0, Math.min(_PF_EXP_N - 1, Math.round(mon / _PF_EXP_STEP)));
+  const tick = sc.querySelector('.pf-tick'); const tw = tick ? tick.getBoundingClientRect().width || 14 : 14;
+  _pfApplyExpIdx(idx, true);
+  const go = () => { sc.scrollTo({ left: idx * tw, behavior: jump ? 'auto' : 'smooth' }); };
+  go();
+  if (jump) requestAnimationFrame(go);   // Sheet-Öffnung: Breite steht erst im nächsten Frame
+}
+function _pfExpOnScroll(){
+  const sc = document.getElementById('pf-exp-scroll'); if (!sc) return;
+  const tick = sc.querySelector('.pf-tick'); if (!tick) return;
+  const tw = tick.getBoundingClientRect().width || 14;
+  const idx = Math.max(0, Math.min(_PF_EXP_N - 1, Math.round(sc.scrollLeft / tw)));
+  _pfApplyExpIdx(idx);
+  clearTimeout(_pfExpEndT);
+  _pfExpEndT = setTimeout(() => { try { hapticSelEnd(); } catch(_){} }, 220);
+}
+function _pfApplyExpIdx(idx, silent){
+  if (idx === _pfExpIdx) return;
+  _pfExpIdx = idx;
+  _pfExpMon = idx * _PF_EXP_STEP;
+  if (!silent) { try { hapticTick(); } catch(_){} }
+  const strip = document.getElementById('pf-exp-strip');
+  if (strip) strip.querySelectorAll('.pf-tick').forEach(t => {
+    const i = +t.dataset.i;
+    t.classList.toggle('on', i <= idx);
+    t.classList.toggle('cur', i === idx);
+  });
+  const val = document.getElementById('pf-exp-val');
+  if (val) {
+    val.textContent = _pfExpMonLabel(_pfExpMon);
+    if (!silent) { val.classList.remove('bump'); void val.offsetWidth; val.classList.add('bump'); }
+  }
+  const lvl = document.getElementById('pf-exp-lvl');
+  if (lvl) lvl.textContent = _pfExpStufe(_pfExpMon);
+}
+function _pfBirthChanged(){
+  const inp = document.getElementById('pf-birth');
+  const chip = document.getElementById('pf-age');
+  const age = _pfAgeFrom(inp?.value);
+  if (chip) {
+    chip.style.display = age == null ? 'none' : '';
+    chip.textContent = age == null ? '' : age + ' ' + tr('Jahre');
+  }
+  if (age != null) haptic(5);
 }
 function _pfTgl(kind, val){
   if (!_pfSel) return;
@@ -19186,6 +19723,47 @@ function _pfRenderChips(){
   const fm = document.getElementById('pf-favmg');
   if (fm) fm.innerHTML = MUSCLE_GROUPS.map(g =>
     `<button type="button" class="pf-chip${_pfSel.favMg.includes(g.id) ? ' on' : ''}" onclick="_pfTgl('favMg','${g.id}')">${g.label}</button>`).join('');
+  _pfRenderFavEx();
+}
+/* ── Lieblingsübungen: aus der eigenen Übungsliste, sonst Standard-Klassiker ── */
+function _pfExPool(){
+  const own = (S.exercises || []).map(e => ({ n: String(e.name || '').slice(0, 28), g: e.muscleGroup || '' })).filter(e => e.n);
+  const seen = new Set(own.map(e => e.n.toLowerCase()));
+  _PF_STRENGTHS.slice(0, 5).forEach(n => { if (!seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); own.push({ n, g: '' }); } });
+  return own;
+}
+function _pfExSearch(q){
+  const host = document.getElementById('pf-favex-list'); if (!host) return;
+  q = (q || '').trim().toLowerCase();
+  if (!q) { host.innerHTML = ''; return; }
+  const sel = (_pfSel?.favEx || []).map(s => s.toLowerCase());
+  const hits = _pfExPool().filter(e => e.n.toLowerCase().includes(q) && !sel.includes(e.n.toLowerCase())).slice(0, 6);
+  host.innerHTML = hits.length
+    ? `<div class="pf-exlist">${hits.map(e => `<div class="pf-exrow" onclick="_pfAddFavEx('${e.n.replace(/'/g, "\\'")}')">
+        <span class="pf-exrow-n">${esc(e.n)}</span>${e.g ? `<span class="pf-exrow-g">${esc(muscleLabel(e.g) || e.g)}</span>` : ''}</div>`).join('')}</div>`
+    : `<div class="soc-empty" style="padding:10px 2px;text-align:left;font-size:12.5px">${tr('Keine Übung gefunden')}</div>`;
+}
+function _pfAddFavEx(name){
+  if (!_pfSel) return;
+  const n = String(name || '').slice(0, 28);
+  if (!n || _pfSel.favEx.length >= 3 || _pfSel.favEx.some(x => x.toLowerCase() === n.toLowerCase())) return;
+  _pfSel.favEx.push(n);
+  haptic(8);
+  const q = document.getElementById('pf-favex-q'); if (q) q.value = '';
+  _pfExSearch('');
+  _pfRenderFavEx();
+}
+function _pfRmFavEx(i){
+  if (!_pfSel) return;
+  _pfSel.favEx.splice(i, 1); haptic(5); _pfRenderFavEx();
+}
+function _pfRenderFavEx(){
+  const host = document.getElementById('pf-favex-sel'); if (!host || !_pfSel) return;
+  host.innerHTML = _pfSel.favEx.length
+    ? _pfSel.favEx.map((n, i) => `<span class="pf-selchip">${esc(n)}<button type="button" aria-label="${tr('Entfernen')}" onclick="_pfRmFavEx(${i})">✕</button></span>`).join('')
+    : `<div class="soc-empty" style="padding:2px 2px 0;text-align:left;font-size:12.5px">${tr('Noch keine gewählt — such unten nach deinen Übungen.')}</div>`;
+  const q = document.getElementById('pf-favex-q');
+  if (q) q.style.display = _pfSel.favEx.length >= 3 ? 'none' : '';
 }
 function openProfileEdit(){
   _pendingProfilePhoto = undefined;
@@ -19193,13 +19771,20 @@ function openProfileEdit(){
   if (nameInp) nameInp.value = _profileName();
   _renderFreditAva(_profilePhoto(), _profileName());
   const ab = _profAbout();
-  _pfSel = { strengths: [...ab.strengths], favMg: [...ab.favMg] };
-  const exp = document.getElementById('pf-exp');
-  if (exp) { exp.value = ab.expYears == null ? 1 : ab.expYears; _pfExpChanged(exp); }
+  _pfSel = { strengths: [...ab.strengths], favMg: [...ab.favMg], favEx: [...ab.favEx] };
+  const birth = document.getElementById('pf-birth');
+  if (birth) {
+    birth.value = ab.birth || '';
+    birth.max = new Date(Date.now() - 10 * 365.25 * 864e5).toISOString().slice(0, 10);   // mind. 10 Jahre alt
+  }
+  _pfBirthChanged();
   const bio = document.getElementById('pf-bio');
   if (bio) { bio.value = ab.bio; const c = document.getElementById('pf-bio-count'); if (c) c.textContent = 140 - ab.bio.length; }
+  const q = document.getElementById('pf-favex-q'); if (q) q.value = '';
+  _pfExSearch('');
   _pfRenderChips();
   openOv('ov-fredit');
+  _pfBuildRuler(ab.expMonths);
 }
 function _pickProfilePhoto(input){
   const file = input.files && input.files[0]; input.value = '';
@@ -19229,13 +19814,17 @@ function removeProfilePhoto(){
 async function saveProfileEdit(){
   const name = (document.getElementById('fredit-name')?.value || '').trim().slice(0,30);
   if (name) S.userName = name;
+  const mon = Math.max(0, Math.min(_PF_EXP_MAX, _pfExpMon | 0));
+  const birth = (document.getElementById('pf-birth')?.value || '');
   const ab = {
-    expYears: parseInt(document.getElementById('pf-exp')?.value),
+    expMonths: mon,
+    expYears: Math.round(mon / 12),          // Kompatibilität: ältere Clients lesen nur Jahre
+    birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth : '',
     strengths: (_pfSel?.strengths || []).slice(0, 3),
     favMg: (_pfSel?.favMg || []).slice(0, 3),
+    favEx: (_pfSel?.favEx || []).slice(0, 3),
     bio: (document.getElementById('pf-bio')?.value || '').trim().slice(0, 140),
   };
-  if (isNaN(ab.expYears)) ab.expYears = null;
   try { localStorage.setItem('gt_prof_about', JSON.stringify(ab)); } catch(_){}
   if (_pendingProfilePhoto !== undefined) {
     try {
@@ -19332,19 +19921,41 @@ async function _renderFrOverview(body){
   _renderFrList();
   _frStartLive();
 }
+/* Profilfotos der Anfragenden (das requests-Doc trägt nur den Namen) — best effort,
+   einmal geladen und gemerkt, danach wird die Karte einmal neu gezeichnet. */
+let _reqProfCache = {};
+let _frLastReqs = [];
+function _reqLoadPhotos(inc){
+  const missing = inc.filter(r => r.from && _reqProfCache[r.from] === undefined);
+  if (!missing.length) return;
+  missing.forEach(r => { _reqProfCache[r.from] = null; });   // nicht doppelt anfragen
+  Promise.all(missing.map(r => window.FB.getDoc(window.FB.doc('profiles', r.from))
+    .then(s => { if (s.exists()) _reqProfCache[r.from] = s.data(); })
+    .catch(() => {})))
+    .then(() => { if (document.getElementById('fr-req-host')) _renderFrReqs(_frLastReqs); });
+}
 function _renderFrReqs(inc){
   const host = document.getElementById('fr-req-host'); if (!host) return;
+  _frLastReqs = inc || [];
   if (!inc || !inc.length) { host.innerHTML = ''; return; }
+  _reqLoadPhotos(inc);
   host.innerHTML = `<div class="fr-req-card">
     <div class="fr-req-head">${inc.length} Freundschaftsanfrage${inc.length>1?'n':''}</div>
-    ${inc.map(r => `<div class="fr-req-row">
-      <div class="fr-ava" style="width:40px;height:40px;font-size:14px">${_socInitials(r.fromName)}</div>
-      <div style="flex:1;min-width:0"><div class="fr-name"><span>${esc(r.fromName||'')}</span></div></div>
+    ${inc.map(r => {
+      const prof = _reqProfCache[r.from] || null;
+      const ava = prof && prof.photo ? `<img src="${esc(prof.photo)}" alt="">` : esc(_socInitials(r.fromName));
+      const sub = prof && prof.gymName ? esc(prof.gymName) : (r.fromCode ? tr('Code') + ' ' + esc(r.fromCode) : tr('möchte dir folgen'));
+      return `<div class="fr-req-row">
+      <div class="fr-ava" style="width:42px;height:42px;font-size:14px">${ava}</div>
+      <div style="flex:1;min-width:0">
+        <div class="fr-name"><span>${esc(r.fromName||'')}</span>${prof ? _lvlPillFor({ ...prof, uid: r.from }) : ''}</div>
+        <div class="fr-sub">${sub}</div>
+      </div>
       <div class="fr-req-btns">
         <button class="fr-req-ok" onclick="acceptRequest('${r.id}','${r.from}')">Annehmen</button>
         <button class="fr-req-no" onclick="declineRequest('${r.id}')">Ablehnen</button>
       </div>
-    </div>`).join('')}
+    </div>`; }).join('')}
   </div>`;
 }
 function _frCardHTML(p){
@@ -19443,7 +20054,13 @@ function _frStopLive(){
   _frSubs = [];
   if (_frTimer) { clearInterval(_frTimer); _frTimer = null; }
 }
-/* ── Freundschaftsanfragen ── */
+/* ── Freundschaftsanfragen ────────────────────────────────────────────────
+   Doc-ID ist bewusst deterministisch (`<from>__<to>`): dieselbe Anfrage kann
+   dadurch nie doppelt entstehen, egal wie oft getippt wird, und „zurückziehen"
+   trifft immer genau das richtige Dokument. Die Rules prüfen nur die Felder,
+   nicht die ID — deshalb ist setDoc hier erlaubt wie addDoc. */
+let _frOutgoing = new Set();   // uids, an die eine Anfrage offen rausgeht
+function _reqId(from, to){ return from + '__' + to; }
 async function _loadRequests(){
   if (!_socReady()) return { inc: [] };
   const inc = [];
@@ -19456,16 +20073,19 @@ async function _loadRequests(){
       else inc.push(r);
     });
   } catch(_){}
-  try { // Vom Gegenüber angenommene eigene Anfragen einlösen
-    const q2 = window.FB.query(window.FB.collection('requests'),
-      window.FB.where('from','==',_fbUser.uid), window.FB.where('status','==','accepted'));
+  try { // Eigene ausgehende Anfragen: offene merken, angenommene einlösen
+    const q2 = window.FB.query(window.FB.collection('requests'), window.FB.where('from','==',_fbUser.uid));
     const snap = await window.FB.getDocs(q2);
+    const out = new Set();
     let added = false;
     for (const d of snap.docs) {
-      const to = d.data().to;
-      if (!S.friends.includes(to)) { S.friends.push(to); added = true; }
-      window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{});
+      const r = d.data();
+      if (r.status === 'accepted') {
+        if (!S.friends.includes(r.to)) { S.friends.push(r.to); added = true; }
+        window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{});
+      } else if (r.status === 'pending') out.add(r.to);
     }
+    _frOutgoing = out;
     if (added) { persist(); _pushSocialSoon(); _socCache = null; }
   } catch(_){}
   _frReqCount = inc.length;
@@ -19476,8 +20096,11 @@ async function acceptRequest(id, from){
   haptic(15);
   if (!S.friends.includes(from)) S.friends.push(from);
   persist(); _pushSocialSoon(); _socCache = null;
+  // Absender löst 'accepted' selbst ein und löscht das Doc — bis dahin bleibt es liegen.
   try { await window.FB.updateDoc(window.FB.doc('requests', id), { status:'accepted' }); } catch(_){}
   _frReqCount = Math.max(0, _frReqCount - 1); _updateFrBadges();
+  const nm = (_frLastReqs.find(r => r.id === id) || {}).fromName || tr('Ihr');
+  try { showUpdateToast(nm + ' ' + tr('ist jetzt dein Freund'), { autoHide:2600 }); } catch(_){}
   renderFriendsTab();
 }
 async function declineRequest(id){
@@ -19486,27 +20109,64 @@ async function declineRequest(id){
   _frReqCount = Math.max(0, _frReqCount - 1); _updateFrBadges();
   renderFriendsTab();
 }
+/* Gegenseitigkeit: hat die andere Person mir schon geschrieben, wird sofort
+   befreundet statt eine zweite Anfrage in die Gegenrichtung zu schicken. */
+async function _tryMutualAccept(uid){
+  try {
+    const s = await window.FB.getDoc(window.FB.doc('requests', _reqId(uid, _fbUser.uid)));
+    if (!s.exists() || s.data().status !== 'pending') return false;
+    await acceptRequest(s.id, uid);
+    return true;
+  } catch(_){ return false; }
+}
 async function _sendRequest(toUid, toName){
   if (toUid === _fbUser.uid) { alert('Das bist du selbst.'); return false; }
   if (S.friends.includes(toUid)) { alert('Ihr seid schon Freunde.'); return false; }
   if ((S.blocked||[]).includes(toUid)) { alert('Dieser Nutzer ist blockiert.'); return false; }
+  if (await _tryMutualAccept(toUid)) {
+    try { showUpdateToast(tr('Ihr seid jetzt Freunde') + ' — ' + toName, { autoHide:2800 }); } catch(_){}
+    return true;
+  }
   try {
-    await window.FB.addDoc(window.FB.collection('requests'), {
+    await window.FB.setDoc(window.FB.doc('requests', _reqId(_fbUser.uid, toUid)), {
       from:_fbUser.uid, to:toUid,
       fromName:(S.userName || _fbUser.displayName || 'Athlet').slice(0,30),
       fromCode:_socCode(), ts:Date.now(), status:'pending'
     });
-    haptic(15);
-    alert('Anfrage an ' + toName + ' gesendet.');
+    _frOutgoing.add(toUid);
+    hapticSuccess();
+    try { showUpdateToast(tr('Anfrage an') + ' ' + toName + ' ' + tr('gesendet'), { autoHide:2400 }); } catch(_){}
     return true;
   } catch(e) { alert('Anfrage fehlgeschlagen: ' + (e?.code || e?.message || e)); return false; }
 }
-async function _frProfileSendReq(btn, uid, name){
-  btn.disabled = true;
-  const ok = await _sendRequest(uid, name);
-  if (ok) btn.textContent = tr('Angefragt');
-  else btn.disabled = false;
+/* Offene eigene Anfrage wieder einsammeln. */
+async function cancelRequest(toUid, btn){
+  if (btn) btn.disabled = true;
+  try { await window.FB.deleteDoc(window.FB.doc('requests', _reqId(_fbUser.uid, toUid))); } catch(_){}
+  _frOutgoing.delete(toUid);
+  haptic(8);
+  try { showUpdateToast(tr('Anfrage zurückgezogen'), { autoHide:2000 }); } catch(_){}
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = tr('Anfragen');
+    btn.className = 'fr-req-ok';
+    btn.setAttribute('onclick', `_frSendReqBtn(this,'${toUid}','')`);
+  }
 }
+/* Ein Button für Suche UND Freundesprofil: sendet, zeigt danach „Angefragt"
+   und wird zum Zurückziehen. */
+async function _frSendReqBtn(btn, uid, name){
+  btn.disabled = true;
+  const ok = await _sendRequest(uid, name || '');
+  btn.disabled = false;
+  if (!ok) return;
+  if (S.friends.includes(uid)) { btn.outerHTML = `<span class="fr-pill">${tr('Befreundet')}</span>`; return; }
+  btn.textContent = tr('Angefragt');
+  btn.className = 'fr-req-no';
+  btn.setAttribute('onclick', `cancelRequest('${uid}',this)`);
+}
+/* Altname bleibt erhalten (wird noch aus älteren Renderpfaden aufgerufen). */
+async function _frProfileSendReq(btn, uid, name){ return _frSendReqBtn(btn, uid, name); }
 function removeFriend(uid){
   if (!confirm('Freund aus deiner Liste entfernen?')) return;
   S.friends = (S.friends||[]).filter(x => x !== uid);
@@ -19548,6 +20208,8 @@ function openFrAdd(prefill){
       <div id="fr-qr-host" style="margin-top:14px"></div>
     </div>`;
   openOv('ov-fradd');
+  // Offene eigene Anfragen kennen, damit die Treffer sofort „Angefragt" zeigen
+  _loadRequests().catch(()=>{});
   if (prefill) frSearchInput(prefill);
 }
 function frSearchInput(v){
@@ -19584,7 +20246,9 @@ async function frSearch(q){
       </div>
       ${isFriend
         ? '<span class="fr-pill">Befreundet</span>'
-        : `<button class="fr-req-ok" style="border:none;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer" onclick="_sendRequest('${p.uid}','${esc(p.name||'')}')">Anfragen</button>`}
+        : (_frOutgoing.has(p.uid)
+          ? `<button class="fr-req-no" style="border:none;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer" onclick="cancelRequest('${p.uid}',this)">Angefragt</button>`
+          : `<button class="fr-req-ok" style="border:none;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer" onclick="_frSendReqBtn(this,'${p.uid}','${esc(p.name||'')}')">Anfragen</button>`)}
     </div>`;
   }).join('');
 }
@@ -19855,13 +20519,20 @@ async function openFrProfile(uid){
     <div class="frp-grid">${stats.map(s => `<div class="frp-stat"><div class="frp-stat-v">${s[0]}</div><div class="frp-stat-l">${s[1]}</div></div>`).join('')}</div>
     ${(() => {
       const ab = p.about || {};
-      const has = ab.bio || ab.expYears != null || (ab.strengths || []).length || (ab.favMg || []).length;
+      // Monate bevorzugen, Jahre als Rückfalllinie für Profile älterer App-Stände
+      const mon = (typeof ab.expMonths === 'number' && isFinite(ab.expMonths))
+        ? Math.max(0, Math.min(180, Math.round(ab.expMonths)))
+        : (ab.expYears != null ? Math.max(0, Math.min(15, parseInt(ab.expYears) || 0)) * 12 : null);
+      const age = (typeof ab.age === 'number' && ab.age >= 10 && ab.age <= 110) ? ab.age : null;
+      const has = ab.bio || mon != null || age != null || (ab.strengths || []).length || (ab.favMg || []).length || (ab.favEx || []).length;
       if (!has) return '';
       return `<div class="frp-sec">${tr('Über')} ${esc((p.name || '').split(' ')[0])}</div>
       <div class="frp-about">
         ${ab.bio ? `<div class="frp-bio">${esc(String(ab.bio).slice(0, 140))}</div>` : ''}
-        ${ab.expYears != null ? `<div class="frp-exp-row" style="font-size:12px;font-weight:700;color:var(--text2);margin-top:${ab.bio ? 10 : 0}px"><span>${tr('Trainingserfahrung')}</span><span class="frp-badge">${esc(_pfExpLabel(Math.max(0, Math.min(15, parseInt(ab.expYears) || 0))))}</span></div>
-        <div class="frp-exp-track"><div class="frp-exp-fill" style="width:${Math.max(6, Math.min(100, Math.round((parseInt(ab.expYears) || 0) / 15 * 100)))}%"></div></div>` : ''}
+        ${age != null ? `<div class="frp-exp-row" style="font-size:12px;font-weight:700;color:var(--text2);margin-top:${ab.bio ? 10 : 0}px"><span>${tr('Alter')}</span><span class="frp-badge">${age} ${tr('Jahre')}</span></div>` : ''}
+        ${mon != null ? `<div class="frp-exp-row" style="font-size:12px;font-weight:700;color:var(--text2);margin-top:${(ab.bio || age != null) ? 10 : 0}px"><span>${tr('Trainingserfahrung')}</span><span class="frp-badge">${esc(_pfExpStufe(mon) + ' · ' + _pfExpMonLabel(mon))}</span></div>
+        <div class="frp-exp-track"><div class="frp-exp-fill" style="width:${Math.max(6, Math.min(100, Math.round(mon / 180 * 100)))}%"></div></div>` : ''}
+        ${(ab.favEx || []).length ? `<div class="frp-sec" style="margin:12px 0 6px">${tr('Lieblingsübungen')}</div><div class="frp-badges">${ab.favEx.slice(0, 3).map(n => `<span class="frp-badge">${esc(String(n).slice(0, 28))}</span>`).join('')}</div>` : ''}
         ${(ab.strengths || []).length ? `<div class="frp-sec" style="margin:12px 0 6px">${tr('Stärken')}</div><div class="frp-badges">${ab.strengths.slice(0, 3).map(s => `<span class="frp-badge">${esc(tr(String(s).slice(0, 24)))}</span>`).join('')}</div>` : ''}
         ${(ab.favMg || []).length ? `<div class="frp-sec" style="margin:12px 0 6px">${tr('Lieblings-Muskelgruppen')}</div><div class="frp-badges">${ab.favMg.slice(0, 3).map(m => `<span class="frp-badge">${esc(muscleLabel(m) || String(m).slice(0, 20))}</span>`).join('')}</div>` : ''}
       </div>`;
@@ -19880,7 +20551,9 @@ async function openFrProfile(uid){
     <div style="display:flex;gap:8px;margin-top:20px">
       ${isFriend
         ? `<button class="btn btn-gray" style="flex:1" onclick="removeFriend('${uid}')">Entfernen</button>`
-        : `<button class="btn fr-req-ok" style="flex:1" onclick="_frProfileSendReq(this,'${uid}','${esc(p.name||'')}')">Anfragen</button>`}
+        : (_frOutgoing.has(uid)
+          ? `<button class="btn btn-gray" style="flex:1" onclick="cancelRequest('${uid}',this)">Angefragt</button>`
+          : `<button class="btn fr-req-ok" style="flex:1" onclick="_frSendReqBtn(this,'${uid}','${esc(p.name||'')}')">Anfragen</button>`)}
       <button class="btn btn-gray" style="flex:1;color:#ff453a" onclick="blockUser('${uid}')">Blockieren</button>
     </div>`;
   openOv('ov-frprofile');
@@ -20096,7 +20769,7 @@ async function _loadPostsFor(uid, onlyFriends){
       const data = d.data();
       // Freunde-Feed zeigt NUR 'friends'-Posts — ein rein für Community gepostetes
       // Training (visibility:'public') soll nicht zusätzlich hier auftauchen (der
-      // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
+ // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
       if (onlyFriends && data.visibility !== 'friends') return;
       if ((data.ts || 0) < _weekCutoffTs()) return;   // Wochen-Lebensdauer: Älteres ausblenden
       out.push({ id:d.id, uid, kind:'post', ...data });
@@ -20779,8 +21452,47 @@ function _reqNotifStart(){
       _reqSeen = new Set(ids);
     }, err => console.warn('[GymTrack] Anfragen-Listener:', err?.code || err));
   } catch(e){ console.warn('[GymTrack] Anfragen-Listener:', e?.code || e); }
+  _reqAcceptStart();
 }
-function _reqNotifStop(){ if (_reqUnsub){ try{ _reqUnsub(); }catch(_){} _reqUnsub = null; } _reqSeen = null; }
+/* Gegenstück: MEINE Anfragen, die der andere angenommen hat. Vorher wurde das
+   nur beim Öffnen des Freunde-Tabs eingelöst — wer den Tab nicht öffnete, blieb
+   „nicht befreundet" und erfuhr nie davon. Jetzt live: Freund eintragen, Doc
+   aufräumen, Bescheid geben. */
+let _reqAccUnsub = null, _reqAccSeen = null;
+function _reqAcceptStart(){
+  if (_reqAccUnsub) return;
+  if (!_socReady() || !S.socialOn) return;
+  _reqAccSeen = null;
+  try {
+    const q = window.FB.query(window.FB.collection('requests'),
+      window.FB.where('from','==',_fbUser.uid), window.FB.where('status','==','accepted'));
+    _reqAccUnsub = window.FB.onSnapshot(q, snap => {
+      const fresh = [];
+      let added = false;
+      snap.forEach(d => {
+        const r = d.data();
+        if (!S.friends.includes(r.to)) { S.friends.push(r.to); added = true; }
+        if (_reqAccSeen && !_reqAccSeen.has(d.id)) fresh.push(r);
+        window.FB.deleteDoc(window.FB.doc('requests', d.id)).catch(()=>{});
+      });
+      if (added) {
+        persist(); _pushSocialSoon(); _socCache = null; _frOutgoing = new Set();
+        if (document.getElementById('pg-freunde')?.classList.contains('on')) { try { renderFriendsTab(); } catch(_){} }
+      }
+      if (_reqAccSeen && fresh.length) {
+        const body = fresh.length > 1
+          ? fresh.length + ' ' + tr('Anfragen wurden angenommen')
+          : tr('Ihr seid jetzt Freunde');
+        try { _fireLocalFlameNotif(tr('GymTrack'), body); } catch(_){}
+      }
+      _reqAccSeen = new Set(snap.docs.map(d => d.id));
+    }, err => console.warn('[GymTrack] Zusagen-Listener:', err?.code || err));
+  } catch(e){ console.warn('[GymTrack] Zusagen-Listener:', e?.code || e); }
+}
+function _reqNotifStop(){
+  if (_reqUnsub){ try{ _reqUnsub(); }catch(_){} _reqUnsub = null; } _reqSeen = null;
+  if (_reqAccUnsub){ try{ _reqAccUnsub(); }catch(_){} _reqAccUnsub = null; } _reqAccSeen = null;
+}
 // Einmalige, sanfte Permission-Anfrage sobald Community aktiv ist (nur nativ).
 async function _ensureSocialNotifPermission(){
   const LN = _cap('LocalNotifications');
@@ -21787,6 +22499,8 @@ function _coachEvalRun(li, si) {
   };
   const volDelta = _coachVolDelta(log.exerciseId, li);
   if (volDelta != null) payload.volDelta = volDelta;
+  // Check-in-Lage mitschicken: der Live-Coach darf im Deload nicht "steigere jetzt" rufen.
+  try { const rd = _ciReadiness(); if (rd) payload.readiness = { state: rd.mode, note: rd.plain }; } catch(_) {}
 
   (async () => {
     try {
@@ -22779,6 +23493,23 @@ function _aiaScopeUI(mode, exList){
     ${presets.map(p => `<div class="scn-ex" onclick="openAiAnalyze('${mode}',{preset:'${p.id}'})"><div class="scn-ex-t">${esc(p.name)}</div><span style="font-size:11px;font-weight:800;color:var(--acc)">${tr('Split')}</span></div>`).join('')}
     ${mode === 'progress' ? `<div class="scn-ex" onclick="_aiaScopeUI('progress', true)"><div class="scn-ex-t">${tr('Einzelne Übung')}</div></div>` : ''}`;
 }
+/* Check-in-Lage für die KI: die App hat die Vorschläge lokal schon angepasst
+   (s. _ciReadiness) — das muss im Datensatz stehen, sonst empfiehlt die KI
+   fröhlich "steigere weiter", während der Plan gerade deloadet. */
+function _aiaReadinessBlock() {
+  try {
+    const r = _ciReadiness();
+    if (!r) return {};
+    return { readiness: {
+      state: r.mode,                                   // deload | hold | easy | push | steady
+      fromCheckin: { feel: CI_FEELS.find(f => f.v === r.feel)?.label || null,
+                     energy: CI_ENERGIES.find(e => e.v === r.en)?.label || null },
+      appliedByApp: { weightFactor: r.wFactor, restFactor: r.restMult,
+                      progressionPaused: !!r.hold, bigJumpUnlocked: !!r.bigStep },
+      note: r.plain,
+    }};
+  } catch(_) { return {}; }
+}
 function _aiaData(mode, scope){
   const sc = scope || null;
   // Split-Fokus: Übungsziele + letzte Bestleistungen des gewählten Presets
@@ -22839,6 +23570,7 @@ function _aiaData(mode, scope){
       // Check-in dieser Einheit (Premium-only, s. _checkinOpen) — Coach soll
       // subjektives Gefühl/Energie in seine Bewertung einbeziehen, wenn vorhanden.
       ...(ci ? { checkin: { feel: CI_FEELS.find(f => f.v === ci.feel)?.label || null, energy: CI_ENERGIES.find(e => e.v === ci.en)?.label || null } } : {}),
+      ..._aiaReadinessBlock(),
     };
   }
   if (mode === 'training') {
@@ -22870,6 +23602,7 @@ function _aiaData(mode, scope){
       days, activeDaysPerWeek: days.filter(d => !d.rest).length, targetFreqPerWeek: S.obFreq || null,
       volume4wByMuscle: Object.fromEntries(Object.entries(volByMg).map(([k, v]) => [k, Math.round(v)])),
       ...(recentCheckins.length ? { recentCheckins } : {}),
+      ..._aiaReadinessBlock(),
     };
   }
   if (mode === 'progress') {
@@ -23078,8 +23811,7 @@ function _aiaShow(a, localHTML){
   const hasPoints = Array.isArray(a.points) && a.points.length;
   const hasRecos  = Array.isArray(a.recos)  && a.recos.length;
   _aiaActions = Array.isArray(a.actions) ? a.actions.filter(x => x && x.label && x.kind && x.exercise).slice(0, 3) : [];
-  el.innerHTML = `
-    ${localHTML || ''}
+ el.innerHTML =`    ${localHTML || ''}
     ${hasScore ? `
     <div class="aia-score-wrap">
       <div class="aia-ring"><svg width="86" height="86">
@@ -23728,7 +24460,7 @@ function _mergeData(local, cloud) {
     wkFilterMode: pick(cloud.wkFilterMode, local.wkFilterMode),
     statsFilterMode: pick(cloud.statsFilterMode, local.statsFilterMode),
     unitMode:     pick(cloud.unitMode,     local.unitMode),
-    glass:        pick(cloud.glass,        local.glass),
+ glass: pick(cloud.glass, local.glass),
     welcomeShown: cloud.welcomeShown || local.welcomeShown,
     heuteLayout:  pick(cloud.heuteLayout,  local.heuteLayout) ?? null,
     weekPlan:     pick(cloud.weekPlan,     local.weekPlan),
@@ -23775,7 +24507,7 @@ async function _onLogin(user) {
   if (!user.isAnonymous) { try { localStorage.setItem('gt_signedIn','1'); } catch(_){} _hideAuthGate(); } else _maybeAuthGate();
   updateAccountUI();
   // Premium-Badge + KI-Karte SOFORT mit dem frischen Auth-Status neu bewerten, statt
-  // auf den Cloud-Doc-Fetch weiter unten zu warten — sonst poppen sie sichtbar verzögert auf.
+ // auf den Cloud-Doc-Fetch weiter unten zu warten — sonst poppen sie sichtbar verzögert auf.
   try { _renderLevelBadge(); renderCoachTodayCard(); } catch(_){}
   _refreshFriendsIfVisible();   // falls User auf dem Freunde-Tab wartet, sofort echten Inhalt zeigen
   if (!window.FB || !window.FB.configured) return;
@@ -23953,7 +24685,7 @@ function _showAuthGate(){
       <button class="ag-btn ag-google" onclick="doGoogleSignIn()">${svgG} Mit Google fortfahren</button>
       <div class="ag-legal">Mit der Anmeldung akzeptierst du unsere <a href="https://lenny23445.github.io/Gymtrack/privacy.html" target="_blank" rel="noopener">Datenschutzerklärung</a>. Wir posten nichts ohne dich.</div>
     </div>`;
-  el.classList.add('on');
+ el.classList.add('on');
 }
 function _hideAuthGate(){
   const el = document.getElementById('auth-gate');
@@ -24033,7 +24765,7 @@ async function analyticsStart(user) {
     const isAnon  = !!user.isAnonymous;
     // KEIN getDoc hier: die Rules erlauben Lesen nur dem Admin. Der frühere
     // getDoc-Aufruf lief bei JEDEM normalen Nutzer auf permission-denied →
-    // Tracking schaltete sich ab (deshalb existierte nur 1 analytics_users-Doc).
+ // Tracking schaltete sich ab (deshalb existierte nur 1 analytics_users-Doc).
     // Stattdessen: update-first, bei not-found (Erstbesuch) anlegen.
     // isPremium/premPlan hier (analytics_users, admin-only lesbar) sind KEIN
     // Widerspruch zur "nicht im users-Doc"-Regel oben — das gilt nur für den
@@ -24044,7 +24776,7 @@ async function analyticsStart(user) {
       await window.FB.updateDoc(userRef, {
         lastSeen: window.FB.serverTimestamp(),
         totalSessions: window.FB.increment(1),
-        isAnon, ...premFields
+ isAnon,...premFields
       });
     } catch (e) {
       if ((e?.code || '') !== 'not-found') throw e;
@@ -24104,11 +24836,11 @@ function analyticsStop() {
   if (_anaHeartbeat) { clearInterval(_anaHeartbeat); _anaHeartbeat = null; }
   _analyticsBeat();
   _anaSessionRef   = null;
-  _anaSessionStart = null;
+ _anaSessionStart = null;
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
+ if (document.visibilityState ==='hidden') {
     _analyticsBeat(true); // finaler Beat: immer senden
     // Widget-Daten SOFORT flushen: iOS friert das JS gleich ein — ein noch
     // laufender 800ms-Debounce würde nie feuern → Widget bliebe veraltet.
