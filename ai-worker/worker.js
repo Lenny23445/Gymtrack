@@ -342,6 +342,11 @@ export default {
       return json(result, 200, cors);
     } catch (e) {
       console.log("[AI] LLM-Fehler:", e.message);
+      // Fehlgeschlagene Anfrage = keine Leistung = kein Verbrauch. Ohne das hat
+      // jeder kaputte Analyse-Aufruf (siehe abgeschnittenes JSON) sowohl Tages-
+      // als auch Monatskontingent gefressen — genau das Muster "Tageslimit
+      // erreicht, obwohl ich kaum was gemacht habe".
+      try { await dailyRefund(uid, kind, env); await monthlyRefund(uid, env, weight); } catch (_) {}
       // Founder-Konto bekommt den echten Grund im Klartext zurück (z. B.
       // "Gemini HTTP 400 …") — ohne den ist von außen nicht zu unterscheiden,
       // ob API-Key, Modellname oder Anbieter-Ausfall dahintersteckt.
@@ -397,7 +402,10 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
   const parts = (cand.content && cand.content.parts) || [];
   const text = parts.map((p) => p.text || "").join("");
   const um = data.usageMetadata || {};
-  return { text, usage: { inTok: um.promptTokenCount || 0, outTok: um.candidatesTokenCount || 0 } };
+  // MAX_TOKENS bei erzwungenem JSON = mitten im String abgeschnitten. Das muss
+  // sichtbar sein, sonst knallt es später als "Unterminated string in JSON".
+  return { text, truncated: cand.finishReason === "MAX_TOKENS",
+           usage: { inTok: um.promptTokenCount || 0, outTok: um.candidatesTokenCount || 0 } };
 }
 
 async function llmClaude(env, { system, messages, maxTokens, schema }) {
@@ -423,7 +431,46 @@ async function llmClaude(env, { system, messages, maxTokens, schema }) {
   if (data.stop_reason === "refusal") throw new Error("refusal");
   const text = (data.content.find((b) => b.type === "text") || {}).text || "";
   const u = data.usage || {};
-  return { text, usage: { inTok: u.input_tokens || 0, outTok: u.output_tokens || 0 } };
+  return { text, truncated: data.stop_reason === "max_tokens",
+           usage: { inTok: u.input_tokens || 0, outTok: u.output_tokens || 0 } };
+}
+
+// JSON vom Modell robust lesen. Reines JSON.parse ist zu spröde: läuft die Antwort
+// ins Token-Limit, bricht sie mitten in einem String ab und der Nutzer sieht
+// "Unterminated string in JSON at position …" statt einer Analyse. Hier wird
+// zuerst normal geparst und erst im Fehlerfall der letzte VOLLSTÄNDIGE Wert
+// gesucht und die offenen Klammern geschlossen — lieber eine um zwei Punkte
+// gekürzte Analyse als eine Fehlermeldung.
+function parseJsonLoose(raw) {
+  let t = String(raw == null ? "" : raw).trim();
+  if (t.startsWith("```")) t = t.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+  try { return JSON.parse(t); } catch (_) {}
+  // Schnittkandidaten sammeln: Kommas und schließende Klammern außerhalb von Strings.
+  const cuts = [];
+  let inStr = false, esc = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === "," ) cuts.push(i);        // vor dem Komma abschneiden
+    else if (c === "}" || c === "]") cuts.push(i + 1);
+  }
+  for (let k = cuts.length - 1; k >= 0; k--) {
+    const head = t.slice(0, cuts[k]);
+    const stack = [];
+    let s = false, e = false;
+    for (let i = 0; i < head.length; i++) {
+      const c = head[i];
+      if (s) { if (e) e = false; else if (c === "\\") e = true; else if (c === '"') s = false; continue; }
+      if (c === '"') s = true;
+      else if (c === "{") stack.push("}");
+      else if (c === "[") stack.push("]");
+      else if (c === "}" || c === "]") stack.pop();
+    }
+    if (s) continue;                          // Schnitt läge in einem String
+    try { return JSON.parse(head + stack.reverse().join("")); } catch (_) {}
+  }
+  return null;
 }
 
 // Gemini's responseSchema ist ein OpenAPI-Subset — additionalProperties wird nicht unterstützt.
@@ -528,7 +575,9 @@ Trigger types: jump=clear performance increase, drop=clear performance drop, rep
     maxTokens: 300,
     schema: COACH_SCHEMA,
   });
-  return { c: JSON.parse(text), usage };
+  const c = parseJsonLoose(text);
+  if (!c) throw new Error("Coach-Antwort unlesbar (JSON kaputt)");
+  return { c, usage };
 }
 
 // ═══════════════ /analyze — Trainingsanalyse / Workout-Optimierung / Fortschritt ═══════════════
@@ -640,7 +689,9 @@ actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, 
     maxTokens: 2000,
     schema: ANALYZE_SCHEMA,
   });
-  return { a: JSON.parse(text), usage };
+  const a = parseJsonLoose(text);
+  if (!a) throw new Error("Analyse-Antwort unlesbar (JSON kaputt)");
+  return { a, usage };
 }
 
 // ═══════════════ /vision — Geräte-Scanner (Foto → Gerät + Übungen) ═══════════════
@@ -711,7 +762,9 @@ caution: 1 sentence — most common mistake on this machine.`;
     maxTokens: 700,
     schema: VISION_SCHEMA,
   });
-  return { v: JSON.parse(text), usage };
+  const v = parseJsonLoose(text);
+  if (!v) throw new Error("Scanner-Antwort unlesbar (JSON kaputt)");
+  return { v, usage };
 }
 
 // ═══════════════ Firebase-Token prüfen ═══════════════

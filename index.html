@@ -4934,6 +4934,29 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ai-r-lbl{
   white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--text);
 }
+/* KONTINGENT-KOPF über dem KI-Menü: zeigt beim Aufklappen sofort, wie viele
+   Anfragen der Monat noch hergibt. Liegt als letztes DOM-Kind im
+   column-reverse-Stapel, sitzt also ganz oben über den Aktions-Pillen. */
+.ai-r-quota{
+  flex-direction:column;align-items:stretch;gap:7px;height:auto;min-width:196px;
+  padding:10px 14px 11px;border-radius:18px;cursor:default;
+  border-color:rgba(var(--acc-rgb),.30);
+}
+.ai-r-quota:active{transform:none}
+.ai-r-q-top{display:flex;align-items:center;gap:7px}
+.ai-r-q-lbl{font-size:10.5px;font-weight:900;letter-spacing:.85px;text-transform:uppercase;color:var(--acc)}
+.ai-r-q-val{margin-left:auto;font-size:14px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.ai-r-q-val i{font-style:normal;font-size:11.5px;font-weight:700;color:var(--text2)}
+.ai-r-q-bar{height:5px;border-radius:3px;background:rgba(127,127,127,.18);overflow:hidden}
+.ai-r-q-fill{
+  height:100%;border-radius:3px;width:0;
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.5),var(--acc));
+  transition:width .65s cubic-bezier(.25,.9,.3,1);
+}
+.ai-r-quota.low{border-color:rgba(255,159,10,.42)}
+.ai-r-quota.low .ai-r-q-fill{background:linear-gradient(90deg,#ff9f0a,#ff453a)}
+.ai-r-quota.low .ai-r-q-lbl{color:#ff9f0a}
+.ai-r-q-sub{font-size:10.5px;font-weight:700;color:var(--text2);white-space:nowrap}
 /* KI-Sheets über Tabbar (1000) + Bubble (1060) — sonst verdecken die schwebenden
    Leisten die Sheet-Unterkante und blockieren Taps auf die unteren Buttons
    (gleiche Lösung wie #ov-paywall). */
@@ -7118,12 +7141,12 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250009';
+const APP_VERSION = 'gymtrack-v202607250010';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
    NICHT gepusht). VOR jedem Upload/Push wieder auf false setzen! */
-const DEMO_SEED = true;   // NUR für Promo-Screenshots auf true — NIE committen!
+const DEMO_SEED = false;  // NUR für Promo-Screenshots auf true — NIE committen!
 
 /* Echte Push (APNs) bei Flammen-Reaktion — auch bei geschlossener App.
    Absender = Cloudflare Worker (hält geheimen .p8, sendet an Apple APNs).
@@ -7708,6 +7731,8 @@ const I18N_EN = {
   'KI-Chat, Live-Coach & Trainingsanalyse freischalten':'Unlock AI chat, live coach & workout analysis',
   'Abo verwalten':'Manage subscription','In den App-Store-Einstellungen öffnen':'Open in App Store settings',
   'Abo auf diesem Gerät erneut aktivieren':'Reactivate subscription on this device','KI-Anfragen':'AI requests',
+  'Mit Premium freischalten':'Unlock with Premium','Unbegrenzt':'Unlimited','Stand wird geladen…':'Loading balance…',
+  'übrig diesen Monat':'left this month','Limit erreicht — Reset am Monatsanfang':'Limit reached — resets at the start of the month',
   'Tagesempfehlung auf der Startseite':'Daily recommendation on the home screen','Trainingsvorschlag laut Erholung deiner Muskelgruppen':'Training suggestion based on your muscle group recovery',
   /* KI-Coach — Bubble, Radialmenü, Chat, Analyse (Phase C) */
   'KI-Coach':'AI coach','Trainingsplan erstellen':'Create workout plan','Workout optimieren':'Optimize workout',
@@ -10295,9 +10320,9 @@ function _gtDayStr(d) {
 function _coachTodaySuggestion() {
   try {
     if (!isPremium() || !S.aiCoach || S.aiCoach.insights === false) return null;
-    // Ausblenden gilt für den KALENDERTAG. Vorher lag hier todayKey() ('mon'…) —
-    // damit blieb die Karte an jedem künftigen Montag ausgeblendet.
-    if (localStorage.getItem('gt_coachTodayDismiss') === _gtDayStr()) return null;
+    // Kein Wegklicken mehr: das Tagesbriefing ist der sichtbare Gegenwert des Abos
+    // und war nach einem versehentlichen ✕ den Rest des Tages weg. Wer es dauerhaft
+    // nicht will, schaltet "Tagesempfehlung auf der Startseite" in den Einstellungen aus.
 
     const rd     = _ciReadiness();
     const mgRec  = getMuscleGroupRecovery();
@@ -10393,7 +10418,6 @@ function renderCoachTodayCard() {
           <span class="aic-orb">${ICO.sparkle({s:14})}</span>
           <span class="aic-lbl">${esc(tr('KI-Coach'))}</span>
           <span class="aic-live"><i></i>${esc(s.chip)}</span>
-          <button type="button" class="aic-x" onclick="_coachTodayDismiss()" aria-label="${esc(tr('Ausblenden'))}">✕</button>
         </div>
         <div class="aic-main">
           <div class="aic-ringbox">
@@ -10412,7 +10436,6 @@ function renderCoachTodayCard() {
           ${s.kind === 'focus' ? '' : `<span class="aic-chip ghost">${esc(s.ringLbl)} ${pct} %</span>`}</div>` : ''}
         ${s.cta ? `<div class="aic-btns">
           <button type="button" class="aic-go" onclick="${s.cta.on}">${esc(s.cta.label)}</button>
-          <button type="button" class="aic-later" onclick="_coachTodayDismiss()">${esc(tr('Später'))}</button>
         </div>` : ''}
       </div>
     </div>`;
@@ -10422,15 +10445,9 @@ function renderCoachTodayCard() {
     }
   } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
 }
-function _coachTodayDismiss() {
-  try { localStorage.setItem('gt_coachTodayDismiss', _gtDayStr()); } catch(_) {}
-  const host = document.getElementById('coach-today-card');
-  const card = host && host.firstElementChild;
-  _aicSig = null;
-  if (card) { card.classList.add('out'); setTimeout(() => { if (host) host.innerHTML = ''; }, 260); }
-  else if (host) host.innerHTML = '';
-  haptic(8);
-}
+// Altlast: wer die Karte früher weggeklickt hat, trägt den Ausblend-Schlüssel noch
+// im localStorage. Einmal entfernen, sonst bliebe die Karte beim Update weiterhin weg.
+try { localStorage.removeItem('gt_coachTodayDismiss'); } catch(_) {}
 function _coachTodayGoTrain(mgId) {
   try { setExCat(mgId); } catch(_) {}
   goTabId('uebungen');
@@ -22146,6 +22163,31 @@ function premGate(feature){ if (isPremium()) return true; openPaywall(feature); 
 function premRefreshUI(){
   try { if (document.getElementById('pg-settings')?.classList.contains('on')) renderPremiumSettings(); } catch(_){}
   try { if (document.getElementById('ov-paywall')?.classList.contains('on')) _pwRender(); } catch(_){}
+  // Direkt nach dem Kauf muss Premium ÜBERALL sofort da sein, nicht erst nach
+  // einem Tab-Wechsel: Tagesbriefing auf der Startseite, Level-/Founder-Badge
+  // und der Kontingent-Kopf im KI-Menü hängen alle an isPremium().
+  try { renderCoachTodayCard(); } catch(_){}
+  try { _renderLevelBadge(); } catch(_){}
+  try { _aiQuotaRenderHead(); } catch(_){}
+  try { if (isPremium()) aiQuotaRefresh(); } catch(_){}
+}
+// StoreKit ist die Quelle der Wahrheit — der lokale Cache in localStorage darf sie
+// nicht überleben. Deshalb bei JEDEM Start und bei jeder Rückkehr in den Vordergrund
+// das Entitlement frisch ziehen (Verlängerung, Ablauf, Rückerstattung, Kauf auf einem
+// anderen Gerät, Neuinstallation) und auf die Push-Meldung des Plugins hören
+// (PremiumPlugin.load() sendet 'entitlementChanged' bei Transaction.updates).
+let _premWatchTries = 0;
+function _premWatchEntitlement(){
+  if (!_isNative()) return;
+  const P = _cap('PremiumPlugin');
+  if (!P) { if (_premWatchTries++ < 12) setTimeout(_premWatchEntitlement, 800); return; }
+  try { P.addListener('entitlementChanged', (res) => { _premApply(res); _syncPremiumProfile(); }); } catch(_){}
+  premRefreshEntitlement();
+  try {
+    window.Capacitor?.Plugins?.App?.addListener('appStateChange', (st) => {
+      if (st && st.isActive) premRefreshEntitlement();
+    });
+  } catch(_){}
 }
 
 // ── KI-Worker (Chat/Live-Coach/Analyse) ───────────────
@@ -22184,12 +22226,12 @@ async function aiCall(kind, payload){
       return null;
     }
     if (res.status === 429) {
-      if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} }
+      if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} _aiQuotaTs = Date.now(); try { _aiQuotaRenderHead(); } catch(_){} }
       _dndToast((j && j.error) || 'Du hast dein monatliches KI-Limit erreicht.');
       return null;
     }
     if (!res.ok) { _dndToast((j && j.error) || 'KI gerade nicht erreichbar.'); return null; }
-    if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} }
+    if (j && j.quota) { try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){} _aiQuotaTs = Date.now(); try { _aiQuotaRenderHead(); } catch(_){} }
     return j;
   } catch(e) {
     // Klartext statt Sammelmeldung: „Load failed" (WKWebView-Netzfehler) sieht
@@ -22909,7 +22951,70 @@ function _aibRender(){
   if (radial) radial.innerHTML = _AI_RADIAL_ITEMS.map(it => `
     <button type="button" class="ai-r-item" aria-label="${esc(it.label)}" onclick="aiRadialAction('${it.kind}')">
       ${ICO[it.ico]({s:19})}<span class="ai-r-lbl">${esc(it.label)}</span>
-    </button>`).join('');
+    </button>`).join('')
+    // column-reverse: das LETZTE Kind steht oben — Kontingent-Kopf über den Pillen.
+    + `<div class="ai-r-item ai-r-quota" id="ai-r-quota" role="status"></div>`;
+  _aiQuotaRenderHead();
+}
+
+// ── KI-Kontingent (Monatslimit) ────────────────────────
+// Der Worker liefert den Stand bei jeder KI-Antwort mit (aiCall speichert ihn),
+// zusätzlich holt /quota ihn ohne Verbrauch — sonst wüsste die App den Stand erst,
+// nachdem sie eine Anfrage ausgegeben hat.
+let _aiQuotaTs = 0;
+function _aiQuotaGet(){
+  try {
+    const q = JSON.parse(localStorage.getItem('gt_aiQuota') || 'null');
+    return (q && typeof q.limit === 'number' && typeof q.used === 'number') ? q : null;
+  } catch(_) { return null; }
+}
+async function aiQuotaRefresh(force){
+  try {
+    if (!isPremium()) return null;
+    if (!force && Date.now() - _aiQuotaTs < 60000) return _aiQuotaGet();
+    if (!(window.FB && window.FB.configured && _fbUser) || _fbUser.isAnonymous) return null;
+    const idToken = await _fbUser.getIdToken();
+    const res = await fetch(AI_WORKER_URL + '/quota', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, jws: PREM.jws || null }),
+    });
+    const j = await res.json();
+    if (j && j.quota) {
+      try { localStorage.setItem('gt_aiQuota', JSON.stringify(j.quota)); } catch(_){}
+      _aiQuotaTs = Date.now();
+      _aiQuotaRenderHead();
+      return j.quota;
+    }
+  } catch(_){}
+  return null;
+}
+function _aiQuotaRenderHead(){
+  const el = document.getElementById('ai-r-quota'); if (!el) return;
+  const spark = ICO.sparkle({ s:13 });
+  if (!isPremium()) {
+    el.classList.remove('low');
+    el.innerHTML = `<div class="ai-r-q-top">${spark}<span class="ai-r-q-lbl">${esc(tr('KI-Anfragen'))}</span></div>
+      <div class="ai-r-q-sub">${esc(tr('Mit Premium freischalten'))}</div>`;
+    return;
+  }
+  const q = _aiQuotaGet();
+  if (!q || q.unlimited) {
+    el.classList.remove('low');
+    el.innerHTML = `<div class="ai-r-q-top">${spark}<span class="ai-r-q-lbl">${esc(tr('KI-Anfragen'))}</span>
+        <span class="ai-r-q-val">${q ? '∞' : '—'}</span></div>
+      <div class="ai-r-q-sub">${esc(q ? tr('Unbegrenzt') : tr('Stand wird geladen…'))}</div>`;
+    return;
+  }
+  const left = Math.max(0, q.limit - q.used);
+  const pct  = q.limit > 0 ? Math.max(0, Math.min(100, (left / q.limit) * 100)) : 0;
+  el.classList.toggle('low', left <= Math.max(3, q.limit * 0.15));
+  el.innerHTML = `<div class="ai-r-q-top">${spark}<span class="ai-r-q-lbl">${esc(tr('KI-Anfragen'))}</span>
+      <span class="ai-r-q-val">${left}<i> / ${q.limit}</i></span></div>
+    <div class="ai-r-q-bar"><div class="ai-r-q-fill" id="ai-r-q-fill"></div></div>
+    <div class="ai-r-q-sub">${esc(left > 0 ? tr('übrig diesen Monat') : tr('Limit erreicht — Reset am Monatsanfang'))}</div>`;
+  // Breite erst im nächsten Frame setzen, damit der Balken sichtbar hochläuft
+  // statt fertig gefüllt aufzuploppen.
+  requestAnimationFrame(() => { const f = document.getElementById('ai-r-q-fill'); if (f) f.style.width = pct + '%'; });
 }
 // Sichtbarer Bereich für Bubble/Menü: unter Statusleiste, über der Tab-Leiste,
 // 12px Rand links/rechts. Tab-Leiste live gemessen (bewegt sich mit --sab).
@@ -22941,6 +23046,8 @@ function openAiRadial(){
   radial.style.left  = side === 'l' ? '14px' : 'auto';
   radial.style.right = side === 'r' ? '14px' : 'auto';
   radial.style.maxWidth = (bounds.right - bounds.left) + 'px';
+  _aiQuotaRenderHead();
+  aiQuotaRefresh();                       // gedrosselt (60 s) und ohne Verbrauch
   const items = document.querySelectorAll('.ai-r-item');
   items.forEach((el, i) => { el.style.transitionDelay = (i * 28) + 'ms'; });
   document.getElementById('ai-radial-backdrop')?.classList.add('on');
@@ -23986,6 +24093,7 @@ initSheetSwipe();
 initTabDrag();
 initPageSwipe();
 _aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
+_premWatchEntitlement();   // Abo-Status bei jedem Start/Vordergrund frisch von StoreKit holen
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 // Startreihenfolge: Login-Gate ZUERST (synchron gerendert, damit der Startbildschirm
 // nicht kurz aufblitzt), Onboarding erst NACH dem Login, danach die Soft-Paywall.
@@ -24533,6 +24641,19 @@ function _mergeById(cloud, local, cloudNewer) {
 }
 
 // Merge: kombiniere local + cloud verlustfrei
+// Grober Fingerabdruck der anzeigerelevanten Daten. Reicht, um zu entscheiden, ob
+// ein Cloud-Merge überhaupt einen Rerender wert ist — bewusst billig (keine tiefe
+// Serialisierung tausender Sätze), aber empfindlich für alles, was die Startseite zeigt.
+function _dataSig() {
+  try {
+    const ses = S.sessions || [], ex = S.exercises || [];
+    const last = ses.length ? ses[ses.length - 1] : null;
+    return [ses.length, ex.length, last && last.date, last && last.id,
+            S.theme, S.companion, S.streak, S.streakLastDate,
+            JSON.stringify(S.weekPlan || null), (S.workoutPresets || []).length,
+            (S.trackerItems || []).length, JSON.stringify(S.trackerCounts || null)].join('|');
+  } catch(_) { return String(Math.random()); }   // im Zweifel lieber rendern
+}
 function _mergeData(local, cloud) {
   // Demo-Altlasten aus BEIDEN Quellen filtern, bevor gemergt wird — sonst
   // schleust ein kontaminiertes Cloud-Doc/Gerät die dm_-Daten wieder ein.
@@ -24639,6 +24760,7 @@ async function _onLogin(user) {
   }
 
   _syncing = true;
+  const _sigBefore = _dataSig();
   try {
     const ref  = window.FB.userDocRef(user.uid);
     console.log('[GymTrack] ☁️ Lade Cloud-Daten…');
@@ -24661,12 +24783,17 @@ async function _onLogin(user) {
       await _pushToCloud();
       console.log('[GymTrack] ☁️ Initial-Push ok');
     }
-    // UI neu rendern
-    setTheme(S.theme || 'dark');
-    applyCompanion();
-    renderHome();
-    renderExList();
-    renderSettings();
+    // UI nur neu rendern, wenn der Cloud-Merge WIRKLICH etwas geändert hat.
+    // Vorher lief der Rerender bedingungslos — sichtbar als "die App lädt ein bis
+    // zwei Sekunden nach dem Start noch mal neu" (Heute-Karten bauten sich erneut auf),
+    // obwohl in 99 % der Starts identische Daten aus der Cloud kommen.
+    if (_dataSig() !== _sigBefore) {
+      setTheme(S.theme || 'dark');
+      applyCompanion();
+      renderHome();
+      renderExList();
+      renderSettings();
+    }
     updateAccountUI();
     // Sync-Bestätigung — nur beim erstmaligen Verbinden zeigen
     if (!localStorage.getItem('gt_synced_' + user.uid)) {
@@ -24685,14 +24812,17 @@ async function _onLogin(user) {
       const cloud = snap2.data();
       if ((cloud.updatedAt || 0) <= (S.updatedAt || 0)) return;
       _syncing = true;
+      const sig = _dataSig();
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
       _origPersist();
-      setTheme(S.theme || 'dark');
-      applyCompanion();
-      renderHome();
-      renderExList();
-      renderSettings();
+      if (_dataSig() !== sig) {        // s.o.: kein Rerender ohne echte Änderung
+        setTheme(S.theme || 'dark');
+        applyCompanion();
+        renderHome();
+        renderExList();
+        renderSettings();
+      }
       _syncing = false;
     });
   } catch (e) {
@@ -24704,6 +24834,7 @@ async function _onLogin(user) {
     _initialMergeDone = true;
     _postLoginFlow();   // Cloud-Stand steht → Onboarding (falls nötig), danach Soft-Paywall
     updateAccountUI();
+    try { if (isPremium()) aiQuotaRefresh(true); } catch(_){}   // Kontingent-Anzeige vorwärmen
     if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + Wochen-Aufräumen
   }
 }
@@ -25543,12 +25674,14 @@ function _handleWidgetDeepLink(url) {
       if (typeof incrementTracker === 'function') incrementTracker(decodeURIComponent(t[1]));
       return;
     }
-    // Wochentag-Kreis angetippt → Statistik + Kalender öffnen
+    // Wochentag-Kreis im Widget angetippt → Statistik + Kalender öffnen.
+    // NUR für gymtrack://day/N. Vorher landete JEDER unbekannte gymtrack://-Link
+    // (auch ein simpler App-Start über das Widget) auf dem Statistik-Tab — die App
+    // öffnete sich dann scheinbar grundlos in der Statistik statt auf "Heute".
+    if (!/^gymtrack:\/\/day\/\d+/.test(url)) return;
     goTabId('stats');
     setTimeout(() => { if (typeof renderStats === 'function') renderStats(); }, 0);
-    if (/^gymtrack:\/\/day\/\d+/.test(url)) {
-      setTimeout(() => { if (typeof openCalendarOverlay === 'function') openCalendarOverlay(); }, 120);
-    }
+    setTimeout(() => { if (typeof openCalendarOverlay === 'function') openCalendarOverlay(); }, 120);
   } catch(e) {}
 }
 
