@@ -7165,7 +7165,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250017';
+const APP_VERSION = 'gymtrack-v202607250018';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -21919,6 +21919,9 @@ function hwSocial(size){
 // Baut 6 Monate Trainingshistorie mit stetig steigendem Volumen +
 // aktuelle Woche Mo–Sa "abgehakt". Rein im Speicher, nicht persistiert.
 function _seedDemoData() {
+  // Premium-UI freischalten (Screenshots der KI-/Premium-Features). Nur Demo-Builds:
+  // Funktion läuft ausschliesslich bei DEMO_SEED=true, und der Dev-Unlock ist rein lokal.
+  try { localStorage.setItem('gt_premiumDev', '1'); } catch(_){}
   const r2 = v => Math.round(v / 2.5) * 2.5;              // auf 2,5-kg-Schritte runden
   // Übungen (fester Split: Push / Pull / Legs)
   const EX = [
@@ -24420,6 +24423,7 @@ setTimeout(() => { if (_isNative()) _runNativeUpdateCheck(); else _runUpdateChec
 // Fürs KI-Testen im Simulator mit dem Founder-Konto anmelden.
 setTimeout(async () => {
   if (!_isNative()) return;
+  if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) return;   // Screenshot-Build: Premium-Unlock soll bleiben
   try {
     const env = await _getInstallInfo();
     if (env && env.isSimulator) localStorage.removeItem('gt_premiumDev');

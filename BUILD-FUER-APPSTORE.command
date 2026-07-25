@@ -30,6 +30,19 @@ echo "============================================="
 echo " GymTrack -> App Store  (Build + Upload)"
 echo "============================================="
 
+echo; echo "==> 0/8  Sicherheits-Check: DEMO_SEED darf NICHT aktiv sein"
+# HARTE SPERRE (2026-07-25 eingebaut): DEMO_SEED=true blieb einmal versehentlich im
+# Arbeitsverzeichnis stehen (nur zum Simulator-Screenshots-Machen gedacht) und wurde
+# so live hochgeladen -> App startete fuer echte Nutzer mit Demodaten auf dem
+# Statistik-Tab. Dieses Skript baut aus dem Arbeitsverzeichnis, NICHT aus git HEAD,
+# darum reicht "ist committed" nicht als Schutz. Bricht IMMER ab, wenn die Flag aktiv ist.
+if grep -qE "const DEMO_SEED = true" index.html; then
+  echo "ABBRUCH: DEMO_SEED=true in index.html."
+  echo "Das wuerde Demodaten + Statistik-Tab-Start ins App-Store-Build backen (ist schon einmal passiert)."
+  echo "Erst auf 'const DEMO_SEED = false;' zuruecksetzen, dann dieses Skript erneut starten."
+  exit 1
+fi
+
 echo; echo "==> 1/7  Web-Assets bauen"
 [ -d node_modules ] || npm install
 npm run build
