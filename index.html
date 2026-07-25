@@ -368,19 +368,19 @@
 }
 
 /* ── Boot-Splash (s. Kopf-Skript): deckt den ersten Aufbau ab ──
-   Schwarz + zentrierte Hantel = 1:1 der native LaunchScreen, damit der Übergang
-   nativ → WebView nicht als Aufflackern sichtbar wird. z-index über allem,
-   inkl. Rotate-Lock (99999). */
+   Schwarz + zentrierte WEISSE Hantel, 92x92 = pixelgleich mit dem nativen
+   LaunchScreen (Splash.imageset, contentMode=center). Weil Größe, Farbe und
+   Position identisch sind, ist der Übergang nativ → WebView unsichtbar: es
+   bleibt EIN Logo stehen, statt dass ein großes in ein kleines springt.
+   Deshalb hier auch KEINE Pulse-Animation mehr — der native Screen davor ist
+   statisch, jede Bewegung im selben Moment liest sich als Doppelbild.
+   z-index über allem, inkl. Rotate-Lock (99999). */
 #boot-splash{
   position:fixed;inset:0;z-index:100000;background:#000;
   display:flex;align-items:center;justify-content:center;
-  opacity:1;transition:opacity .38s ease;
+  opacity:1;transition:opacity .26s ease;
 }
 #boot-splash.gone{opacity:0;pointer-events:none}
-@media (prefers-reduced-motion:no-preference){
-  #boot-splash svg{animation:bootPulse 1.9s ease-in-out infinite}
-}
-@keyframes bootPulse{0%,100%{transform:scale(1);opacity:.92}50%{transform:scale(1.045);opacity:1}}
 
 /* ── Querformat-Sperre: Hinweis nur auf Smartphones im Landscape ── */
 #rotate-lock{
@@ -5329,15 +5329,14 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 </head>
 <body>
 
-<!-- Boot-Splash: optische Fortsetzung des nativen LaunchScreen (schwarz + blaue
-     Hantel). Bleibt liegen, bis der INIT-Block durch ist, und blendet dann weich
-     aus. Inline-SVG statt <img>, damit kein Bild-Request und kein Nachladen
-     sichtbar wird. Wird von _bootSplashDone() entfernt (s. Kopf-Skript). -->
+<!-- Boot-Splash: optische Fortsetzung des nativen LaunchScreen (schwarz + WEISSE
+     Hantel, 92x92 — identisch zu Splash.imageset/LaunchScreen.storyboard).
+     Bleibt liegen, bis der INIT-Block durch ist, und blendet dann weich aus.
+     Inline-SVG statt <img>, damit kein Bild-Request und kein Nachladen sichtbar
+     wird. Wird von _bootSplashDone() entfernt (s. Kopf-Skript). -->
 <div id="boot-splash" aria-hidden="true">
   <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true" focusable="false">
-    <defs><linearGradient id="bsG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5AC8FA"/><stop offset="1" stop-color="#0A84FF"/></linearGradient></defs>
-    <g fill="url(#bsG)">
+    <g fill="#fff">
       <rect x="16" y="26" width="14" height="48" rx="7"/>
       <rect x="70" y="26" width="14" height="48" rx="7"/>
       <rect x="28" y="43.5" width="44" height="13" rx="3"/>
@@ -6975,13 +6974,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 </div>
 
 <div class="ov" id="ov-frprofile" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-frprofile')">
-  <div class="sheet" style="height:92vh;height:min(92vh,var(--sheet-cap));max-height:92vh;max-height:min(92vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0;overflow:hidden">
+  <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="frp-title">Profil</h2>
       <button class="x-btn" onclick="closeOv('ov-frprofile')">✕</button>
     </div>
-    <div id="frp-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))"></div>
+    <div id="frp-body" style="padding-bottom:calc(14px + var(--sab))"></div>
   </div>
 </div>
 
@@ -7141,7 +7140,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250010';
+const APP_VERSION = 'gymtrack-v202607250012';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -24108,9 +24107,26 @@ setTimeout(() => {
   if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
 }, 10000);
 // Aufbau ist durch (Home/Übungen gerendert, Gate bzw. Onboarding entschieden) —
-// jetzt erst den Boot-Splash wegblenden. Zwei rAF, damit der erste echte Frame
-// der App garantiert steht, bevor die Abdeckung geht.
-requestAnimationFrame(() => requestAnimationFrame(() => { try { window._bootSplashDone && window._bootSplashDone(); } catch(_){} }));
+// der Boot-Splash bleibt aber liegen, bis auch der ERSTE Cloud-Merge durch ist
+// (Deckel: 1200 ms). Grund: _onLogin() rendert nach dem Merge Heute/Übungen/
+// Einstellungen neu und setzt Theme + Begleiter — genau dieses Nachrendern war
+// das kurze "die Heute-Seite lädt gleich nach dem Start noch mal neu". Unter der
+// Abdeckung passiert es unsichtbar. Ohne echten Login (oder wenn Firebase nicht
+// lädt) kommt gar kein Merge → dann sofort raus, kein künstliches Warten.
+// _initialMergeDone ist ein späterer top-level `let` (TDZ!) — Zugriff deshalb
+// nur in try/catch, sonst bricht der komplette Boot ab.
+(function _bootReveal(){
+  const t0 = Date.now();
+  const merged = () => { try { return !!_initialMergeDone; } catch(_) { return false; } };
+  const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { window._bootSplashDone && window._bootSplashDone(); } catch(_){}
+  }));
+  if (!_hadRealLogin()) { reveal(); return; }
+  (function wait(){
+    if (merged() || Date.now() - t0 > 1200) { reveal(); return; }
+    setTimeout(wait, 60);
+  })();
+})();
 try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
 if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
 // QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
@@ -24494,7 +24510,17 @@ document.addEventListener('visibilitychange', () => {
     clearTimeout(_runNativeUpdateCheck._t);
     _runNativeUpdateCheck._t = setTimeout(_runNativeUpdateCheck, 800);
   }
+  // Soft-Paywall auch beim Vordergrund-Wechsel prüfen: iOS hält die WebView
+  // tagelang im Speicher, ein echter "App-Start" passiert kaum noch. Erst nach
+  // 30 min Pause, damit kurzes Wegwischen nichts auslöst; die Intervall-Logik
+  // in _maybeWelcomePaywall entscheidet dann, ob wirklich etwas aufgeht.
+  if (document.visibilityState === 'hidden') { _pwHidTs = Date.now(); return; }
+  if (document.visibilityState === 'visible' && _pwHidTs && Date.now() - _pwHidTs > 18e5) {
+    _pwHidTs = 0;
+    setTimeout(() => { try { _maybeWelcomePaywall(); } catch(_){} }, 1200);
+  }
 });
+let _pwHidTs = 0;
 
 async function checkForUpdate() {
   const title = document.getElementById('update-title');
@@ -24939,14 +24965,36 @@ function _hideAuthGate(){
   setTimeout(()=>{ el.classList.remove('on'); el.style.opacity=''; el.style.transition=''; el.innerHTML=''; }, 330);
   setTimeout(() => _postLoginFlow(), 600);   // nach dem Login: Onboarding, danach Soft-Paywall
 }
-// Einmalige Welcome-Paywall nach dem allerersten Login — weich: normales
-// Paywall-Sheet, per ✕/Backdrop/Swipe schließbar. Flag bewusst nur lokal
-// (kein users-Feld → keine Rules-Änderung).
+// Soft-Paywall — weich: normales Paywall-Sheet, per ✕/Backdrop/Swipe schließbar.
+// Drei Auslöser, alle nur lokal (kein users-Feld → keine Rules-Änderung):
+//   1) erster Login (Welcome, wie bisher)
+//   2) Update-Kampagne: Bestandsnutzer, die den Onboarding-Flow nie durchlaufen
+//      haben, bekommen sie beim ersten Start nach diesem Update EINMAL. Gesteuert
+//      über PW_CAMPAIGN — NICHT über APP_VERSION, sonst poppt sie im Web bei
+//      jedem Deploy neu auf. Neue Kampagne = Konstante hochzählen.
+//   3) danach als Erinnerung in wachsenden Abständen (3 → 7 → 14 Tage), damit
+//      es Erinnerung bleibt und nicht nervt.
+const PW_CAMPAIGN    = 1;                // hochzählen = alle Nicht-Premium sehen sie 1× erneut
+const PW_REMIND_DAYS = [3, 7, 14];       // Abstand nach der 1./2./ab der 3. Anzeige
 function _maybeWelcomePaywall(){
   try{
-    if (localStorage.getItem('gt_pwWelcome')) return;
     if (isPremium()) return;
-    localStorage.setItem('gt_pwWelcome','1');
+    if (_ob) return;                                                          // Onboarding läuft
+    if (typeof isWorkoutActive === 'function' && isWorkoutActive()) return;    // nicht ins Training platzen
+    if (document.querySelector('.ov.on')) return;                             // kein Sheet überlagern
+    const now   = Date.now();
+    const seen  = +(localStorage.getItem('gt_pwSeenCount') || 0);
+    const last  = +(localStorage.getItem('gt_pwLast') || 0);
+    const camp  = +(localStorage.getItem('gt_pwCampaign') || 0);
+    const first    = !localStorage.getItem('gt_pwWelcome');   // noch nie gesehen
+    const campaign = camp < PW_CAMPAIGN;                      // Bestandsnutzer beim Update
+    const gapDays  = PW_REMIND_DAYS[Math.min(Math.max(seen - 1, 0), PW_REMIND_DAYS.length - 1)];
+    const due      = last > 0 && (now - last) >= gapDays * 864e5;
+    if (!first && !campaign && !due) return;
+    localStorage.setItem('gt_pwWelcome', '1');
+    localStorage.setItem('gt_pwCampaign', String(PW_CAMPAIGN));
+    localStorage.setItem('gt_pwLast', String(now));
+    localStorage.setItem('gt_pwSeenCount', String(seen + 1));
     openPaywall();
   }catch(_){}
 }
