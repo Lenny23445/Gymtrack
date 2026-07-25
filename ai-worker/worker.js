@@ -37,12 +37,14 @@
 //                  Anker (App Store Connect → App-Analytics → Total Downloads), Stand-Datum YYYY-MM-DD.
 //                  Fehlt sie, rechnet /admin-stats nur aus der Sales-Report-Summe (etwas ungenauer).
 //   PROVIDER      = "gemini" (Default) oder "claude" — Modellwechsel ohne Code-Änderung
-//   MODEL         = Gemini-Modell (Default: gemini-2.5-flash)
+//   MODEL         = Gemini-Modell (Code-Default: gemini-3.5-flash-lite — siehe llmGemini)
 //   CLAUDE_MODEL  = Claude-Modell falls PROVIDER=claude (Default: claude-haiku-4-5)
 //   MONTHLY_LIMIT = KI-Anfragen/Monat pro Premium-Nutzer (Default 50; Coach-Trigger zählen 0.5)
 //   CHAT_DAILY / COACH_DAILY / ANALYZE_DAILY = Tageslimits als Missbrauchsbremse
 //   PRICE_IN_PER_M / PRICE_OUT_PER_M = USD pro 1 Mio. Input-/Output-Token für die Kostenschätzung
 //                  (Default 0.30/2.50 ≈ Gemini 2.5 Flash) — rein für Anzeige + Spend-Cap-Berechnung
+//                  ACHTUNG: bei einem Lite-Modell sind die Defaults zu hoch → Dashboard-Kosten und
+//                  Spend-Cap greifen zu früh. Beim Modellwechsel BEIDE Werte mit umsetzen.
 //   GLOBAL_MONTHLY_USD = harter Kostendeckel/Monat über ALLE Nutzer zusammen (leer = kein Deckel);
 //                  bei Erreichen antworten /chat|/coach|/analyze mit 429, bis der Monat wechselt
 // Bindings:
@@ -393,21 +395,24 @@ function stripAdditionalProps(schema) {
 
 async function runChat(body, lang, env) {
   const de = lang !== "en";
-  const ctx = JSON.stringify(body.context || {}).slice(0, 30000);
+  // Kontext-Cap: 12k Zeichen (~3k Token) statt 30k. Der Schwanz der Historie
+  // trägt kaum zur Antwort bei, geht aber bei JEDER Nachricht erneut als Input
+  // raus — der mit Abstand größte Kostenposten pro Chat-Aufruf.
+  const ctx = JSON.stringify(body.context || {}).slice(0, 12000);
   const msgs = (body.messages || [])
-    .slice(-16)
+    .slice(-10)
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!msgs.length || msgs[msgs.length - 1].role !== "user") throw new Error("bad messages");
   const sys = (de
-    ? `Du bist der persönliche KI-Coach in der Fitness-App MyGymTrack. Du kennst das komplette Training des Nutzers (unten als JSON: Profil, Wochenstatistiken, Übungsliste, letzte Einheiten mit Bestsätzen, Wochenplan-Belegung). Duze den Nutzer, antworte kompakt und konkret (meist unter 150 Wörter), nutze **fett** sparsam für Kernaussagen. Beziehe dich auf seine echten Daten und Übungsnamen. Bei Fragen zu Übungs-Alternativen: nenne 2-3 passende Alternativen für dieselbe Muskelgruppe mit kurzem Warum.
+    ? `Du bist der persönliche KI-Coach in der Fitness-App MyGymTrack. Du kennst das komplette Training des Nutzers (unten als JSON: Profil, Wochenstatistiken, Übungsliste, letzte Einheiten mit Bestsätzen, Wochenplan-Belegung). Duze den Nutzer. STIL: kurz und knackig — 2-4 Sätze, höchstens 80 Wörter. Direkt mit der Antwort anfangen, keine Einleitung, keine Wiederholung der Frage, kein Nachklapp-Fazit. Lieber eine konkrete Zahl als ein erklärender Satz. Nutze **fett** sparsam für die Kernaussage. Nur bei einer Plan-Erstellung darfst du länger werden. Beziehe dich auf seine echten Daten und Übungsnamen. Bei Fragen zu Übungs-Alternativen: nenne 2-3 passende Alternativen für dieselbe Muskelgruppe mit kurzem Warum.
 Wenn der Nutzer einen Trainingsplan möchte: Stelle höchstens EINE kurze Rückfrage falls nötig, sonst erstelle direkt einen Plan passend zu Ziel, Erfahrung und Frequenz aus dem Profil. Gib den Plan IMMER zusätzlich als Codeblock aus:
 \`\`\`gtplan
 {"name":"Planname","days":{"mon":{"label":"Push","exercises":[{"name":"Bankdrücken","muscleGroup":"brust","sets":3,"repMin":8,"repMax":12}]},"tue":{"rest":true},"wed":{"label":"…","exercises":[]},"thu":{"rest":true},"fri":{"label":"…","exercises":[]},"sat":{"rest":true},"sun":{"rest":true}}}
 \`\`\`
 muscleGroup nur aus: brust, ruecken, beine, arme, schultern, core. Nutze bevorzugt Übungen, die der Nutzer schon hat (exakte Namen aus der Übungsliste), ergänze sinnvoll. Alle 7 Tage (mon-sun) angeben, Ruhetage als {"rest":true}. Vor dem Codeblock den Plan kurz menschlich zusammenfassen.
 Keine medizinischen Diagnosen — bei Schmerzen/Verletzungen zum Arzt raten. Bleib beim Thema Training, grobe Ernährungsfragen sind ok.`
-    : `You are the personal AI coach in the MyGymTrack fitness app. You know the user's complete training (JSON below: profile, weekly stats, exercise list, recent sessions with best sets, week plan). Answer concisely and concretely (usually under 150 words), use **bold** sparingly. Reference their real data and exercise names. For exercise alternatives: give 2-3 options for the same muscle group with a short why.
+    : `You are the personal AI coach in the MyGymTrack fitness app. You know the user's complete training (JSON below: profile, weekly stats, exercise list, recent sessions with best sets, week plan). STYLE: short and punchy — 2-4 sentences, 80 words max. Start with the answer, no preamble, no restating the question, no closing summary. Prefer a concrete number over an explanatory sentence. Use **bold** sparingly for the key point. Only go longer when building a plan. Reference their real data and exercise names. For exercise alternatives: give 2-3 options for the same muscle group with a short why.
 When the user wants a training plan: ask at most ONE short clarifying question if needed, otherwise build it directly matching goal, experience and frequency from the profile. ALWAYS also output the plan as a code block:
 \`\`\`gtplan
 {"name":"Plan name","days":{"mon":{"label":"Push","exercises":[{"name":"Bench Press","muscleGroup":"brust","sets":3,"repMin":8,"repMax":12}]},"tue":{"rest":true},"wed":{"label":"…","exercises":[]},"thu":{"rest":true},"fri":{"label":"…","exercises":[]},"sat":{"rest":true},"sun":{"rest":true}}}
