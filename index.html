@@ -1104,6 +1104,13 @@ body{
 }
 [data-theme="dark"] .ov{ background:rgba(0,0,0,.5); }
 .ov.on{display:flex}
+/* Offenes Sheet = modal: Tabbar (z 1000) und KI-Bubble (z 1060) liegen über dem
+   Scrim (z 900) und blieben klickbar → Taps am unteren Rand wechselten im
+   Hintergrund den Tab / öffneten das KI-Menü. Klasse setzt _aibSyncVisibility()
+   (openOv/closeOv) — :has() griff in der WKWebView nicht zuverlässig.
+   Ausnahme ov-wk (aktives Training): Tab-Wechsel ist da gewollt. */
+body.sheet-modal .tabbar,
+body.sheet-modal #ai-bubble{pointer-events:none}
 .sheet{
   background:var(--gl-bg-h);
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
@@ -7158,7 +7165,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250014';
+const APP_VERSION = 'gymtrack-v202607250016';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -23100,6 +23107,10 @@ function _aibSyncVisibility(){
   const hide = document.getElementById('ob-screen')?.classList.contains('on')
             || document.getElementById('auth-gate')?.classList.contains('on');
   document.body.classList.toggle('ai-hidden', hide);
+  // Modal-Sperre: offenes Sheet (außer aktives Training) → Tabbar + Bubble
+  // durchgriffs-tot (CSS body.sheet-modal). Zentral hier, weil openOv/closeOv
+  // beide am Ende _aibSyncVisibility() aufrufen.
+  document.body.classList.toggle('sheet-modal', !!document.querySelector('.ov.on:not(#ov-wk)'));
   if (_aibOpenState && (hide || document.querySelector('.ov.on'))) closeAiRadial();
 }
 // Bubble-Durchmesser = gemessene Tableisten-Höhe (gleiche Unterkante per CSS-bottom):
@@ -23267,7 +23278,7 @@ function _aicApplyPlanCore(deleteOthers){
         if (S.exercises.length >= 500) return;
         const libItem = EX_LIBRARY.find(it => it.n.toLowerCase() === nm.toLowerCase());
         ex = {
-          id: uid(), name: libItem ? libItem.n : nm, emoji: libItem ? libItem.e : '🏋️',
+          id: uid(), name: libItem ? libItem.n : nm, emoji: '',   // KI-Übungen ohne Emoji (Lenny-Regel)
           muscleGroup: validMg.includes(de.muscleGroup) ? de.muscleGroup : (libItem ? libItem.mg : ''),
           targetSets: Math.max(1, Math.min(8, parseInt(de.sets) || libItem?.s || 3)),
           targetReps: Math.max(1, Math.min(30, parseInt(de.repMax) || libItem?.r || 10)),
@@ -23700,7 +23711,7 @@ function _scnAddExercise(){
   if (S.exercises.length >= 500) { _dndToast('Übungslimit erreicht.'); return; }
   const validMg = ['brust','ruecken','beine','arme','schultern','core'];
   S.exercises.push({
-    id: uid(), name: nm, emoji: '🏋️',
+    id: uid(), name: nm, emoji: '',   // KI-Übungen ohne Emoji (Lenny-Regel)
     muscleGroup: validMg.includes(e.muscleGroup) ? e.muscleGroup : (validMg.includes((v.muscleGroups || [])[0]) ? v.muscleGroups[0] : ''),
     targetSets: 3, targetReps: 12, targetWeight: 0, targetType: 'reps',
     repMin: 8, repMax: 12, weightScheme: 'straight',
@@ -23958,7 +23969,7 @@ function _aiaApply(i){
     else {
       const rMin = clampI(ac.repMin, 1, 29, 8), rMax = Math.max(rMin, clampI(ac.repMax, 1, 30, 12));
       ex = {
-        id: uid(), name: nm, emoji: '🏋️',
+        id: uid(), name: nm, emoji: '',   // KI-Übungen ohne Emoji (Lenny-Regel)
         muscleGroup: validMg.includes(ac.muscleGroup) ? ac.muscleGroup : '',
         targetSets: clampI(ac.sets, 1, 8, 3), targetReps: rMax, targetWeight: 0, targetType: 'reps',
         repMin: rMin, repMax: rMax, weightScheme: 'straight',
