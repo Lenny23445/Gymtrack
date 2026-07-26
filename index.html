@@ -902,6 +902,15 @@ body{
 .sp-color:active{transform:scale(.9)}
 .sp-color.on{border-color:var(--text)}
 .sp-color.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+/* Freie Farbwahl: Regenbogen-Swatch öffnet den Picker */
+.sp-color.sp-custom{background:conic-gradient(#FF375F,#FF9F0A,#FFD60A,#30D158,#64D2FF,#5E5CE6,#BF5AF2,#FF375F);
+  display:flex;align-items:center;justify-content:center}
+.sp-color.sp-custom::before{content:'';width:11px;height:11px;border-radius:50%;background:var(--card,#fff);
+  box-shadow:0 0 0 1px rgba(0,0,0,.12) inset}
+.sp-color.sp-custom.on::after{content:'';display:none}
+.sp-color.sp-custom{overflow:hidden;display:inline-flex}
+.sp-color.sp-custom input[type=color]{position:absolute;top:-7px;left:-7px;width:44px;height:44px;
+  opacity:0;border:0;padding:0;margin:0;cursor:pointer}
 
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
@@ -1179,6 +1188,12 @@ body.sheet-modal #ai-bubble{pointer-events:none}
   transition:opacity .15s;
 }
 .x-btn:active{opacity:.6}
+/* Text-Variante des runden Header-Buttons: border-radius:50% ergibt bei
+   width:auto eine Ellipse — hier stattdessen die App-typische Pillen-Kachel. */
+.x-btn-txt{
+  width:auto;height:30px;padding:0 12px;
+  border-radius:11px;font-size:13px;font-weight:700;
+}
 
 /* ── FORM ── */
 .f-label{
@@ -6129,7 +6144,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     <div class="sh-head">
       <h2>Gewichtsverlauf</h2>
       <div style="display:flex;align-items:center;gap:8px">
-        <button class="x-btn" style="width:auto;padding:0 12px;font-size:13px;font-weight:700" onclick="openWeightHistory()">Einträge</button>
+        <button class="x-btn x-btn-txt" onclick="openWeightHistory()">Einträge</button>
         <button class="x-btn" onclick="closeOv('ov-weight-chart-full')">✕</button>
       </div>
     </div>
@@ -7359,7 +7374,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607260003';
+const APP_VERSION = 'gymtrack-v202607260005';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7526,6 +7541,7 @@ const I18N_EN = {
   'Icon wählen':'Choose icon','Deine Pläne':'Your plans','Oder einzeln wählen':'Or choose individually','Trainingszeit':'Training time',
   'Deine Splits':'Your splits','Neuer Split':'New split','Split bearbeiten':'Edit split','Name des Splits':'Split name',
   'Farbe':'Color','Trainingstage':'Training days','Split löschen':'Delete split',
+  'Eigene Farbe':'Custom color',
   'Welchen Split trainierst du an diesem Tag?':'Which split do you train on this day?',
   'Erweitert: Gruppe oder Einzelübungen …':'Advanced: group or individual exercises …',
   'Erstelle deinen ersten Split':'Create your first split',
@@ -10202,7 +10218,10 @@ function addWidget(type, size){
   persist();
   if (!heuteEditMode) enterEditMode();
   renderHeuteGrid();
-  renderWidgetPicker();
+  // Nach der Auswahl schließt sich der Picker (Apple-Verhalten) — das Widget
+  // liegt danach sichtbar im Raster, statt hinter dem offenen Sheet.
+  try { haptic && haptic(10); } catch(_){}
+  closeOv('ov-widget-add');
 }
 
 /* ── Widget-Picker (Bottom-Sheet · Apple-Style Galerie) ── */
@@ -15910,14 +15929,45 @@ function openPresetEdit(id) {
   renderPresetExList();
   openOv('ov-preset');
 }
+// Eigene Split-Farben (frei gewählt) — rein lokal, kein Cloud-Feld.
+function customColors() {
+  try { const a = JSON.parse(localStorage.getItem('gt_customColors') || '[]'); return Array.isArray(a) ? a.filter(isHex) : []; }
+  catch(_) { return []; }
+}
+function rememberCustomColor(c) {
+  const list = customColors().filter(x => x.toUpperCase() !== c.toUpperCase());
+  list.unshift(c);
+  try { localStorage.setItem('gt_customColors', JSON.stringify(list.slice(0, 8))); } catch(_){}
+}
+function isHex(c) { return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c); }
+
 function renderPresetColorRow() {
   const el = document.getElementById('preset-color-row');
   if (!el) return;
-  el.innerHTML = SPLIT_PALETTE.map(c =>
-    `<div class="sp-color${c===_presetColor?' on':''}" style="background:${c}" onclick="pickPresetColor('${c}')"></div>`
-  ).join('');
+  const cur = (_presetColor || '').toUpperCase();
+  const swatches = SPLIT_PALETTE.concat(customColors().filter(c => !SPLIT_PALETTE.some(p => p.toUpperCase() === c.toUpperCase())));
+  const isCustom = isHex(_presetColor) && !swatches.some(c => c.toUpperCase() === cur);
+  el.innerHTML = swatches.map(c =>
+    `<div class="sp-color${c.toUpperCase()===cur?' on':''}" style="background:${c}" onclick="pickPresetColor('${c}')"></div>`
+  ).join('') +
+  `<label class="sp-color sp-custom${isCustom?' on':''}" id="preset-cust-sw" title="Eigene Farbe" aria-label="Eigene Farbe"
+      ${isCustom ? `style="background:${_presetColor}"` : ''}>
+     <input type="color" id="preset-col-inp" value="${isHex(_presetColor)?_presetColor:SPLIT_PALETTE[0]}"
+            oninput="pickCustomColor(this.value,false)" onchange="pickCustomColor(this.value,true)">
+   </label>`;
+}
+// Native Farbpalette (input type=color) — live oninput färbt nur, erst onchange
+// (Picker geschlossen) wird die Reihe neu gerendert; sonst reißt es den offenen Picker weg.
+function pickCustomColor(c, done) {
+  if (!isHex(c)) return;
+  _presetColor = c.toUpperCase();
+  const lab = document.getElementById('preset-cust-sw');
+  if (lab) { lab.style.background = _presetColor; lab.classList.add('on'); }
+  document.querySelectorAll('#preset-color-row .sp-color:not(.sp-custom).on').forEach(e => e.classList.remove('on'));
+  if (done) { rememberCustomColor(_presetColor); renderPresetColorRow(); hapticTick && hapticTick(); }
 }
 function pickPresetColor(c) { _presetColor = c; renderPresetColorRow(); hapticTick && hapticTick(); }
+
 function renderPresetDayRow() {
   const el = document.getElementById('preset-day-row');
   if (!el) return;
