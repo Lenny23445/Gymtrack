@@ -7359,7 +7359,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607260001';
+const APP_VERSION = 'gymtrack-v202607260003';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9950,7 +9950,7 @@ function hwRecovery(size){
     const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
     const col = recoveryColor(pct);
     const state = recoveryState(pct);
-    return `<div class="hw-card hw-rec-batt">
+    return `<div class="hw-card hw-rec-batt" onclick="goTabId('stats')" style="cursor:pointer">
       <div class="rec-batt-v-outer">
         <div class="rec-batt-v-cap"></div>
         <div class="rec-batt-v"><div class="rec-batt-v-fill" style="height:${pct}%;background:${col}"></div></div>
@@ -9963,7 +9963,7 @@ function hwRecovery(size){
   if (size === 'md'){
     const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
     const col = recoveryColor(pct);
-    return `<div class="hw-card"><div class="hw-stat">
+    return `<div class="hw-card" onclick="goTabId('stats')" style="cursor:pointer"><div class="hw-stat">
       <div class="hw-big" style="color:${col}">${pct}%</div>
       <div class="hw-sub">${recoveryState(pct)}</div>
     </div></div>`;
@@ -21184,10 +21184,12 @@ function _flameBankPrunePost(postId){
     if (changed) localStorage.setItem('gt_flameBank', JSON.stringify(b));
   } catch(_){}
 }
-let _wkPurgeRan = false;
+/* Posts sterben einzeln (jeder 7 Tage nach seinem `ts`) → nicht nur beim Start
+   aufräumen: max. 1× pro 3 h, damit lang offene Apps auch abräumen. */
+let _ttlPurgeTs = 0;
 async function _purgeOldPosts(){
-  if (_wkPurgeRan || !_socReady() || !S.socialOn) return;
-  _wkPurgeRan = true;
+  if (Date.now() - _ttlPurgeTs < 3 * 60 * 60 * 1000 || !_socReady() || !S.socialOn) return;
+  _ttlPurgeTs = Date.now();
   const cut = _postCutoffTs();
   try {
     const snap = await window.FB.getDocs(window.FB.query(
@@ -21301,6 +21303,7 @@ async function _renderFeed(body){
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
     </div>`;
   try { _socLiveRefresh(); } catch(_){}
+  try { _purgeOldPosts(); } catch(_){}   // eigene abgelaufene Posts abräumen (3h-Throttle)
   let items = [];
   try { items = await _cpgLoad(); }
   catch(e) {
