@@ -2851,6 +2851,160 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 .cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px}
 
+/* ── KALENDER: ANSICHTS-UMSCHALTER (Monate ⇄ Matrix) ──────────────
+   Segmented Control mit gleitender Kapsel. Liegt unter dem Kopf, damit der
+   Daumen ihn erreicht, ohne den Gitter-Bereich zu verdecken. */
+.cal-modes{
+  position:relative;display:grid;grid-template-columns:1fr 1fr;
+  gap:2px;padding:3px;margin:2px 0 10px;
+  border-radius:13px;background:var(--gl-ctrl,rgba(128,128,128,.10));
+  border:1px solid var(--gl-bdr,rgba(128,128,128,.18));
+}
+.cal-modes::before{
+  content:'';position:absolute;top:3px;bottom:3px;left:3px;
+  width:calc(50% - 4px);border-radius:10px;
+  background:rgba(var(--acc-rgb),.90);
+  box-shadow:0 2px 10px rgba(var(--acc-rgb),.30),inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .34s cubic-bezier(.32,1,.32,1);
+}
+.cal-modes[data-mode="matrix"]::before{transform:translateX(calc(100% + 2px))}
+.cal-mode-btn{
+  position:relative;z-index:1;border:0;background:none;
+  padding:7px 4px;border-radius:10px;cursor:pointer;
+  font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  color:var(--text2);transition:color .22s;text-transform:capitalize;
+}
+.cal-mode-btn.on{color:#fff}
+.cal-view[hidden]{display:none}
+.cal-view{display:flex;flex-direction:column;flex:1;min-height:0;animation:calFade .26s ease}
+@keyframes calFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── MATRIX-ANSICHT (Jahres-Raster, Wochen × Wochentage) ── */
+.mx{--mxc:15px;--mxg:4px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mx-range{display:flex;gap:6px;margin-bottom:12px;align-items:stretch}
+.mx-range button.mx-full-btn{
+  flex:0 0 44px;   /* schlägt das flex:1 der Range-Chips */border-radius:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--gl-ctrl,rgba(128,128,128,.08));
+  border:1px solid var(--gl-bdr,rgba(128,128,128,.16));
+  color:var(--text2);transition:background .2s,color .2s,transform .12s;
+}
+.mx-full-btn svg{width:16px;height:16px}
+.mx-full-btn:active{transform:scale(.94)}
+.mx-full-btn.on{background:rgba(var(--acc-rgb),.16);border-color:rgba(var(--acc-rgb),.42);color:var(--acc)}
+.mx-range button{
+  flex:1;padding:6px 4px;border-radius:10px;cursor:pointer;
+  font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;
+  background:var(--gl-ctrl,rgba(128,128,128,.08));
+  border:1px solid var(--gl-bdr,rgba(128,128,128,.16));
+  color:var(--text2);transition:background .2s,color .2s,transform .12s;
+}
+.mx-range button:active{transform:scale(.96)}
+.mx-range button.on{
+  background:rgba(var(--acc-rgb),.16);border-color:rgba(var(--acc-rgb),.42);
+  color:var(--acc);
+}
+.mx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.mx-stat{
+  padding:9px 6px 10px;border-radius:14px;text-align:center;
+  background:var(--gl-ctrl,rgba(128,128,128,.07));
+  border:1px solid var(--gl-bdr,rgba(128,128,128,.14));
+  box-shadow:var(--gl-rim,none);
+}
+.mx-stat b{
+  display:block;font-size:19px;font-weight:800;line-height:1.1;
+  font-variant-numeric:tabular-nums;color:var(--text);
+}
+.mx-stat span{
+  display:block;margin-top:3px;font-size:9.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--text2);
+}
+.mx-scroll{
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  padding-bottom:4px;scrollbar-width:none;
+}
+.mx-scroll::-webkit-scrollbar{display:none}
+.mx-board{display:flex;gap:6px;align-items:flex-start}
+.mx-board .mx-scroll{flex:1;min-width:0}
+.mx-wdcol{display:grid;grid-template-rows:14px repeat(7,var(--mxc));gap:var(--mxg)}
+.mx-wdcol span{
+  font-size:9px;font-weight:600;color:var(--text2);
+  display:flex;align-items:center;justify-content:flex-end;
+  min-width:16px;line-height:1;
+}
+.mx-cols{display:flex;flex-direction:column;gap:var(--mxg);width:max-content}
+.mx-mrow{display:flex;gap:var(--mxg);height:14px}
+.mx-m{
+  flex:0 0 var(--mxc);width:var(--mxc);position:relative;
+  font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text2);white-space:nowrap;overflow:visible;line-height:14px;
+}
+.mx-grid{display:flex;gap:var(--mxg)}
+.mx-col{display:grid;grid-template-rows:repeat(7,var(--mxc));gap:var(--mxg)}
+/* Höhere Spezifität als die Feinschliff-Regeln für .cal-cell weiter unten —
+   sonst erben die Matrix-Felder deren 12px-Radius und den großen Heute-Ring. */
+.mx .mx-cell{
+  width:var(--mxc);height:var(--mxc);border-radius:4.5px;
+  font-size:0;padding:0;min-width:0;
+  transition:transform .12s var(--press,ease),box-shadow .2s;
+}
+.mx .mx-cell.future{
+  background:transparent;
+  box-shadow:inset 0 0 0 1px var(--gl-bdr,rgba(128,128,128,.14));
+  pointer-events:none;
+}
+.mx .mx-cell.today{box-shadow:0 0 0 1.5px var(--acc),0 0 0 3.5px rgba(var(--acc-rgb),.18)}
+.mx .mx-cell.sel{box-shadow:0 0 0 1.5px var(--text),0 0 0 4px rgba(var(--acc-rgb),.22);transform:scale(1.12)}
+.mx .mx-cell.tap{cursor:pointer}
+.mx .mx-cell.tap:active{transform:scale(.86)}
+.mx-sel{
+  margin-top:12px;min-height:38px;display:flex;align-items:center;gap:9px;
+  padding:9px 12px;border-radius:14px;font-size:12.5px;color:var(--text);
+  background:var(--gl-ctrl,rgba(128,128,128,.07));
+  border:1px solid var(--gl-bdr,rgba(128,128,128,.14));
+  animation:calFade .2s ease;
+}
+.mx-sel .mx-sel-d{font-weight:700;font-variant-numeric:tabular-nums}
+.mx-sel .mx-sel-v{margin-left:auto;color:var(--text2);font-size:11.5px;white-space:nowrap}
+.mx-sel.empty{color:var(--text2);justify-content:center;font-size:12px}
+.mx-sel.tap{cursor:pointer}
+.mx-sel.tap:active{transform:scale(.99)}
+
+/* ── VOLLANSICHT: ganze Jahre untereinander, kein Querscrollen ──
+   Zellgröße wird in JS aus der Breite berechnet, damit 53 Wochen exakt
+   in eine Zeile passen (Stronger-Look). */
+.cal-card.full{max-height:none;height:var(--sheet-cap)}
+.mx.full{min-height:0;overflow:hidden}
+.mx.full .mx-board{display:flex;flex-direction:column;flex:1;min-height:0}
+.mx.full .mx-scroll{overflow-x:hidden;overflow-y:auto;flex:1;min-height:0;width:100%}
+.mx.full > .mx-board > .mx-wdcol{display:none}   /* je Jahresblock eigene Spalte */
+.mx-year{margin-bottom:22px}
+.mx-year-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin:0 0 8px;
+}
+.mx-year-head b{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.mx-year-head span{font-size:11.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
+.mx-year-body{display:flex;gap:5px;align-items:flex-start}
+.mx-year .mx-wdcol{grid-template-rows:12px repeat(7,var(--mxc))}
+.mx-year .mx-wdcol span{font-size:8.5px}
+.mx-year .mx-mrow{height:12px}
+.mx-year .mx-m{line-height:12px;font-size:8.5px;letter-spacing:.02em}
+.mx.full .mx-cell{border-radius:1.5px}
+.mx-mrow.m12{display:grid;grid-template-columns:repeat(12,1fr);gap:0;width:100%}
+.mx-m12{
+  font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text2);line-height:12px;text-align:center;
+}
+.mx.full .mx-cell.today{box-shadow:0 0 0 1px var(--acc),0 0 0 2.5px rgba(var(--acc-rgb),.20)}
+.mx.full .mx-cell.sel{box-shadow:0 0 0 1px var(--text),0 0 0 3px rgba(var(--acc-rgb),.22);transform:scale(1.3)}
+.mx-year-empty{font-size:11.5px;color:var(--text2);padding:2px 0 4px}
+/* In der Vollansicht zählt jedes Jahr für sich → Range-Chips und die
+   Gesamt-Kacheln verschwinden, die Zahlen stehen in den Jahres-Köpfen. */
+.mx.full .mx-stats{display:none}
+.mx.full .mx-range button:not(.mx-full-btn){display:none}
+.mx.full .mx-range{justify-content:flex-end}
+
 /* ── MID-ADD FOOTER (Button unter Übungsliste im aktiven Training) ── */
 .mid-add-footer{
   flex-shrink:0;padding:10px 16px 16px;
@@ -4614,6 +4768,10 @@ html:not([data-glass="off"]) #tab-indicator{
 .founder-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:800;
   vertical-align:1px;letter-spacing:.3px;background:#0b0b0d;color:#fff;border:1px solid rgba(255,255,255,.16)}
 .cpg-head .founder-tag{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.24)}
+/* Moderator-Kennzeichnung: gleiche Form wie Founder-Tag, aber blau statt schwarz. */
+.mod-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:800;
+  vertical-align:1px;letter-spacing:.3px;background:#0A84FF;color:#fff;border:1px solid rgba(255,255,255,.16)}
+.cpg-head .mod-tag{background:rgba(10,132,255,.75);border-color:rgba(255,255,255,.24)}
 /* Premium-Abzeichen neben Namen/Level — goldene Glow-Pille mit Shine-Sweep + sanftem
    Puls, damit es in der Community präsenter neben dem Level sitzt. Theme-unabhängig gold. */
 .prem-tag{position:relative;display:inline-flex;align-items:center;justify-content:center;
@@ -6954,10 +7112,40 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       <div class="cal-head-title">Trainingskalender</div>
       <button class="x-btn" onclick="closeOv('ov-calendar')">✕</button>
     </div>
-    <div class="cal-weekhdr">
-      <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+    <div class="cal-modes" id="cal-modes" data-mode="month">
+      <button class="cal-mode-btn on" onclick="setCalMode('month')">Monate</button>
+      <button class="cal-mode-btn" onclick="setCalMode('matrix')">Matrix</button>
     </div>
-    <div class="cal-scroll" id="cal-scroll"></div>
+
+    <!-- Ansicht A: Monatsgitter -->
+    <div class="cal-view" id="cal-view-month">
+      <div class="cal-weekhdr">
+        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+      </div>
+      <div class="cal-scroll" id="cal-scroll"></div>
+    </div>
+
+    <!-- Ansicht B: Matrix (Wochen × Wochentage, GitHub-Raster) -->
+    <div class="cal-view mx" id="cal-view-matrix" hidden>
+      <div class="mx-range" id="mx-range">
+        <button onclick="setMxRange(3)">3 Monate</button>
+        <button onclick="setMxRange(6)">6 Monate</button>
+        <button class="on" onclick="setMxRange(12)">1 Jahr</button>
+        <button class="mx-full-btn" id="mx-full-btn" onclick="toggleMxFull()" aria-label="Vollansicht">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mx-stats" id="mx-stats"></div>
+      <div class="mx-board">
+        <!-- Wochentags-Spalte steht fest, nur das Raster scrollt -->
+        <div class="mx-wdcol" id="mx-wd"></div>
+        <div class="mx-scroll" id="mx-scroll"></div>
+      </div>
+      <div class="mx-sel empty" id="mx-sel">Feld antippen für Details</div>
+    </div>
+
     <div class="cal-legend">
       <span>weniger</span>
       <div class="cal-cell"></div>
@@ -7165,7 +7353,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250018';
+const APP_VERSION = 'gymtrack-v202607250019';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7269,6 +7457,9 @@ const I18N_EN = {
   'Wochen-Streak':'Week streak','Gesamt-Volumen & Trend':'Total volume & trend','Gesamt-Volumen ·':'Total volume ·',
   'Alle Muskeln erholt':'All muscles recovered','Alle Muskeln erholt':'All muscles recovered',
   'Trainingskalender':'Training calendar','Trainingsvolumen':'Training volume',
+  'Monate':'Months','Matrix':'Matrix','3 Monate':'3 months','6 Monate':'6 months','1 Jahr':'1 year',
+  'Feld antippen für Details':'Tap a square for details','Kein Training':'No workout',
+  'Trainings':'Workouts','Ø pro Woche':'Avg per week','Beste Serie':'Best streak',
   'Keine Widgets.':'No widgets.','Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.':'Long-press the page or tap ＋ to add some.',
   'Widget hinzufügen':'Add widget','Größe ziehen':'Drag to resize','1RM-Best':'1RM best','Üb.':'ex.',
   'Wirklich alle Widgets von der Startseite entfernen?':'Really remove all widgets from the home page?',
@@ -16882,6 +17073,11 @@ const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1']);
 function _founderBadge(){ return `<span class="founder-tag" title="Founder" aria-label="Founder">Founder</span>`; }
 function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
+// Moderator-Kennzeichnung: nur fürs Demo/Screenshot-Roster (kein echtes Rollen-System) —
+// markiert Testprofile in _DEMO_ROSTER, damit Community/Freunde-Testdaten auch einen
+// Moderator zeigen. _DEMO_MOD_UIDS wird unten direkt aus dem Roster abgeleitet.
+function _modBadge(){ return `<span class="mod-tag" title="Moderator" aria-label="Moderator">Moderator</span>`; }
+function _modTag(uid){ return (typeof _DEMO_MOD_UIDS !== 'undefined' && _DEMO_MOD_UIDS.has(uid)) ? _modBadge() : ''; }
 
 /* Phase G: Community-Premium-Abzeichen — kleine Hantel in festem Metallic-Silber-
    Verlauf (KEIN var(--acc)), damit sie in allen 5 Themes gleich „wertig" aussieht. */
@@ -18318,10 +18514,31 @@ function renderWeekCircles(){
 // ── KALENDER-OVERLAY (letzte Monate) ──
 function openCalendarOverlay(){
   haptic(8);
-  renderCalendar();
+  MX_SEL = null;
+  // Zuletzt gewählte Ansicht (Monate/Matrix) wiederherstellen
+  const seg = document.getElementById('cal-modes');
+  if (seg) {
+    seg.dataset.mode = CAL_MODE;
+    seg.querySelectorAll('.cal-mode-btn').forEach((b,i) =>
+      b.classList.toggle('on', (i===0) === (CAL_MODE==='month')));
+  }
+  const mv = document.getElementById('cal-view-month');
+  const xv = document.getElementById('cal-view-matrix');
+  if (mv) mv.hidden = CAL_MODE !== 'month';
+  if (xv) xv.hidden = CAL_MODE !== 'matrix';
+
+  _mxApplyFull();
+  if (CAL_MODE === 'matrix') renderMatrix(); else renderCalendar();
   openOv('ov-calendar');
   // Erst nach dem Einblenden ans Ende scrollen → aktueller Monat steht unten sichtbar
   requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (CAL_MODE === 'matrix') {
+      // Jetzt steht die echte Kartenbreite fest → Zellgröße exakt neu berechnen
+      if (MX_FULL) { renderMatrix(); return; }
+      const mx = document.getElementById('mx-scroll');
+      if (mx) mx.scrollLeft = mx.scrollWidth;
+      return;
+    }
     const wrap = document.getElementById('cal-scroll');
     if (wrap) wrap.scrollTop = wrap.scrollHeight;
   }));
@@ -18388,6 +18605,280 @@ function renderCalendar(monthsBack = 12){
   wrap.innerHTML = html;
   // Ans Ende scrollen → aktueller Monat steht unten sichtbar
   wrap.scrollTop = wrap.scrollHeight;
+}
+
+// ── MATRIX-ANSICHT (Wochen × Wochentage, ganzes Jahr auf einen Blick) ──
+const _MX_MON = GT_LANG === 'en'
+  ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  : ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+let CAL_MODE   = localStorage.getItem('gt_calMode') || 'month';
+let MX_MONTHS  = +(localStorage.getItem('gt_mxRange') || 12) || 12;
+let MX_SEL     = null;   // aktuell angetippter Tages-Key
+let _MX_SESS   = {};     // Tages-Key → Sessions (beim Rendern gefüllt)
+
+function setCalMode(mode){
+  CAL_MODE = mode === 'matrix' ? 'matrix' : 'month';
+  localStorage.setItem('gt_calMode', CAL_MODE);
+  haptic(8);
+  const seg = document.getElementById('cal-modes');
+  if (seg) {
+    seg.dataset.mode = CAL_MODE;
+    seg.querySelectorAll('.cal-mode-btn').forEach((b,i) =>
+      b.classList.toggle('on', (i===0) === (CAL_MODE==='month')));
+  }
+  const mv = document.getElementById('cal-view-month');
+  const xv = document.getElementById('cal-view-matrix');
+  if (mv) mv.hidden = CAL_MODE !== 'month';
+  if (xv) xv.hidden = CAL_MODE !== 'matrix';
+  _mxApplyFull();
+  if (CAL_MODE === 'matrix') {
+    renderMatrix();
+  } else {
+    renderCalendar();
+    const wrap = document.getElementById('cal-scroll');
+    if (wrap) requestAnimationFrame(() => { wrap.scrollTop = wrap.scrollHeight; });
+  }
+}
+
+// Vollansicht: ganze Jahre untereinander, jedes Jahr eine Zeile (kein Querscrollen)
+let MX_FULL = localStorage.getItem('gt_mxFull') === '1';
+
+function toggleMxFull(){
+  MX_FULL = !MX_FULL;
+  localStorage.setItem('gt_mxFull', MX_FULL ? '1' : '0');
+  haptic(8);
+  _mxApplyFull();
+  renderMatrix();
+}
+
+function _mxApplyFull(){
+  const view = document.getElementById('cal-view-matrix');
+  const card = document.querySelector('#ov-calendar .cal-card');
+  const btn  = document.getElementById('mx-full-btn');
+  if (view) view.classList.toggle('full', MX_FULL);
+  if (card) card.classList.toggle('full', MX_FULL && CAL_MODE === 'matrix');
+  if (btn)  btn.classList.toggle('on', MX_FULL);
+}
+
+function setMxRange(months){
+  MX_MONTHS = months;
+  localStorage.setItem('gt_mxRange', String(months));
+  haptic(6);
+  renderMatrix();
+}
+
+// Tag im Raster angetippt → Info-Zeile darunter füllen
+function mxPick(el){
+  const k = el.dataset.k;
+  MX_SEL = (MX_SEL === k) ? null : k;
+  haptic(5);
+  document.querySelectorAll('#mx-scroll .mx-cell.sel').forEach(c => c.classList.remove('sel'));
+  if (MX_SEL) el.classList.add('sel');
+  _mxRenderSel();
+}
+
+function _mxRenderSel(){
+  const box = document.getElementById('mx-sel');
+  if (!box) return;
+  if (!MX_SEL) {
+    box.className = 'mx-sel empty';
+    box.onclick = null;
+    box.textContent = 'Feld antippen für Details';
+    return;
+  }
+  const [y,m,d] = MX_SEL.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const dLbl = dt.toLocaleDateString(GT_LOCALE, {weekday:'short', day:'numeric', month:'short'});
+  const arr  = _MX_SESS[MX_SEL] || [];
+  if (!arr.length) {
+    box.className = 'mx-sel';
+    box.onclick = null;
+    box.innerHTML = `<span class="mx-sel-d">${dLbl}</span>
+      <span style="color:var(--text2)">Kein Training</span>`;
+    return;
+  }
+  const vol   = arr.reduce((a,s) => a + (sessionVolume(s) || 0), 0);
+  const label = arr.map(s => deriveTrainingLabel(s) || 'Training').join(' · ');
+  box.className = 'mx-sel tap';
+  box.onclick = () => openSessDetail(arr[0].id);
+  box.innerHTML = `<span class="mx-sel-d">${dLbl}</span>
+    <span>${label}</span>
+    <span class="mx-sel-v">${fmtKg(vol)} ›</span>`;
+}
+
+// Jahres-Blöcke: pro Jahr eine Zeile aus 53 Wochen-Spalten, neuestes Jahr oben.
+// Die Zellgröße wird aus der verfügbaren Breite berechnet, damit nichts quer scrollt.
+function _mxRenderYears(wrap, today, map, level){
+  const nowY = today.getFullYear();
+  let firstY = nowY;
+  (S.sessions || []).forEach(s => {
+    const y = new Date(s.date).getFullYear();
+    if (y && y < firstY) firstY = y;
+  });
+
+  const years = [];
+  for (let y = nowY; y >= firstY; y--) years.push(y);
+
+  // Zellgröße: 53 Spalten + Wochentags-Spalte müssen in die Kartenbreite passen
+  const gap   = 2;
+  const wdW   = 22;
+  const avail = Math.max(160, (wrap.clientWidth || 340) - wdW - 5);
+  const cell  = Math.max(3, Math.floor((avail - 52*gap) / 53));
+  const view  = document.getElementById('cal-view-matrix');
+  if (view) { view.style.setProperty('--mxc', cell+'px'); view.style.setProperty('--mxg', gap+'px'); }
+
+  let html = '';
+  years.forEach(year => {
+    const jan1 = new Date(year, 0, 1);
+    const start = new Date(jan1);
+    start.setDate(jan1.getDate() - _DOW_MON0(jan1));   // Montag der 1. Kalenderwoche
+    const dec31 = new Date(year, 11, 31);
+    const weeks = Math.ceil(((dec31 - start) / 86400000 + 1) / 7);
+
+    // Monatszeile: 12 gleich breite Spalten über die volle Jahresbreite.
+    // (Wochen-genaue Positionen würden DEZ über den rechten Rand schieben.)
+    const months = _MX_MON.map(m => `<div class="mx-m12">${m}</div>`).join('');
+
+    let cols = '', count = 0;
+    for (let w = 0; w < weeks; w++) {
+      const colStart = new Date(start); colStart.setDate(start.getDate() + w*7);
+
+      let cells = '';
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(colStart); d.setDate(colStart.getDate() + i);
+        if (d.getFullYear() !== year) { cells += `<div class="mx-cell void"></div>`; continue; }
+        if (d > today)                { cells += `<div class="mx-cell future"></div>`; continue; }
+        const k   = _localDateKey(d);
+        const v   = map[k] || 0;
+        const arr = _MX_SESS[k];
+        if (arr) count += arr.length;
+        const cls = [
+          'cal-cell','mx-cell',
+          v > 0 ? 'l' + level(v) : '',
+          d.getTime() === today.getTime() ? 'today' : '',
+          MX_SEL === k ? 'sel' : '',
+          'tap'
+        ].filter(Boolean).join(' ');
+        cells += `<div class="${cls}" data-k="${k}" onclick="mxPick(this)"></div>`;
+      }
+      cols += `<div class="mx-col">${cells}</div>`;
+    }
+
+    html += `<div class="mx-year">
+      <div class="mx-year-head"><b>${year}</b><span>${count} ${count===1?'Training':'Trainings'}</span></div>
+      <div class="mx-year-body">
+        <div class="mx-wdcol">
+          <span></span>
+          <span>${_WD_LBL[0]}</span><span></span><span>${_WD_LBL[2]}</span>
+          <span></span><span>${_WD_LBL[4]}</span><span></span><span>${_WD_LBL[6]}</span>
+        </div>
+        <div class="mx-cols">
+          <div class="mx-mrow m12">${months}</div>
+          <div class="mx-grid">${cols}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  const wd = document.getElementById('mx-wd');
+  if (wd) wd.innerHTML = '';                     // eigene Spalte pro Jahresblock
+  wrap.innerHTML = html || `<div class="mx-year-empty">Noch keine Trainings.</div>`;
+  wrap.scrollTop = 0;
+}
+
+function renderMatrix(){
+  const wrap = document.getElementById('mx-scroll');
+  if (!wrap) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { map, level } = _volMap();
+
+  // Sessions nach Tag gruppieren (für Antippen + Info-Zeile)
+  _MX_SESS = {};
+  (S.sessions || []).forEach(s => {
+    const d = new Date(s.date); d.setHours(0,0,0,0);
+    const k = _localDateKey(d);
+    (_MX_SESS[k] = _MX_SESS[k] || []).push(s);
+  });
+
+  _mxApplyFull();
+  if (MX_FULL) { _mxRenderYears(wrap, today, map, level); _mxRenderSel(); return; }
+
+  // Range-Chips spiegeln
+  const rg = document.getElementById('mx-range');
+  if (rg) rg.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', b.textContent.trim().startsWith(MX_MONTHS===12 ? '1' : String(MX_MONTHS))));
+
+  // Start = Montag der Woche, in der der erste Tag des Startmonats liegt
+  const start = new Date(today.getFullYear(), today.getMonth() - (MX_MONTHS - 1), 1);
+  start.setDate(start.getDate() - _DOW_MON0(start));
+  // Ende = Sonntag der aktuellen Woche → letzte Spalte ist immer voll
+  const end = new Date(today);
+  end.setDate(end.getDate() + (6 - _DOW_MON0(today)));
+  const weeks = Math.round((end - start) / (7*86400000)) + 1;
+
+  const MON_S = _MX_MON;
+
+  let months = '', cols = '';
+  let lastMonth = -1, sessCount = 0, bestStreak = 0, curStreak = 0;
+
+  for (let w = 0; w < weeks; w++) {
+    const colStart = new Date(start); colStart.setDate(start.getDate() + w*7);
+
+    // Monatsbeschriftung nur beim Monatswechsel (und nicht in der letzten Spalte,
+    // sonst läuft die Schrift aus dem Raster)
+    const mo = colStart.getMonth();
+    if (mo !== lastMonth && w < weeks - 1) {
+      months += `<div class="mx-m">${MON_S[mo]}</div>`;
+      lastMonth = mo;
+    } else {
+      months += `<div class="mx-m"></div>`;
+    }
+
+    let cells = '', weekTrained = false;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(colStart); d.setDate(colStart.getDate() + i);
+      const k = _localDateKey(d);
+      const v = map[k] || 0;
+      const arr = _MX_SESS[k];
+      if (d > today) { cells += `<div class="mx-cell future"></div>`; continue; }
+      if (arr) { sessCount += arr.length; weekTrained = true; }
+      const cls = [
+        'cal-cell','mx-cell',
+        v > 0 ? 'l' + level(v) : '',
+        d.getTime() === today.getTime() ? 'today' : '',
+        MX_SEL === k ? 'sel' : '',
+        'tap'
+      ].filter(Boolean).join(' ');
+      cells += `<div class="${cls}" data-k="${k}" onclick="mxPick(this)"></div>`;
+    }
+    cols += `<div class="mx-col">${cells}</div>`;
+
+    if (weekTrained) { curStreak++; if (curStreak > bestStreak) bestStreak = curStreak; }
+    else curStreak = 0;
+  }
+
+  const wd = document.getElementById('mx-wd');
+  if (wd) wd.innerHTML = `<span></span>
+    <span>${_WD_LBL[0]}</span><span></span><span>${_WD_LBL[2]}</span>
+    <span></span><span>${_WD_LBL[4]}</span><span></span><span>${_WD_LBL[6]}</span>`;
+
+  wrap.innerHTML = `<div class="mx-cols">
+    <div class="mx-mrow">${months}</div>
+    <div class="mx-grid">${cols}</div>
+  </div>`;
+
+  // Kennzahlen über dem Raster
+  const st = document.getElementById('mx-stats');
+  if (st) {
+    const perWeek = weeks ? (sessCount / weeks) : 0;
+    st.innerHTML = `
+      <div class="mx-stat"><b>${sessCount}</b><span>Trainings</span></div>
+      <div class="mx-stat"><b>${perWeek.toFixed(1).replace('.', GT_DEC)}</b><span>Ø pro Woche</span></div>
+      <div class="mx-stat"><b>${bestStreak}</b><span>Beste Serie</span></div>`;
+  }
+  _mxRenderSel();
+  // Jüngste Woche sichtbar: ganz nach rechts scrollen
+  requestAnimationFrame(() => { wrap.scrollLeft = wrap.scrollWidth; });
 }
 
 // ── ÜBUNGS-BIBLIOTHEK (Standard-Übungen) ──────────────
@@ -19346,10 +19837,12 @@ function DEMO_MODE(){ try { return localStorage.getItem('gt_demo') === '1'; } ca
 const _DEMO_ROSTER = [
   { uid:'demo1', name:'Max Berger',   gymName:'FitZone Mitte', ses:4, mon:14, vol:18400, streak:6,  agoMin:3,    live:true,  gymLat:52.5200, gymLng:13.4050, photo:'https://i.pravatar.cc/150?img=12' },
   { uid:'demo2', name:'Lena Frank',   gymName:'McFit Nord',    ses:3, mon:11, vol:12900, streak:12, agoMin:130,  live:false, gymLat:52.5601, gymLng:13.4020, photo:'https://i.pravatar.cc/150?img=47' },
-  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false, gymLat:52.4890, gymLng:13.3420, photo:'https://i.pravatar.cc/150?img=33' },
+  { uid:'demo3', name:'Tom Krause',   gymName:'Gym 80',        ses:5, mon:17, vol:22600, streak:3,  agoMin:1440, live:false, gymLat:52.4890, gymLng:13.3420, photo:'https://i.pravatar.cc/150?img=33', mod:true },
   { uid:'demo4', name:'Sara Weber',   gymName:'Body Culture',  ses:2, mon:9,  vol:9800,  streak:8,  agoMin:4320, live:false, gymLat:52.5060, gymLng:13.4520, photo:'https://i.pravatar.cc/150?img=45' },
   { uid:'demo5', name:'Jonas Peters', gymName:'FitStar West',  ses:4, mon:13, vol:16100, streak:1,  agoMin:305,  live:false, gymLat:52.5150, gymLng:13.3010, photo:'https://i.pravatar.cc/150?img=51' },
 ];
+// Aus dem Roster abgeleitet — welche Demo-UIDs im Screenshot-Roster als Moderator markiert sind.
+const _DEMO_MOD_UIDS = new Set(_DEMO_ROSTER.filter(d => d.mod).map(d => d.uid));
 function _demoMe(){ return { uid:'demo-me', name:(S.userName||'Lenny'), gymName:'FitZone Mitte', ses:5, mon:18, vol:24200, streak:9, agoMin:60, live:false, gymLat:52.5170, gymLng:13.3880, photo:'https://i.pravatar.cc/150?img=68' }; }
 function _demoProfile(d){
   return {
@@ -19433,7 +19926,7 @@ function _demoCard(p){
   return `<div class="fr-card${online?' live':''}">
     <div class="fr-ava-wrap"><div class="fr-ava">${ava}</div><div class="fr-dot${online?' on':''}"></div></div>
     <div style="flex:1;min-width:0">
-      <div class="fr-name"><span>${esc(p.name)}</span>${_lvlPillFor(p)}</div>
+      <div class="fr-name"><span>${esc(p.name)}</span>${_modTag(p.uid)}${_lvlPillFor(p)}</div>
       ${sub}
       <div class="fr-pills">
         <span class="fr-pill">${wses}× diese Woche</span>
@@ -19503,7 +19996,7 @@ function _renderDemoBoard(body){
       <span class="soc-rank${i===0?' top':''}">${i+1}</span>
       <div class="soc-ava">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
-        <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${_lvlPillFor(p)}${p.uid==='demo-me'?' (du)':''}</div>
+        <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${_modTag(p.uid)}${_lvlPillFor(p)}${p.uid==='demo-me'?' (du)':''}</div>
         <div class="soc-sub">${_socMetric==='xp'?tr('Level')+' '+_levelOf(p._v).level:(p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
@@ -20981,7 +21474,7 @@ function _cpgCardHTML(it, pos){
       <div class="cpg-head">
         <div class="cpg-id" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="${profTap}">
           <div class="cpg-ava">${ava}</div>
-          <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+          <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_modTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
         </div>
         <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       </div>
@@ -20999,7 +21492,7 @@ function _cpgCardHTML(it, pos){
     <div class="cpg-head">
       <div class="cpg-id" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="${profTap}">
         <div class="cpg-ava">${ava}</div>
-        <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
+        <div class="n"><b>${esc(it.uid === me ? tr('Du') : (it.name || 'Athlet'))}${_founderTag(it.uid)}${_modTag(it.uid)}${_premTagForUid(it.uid)}${_lvlTagForUid(it.uid)}</b><span>${_timeAgo(it.ts)}</span></div>
       </div>
       <button class="cpg-menu" onclick="openPostMenu(${it._i})" aria-label="${tr('Optionen')}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
