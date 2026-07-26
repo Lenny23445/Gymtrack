@@ -3494,6 +3494,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .stats-rec-box .stats-mini-title{padding:0 6px}
 .rec-list-mini{
   background:transparent;border:none;box-shadow:none;
+  /* Glas IN Glas: der geerbte Blur aus .rec-list zeichnet sonst eine zweite
+     Kachel um die Muskelgruppen-Liste. Innenfläche bleibt komplett unsichtbar. */
+  backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:0;
   padding:2px 2px 4px;
   flex:1;min-height:0;
   overflow-y:auto;overscroll-behavior:contain;
@@ -6125,7 +6128,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     <div class="sh-handle" style="margin:10px auto 0"></div>
     <div class="sh-head">
       <h2>Gewichtsverlauf</h2>
-      <button class="x-btn" onclick="closeOv('ov-weight-chart-full')">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="x-btn" style="width:auto;padding:0 12px;font-size:13px;font-weight:700" onclick="openWeightHistory()">Einträge</button>
+        <button class="x-btn" onclick="closeOv('ov-weight-chart-full')">✕</button>
+      </div>
     </div>
     <div style="flex:1;min-height:0;padding:0 18px 16px;display:flex;flex-direction:column;gap:8px">
       <canvas id="weight-chart-full" style="flex:1;min-height:0;width:100%!important"></canvas>
@@ -7353,7 +7359,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250019';
+const APP_VERSION = 'gymtrack-v202607260001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7447,7 +7453,7 @@ const I18N_EN = {
   'Wochen in Folge trainiert':'weeks trained in a row','Kalender ansehen →':'View calendar →','Kalender →':'Calendar →',
   'Erholung':'Recovery','Überblick':'Overview','Tap für Vollbild':'Tap for fullscreen','Weiter so!':'Keep it up!',
   'Deine Ziele warten — leg los!':'Your goals are waiting — get started!','Ziele erreicht':'goals reached','hinzufügen':'add',
-  'Körpergewicht':'Body weight','Gewicht eintragen':'Log weight','Gewichtsverlauf':'Weight history',
+  'Körpergewicht':'Body weight','Gewicht eintragen':'Log weight','Gewichtsverlauf':'Weight history','Einträge':'Entries',
   'Ziel bearbeiten':'Edit goal','Startgewicht':'Starting weight','Zielgewicht':'Goal weight','Ziel speichern':'Save goal',
   'Ziel zurücksetzen':'Reset goal','Ziel setzen →':'Set a goal →','🎉 Ziel erreicht!':'🎉 Goal reached!',
   'noch bis Ziel':'to go until goal','✎ Ziel anpassen':'✎ Adjust goal',
@@ -10943,11 +10949,16 @@ function renderWeightCard(el) {
   const miniWrap = compact ? '' :
     `<div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">${miniContent}</div>`;
 
-  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}${isMd ? ' weight-card-md' : ''}">
+  // sm/md haben kein eingebettetes Diagramm — dort öffnet ein Tipp auf die ganze
+  // Karte das Vollbild-Diagramm (gleiche Funktion wie das Mini-Chart in lg).
+  const cardTap = compact ? ` onclick="openWeightChartFull()" style="cursor:pointer" aria-label="Gewichtsverlauf"` : '';
+  const valTap  = compact ? '' : ` onclick="openWeightHistory()" style="cursor:pointer"`;
+
+  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}${isMd ? ' weight-card-md' : ''}"${cardTap}>
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
-          ? `<div class="weight-current-val" onclick="openWeightHistory()" style="cursor:pointer">${last.weight}</div>
+          ? `<div class="weight-current-val"${valTap}>${last.weight}</div>
              <div class="weight-current-unit">${unit}</div>
              ${deltaHtml}`
           : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
@@ -10955,7 +10966,7 @@ function renderWeightCard(el) {
         }
       </div>
       ${miniWrap}
-      <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
+      <button class="weight-add-btn" onclick="event.stopPropagation();openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
     ${compact ? '' : _buildGoalHtml(start, goal, cur, unit)}
   </div>`;
@@ -21132,19 +21143,18 @@ async function openFrProfile(uid){
    Community bleibt bewusst bei Flammen-Reaktionen ohne Direktnachrichten. */
 
 /* ── Activity-Feed ── */
-/* ── Wochen-Lebensdauer für Posts/Aktivitäten ────────────────────────────
-   Community- und Freunde-Posts leben genau eine Woche: jeden SONNTAG 00:00
-   verschwindet alles Ältere. Kein Backend (Spark-Plan) → zweigleisig:
-   1) ANZEIGE: alle Feed-Loader filtern Einträge vor dem letzten Sonntag 00:00 raus
+/* ── 7-Tage-Lebensdauer PRO Post/Aktivität ───────────────────────────────
+   Jeder Post hat seinen EIGENEN Timer: er lebt genau 7×24 h ab `ts` und
+   verschwindet dann einzeln (rollierendes Fenster). Kein gemeinsamer
+   Sonntag-Reset mehr → der Feed ist nie komplett leer.
+   Kein Backend (Spark-Plan) → zweigleisig:
+   1) ANZEIGE: alle Feed-Loader filtern Einträge älter als 7 Tage raus
       (wirkt sofort, auch für Posts fremder Nutzer, die ihre App nicht öffnen).
-   2) LÖSCHEN: jeder Client räumt beim Start seine EIGENEN alten Posts/Aktivitäten
-      aus Firestore (Rules erlauben delete nur dem Autor). Erhaltene Flammen werden
-      VORHER dauerhaft in der Flame-Bank gutgeschrieben — Punkte bleiben erhalten. */
-function _weekCutoffTs(){
-  const d = new Date(); d.setHours(0,0,0,0);
-  d.setDate(d.getDate() - d.getDay());   // letzter Sonntag 00:00 (getDay(): So = 0)
-  return d.getTime();
-}
+   2) LÖSCHEN: jeder Client räumt beim Start seine EIGENEN abgelaufenen Posts/
+      Aktivitäten aus Firestore (Rules erlauben delete nur dem Autor). Erhaltene
+      Flammen werden VORHER dauerhaft in der Flame-Bank gutgeschrieben — Punkte bleiben. */
+const POST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+function _postCutoffTs(){ return Date.now() - POST_TTL_MS; }
 /* Flame-Bank: dauerhaft gezählte, erhaltene Flammen (localStorage 'gt_flameBank',
    nicht in S → umgeht die users-hasOnly-Regel). Monoton wachsend: jede Flamme
    (postId:reactorUid) zählt genau einmal — auch nachdem der Post gelöscht wurde.
@@ -21178,7 +21188,7 @@ let _wkPurgeRan = false;
 async function _purgeOldPosts(){
   if (_wkPurgeRan || !_socReady() || !S.socialOn) return;
   _wkPurgeRan = true;
-  const cut = _weekCutoffTs();
+  const cut = _postCutoffTs();
   try {
     const snap = await window.FB.getDocs(window.FB.query(
       window.FB.collection('profiles/' + _fbUser.uid + '/posts'), window.FB.where('ts','<',cut)));
@@ -21188,25 +21198,25 @@ async function _purgeOldPosts(){
       jobs.push(window.FB.deleteDoc(d.ref).then(() => _flameBankPrunePost(d.id)));
     });
     await Promise.all(jobs);
-    if (jobs.length) console.log('[GymTrack] Wochen-Aufräumen: ' + jobs.length + ' alte Posts gelöscht');
-  } catch(e){ console.warn('[GymTrack] Wochen-Aufräumen Posts:', e?.code || e); }
+    if (jobs.length) console.log('[GymTrack] TTL-Aufräumen: ' + jobs.length + ' alte Posts gelöscht');
+  } catch(e){ console.warn('[GymTrack] TTL-Aufräumen Posts:', e?.code || e); }
   try {
     const snap = await window.FB.getDocs(window.FB.query(
       window.FB.collection('profiles/' + _fbUser.uid + '/activities'), window.FB.where('ts','<',cut)));
     const jobs = [];
     snap.forEach(d => jobs.push(window.FB.deleteDoc(d.ref)));
     await Promise.all(jobs);
-  } catch(e){ console.warn('[GymTrack] Wochen-Aufräumen Activities:', e?.code || e); }
+  } catch(e){ console.warn('[GymTrack] TTL-Aufräumen Activities:', e?.code || e); }
 }
 async function _loadFeedFor(uid){
   try {
     const q = window.FB.query(window.FB.collection('profiles/' + uid + '/activities'),
       window.FB.orderBy('ts','desc'), window.FB.limit(6));
     const snap = await window.FB.getDocs(q);
-    const out = [], cut = _weekCutoffTs();
+    const out = [], cut = _postCutoffTs();
     snap.forEach(d => {
       const data = d.data();
-      if ((data.ts || 0) < cut) return;   // Wochen-Lebensdauer: Älteres ausblenden
+      if ((data.ts || 0) < cut) return;   // 7-Tage-TTL: Abgelaufenes ausblenden
       out.push({ id:d.id, uid, ...data });
     });
     return out;
@@ -21335,7 +21345,7 @@ async function _loadPostsFor(uid, onlyFriends){
       // Training (visibility:'public') soll nicht zusätzlich hier auftauchen (der
  // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
       if (onlyFriends && data.visibility !== 'friends') return;
-      if ((data.ts || 0) < _weekCutoffTs()) return;   // Wochen-Lebensdauer: Älteres ausblenden
+      if ((data.ts || 0) < _postCutoffTs()) return;   // 7-Tage-TTL: Abgelaufenes ausblenden
       out.push({ id:d.id, uid, kind:'post', ...data });
     });
     return out;
@@ -21388,7 +21398,7 @@ async function _cpgLoad(){
   items = items
     .filter(it => !blocked.has(it.uid))
     .filter(it => !(it.kind === 'post' && hidden.has(it.uid + '/' + it.id)))
-    .filter(it => (it.ts || 0) >= _weekCutoffTs())   // Wochen-Lebensdauer (auch fremde Posts)
+    .filter(it => (it.ts || 0) >= _postCutoffTs())   // 7-Tage-TTL pro Post (auch fremde)
     .sort((a,b) => (b.ts||0) - (a.ts||0))
     .slice(0, 40);
   await _cpgEnrichProfiles(items);   // Autor-Profile laden → Level-Tag hinter JEDEM Namen
@@ -24631,6 +24641,14 @@ else setTimeout(maybeStartOnboarding, 0);   // eingeloggtes Gerät: normaler Sta
 setTimeout(() => {
   if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
 }, 10000);
+// Simulator-Dev-Bypass: Apple Sign-In braucht ein im Simulator angemeldetes
+// iCloud-Konto (fast nie vorhanden), Google Sign-In hängt dort im OAuth-Browser-
+// Flow — das Pflicht-Login würde JEDEN Test im Simulator blockieren. Flag statt
+// Einmal-hide, weil der spätere anonyme Auth-Listener (_maybeAuthGate) das Gate
+// sonst wieder aufmacht (Anonymous zählt nicht als echter Login). Auf einem
+// echten Gerät bleibt der Login-Zwang unverändert bestehen.
+let _simDevBypass = false;
+setTimeout(async () => { const env = await _getInstallInfo(); if (env && env.isSimulator) { _simDevBypass = true; _hideAuthGate(); _postLoginFlow(); } }, 0);
 // Aufbau ist durch (Home/Übungen gerendert, Gate bzw. Onboarding entschieden) —
 // der Boot-Splash bleibt aber liegen, bis auch der ERSTE Cloud-Merge durch ist
 // (Deckel: 1200 ms). Grund: _onLogin() rendert nach dem Merge Heute/Übungen/
@@ -25387,7 +25405,7 @@ async function _onLogin(user) {
     _postLoginFlow();   // Cloud-Stand steht → Onboarding (falls nötig), danach Soft-Paywall
     updateAccountUI();
     try { if (isPremium()) aiQuotaRefresh(true); } catch(_){}   // Kontingent-Anzeige vorwärmen
-    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + Wochen-Aufräumen
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + TTL-Aufräumen
   }
 }
 
@@ -25431,6 +25449,7 @@ function _hadRealLogin(){
   return false;
 }
 function _authGateNeeded(){
+  if (_simDevBypass) return false;                         // Simulator: Apple/Google Sign-In nicht testbar
   if (window.FB && !window.FB.configured) return false;   // ohne Firebase kein Login möglich → nicht aussperren
   if (!_authSettled) return !_hadRealLogin();             // vor dem Auth-Restore: nur echte Neu-Installationen sperren
   return !_fbUser || _fbUser.isAnonymous;
