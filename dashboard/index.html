@@ -678,6 +678,8 @@ import {
 const ADMIN_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 const TRACKING_FIX_DATE = '2026-07-17';
 const AI_WORKER_URL = 'https://gymtrack-ai.wolterlenny362.workers.dev';
+// Cloud-Job (Cron alle 5 Min + /refresh für den Sofort-Lauf beim Aktualisieren)
+const JOB_WORKER_URL = 'https://gymtrack-dashboard-job.wolterlenny362.workers.dev';
 const FIREBASE_CONFIG = {
   apiKey:            'AIzaSyCwhyqYm8m3R2grLNjE1wf6o4hNSVta6YA',
   authDomain:        'gymtrack-25d39.firebaseapp.com',
@@ -851,8 +853,23 @@ async function aiStats() {
   return data;
 }
 
+// Sofort-Lauf des Cloud-Jobs anstoßen, damit „Aktualisieren" echte Echtzeitzahlen
+// holt statt der bis zu 5 Minuten alten Cron-Daten. Fehler sind egal — dann werden
+// eben die zuletzt geschriebenen Werte angezeigt.
+async function kickCloudJob(withAppStore = false) {
+  try {
+    const idToken = await fbAuth.currentUser.getIdToken();
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15_000);
+    await fetch(`${JOB_WORKER_URL}/refresh?idToken=${encodeURIComponent(idToken)}${withAppStore ? '&asc=1' : ''}`,
+      { signal: ctrl.signal });
+    clearTimeout(t);
+  } catch { /* Cron liefert ohnehin alle 5 Min */ }
+}
+
 window.load = async () => {
   $('#stand').textContent = 'lädt …';
+  await kickCloudJob();
   const wrap = async (fn) => {
     try { return { ok: true, ...(await fn()) }; }
     catch (e) { return { ok: false, error: String(e.message || e).slice(0, 250) }; }
