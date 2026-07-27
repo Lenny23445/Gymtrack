@@ -109,10 +109,48 @@ test('stale Eintrag gilt bis zur Antwort weiter', () => {
 
 test('Prompt-Form bleibt unter 4000 Zeichen', () => {
   let d = M.dossierEmpty();
+  // Jede Iteration muss einen ANDEREN Eintrag liefern - sonst dedupliziert
+  // dossierApplyDelta ueber den Normalform-Vergleich und pro Liste bleibt nur
+  // ein einziger Eintrag statt acht, und der 4000er-Test prueft dann nichts.
   for (let i = 0; i < 8; i++) {
-    d = M.dossierApplyDelta(d, { add: { limits: ['L'.repeat(120)], prefs: ['P'.repeat(120)], works: ['W'.repeat(120)] } }, NOW + i);
+    const suffix = String(i);
+    d = M.dossierApplyDelta(d, {
+      add: {
+        limits: ['L'.repeat(120 - suffix.length) + suffix],
+        prefs: ['P'.repeat(120 - suffix.length) + suffix],
+        works: ['W'.repeat(120 - suffix.length) + suffix]
+      }
+    }, NOW + i);
   }
+  // Erst hier ist sichergestellt, dass wirklich alle drei Listen ihre volle
+  // Kapazitaet erreicht haben - sonst kann derselbe Fehler unbemerkt zurueckkommen.
+  assert.strictEqual(d.limits.length, 8);
+  assert.strictEqual(d.prefs.length, 8);
+  assert.strictEqual(d.works.length, 8);
   assert.ok(M.dossierForPrompt(d).length <= 4000);
+});
+
+test('Einschraenkungs-Zeile bleibt bei maximal gefuelltem Dossier vollstaendig erhalten', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { goal: 'Masse', tone: 'ruhig' }, NOW);
+  for (let i = 0; i < 8; i++) {
+    const suffix = String(i);
+    d = M.dossierApplyDelta(d, {
+      add: {
+        limits: ['L'.repeat(120 - suffix.length) + suffix],
+        prefs: ['P'.repeat(120 - suffix.length) + suffix],
+        works: ['W'.repeat(120 - suffix.length) + suffix]
+      }
+    }, NOW + i);
+  }
+  // derived/coachStats sprengen absichtlich die 4000er-Grenze, damit
+  // dossierForPrompt tatsaechlich abschneidet - nur dann ist der Test scharf.
+  d.derived = { stall: Array.from({ length: 20 }, (_, i2) => 'Stagnation-Uebung-' + 'S'.repeat(100) + i2) };
+  d.coachStats.muted = Array.from({ length: 20 }, (_, i2) => 'Vorschlagstyp-' + 'M'.repeat(100) + i2);
+
+  const prompt = M.dossierForPrompt(d);
+  assert.strictEqual(prompt.length, 4000); // Beleg: es wurde tatsaechlich abgeschnitten
+  const limitsLine = 'Einschraenkungen (immer respektieren): ' + d.limits.map(e => e.t).join('; ');
+  assert.ok(prompt.includes(limitsLine));
 });
 
 test('leeres Dossier liefert leeren Prompt-String', () => {

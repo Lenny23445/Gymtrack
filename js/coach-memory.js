@@ -109,6 +109,11 @@
     var muted = (d.coachStats && d.coachStats.muted) || [];
     if (muted.length)
       out.push('Diese Vorschlagstypen NICHT mehr vorschlagen: ' + muted.join(', '));
+    // Hartes Abschneiden auf PROMPT_MAX. Dass die Einschraenkungs-Zeile dabei nie
+    // mitten im Text landet, ist KEIN eigener Schutz hier, sondern haengt an der
+    // Reihenfolge oben (Ziel/Ton/Einschraenkungen stehen frueh in 'out') und den
+    // kleinen Caps (MAX_ITEMS/MAX_LEN) - siehe Test dazu in coach-memory.test.js.
+    // Reihenfolge oder Caps NICHT aendern, ohne diese Annahme neu zu pruefen.
     return out.join('\n').slice(0, PROMPT_MAX);
   }
 
