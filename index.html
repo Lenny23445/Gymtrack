@@ -7754,6 +7754,7 @@ const I18N_EN = {
   'Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?':'Final warning — your account will be deleted now. Continue?',
   'Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.':'For security you need to sign in once more. Your account will then be deleted automatically.',
   'Dein Konto und alle Daten wurden gelöscht.':'✅ Your account and all data have been deleted.',
+  'Ein Teil deiner Daten konnte nicht gelöscht werden. Bitte versuche es erneut, solange du noch angemeldet bist.':'Part of your data could not be deleted. Please try again while you are still signed in.',
   'Melde dich mit deinem Google-Konto an, damit deine Trainings automatisch':'Sign in with your Google account so your workouts are automatically',
   'in der Cloud gespeichert werden. So gehen sie nie verloren — auch wenn':'saved to the cloud. That way they’re never lost — even if',
   'du die App löschst oder das Handy wechselst.':'you delete the app or switch phones.',
@@ -26408,13 +26409,25 @@ async function doDeleteAccount() {
 async function _runAccountDeletion() {
   const user = window.FB.auth && window.FB.auth.currentUser;
   if (!user) return;
+  let dossierDeleteFailed = false;
   try {
     // 1. Cloud-Daten löschen
     // Reihenfolge zwingend: Firestore loescht Subcollections NICHT mit. Ohne
     // diesen Schritt ueberlebt das Coach-Dossier — und damit gemeldete
     // Einschraenkungen — die Kontoloeschung.
+    // Ein Fehlversuch wird einmal wiederholt. Schlaegt auch der zweite Versuch
+    // fehl, bleibt das Dossier verwaist zurueck (Auth-User ist dann weg, die
+    // Rule kennt keine Admin-Ausnahme fuer Gesundheitsdaten) — das darf NICHT
+    // als vollstaendiger Erfolg gemeldet werden, siehe dossierDeleteFailed unten.
     try { await window.FB.deleteDoc(window.FB.doc('users/' + user.uid + '/coach', 'dossier')); }
-    catch(e) { console.warn('[GymTrack] Dossier-Delete:', e); }
+    catch(e) {
+      console.warn('[GymTrack] Dossier-Delete (Versuch 1):', e);
+      try { await window.FB.deleteDoc(window.FB.doc('users/' + user.uid + '/coach', 'dossier')); }
+      catch(e2) {
+        console.warn('[GymTrack] Dossier-Delete (Versuch 2):', e2);
+        dossierDeleteFailed = true;
+      }
+    }
     // Zusaetzlich zum gt_-Rundumschlag in _finishAccountWipe(), weil der nur
     // auf dem Erfolgspfad laeuft. Greift erst, wenn Task 7 coach-memory.js
     // einbindet — bis dahin ist window.CoachMemory undefined und der catch
@@ -26426,7 +26439,7 @@ async function _runAccountDeletion() {
     await window.FB.deleteUser();
     // 3. Lokale Daten löschen + Neustart
     _pendingDelete = false;
-    _finishAccountWipe();
+    _finishAccountWipe(dossierDeleteFailed);
   } catch(e) {
     if (e && e.code === 'auth/requires-recent-login') {
       // Firebase verlangt frische Anmeldung → Re-Auth, danach automatisch löschen
@@ -26445,12 +26458,16 @@ async function _runAccountDeletion() {
   }
 }
 
-function _finishAccountWipe() {
+function _finishAccountWipe(dossierDeleteFailed) {
   try {
     localStorage.removeItem('ft4');
     Object.keys(localStorage).filter(k => k.indexOf('gt_') === 0).forEach(k => localStorage.removeItem(k));
   } catch(e) {}
-  alert('Dein Konto und alle Daten wurden gelöscht.');
+  if (dossierDeleteFailed) {
+    alert('Ein Teil deiner Daten konnte nicht gelöscht werden. Bitte versuche es erneut, solange du noch angemeldet bist.');
+  } else {
+    alert('Dein Konto und alle Daten wurden gelöscht.');
+  }
   location.reload();
 }
 

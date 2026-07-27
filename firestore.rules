@@ -26,10 +26,19 @@ service cloud.firestore {
     // hier stehen gemeldete Einschraenkungen, also Gesundheitsangaben. Rules
     // kaskadieren nicht, die Subcollection braucht daher diesen eigenen Block.
     match /users/{userId}/coach/{docId} {
-      allow read, write: if request.auth != null
+      allow read: if request.auth != null
         && request.auth.uid == userId
         && docId == 'dossier';
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'dossier'
+        && request.resource.data.keys().hasOnly([
+             'v','goal','tone','limits','prefs','works','derived','coachStats','updatedAt'
+           ])
+        && (!('limits' in request.resource.data) || request.resource.data.limits.size() <= 8)
+        && (!('prefs'  in request.resource.data) || request.resource.data.prefs.size()  <= 8)
+        && (!('works'  in request.resource.data) || request.resource.data.works.size()  <= 8);
+      allow delete: if request.auth != null && request.auth.uid == userId && docId == 'dossier';
     }
     match /profiles/{userId} {
       allow read: if request.auth != null;
