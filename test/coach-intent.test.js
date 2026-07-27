@@ -92,6 +92,26 @@ test('Schmerzmeldung geht ans Modell', () => {
   assert.strictEqual(R.resolveIntent('meine schulter tut beim bankdruecken weh', SNAP), null);
 });
 
+test('naechster Satz ohne Gewichtsbezug geht ans Modell (Uebungswahl)', () => {
+  // "naechste[nsr]? satz" darf nicht als eigenstaendige Alternative ohne
+  // Gewichtskontext feuern -- sonst antwortet der Router konfident falsch auf
+  // Fragen zur Uebungswahl statt gar nicht zu antworten.
+  assert.strictEqual(R.resolveIntent('was mache ich beim naechsten satz?', SNAP), null);
+});
+
+test('naechster Satz ohne Gewichtsbezug geht ans Modell (Wiederholungen)', () => {
+  assert.strictEqual(
+    R.resolveIntent('wie viele wiederholungen beim naechsten satz?', SNAP),
+    null
+  );
+});
+
+test('Gewichtsfrage mit "naechster Satz"-Phrasierung bleibt erkannt', () => {
+  const r = R.resolveIntent('gewicht fuer den naechsten satz?', SNAP);
+  assert.strictEqual(r.intent, 'nextWeight');
+  assert.ok(r.answer.includes('82,5'));
+});
+
 test('fehlende Daten ergeben kein Ergebnis', () => {
   assert.strictEqual(R.resolveIntent('wie lange noch pause?', { restLeftSec: 0 }), null);
   assert.strictEqual(R.resolveIntent('wie viele saetze noch?', {}), null);

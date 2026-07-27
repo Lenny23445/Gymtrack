@@ -40,9 +40,12 @@
     var s = snap || {};
 
     // 1) Naechstes Gewicht
-    if (/(wie viel|wieviel|welches) gewicht|naechste[nsr]? satz|how much weight/.test(q)) {
+    // "naechste[nsr]? satz" darf nur zusammen mit einem Gewichtswort feuern —
+    // sonst matchen auch Fragen zur Uebungswahl oder zu Wiederholungen, die
+    // konfident (aber falsch) mit einem Gewicht beantwortet wuerden.
+    if (/(wie viel|wieviel|welches) gewicht|gewicht.*naechste[nsr]? satz|naechste[nsr]? satz.*gewicht|how much weight/.test(q)) {
       if (s.active && s.active.nextW != null) {
-        return { intent: 'nextWeight', answer: 'Naechster Satz: ' + num(s.active.nextW) + ' kg.' };
+        return { intent: 'nextWeight', answer: 'Nächster Satz: ' + num(s.active.nextW) + ' kg.' };
       }
       return null;
     }
@@ -58,12 +61,15 @@
     }
 
     // 3) Verbleibende Saetze
-    if (/(wie viele|wieviele).*(saetze|satz)|saetze noch|sets left|how many sets/.test(q)) {
+    // "wie viele"/"wieviele" muss direkt vor "saetze"/"satz" stehen (nur durch
+    // Leerraum getrennt) — sonst matcht z.B. "wie viele Wiederholungen beim
+    // naechsten Satz" (Frage zu Wiederholungen, kein Bezug zu Restsaetzen).
+    if (/(wie viele|wieviele)\s+(saetze|satz)|saetze noch|sets left|how many sets/.test(q)) {
       if (!s.active || s.active.setsTotal == null || s.active.setsDone == null) return null;
       var left = s.active.setsTotal - s.active.setsDone;
       if (left < 0) return null;
       return { intent: 'setsLeft',
-               answer: left === 1 ? 'Noch 1 Satz.' : 'Noch ' + left + ' Saetze.' };
+               answer: left === 1 ? 'Noch 1 Satz.' : 'Noch ' + left + ' Sätze.' };
     }
 
     // 4) Restpause
