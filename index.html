@@ -7754,7 +7754,7 @@ const I18N_EN = {
   'Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?':'Final warning — your account will be deleted now. Continue?',
   'Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.':'For security you need to sign in once more. Your account will then be deleted automatically.',
   'Dein Konto und alle Daten wurden gelöscht.':'✅ Your account and all data have been deleted.',
-  'Ein Teil deiner Daten konnte nicht gelöscht werden. Bitte versuche es erneut, solange du noch angemeldet bist.':'Part of your data could not be deleted. Please try again while you are still signed in.',
+  'Dein Konto und alle Daten wurden gelöscht. Ein einzelner Eintrag mit deinen Angaben beim KI-Coach (z. B. Einschränkungen) konnte dabei nicht entfernt werden und ist für niemanden mehr erreichbar. Melde dich über „Feedback senden" in den Einstellungen, falls du möchtest, dass wir ihn entfernen.':'Your account and all data have been deleted. One entry with your AI coach details (e.g. restrictions) could not be removed and is no longer reachable by anyone. If you would like us to remove it, contact us via “Send feedback” in Settings.',
   'Melde dich mit deinem Google-Konto an, damit deine Trainings automatisch':'Sign in with your Google account so your workouts are automatically',
   'in der Cloud gespeichert werden. So gehen sie nie verloren — auch wenn':'saved to the cloud. That way they’re never lost — even if',
   'du die App löschst oder das Handy wechselst.':'you delete the app or switch phones.',
@@ -26464,7 +26464,7 @@ function _finishAccountWipe(dossierDeleteFailed) {
     Object.keys(localStorage).filter(k => k.indexOf('gt_') === 0).forEach(k => localStorage.removeItem(k));
   } catch(e) {}
   if (dossierDeleteFailed) {
-    alert('Ein Teil deiner Daten konnte nicht gelöscht werden. Bitte versuche es erneut, solange du noch angemeldet bist.');
+    alert('Dein Konto und alle Daten wurden gelöscht. Ein einzelner Eintrag mit deinen Angaben beim KI-Coach (z. B. Einschränkungen) konnte dabei nicht entfernt werden und ist für niemanden mehr erreichbar. Melde dich über „Feedback senden" in den Einstellungen, falls du möchtest, dass wir ihn entfernen.');
   } else {
     alert('Dein Konto und alle Daten wurden gelöscht.');
   }
