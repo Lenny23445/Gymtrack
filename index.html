@@ -26410,6 +26410,16 @@ async function _runAccountDeletion() {
   if (!user) return;
   try {
     // 1. Cloud-Daten löschen
+    // Reihenfolge zwingend: Firestore loescht Subcollections NICHT mit. Ohne
+    // diesen Schritt ueberlebt das Coach-Dossier — und damit gemeldete
+    // Einschraenkungen — die Kontoloeschung.
+    try { await window.FB.deleteDoc(window.FB.doc('users/' + user.uid + '/coach', 'dossier')); }
+    catch(e) { console.warn('[GymTrack] Dossier-Delete:', e); }
+    // Zusaetzlich zum gt_-Rundumschlag in _finishAccountWipe(), weil der nur
+    // auf dem Erfolgspfad laeuft. Greift erst, wenn Task 7 coach-memory.js
+    // einbindet — bis dahin ist window.CoachMemory undefined und der catch
+    // schluckt es.
+    try { window.CoachMemory.dossierClear(localStorage, user.uid); } catch(_) {}
     try { await window.FB.deleteDoc(window.FB.userDocRef(user.uid)); } catch(e) { console.warn('[GymTrack] Doc-Delete:', e); }
     try { if (window.FB.stopPresence) window.FB.stopPresence(user.uid); } catch(e) {}
     // 2. Auth-User löschen
