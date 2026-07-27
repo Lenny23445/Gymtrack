@@ -67,9 +67,56 @@
     return d;
   }
 
+  var STALE_MS = 42 * 86400000;
+  var PROMPT_MAX = 4000;
+
+  // Nur Einschraenkungen verfallen. Vorlieben und was funktioniert hat altern
+  // nicht — eine Schulterbeschwerde von vor einem halben Jahr blockiert sonst
+  // dauerhaft alle Ueberkopfuebungen.
+  function dossierStale(dossier, now) {
+    now = now || Date.now();
+    return ((dossier && dossier.limits) || [])
+      .filter(function (e) { return (now - (e.ts || 0)) > STALE_MS; })
+      .map(function (e) { return e.t; });
+  }
+
+  function dossierRefresh(dossier, text, stillValid, now) {
+    var d = JSON.parse(JSON.stringify(dossier || dossierEmpty()));
+    now = now || Date.now();
+    var key = norm(text);
+    if (stillValid) {
+      (d.limits || []).forEach(function (e) { if (norm(e.t) === key) e.ts = now; });
+    } else {
+      d.limits = (d.limits || []).filter(function (e) { return norm(e.t) !== key; });
+    }
+    d.updatedAt = now;
+    return d;
+  }
+
+  function dossierForPrompt(dossier) {
+    var d = dossier || dossierEmpty();
+    var out = [];
+    if (d.goal) out.push('Ziel: ' + d.goal);
+    if (d.tone) out.push('Bevorzugter Ton: ' + d.tone);
+    if ((d.limits || []).length)
+      out.push('Einschraenkungen (immer respektieren): ' + d.limits.map(function (e) { return e.t; }).join('; '));
+    if ((d.prefs || []).length)
+      out.push('Vorlieben: ' + d.prefs.map(function (e) { return e.t; }).join('; '));
+    if ((d.works || []).length)
+      out.push('Hat bei diesem Nutzer funktioniert: ' + d.works.map(function (e) { return e.t; }).join('; '));
+    if (d.derived && Array.isArray(d.derived.stall) && d.derived.stall.length)
+      out.push('Stagniert seit mehreren Einheiten: ' + d.derived.stall.join(', '));
+    var muted = (d.coachStats && d.coachStats.muted) || [];
+    if (muted.length)
+      out.push('Diese Vorschlagstypen NICHT mehr vorschlagen: ' + muted.join(', '));
+    return out.join('\n').slice(0, PROMPT_MAX);
+  }
+
   var API = { dossierEmpty: dossierEmpty, dossierApplyDelta: dossierApplyDelta,
+              dossierStale: dossierStale, dossierRefresh: dossierRefresh,
+              dossierForPrompt: dossierForPrompt,
               LIST_KEYS: LIST_KEYS, MAX_ITEMS: MAX_ITEMS, MAX_LEN: MAX_LEN,
-              TONES: TONES, GOALS: GOALS };
+              TONES: TONES, GOALS: GOALS, STALE_MS: STALE_MS };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachMemory = API;

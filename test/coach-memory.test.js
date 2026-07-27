@@ -71,3 +71,50 @@ test('remove loescht einen Eintrag', () => {
   d = M.dossierApplyDelta(d, { remove: { limits: ['Linke Schulter'] } }, NOW);
   assert.strictEqual(d.limits.length, 0);
 });
+
+const TAG = 86400000;
+
+test('Eintrag aelter als 42 Tage gilt als stale', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Alte Schulter'] } }, NOW - 43 * TAG);
+  assert.deepStrictEqual(M.dossierStale(d, NOW), ['Alte Schulter']);
+});
+
+test('frischer Eintrag ist nicht stale', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Neue Schulter'] } }, NOW - 10 * TAG);
+  assert.deepStrictEqual(M.dossierStale(d, NOW), []);
+});
+
+test('nur limits verfallen, prefs und works nicht', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { prefs: ['Abends'] } }, NOW - 99 * TAG);
+  assert.deepStrictEqual(M.dossierStale(d, NOW), []);
+});
+
+test('Bestaetigung erneuert den Zeitstempel', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW - 43 * TAG);
+  d = M.dossierRefresh(d, 'Schulter', true, NOW);
+  assert.strictEqual(d.limits[0].ts, NOW);
+  assert.deepStrictEqual(M.dossierStale(d, NOW), []);
+});
+
+test('Verneinung entfernt den Eintrag', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW - 43 * TAG);
+  d = M.dossierRefresh(d, 'Schulter', false, NOW);
+  assert.strictEqual(d.limits.length, 0);
+});
+
+test('stale Eintrag gilt bis zur Antwort weiter', () => {
+  let d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW - 43 * TAG);
+  assert.ok(M.dossierForPrompt(d).includes('Schulter'));
+});
+
+test('Prompt-Form bleibt unter 4000 Zeichen', () => {
+  let d = M.dossierEmpty();
+  for (let i = 0; i < 8; i++) {
+    d = M.dossierApplyDelta(d, { add: { limits: ['L'.repeat(120)], prefs: ['P'.repeat(120)], works: ['W'.repeat(120)] } }, NOW + i);
+  }
+  assert.ok(M.dossierForPrompt(d).length <= 4000);
+});
+
+test('leeres Dossier liefert leeren Prompt-String', () => {
+  assert.strictEqual(M.dossierForPrompt(M.dossierEmpty()), '');
+});
