@@ -5543,6 +5543,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      sich überlagern). Hier unter dem Boot-Splash geladen: der Splash steht sofort,
      und weil Body-Skripte in Dokumentreihenfolge laufen, ist `Chart` weiterhin
      definiert, bevor das Haupt-Skript weiter unten es benutzt. -->
+<script src="./js/coach-memory.js"></script>
+<script src="./js/coach-log.js"></script>
+<script src="./js/coach-intent.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -8171,6 +8174,16 @@ const I18N_RX = [
   [/❌ Login fehlgeschlagen:/g, '❌ Sign-in failed:'],
   [/❌ Cloud-Sync fehlgeschlagen:/g, '❌ Cloud sync failed:'],
   [/❌ Löschen fehlgeschlagen:/g, '❌ Delete failed:'],
+  // Coach-Intent — lokale Kurzantworten (Baustein 3/7, siehe js/coach-intent.js).
+  // Muessen VOR den generischen Satz/Sätze-Regeln unten stehen, sonst ist
+  // "Sätze"/"Satz" schon ersetzt, bevor diese kompletten Saetze greifen.
+  [/Nächster Satz: ([\d.,]+) kg\./g, 'Next set: $1 kg.'],
+  [/: ([\d.,]+) kg mal (\d+) Wiederholungen, am ([\d.]+)\./g, ': $1 kg for $2 reps, on $3.'],
+  [/Noch 1 Satz\./g, '1 set left.'],
+  [/Noch (\d+) Sätze\./g, '$1 sets left.'],
+  [/Noch (\d+) Sekunden Pause\./g, '$1 seconds of rest left.'],
+  [/ ist zu (\d+) Prozent erholt\./g, ' is $1 percent recovered.'],
+  [/ zuletzt am ([\d.]+)\./g, ' last done on $1.'],
   [/(\d+) Übungen/g, '$1 exercises'], [/(\d+) Übung\b/g, '$1 exercise'],
  [/(\d+) Sätze/g,'$1 sets'], [/(\d+) Satz\b/g,'$1 set'],
  [/(\d+) Wdh\.?/g,'$1 reps'],
@@ -23215,6 +23228,14 @@ function _coachCardHTML() {
   } catch(e) { console.warn('[Coach] card render:', e); return ''; }
 }
 function _coachDismiss() {
+  // Zuerst loggen, dann aufraeumen: nach _coachClearCard() ist _coachCard leer.
+  try {
+    if (_coachCard) {
+      S.coachLog = window.CoachLog.logAction(S.coachLog || [],
+        { kind: ((_coachCard.c || {}).action || {}).kind, exId: _coachCard.exId, accepted: false }, Date.now());
+      persist();
+    }
+  } catch(e) { console.warn('[Coach] Log:', e); }
   try { _coachClearCard(); renderLogCards(); } catch(e) { console.warn('[Coach] dismiss:', e); }
 }
 function _coachNextSetIdx(log) {
@@ -23270,6 +23291,11 @@ function _coachApplyAction(li, action, baseW) {
 // (_coachPickOption) — beide wenden am Ende dieselbe Aktion aufs nächste Set an.
 function _coachCommitAction(action) {
   if (!_coachCard || _coachCard.applied) return;
+  try {
+    S.coachLog = window.CoachLog.logAction(S.coachLog || [],
+      { kind: (action || {}).kind, exId: _coachCard.exId, accepted: true }, Date.now());
+    persist();
+  } catch(e) { console.warn('[Coach] Log:', e); }
   if (_coachCard.timer) { clearTimeout(_coachCard.timer); _coachCard.timer = null; }
   const li = wkLogs.findIndex(l => l.exerciseId === _coachCard.exId);
   try { if (li >= 0) _coachApplyAction(li, action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
@@ -23712,6 +23738,7 @@ function _aibInit(){
 // ── KI-Chat ────────────────────────────────────────────
 let _aicHist = (() => { try { const h = JSON.parse(localStorage.getItem('gt_aiChat')); return Array.isArray(h) ? h : []; } catch(_){ return []; } })();
 let _aicBusy = false, _aicPlanPending = null;
+let _coachLastUid;
 function _aicPush(role, content){
   _aicHist.push({ role, content });
   if (_aicHist.length > 30) _aicHist = _aicHist.slice(-30);
@@ -23751,11 +23778,85 @@ function _aicRenderSugg(){
   const sugg = ['Erstelle mir einen Trainingsplan', 'Alternative zu einer Übung finden', 'Wie kann ich mein Volumen steigern?', 'Wo bin ich unausgeglichen?'];
   el.innerHTML = sugg.map(s => `<button type="button" onclick="document.getElementById('aic-in').value='${s.replace(/'/g,"\\'")}';aicSend()">${s}</button>`).join('');
 }
+
+// ── Coach-Gedaechtnis: Bruecke zwischen App-Zustand und den Coach-Einheiten ──
+// Das Dossier liegt uid-gekoppelt in localStorage, NICHT in S: Abmelden laesst
+// S bewusst stehen, sonst laese das naechste Konto auf diesem Geraet die
+// Einschraenkungen des vorigen.
+let _dossierPushT = null;
+function _coachUid(){ return (_fbUser && !_fbUser.isAnonymous) ? _fbUser.uid : null; }
+function _dossier(){ return window.CoachMemory.dossierLoad(localStorage, _coachUid()); }
+function _dossierSet(d){
+  const uid = _coachUid(); if (!uid) return;
+  window.CoachMemory.dossierSave(localStorage, uid, d);
+  if (_dossierPushT) clearTimeout(_dossierPushT);
+  _dossierPushT = setTimeout(() => { _dossierPush(d); }, 4000);
+}
+async function _dossierPush(d){
+  const uid = _coachUid(); if (!uid || !window.FB || !window.FB.configured) return;
+  // Kein Dossier-Inhalt ins Log — nur der Fehlercode.
+  try { await window.FB.setDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'), d, { merge: false }); }
+  catch(e) { console.warn('[Coach] Dossier-Push fehlgeschlagen:', (e && e.code) || ''); }
+}
+// Gegenstueck zum Push: ohne diesen Zug waere das Dossier nach einem
+// Geraetewechsel oder einer Neuinstallation weg, obwohl es in der Cloud liegt.
+// Die neuere Seite gewinnt — lokal ist waehrend einer Sitzung aktueller,
+// die Cloud nach einem Wechsel.
+async function _dossierPull(){
+  const uid = _coachUid(); if (!uid || !window.FB || !window.FB.configured) return;
+  try {
+    const snap = await window.FB.getDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'));
+    if (!snap || !snap.exists()) return;
+    const cloud = snap.data() || {};
+    const lokal = window.CoachMemory.dossierLoad(localStorage, uid);
+    if ((cloud.updatedAt || 0) > (lokal.updatedAt || 0)) {
+      window.CoachMemory.dossierSave(localStorage, uid, cloud);
+    }
+  } catch(e) { console.warn('[Coach] Dossier-Pull fehlgeschlagen:', (e && e.code) || ''); }
+}
+// Schnappschuss fuer den Intent-Router. Bewusst hier gebaut statt im Router,
+// damit der Router nicht an interne App-Strukturen gebunden ist.
+function _coachSnap(){
+  const snap = { exercises: [], bestSet: {}, lastDone: {}, recovery: {} };
+  try {
+    snap.exercises = (S.exercises || []).map(e => ({ id: e.id, name: e.name, muscleGroup: e.muscleGroup }));
+    (S.sessions || []).forEach(s => {
+      (s.logs || []).forEach(l => {
+        const best = (l.sets || []).filter(x => x.type !== 'warmup')
+          .sort((a,b) => (parseFloat(b.w)||0) - (parseFloat(a.w)||0))[0];
+        if (!best) return;
+        const w = parseFloat(best.w) || 0;
+        const cur = snap.bestSet[l.exerciseId];
+        if (!cur || w > cur.w) snap.bestSet[l.exerciseId] = { w, r: parseInt(best.r) || 0, date: s.date };
+        if (!snap.lastDone[l.exerciseId] || s.date > snap.lastDone[l.exerciseId]) snap.lastDone[l.exerciseId] = s.date;
+      });
+    });
+    const rec = getMuscleGroupRecovery();
+    MUSCLE_GROUPS.forEach(mg => { if (rec[mg.id]) snap.recovery[muscleLabel(mg.id)] = rec[mg.id].recPct; });
+    if (typeof wkLogs !== 'undefined' && Array.isArray(wkLogs) && wkLogs.length) {
+      const cur = wkLogs.find(l => (l.sets || []).some(x => !x.done)) || wkLogs[0];
+      if (cur) {
+        const done = (cur.sets || []).filter(x => x.done).length;
+        const nxt  = (cur.sets || []).find(x => !x.done);
+        snap.active = { exId: cur.exerciseId, setsTotal: (cur.sets || []).length, setsDone: done,
+                        nextW: nxt ? (parseFloat(nxt.w) || null) : null };
+      }
+    }
+    // Laufende Restpause: gleiche Bedingung wie anderswo im Code (_updateLiveActivity) —
+    // _restInt ist nur waehrend eines aktiven Pausen-Countdowns gesetzt.
+    if (_restInt !== null && _restSecs > 0) snap.restLeftSec = _restSecs;
+    const t = _coachTodaySuggestion(); if (t) snap.todayText = t.text;
+  } catch(e) { console.warn('[Coach] Snapshot:', e); }
+  return snap;
+}
+
 // Kompakter Trainingskontext für die KI — bewusst klein gehalten (Kosten!):
 // Profil-Eckdaten, Übungsnamen (Cap 60), letzte 5 Einheiten mit Bestsatz je Übung.
 function _aicContext(){
   return {
     profile: { goal: S.obGoal || null, exp: S.obExp || null, freq: S.obFreq || null },
+    dossier: window.CoachMemory.dossierForPrompt(_dossier()),
+    muted: window.CoachLog.logStats(S.coachLog || []).muted,
     exerciseNames: (S.exercises || []).slice(0, 60).map(e => e.name),
     recentSessions: (S.sessions || []).slice(-5).map(s => ({
       date: (s.date || '').slice(0, 10),
@@ -23775,6 +23876,14 @@ async function aicSend(){
   if (!t) return;
   if (ta) { ta.value = ''; _aicGrow(ta); }
   _aicPush('user', t);
+  // Lokal beantwortbar? Dann kein Netzaufruf. Die Antwort wandert trotzdem in
+  // die Historie, sonst fehlt dem Modell beim naechsten echten Aufruf der Faden.
+  const local = window.CoachIntent.resolveIntent(t, _coachSnap());
+  if (local) {
+    _aicPush('assistant', local.answer);
+    _aicRenderLog(); _aicRenderSugg();
+    return;
+  }
   _aicBusy = true; _aicPlanPending = null;
   _aicRenderLog(); _aicRenderSugg();
   const send = document.getElementById('aic-send'); if (send) send.disabled = true;
@@ -23788,6 +23897,14 @@ async function aicSend(){
   if (pm) {
     try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
     txt = txt.replace(pm[0], '').trim();
+  }
+  const mm = txt.match(/```gtmem\s*([\s\S]*?)```/);
+  if (mm) {
+    try {
+      const delta = JSON.parse(mm[1]);
+      _dossierSet(window.CoachMemory.dossierApplyDelta(_dossier(), delta, Date.now()));
+    } catch(_) { /* kaputtes JSON still verwerfen, wie bei gtplan */ }
+    txt = txt.replace(mm[0], '').trim();
   }
   _aicPush('assistant', txt || tr('Hier ist dein Plan:'));
   _aicRenderLog();
@@ -26626,6 +26743,19 @@ function _initFirebaseListeners() {
     });
   // Auth-State beobachten
   window.FB.onAuthStateChanged((user) => {
+    // Konto gewechselt: das Dossier des vorigen Kontos wird lokal geloescht und
+    // ohnehin nie geladen (der Schluessel traegt die uid). Der Chatverlauf wird
+    // geleert, damit im Fenster keine Antworten des Vorgaengers stehen bleiben.
+    // Die Cloud-Kopie bleibt: beim naechsten Login holt _dossierPull() sie zurueck.
+    try {
+      const neu = (user && !user.isAnonymous) ? user.uid : null;
+      if (_coachLastUid !== undefined && _coachLastUid !== neu) {
+        _aicHist = []; localStorage.removeItem('gt_aiChat');
+        if (_coachLastUid) window.CoachMemory.dossierClear(localStorage, _coachLastUid);
+      }
+      _coachLastUid = neu;
+      if (neu) _dossierPull();
+    } catch(_) {}
     console.log('[GymTrack] Auth-State changed:', user ? (user.email || user.uid) : '(abgemeldet)');
     if (user) _onLogin(user);
     else      _onLogout();
