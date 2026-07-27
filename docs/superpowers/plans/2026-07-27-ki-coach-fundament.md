@@ -302,11 +302,26 @@ test('stale Eintrag gilt bis zur Antwort weiter', () => {
   assert.ok(M.dossierForPrompt(d).includes('Schulter'));
 });
 
+// KORRIGIERT nach Review (2026-07-27): die erste Fassung schickte 8x DENSELBEN
+// String durch dossierApplyDelta. Der dedupliziert ueber die Normalform, es blieb
+// EIN Eintrag pro Liste, der Prompt war 448 statt ~4000 Zeichen lang und der Test
+// pruefte nichts. Jede Iteration braucht einen anderen Text, und die Laengen der
+// Listen gehoeren mitgeprueft.
 test('Prompt-Form bleibt unter 4000 Zeichen', () => {
   let d = M.dossierEmpty();
   for (let i = 0; i < 8; i++) {
-    d = M.dossierApplyDelta(d, { add: { limits: ['L'.repeat(120)], prefs: ['P'.repeat(120)], works: ['W'.repeat(120)] } }, NOW + i);
+    const suffix = String(i);
+    d = M.dossierApplyDelta(d, {
+      add: {
+        limits: ['L'.repeat(120 - suffix.length) + suffix],
+        prefs: ['P'.repeat(120 - suffix.length) + suffix],
+        works: ['W'.repeat(120 - suffix.length) + suffix]
+      }
+    }, NOW + i);
   }
+  assert.strictEqual(d.limits.length, 8);
+  assert.strictEqual(d.prefs.length, 8);
+  assert.strictEqual(d.works.length, 8);
   assert.ok(M.dossierForPrompt(d).length <= 4000);
 });
 
@@ -408,6 +423,15 @@ git push origin HEAD
 - Produces: `dossierKey(uid)` liefert `'gt_coachDossier:' + uid`; `dossierLoad(store, uid)` liefert Dossier; `dossierSave(store, uid, dossier)` liefert `true`/`false`; `dossierClear(store, uid)` löscht. `store` ist ein Objekt mit `getItem`/`setItem`/`removeItem` — im Browser `localStorage`, im Test ein Fake.
 
 **Warum ein `store`-Argument:** So ist die Persistenz ohne Browser testbar, und die uid-Kopplung — der sicherheitskritische Teil — lässt sich direkt prüfen.
+
+> **Abweichung bei der Umsetzung (2026-07-27, genehmigt):** Die `dossierLoad`-Fassung
+> weiter unten übernimmt Listen roh (`if (Array.isArray(parsed[k])) base[k] = parsed[k]`)
+> und akzeptiert `goal`/`tone` als beliebigen String. Damit passieren Alt-Einträge in
+> Stringform die Grenze und `dossierForPrompt` schreibt danach die Kopfzeile
+> „Einschraenkungen (immer respektieren): ; " mit **leerem** Inhalt — die Einschränkung
+> ist stumm weg. Umgesetzt wurde deshalb eine gehärtete Variante (`sanitizeList` über
+> `toEntry` + Caps + Dedupe, `goal`/`tone` gegen `GOALS`/`TONES` gewhitelistet,
+> `coachStats` gefiltert). Tests dazu am Ende von `test/coach-memory.test.js`.
 
 - [ ] **Step 1: Die fehlschlagenden Tests schreiben**
 

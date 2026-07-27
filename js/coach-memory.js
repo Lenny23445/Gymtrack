@@ -117,9 +117,82 @@
     return out.join('\n').slice(0, PROMPT_MAX);
   }
 
+  var STORE_PREFIX = 'gt_coachDossier:';
+
+  // Der Schluessel traegt die uid, weil Abmelden lokale Daten bewusst stehen
+  // laesst. Ohne uid im Schluessel wuerde das naechste Konto auf demselben
+  // Geraet die Einschraenkungen des vorigen lesen — dieselbe Fehlerklasse wie
+  // der bereits behobene pushToken-Bug in doSignOut().
+  function dossierKey(uid) { return STORE_PREFIX + String(uid || ''); }
+
+  // Alles, was aus dem Speicher kommt, ist fremd: Altschema, ein anderer
+  // App-Stand, per XSS beschriebenes localStorage. Der Inhalt landet danach
+  // unter "Einschraenkungen (immer respektieren)" im Coach-Prompt, also gilt
+  // hier dieselbe Pruefung wie beim Schreiben (toEntry/Caps/Whitelisten).
+  // Rohe Uebernahme hat Strings statt {t,ts} durchgelassen — die Zeile blieb
+  // dann mit leerem Inhalt stehen und die Einschraenkung war stumm weg.
+  function sanitizeList(raw) {
+    var out = [];
+    (Array.isArray(raw) ? raw : []).forEach(function (item) {
+      var e = toEntry(item, 0);
+      if (!e) return;
+      var ts = (item && typeof item === 'object') ? item.ts : null;
+      // Kein oder unbrauchbarer Zeitstempel => 0. Der Eintrag zaehlt weiter,
+      // wird aber als faellig zur Bestaetigung gemeldet statt als frisch.
+      e.ts = (typeof ts === 'number' && isFinite(ts) && ts > 0) ? ts : 0;
+      if (out.some(function (x) { return norm(x.t) === norm(e.t); })) return;
+      out.push(e);
+    });
+    return out.length > MAX_ITEMS ? out.slice(out.length - MAX_ITEMS) : out;
+  }
+
+  function toCount(n) { return (typeof n === 'number' && isFinite(n) && n > 0) ? n : 0; }
+
+  function dossierLoad(store, uid) {
+    if (!store || !uid) return dossierEmpty();
+    var raw;
+    try { raw = store.getItem(dossierKey(uid)); } catch (_) { return dossierEmpty(); }
+    if (!raw) return dossierEmpty();
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (_) { return dossierEmpty(); }
+    if (!parsed || typeof parsed !== 'object') return dossierEmpty();
+    var base = dossierEmpty();
+    LIST_KEYS.forEach(function (k) { base[k] = sanitizeList(parsed[k]); });
+    // Gleiche Whitelist wie in dossierApplyDelta — sonst kaeme ueber den
+    // Lade-Pfad beliebiger Text in die Ziel-/Ton-Zeile des Prompts.
+    if (typeof parsed.goal === 'string' && GOALS.indexOf(parsed.goal) >= 0) base.goal = parsed.goal;
+    if (typeof parsed.tone === 'string' && TONES.indexOf(parsed.tone) >= 0) base.tone = parsed.tone;
+    if (parsed.derived && typeof parsed.derived === 'object') base.derived = parsed.derived;
+    if (parsed.coachStats && typeof parsed.coachStats === 'object') {
+      base.coachStats = {
+        accepted: toCount(parsed.coachStats.accepted),
+        ignored:  toCount(parsed.coachStats.ignored),
+        muted: Array.isArray(parsed.coachStats.muted)
+          ? parsed.coachStats.muted.filter(function (m) { return typeof m === 'string' && m.trim(); })
+                                   .slice(0, MAX_ITEMS)
+          : []
+      };
+    }
+    base.updatedAt = toCount(parsed.updatedAt);
+    return base;
+  }
+
+  function dossierSave(store, uid, dossier) {
+    if (!store || !uid) return false;
+    try { store.setItem(dossierKey(uid), JSON.stringify(dossier || dossierEmpty())); return true; }
+    catch (_) { return false; }
+  }
+
+  function dossierClear(store, uid) {
+    if (!store || !uid) return false;
+    try { store.removeItem(dossierKey(uid)); return true; } catch (_) { return false; }
+  }
+
   var API = { dossierEmpty: dossierEmpty, dossierApplyDelta: dossierApplyDelta,
               dossierStale: dossierStale, dossierRefresh: dossierRefresh,
               dossierForPrompt: dossierForPrompt,
+              dossierKey: dossierKey, dossierLoad: dossierLoad,
+              dossierSave: dossierSave, dossierClear: dossierClear,
               LIST_KEYS: LIST_KEYS, MAX_ITEMS: MAX_ITEMS, MAX_LEN: MAX_LEN,
               TONES: TONES, GOALS: GOALS, STALE_MS: STALE_MS };
 

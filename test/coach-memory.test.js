@@ -156,3 +156,122 @@ test('Einschraenkungs-Zeile bleibt bei maximal gefuelltem Dossier vollstaendig e
 test('leeres Dossier liefert leeren Prompt-String', () => {
   assert.strictEqual(M.dossierForPrompt(M.dossierEmpty()), '');
 });
+
+function fakeStore() {
+  const data = {};
+  return {
+    data,
+    getItem: (k) => (k in data ? data[k] : null),
+    setItem: (k, v) => { data[k] = String(v); },
+    removeItem: (k) => { delete data[k]; }
+  };
+}
+
+test('Schluessel enthaelt die uid', () => {
+  assert.strictEqual(M.dossierKey('abc123'), 'gt_coachDossier:abc123');
+});
+
+test('Speichern und Laden fuer dieselbe uid', () => {
+  const s = fakeStore();
+  const d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW);
+  M.dossierSave(s, 'userA', d);
+  assert.strictEqual(M.dossierLoad(s, 'userA').limits[0].t, 'Schulter');
+});
+
+test('fremde uid sieht das Dossier NICHT', () => {
+  const s = fakeStore();
+  M.dossierSave(s, 'userA', M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW));
+  const fremd = M.dossierLoad(s, 'userB');
+  assert.deepStrictEqual(fremd.limits, []);
+});
+
+test('ohne uid wird weder geladen noch gespeichert', () => {
+  const s = fakeStore();
+  assert.strictEqual(M.dossierSave(s, null, M.dossierEmpty()), false);
+  assert.deepStrictEqual(M.dossierLoad(s, null).limits, []);
+  assert.deepStrictEqual(Object.keys(s.data), []);
+});
+
+test('dossierClear entfernt nur die eigene uid', () => {
+  const s = fakeStore();
+  M.dossierSave(s, 'userA', M.dossierEmpty());
+  M.dossierSave(s, 'userB', M.dossierEmpty());
+  M.dossierClear(s, 'userA');
+  assert.strictEqual(s.getItem(M.dossierKey('userA')), null);
+  assert.notStrictEqual(s.getItem(M.dossierKey('userB')), null);
+});
+
+test('kaputtes JSON im Speicher ergibt ein leeres Dossier', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), '{kaputt');
+  assert.deepStrictEqual(M.dossierLoad(s, 'userA').limits, []);
+});
+
+test('Dossier ohne v wird migriert', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), JSON.stringify({ limits: [{ t: 'Alt', ts: NOW }] }));
+  const d = M.dossierLoad(s, 'userA');
+  assert.strictEqual(d.v, 1);
+  assert.strictEqual(d.limits[0].t, 'Alt');
+  assert.deepStrictEqual(d.coachStats, { accepted: 0, ignored: 0, muted: [] });
+});
+
+// Spec, Datenschutz Punkt 4: profiles/{uid} ist fuer JEDEN angemeldeten Nutzer
+// lesbar. Ein Schreibpfad dorthin waere ein Leck. Der Test prueft die Quelle,
+// weil die Einheit selbst gar keinen Firestore-Zugriff haben darf.
+test('coach-memory.js enthaelt keinen Schreibpfad nach profiles/', () => {
+  const fs = require('node:fs');
+  const src = fs.readFileSync(require.resolve('../js/coach-memory.js'), 'utf8');
+  assert.ok(!/profiles/.test(src), 'coach-memory.js darf profiles/ nicht erwaehnen');
+  assert.ok(!/setDoc|updateDoc|firestore|window\.FB/.test(src),
+            'coach-memory.js darf keinen Firestore-Zugriff enthalten');
+});
+
+// --- Haertung des Lade-Pfads (Abweichung vom Plan, Begruendung in progress.md) ---
+// dossierLoad ist die Vertrauensgrenze: localStorage ist fremdbeschreibbar (XSS,
+// Alt-Schema, manipuliertes Geraet) und der Inhalt landet danach ungefiltert im
+// Coach-Prompt unter der Zeile "Einschraenkungen (immer respektieren)".
+
+test('Laden repariert Alt-Eintraege ohne Zeitstempel statt sie stumm zu verlieren', () => {
+  const s = fakeStore();
+  // Altform: reine Strings statt {t, ts}. Die Plan-Fassung von dossierLoad hat
+  // die Liste unveraendert uebernommen -> dossierForPrompt schrieb die Kopfzeile
+  // "Einschraenkungen (immer respektieren): ; " mit LEEREM Inhalt, die
+  // Einschraenkung war stumm weg.
+  s.setItem(M.dossierKey('userA'), JSON.stringify({ limits: ['Schulter', 'Knie'] }));
+  const d = M.dossierLoad(s, 'userA');
+  assert.deepStrictEqual(d.limits.map(e => e.t), ['Schulter', 'Knie']);
+  assert.ok(M.dossierForPrompt(d).includes('Schulter; Knie'));
+  // Ohne Zeitstempel gilt der Eintrag als faellig zur Bestaetigung, nicht als frisch.
+  assert.deepStrictEqual(M.dossierStale(d, NOW), ['Schulter', 'Knie']);
+});
+
+test('Laden verwirft unbekanntes goal und tone', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), JSON.stringify({ goal: '<script>x</script>', tone: 'boesartig' }));
+  const d = M.dossierLoad(s, 'userA');
+  assert.strictEqual(d.goal, null);
+  assert.strictEqual(d.tone, null);
+  assert.strictEqual(M.dossierForPrompt(d), '');
+});
+
+test('Laden haelt MAX_ITEMS und MAX_LEN ein', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), JSON.stringify({
+    limits: Array.from({ length: 50 }, (_, i) => ({ t: i + 'X'.repeat(400), ts: NOW }))
+  }));
+  const d = M.dossierLoad(s, 'userA');
+  assert.strictEqual(d.limits.length, M.MAX_ITEMS);
+  assert.ok(d.limits.every(e => e.t.length <= M.MAX_LEN));
+});
+
+test('Laden filtert Unrat aus coachStats', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), JSON.stringify({
+    coachStats: { accepted: 'viele', ignored: 2, muted: ['deload', { boese: 1 }, null] }
+  }));
+  const d = M.dossierLoad(s, 'userA');
+  assert.deepStrictEqual(d.coachStats.muted, ['deload']);
+  assert.strictEqual(d.coachStats.accepted, 0);
+  assert.strictEqual(d.coachStats.ignored, 2);
+});
