@@ -44,6 +44,31 @@ test('Restpause', () => {
   assert.ok(r.answer.includes('45'));
 });
 
+test('Frage zum Ruhetag ist keine Restpause-Frage (geht ans Modell)', () => {
+  // "how long.*rest" allein hat kein Themen-Anker: "rest day" (Ruhetag) triggert
+  // denselben Wildcard-Bug wie bei Intent 1/3 -- der Router wuerde konfident (aber
+  // falsch) den laufenden Pausen-Timer nennen, obwohl nach einem Ruhetag gefragt wird.
+  assert.strictEqual(
+    R.resolveIntent('How long has it been since my last rest day?', SNAP),
+    null
+  );
+});
+
+test('"rest" als normales englisches Pronomen matcht nicht (geht ans Modell)', () => {
+  // Hier ist "rest" gar kein Fitness-Wort, sondern das Pronomen "der Rest" (of my
+  // friends). Ohne Themen-Anker matcht "how long.*rest" trotzdem.
+  assert.strictEqual(
+    R.resolveIntent('How long till the rest of my friends arrive?', SNAP),
+    null
+  );
+});
+
+test('echte Frage zum laufenden Pausen-Timer bleibt erkannt', () => {
+  const r = R.resolveIntent('How long until my rest is over?', SNAP);
+  assert.strictEqual(r.intent, 'rest');
+  assert.ok(r.answer.includes('45'));
+});
+
 test('Erholung einer Muskelgruppe', () => {
   const r = R.resolveIntent('wie erholt ist meine brust?', SNAP);
   assert.strictEqual(r.intent, 'recovery');

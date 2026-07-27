@@ -73,7 +73,11 @@
     }
 
     // 4) Restpause
-    if (/pause|rest timer|how long.*rest/.test(q)) {
+    // "how long.*rest" hatte keinen Themen-Anker: "rest" alleine ist ein
+    // normales englisches Wort (Ruhetag, Pronomen "der Rest von ..."), kein
+    // Fitness-Begriff. Jetzt muss nach "how long" eine konkrete Pausen-Timer-
+    // Formulierung folgen, nicht das nackte Wort "rest".
+    if (/pause|rest timer|how long.*(rest timer|rest is over|rest left)/.test(q)) {
       if (!s.restLeftSec) return null;
       return { intent: 'rest', answer: 'Noch ' + s.restLeftSec + ' Sekunden Pause.' };
     }
