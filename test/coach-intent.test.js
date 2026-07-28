@@ -189,3 +189,47 @@ test('Restpause-Fragen ohne "rest timer"-Wortlaut bleiben lokal beantwortbar', (
     assert.ok(r.answer.includes('45'), 'erwartet Pausenzeit im Text fuer: ' + text);
   });
 });
+
+// --- Review-Runde 4: BLOCK-Rueckbau + Intent 3/5/8 (dieser Task) -----------
+// BLOCK wurde faelschlich um Krankheitsworte erweitert, um Intent 5 zu
+// schuetzen -- das Gate wirkt aber auf ALLE acht Intents. Diese vier Tests
+// belegen je eine der Korrekturen und diskriminieren (RED vor dem Fix, GREEN
+// danach) -- siehe Report fuer die je vorher/nachher-Konsole-Ausgabe.
+
+test('Krankheitswort blockiert keinen anderen Intent mehr (BLOCK-Rueckbau)', () => {
+  // Vorher: BLOCK enthielt "erkaelt" und loeschte JEDE Frage mit diesem Wort,
+  // auch eine, die nichts mit Erholung zu tun hat. Reviewer-Beispiel.
+  const r = R.resolveIntent('Ich bin erkaeltet, wie viele Saetze noch?', SNAP);
+  assert.strictEqual(r && r.intent, 'setsLeft');
+  assert.ok(r.answer.includes('3'));
+});
+
+test('Erholungsurlaub-Erzaehlsatz wird nicht als Erholungsabfrage gelesen (geht ans Modell)', () => {
+  // Der Fehltreffer, den die BLOCK-Erweiterung eigentlich schliessen sollte,
+  // und den sie NICHT geschlossen hat (kein Krankheitswort enthalten). Intent
+  // 5 verlangt jetzt zusaetzlich eine Frageform (wie/how) statt blossem
+  // Wortstamm -- ein Erzaehlsatz wie dieser hat keine.
+  assert.strictEqual(
+    R.resolveIntent('Ich war im Erholungsurlaub, meine Brust hat sich ausgeruht', SNAP),
+    null
+  );
+});
+
+test('bare "Whats on today" antwortet wieder lokal (Gym-Coach-Chat, kein Kino-Kontext)', () => {
+  // Die vorherige Verschaerfung (zusaetzlich workout/training/gym noetig) hat
+  // eine im Coach-Chat voellig normale Frage ohne Beleg fuer einen echten
+  // Fehltreffer in genau diesem Chat-Fenster blockiert.
+  const r = R.resolveIntent("What's on today?", SNAP);
+  assert.strictEqual(r && r.intent, 'today');
+  assert.strictEqual(r.answer, 'Beine stehen heute an.');
+});
+
+test('"how many sets" ohne Trainingsbezug ist keine Satzfrage (geht ans Modell)', () => {
+  // Reviewer-Beispiel: waehrend s.active befuellt ist (normaler Zustand im
+  // laufenden Training) hat "how many sets" bisher auch auf trainingsfremde
+  // Fragen (hier: Tennis) geantwortet.
+  assert.strictEqual(
+    R.resolveIntent('how many sets are there in a tennis match', SNAP),
+    null
+  );
+});

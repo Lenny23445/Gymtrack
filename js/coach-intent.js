@@ -6,22 +6,40 @@
   'use strict';
 
   // Ein Treffer verlangt ein eindeutiges Muster UND vorhandene Daten. Alles
-  // Wertende, Planende oder Medizinische geht bewusst ans Modell. Erweitert um
-  // Krankheits-Woerter (siehe Intent 5 im Nachaudit-Report: "erhol" kollidiert
-  // sonst mit "ich erhole mich von einer Erkaeltung").
-  var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|krank|erkaelt|fieber|grippe|husten|infekt|sick|flu|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
+  // Wertende, Planende oder Medizinische geht bewusst ans Modell.
+  //
+  // Krankheits-Woerter (krank/erkaeltet/fieber/...) standen hier testweise
+  // drin, um eine Kollision in Intent 5 (Erholung) abzufangen -- falscher
+  // Hebel: BLOCK gilt fuer ALLE acht Intents, nicht nur fuer einen, und
+  // blockierte dadurch z.B. "ich bin erkaeltet, wie viele saetze noch?"
+  // komplett, obwohl die Frage mit Erholung nichts zu tun hat. Ausserdem loeste
+  // es nicht einmal das Problem, fuer das es gedacht war: der dokumentierte
+  // Fehltreffer ("ich war im Erholungsurlaub, meine Brust hat sich ausgeruht")
+  // enthaelt gar kein Krankheitswort. Entfernt -- Schutz fuer Intent 5 sitzt
+  // jetzt direkt bei Intent 5 (siehe dort, inkl. Einschaetzung der Grenzen).
+  var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
 
   // STRUKTURELLES GATE gegen Fehltreffer durch Alltagswoerter: manche
   // Ankerworte sind ausserhalb des Trainingskontexts voellig normale Woerter
-  // (gewicht/weight, record, rest/pause, volume, "whats on today"). So ein
-  // Wort allein beweist keinen Fitnessbezug. Die Regel: ein doppeldeutiges
-  // Ankerwort zaehlt nur zusammen mit einem zweiten, unabhaengigen
-  // Fitness-Wort irgendwo im selben Satz (Reihenfolge egal). "two()" ist
-  // diese eine Regel an einer Stelle -- jedes betroffene Pattern nutzt sie,
-  // statt sich eine eigene Ad-hoc-Absicherung auszudenken. Eindeutige
-  // mehrwortige Fachbegriffe (z.B. "wie viele saetze", "was steht heute an")
-  // brauchen das Gate nicht, weil sie ausserhalb des Trainings praktisch nie
-  // vorkommen.
+  // (gewicht/weight, sets, volume, erhol/recover). So ein Wort allein beweist
+  // keinen Fitnessbezug. Die Regel: ein doppeldeutiges Ankerwort zaehlt nur
+  // zusammen mit einem zweiten, unabhaengigen Signal irgendwo im selben Satz
+  // (Reihenfolge egal) -- meist ein zweites Fitness-Wort, bei Intent 5 (siehe
+  // dort) ein Frage-Signal, weil dort kein Wort als zweiter Beleg taugt.
+  // "two()" ist diese eine Kombinations-Regel an einer Stelle, genutzt von
+  // Intent 1, 3 (Englisch-Zweig), 5 und 7.
+  //
+  // Zwei Faelle brauchen das Gate NICHT und nutzen stattdessen eine praezise,
+  // handgewaehlte Phrase (Intent 2, 4, 6, 8): dort ist die Doppeldeutigkeit
+  // keine "Wort ohne Trainingsbezug"-Frage, sondern eine lexikalische
+  // Unterscheidung (z.B. "record" als Verb vs. Substantiv, Erzaehlsatz vs.
+  // Frage), die ein zweites beliebiges Fitness-Wort nicht aufloest -- ein
+  // zweites Fitness-Wort im Satz macht "ich will mein Training protokollieren"
+  // nicht weniger mehrdeutig. Modul nutzt also zwei Mechanismen, nicht einen:
+  // Kombinator wo ein zweites unabhaengiges Wort die Frage entscheidet,
+  // praezise Phrase wo das nicht reicht. Eindeutige mehrwortige Fachbegriffe
+  // (z.B. "wie viele saetze", "was steht heute an") brauchen keins von beiden,
+  // weil sie ausserhalb des Trainings praktisch nie vorkommen.
   function two(q, a, b) { return a.test(q) && b.test(q); }
 
   function norm(s) {
@@ -81,7 +99,12 @@
     // "wie viele"/"wieviele" muss direkt vor "saetze"/"satz" stehen (nur durch
     // Leerraum getrennt) — sonst matcht z.B. "wie viele Wiederholungen beim
     // naechsten Satz" (Frage zu Wiederholungen, kein Bezug zu Restsaetzen).
-    if (/(wie viele|wieviele)\s+(saetze|satz)|saetze noch|sets left|how many sets/.test(q)) {
+    // Englisch "how many sets"/"sets left" ist bare mehrdeutig (Tennis/andere
+    // Satz-Spiele: "how many sets are there in a tennis match") -- und anders
+    // als bei Intent 7 hier auch real erreichbar, weil s.active im laufenden
+    // Training staendig befuellt ist. Gate: zusaetzliches Trainingswort noetig.
+    if (/(wie viele|wieviele)\s+(saetze|satz)|saetze noch/.test(q) ||
+        two(q, /how many sets|sets left/, /workout|training|gym|reps?\b/)) {
       if (!s.active || s.active.setsTotal == null || s.active.setsDone == null) return null;
       var left = s.active.setsTotal - s.active.setsDone;
       if (left < 0) return null;
@@ -99,11 +122,20 @@
       return { intent: 'rest', answer: 'Noch ' + s.restLeftSec + ' Sekunden Pause.' };
     }
 
-    // 5) Erholung -- Gate hier ist der Muskelgruppen-Name selbst: er muss im
-    // Snapshot vorkommen (echte Nutzerdaten als Beleg), kein zweites
-    // Fitness-Wort noetig. Restrisiko siehe Nachaudit-Report ("Brust"/"Beine"
-    // sind auch normale Koerperteile ausserhalb des Trainingskontexts).
-    if (/erhol|recover|regenerier/.test(q)) {
+    // 5) Erholung -- Muskelgruppen-Name allein beweist keinen Fitnessbezug:
+    // JEDER Name in dieser App (Brust, Beine, Bauch, Ruecken, Schulter, Arme)
+    // ist zugleich ein gewoehnliches Koerperteil-Wort. Das ist kein
+    // Einzelfall, sondern systematisch -- ein zweites-Fitness-Wort-Gate wie
+    // bei Intent 1/3/7 hilft hier nicht, weil der Muskelname selbst das
+    // zweite Wort waere. Stattdessen: Frageform verlangen (wie/how) statt
+    // blossem Wortstamm -- Erzaehlsaetze ueber Urlaub o.ae. sind so gut wie
+    // nie als Frage mit "wie"/"how" formuliert. Schliesst den gemeldeten Fall
+    // ("Ich war im Erholungsurlaub, meine Brust hat sich ausgeruht") vollstaen-
+    // dig, aber NICHT jede denkbare Umformung (z.B. "Wie war mein Erholungs-
+    // urlaub, meine Brust hat sich ausgeruht?" traegt "wie" zufaellig incl. und
+    // matcht weiter falsch) -- echte Trennung von Erzaehlsatz und Frage
+    // braucht Semantik, ist also lexikalisch nicht vollstaendig loesbar.
+    if (two(q, /erhol|recover|regenerier/, /\bwie\b|\bhow\b/)) {
       var rec = s.recovery || {};
       var mg = Object.keys(rec).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
       if (!mg) return null;
@@ -130,11 +162,14 @@
     }
 
     // 8) Was steht heute an -- die deutschen Wendungen sind ausserhalb des
-    // Trainings praktisch unbenutzt. Die generische englische Phrase
-    // "whats on today" braucht dagegen zusaetzlich einen Trainingsbezug,
-    // sonst z.B. Kino-/TV-Programm-Frage.
-    if (/heute an|heute dran|was mache ich heute/.test(q) ||
-        two(q, /what.?s on today/, /workout|training|gym/)) {
+    // Trainings praktisch unbenutzt. Die englische Phrase "whats on today"
+    // bleibt gleichermassen bare: das hier ist der Chat eines Fitness-Coaches
+    // in einer Trainings-App, kein allgemeiner Assistent -- eine bare Frage in
+    // GENAU diesem Chat-Fenster ist so gut wie immer der Trainingstag, nicht
+    // Kino-/TV-Programm (diese Lesart braucht einen anderen Chat-Kontext, nicht
+    // diesen). Ein frueherer two()-Zwang auf workout/training/gym verlor damit
+    // ohne einen in diesem Chat plausiblen Gegenfall echte, gewollte Treffer.
+    if (/heute an|heute dran|was mache ich heute|what.?s on today/.test(q)) {
       if (!s.todayText) return null;
       return { intent: 'today', answer: s.todayText };
     }
