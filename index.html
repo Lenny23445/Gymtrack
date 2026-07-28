@@ -23784,18 +23784,47 @@ function _aicRenderSugg(){
 // S bewusst stehen, sonst laese das naechste Konto auf diesem Geraet die
 // Einschraenkungen des vorigen.
 let _dossierPushT = null;
+let _dossierPushFn = null;   // fest an den geplanten Push gebundener Aufruf, fuer Sofort-Flush
+// Uid, deren lokales Dossier gerade eine noch NICHT bestaetigt gepushte
+// Aenderung traegt. Review Wichtig 2: ein Konto-Wechsel/Logout darf diese
+// Daten nicht loeschen, sonst geht eine frisch eingetragene Einschraenkung
+// verloren, die nie in der Cloud ankam.
+let _dossierDirtyUid = null;
 function _coachUid(){ return (_fbUser && !_fbUser.isAnonymous) ? _fbUser.uid : null; }
 function _dossier(){ return window.CoachMemory.dossierLoad(localStorage, _coachUid()); }
 function _dossierSet(d){
   const uid = _coachUid(); if (!uid) return;
   window.CoachMemory.dossierSave(localStorage, uid, d);
+  _dossierDirtyUid = uid;
   if (_dossierPushT) clearTimeout(_dossierPushT);
-  _dossierPushT = setTimeout(() => { _dossierPush(d); }, 4000);
+  // uid wird HIER gebunden (Closure-Parameter), nicht in _dossierPush per
+  // _coachUid() neu ermittelt — sonst kann waehrend der 4s-Debounce ein
+  // Konto-Wechsel dazu fuehren, dass das Dossier von Konto A unter dem
+  // Dokument von Konto B landet (Review Kritisch 1).
+  _dossierPushFn = () => _dossierPush(uid, d);
+  _dossierPushT = setTimeout(() => { _dossierPushT = null; _dossierPushFn = null; _dossierPush(uid, d); }, 4000);
 }
-async function _dossierPush(d){
-  const uid = _coachUid(); if (!uid || !window.FB || !window.FB.configured) return;
+// Sofort-Flush eines noch ausstehenden Pushs — gleiches Muster wie
+// _updateWidgetData(immediate)/_pushWidgetData (iOS friert JS beim
+// Verstecken/Verlassen der App ein, ein 4s-Debounce wuerde sonst nie feuern).
+function _dossierFlush(){
+  if (!_dossierPushT) return;
+  clearTimeout(_dossierPushT); _dossierPushT = null;
+  const fn = _dossierPushFn; _dossierPushFn = null;
+  if (fn) fn();
+}
+async function _dossierPush(uid, d){
+  if (!uid || !window.FB || !window.FB.configured) return;
+  // Zweite Absicherung zusaetzlich zur gebundenen uid oben: hat sich das
+  // angemeldete Konto seit dem Planen geaendert, wird gar nicht erst
+  // versucht zu schreiben (Firestore-Rules wuerden es ohnehin ablehnen,
+  // aber so bleibt auch kein unnoetiger permission-denied-Log stehen).
+  if (_coachUid() !== uid) return;
   // Kein Dossier-Inhalt ins Log — nur der Fehlercode.
-  try { await window.FB.setDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'), d, { merge: false }); }
+  try {
+    await window.FB.setDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'), d, { merge: false });
+    if (_dossierDirtyUid === uid) _dossierDirtyUid = null;
+  }
   catch(e) { console.warn('[Coach] Dossier-Push fehlgeschlagen:', (e && e.code) || ''); }
 }
 // Gegenstueck zum Push: ohne diesen Zug waere das Dossier nach einem
@@ -23810,7 +23839,13 @@ async function _dossierPull(){
     const cloud = snap.data() || {};
     const lokal = window.CoachMemory.dossierLoad(localStorage, uid);
     if ((cloud.updatedAt || 0) > (lokal.updatedAt || 0)) {
-      window.CoachMemory.dossierSave(localStorage, uid, cloud);
+      // Cloud-Inhalt ist fremd (alter Client, manuell editiertes Dokument) —
+      // genau wie beim lokalen Laden ueber dossierLoad sanitisieren, statt
+      // roh in localStorage zu uebernehmen (Review Minor: nur der Lesepfad
+      // filterte bisher). Ein winziges Fake-Store-Objekt laesst dossierLoad
+      // die vorhandene Sanitisierung uebernehmen, ohne sie zu duplizieren.
+      const fakeStore = { getItem: () => JSON.stringify(cloud), setItem(){}, removeItem(){} };
+      window.CoachMemory.dossierSave(localStorage, uid, window.CoachMemory.dossierLoad(fakeStore, uid));
     }
   } catch(e) { console.warn('[Coach] Dossier-Pull fehlgeschlagen:', (e && e.code) || ''); }
 }
@@ -23853,10 +23888,19 @@ function _coachSnap(){
 // Kompakter Trainingskontext für die KI — bewusst klein gehalten (Kosten!):
 // Profil-Eckdaten, Übungsnamen (Cap 60), letzte 5 Einheiten mit Bestsatz je Übung.
 function _aicContext(){
+  // Beide Coach-Module-Aufrufe abgesichert: ein Fehler hier darf den Chat nie
+  // blockieren (Review Kritisch 2) — bei Fehlschlag geht ein leerer Dossier-
+  // Text bzw. eine leere Mute-Liste ans Modell, statt den ganzen Aufruf
+  // (und damit _aicBusy/den Senden-Button) hart abzubrechen.
+  let dossierTxt = '', mutedList = [];
+  try { dossierTxt = window.CoachMemory.dossierForPrompt(_dossier()); }
+  catch(e) { console.warn('[Coach] Dossier-Kontext fehlgeschlagen:', (e && e.message) || ''); }
+  try { mutedList = window.CoachLog.logStats(S.coachLog || []).muted; }
+  catch(e) { console.warn('[Coach] Log-Stats fehlgeschlagen:', (e && e.message) || ''); }
   return {
     profile: { goal: S.obGoal || null, exp: S.obExp || null, freq: S.obFreq || null },
-    dossier: window.CoachMemory.dossierForPrompt(_dossier()),
-    muted: window.CoachLog.logStats(S.coachLog || []).muted,
+    dossier: dossierTxt,
+    muted: mutedList,
     exerciseNames: (S.exercises || []).slice(0, 60).map(e => e.name),
     recentSessions: (S.sessions || []).slice(-5).map(s => ({
       date: (s.date || '').slice(0, 10),
@@ -23878,8 +23922,14 @@ async function aicSend(){
   _aicPush('user', t);
   // Lokal beantwortbar? Dann kein Netzaufruf. Die Antwort wandert trotzdem in
   // die Historie, sonst fehlt dem Modell beim naechsten echten Aufruf der Faden.
-  const local = window.CoachIntent.resolveIntent(t, _coachSnap());
+  // Abgesichert (Review Kritisch 2): wirft der Router (z. B. defekte/fehlende
+  // Datei, Syntaxfehler nach Teil-Deploy), faellt der Chat einfach auf den
+  // Modell-Pfad zurueck statt den Sende-Button fuer immer zu blockieren.
+  let local = null;
+  try { local = window.CoachIntent.resolveIntent(t, _coachSnap()); }
+  catch(e) { console.warn('[Coach] Intent-Router fehlgeschlagen:', (e && e.message) || ''); local = null; }
   if (local) {
+    _aicPlanPending = null;   // sonst bleibt ein "Plan importieren"-Button aus einer vorigen Antwort stehen
     _aicPush('assistant', local.answer);
     _aicRenderLog(); _aicRenderSugg();
     return;
@@ -25855,6 +25905,10 @@ document.addEventListener('visibilitychange', () => {
     // laufender 800ms-Debounce würde nie feuern → Widget bliebe veraltet.
     _updateWidgetData(true);
     try { _flushActiveWk(); } catch(_) {} // laufendes Training sofort sichern
+    // Gleiches Problem beim Coach-Dossier: ein noch laufender 4s-Debounce
+    // (z. B. gerade erst eingetragene Einschraenkung) wuerde sonst nie
+    // pushen, bevor iOS die App einfriert (Review Wichtig 2).
+    try { _dossierFlush(); } catch(_) {}
   }
   else if (document.visibilityState === 'visible') {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
@@ -25863,7 +25917,7 @@ document.addEventListener('visibilitychange', () => {
     if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
   }
 });
-window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} });
+window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} try { _dossierFlush(); } catch(_) {} });
 window.addEventListener('beforeunload', () => _analyticsBeat(true));
 
 // ── ADMIN-MODUS ───────────────────────────────────────
@@ -26751,7 +26805,20 @@ function _initFirebaseListeners() {
       const neu = (user && !user.isAnonymous) ? user.uid : null;
       if (_coachLastUid !== undefined && _coachLastUid !== neu) {
         _aicHist = []; localStorage.removeItem('gt_aiChat');
-        if (_coachLastUid) window.CoachMemory.dossierClear(localStorage, _coachLastUid);
+        // Ausstehenden Debounce-Timer kappen: er darf nie unter einem fremden
+        // Konto feuern (Review Kritisch 1). _dossierPush prueft die uid beim
+        // Feuern zwar zusaetzlich, aber der Timer soll erst gar nicht mehr
+        // versuchen zu schreiben, sobald das Konto gewechselt hat.
+        if (_dossierPushT) { clearTimeout(_dossierPushT); _dossierPushT = null; _dossierPushFn = null; }
+        // Lokales Dossier des alten Kontos nur loeschen, wenn der letzte Push
+        // bestaetigt war — sonst geht eine gerade erst eingetragene, nie
+        // gepushte Einschraenkung verloren (Review Wichtig 2). Bleibt es
+        // stehen, ist es weiterhin uid-gebunden gespeichert und fuer das neue
+        // Konto nicht lesbar (_dossier() liest immer nur ueber die aktuelle
+        // uid), die Abmelde-Privatsphaere bleibt also gewahrt.
+        if (_coachLastUid && _dossierDirtyUid !== _coachLastUid) {
+          window.CoachMemory.dossierClear(localStorage, _coachLastUid);
+        }
       }
       _coachLastUid = neu;
       if (neu) _dossierPull();

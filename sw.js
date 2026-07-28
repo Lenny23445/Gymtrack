@@ -61,18 +61,24 @@ self.addEventListener('message', e => {
 });
 
 /* ── Fetch-Strategien ──
-   - index.html + sw.js: NETWORK-FIRST (immer neueste Version wenn online)
-     → fixt das Problem, dass Updates hängen bleiben
-   - Andere Shell-Dateien (Icons, Chart.js): cache-first (Performance, ändern sich selten)
+   - index.html + sw.js + ./js/coach-*.js: NETWORK-FIRST (immer neueste Version
+     wenn online) → fixt das Problem, dass Updates hängen bleiben. Die Coach-
+     Module sind Anwendungslogik (Dossier/Log/Intent-Router), keine
+     unveraenderlichen Assets — sie muessen so aktuell bleiben wie index.html,
+     das sie aufruft. Cache-first waere hier riskant: ein Client koennte ein
+     frisches index.html gegen ein veraltetes coach-intent.js laufen lassen,
+     ohne dass ein CACHE-Bump das je bemerkt (Review Wichtig 1).
+   - Andere Shell-Dateien (Icons, Chart.js): cache-first (Performance, ändern sich selten,
+     Chart.js ist ohnehin per Versions-Pin in der URL fixiert)
    - Rest: network-first mit Cache-Fallback                                         */
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
 
-  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json');
+  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-');
   const isStaticShell   = SHELL.some(s => {
     const name = s.replace('./', '');
-    return name && !name.includes('index.html') && !name.includes('manifest.json') && url.includes(name);
+    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && url.includes(name);
   });
 
   if (isCriticalShell) {
