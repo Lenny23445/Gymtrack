@@ -23802,17 +23802,40 @@ function _aicRenderSugg(){
 // Einschraenkungen des vorigen.
 let _dossierPushT = null;
 let _dossierPushFn = null;   // fest an den geplanten Push gebundener Aufruf, fuer Sofort-Flush
-// Uid, deren lokales Dossier gerade eine noch NICHT bestaetigt gepushte
-// Aenderung traegt. Review Wichtig 2: ein Konto-Wechsel/Logout darf diese
-// Daten nicht loeschen, sonst geht eine frisch eingetragene Einschraenkung
-// verloren, die nie in der Cloud ankam.
-let _dossierDirtyUid = null;
+// Dirty-Marker fuer eine noch NICHT bestaetigt gepushte Dossier-Aenderung.
+// PERSISTENT statt reiner In-Memory-Variable (Review Fix 1): iOS friert die
+// _dossierPush-Anfrage beim Backgrounden oft mitten im setDoc-Await ein —
+// Firestore laeuft hier mit dem Default-Memory-Cache (getFirestore(app) oben,
+// keine persistentLocalCache/IndexedDb-Persistenz), die Mutation stirbt mit
+// dem Prozess. Eine reine JS-Variable stuende beim naechsten Start wieder auf
+// null, obwohl die Aenderung nie in der Cloud ankam — ein Logout direkt danach
+// wuerde sie dann faelschlich als "bestaetigt" behandeln und loeschen.
+// Schluessel ist uid-gebunden wie der Dossier-Schluessel selbst (derselbe
+// Grund: Logout laesst lokale Daten bewusst stehen, s.o.). Wert ist NICHT die
+// uid, sondern der updatedAt-Zeitstempel GENAU der Aenderung, die noch
+// aussteht (Review Fix 2): ein Konto matcht immer, eine Aenderung nicht —
+// sonst loescht ein bestaetigter Push von d1 den Marker auch dann, wenn
+// zwischenzeitlich schon d2 geplant wurde. dossierApplyDelta setzt updatedAt
+// auf jede Aenderung, das macht es zum eindeutigen Vergleichswert.
+function _dossierDirtyKey(uid){ return 'gt_coachDirty:' + uid; }
+function _dossierMarkDirty(uid, updatedAt){
+  try { localStorage.setItem(_dossierDirtyKey(uid), String(updatedAt)); } catch(_) {}
+}
+// Loescht den Marker nur, wenn er noch exakt zu der Aenderung gehoert, die
+// gerade bestaetigt gepusht wurde — eine inzwischen geplante neuere Aenderung
+// (anderer updatedAt-Wert) bleibt als offen markiert.
+function _dossierMarkClean(uid, updatedAt){
+  try { if (localStorage.getItem(_dossierDirtyKey(uid)) === String(updatedAt)) localStorage.removeItem(_dossierDirtyKey(uid)); } catch(_) {}
+}
+function _dossierIsDirty(uid){
+  try { return localStorage.getItem(_dossierDirtyKey(uid)) != null; } catch(_) { return false; }
+}
 function _coachUid(){ return (_fbUser && !_fbUser.isAnonymous) ? _fbUser.uid : null; }
 function _dossier(){ return window.CoachMemory.dossierLoad(localStorage, _coachUid()); }
 function _dossierSet(d){
   const uid = _coachUid(); if (!uid) return;
   window.CoachMemory.dossierSave(localStorage, uid, d);
-  _dossierDirtyUid = uid;
+  _dossierMarkDirty(uid, d.updatedAt);
   if (_dossierPushT) clearTimeout(_dossierPushT);
   // uid wird HIER gebunden (Closure-Parameter), nicht in _dossierPush per
   // _coachUid() neu ermittelt — sonst kann waehrend der 4s-Debounce ein
@@ -23830,6 +23853,16 @@ function _dossierFlush(){
   const fn = _dossierPushFn; _dossierPushFn = null;
   if (fn) fn();
 }
+// Review Fix 1: erneuter Versuch, falls eine fruehere Aenderung nie bestaetigt
+// gepusht wurde (z. B. App-Kill mitten im setDoc-Await beim letzten Start —
+// ohne Firestore-Offline-Persistenz sonst nicht wiederherstellbar). Kein
+// neuer Debounce-Timer, direkter Versuch; _dossierPush prueft uid/Firebase-
+// Status ohnehin selbst, ein doppelter Versuch ist also gefahrlos.
+function _dossierRetryIfDirty(){
+  if (_dossierPushT) return;   // schon ein frischer Push geplant - der erledigt es ohnehin gleich
+  const uid = _coachUid(); if (!uid || !_dossierIsDirty(uid)) return;
+  try { _dossierPush(uid, _dossier()); } catch(_) {}
+}
 async function _dossierPush(uid, d){
   if (!uid || !window.FB || !window.FB.configured) return;
   // Zweite Absicherung zusaetzlich zur gebundenen uid oben: hat sich das
@@ -23840,7 +23873,7 @@ async function _dossierPush(uid, d){
   // Kein Dossier-Inhalt ins Log — nur der Fehlercode.
   try {
     await window.FB.setDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'), d, { merge: false });
-    if (_dossierDirtyUid === uid) _dossierDirtyUid = null;
+    _dossierMarkClean(uid, d.updatedAt);
   }
   catch(e) { console.warn('[Coach] Dossier-Push fehlgeschlagen:', (e && e.code) || ''); }
 }
@@ -23850,6 +23883,10 @@ async function _dossierPush(uid, d){
 // die Cloud nach einem Wechsel.
 async function _dossierPull(){
   const uid = _coachUid(); if (!uid || !window.FB || !window.FB.configured) return;
+  // Review Fix 1: laeuft bei jedem Login/Kontowechsel — genau der richtige
+  // Moment, um eine vom letzten App-Kill verwaiste, nie bestaetigte Aenderung
+  // nachzuholen, bevor unten der Cloud-Stand gelesen wird.
+  _dossierRetryIfDirty();
   try {
     const snap = await window.FB.getDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'));
     if (!snap || !snap.exists()) return;
@@ -23865,6 +23902,34 @@ async function _dossierPull(){
       window.CoachMemory.dossierSave(localStorage, uid, window.CoachMemory.dossierLoad(fakeStore, uid));
     }
   } catch(e) { console.warn('[Coach] Dossier-Pull fehlgeschlagen:', (e && e.code) || ''); }
+}
+// Kontowechsel-Erkennung fuer den Coach: NICHT nur an onAuthStateChanged
+// haengen (Review Fix 4) — Apple/Google natives Sign-In ruft _onLogin(user)
+// direkt auf, WEIL onAuthStateChanged in der WKWebView nicht zuverlaessig
+// feuert (s. Kommentar bei _onLogin weiter unten). Ohne diesen Aufruf an
+// beiden nativen Einstiegspunkten bleiben ausstehender Push-Timer,
+// Chatverlauf, _coachLastUid und _dossierPull() auf dem alten Konto stehen,
+// wenn der Nutzer per Apple/Google direkt das Konto wechselt.
+function _coachHandleAuthUser(user){
+  try {
+    const neu = (user && !user.isAnonymous) ? user.uid : null;
+    if (_coachLastUid !== undefined && _coachLastUid !== neu) {
+      _aicHist = []; localStorage.removeItem('gt_aiChat');
+      // Ausstehenden Debounce-Timer kappen: er darf nie unter einem fremden
+      // Konto feuern (Review Kritisch 1). _dossierPush prueft die uid beim
+      // Feuern zwar zusaetzlich, aber der Timer soll erst gar nicht mehr
+      // versuchen zu schreiben, sobald das Konto gewechselt hat.
+      if (_dossierPushT) { clearTimeout(_dossierPushT); _dossierPushT = null; _dossierPushFn = null; }
+      // Lokales Dossier des alten Kontos nur loeschen, wenn der letzte Push
+      // bestaetigt war — sonst geht eine gerade erst eingetragene, nie
+      // gepushte Einschraenkung verloren (Review Wichtig 2).
+      if (_coachLastUid && !_dossierIsDirty(_coachLastUid)) {
+        window.CoachMemory.dossierClear(localStorage, _coachLastUid);
+      }
+    }
+    _coachLastUid = neu;
+    if (neu) _dossierPull();
+  } catch(_) {}
 }
 // Schnappschuss fuer den Intent-Router. Bewusst hier gebaut statt im Router,
 // damit der Router nicht an interne App-Strukturen gebunden ist.
@@ -23954,27 +24019,37 @@ async function aicSend(){
   _aicBusy = true; _aicPlanPending = null;
   _aicRenderLog(); _aicRenderSugg();
   const send = document.getElementById('aic-send'); if (send) send.disabled = true;
-  const msgs = _aicHist.slice(-16).map(m => ({ role: m.role, content: m.content }));
-  const res = await aiCall('chat', { messages: msgs, context: _aicContext() });
-  _aicBusy = false;
-  if (send) send.disabled = false;
-  if (!res) { _aicRenderLog(); return; }   // aiCall zeigt Fehler/Paywall bereits per Toast
-  let txt = res.text || '';
-  const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);
-  if (pm) {
-    try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
-    txt = txt.replace(pm[0], '').trim();
+  // try/finally um den kompletten Busy-Zeitraum (Review Fix 5): das haelt die
+  // "Senden-Button wird immer wieder frei" Invariante strukturell auch fuer
+  // jeden kuenftigen Wurf hier drin, statt sich auf eine Aufzaehlung
+  // einzelner abgesicherter Aufrufe zu verlassen (Kritisch 2 sichert heute
+  // schon resolveIntent/dossierForPrompt/logStats einzeln ab, aiCall selbst
+  // kann laut Code nicht ablehnen — dieses finally greift trotzdem, falls
+  // sich das je aendert).
+  try {
+    const msgs = _aicHist.slice(-16).map(m => ({ role: m.role, content: m.content }));
+    const res = await aiCall('chat', { messages: msgs, context: _aicContext() });
+    if (!res) return;   // aiCall zeigt Fehler/Paywall bereits per Toast
+    let txt = res.text || '';
+    const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);
+    if (pm) {
+      try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
+      txt = txt.replace(pm[0], '').trim();
+    }
+    const mm = txt.match(/```gtmem\s*([\s\S]*?)```/);
+    if (mm) {
+      try {
+        const delta = JSON.parse(mm[1]);
+        _dossierSet(window.CoachMemory.dossierApplyDelta(_dossier(), delta, Date.now()));
+      } catch(_) { /* kaputtes JSON still verwerfen, wie bei gtplan */ }
+      txt = txt.replace(mm[0], '').trim();
+    }
+    _aicPush('assistant', txt || tr('Hier ist dein Plan:'));
+  } finally {
+    _aicBusy = false;
+    if (send) send.disabled = false;
+    _aicRenderLog();
   }
-  const mm = txt.match(/```gtmem\s*([\s\S]*?)```/);
-  if (mm) {
-    try {
-      const delta = JSON.parse(mm[1]);
-      _dossierSet(window.CoachMemory.dossierApplyDelta(_dossier(), delta, Date.now()));
-    } catch(_) { /* kaputtes JSON still verwerfen, wie bei gtplan */ }
-    txt = txt.replace(mm[0], '').trim();
-  }
-  _aicPush('assistant', txt || tr('Hier ist dein Plan:'));
-  _aicRenderLog();
 }
 // Plan-Import: gleicher Mechanismus wie _applyTemplateCore (Presets/weekPlan/exIds/
 // Farbe, persist()) — nur die Übungsauflösung ist erweitert: statt reiner
@@ -25932,6 +26007,9 @@ document.addEventListener('visibilitychange', () => {
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
     _updateWidgetData();    // z. B. Tages-/Wochenwechsel während App im Hintergrund
     if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
+    // Review Fix 1: falls der letzte Dossier-Push nie bestaetigt wurde (App-Kill
+    // waehrend des vorigen Backgroundings), jetzt erneut versuchen.
+    try { _dossierRetryIfDirty(); } catch(_) {}
   }
 });
 window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} try { _dossierFlush(); } catch(_) {} });
@@ -26455,7 +26533,10 @@ async function _handleGoogleOAuthCallback(rawUrl) {
     }
     const user = fbRes?.user || window.FB.auth?.currentUser;
     _adbg('Google: user=' + (user ? (user.email || user.uid) : 'NULL'));
-    if (user) _onLogin(user);
+    // Coach-Kontowechsel-Erkennung explizit hier anstossen (Review Fix 4):
+    // onAuthStateChanged feuert in der WKWebView nicht zuverlaessig, dieser
+    // Pfad ruft _onLogin() direkt auf und wuerde die Erkennung sonst umgehen.
+    if (user) { _coachHandleAuthUser(user); _onLogin(user); }
     else _adbg('Google: ⚠️ kein User nach Login!');
   } catch(e) {
     _googlePKCE = null;
@@ -26553,7 +26634,10 @@ async function doAppleSignIn() {
     const fbRes = await window.FB.signInWithCredential(cred);
     const user = fbRes?.user || window.FB.auth?.currentUser;
     _adbg('Apple: user=' + (user ? (user.email || user.uid || 'anon') : 'NULL'));
-    if (user) _onLogin(user);
+    // Coach-Kontowechsel-Erkennung explizit hier anstossen (Review Fix 4):
+    // onAuthStateChanged feuert in der WKWebView nicht zuverlaessig, dieser
+    // Pfad ruft _onLogin() direkt auf und wuerde die Erkennung sonst umgehen.
+    if (user) { _coachHandleAuthUser(user); _onLogin(user); }
     else _adbg('Apple: ⚠️ kein User — onAuthState-Fallback?');
   } catch(e) {
     _adbg('Apple ERR: ' + (e?.code || '') + ' | ' + String(e?.message || e).slice(0, 70));
@@ -26814,32 +26898,11 @@ function _initFirebaseListeners() {
     });
   // Auth-State beobachten
   window.FB.onAuthStateChanged((user) => {
-    // Konto gewechselt: das Dossier des vorigen Kontos wird lokal geloescht und
-    // ohnehin nie geladen (der Schluessel traegt die uid). Der Chatverlauf wird
-    // geleert, damit im Fenster keine Antworten des Vorgaengers stehen bleiben.
-    // Die Cloud-Kopie bleibt: beim naechsten Login holt _dossierPull() sie zurueck.
-    try {
-      const neu = (user && !user.isAnonymous) ? user.uid : null;
-      if (_coachLastUid !== undefined && _coachLastUid !== neu) {
-        _aicHist = []; localStorage.removeItem('gt_aiChat');
-        // Ausstehenden Debounce-Timer kappen: er darf nie unter einem fremden
-        // Konto feuern (Review Kritisch 1). _dossierPush prueft die uid beim
-        // Feuern zwar zusaetzlich, aber der Timer soll erst gar nicht mehr
-        // versuchen zu schreiben, sobald das Konto gewechselt hat.
-        if (_dossierPushT) { clearTimeout(_dossierPushT); _dossierPushT = null; _dossierPushFn = null; }
-        // Lokales Dossier des alten Kontos nur loeschen, wenn der letzte Push
-        // bestaetigt war — sonst geht eine gerade erst eingetragene, nie
-        // gepushte Einschraenkung verloren (Review Wichtig 2). Bleibt es
-        // stehen, ist es weiterhin uid-gebunden gespeichert und fuer das neue
-        // Konto nicht lesbar (_dossier() liest immer nur ueber die aktuelle
-        // uid), die Abmelde-Privatsphaere bleibt also gewahrt.
-        if (_coachLastUid && _dossierDirtyUid !== _coachLastUid) {
-          window.CoachMemory.dossierClear(localStorage, _coachLastUid);
-        }
-      }
-      _coachLastUid = neu;
-      if (neu) _dossierPull();
-    } catch(_) {}
+    // Konto-Wechsel-Erkennung fuer den Coach: ausgelagert nach
+    // _coachHandleAuthUser (Review Fix 4), weil Apple/Google natives Sign-In
+    // denselben Pfad braucht (onAuthStateChanged feuert in der WKWebView
+    // nicht zuverlaessig) — s. Definition oben bei den Dossier-Funktionen.
+    _coachHandleAuthUser(user);
     console.log('[GymTrack] Auth-State changed:', user ? (user.email || user.uid) : '(abgemeldet)');
     if (user) _onLogin(user);
     else      _onLogout();

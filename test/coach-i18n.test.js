@@ -99,6 +99,26 @@ function matchedByI18nRx(text) {
   return (I18N_RX || []).some(([rx]) => new RegExp(rx.source, rx.flags).test(text));
 }
 
+// Review Minor-Befund 3 (Drift-Test faengt zwei Faelle nicht ab): "matchedByI18nRx"
+// allein reicht bei Antworten OHNE freien Text-Praefix nicht aus — eine generische
+// Mengen-Regel (z. B. "(\d+) Saetze" -> "$1 sets") matcht dann zufaellig einen
+// Teilstring, uebersetzt aber nicht den ganzen Satz. Loescht man die eigentlich
+// zustaendige Regel (z. B. Zeile ~8182/8183 in index.html: "Noch 1 Satz."/"Noch N
+// Saetze."), bleibt "Noch" unuebersetzt stehen ("Noch 3 sets.") — matchedByI18nRx
+// meldet trotzdem "getroffen", weil IRGENDEINE Regel matcht, nicht die richtige.
+// Fix: pruefen, ob eine Regel den KOMPLETTEN String konsumiert (verankert an
+// Anfang+Ende). Das funktioniert nur fuer Antworten ohne freien Text-Praefix
+// (kein Uebungs-/Muskelgruppenname davor) — bei "best"/"recovery"/"lastDone" ist
+// der fragmentarische Match hingegen ABSICHT (siehe Minor-Befund 4 im Bericht),
+// dort bleibt die einfache matchedByI18nRx-Pruefung richtig.
+function matchedFullyByI18nRx(text) {
+  return (I18N_RX || []).some(([rx]) => {
+    const flags = rx.flags.replace('g', '');
+    const anchored = new RegExp('^(?:' + rx.source + ')$', flags);
+    return anchored.test(text);
+  });
+}
+
 // Ein Snapshot pro Router-Intent, der genau diesen Zweig in coach-intent.js
 // zuverlaessig ausloest. Der erwartete ANTWORTTEXT ist bewusst NICHT
 // hartcodiert — der Test ruft den echten Router auf und prueft dessen
@@ -121,11 +141,16 @@ const CASES = [
     intent: 'setsLeft (1 Satz uebrig)',
     query: 'wie viele saetze noch',
     snap: { active: { setsTotal: 3, setsDone: 2 } },
+    // Antwort hat KEINEN freien Text-Praefix (kein Uebungs-/Muskelgruppenname) —
+    // hier MUSS eine Regel den ganzen Satz treffen, sonst waere jede generische
+    // Teiltreffer-Regel ausreichend (der urspruenglich gemeldete Vacuous-Pass).
+    fullMatch: true,
   },
   {
     intent: 'setsLeft (mehrere Saetze uebrig)',
     query: 'wie viele saetze noch',
     snap: { active: { setsTotal: 3, setsDone: 1 } },
+    fullMatch: true,
   },
   {
     intent: 'rest (Restpause)',
@@ -149,7 +174,7 @@ const CASES = [
 
 test('jede lokale Intent-Antwort hat eine passende I18N_RX-Regel (DE/EN-Drift-Schutz)', () => {
   assert.ok(I18N_RX, 'I18N_RX-Extraktion muss vorher erfolgreich gewesen sein');
-  CASES.forEach(({ intent, query, snap }) => {
+  CASES.forEach(({ intent, query, snap, fullMatch }) => {
     const local = CoachIntent.resolveIntent(query, snap);
     assert.ok(local && local.answer,
       `Intent "${intent}" sollte mit diesem Snapshot ausloesen (Query: "${query}") — ` +
@@ -157,6 +182,13 @@ test('jede lokale Intent-Antwort hat eine passende I18N_RX-Regel (DE/EN-Drift-Sc
     assert.ok(matchedByI18nRx(local.answer),
       `Antwort von Intent "${intent}" (${JSON.stringify(local.answer)}) wird von KEINER ` +
       'I18N_RX-Regel aus index.html getroffen — EN-Nutzer saehen deutschen Text ohne jeden Fehler.');
+    if (fullMatch) {
+      assert.ok(matchedFullyByI18nRx(local.answer),
+        `Antwort von Intent "${intent}" (${JSON.stringify(local.answer)}) wird nur FRAGMENTARISCH ` +
+        'von I18N_RX getroffen (eine generische Mengen-Regel matcht zufaellig einen Teilstring, ' +
+        'z. B. "N Saetze" -> "N sets"), ohne den ganzen Satz zu uebersetzen — EN-Nutzer saehen Reste ' +
+        'wie "Noch N sets." Dieser Intent braucht eine EIGENE, den kompletten Satz abdeckende Regel.');
+    }
   });
 });
 
