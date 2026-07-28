@@ -7377,7 +7377,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607260005';
+const APP_VERSION = 'gymtrack-v202607280001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8097,6 +8097,13 @@ const I18N_EN = {
 'Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
 'Check-in „Sehr schwer"bremst die Gewichtssteigerung beim nächsten Training automatisch':'A"Very hard"check-in now automatically holds back the weight increase for your next workout',
 'Neue Tagesempfehlung auf dem Heute-Tab: schlägt bei freiem Tag die am besten erholte Muskelgruppe vor':'New recommendation on the Today tab: on a free day, suggests your most recovered muscle group',
+ /* Changelog: Coach-Gedaechtnis (28.07.2026) */
+  '28.07.2026 · Der KI-Coach merkt sich, wer du bist':'28 Jul 2026 · Your AI coach now remembers who you are',
+  'Neues Gedächtnis: Nennst du im Chat eine Einschränkung, ein Ziel oder eine Vorliebe, merkt der Coach sie sich und schlägt nichts mehr vor, was dagegen läuft':'New memory: mention a limitation, a goal or a preference in the chat and the coach keeps it in mind — it will no longer suggest anything that works against it',
+  'Gemeldete Beschwerden verfallen nach sechs Wochen automatisch — der Coach fragt nach, statt dich dauerhaft zu bremsen':'Reported complaints expire automatically after six weeks — the coach asks again instead of holding you back forever',
+  'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr':'Suggestions you dismiss five times in a row stop coming back',
+  'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit':'Common questions such as "How many sets left?" or "What is my record on bench press?" are answered by the app itself, instantly',
+  'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg':'Your memory is tied to your account: a second account on the same device sees none of it, and deleting your account deletes it',
  /* Changelog: KI-Coach-Rahmen-Fix (24.07.2026) */
   '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
   '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
@@ -8309,6 +8316,16 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-28-coach-gedaechtnis': {
+    label: '28.07.2026 · Der KI-Coach merkt sich, wer du bist',
+    items: [
+      'Neues Gedächtnis: Nennst du im Chat eine Einschränkung, ein Ziel oder eine Vorliebe, merkt der Coach sie sich und schlägt nichts mehr vor, was dagegen läuft',
+      'Gemeldete Beschwerden verfallen nach sechs Wochen automatisch — der Coach fragt nach, statt dich dauerhaft zu bremsen',
+      'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr',
+      'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit',
+      'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg',
+    ]
+  },
   'cl-2026-07-25-checkin-autoregulation': {
     label: '25.07.2026 · Dein Check-in steuert jetzt das nächste Training',
     items: [
@@ -13197,7 +13214,9 @@ function confirmWheel() {
     value = String(reps);
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
-  try { _coachEval(li, si); } catch(_) {}
+  // Coach-Vorschlagskarte (_coachEval) wird NICHT mehr hier ausgeloest: Gewicht/Wdh
+  // sind erst eingetragen, der Satz gilt noch nicht als erledigt. Auswertung jetzt
+  // in toggleSetDone(), wenn der Nutzer den Satz wirklich abhakt (s. dort).
   try { _coachMicroReact(li, si); } catch(_) {}
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
@@ -16691,6 +16710,10 @@ function toggleSetDone(li,si) {
   if (next) {
     // Satz jetzt bestätigt → erst jetzt auf PR prüfen und ggf. feiern.
     try { checkLiveSetPR(li, si); } catch(_) {}
+    // Live-Coach-Vorschlagskarte (KI, ratenlimitiert) wird erst hier ausgeloest, nicht
+    // schon beim Eintragen von Gewicht/Wdh im Wheel: "Satz erledigt" ist dieses
+    // Haekchen, nicht der Wheel-Commit (vorher kam die Karte zu frueh).
+    try { _coachEval(li, si); } catch(_) {}
     // Der Coach meldet sich im Moment des Abhakens — das ist der Punkt, an dem
     // der Nutzer den Satz als erledigt erlebt (Aufwärmsätze eingeschlossen).
     try { _coachMicroReact(li, si); } catch(_) {}
@@ -16814,6 +16837,23 @@ function finishWk() {
 
   const _newSess = {id:uid(), date:new Date().toISOString(), duration:dur, note:_wkNote||undefined, logs:valid};
   S.sessions.push(_newSess);
+  // Aktions-Log: Ergebnis nachtragen. Beim Annehmen steht im Log nur DASS ein
+  // Vorschlag angenommen wurde — mit welchem Gewicht der Satz danach wirklich
+  // lief, weiß erst die fertige Einheit. Je Übung+Typ genau einmal (Map), und
+  // nur für Einträge aus DIESER Einheit ohne bereits gesetztes Ergebnis.
+  try {
+    const _seit = timerTs || 0;
+    const _offen = new Map();
+    (S.coachLog || []).forEach(e => {
+      if (!e.accepted || e.outcomeW != null || !e.exId || (e.ts || 0) < _seit) return;
+      _offen.set(e.exId + '|' + e.kind, e);
+    });
+    _offen.forEach(e => {
+      const _l = valid.find(l => l.exerciseId === e.exId);
+      const _top = _l ? _coachTopSet(_l.sets) : null;
+      if (_top) S.coachLog = window.CoachLog.logOutcome(S.coachLog, e.exId, e.kind, parseFloat(_top.w) || 0);
+    });
+  } catch(e) { console.warn('[Coach] Outcome:', e); }
   persist();
   // Gamification: Punkte-Ticker NICHT hier feuern — er läuft sonst unsichtbar
   // hinter dem Share-/Snap-Flow. Nur vormerken; ausgelöst wird er, sobald der
@@ -22903,9 +22943,10 @@ function _coachClearCard() {
   _coachCard = null;
 }
 
-// Debounce (~1.2s je Satz, Key = "li_si") — wird vom Gewicht/Wdh-Commit (confirmWheel)
-// aufgerufen. Mehrere schnelle Edits desselben Satzes (erst Gewicht, dann Wdh) lösen
-// dank gleichem Key nur EINE Auswertung nach dem letzten Edit aus.
+// Debounce (~1.2s je Satz, Key = "li_si") — wird vom Abhaken des Satzes (toggleSetDone)
+// aufgerufen, NICHT vom Gewicht/Wdh-Commit (confirmWheel): erst wenn der Satz wirklich
+// erledigt ist, darf die Vorschlagskarte kommen. Schnelles Ab-/Wiederanhaken desselben
+// Satzes löst dank gleichem Key nur EINE Auswertung nach der letzten Änderung aus.
 function _coachEval(li, si) {
   const key = li + '_' + si;
   if (_coachEvalTimers[key]) clearTimeout(_coachEvalTimers[key]);
@@ -24007,6 +24048,9 @@ function _coachSnap(){
     // Laufende Restpause: gleiche Bedingung wie anderswo im Code (_updateLiveActivity) —
     // _restInt ist nur waehrend eines aktiven Pausen-Countdowns gesetzt.
     if (_restInt !== null && _restSecs > 0) snap.restLeftSec = _restSecs;
+    // Wochenvolumen aus derselben Quelle wie die Statistik (_weekStats), damit
+    // Chat-Antwort und angezeigte Zahl nie auseinanderlaufen.
+    try { snap.weekVolumeKg = _weekStats().vol; } catch(_) {}
     const t = _coachTodaySuggestion(); if (t) snap.todayText = t.text;
   } catch(e) { console.warn('[Coach] Snapshot:', e); }
   return snap;

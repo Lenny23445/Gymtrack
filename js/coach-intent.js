@@ -152,10 +152,9 @@
     }
 
     // 7) Wochenvolumen -- "volume" ist im Englischen zuerst Lautstaerke.
-    // Gate: braucht zusaetzlich einen Zeit-/Trainingsbezug. Hinweis: dieser
-    // Zweig ist in Produktion aktuell tot, weil der Aufrufer weekVolumeKg nie
-    // befuellt (siehe Nachaudit-Report) -- Gate bleibt trotzdem als
-    // Verteidigung, falls sich das aendert.
+    // Gate: braucht zusaetzlich einen Zeit-/Trainingsbezug. Der Aufrufer
+    // befuellt weekVolumeKg aus _weekStats().vol; fehlt das Feld (alter
+    // Schnappschuss oder Fehler beim Bauen), geht die Frage ans Modell.
     if (two(q, /volumen|volume|tonnage/, /woche|week|training|gesamt/)) {
       if (s.weekVolumeKg == null) return null;
       return { intent: 'volume', answer: 'Diese Woche ' + num(s.weekVolumeKg) + ' kg Gesamtvolumen.' };
