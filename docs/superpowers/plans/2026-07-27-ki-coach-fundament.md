@@ -10,6 +10,26 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-27-ki-coach-fundament-design.md`
 
+## Stand 28.07.2026 (Abschluss)
+
+Task 1–8 umgesetzt, `npm test` 78/78 grün, Version auf `gymtrack-v202607280001`
+gebumpt, Changelog-Eintrag `cl-2026-07-28-coach-gedaechtnis` drin, Worker mit den
+`gtmem`-Prompts deployt (Version `4548b7a1`, 28.07.), Branch nach `main` gemerged.
+Nachgezogen wurde außerdem, was der Plan offen gelassen hatte: `weekVolumeKg` im
+Schnappschuss (Intent 7 war sonst tot), `logOutcome` in `finishWk` verdrahtet,
+`_coachEval` vom Wheel-Commit auf `toggleSetDone` umgehängt.
+
+**Offen — braucht Zugänge, die nur der Betreiber hat:**
+
+1. Rules in der Firebase-Konsole veröffentlichen (Task 4, Step 2/4). Die Datei
+   `firestore.rules` ist aktuell, die Konsole kennt den `coach`-Block noch nicht.
+   Bis dahin schlägt der Dossier-Push in die Cloud mit `permission-denied` fehl;
+   lokal funktioniert das Gedächtnis bereits.
+2. Ende-zu-Ende im Chat prüfen (Task 8, Step 6) — braucht ein angemeldetes
+   Premium-/Founder-Konto. Der Simulator-Lauf am 28.07. belegt nur Start und
+   Rendern der App (Demo-Seed, nicht angemeldet).
+3. Nutrition Labels in App Store Connect um Gesundheitsdaten erweitern (Spec Punkt 7).
+
 ## Global Constraints
 
 - **Keine Emojis** in irgendeiner Ausgabe — weder in App-Texten, Prompts, Dossier-Inhalten noch Commit-Messages. Die App rendert Symbole als Inline-SVG. Der Worker filtert Emojis zusätzlich serverseitig.
@@ -57,7 +77,7 @@
 - Consumes: nichts
 - Produces: `dossierEmpty()` liefert `{v:1, goal:null, limits:[], prefs:[], works:[], derived:{}, coachStats:{accepted:0, ignored:0, muted:[]}, tone:null, updatedAt:0}`; `dossierApplyDelta(dossier, delta, now)` liefert ein neues Dossier-Objekt (verändert das Eingabeobjekt nicht)
 
-- [ ] **Step 1: Test-Skript eintragen**
+- [x] **Step 1: Test-Skript eintragen**
 
 In `package.json` das `scripts`-Objekt ändern:
 
@@ -68,7 +88,7 @@ In `package.json` das `scripts`-Objekt ändern:
   },
 ```
 
-- [ ] **Step 2: Den fehlschlagenden Test schreiben**
+- [x] **Step 2: Den fehlschlagenden Test schreiben**
 
 Datei `test/coach-memory.test.js` anlegen:
 
@@ -148,12 +168,12 @@ test('remove loescht einen Eintrag', () => {
 });
 ```
 
-- [ ] **Step 3: Test laufen lassen, Fehlschlag bestätigen**
+- [x] **Step 3: Test laufen lassen, Fehlschlag bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: FAIL mit `Cannot find module '../js/coach-memory.js'`
 
-- [ ] **Step 4: Minimale Implementierung**
+- [x] **Step 4: Minimale Implementierung**
 
 Datei `js/coach-memory.js` anlegen:
 
@@ -236,12 +256,12 @@ Datei `js/coach-memory.js` anlegen:
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 ```
 
-- [ ] **Step 5: Tests laufen lassen, Erfolg bestätigen**
+- [x] **Step 5: Tests laufen lassen, Erfolg bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: PASS, 10 Tests grün
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -262,7 +282,7 @@ git push origin HEAD
 - Consumes: `dossierEmpty()`, `dossierApplyDelta()` aus Task 1
 - Produces: `dossierStale(dossier, now)` liefert Array der abgelaufenen `limits`-Texte; `dossierRefresh(dossier, text, stillValid, now)` liefert neues Dossier; `dossierForPrompt(dossier)` liefert einen String von höchstens 4000 Zeichen
 
-- [ ] **Step 1: Die fehlschlagenden Tests schreiben**
+- [x] **Step 1: Die fehlschlagenden Tests schreiben**
 
 An das Ende von `test/coach-memory.test.js` anhängen:
 
@@ -330,12 +350,12 @@ test('leeres Dossier liefert leeren Prompt-String', () => {
 });
 ```
 
-- [ ] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
+- [x] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: FAIL mit `M.dossierStale is not a function`
 
-- [ ] **Step 3: Implementierung ergänzen**
+- [x] **Step 3: Implementierung ergänzen**
 
 In `js/coach-memory.js` vor der Zeile `var API = {` einfügen:
 
@@ -396,12 +416,12 @@ Und das `API`-Objekt erweitern:
               TONES: TONES, GOALS: GOALS, STALE_MS: STALE_MS };
 ```
 
-- [ ] **Step 4: Tests laufen lassen, Erfolg bestätigen**
+- [x] **Step 4: Tests laufen lassen, Erfolg bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: PASS, 18 Tests grün
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -433,7 +453,7 @@ git push origin HEAD
 > `toEntry` + Caps + Dedupe, `goal`/`tone` gegen `GOALS`/`TONES` gewhitelistet,
 > `coachStats` gefiltert). Tests dazu am Ende von `test/coach-memory.test.js`.
 
-- [ ] **Step 1: Die fehlschlagenden Tests schreiben**
+- [x] **Step 1: Die fehlschlagenden Tests schreiben**
 
 An das Ende von `test/coach-memory.test.js` anhängen:
 
@@ -509,12 +529,12 @@ test('coach-memory.js enthaelt keinen Schreibpfad nach profiles/', () => {
 });
 ```
 
-- [ ] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
+- [x] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: FAIL mit `M.dossierKey is not a function`
 
-- [ ] **Step 3: Implementierung ergänzen**
+- [x] **Step 3: Implementierung ergänzen**
 
 In `js/coach-memory.js` vor der Zeile `var API = {` einfügen:
 
@@ -575,12 +595,12 @@ Und das `API`-Objekt erweitern um `dossierKey`, `dossierLoad`, `dossierSave`, `d
               TONES: TONES, GOALS: GOALS, STALE_MS: STALE_MS };
 ```
 
-- [ ] **Step 4: Tests laufen lassen, Erfolg bestätigen**
+- [x] **Step 4: Tests laufen lassen, Erfolg bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: PASS, 26 Tests grün
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -603,7 +623,7 @@ git push origin HEAD
 
 **Hinweis:** Diese Task hat keinen Node-Test — Firestore-Rules und Kontolöschung lassen sich hier nur manuell prüfen. Die Prüfschritte sind unten ausformuliert.
 
-- [ ] **Step 1: Rule ergänzen**
+- [x] **Step 1: Rule ergänzen**
 
 In `firestore.rules` direkt nach dem schließenden `}` des Blocks `match /users/{userId} { ... }` einfügen:
 
@@ -624,7 +644,7 @@ In `firestore.rules` direkt nach dem schließenden `}` des Blocks `match /users/
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npx firebase deploy --only firestore:rules --dry-run`
 Expected: Kompiliert ohne Fehler. Schlägt der Befehl mangels Firebase-CLI fehl, die Rule stattdessen in der Firebase-Konsole unter Firestore/Regeln einfügen — der Editor dort meldet Syntaxfehler direkt.
 
-- [ ] **Step 3: Kontolöschung erweitern**
+- [x] **Step 3: Kontolöschung erweitern**
 
 In `index.html`, Funktion `_runAccountDeletion()`, die Zeile
 
@@ -652,7 +672,7 @@ ersetzen durch:
 4. In der Konsole prüfen: sowohl `users/{uid}` als auch `users/{uid}/coach/dossier` sind weg.
 5. Mit einem zweiten Konto anmelden und in der Konsole versuchen, `users/{uid-des-ersten}/coach/dossier` zu lesen. Erwartung: `permission-denied`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -673,7 +693,7 @@ git push origin HEAD
 - Consumes: nichts
 - Produces: `logEmpty()` liefert `[]`; `logAction(log, entry, now)` liefert neues Array; `logOutcome(log, exId, kind, outcomeW)` liefert neues Array; `logStats(log)` liefert `{accepted, ignored, muted}`; `isMuted(log, kind)` liefert Boolean. `entry` ist `{kind, exId, accepted}`.
 
-- [ ] **Step 1: Die fehlschlagenden Tests schreiben**
+- [x] **Step 1: Die fehlschlagenden Tests schreiben**
 
 Datei `test/coach-log.test.js` anlegen:
 
@@ -770,12 +790,12 @@ test('Eingabe-Log wird nicht veraendert', () => {
 });
 ```
 
-- [ ] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
+- [x] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: FAIL mit `Cannot find module '../js/coach-log.js'`
 
-- [ ] **Step 3: Implementierung**
+- [x] **Step 3: Implementierung**
 
 Datei `js/coach-log.js` anlegen:
 
@@ -849,12 +869,12 @@ Datei `js/coach-log.js` anlegen:
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 ```
 
-- [ ] **Step 4: Tests laufen lassen, Erfolg bestätigen**
+- [x] **Step 4: Tests laufen lassen, Erfolg bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: PASS, 40 Tests grün
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -892,7 +912,7 @@ git push origin HEAD
 
 Fehlt ein Feld, liefert der zugehörige Intent `null` und die Frage geht ans Modell.
 
-- [ ] **Step 1: Die fehlschlagenden Tests schreiben**
+- [x] **Step 1: Die fehlschlagenden Tests schreiben**
 
 Datei `test/coach-intent.test.js` anlegen:
 
@@ -997,12 +1017,12 @@ test('leere Eingabe ergibt null', () => {
 });
 ```
 
-- [ ] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
+- [x] **Step 2: Tests laufen lassen, Fehlschlag bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: FAIL mit `Cannot find module '../js/coach-intent.js'`
 
-- [ ] **Step 3: Implementierung**
+- [x] **Step 3: Implementierung**
 
 Datei `js/coach-intent.js` anlegen:
 
@@ -1119,12 +1139,12 @@ Datei `js/coach-intent.js` anlegen:
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 ```
 
-- [ ] **Step 4: Tests laufen lassen, Erfolg bestätigen**
+- [x] **Step 4: Tests laufen lassen, Erfolg bestätigen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && npm test`
 Expected: PASS, 55 Tests grün
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -1146,7 +1166,7 @@ git push origin HEAD
 - Consumes: `window.CoachMemory`, `window.CoachLog`, `window.CoachIntent` aus Task 1–3, 5, 6
 - Produces: `_coachUid()`, `_dossier()`, `_dossierSet(d)`, `_coachSnap()` als App-interne Helfer
 
-- [ ] **Step 1: Dateien in den Build und den Service Worker aufnehmen**
+- [x] **Step 1: Dateien in den Build und den Service Worker aufnehmen**
 
 In `build.js` das `files`-Array ersetzen:
 
@@ -1177,7 +1197,7 @@ const SHELL = [
 ];
 ```
 
-- [ ] **Step 2: Skripte einbinden**
+- [x] **Step 2: Skripte einbinden**
 
 In `index.html` direkt vor `<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>` (Zeile 5546) einfügen:
 
@@ -1187,7 +1207,7 @@ In `index.html` direkt vor `<script src="https://cdn.jsdelivr.net/npm/chart.js@4
 <script src="./js/coach-intent.js"></script>
 ```
 
-- [ ] **Step 3: Helfer ergänzen**
+- [x] **Step 3: Helfer ergänzen**
 
 In `index.html` direkt vor `function _aicContext(){` einfügen:
 
@@ -1269,7 +1289,7 @@ grep -n "_restInt\|_restLeft\|restSecs\|weekVolume\|wochenVolumen" index.html
 
 prüfen, ob die App eine laufende Restsekunden-Variable und eine Wochenvolumen-Summe führt. Wenn ja, die beiden Felder ergänzen (`snap.restLeftSec = ...`, `snap.weekVolumeKg = ...`). Wenn nein, weglassen — der Router liefert für diese beiden Fragen dann `null` und sie gehen ans Modell. Das ist ein gültiger Endzustand, kein Fehler.
 
-- [ ] **Step 4: Dossier in den Chat-Kontext**
+- [x] **Step 4: Dossier in den Chat-Kontext**
 
 In `index.html` die Funktion `_aicContext()` erweitern — direkt nach der `profile`-Zeile einfügen:
 
@@ -1278,7 +1298,7 @@ In `index.html` die Funktion `_aicContext()` erweitern — direkt nach der `prof
     muted: window.CoachLog.logStats(S.coachLog || []).muted,
 ```
 
-- [ ] **Step 5: Router vorschalten und `gtmem` verarbeiten**
+- [x] **Step 5: Router vorschalten und `gtmem` verarbeiten**
 
 In `index.html` in `aicSend()` direkt nach `_aicPush('user', t);` einfügen:
 
@@ -1306,7 +1326,7 @@ Und weiter unten, direkt nach dem `gtplan`-Block (nach dessen schließender `}`)
   }
 ```
 
-- [ ] **Step 6: Log-Hooks setzen**
+- [x] **Step 6: Log-Hooks setzen**
 
 In `index.html` in `_coachCommitAction(action)` direkt nach der Zeile `if (!_coachCard || _coachCard.applied) return;` einfügen:
 
@@ -1334,7 +1354,7 @@ function _coachDismiss() {
 }
 ```
 
-- [ ] **Step 7: Dossier beim Kontowechsel nicht übernehmen**
+- [x] **Step 7: Dossier beim Kontowechsel nicht übernehmen**
 
 In `index.html` bei den anderen Coach-Variablen (Nähe `let _aicHist = ...`, Zeile 23712) ergänzen:
 
@@ -1362,7 +1382,7 @@ In der `window.FB.onAuthStateChanged((user) => {`-Rückruffunktion (Zeile 26601)
 
 **Warum die Cloud-Kopie stehen bleibt:** Das lokale Löschen verhindert, dass ein anderes Konto auf diesem Gerät an die Daten kommt. Das Dossier selbst gehört weiterhin dem abgemeldeten Nutzer und ist nach seinem nächsten Login wieder da. Endgültig gelöscht wird es nur bei der Kontolöschung (Task 4).
 
-- [ ] **Step 8: Im Simulator prüfen**
+- [x] **Step 8: Im Simulator prüfen**
 
 Run: `~/.claude/sim-native.sh /Users/lennywolter/Desktop/Claude/gymtrack`
 
@@ -1375,7 +1395,7 @@ Prüfen:
 
 Beweis-Screenshot: `xcrun simctl io "iPhone 17" screenshot /tmp/coach-router.png`
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack
@@ -1396,7 +1416,7 @@ git push origin HEAD
 - Consumes: `context.dossier` und `context.muted` aus Task 7, `t.limits` und `t.muted` im `/coach`-Request
 - Produces: keine neuen Funktionen
 
-- [ ] **Step 1: `gtmem`-Anweisung in den Chat-Prompt**
+- [x] **Step 1: `gtmem`-Anweisung in den Chat-Prompt**
 
 In `ai-worker/worker.js` in `runChat`, im deutschen System-Prompt direkt vor der Zeile `Keine medizinischen Diagnosen` einfügen:
 
@@ -1422,7 +1442,7 @@ Only include fields that are genuinely new. At most two entries per message. No 
 
 **Achtung:** Beide Prompts stehen in Template-Literalen. Die drei Backticks müssen wie oben als `\`\`\`` escaped werden, sonst bricht das Literal.
 
-- [ ] **Step 2: `limits` und `muted` im Live-Coach**
+- [x] **Step 2: `limits` und `muted` im Live-Coach**
 
 In `ai-worker/worker.js` in `runCoach`, im deutschen System-Prompt direkt vor der Zeile `Keine Emojis` einfügen:
 
@@ -1436,7 +1456,7 @@ Und im englischen Prompt vor `No emojis`:
 If the data contains "limits", these are the user's physical limitations: never suggest anything that loads them. If it contains "muted", those are suggestion kinds the user repeatedly ignored — do not use those kinds any more.
 ```
 
-- [ ] **Step 3: `limits` und `muted` mitschicken**
+- [x] **Step 3: `limits` und `muted` mitschicken**
 
 In `index.html` die Stelle finden, an der das `t`-Objekt für den `/coach`-Aufruf gebaut wird:
 
@@ -1451,7 +1471,7 @@ Dort dem `t`-Objekt zwei Felder hinzufügen:
       muted:  window.CoachLog.logStats(S.coachLog || []).muted,
 ```
 
-- [ ] **Step 4: Lokaler Nachfilter in der App**
+- [x] **Step 4: Lokaler Nachfilter in der App**
 
 Das Modell ist eine Empfehlung, keine Autorität. Die Stelle finden, an der die `/coach`-Antwort zur Karte wird:
 
@@ -1475,7 +1495,7 @@ Direkt vor der Zuweisung einfügen:
   } catch(e) { console.warn('[Coach] Filter:', e); }
 ```
 
-- [ ] **Step 5: Syntax prüfen**
+- [x] **Step 5: Syntax prüfen**
 
 Run: `cd /Users/lennywolter/Desktop/Claude/gymtrack && node --check ai-worker/worker.js`
 Expected: keine Ausgabe (Datei ist syntaktisch gültig)
@@ -1492,7 +1512,7 @@ Expected: PASS, 55 Tests weiterhin grün
 5. Neue Nachricht: „Gib mir eine Schulterübung." Erwartung: keine Überkopfübung im Vorschlag.
 6. In den Cloudflare-Logs prüfen: **kein** Dossier-Inhalt sichtbar, nur Fehlercodes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /Users/lennywolter/Desktop/Claude/gymtrack

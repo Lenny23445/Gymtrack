@@ -164,6 +164,24 @@ service cloud.firestore {
         && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
         && (!('exercises' in request.resource.data) || request.resource.data.exercises.size() <= 500);
     }
+    // Coach-Dossier (KI-Gedächtnis). BEWUSST OHNE Founder-Ausnahme, anders als das
+    // Eltern-Doc: hier stehen gemeldete Einschränkungen, also Gesundheitsangaben.
+    // Rules kaskadieren nicht — die Subcollection braucht diesen eigenen Block.
+    match /users/{userId}/coach/{docId} {
+      allow read: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'dossier';
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'dossier'
+        && request.resource.data.keys().hasOnly([
+             'v','goal','tone','limits','prefs','works','derived','coachStats','updatedAt'
+           ])
+        && (!('limits' in request.resource.data) || request.resource.data.limits.size() <= 8)
+        && (!('prefs'  in request.resource.data) || request.resource.data.prefs.size()  <= 8)
+        && (!('works'  in request.resource.data) || request.resource.data.works.size()  <= 8);
+      allow delete: if request.auth != null && request.auth.uid == userId && docId == 'dossier';
+    }
     // Community: öffentliches Opt-in-Profil (Rangliste/Freunde/Gym-Karte).
     // Lesen: jeder Angemeldete (nötig für Code-Lookup + Freunde-Ranglisten).
     match /profiles/{userId} {
