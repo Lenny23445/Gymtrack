@@ -61,7 +61,48 @@ proaktive Meldungen, ein Ort, an dem der Coach wohnt.
 | Zuhause des Coaches | Hub-Overlay. Einstieg über die **bestehende** `.aic`-Karte — keine neue Fläche im Heute-Tab. |
 | Tiefe im Training | Alle vier Erweiterungen (Erzählbogen, Satz-Rückfrage, Pausen-Fenster, Abschluss-Debrief). |
 | Push-Frequenz | Drei Stufen (still / normal / eng), Standard normal, hart im Code gedeckelt. |
+| Umfang der Mitwirkung | Wird **beim Abschluss des Abos** festgelegt, nicht stillschweigend angenommen. Drei Profile plus Feinjustierung, jederzeit änderbar. |
 | Plan-Änderungsvorschläge | **Ausdrücklich nicht.** Vom Nutzer gestrichen. |
+
+## Gestaltungsregeln (bindend)
+
+Diese Regeln stehen über jedem einzelnen Feature. Kollidiert eine Funktion mit
+ihnen, wird die Funktion beschnitten, nicht die Regel.
+
+1. **Ein Einstieg im Heute-Tab, kein zweiter.** Die bestehende `.aic`-Karte ist
+   der einzige Zugang; ein Tipp öffnet den Hub, in dem alles liegt. Es kommt
+   **keine** neue Karte, Zeile, Kachel oder Schaltfläche auf die Startseite.
+   Ebenso wenig ein neuer Tab — die vier Tabs bleiben unverändert.
+
+2. **Im Training steht das Training vorn.** Der Coach hat dort genau eine
+   Fläche: die bestehende Leiste `wk-coach-bar`. Keine zusätzlichen Karten,
+   Banner, Sheets oder Punkte. Nichts vom Coach darf jemals das Training
+   verdecken — **kein Overlay, nichts Modales, kein Dialog, der Bestätigung
+   verlangt.**
+
+3. **Höchstens eine Äußerung gleichzeitig.** Eine neue Meldung verdrängt die
+   vorige, sie stapeln sich nie. Jede verschwindet nach ihrer Haltezeit von
+   selbst; niemand muss etwas wegklicken.
+
+4. **Harte Obergrenze pro Einheit.** `inTraining: 'key'` erlaubt höchstens vier
+   Äußerungen je Training, `'full'` höchstens acht, `'off'` keine. Erreicht der
+   Coach die Grenze, schweigt er für den Rest der Einheit — auch wenn ein
+   Trigger zuträfe. Ohne diese Zahl wird aus Begleitung Geschwätz.
+
+5. **Nichts blockiert den Ablauf.** Die Satz-Rückfrage sind drei kleine Chips,
+   die nach acht Sekunden unbeantwortet verschwinden. Kein Schritt im Training
+   wartet je auf eine Antwort an den Coach.
+
+6. **Er spricht nur, wenn er gefragt wird.** Sprachausgabe ausschließlich nach
+   Druck auf den Sprech-Button. Nie von selbst, unter keiner Stufe.
+
+7. **Kein eigenes Aussehen.** Der Coach benutzt die vorhandene Akzentfarbe, den
+   Glas-Stil und die bestehenden Abstände. Keine neue Farbwelt, keine Maskottchen,
+   keine Emojis (Hard-Regel aus `CLAUDE.md`) — Vektor-Symbole über `ICO.*`.
+
+8. **Schlicht heißt nicht dünn.** Weniger sichtbare Elemente, aber jedes davon
+   trägt echte Aussage. Eine Zeile, die nur „Weiter so!" sagt, wird gestrichen;
+   eine Zeile mit einer Zahl, die man sonst nicht sieht, bleibt.
 
 ## Architektur
 
@@ -69,15 +110,25 @@ proaktive Meldungen, ein Ort, an dem der Coach wohnt.
 
 ```js
 S.aiCoach = {
-  live: true,          // bestehend: Live-Coach im Training an/aus
-  insights: true,      // bestehend: Tagesempfehlung auf der Startseite
-  name: 'Coach',       // NEU: frei wählbar, max. 20 Zeichen
-  tone: 'sachlich',    // NEU: 'ruhig' | 'sachlich' | 'hart' | 'locker'
-  voice: null,         // NEU: iOS-Stimm-Identifier, null = Systemstimme
-  pushLevel: 'normal', // NEU: 'still' | 'normal' | 'eng'
-  voiceOn: true        // NEU: Sprachausgabe überhaupt an/aus
+  live: true,             // bestehend, bleibt als Rückwärtskompatibilität
+  insights: true,         // bestehend: Tagesempfehlung auf der Startseite
+  name: 'Coach',          // NEU: frei wählbar, max. 20 Zeichen
+  tone: 'sachlich',       // NEU: 'ruhig' | 'sachlich' | 'hart' | 'locker'
+  voice: null,            // NEU: iOS-Stimm-Identifier, null = Systemstimme
+  voiceOn: true,          // NEU: Sprachausgabe überhaupt an/aus
+  preset: undefined,      // NEU: 'quiet' | 'balanced' | 'close' | 'custom'
+                          //      undefined = Einrichtung noch nicht gelaufen
+  inTraining: 'key',      // NEU: 'off' | 'key' | 'full'
+  setFeedback: true,      // NEU: Satz-Rückfrage leicht/passend/schwer
+  pushLevel: 'normal'     // NEU: 'still' | 'normal' | 'eng'
 }
 ```
+
+`live` bleibt erhalten, weil es an drei Stellen im bestehenden Code abgefragt
+wird (`index.html:16381`, `22889`, `22981`). Es wird aus `inTraining` abgeleitet:
+`live !== false` gilt genau dann, wenn `inTraining !== 'off'`. Beide Richtungen
+werden beim Setzen synchron gehalten, damit kein Pfad an der alten Abfrage
+vorbeiläuft.
 
 `aiCoach` ist bereits in der Whitelist — der Cloud-Sync trägt die Persona ohne
 weitere Arbeit auf jedes Gerät.
@@ -170,6 +221,17 @@ Satz, Gewichtsvorschlag begründen, Aufwärmsätze, Supersatz-Partner,
 Wochenfortschritt, Streak, letzte PR-Übung, Trainingsdauer, was gestern lief,
 Pausenempfehlung, Volumen einer Muskelgruppe, nächster geplanter Tag.
 
+**„Warum 62,5?"** bekommt eine eigene Intent-Regel: der Coach begründet seinen
+Gewichtsvorschlag aus der Progressionsregel (Wiederholungsbereich erreicht,
+Schrittweite, Check-in-Anpassung). Vertrauensbildend — und es fängt eine Frage
+ab, die sonst jedes Mal als Chat-Aufruf Geld kostet.
+
+**Frage-Chips im Chat.** Statt eines leeren Eingabefelds drei vorgeschlagene
+Fragen, abhängig vom Zustand (im Training / nach dem Training / Ruhetag). Die
+Vorschläge werden bewusst aus den Fragen gewählt, die der Router lokal
+beantwortet. Doppelter Gewinn: niedrigere Einstiegshürde und weniger
+kostenpflichtige Aufrufe.
+
 ### Block 1 — Persona und Coach-Hub
 
 **Persona-Einstellung:** Name (Textfeld, max. 20 Zeichen, `esc()` beim Rendern),
@@ -179,6 +241,37 @@ an/aus, Push-Stufe.
 **Der Name ersetzt „KI-Coach" überall:** `.aic`-Karte, Chat-Kopf, Live-Leiste im
 Training, Notification-Titel. Das ist der billigste und wirksamste Teil des
 ganzen Vorhabens.
+
+#### Coach-Einrichtung: der Nutzer legt den Umfang selbst fest
+
+Der Coach drängt sich niemandem auf. Direkt nach Abschluss des Abos läuft eine
+dreischrittige Einrichtung — überspringbar, jederzeit im Hub änderbar:
+
+1. **Name und Ton**
+2. **Stimme** mit Vorhör-Button, oder Sprachausgabe ganz aus
+3. **Umfang der Mitwirkung** — das eigentliche Kernstück
+
+Drei Profile statt einer Schalterwand:
+
+| Profil | Im Training | Rückfragen | Push |
+| --- | --- | --- | --- |
+| **Zurückhaltend** | nichts von selbst, antwortet nur auf Anfrage | aus | nur Wochenbericht |
+| **Ausgewogen** (Standard) | Schlüsselmomente: Start, Übungswechsel, Abschluss | Satz-Rückfrage an | max. 1/Tag |
+| **Eng dabei** | zusätzlich Pausen-Fenster, Ermüdungsmuster, Stillstand | Satz-Rückfrage an | bis 2/Tag |
+
+Darunter eine ausklappbare Feinjustierung mit den Einzelschaltern
+(`inTraining`, `setFeedback`, `pushLevel`, `voiceOn`, `insights`). Ein Profil
+setzt diese Schalter; weicht der Nutzer danach von einem einzelnen ab, springt
+`preset` auf `custom`. Niemand sitzt in einem Profil fest.
+
+**Bestehende Abonnenten** haben diese Wahl nie getroffen. Ist `preset`
+undefiniert und `isPremium()` wahr, läuft die Einrichtung einmalig beim nächsten
+Öffnen des Hubs an — nicht als Unterbrechung beim App-Start.
+
+Der Grund für diesen Aufbau: ein Coach, der ungefragt redet, wird abgeschaltet
+und nie wieder eingeschaltet. Ein Coach, dessen Umfang man beim Kauf selbst
+bestimmt hat, wird justiert statt gekündigt. Die Voreinstellung ist bewusst die
+mittlere, nicht die lauteste.
 
 **Coach-Hub** (`ov-coach-hub`), vier Bereiche:
 
@@ -251,8 +344,31 @@ Alles algorithmisch, **kein einziger LLM-Aufruf**. Speist die bestehende Leiste
    — hat gepasst." Das Aktions-Log dafür existiert seit dem Fundament, wird
    aber bisher nie erzählt.
 
-Alle acht Punkte respektieren `coachStats.muted` aus dem Aktions-Log und die
-`limits` aus dem Dossier.
+9. **Aufwärmsätze vorschlagen.** Ein Trainer sagt das Schema an. Aus dem
+   Arbeitsgewicht abgeleitet (etwa 50 % ×5, 70 % ×3, 85 % ×1, gerundet auf die
+   verfügbaren Scheiben). Die Progression zählt Aufwärmsätze bereits getrennt
+   (`warmups`), sagt aber nie, welche es sein sollen.
+10. **Technik-Cue vor der ersten schweren Übung.** Eine Zeile aus einer festen
+    Tabelle je Übung („Schulterblätter fixieren und halten"). Statische Daten,
+    kein Modell, keine externe Bibliothek.
+11. **Plateau-Diagnose statt Vorschrift.** „Bank steht seit fünf Wochen.
+    Volumen unverändert, aber deine Pausen sind im Schnitt 30 s kürzer
+    geworden." Der Coach beschreibt, was er sieht, und **schreibt nichts vor** —
+    damit bleibt er innerhalb der gestrichenen Planänderungen.
+12. **Zeitbudget.** „Ich habe heute 45 Minuten" → der Coach priorisiert die
+    wichtigsten Übungen **dieser Einheit**. Kein Eingriff in den gespeicherten
+    Plan, nur in die heutige Durchführung.
+
+Alle zwölf Punkte respektieren `coachStats.muted` aus dem Aktions-Log, die
+`limits` aus dem Dossier und die Stufe aus `S.aiCoach.inTraining`: bei `off`
+schweigt der Coach vollständig, bei `key` laufen nur Punkte 1, 2, 3, 7 und 9,
+bei `full` alle.
+
+**Offline.** Kellergyms haben kein Netz. Alle zwölf Punkte, der Intent-Router
+und die Gewichtsvorschläge sind lokal und müssen ohne Verbindung
+funktionieren. Nur der Freitext-Chat braucht Netz und weist dann mit einem
+klaren Satz ab, statt einen Fehler zu zeigen. Das wird im Simulator mit
+abgeschaltetem Netz geprüft, nicht angenommen.
 
 ### Block 4 — Proaktive Meldungen
 
@@ -274,6 +390,9 @@ der Planung: was nicht durchpasst, wird gar nicht erst eingeplant.
 - **PR-Gratulation** unmittelbar nach der Einheit
 - **Deload-Hinweis** bei anhaltend hohem Volumen und fallender Readiness
 - **Rückkehr-Nudge** nach 5 Tagen ohne Einheit, bei jedem App-Start neu gesetzt
+- **Jahrestag-Rückblick** — „Vor einem Jahr heute: erste Einheit, Bank 40 kg.
+  Heute 72,5." Aus den vorhandenen Sessions, höchstens einmal im Jahr je Übung
+  und nur, wenn der Fortschritt vorzeigbar ist. Zählt auf den Frequenz-Deckel.
 
 Berechtigung wird **nicht** beim ersten Start erfragt, sondern beim Einschalten
 der Push-Stufe im Hub — an der Stelle, an der der Nutzer versteht, wofür.
@@ -288,6 +407,12 @@ Woche und Nutzer.
 **Vorgezogene Erzeugung:** Beim letzten App-Öffnen vor dem Termin wird der
 Bericht erzeugt und die Notification mit dem fertigen Text geplant. Fällt das
 aus, greift der Einladungstext und der Bericht entsteht beim Antippen.
+
+**Ziel-Prognose** als Teil des Berichts: „Bei dem Tempo knackst du 100 kg in
+etwa sieben Wochen." Aus dem 1RM-Trend (Epley, vorhanden), algorithmisch
+gerechnet und mit ehrlicher Einschränkung formuliert — „wenn es so weiterläuft",
+nie als Zusage. Erscheint nur, wenn der Trend über mindestens vier Wochen
+stabil ist; sonst gar nicht.
 
 Langfassung im Hub, die letzten 8 Berichte lokal aufgehoben.
 
@@ -338,6 +463,9 @@ Spracherkennung eintragungspflichtig ist, auch wenn nichts gespeichert wird.
 | Persona-Ton unbekannt oder fehlt | Rückfall auf `sachlich` |
 | Erzählbogen-Zustand veraltet (App-Neustart) | `S.coachSession` verwirft sich bei fremdem `wkTs` |
 | Sprachausgabe während Musik | `.duckOthers` senkt, schneidet nicht ab |
+| Kein Netz im Gym | Router, Erzählbogen, Vorschläge laufen weiter; nur Freitext-Chat weist mit klarem Satz ab |
+| Obergrenze je Einheit erreicht | Coach schweigt bis zum Ende, auch bei zutreffendem Trigger |
+| Einrichtung übersprungen | Profil `balanced` gilt, `preset` bleibt gesetzt — die Einrichtung fragt nicht erneut |
 
 ## Tests
 
@@ -357,6 +485,15 @@ Logik gehört in die `js/`-Module, damit `npm test` sie ohne Browser prüfen kan
   greift der bestehende fail-open-Pfad unverändert
 - **Datentrennung:** kein Schreibpfad nach `profiles/`; Kontowechsel setzt
   Persona und Session-Zustand zurück
+- **Umfangs-Profile:** `quiet` erzeugt keine einzige Trainings-Äußerung; `key`
+  hält die Obergrenze von vier, `full` die von acht ein — geprüft an einer
+  erfundenen Einheit, die alle zwölf Trigger auslösen würde
+- **Profil-Abweichung:** Ändern eines Einzelschalters setzt `preset` auf
+  `custom`; `live` und `inTraining` bleiben in beiden Richtungen synchron
+- **Aufwärmsätze:** Vorschlag rundet auf verfügbare Scheiben und übersteigt nie
+  das Arbeitsgewicht
+- **Prognose:** erscheint nicht bei Trend unter vier Wochen und nie als Zusage
+- **Offline:** Router und Erzählbogen antworten ohne Netz; Chat weist sauber ab
 
 ## Verifikation
 
