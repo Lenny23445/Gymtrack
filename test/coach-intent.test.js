@@ -146,3 +146,46 @@ test('leere Eingabe ergibt null', () => {
   assert.strictEqual(R.resolveIntent('', SNAP), null);
   assert.strictEqual(R.resolveIntent(null, SNAP), null);
 });
+
+// --- Strukturelles Gate (Baustein 3, Nachaudit) ---------------------------
+// "volume", "record" und "rest" sind ausserhalb des Trainingskontexts ganz
+// normale Alltagswoerter. Das Gate verlangt fuer diese Ankerworte ein
+// zweites, unabhaengiges Fitness-Wort im selben Satz -- ohne das bleibt der
+// Treffer aus, auch wenn Snapshot-Daten (weekVolumeKg, bestSet) vorhanden
+// waeren, die frueher trotzdem eine konfident falsche Antwort ausloesten.
+
+test('Lautstaerke-Frage ist kein Trainingsvolumen (geht ans Modell)', () => {
+  // Frueher matchte /volumen|volume|tonnage/ auf das nackte Wort "volume"
+  // und beantwortete die Frage faelschlich mit dem Wochenvolumen.
+  assert.strictEqual(R.resolveIntent('Can you turn up the volume?', SNAP), null);
+});
+
+test('"record" als Verb (Tagebuch fuehren) ist kein Rekord-Abruf (geht ans Modell)', () => {
+  // Frueher matchte bare "record" plus der zufaellig im Satz enthaltene
+  // Uebungsname "bankdruecken" -- der Router antwortete konfident mit dem
+  // Bankdruecken-Rekord, obwohl der Nutzer sein Training nur protokollieren
+  // (nicht abfragen) wollte.
+  assert.strictEqual(
+    R.resolveIntent('I want to record my bankdruecken workout in a journal', SNAP),
+    null
+  );
+});
+
+test('Restpause-Fragen ohne "rest timer"-Wortlaut bleiben lokal beantwortbar', () => {
+  // Die vorherige Verschaerfung (nur noch "rest timer|rest is over|rest left"
+  // nach "how long") hat diese vier echten Fragen zum laufenden Pausen-Timer
+  // mitgetroffen und faelschlich null zurueckgegeben. Das Gate "my rest" /
+  // "rest ... left" erkennt sie wieder, ohne die Ruhetag-/Freunde-Faelle
+  // oben erneut durchzulassen.
+  const phrasings = [
+    'How long is my rest?',
+    'how long left on my rest',
+    'how long till my rest ends',
+    'how much rest do i have left'
+  ];
+  phrasings.forEach((text) => {
+    const r = R.resolveIntent(text, SNAP);
+    assert.strictEqual(r && r.intent, 'rest', 'erwartet rest-Intent fuer: ' + text);
+    assert.ok(r.answer.includes('45'), 'erwartet Pausenzeit im Text fuer: ' + text);
+  });
+});

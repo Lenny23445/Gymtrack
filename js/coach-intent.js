@@ -6,8 +6,23 @@
   'use strict';
 
   // Ein Treffer verlangt ein eindeutiges Muster UND vorhandene Daten. Alles
-  // Wertende, Planende oder Medizinische geht bewusst ans Modell.
-  var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
+  // Wertende, Planende oder Medizinische geht bewusst ans Modell. Erweitert um
+  // Krankheits-Woerter (siehe Intent 5 im Nachaudit-Report: "erhol" kollidiert
+  // sonst mit "ich erhole mich von einer Erkaeltung").
+  var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|krank|erkaelt|fieber|grippe|husten|infekt|sick|flu|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
+
+  // STRUKTURELLES GATE gegen Fehltreffer durch Alltagswoerter: manche
+  // Ankerworte sind ausserhalb des Trainingskontexts voellig normale Woerter
+  // (gewicht/weight, record, rest/pause, volume, "whats on today"). So ein
+  // Wort allein beweist keinen Fitnessbezug. Die Regel: ein doppeldeutiges
+  // Ankerwort zaehlt nur zusammen mit einem zweiten, unabhaengigen
+  // Fitness-Wort irgendwo im selben Satz (Reihenfolge egal). "two()" ist
+  // diese eine Regel an einer Stelle -- jedes betroffene Pattern nutzt sie,
+  // statt sich eine eigene Ad-hoc-Absicherung auszudenken. Eindeutige
+  // mehrwortige Fachbegriffe (z.B. "wie viele saetze", "was steht heute an")
+  // brauchen das Gate nicht, weil sie ausserhalb des Trainings praktisch nie
+  // vorkommen.
+  function two(q, a, b) { return a.test(q) && b.test(q); }
 
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
@@ -39,19 +54,21 @@
     if (BLOCK.test(q)) return null;
     var s = snap || {};
 
-    // 1) Naechstes Gewicht
-    // "naechste[nsr]? satz" darf nur zusammen mit einem Gewichtswort feuern —
-    // sonst matchen auch Fragen zur Uebungswahl oder zu Wiederholungen, die
-    // konfident (aber falsch) mit einem Gewicht beantwortet wuerden.
-    if (/(wie viel|wieviel|welches) gewicht|gewicht.*naechste[nsr]? satz|naechste[nsr]? satz.*gewicht|how much weight/.test(q)) {
+    // 1) Naechstes Gewicht -- "gewicht"/"weight" allein ist z.B. auch eine
+    // Frage zum Koerpergewicht/Abnehmen. Gate: braucht zusaetzlich einen
+    // "naechster Satz"-Bezug, sonst kein Treffer.
+    if (two(q, /gewicht|weight/, /naechste[nsr]? satz|next set/)) {
       if (s.active && s.active.nextW != null) {
         return { intent: 'nextWeight', answer: 'Nächster Satz: ' + num(s.active.nextW) + ' kg.' };
       }
       return null;
     }
 
-    // 2) Rekord
-    if (/rekord|bestleistung|bester satz|bestes satz|personal best|record/.test(q)) {
+    // 2) Rekord -- "record" ist im Englischen auch ein Verb ("to record a
+    // workout in a journal"). Nur "my record"/"personal record" (Substantiv
+    // mit Besitzbezug) zaehlt; das deutsche Lehnwort "rekord" hat ausserhalb
+    // des Sport-/Bestleistungskontexts praktisch keine Alltagsbedeutung.
+    if (/rekord|bestleistung|bester satz|bestes satz|personal best|my record|personal record/.test(q)) {
       var ex = findExercise(q, s.exercises);
       if (!ex) return null;
       var b = (s.bestSet || {})[ex.id];
@@ -72,17 +89,20 @@
                answer: left === 1 ? 'Noch 1 Satz.' : 'Noch ' + left + ' Sätze.' };
     }
 
-    // 4) Restpause
-    // "how long.*rest" hatte keinen Themen-Anker: "rest" alleine ist ein
-    // normales englisches Wort (Ruhetag, Pronomen "der Rest von ..."), kein
-    // Fitness-Begriff. Jetzt muss nach "how long" eine konkrete Pausen-Timer-
-    // Formulierung folgen, nicht das nackte Wort "rest".
-    if (/pause|rest timer|how long.*(rest timer|rest is over|rest left)/.test(q)) {
+    // 4) Restpause -- "rest" allein ist ein normales englisches Wort
+    // (Ruhetag "rest day", Pronomen "der Rest von meinen Freunden"). Gate:
+    // "my rest" (Besitzbezug auf die eigene Pause) oder "rest ... left"
+    // (Restdauer-Frage) sind eindeutig; "pause" (Deutsch) und "rest timer"
+    // sind als feste Fachbegriffe ohne Alltagsbedeutung weiter bare genug.
+    if (/pause|rest timer|my rest|rest[\s\S]*left/.test(q)) {
       if (!s.restLeftSec) return null;
       return { intent: 'rest', answer: 'Noch ' + s.restLeftSec + ' Sekunden Pause.' };
     }
 
-    // 5) Erholung
+    // 5) Erholung -- Gate hier ist der Muskelgruppen-Name selbst: er muss im
+    // Snapshot vorkommen (echte Nutzerdaten als Beleg), kein zweites
+    // Fitness-Wort noetig. Restrisiko siehe Nachaudit-Report ("Brust"/"Beine"
+    // sind auch normale Koerperteile ausserhalb des Trainingskontexts).
     if (/erhol|recover|regenerier/.test(q)) {
       var rec = s.recovery || {};
       var mg = Object.keys(rec).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
@@ -99,14 +119,22 @@
       return { intent: 'lastDone', answer: ex2.name + ' zuletzt am ' + datum(d) + '.' };
     }
 
-    // 7) Wochenvolumen
-    if (/volumen|volume|tonnage/.test(q)) {
+    // 7) Wochenvolumen -- "volume" ist im Englischen zuerst Lautstaerke.
+    // Gate: braucht zusaetzlich einen Zeit-/Trainingsbezug. Hinweis: dieser
+    // Zweig ist in Produktion aktuell tot, weil der Aufrufer weekVolumeKg nie
+    // befuellt (siehe Nachaudit-Report) -- Gate bleibt trotzdem als
+    // Verteidigung, falls sich das aendert.
+    if (two(q, /volumen|volume|tonnage/, /woche|week|training|gesamt/)) {
       if (s.weekVolumeKg == null) return null;
       return { intent: 'volume', answer: 'Diese Woche ' + num(s.weekVolumeKg) + ' kg Gesamtvolumen.' };
     }
 
-    // 8) Was steht heute an
-    if (/heute an|heute dran|was mache ich heute|whats on today/.test(q)) {
+    // 8) Was steht heute an -- die deutschen Wendungen sind ausserhalb des
+    // Trainings praktisch unbenutzt. Die generische englische Phrase
+    // "whats on today" braucht dagegen zusaetzlich einen Trainingsbezug,
+    // sonst z.B. Kino-/TV-Programm-Frage.
+    if (/heute an|heute dran|was mache ich heute/.test(q) ||
+        two(q, /what.?s on today/, /workout|training|gym/)) {
       if (!s.todayText) return null;
       return { intent: 'today', answer: s.todayText };
     }
