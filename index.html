@@ -23170,12 +23170,29 @@ function _coachEvalRun(li, si) {
   if (volDelta != null) payload.volDelta = volDelta;
   // Check-in-Lage mitschicken: der Live-Coach darf im Deload nicht "steigere jetzt" rufen.
   try { const rd = _ciReadiness(); if (rd) payload.readiness = { state: rd.mode, note: rd.plain }; } catch(_) {}
+  // limits/muted mitschicken: der Worker-Prompt respektiert koerperliche
+  // Einschraenkungen aus dem Dossier und meidet Vorschlagstypen, die der
+  // Nutzer wiederholt ignoriert hat. Wie readiness oben abgesichert - ein
+  // Fehler hier darf den Live-Coach-Trigger nicht blockieren.
+  try { payload.limits = (_dossier().limits || []).map(e => e.t); } catch(_) {}
+  try { payload.muted = window.CoachLog.logStats(S.coachLog || []).muted; } catch(_) {}
 
   (async () => {
     try {
       try { _coachBarSet('thinking'); } catch(_) {}
       const res = await aiCall('coach', { t: payload }); // aiCall zeigt Fehler/Paywall/Quota-Toast bereits selbst
       if (!res || !res.c) { try { _coachBarSet('idle'); } catch(_) {} return; } // laut Vorgabe: fehlgeschlagener Call → still überspringen, kein Fehler-UI
+      // Zweite Verteidigungslinie: haelt sich das Modell nicht an "muted",
+      // greift dieser Filter.
+      try {
+        const mutedKinds = window.CoachLog.logStats(S.coachLog || []).muted;
+        const c = res.c || {};
+        if ((c.action || {}).kind && mutedKinds.indexOf(c.action.kind) >= 0) return;
+        if (Array.isArray(c.options)) {
+          c.options = c.options.filter(o => mutedKinds.indexOf((o.action || {}).kind) < 0);
+          if (!c.options.length && !(c.action || {}).kind) return;
+        }
+      } catch(e) { console.warn('[Coach] Filter:', e); }
       _coachCard = { exId: log.exerciseId, c: res.c, applied:false, baseW: w, timer:null };
       renderLogCards();
       try { _coachBarSet('msg', res.c.title || res.c.text || '', 6000); } catch(_) {}
