@@ -46,6 +46,31 @@ test('hoechstens 8 Eintraege, aelteste fliegen raus', () => {
   assert.ok(!d.prefs.some(e => e.t === 'Eintrag 0'));
 });
 
+// Fix 2 (Review): eine erneut bestaetigte (duplizierte) Einschraenkung darf
+// beim Cap-Ueberlauf nicht VOR einer nie wieder erwaehnten evictet werden.
+// Vorher: list[dup].ts=now aendert nur den Zeitstempel, die Array-Position
+// bleibt gleich; slice(list.length-MAX_ITEMS) schneidet dann vom KOPF ab -
+// trifft also den gerade bestaetigten Eintrag, falls der zufaellig vorn
+// stand, statt den wirklich am laengsten unangefassten.
+test('erneut bestaetigter Eintrag wird NICHT vor einem unbestaetigten evictet', () => {
+  let d = M.dossierEmpty();
+  // 8 verschiedene Eintraege, E0 zuerst (steht danach an Kopf-Position 0).
+  for (let i = 0; i < 8; i++) {
+    d = M.dossierApplyDelta(d, { add: { prefs: ['Eintrag ' + i] } }, NOW + i);
+  }
+  // Nutzer bestaetigt den AELTESTEN Eintrag (E0) erneut - Duplikat, kein
+  // neuer Eintrag, Liste bleibt bei 8 Elementen.
+  d = M.dossierApplyDelta(d, { add: { prefs: ['Eintrag 0'] } }, NOW + 8);
+  assert.strictEqual(d.prefs.length, 8);
+  // Jetzt kommt ein wirklich NEUER, 9. Eintrag dazu -> Cap greift, einer muss raus.
+  d = M.dossierApplyDelta(d, { add: { prefs: ['Eintrag 8'] } }, NOW + 9);
+  assert.strictEqual(d.prefs.length, 8);
+  // Der gerade erst reaktivierte "Eintrag 0" muss ueberleben ...
+  assert.ok(d.prefs.some(e => e.t === 'Eintrag 0'), 'Eintrag 0 (reaktiviert) wurde faelschlich evictet');
+  // ... waehrend "Eintrag 1" - nie wieder erwaehnt, aeltester echter Kandidat - raus muss.
+  assert.ok(!d.prefs.some(e => e.t === 'Eintrag 1'), 'Eintrag 1 haette evictet werden muessen, nicht Eintrag 0');
+});
+
 test('Eintraege werden auf 120 Zeichen gekuerzt', () => {
   const lang = 'x'.repeat(300);
   const d = M.dossierApplyDelta(M.dossierEmpty(), { add: { works: [lang] } }, NOW);
@@ -175,7 +200,10 @@ test('Speichern und Laden fuer dieselbe uid', () => {
   const s = fakeStore();
   const d = M.dossierApplyDelta(M.dossierEmpty(), { add: { limits: ['Schulter'] } }, NOW);
   M.dossierSave(s, 'userA', d);
-  assert.strictEqual(M.dossierLoad(s, 'userA').limits[0].t, 'Schulter');
+  // now=NOW explizit: dossierLoad verwirft mittlerweile limits-Eintraege
+  // aelter als STALE_MS relativ zu "now" - ohne fixes "now" waere dieser Test
+  // vom echten Ausfuehrungszeitpunkt abhaengig (NOW liegt fern der Gegenwart).
+  assert.strictEqual(M.dossierLoad(s, 'userA', NOW).limits[0].t, 'Schulter');
 });
 
 test('fremde uid sieht das Dossier NICHT', () => {
@@ -210,7 +238,8 @@ test('kaputtes JSON im Speicher ergibt ein leeres Dossier', () => {
 test('Dossier ohne v wird migriert', () => {
   const s = fakeStore();
   s.setItem(M.dossierKey('userA'), JSON.stringify({ limits: [{ t: 'Alt', ts: NOW }] }));
-  const d = M.dossierLoad(s, 'userA');
+  // now=NOW explizit, s. Kommentar bei "Speichern und Laden fuer dieselbe uid".
+  const d = M.dossierLoad(s, 'userA', NOW);
   assert.strictEqual(d.v, 1);
   assert.strictEqual(d.limits[0].t, 'Alt');
   assert.deepStrictEqual(d.coachStats, { accepted: 0, ignored: 0, muted: [] });
@@ -260,9 +289,36 @@ test('Laden haelt MAX_ITEMS und MAX_LEN ein', () => {
   s.setItem(M.dossierKey('userA'), JSON.stringify({
     limits: Array.from({ length: 50 }, (_, i) => ({ t: i + 'X'.repeat(400), ts: NOW }))
   }));
-  const d = M.dossierLoad(s, 'userA');
+  // now=NOW explizit: sonst greift der 42-Tage-Verfall (STALE_MS) beim Laden
+  // und wuerfe hier faelschlich ALLE Eintraege raus, weil NOW ein fixer
+  // Testwert weit vor der echten Ausfuehrungszeit ist - dieser Test soll
+  // aber nur MAX_ITEMS/MAX_LEN pruefen, nicht Staleness.
+  const d = M.dossierLoad(s, 'userA', NOW);
   assert.strictEqual(d.limits.length, M.MAX_ITEMS);
   assert.ok(d.limits.every(e => e.t.length <= M.MAX_LEN));
+});
+
+// dossierStale/dossierRefresh hatten bislang KEINEN Aufrufer im Produktivcode
+// - der beworbene 42-Tage-Verfall war nirgendwo verdrahtet, Einschraenkungen
+// blieben fuer immer im Prompt. dossierLoad verwirft abgelaufene limits jetzt
+// beim Laden selbst (nur limits, nur bei ECHTEM > 0 Zeitstempel - ts===0/Alt-
+// Schema bleibt erhalten, s. Test oben zu "ohne Zeitstempel"). Verlust ist
+// STUMM (kein Bestaetigungsdialog) - akzeptierter Kompromiss statt eines noch
+// nicht gebauten UI-Flows.
+test('Laden verwirft limits aelter als 42 Tage, prefs/works verfallen nicht', () => {
+  const s = fakeStore();
+  s.setItem(M.dossierKey('userA'), JSON.stringify({
+    limits: [
+      { t: 'Alte Schulter', ts: NOW - 43 * TAG },
+      { t: 'Frisches Knie', ts: NOW - 10 * TAG }
+    ],
+    prefs: [{ t: 'Altes Vorlieben-Item', ts: NOW - 99 * TAG }],
+    works: [{ t: 'Altes Works-Item', ts: NOW - 99 * TAG }]
+  }));
+  const d = M.dossierLoad(s, 'userA', NOW);
+  assert.deepStrictEqual(d.limits.map(e => e.t), ['Frisches Knie']);
+  assert.strictEqual(d.prefs.length, 1);
+  assert.strictEqual(d.works.length, 1);
 });
 
 test('Laden filtert Unrat aus coachStats', () => {

@@ -45,7 +45,20 @@
         var e = toEntry(raw, now);
         if (!e) return;
         var dup = list.findIndex(function (x) { return norm(x.t) === norm(e.t); });
-        if (dup >= 0) { list[dup].ts = now; return; }   // bekannt: nur auffrischen
+        if (dup >= 0) {
+          // Bekannt: auffrischen UND ans Ende verschieben, nicht nur den
+          // Zeitstempel an der alten Position aendern. Reines ts-Update liess
+          // die Array-Position unveraendert - beim Cap-Abschneiden weiter
+          // unten (slice vom Kopf) flog dann ein GERADE bestaetigter Eintrag
+          // vor einem nie wieder erwaehnten raus, weil er zufaellig weiter
+          // vorne im Array stand. Ans Ende verschieben macht die Reihenfolge
+          // wieder zu "letzte Erwaehnung", genau das, was der Cap voraussetzt.
+          var existing = list[dup];
+          existing.ts = now;
+          list.splice(dup, 1);
+          list.push(existing);
+          return;
+        }
         list.push(e);
       });
       if (list.length > MAX_ITEMS) list = list.slice(list.length - MAX_ITEMS);
@@ -140,7 +153,12 @@
       // Kein oder unbrauchbarer Zeitstempel => 0. Der Eintrag zaehlt weiter,
       // wird aber als faellig zur Bestaetigung gemeldet statt als frisch.
       e.ts = (typeof ts === 'number' && isFinite(ts) && ts > 0) ? ts : 0;
-      if (out.some(function (x) { return norm(x.t) === norm(e.t); })) return;
+      // Gleiche Reihenfolge-Korrektur wie in dossierApplyDelta: ein spaeteres
+      // Vorkommen im rohen Array ersetzt das fruehere UND wandert ans Ende,
+      // statt an der Position des ERSTEN Vorkommens zu verschwinden - sonst
+      // trifft der Cap unten (slice vom Kopf) den falschen Eintrag.
+      var dup = out.findIndex(function (x) { return norm(x.t) === norm(e.t); });
+      if (dup >= 0) out.splice(dup, 1);
       out.push(e);
     });
     return out.length > MAX_ITEMS ? out.slice(out.length - MAX_ITEMS) : out;
@@ -148,8 +166,9 @@
 
   function toCount(n) { return (typeof n === 'number' && isFinite(n) && n > 0) ? n : 0; }
 
-  function dossierLoad(store, uid) {
+  function dossierLoad(store, uid, now) {
     if (!store || !uid) return dossierEmpty();
+    now = now || Date.now();
     var raw;
     try { raw = store.getItem(dossierKey(uid)); } catch (_) { return dossierEmpty(); }
     if (!raw) return dossierEmpty();
@@ -158,6 +177,18 @@
     if (!parsed || typeof parsed !== 'object') return dossierEmpty();
     var base = dossierEmpty();
     LIST_KEYS.forEach(function (k) { base[k] = sanitizeList(parsed[k]); });
+    // 42-Tage-Verfall beim Laden statt nur im (bislang von nirgendwo
+    // aufgerufenen) dossierStale/dossierRefresh-Paar: ohne diesen Schnitt
+    // landet eine Einschraenkung von vor einem halben Jahr fuer immer unter
+    // "Einschraenkungen (immer respektieren)" im Prompt, obwohl der 42-Tage-
+    // Verfall genau das verhindern soll. Nur Eintraege mit ECHTEM (>0)
+    // Zeitstempel gelten als sicher abgelaufen — ein fehlender Zeitstempel
+    // (Alt-Schema/Migration, ts===0, s. sanitizeList oben) bleibt weiterhin
+    // erhalten und zaehlt stattdessen als faellig zur Bestaetigung, nicht als
+    // geloescht. NUR limits verfallen (prefs/works nicht, wie bei
+    // dossierStale). Verlust ist STUMM — kein Bestaetigungsdialog existiert
+    // bisher (bewusst nicht Teil dieser Aenderung), akzeptierter Kompromiss.
+    base.limits = base.limits.filter(function (e) { return !(e.ts > 0 && (now - e.ts) > STALE_MS); });
     // Gleiche Whitelist wie in dossierApplyDelta — sonst kaeme ueber den
     // Lade-Pfad beliebiger Text in die Ziel-/Ton-Zeile des Prompts.
     if (typeof parsed.goal === 'string' && GOALS.indexOf(parsed.goal) >= 0) base.goal = parsed.goal;

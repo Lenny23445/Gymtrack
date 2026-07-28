@@ -23158,8 +23158,20 @@ function _coachEvalRun(li, si) {
   _coachState.lastCallTs = Date.now();
   try { _saveActiveWk(); } catch(_) {}
 
+  // limits VOR dem Objekt-Literal ermitteln und als erstes Feld (nach type,
+  // vor ex) einsetzen: der Worker schneidet den /coach-Payload mit
+  // JSON.stringify(t).slice(0, 2000) hart ab. Acht maximal lange
+  // Einschraenkungen sind allein schon ~1000 Zeichen; mit langem Uebungsnamen
+  // und ausfuehrlichem readiness.note ueberschreitet der Payload leicht die
+  // 2000er-Grenze. Stand hinten in der Reihenfolge war limits (die
+  // koerperlichen Einschraenkungen) das ERSTE, was der Slice stumm
+  // abgeschnitten hat - genau die Sicherheitsdaten, die immer respektiert
+  // werden sollen. Am Anfang ist limits vor jedem Feld sicher, dessen Laenge
+  // schwankt (ex-Name, readiness.note, muted-Liste).
+  let _coachPayloadLimits = [];
+  try { _coachPayloadLimits = (_dossier().limits || []).map(e => e.t); } catch(_) {}
   const payload = {
-    type, ex: ex.name, mg,
+    type, limits: _coachPayloadLimits, ex: ex.name, mg,
     goal: S.obGoal || null,
     set: { n: si + 1, of: (log.sets || []).length, w, r },
     last: { w: lastW, r: lastR, e1rm: Math.round(lastE1RM * 10) / 10 },
@@ -23170,11 +23182,11 @@ function _coachEvalRun(li, si) {
   if (volDelta != null) payload.volDelta = volDelta;
   // Check-in-Lage mitschicken: der Live-Coach darf im Deload nicht "steigere jetzt" rufen.
   try { const rd = _ciReadiness(); if (rd) payload.readiness = { state: rd.mode, note: rd.plain }; } catch(_) {}
-  // limits/muted mitschicken: der Worker-Prompt respektiert koerperliche
-  // Einschraenkungen aus dem Dossier und meidet Vorschlagstypen, die der
-  // Nutzer wiederholt ignoriert hat. Wie readiness oben abgesichert - ein
-  // Fehler hier darf den Live-Coach-Trigger nicht blockieren.
-  try { payload.limits = (_dossier().limits || []).map(e => e.t); } catch(_) {}
+  // muted mitschicken: der Worker-Prompt meidet Vorschlagstypen, die der
+  // Nutzer wiederholt ignoriert hat. Bleibt bewusst HINTEN (anders als
+  // limits oben) - faellt es dem 2000er-Slice zum Opfer, filtert die zweite
+  // Verteidigungslinie im Response-Handler unten die gemuteten Kinds ohnehin
+  // noch clientseitig raus.
   try { payload.muted = window.CoachLog.logStats(S.coachLog || []).muted; } catch(_) {}
 
   (async () => {
@@ -23858,10 +23870,19 @@ function _dossierFlush(){
 // ohne Firestore-Offline-Persistenz sonst nicht wiederherstellbar). Kein
 // neuer Debounce-Timer, direkter Versuch; _dossierPush prueft uid/Firebase-
 // Status ohnehin selbst, ein doppelter Versuch ist also gefahrlos.
-function _dossierRetryIfDirty(){
+// uid kommt optional als Parameter (Aufruf aus _dossierPull waehrend des
+// Logins, BEVOR _fbUser gesetzt ist — s. Kommentar dort). Ohne den Parameter
+// faellt die Funktion auf _coachUid() zurueck, das braucht der Aufruf bei
+// visibilitychange:visible weiter unten, dort ist _fbUser laengst gesetzt.
+// Explizit ueber die uid laden statt _dossier()/_coachUid() zu benutzen: ein
+// Aufruf mit uid, aber (noch) leerem globalen _fbUser wuerde sonst ueber
+// _dossier() ein LEERES Dossier laden und dieses leere Dossier dann in die
+// Cloud pushen — derselbe Datenverlust wie der urspruengliche Pull-Bug, nur
+// mit anderem Ausloeser.
+function _dossierRetryIfDirty(uid){
   if (_dossierPushT) return;   // schon ein frischer Push geplant - der erledigt es ohnehin gleich
-  const uid = _coachUid(); if (!uid || !_dossierIsDirty(uid)) return;
-  try { _dossierPush(uid, _dossier()); } catch(_) {}
+  uid = uid || _coachUid(); if (!uid || !_dossierIsDirty(uid)) return;
+  try { _dossierPush(uid, window.CoachMemory.dossierLoad(localStorage, uid)); } catch(_) {}
 }
 async function _dossierPush(uid, d){
   if (!uid || !window.FB || !window.FB.configured) return;
@@ -23881,12 +23902,24 @@ async function _dossierPush(uid, d){
 // Geraetewechsel oder einer Neuinstallation weg, obwohl es in der Cloud liegt.
 // Die neuere Seite gewinnt — lokal ist waehrend einer Sitzung aktueller,
 // die Cloud nach einem Wechsel.
-async function _dossierPull(){
-  const uid = _coachUid(); if (!uid || !window.FB || !window.FB.configured) return;
+// uid kommt als Parameter vom Aufrufer (_coachHandleAuthUser), NICHT mehr aus
+// _coachUid()/_fbUser: _coachHandleAuthUser laeuft laut Aufrufreihenfolge in
+// _onLogin/onAuthStateChanged IMMER VOR der Zeile, die _fbUser setzt. Frueher
+// las _dossierPull deshalb bei jedem Kaltstart/Kontowechsel _coachUid() ->
+// null (oder die uid des vorigen Kontos), der Guard griff, und die Funktion
+// tat gar nichts — das lokal-nach-Neuinstallation-leere Dossier wurde nie
+// mit der Cloud abgeglichen. Naechster Schreibzugriff (dossierApplyDelta auf
+// dem leeren lokalen Stand, dann _dossierPush mit merge:false) hat dann den
+// kompletten Cloud-Dossier-Doc ueberschrieben und alle bisherigen
+// Einschraenkungen geloescht, ohne dass der Nutzer je etwas davon sah.
+async function _dossierPull(uid){
+  if (!uid || !window.FB || !window.FB.configured) return;
   // Review Fix 1: laeuft bei jedem Login/Kontowechsel — genau der richtige
   // Moment, um eine vom letzten App-Kill verwaiste, nie bestaetigte Aenderung
-  // nachzuholen, bevor unten der Cloud-Stand gelesen wird.
-  _dossierRetryIfDirty();
+  // nachzuholen, bevor unten der Cloud-Stand gelesen wird. uid explizit
+  // durchreichen (nicht ueber _coachUid() neu ermitteln) — s. Kommentar bei
+  // _dossierRetryIfDirty.
+  _dossierRetryIfDirty(uid);
   try {
     const snap = await window.FB.getDoc(window.FB.doc('users/' + uid + '/coach', 'dossier'));
     if (!snap || !snap.exists()) return;
@@ -23915,6 +23948,14 @@ function _coachHandleAuthUser(user){
     const neu = (user && !user.isAnonymous) ? user.uid : null;
     if (_coachLastUid !== undefined && _coachLastUid !== neu) {
       _aicHist = []; localStorage.removeItem('gt_aiChat');
+      // S.coachLog ueberlebt Abmelden bewusst (liegt in S, nicht im uid-
+      // gebundenen Dossier-Speicher) — bei einem echten Kontowechsel auf dem
+      // gleichen Geraet muss es trotzdem geleert werden: sonst throttelt
+      // Konto A's Dismiss-Historie den Live-Coach von Konto B, und Konto A's
+      // muted-Liste (welche Vorschlagstypen unterdrueckt werden) geht unter
+      // Konto B's Session an den /coach-Payload raus. Enthaelt nur
+      // {ts,kind,exId,accepted} — keine Gesundheitsdaten, reine Korrektheit.
+      S.coachLog = [];
       // Ausstehenden Debounce-Timer kappen: er darf nie unter einem fremden
       // Konto feuern (Review Kritisch 1). _dossierPush prueft die uid beim
       // Feuern zwar zusaetzlich, aber der Timer soll erst gar nicht mehr
@@ -23928,7 +23969,11 @@ function _coachHandleAuthUser(user){
       }
     }
     _coachLastUid = neu;
-    if (neu) _dossierPull();
+    // neu explizit durchreichen statt _dossierPull() ueber _coachUid()/_fbUser
+    // raten zu lassen — _fbUser ist an dieser Stelle (Aufruf VOR _onLogin,
+    // s. Kommentar oben) noch nicht gesetzt, die uid aus dem user-Argument
+    // hier ist die einzige verlaessliche Quelle.
+    if (neu) _dossierPull(neu);
   } catch(_) {}
 }
 // Schnappschuss fuer den Intent-Router. Bewusst hier gebaut statt im Router,
