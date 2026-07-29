@@ -11,11 +11,13 @@
   "vars": {
     "MODEL": "gemini-3.5-flash-lite",
     "MONTHLY_LIMIT": "150",
-    // Harter Kostendeckel/Monat über ALLE Nutzer. Rechnung: ~$0.002/Chat bei
-    // Flash-Lite × 150 Anfragen = ~$0.30 pro voll ausgereiztem Premium-Nutzer.
-    // 25 USD ≈ 80 Nutzer, die ihr Limit komplett ausschöpfen. Greift der Deckel,
-    // antworten /chat|/coach|/analyze mit 429 bis zum Monatswechsel — auch für
-    // das Founder-Konto, also beim Testen im Blick behalten.
+    // Kostendeckel wächst mit der Nutzerzahl mit: Deckel = Premium-Köpfe des
+    // Monats × USD_PER_USER, mindestens MIN_MONTHLY_USD. Rechnung dahinter:
+    // 2,99 € − 15 % Apple = 2,54 € ≈ 2,75 $ netto; 0,30 $ sind 11 % davon.
+    // Ein Nutzer, der seine 150 Anfragen komplett ausreizt, kostet ~0,22 $.
+    "USD_PER_USER": "0.30",
+    "MIN_MONTHLY_USD": "5",
+    // Bleibt als Not-Bremse: ist USD_PER_USER leer, gilt wieder dieser feste Wert.
     "GLOBAL_MONTHLY_USD": "25"
   }
 }

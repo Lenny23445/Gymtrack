@@ -178,6 +178,45 @@ async function recordUsage(env, uid, usage) {
   }
 }
 
+// ── Premium-Kopfzahl je Monat (KV) — Basis für den mitwachsenden Kostendeckel ──
+// Jeder erfolgreich verifizierte Premium-Nutzer trägt sich einmal pro Monat ein.
+// Zwei Schlüssel statt einer Liste: ein Marker je Nutzer (pseen:) und ein
+// Gesamtzähler (pcount:). Der Marker verhindert Doppelzählung, ohne dass wir je
+// alle uids laden müssen — kv.list() über tausende Schlüssel wäre bei jedem
+// Request zu teuer und zählt bei Cloudflare als Liste-Operation.
+async function premiumSeen(uid, env) {
+  const kv = env.AI_QUOTA;
+  if (!kv) return 0;
+  const month = new Date().toISOString().slice(0, 7);
+  const mark = "pseen:" + uid + ":" + month;
+  const cntKey = "pcount:" + month;
+  const already = await kv.get(mark);
+  let count = parseInt(await kv.get(cntKey)) || 0;
+  if (!already) {
+    count += 1;
+    // 45 Tage: überlebt den Monatswechsel für die Nachlaufzeit des Dashboards,
+    // verfällt danach von selbst — kein Aufräum-Job nötig.
+    await kv.put(mark, "1", { expirationTtl: 45 * 86400 });
+    await kv.put(cntKey, String(count), { expirationTtl: 45 * 86400 });
+  }
+  return count;
+}
+// Deckel = Kopfzahl × Budget je Nutzer, mit einem Sockel für den Monatsanfang:
+// beim ersten Nutzer des Monats wäre 1 × 0.30 sonst sofort erreicht, sobald ein
+// einzelner Nutzer sein Limit ausschöpft. MIN_MONTHLY_USD hält die Untergrenze.
+async function budgetCapUsd(uid, env) {
+  const perUser = parseFloat(env.USD_PER_USER);
+  if (!(perUser > 0)) {
+    // Rückwärtskompatibel: solange USD_PER_USER nicht gesetzt ist, gilt der alte
+    // feste Deckel unverändert weiter.
+    const fixed = parseFloat(env.GLOBAL_MONTHLY_USD);
+    return fixed > 0 ? fixed : null;
+  }
+  const floorUsd = parseFloat(env.MIN_MONTHLY_USD) || 5;
+  const heads = await premiumSeen(uid, env);
+  return Math.max(floorUsd, heads * perUser);
+}
+
 export default {
   async fetch(request, env) {
     const cors = {
@@ -201,7 +240,8 @@ export default {
       if (uid !== FOUNDER_UID) return json({ error: "kein Zugriff" }, 403, cors);
       const stats = await monthlyStats(env);
       const costUsd = estCostUsd(env, stats.inTok, stats.outTok);
-      const budgetUsd = parseFloat(env.GLOBAL_MONTHLY_USD) || null;
+      const budgetUsd = await budgetCapUsd(uid, env);
+      const premiumHeads = parseInt(await (env.AI_QUOTA ? env.AI_QUOTA.get("pcount:" + new Date().toISOString().slice(0, 7)) : null)) || 0;
       // Alle KV-Monate (stats:YYYY-MM) fürs Dashboard: Historie + Ø-Kosten/Monat
       let history = [];
       try {
@@ -255,7 +295,7 @@ export default {
         limitEnforced: !!env.AI_QUOTA,   // nur mit gebundenem KV echt durchgesetzt
         globalBudgetUsd: budgetUsd,
       };
-      return json({ ...stats, costUsd, budgetUsd, history, cfg, users }, 200, cors);
+      return json({ ...stats, costUsd, budgetUsd, premiumHeads, history, cfg, users }, 200, cors);
     }
 
     // ── GET /admin-stats — Auth- + App-Store-Zahlen fürs Live-Dashboard (nur Founder-UID) ──
@@ -319,7 +359,7 @@ export default {
 
     // 5) Globales Monatsbudget (Kostendeckel über ALLE Nutzer zusammen, Hard-Stop) —
     // nur aktiv wenn GLOBAL_MONTHLY_USD gesetzt ist (Var, kein Secret; siehe Kopfkommentar).
-    const budgetUsd = parseFloat(env.GLOBAL_MONTHLY_USD);
+    const budgetUsd = await budgetCapUsd(uid, env);
     if (budgetUsd > 0) {
       const stats = await monthlyStats(env);
       if (estCostUsd(env, stats.inTok, stats.outTok) >= budgetUsd) {
