@@ -7378,7 +7378,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607280001';
+const APP_VERSION = 'gymtrack-v202607290001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8323,6 +8323,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-coach-schneller': {
+    label: '29.07.2026 · Der Coach antwortet schneller und kostet weniger',
+    items: [
+      'Elf weitere Fragen beantwortet die App sofort selbst — Streak, Wochenfortschritt, letzter Rekord, nächster Plantag und mehr, ohne Wartezeit und auch ohne Empfang im Keller-Gym',
+      'Neu: Frag „Warum 62,5?" und der Coach erklärt dir die Rechnung hinter seinem Gewichtsvorschlag',
+      'Die Vorschläge über dem Eingabefeld richten sich jetzt danach, ob du gerade trainierst, eben fertig geworden bist oder pausierst',
+      'Fragen rund um Krankheit, Beschwerden oder Schwangerschaft beantwortet die App nicht mehr aus eigenen Zahlen, sondern reicht sie an den Coach weiter',
+    ]
+  },
   'cl-2026-07-28-coach-gedaechtnis': {
     label: '28.07.2026 · Der KI-Coach merkt sich, wer du bist',
     items: [
