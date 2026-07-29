@@ -54,3 +54,60 @@ test('cacheKey trennt nach Modell', () => {
   const b = C.cacheKey('Was bringt Kreatin?', 'de', 'gemini-3.5-pro');
   assert.notStrictEqual(a, b);
 });
+
+// ─── Leck-Faelle aus dem Review (C1): Fragen ueber die eigene Person, die
+// vorher als cachebar durchgingen und damit eine fremde Antwort ausgeliefert
+// haetten. "ich"/"i" zaehlt zusammen mit einem Modal-/Zustandsverb.
+test('Subjektpronomen plus Modalverb ist personenbezogen', () => {
+  for (const q of [
+    'Wie schwer bin ich?', 'Was wiege ich?', 'How much do I weigh?',
+    'How much can I bench?', 'Kann ich trotz Bandscheibenvorfall trainieren?',
+    'Wie viel kann ich beim Bankdruecken?', 'Bin ich zu schwach?',
+    'Was soll ich als naechstes trainieren?', 'Was kann ich verbessern',
+    'Ich habe Schulterprobleme, was statt Bankdruecken?', 'I have a shoulder injury',
+  ]) assert.strictEqual(C.isPersonal(q, EX), true, q);
+});
+
+test('Koerper- und Gesundheitsfragen sind personenbezogen', () => {
+  for (const q of [
+    'Ist Kreuzheben bei Rueckenschmerzen ok?', 'Wie viele Kalorien brauche ich?',
+    'Ist der Schmerz nach dem Training normal?', 'Was tun bei einer Verletzung an der Schulter?',
+    'Wie schnell kann man abnehmen?',
+  ]) assert.strictEqual(C.isPersonal(q, EX), true, q);
+});
+
+test('Plan-, Split- und Programmfragen sind personenbezogen', () => {
+  for (const q of [
+    'Erstelle einen Trainingsplan', 'Create a training plan',
+    'Welchen Split sollte ich machen?', 'Ist der Plan gut',
+    'Welches Programm passt zu Muskelaufbau?',
+  ]) assert.strictEqual(C.isPersonal(q, EX), true, q);
+});
+
+// ─── Deutsche Flexion: \b(...)\b trifft nur die Grundform. Beide Formen jedes
+// Paars muessen als personenbezogen erkannt werden, sonst leckt die gebeugte.
+test('deutsche Flexion bricht die Erkennung nicht (Grundform und gebeugte Form)', () => {
+  for (const [a, b] of [
+    ['Wie ist der Fortschritt?', 'Mache ich Fortschritte?'],
+    ['Was ist der Rekord?', 'Zeig mal die Rekorde'],
+    ['Was lief in der Woche?', 'Wie waren die letzten Wochen?'],
+    ['Was war das Beste?', 'Was ist die beste Leistung?'],
+    ['Wie ist der PR bei Kniebeuge?', 'Zeig die PRs bei Kniebeuge'],
+    ['Wie war das letzte Training?', 'Wie war das letztens?'],
+    ['Ist der Schmerz normal?', 'Ist Kreuzheben bei Rueckenschmerzen ok?'],
+  ]) {
+    assert.strictEqual(C.isPersonal(a, EX), true, a);
+    assert.strictEqual(C.isPersonal(b, EX), true, b);
+  }
+});
+
+// ─── Gegenprobe: eine Verschaerfung, die alles blockiert, waere kein Fix.
+// Reines Sachwissen muss cachebar bleiben.
+test('allgemeine Sachfragen bleiben cachebar', () => {
+  for (const q of [
+    'Wie führe ich Latzug aus?', 'Was bringt Kreatin?', 'Was ist Hypertrophie?',
+    'How do I perform a lat pulldown?', 'Welche Muskeln trainiert Latzug?',
+    'Wie lange sollte eine Pause zwischen den Saetzen sein?',
+    'Was ist der Unterschied zwischen Kurzhantel und Langhantel?',
+  ]) assert.strictEqual(C.isPersonal(q, EX), false, q);
+});

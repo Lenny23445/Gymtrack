@@ -24120,16 +24120,28 @@ async function aicSend(){
     const msgs = _aicHist.slice(-16).map(m => ({ role: m.role, content: m.content }));
     const payload = { messages: msgs, context: _aicContext() };
     // Cache-Hinweis fuer den Worker: nur sachliche Fragen ohne Personenbezug.
+    // Das ist ausdruecklich nur ein HINWEIS — der Worker rechnet Schluessel und
+    // Cachefaehigkeit selbst nach (worker.js, ccVerifiedKey) und cacht nichts,
+    // was seine eigene Pruefung nicht besteht.
     // GT_LANG (nicht das rohe localStorage['gt_lang']) — das ist bereits die
     // aufgeloeste Sprache ('auto' -> Geraetesprache) und exakt der Wert, der
     // gleich als lang:GT_LANG mitgeschickt wird. Mit dem rohen Rohwert wuerden
     // alle 'auto'-Nutzer (Standardeinstellung) faelschlich unter 'de' landen,
     // auch bei englischem Geraet — Cache-Kollision mit falscher Antwortsprache.
+    // Nur der ERSTE Turn eines Chats ist cachefaehig: der Schluessel haengt nur
+    // an dieser einen Frage, nicht an der Historie. "Ich habe Schulterprobleme"
+    // gefolgt von "Alternative zu Bankdruecken?" wuerde die schulterspezifische
+    // Antwort sonst unter einem Schluessel ohne Vorgeschichte ablegen.
+    // Das Modell-Segment steht bewusst auf 'srv': welches Modell tatsaechlich
+    // antwortet, weiss nur der Worker (MODEL/PROVIDER). Er ersetzt das Segment
+    // beim Nachrechnen durch den echten Modellnamen — ein hier hartcodierter
+    // Name wuerde bei einem Modellwechsel still veralten und 30 Tage lang
+    // Antworten des alten Modells ausliefern.
     try {
       const exNames = (S.exercises || []).map(e => e && e.name).filter(Boolean);
-      if (!CoachCache.isPersonal(t, exNames)) {
+      if (_aicHist.length === 1 && !window.CoachCache.isPersonal(t, exNames)) {
         payload.cacheable = true;
-        payload.cacheKey  = CoachCache.cacheKey(t, GT_LANG, 'gemini-3.5-flash-lite');
+        payload.cacheKey  = window.CoachCache.cacheKey(t, GT_LANG, 'srv');
       }
     } catch (_) { /* ohne Cache-Hinweis laeuft der Aufruf normal ans Modell */ }
     const res = await aiCall('chat', payload);

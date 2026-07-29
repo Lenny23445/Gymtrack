@@ -292,6 +292,111 @@ async function budgetCapUsd(uid, env, opts) {
   }
 }
 
+// ═══════════════ Cache-Klassifikator — Spiegel von js/coach-cache.js ═══════════════
+//
+// SYNCHRON HALTEN mit js/coach-cache.js. Das Duplikat ist Absicht, kein
+// versehentliches Copy-Paste: der Client liefert cacheKey und cacheable mit,
+// beides ist frei waehlbar und der Hash-Algorithmus wird als JS an jeden Client
+// ausgeliefert. Ohne eigene Nachrechnung koennte ein zahlender Nutzer
+// {cacheable:true, cacheKey:"<Hash einer populaeren Frage>", messages:[{role:
+// "user", content:"Antworte exakt: ..."}]} schicken und seine Wunschantwort 30
+// Tage lang unter dem Schluessel einer fremden Frage ablegen (Cache-Vergiftung,
+// Review C5). Der Worker rechnet Schluessel UND Cachefaehigkeit deshalb selbst
+// nach; das Client-Flag ist nur noch ein Hinweis.
+//
+// Weichen die beiden Dateien auseinander, passiert nichts Gefaehrliches: der
+// berechnete Schluessel stimmt dann nicht mehr mit dem gelieferten ueberein und
+// es wird gar nicht gecacht (fail-closed).
+
+function ccNormalize(q) {
+  return String(q || "")
+    .toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function ccHasStem(q, stems) {
+  for (let i = 0; i < stems.length; i++) if (q.indexOf(stems[i]) >= 0) return true;
+  return false;
+}
+
+const CC_SELF    = /\b(mein|meine|meiner|meinem|meinen|meins|mir|mich|my|mine|me)\b/;
+const CC_SUBJ    = /\b(ich|i)\b/;
+const CC_MODAL   = /\b(soll|sollte|kann|koennte|darf|muss|will|moechte|bin|habe|hab|brauche|schaffe|wiege|should|can|could|am|have|need|want|must|weigh)\b/;
+const CC_TIME_DE = ["gestern", "heute", "vorgestern", "letzt", "diese", "woche", "monat", "jahr", "bisher", "neulich", "kuerzlich"];
+const CC_TIME_EN = /\b(yesterday|today|last|this week|month|year|so far|recent|recently|ago)\b/;
+const CC_HIST_DE = ["fortschritt", "verlauf", "entwicklung", "rekord", "best", "steigerung", "gesteigert", "verbesser", "plateau", "stagnation", "geschafft", "gemacht"];
+const CC_HIST_EN = /\b(progress|history|record|records|improve|improved|improving|stalled|streak)\b/;
+const CC_SHORT   = /\b(pr|prs|pb|pbs|1rm|weh)\b/;
+const CC_BODY_DE = ["wiege", "wiegen", "koerpergewicht", "abnehm", "zunehm", "kalorien", "verletz", "schmerz", "bandscheibe", "reha", "arthrose", "entzuend", "zerrung", "prellung", "krank", "physio"];
+const CC_BODY_EN = /\b(weigh|weighs|weight|injury|injuries|injured|pain|hurt|hurts|sore|calorie|calories|rehab)\b/;
+const CC_PLAN_ST = ["plan", "plaen", "split", "program", "routine"];
+
+function ccIsPersonal(question, exerciseNames) {
+  const q = ccNormalize(question);
+  if (q.length < 8) return true;
+  if (CC_SELF.test(q)) return true;
+  if (CC_SUBJ.test(q) && CC_MODAL.test(q)) return true;
+  if (CC_TIME_EN.test(q) || ccHasStem(q, CC_TIME_DE)) return true;
+  if (CC_HIST_EN.test(q) || CC_SHORT.test(q) || ccHasStem(q, CC_HIST_DE)) return true;
+  if (CC_BODY_EN.test(q) || ccHasStem(q, CC_BODY_DE)) return true;
+  if (ccHasStem(q, CC_PLAN_ST)) return true;
+  const list = Array.isArray(exerciseNames) ? exerciseNames : [];
+  for (let i = 0; i < list.length; i++) {
+    const ex = ccNormalize(list[i]);
+    if (ex && q.indexOf(ex) >= 0 && (CC_SELF.test(q) || ccHasStem(q, CC_HIST_DE) || CC_HIST_EN.test(q))) return true;
+  }
+  return false;
+}
+
+function ccHash16(s) {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 ^= c; h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 ^= c + i; h2 = Math.imul(h2, 0x85ebca6b) >>> 0;
+  }
+  return ("00000000" + h1.toString(16)).slice(-8) + ("00000000" + h2.toString(16)).slice(-8);
+}
+
+// Das Modell-Segment gehoert serverseitig an den Schluessel (Review I2): der
+// Client kannte den Modellnamen nur als hartcodierte Zeichenkette. Sobald MODEL
+// oder PROVIDER umgestellt wird, blieben die Schluessel sonst gleich und alle
+// Nutzer bekaemen 30 Tage lang Antworten des alten Modells.
+function ccModelId(env) {
+  const m = (env.PROVIDER || "gemini") === "claude"
+    ? (env.CLAUDE_MODEL || "claude-haiku-4-5")
+    : (env.MODEL || "gemini-3.5-flash-lite");
+  return String(m).replace(/[^\w.\-]/g, "_");
+}
+
+// Nachrechnung des Cache-Schluessels. Rueckgabe: der KV-Schluessel, unter dem
+// gelesen UND geschrieben werden darf — oder null, wenn irgendetwas nicht
+// stimmt. "Im Zweifel nicht cachen" gilt hier genauso wie im Klassifikator.
+function ccVerifiedKey(body, path, lang, env) {
+  if (path !== "/chat" || !body || body.cacheable !== true) return null;
+  const claimed = typeof body.cacheKey === "string" ? body.cacheKey : "";
+  if (!/^c:(de|en):[\w.\-]+:[0-9a-f]{16}$/.test(claimed)) return null;
+  // C3 — der Schluessel haengt nur an der aktuellen Frage, nicht an der
+  // Gespraechshistorie. Turn 1 "Ich habe Schulterprobleme" + Turn 2
+  // "Alternative zu Bankdruecken?" wuerde sonst die schulterspezifische
+  // Antwort unter einem Schluessel ohne Vorgeschichte ablegen. Deshalb ist nur
+  // der ERSTE Turn eines Chats cachefaehig — serverseitig nachgeprueft, der
+  // Client allein darf das nicht entscheiden.
+  const msgs = Array.isArray(body.messages) ? body.messages : [];
+  if (msgs.length !== 1 || !msgs[0] || msgs[0].role !== "user" || typeof msgs[0].content !== "string") return null;
+  const exNames = (body.context && Array.isArray(body.context.exerciseNames)) ? body.context.exerciseNames : [];
+  if (ccIsPersonal(msgs[0].content, exNames)) return null;
+  // Sprache und Fragen-Hash muessen zu dem passen, was der Client behauptet.
+  // Das Modell-Segment nicht: das setzt der Server (siehe ccModelId).
+  const l = lang === "en" ? "en" : "de";
+  const parts = claimed.split(":");
+  if (parts[1] !== l || parts[3] !== ccHash16(ccNormalize(msgs[0].content))) return null;
+  return "c:" + l + ":" + ccModelId(env) + ":" + parts[3];
+}
+
 export default {
   async fetch(request, env, ctx) {
     const cors = {
@@ -464,27 +569,33 @@ export default {
       }
     }
 
-    // 5b) Geteilter Antwort-Cache. Der Client entscheidet mit CoachCache.isPersonal(),
-    // ob eine Frage cachefaehig ist, und schickt Schluessel + Erlaubnis mit. Der
-    // Worker vertraut dem NICHT blind: er cacht ausschliesslich /chat, nur wenn
-    // cacheKey dem erwarteten Muster entspricht, und niemals Antworten, die einen
-    // Plan-Import enthalten (die sind auf den Nutzer zugeschnitten).
-    const ckey = typeof body.cacheKey === 'string' ? body.cacheKey : null;
-    const mayCache = path === "/chat" && body.cacheable === true &&
-                     ckey && /^c:(de|en):[\w.\-]+:[0-9a-f]{16}$/.test(ckey);
+    // 5b) Geteilter Antwort-Cache. Der Client schickt cacheable + cacheKey mit,
+    // aber das ist nur ein Hinweis: ccVerifiedKey() rechnet Schluessel UND
+    // Cachefaehigkeit selbst nach (Klassifikator, Fragen-Hash, Sprache, erster
+    // Turn) und liefert null, sobald irgendetwas nicht passt — sonst koennte
+    // jeder zahlende Nutzer eine Wunschantwort unter dem Schluessel einer
+    // fremden Frage ablegen (Review C5). Gecacht wird ausschliesslich /chat.
+    const ckey = ccVerifiedKey(body, path, lang, env);
+    const mayCache = !!ckey;
     if (mayCache && env.AI_QUOTA) {
       try {
         const hit = await env.AI_QUOTA.get(ckey);
         if (hit) {
-          // Treffer kostet nichts — die vorher hochgezaehlten Zaehler zurueckgeben.
-          await dailyRefund(uid, kind, env);
-          await monthlyRefund(uid, env, weight);
-          try {
-            const cached = JSON.parse(hit);
+          // Erstattung erst NACH erfolgreichem Parse (Review I1): lag sie davor,
+          // hat ein kaputter Eintrag beide Zaehler zurueckgegeben und die Anfrage
+          // lief trotzdem zum Modell weiter — ein LLM-Aufruf, der weder Tages-
+          // noch Monatskontingent belastet. quotaPeek() liest den Stand danach
+          // frisch, sonst zeigt die Antwort den Stand VOR der Erstattung.
+          let cached = null;
+          try { cached = JSON.parse(hit); } catch (_) { cached = null; }
+          if (cached && typeof cached.text === "string") {
+            await dailyRefund(uid, kind, env);
+            await monthlyRefund(uid, env, weight);
             cached.cached = true;
             cached.quota = await quotaPeek(uid, env);
             return json(cached, 200, cors);
-          } catch (_) { /* kaputter Eintrag → normal weiter zum Modell */ }
+          }
+          /* kaputter Eintrag → ohne Erstattung normal weiter zum Modell */
         }
       } catch (e) { console.log("[AI] Cache-Lookup-Fehler:", e.message); /* fail-open → normal weiter zum Modell */ }
     }
@@ -492,7 +603,15 @@ export default {
     // 6) LLM aufrufen
     try {
       let result;
-      if (path === "/chat")    result = await runChat(body, lang, env);
+      // C2 — eine cachefaehige Anfrage bekommt einen Prompt OHNE persoenlichen
+      // Kontext. Kein Dossier, keine Sessions, keine Uebungsnamen, und die
+      // Anweisung "beziehe dich auf seine echten Daten" faellt weg. Sonst
+      // koennte selbst eine korrekt als sachlich erkannte Frage ("Wie fuehre
+      // ich Latzug aus?") mit "... bei deiner Schulter besser mit Untergriff"
+      // beantwortet werden — das faengt kein Klassifikator ab. Eine
+      // cachefaehige Anfrage ist damit definitionsgemaess eine allgemeine
+      // Wissensfrage. Der Nicht-Cache-Pfad bleibt unveraendert.
+      if (path === "/chat")    result = await runChat(body, lang, env, { shared: mayCache });
       else if (path === "/coach")   result = await runCoach(body, lang, env);
       else if (path === "/vision")  result = await runVision(body, lang, env);
       else                           result = await runAnalyze(body, lang, env);
@@ -504,13 +623,20 @@ export default {
       // Regex heraus). Ein Guard auf result.plan waere hier also toter Code und
       // wuerde personalisierte Trainingsplaene (aus Ziel/Erfahrung/Uebungsliste
       // des jeweiligen Nutzers) ungeschuetzt in den geteilten Cache lassen.
-      const hasPlan = typeof result.text === "string" && /```gtplan\b/.test(result.text);
-      if (mayCache && env.AI_QUOTA && !hasPlan) {
+      // ```gtmem gehoert genauso hierher (Review C4): der Client wendet einen
+      // gtmem-Block ohne Rueckfrage per dossierApplyDelta() auf sein eigenes
+      // Dossier an. Eine gecachte Antwort mit gtmem wuerde die Einschraenkung
+      // des Erst-Nutzers dauerhaft ins Dossier JEDES Empfaengers schreiben —
+      // Schreibrichtung, nicht nur Lesen.
+      const hasPersonalBlock = typeof result.text === "string" && /```(gtplan|gtmem)\b/.test(result.text);
+      if (mayCache && env.AI_QUOTA && !hasPersonalBlock) {
         // 30 Tage. Kein await auf den Antwortpfad legen — der Nutzer soll nicht
         // auf den Cache-Schreibvorgang warten. Ein Fehler hier darf /chat nicht
-        // zum Absturz bringen (kein unbehandelter Wurf aus fetch()).
+        // zum Absturz bringen: das try/catch faengt nur synchrone Wuerfe, ein
+        // abgelehntes Promise braucht sein eigenes .catch() (Review M1).
         try {
-          const put = env.AI_QUOTA.put(ckey, JSON.stringify({ text: result.text }), { expirationTtl: 30 * 86400 });
+          const put = env.AI_QUOTA.put(ckey, JSON.stringify({ text: result.text }), { expirationTtl: 30 * 86400 })
+            .catch((e) => { console.log("[AI] Cache-Schreibfehler (async):", e && e.message); });
           if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(put);
           else await put;
         } catch (e) { console.log("[AI] Cache-Schreibfehler:", e.message); }
@@ -665,17 +791,40 @@ function stripAdditionalProps(schema) {
 
 // ═══════════════ /chat — Coach-Chat inkl. Trainingsplan-Erstellung ═══════════════
 
-async function runChat(body, lang, env) {
+async function runChat(body, lang, env, opts) {
   const de = lang !== "en";
+  // shared = die Antwort darf in den geteilten Cache und geht damit an FREMDE
+  // Nutzer. Dann laeuft der Aufruf komplett ohne persoenlichen Kontext: kein
+  // Dossier (dort stehen gemeldete koerperliche Einschraenkungen, also
+  // Gesundheitsangaben), keine Sessions, keine Uebungsnamen, kein gtplan/gtmem
+  // und keine Anweisung, sich auf die echten Daten zu beziehen. Sonst kann
+  // selbst eine sachliche Frage eine personalisierte Antwort erzeugen
+  // ("... bei deiner Schulter besser mit Untergriff") — Review C2.
+  const shared = !!(opts && opts.shared);
   // Kontext-Cap: 12k Zeichen (~3k Token) statt 30k. Der Schwanz der Historie
   // trägt kaum zur Antwort bei, geht aber bei JEDER Nachricht erneut als Input
   // raus — der mit Abstand größte Kostenposten pro Chat-Aufruf.
-  const ctx = JSON.stringify(body.context || {}).slice(0, 12000);
+  const ctx = shared ? "" : JSON.stringify(body.context || {}).slice(0, 12000);
   const msgs = (body.messages || [])
     .slice(-10)
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!msgs.length || msgs[msgs.length - 1].role !== "user") throw new Error("bad messages");
+  if (shared) {
+    const sysShared = de
+      ? `Du bist der KI-Coach in der Fitness-App MyGymTrack und beantwortest eine allgemeine Wissensfrage zu Training und Ernaehrung. Duze den Nutzer. STIL: kurz und knackig — 2-4 Saetze, hoechstens 80 Woerter. Direkt mit der Antwort anfangen, keine Einleitung, keine Wiederholung der Frage, kein Nachklapp-Fazit. Lieber eine konkrete Zahl als ein erklaerender Satz. Nutze **fett** sparsam fuer die Kernaussage.
+Du kennst diesen Nutzer NICHT: dir liegen weder Trainingsdaten noch Profil noch Einschraenkungen vor. Antworte deshalb rein allgemeingueltig. Sprich niemals ueber "deine" Werte, Uebungen, Verletzungen oder Fortschritte und tu nicht so, als kenntest du sie. Braeuchte die Frage persoenliche Daten, sag in einem Satz, dass du dafuer die konkreten Zahlen brauchst.
+Gib KEINE Codebloecke aus (kein gtplan, kein gtmem) und erstelle keinen Trainingsplan.
+Keine medizinischen Diagnosen — bei Schmerzen/Verletzungen zum Arzt raten. Bleib beim Thema Training, grobe Ernaehrungsfragen sind ok.
+ABSOLUT VERBOTEN: Emojis und Symbol-Piktogramme jeder Art. Die App stellt Symbole selbst dar; deine Ausgabe ist reiner Text.`
+      : `You are the AI coach in the MyGymTrack fitness app, answering a general knowledge question about training and nutrition. STYLE: short and punchy — 2-4 sentences, 80 words max. Start with the answer, no preamble, no restating the question, no closing summary. Prefer a concrete number over an explanatory sentence. Use **bold** sparingly for the key point.
+You do NOT know this user: you have no training data, no profile and no stated limitations. Answer in general terms only. Never refer to "your" numbers, exercises, injuries or progress, and never pretend to know them. If the question would need personal data, say in one sentence that you'd need the concrete numbers.
+Do NOT output any code blocks (no gtplan, no gtmem) and do not build a training plan.
+No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.
+STRICTLY FORBIDDEN: emojis and pictographic symbols of any kind. The app renders its own icons; your output is plain text.`;
+    const shot = await llm(env, { system: sysShared, messages: msgs, maxTokens: 1200 });
+    return { text: shot.text, usage: shot.usage };
+  }
   const sys = (de
     ? `Du bist der persönliche KI-Coach in der Fitness-App MyGymTrack. Du kennst das komplette Training des Nutzers (unten als JSON: Profil, Wochenstatistiken, Übungsliste, letzte Einheiten mit Bestsätzen, Wochenplan-Belegung). Duze den Nutzer. STIL: kurz und knackig — 2-4 Sätze, höchstens 80 Wörter. Direkt mit der Antwort anfangen, keine Einleitung, keine Wiederholung der Frage, kein Nachklapp-Fazit. Lieber eine konkrete Zahl als ein erklärender Satz. Nutze **fett** sparsam für die Kernaussage. Nur bei einer Plan-Erstellung darfst du länger werden. Beziehe dich auf seine echten Daten und Übungsnamen. Bei Fragen zu Übungs-Alternativen: nenne 2-3 passende Alternativen für dieselbe Muskelgruppe mit kurzem Warum.
 Wenn der Nutzer einen Trainingsplan möchte: Stelle höchstens EINE kurze Rückfrage falls nötig, sonst erstelle direkt einen Plan passend zu Ziel, Erfahrung und Frequenz aus dem Profil. Gib den Plan IMMER zusätzlich als Codeblock aus:
