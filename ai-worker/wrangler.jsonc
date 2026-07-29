@@ -1,7 +1,9 @@
 {
   // Deploy-Config für den KI-Worker. Enthält bewusst KEINE Secrets/API-Keys
-  // (GEMINI_API_KEY etc. bleiben Dashboard-Variablen und werden beim Deploy via
-  // `--keep-vars` bewahrt). KV-Binding + öffentliche Vars sind hier reproduzierbar.
+  // (GEMINI_API_KEY etc. liegen als Cloudflare-Secrets im Dashboard, nicht hier).
+  // `--keep-vars` ist obsolet: seit dem Umzug der Keys auf Secrets überschreibt ein
+  // normaler `wrangler deploy` sie nicht mehr — der Flag galt nur, als die Keys noch
+  // gewöhnliche `vars` waren. KV-Binding + öffentliche Vars sind hier reproduzierbar.
   "name": "gymtrack-ai",
   "main": "worker.js",
   "compatibility_date": "2026-07-23",

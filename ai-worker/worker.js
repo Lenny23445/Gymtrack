@@ -52,9 +52,15 @@
 //   MIN_MONTHLY_USD = Sockel/Untergrenze für den mitwachsenden Deckel oben — nur wirksam,
 //                  solange USD_PER_USER gesetzt ist.
 //   GLOBAL_MONTHLY_USD = fester Kostendeckel/Monat über ALLE Nutzer zusammen (leer = kein Deckel);
-//                  aktiv als Rückfall, solange USD_PER_USER NICHT gesetzt ist (siehe budgetCapUsd());
-//                  bei Erreichen (fest oder mitwachsend) antworten /chat|/coach|/analyze mit 429,
-//                  bis der Monat wechselt — auch für das Founder-Konto, beim Testen im Blick behalten
+//                  greift NUR als Rückfall, solange USD_PER_USER leer/0 ist (Rückwärts-
+//                  kompatibilität, siehe budgetCapUsd()) — ist USD_PER_USER gesetzt, hat
+//                  GLOBAL_MONTHLY_USD auf den laufenden Betrieb KEINEN Einfluss mehr, auch
+//                  NICHT im KV-Störfall: schlägt der Kopfzahl-Lookup fehl, fällt der Deckel
+//                  auf MIN_MONTHLY_USD zurück (Sockel, immer eine Zahl > 0), NICHT mehr auf
+//                  GLOBAL_MONTHLY_USD (das könnte leer/0 sein → Deckel würde verschwinden).
+//                  Bei Erreichen (fest oder mitwachsend) antworten /chat|/coach|/analyze mit
+//                  429, bis der Monat wechselt — auch für das Founder-Konto, beim Testen im
+//                  Blick behalten.
 // Bindings:
 //   AI_QUOTA (KV Namespace) = führt Monatslimit (q:{uid}:{YYYY-MM}) UND globale Kosten-Stats (stats:{YYYY-MM}) fort
 
@@ -204,35 +210,52 @@ async function recordUsage(env, uid, usage) {
 //     unmarkiert, jede erste Anfrage des Monats schreibt auf denselben
 //     pcount-Schlüssel. KV begrenzt Schreibzugriffe auf einen einzelnen Key auf
 //     ungefähr einen pro Sekunde.
-//   - Ein kaputter pcount-Wert kollabiert den Deckel dauerhaft: parseInt("abc")
+//   - Ein kaputter pcount-Wert lässt die gezählte Kopfzahl kollabieren: parseInt("abc")
 //     → NaN → || 0. Ist der schreibende Nutzer schon markiert, bleibt count bei 0;
 //     der nächste unmarkierte Nutzer schreibt "1" — alle bisher gezählten Köpfe
 //     sind für den Rest des Monats weg, weil ihre Marker jedes Nachzählen
 //     verhindern. Auslöser ist nicht exotisch, z. B. ein manuelles
 //     `wrangler kv key put` beim Debuggen reicht.
+//     Milder als es klingt, seit MIN_MONTHLY_USD auf 25 steht: budgetCapUsd() bildet
+//     max(floorUsd, count*perUser) — bei count=0 (der Kollaps-Fall hier) ist das
+//     Ergebnis weiterhin 25, nicht 0. Der Deckel "verschwindet" also nicht, er fällt
+//     nur bis zum Monatswechsel (oder bis genug neue Köpfe ihn wieder über 25 heben)
+//     auf den Sockel zurück — kein Totalausfall des Kostendeckels mehr. Das ändert
+//     NICHTS an der Drift selbst oder an der Betriebsregel unten: pcount:* bleibt
+//     tabu, die verlorenen Köpfe bleiben verloren.
 // Durable Objects wären ein CAS-fähiger Ausweg, sind hier aber eine neue
 // Komponente (nicht erlaubt) — die Drift wird bewusst in Kauf genommen.
 // BETRIEBSREGEL: pcount:*-Schlüssel NIEMALS von Hand setzen/überschreiben.
 //
-// opts.readOnly = true: nur lesen, NICHTS schreiben (kein Marker, kein Increment).
-// Für den /stats-Dashboard-GET (M1-Review) — ein Lesezugriff darf den Zähler nicht
-// selbst hochtreiben und den Founder nicht als zahlenden Kopf eintragen (genau wie
-// TEST_UIDS bei monthlyUse()/recordUsage() das Dashboard nicht verfälschen soll).
+// opts.readOnly = true: nur lesen, NICHTS schreiben (kein Marker, kein Increment) —
+// gilt für JEDE uid, nicht nur Founder/Tester. Für den /stats-Dashboard-GET
+// (M1-Review), damit ein Lesezugriff den Zähler nicht selbst hochtreibt.
+// Dass Founder/Tester NIE als zahlender Kopf zählen, ist NICHT readOnly's Job —
+// das übernimmt der TEST_UIDS-Guard unten (dieselbe Form wie recordUsage() sie
+// für utok:{uid} benutzt) und greift auf JEDEM Pfad, auch schreibend über /quota
+// oder den Haupt-Handler (budgetCapUsd() ruft premiumSeen() dort ohne readOnly auf).
 async function premiumSeen(uid, env, opts) {
   const kv = env.AI_QUOTA;
   if (!kv) return 0;
   const month = new Date().toISOString().slice(0, 7);
   const cntKey = "pcount:" + month;
   if (opts && opts.readOnly) return parseInt(await kv.get(cntKey)) || 0;
-  const mark = "pseen:" + uid + ":" + month;
-  const already = await kv.get(mark);
   let count = parseInt(await kv.get(cntKey)) || 0;
-  if (!already) {
-    count += 1;
-    // 45 Tage: überlebt den Monatswechsel für die Nachlaufzeit des Dashboards,
-    // verfällt danach von selbst — kein Aufräum-Job nötig.
-    await kv.put(mark, "1", { expirationTtl: 45 * 86400 });
-    await kv.put(cntKey, String(count), { expirationTtl: 45 * 86400 });
+  // TEST_UIDS zählen nie als zahlender Kopf — dieselbe Form wie recordUsage()
+  // (Zeile 178, "if (uid && !TEST_UIDS.has(uid))"): die Bedingung wrappt NUR den
+  // Schreib-/Increment-Teil, count wird trotzdem immer zurückgegeben (unverändert
+  // bei Founder/Tester), damit z. B. /quota- oder Haupt-Handler-Aufrufe des
+  // Founder-Kontos den Deckel nicht verfälschen.
+  if (uid && !TEST_UIDS.has(uid)) {
+    const mark = "pseen:" + uid + ":" + month;
+    const already = await kv.get(mark);
+    if (!already) {
+      count += 1;
+      // 45 Tage: überlebt den Monatswechsel für die Nachlaufzeit des Dashboards,
+      // verfällt danach von selbst — kein Aufräum-Job nötig.
+      await kv.put(mark, "1", { expirationTtl: 45 * 86400 });
+      await kv.put(cntKey, String(count), { expirationTtl: 45 * 86400 });
+    }
   }
   return count;
 }
@@ -256,9 +279,16 @@ async function budgetCapUsd(uid, env, opts) {
     const heads = await premiumSeen(uid, env, opts);
     return Math.max(floorUsd, heads * perUser);
   } catch (e) {
-    console.log("[AI] Kopfzahl-Fehler, Deckel faellt auf Legacy-Wert zurueck:", e.message);
-    const fixed = parseFloat(env.GLOBAL_MONTHLY_USD);
-    return fixed > 0 ? fixed : null;
+    // Bewusst der Sockel (floorUsd), NICHT GLOBAL_MONTHLY_USD: floorUsd ist durch
+    // "|| 25" IMMER eine Zahl > 0, GLOBAL_MONTHLY_USD darf dagegen leer sein (das
+    // ist der Rückwärtskompatibilitäts-Fall oben) — dann läge hier "fixed > 0 ?
+    // fixed : null", der Aufrufer prüft "if (budgetUsd > 0)", und null macht diese
+    // Bedingung false. Für die Dauer der KV-Störung gälte dann GAR KEIN
+    // Kostendeckel, obwohl USD_PER_USER aktiv konfiguriert ist. Vor der Umstellung
+    // hätte derselbe KV-Fehler einen 500 gegeben (nichts ausgegeben) — der Sockel
+    // ist der einzige Rückfallwert, der dieses Fail-Open nicht wieder einführt.
+    console.log("[AI] Kopfzahl-Fehler, Deckel faellt auf Sockel zurueck:", e.message);
+    return floorUsd;
   }
 }
 
