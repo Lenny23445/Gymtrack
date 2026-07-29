@@ -7983,6 +7983,7 @@ const I18N_EN = {
   'Frag mich zu Übungen, Technik oder lass dir einen kompletten Trainingsplan erstellen.':'Ask me about exercises, technique, or have me build you a complete workout plan.',
   'Erstelle mir einen Trainingsplan':'Create a workout plan for me','Alternative zu einer Übung finden':'Find an alternative exercise',
   'Wie kann ich mein Volumen steigern?':'How can I increase my volume?','Wo bin ich unausgeglichen?':'Where am I unbalanced?',
+  'Wie viel Volumen diese Woche?':'How much volume this week?',
   /* Kontextabhaengige Frage-Chips (Task 5) — drei Chip-Reihen je Trainingszustand */
   'Was ist mein nächster Satz?':'What’s my next set?','Wie soll ich mich aufwärmen?':'How should I warm up?',
   'Alternative zu dieser Übung':'Alternative to this exercise','Wie lief die Einheit?':'How did the session go?',
@@ -23922,7 +23923,12 @@ function _aicRenderSugg(){
     sugg = isWorkoutActive()
       ? ['Was ist mein nächster Satz?', 'Wie soll ich mich aufwärmen?', 'Alternative zu dieser Übung']
       : _aicRecentSessionDone()
-        ? ['Wie lief die Einheit?', 'Wie lang ist meine Streak?', 'Wie kann ich mein Volumen steigern?']
+        // "Wie lief die Einheit?" steht bewusst auf Platz DREI statt eins: der
+        // Router hat keinen Intent fuer die zuletzt beendete Einheit (nur einen
+        // gestern-spezifischen), die Frage geht also ans Modell. Auf Platz eins
+        // steht deshalb die Volumenfrage, die der Router lokal beantwortet —
+        // sonst waere in dieser Reihe nur ein Chip kostenlos statt zwei.
+        ? ['Wie viel Volumen diese Woche?', 'Wie lang ist meine Streak?', 'Wie lief die Einheit?']
         : ['Was steht als Nächstes an?', 'Wie viele Trainings diese Woche?', 'Erstelle mir einen Trainingsplan'];
   } catch(e) { sugg = ['Was steht als Nächstes an?', 'Wie viele Trainings diese Woche?', 'Erstelle mir einen Trainingsplan']; }
   // data-sg="<index>": der Text kommt beim Klick aus DIESEM Array, nie aus dem
