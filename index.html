@@ -24044,6 +24044,22 @@ function _coachSnap(){
         const nxt  = (cur.sets || []).find(x => !x.done);
         snap.active = { exId: cur.exerciseId, setsTotal: (cur.sets || []).length, setsDone: done,
                         nextW: nxt ? (parseFloat(nxt.w) || null) : null };
+        // Naechster Satz als ganzer Satz (Menge + Gewicht + Wdh). Bewusst aus
+        // den bereits eingetragenen Werten der Satzzeile, nicht neu gerechnet —
+        // so sagt der Chat exakt das, was im Training auch dransteht.
+        if (nxt) {
+          const exN  = (exById(cur.exerciseId) || {}).name || '';
+          const left = (cur.sets || []).filter(x => !x.done).length;
+          const w = parseFloat(nxt.w), r = parseInt(nxt.r);
+          snap.nextSetText = (exN ? exN + ': ' : '') + 'noch ' + left + (left === 1 ? ' Satz' : ' Sätze')
+            + (isFinite(w) && w > 0 ? ', ' + kgToDisp(w) + ' ' + unitLabel() : '')
+            + (isFinite(r) && r > 0 ? ' mal ' + r + ' Wiederholungen' : '') + '.';
+        }
+        if (cur.ssGroup) {
+          const p = wkLogs.find(l => l !== cur && l.ssGroup === cur.ssGroup);
+          const pn = p ? (exById(p.exerciseId) || {}).name : '';
+          if (pn) snap.supersetText = 'Supersatz mit ' + pn + '.';
+        }
       }
     }
     // Laufende Restpause: gleiche Bedingung wie anderswo im Code (_updateLiveActivity) —
@@ -24053,6 +24069,84 @@ function _coachSnap(){
     // Chat-Antwort und angezeigte Zahl nie auseinanderlaufen.
     try { snap.weekVolumeKg = _weekStats().vol; } catch(_) {}
     const t = _coachTodaySuggestion(); if (t) snap.todayText = t.text;
+
+    // --- Felder fuer die elf zusaetzlichen Router-Fragen (Plan v2, Task 3) ---
+    // Jede Quelle in ihrem eigenen try: faellt eine aus, fehlen nicht gleich
+    // alle folgenden Felder. Ein fehlendes Feld bleibt undefined — der Router
+    // liest das als "keine Antwort" und gibt die Frage ans Modell ab. Ein
+    // geratener Wert waere eine Falschaussage und teurer als jeder Aufruf.
+    // snap.warmupText bleibt bis Block 3 bewusst leer (CoachWarmup fehlt noch).
+    try { const ws = _weekStats(); snap.weekWorkouts = ws.ses; } catch(_) {}
+    try {
+      const planned = DAYS.filter(d => { const p = planFor(d.key); return p && p.type !== 'none'; }).length;
+      snap.weekGoal = planned || (parseInt(S.obFreq) || null);
+    } catch(_) {}
+    try { snap.streakWeeks = calcStreak().weeks; } catch(_) {}
+    try {
+      // Juengster Rekord ueber alle Uebungen — bestSet steht oben schon fertig.
+      let pr = null;
+      Object.keys(snap.bestSet).forEach(id => {
+        const b = snap.bestSet[id];
+        if (!b || !b.date || !(b.w > 0)) return;
+        if (!pr || String(b.date) > String(pr.date)) pr = { id, w: b.w, date: b.date };
+      });
+      const prEx = pr ? exById(pr.id) : null;
+      if (prEx) {
+        snap.lastPrExName = prEx.name;
+        snap.lastPrKg = pr.w;
+        snap.lastPrDaysAgo = Math.max(0, Math.round((Date.now() - new Date(pr.date)) / 86400000));
+      }
+    } catch(_) {}
+    try {
+      const durs = (S.sessions || []).slice(-10).map(s => s.duration || 0).filter(v => v > 0);
+      if (durs.length) snap.avgDurationMin = Math.round(durs.reduce((a, b) => a + b, 0) / durs.length / 60);
+    } catch(_) {}
+    try {
+      const yKey = _gtDayStr(new Date(Date.now() - 86400000));
+      const ys = (S.sessions || []).filter(s => _gtDayStr(s.date) === yKey);
+      const y = ys[ys.length - 1];
+      if (y) {
+        const n = (y.logs || []).length;
+        snap.yesterdayText = 'Gestern: ' + n + (n === 1 ? ' Übung' : ' Übungen') + ', '
+          + Math.round(sessionVolume(y)).toLocaleString('de-DE') + ' kg Volumen.';
+      }
+    } catch(_) {}
+    try {
+      const mon = new Date(); mon.setHours(0,0,0,0); mon.setDate(mon.getDate() - ((mon.getDay()+6)%7));
+      const mv = {};
+      (S.sessions || []).forEach(s => {
+        if (new Date(s.date) < mon) return;
+        (s.logs || []).forEach(l => {
+          const ex = exById(l.exerciseId); if (!ex) return;
+          const lbl = muscleLabel(ex.muscleGroup); if (!lbl) return;
+          mv[lbl] = (mv[lbl] || 0) + setsVolume(l.sets || []);
+        });
+      });
+      Object.keys(mv).forEach(k => { mv[k] = Math.round(mv[k]); });
+      if (Object.keys(mv).length) snap.muscleVolume = mv;
+    } catch(_) {}
+    try {
+      // Ab MORGEN suchen, nicht ab heute — "was steht als naechstes an" meint
+      // den naechsten Tag; der heutige gehoert dem today-Intent.
+      const order = ['sun','mon','tue','wed','thu','fri','sat'];
+      const ji = new Date().getDay();
+      for (let i = 1; i <= 7; i++) {
+        const k = order[(ji + i) % 7];
+        const p = planFor(k);
+        if (p && p.type !== 'none') {
+          const d = dayByKey(k);
+          snap.nextPlanDayText = (d ? d.label : k) + ': ' + (_planLabelFor(k) || 'Training') + '.';
+          break;
+        }
+      }
+    } catch(_) {}
+    try {
+      const names = []
+        .concat((S.workoutPresets || []).map(p => p && p.name))
+        .concat((S.customSplits   || []).map(c => c && c.label))
+        .filter(Boolean);
+      if (names.length) snap.planNames = names.slice(0, 12);
+    } catch(_) {}
   } catch(e) { console.warn('[Coach] Snapshot:', e); }
   return snap;
 }

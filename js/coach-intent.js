@@ -42,6 +42,21 @@
   // weil sie ausserhalb des Trainings praktisch nie vorkommen.
   function two(q, a, b) { return a.test(q) && b.test(q); }
 
+  // Medizinische Teilmenge von BLOCK. Gebraucht fuer die Vorab-Ausnahmen, die
+  // VOR BLOCK laufen (Aufwaermen, Task 3): "wie soll ich mich aufwaermen?"
+  // enthaelt "soll ich" und faellt sonst in BLOCK, obwohl die Frage rein
+  // schematisch ist. Die Ausnahme darf aber niemals eine Schmerz- oder
+  // Verletzungsmeldung einfangen -- die gehoert ausnahmslos ans Modell.
+  var MED = /(schmerz|weh|verletz|zwick|hurts|pain)/;
+
+  // Muskelgruppen-Woerter als reines JA/NEIN, ob eine Volumenfrage ueberhaupt
+  // muskelspezifisch gemeint ist. Die ZAHL kommt ausschliesslich aus
+  // s.muscleVolume; diese Liste liefert nie einen Wert, nur die Unterscheidung
+  // "Gesamtvolumen" vs. "Volumen einer Gruppe". Ohne sie wuerde eine
+  // Brust-Frage bei fehlendem s.muscleVolume vom Gesamtvolumen-Intent mit
+  // einer konfident falschen Zahl beantwortet.
+  var MUSCLE = /brust|ruecken|beine|\bbein\b|schulter|\barme\b|\barm\b|bauch|bizeps|trizeps|waden|gesaess|\bpo\b|chest|\bback\b|\blegs\b|shoulder|\barms\b|\babs\b|biceps|triceps|glutes|calves/;
+
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
       .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -69,8 +84,20 @@
   function resolveIntent(text, snap) {
     var q = norm(text);
     if (!q) return null;
-    if (BLOCK.test(q)) return null;
     var s = snap || {};
+
+    // VORAB-AUSNAHME (laeuft VOR BLOCK, siehe MED). Aufwaermen wird im Deutschen
+    // fast immer als "wie soll ich mich aufwaermen?" gefragt -- "soll ich" steht
+    // in BLOCK, die Frage kaeme also nie an. Sie ist aber weder wertend noch
+    // planend: die Antwort ist ein aus dem Arbeitsgewicht gerechnetes Schema.
+    // Fehlt das Schema, endet die Frage hier mit null und geht ans Modell --
+    // sie faellt bewusst NICHT auf die spaeteren Intents durch.
+    if (!MED.test(q) && /aufwaerm|einwaerm|warm.?up/.test(q)) {
+      if (!s.warmupText) return null;
+      return { intent: 'warmup', answer: s.warmupText };
+    }
+
+    if (BLOCK.test(q)) return null;
 
     // 1) Naechstes Gewicht -- "gewicht"/"weight" allein ist z.B. auch eine
     // Frage zum Koerpergewicht/Abnehmen. Gate: braucht zusaetzlich einen
@@ -80,6 +107,16 @@
         return { intent: 'nextWeight', answer: 'Nächster Satz: ' + num(s.active.nextW) + ' kg.' };
       }
       return null;
+    }
+
+    // 1b) Naechster Satz als Ganzes (Saetze x Wdh. bei Gewicht). Steht NACH
+    // Intent 1, damit die reine Gewichtsfrage weiter die kurze Antwort bekommt.
+    // Verlangt den Besitz-/Nominativbezug "mein naechster satz": "beim
+    // naechsten satz" ist eine Frage NACH etwas anderem (Uebung, Wdh.) und
+    // wird von zwei bestehenden Tests ausdruecklich als "ans Modell" gefuehrt.
+    if (/mein(en|em)? naechste[nrs]? satz|my next set/.test(q)) {
+      if (!s.nextSetText) return null;
+      return { intent: 'nextSet', answer: s.nextSetText };
     }
 
     // 2) Rekord -- "record" ist im Englischen auch ein Verb ("to record a
@@ -142,6 +179,20 @@
       return { intent: 'recovery', answer: mg + ' ist zu ' + rec[mg] + ' Prozent erholt.' };
     }
 
+    // 5b) Letzter PR -- MUSS vor Intent 6 stehen: "wann hatte ich zuletzt einen
+    // pr?" trifft dort auf "wann hatte ich"/"zuletzt", findet keinen
+    // Uebungsnamen und wuerde die Frage mit null verschlucken. "pr" nur mit
+    // Wortgrenzen (nicht in "prima", "pro"); "rekord" bleibt bewusst draussen,
+    // das gehoert Intent 2 (Rekord EINER Uebung).
+    if (/\bprs?\b|last pr|latest pr/.test(q)) {
+      if (s.lastPrExName == null || s.lastPrKg == null || s.lastPrDaysAgo == null) return null;
+      var pd = s.lastPrDaysAgo === 0 ? 'heute'
+             : s.lastPrDaysAgo === 1 ? 'gestern'
+             : 'vor ' + s.lastPrDaysAgo + ' Tagen';
+      return { intent: 'lastPr',
+               answer: 'Letzter Rekord: ' + s.lastPrExName + ' mit ' + num(s.lastPrKg) + ' kg, ' + pd + '.' };
+    }
+
     // 6) Letzte Ausfuehrung
     if (/zuletzt|letztes mal|last time|wann hatte ich/.test(q)) {
       var ex2 = findExercise(q, s.exercises);
@@ -149,6 +200,20 @@
       var d = (s.lastDone || {})[ex2.id];
       if (!d) return null;
       return { intent: 'lastDone', answer: ex2.name + ' zuletzt am ' + datum(d) + '.' };
+    }
+
+    // 6b) Volumen EINER Muskelgruppe -- steht VOR Intent 7, sonst beantwortet
+    // der Gesamt-Intent "wie viel volumen brust diese woche?" mit der
+    // Gesamtzahl. Umgekehrt darf dieser Intent die allgemeine Frage nicht
+    // schlucken: er verlangt zusaetzlich ein Muskelwort im Satz. Fehlt die
+    // Zahl fuer genau diese Gruppe, endet die Frage hier mit null statt auf
+    // das Gesamtvolumen durchzufallen (das waere eine falsche Auskunft).
+    if (MUSCLE.test(q) && two(q, /volumen|volume|tonnage/, /woche|week|training|gesamt/)) {
+      var mv = s.muscleVolume || {};
+      var mk = Object.keys(mv).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
+      if (!mk || mv[mk] == null) return null;
+      return { intent: 'muscleVolume',
+               answer: mk.charAt(0).toUpperCase() + mk.slice(1) + ' diese Woche ' + num(mv[mk]) + ' kg Volumen.' };
     }
 
     // 7) Wochenvolumen -- "volume" ist im Englischen zuerst Lautstaerke.
@@ -171,6 +236,66 @@
     if (/heute an|heute dran|was mache ich heute|what.?s on today/.test(q)) {
       if (!s.todayText) return null;
       return { intent: 'today', answer: s.todayText };
+    }
+
+    // --- Task 3: weitere lokal beantwortbare Fragen ------------------------
+    // Alle nach demselben Muster: eindeutiges Muster UND vorhandene Daten.
+    // Fehlt das Feld, ist die Antwort null (Frage geht ans Modell) -- nie ein
+    // geratener Wert. Ein erfundener Wert waere eine Falschaussage des
+    // Coaches und damit teurer als jeder Modellaufruf.
+
+    // 9) Supersatz-Partner der aktuellen Uebung.
+    if (/supersatz|supersaetze|superset/.test(q)) {
+      if (!s.supersetText) return null;
+      return { intent: 'superset', answer: s.supersetText };
+    }
+
+    // 10) Wochenfortschritt -- "woche"/"week" allein ist ein Alltagswort
+    // ("diese Woche war anstrengend"). Gate: zweites Trainings- oder
+    // Zaehl-Signal noetig.
+    if (two(q, /woche|week/, /training|einheit|workout|session|wie viele|wieviele|how many|geschafft/)) {
+      if (s.weekWorkouts == null || s.weekGoal == null) return null;
+      return { intent: 'weekProgress',
+               answer: 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };
+    }
+
+    // 11) Streak. Die App zaehlt sie in WOCHEN am Stueck (calcStreak().weeks),
+    // nicht in Tagen -- Feldname und Text folgen der Anzeige im Heute-Tab.
+    if (/streak|trainingsserie|serie in folge/.test(q)) {
+      if (s.streakWeeks == null) return null;
+      return { intent: 'streak',
+               answer: s.streakWeeks === 1 ? 'Eine Woche in Folge trainiert.'
+                                           : s.streakWeeks + ' Wochen in Folge trainiert.' };
+    }
+
+    // 12) Durchschnittliche Trainingsdauer -- "schnitt" allein ist mehrdeutig
+    // (Schnitt/schneiden), deshalb zusaetzlich ein Trainings- oder Dauer-Wort.
+    if (two(q, /schnitt|durchschnitt|average/, /trainier|training|workout|einheit|dauer|lange|lang/)) {
+      if (s.avgDurationMin == null) return null;
+      return { intent: 'avgDuration',
+               answer: 'Im Schnitt trainierst du ' + s.avgDurationMin + ' Minuten.' };
+    }
+
+    // 13) Gestrige Einheit.
+    if (/gestern|yesterday/.test(q)) {
+      if (!s.yesterdayText) return null;
+      return { intent: 'yesterday', answer: s.yesterdayText };
+    }
+
+    // 14) Naechster Plantag -- bewusst NACH Intent 8 (heute), damit
+    // "was steht heute an" dort bleibt.
+    if (/als naechstes an|als naechstes dran|naechste[rs]? (trainingstag|plantag|einheit)|next (training|workout) day|what.?s next/.test(q)) {
+      if (!s.nextPlanDayText) return null;
+      return { intent: 'nextPlanDay', answer: s.nextPlanDayText };
+    }
+
+    // 15) Liste der eigenen Plaene. Englisch ("which plans do i have") faellt
+    // in BLOCK (Wortstamm "plan") und geht ans Modell -- der Stamm bleibt dort
+    // absichtlich stehen, weil er alle Plan-AENDERUNGSwuensche abfaengt.
+    if (/welche plaene|meine plaene|plaene habe ich|planliste/.test(q)) {
+      var pn = (s.planNames || []).filter(Boolean);
+      if (!pn.length) return null;
+      return { intent: 'planList', answer: 'Deine Pläne: ' + pn.join(', ') + '.' };
     }
 
     return null;

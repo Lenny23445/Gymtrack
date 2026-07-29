@@ -233,3 +233,164 @@ test('"how many sets" ohne Trainingsbezug ist keine Satzfrage (geht ans Modell)'
     null
   );
 });
+
+// --- Task 3: elf weitere Fragen lokal beantworten -------------------------
+// S20 erbt bewusst ALLE Felder von SNAP. Nur so faellt auf, wenn ein neuer
+// Intent von einem bestehenden geschluckt wird (oder umgekehrt) -- mit einem
+// leeren Schnappschuss waeren die Reihenfolge-Fehler unsichtbar geblieben.
+const S20 = {
+  ...SNAP,
+  nextSetText:  '3 Sätze à 8 Wiederholungen bei 62,5 kg.',
+  warmupText:   'Aufwärmen: 20 kg mal 10, 40 kg mal 5, 55 kg mal 3.',
+  supersetText: 'Supersatz mit Rudern am Kabel.',
+  weekWorkouts: 3,
+  weekGoal:     4,
+  streakWeeks:  12,
+  lastPrExName: 'Kniebeuge',
+  lastPrKg:     102.5,
+  lastPrDaysAgo: 6,
+  avgDurationMin: 58,
+  yesterdayText: 'Gestern: Push, 6 Übungen, 5.400 kg Volumen.',
+  muscleVolume: { brust: 4800, ruecken: 5200 },
+  nextPlanDayText: 'Mittwoch: Beine.',
+  planNames: ['Push', 'Pull', 'Beine']
+};
+
+test('naechster Satz wird lokal beantwortet', () => {
+  const r = R.resolveIntent('was ist mein naechster satz?', S20);
+  assert.strictEqual(r && r.intent, 'nextSet');
+  assert.ok(r.answer.includes('62,5'));
+});
+
+test('"satz" allein loest keinen naechster-Satz-Intent aus (geht ans Modell)', () => {
+  // Ohne Besitz-/Nominativbezug ("mein naechster satz") ist "satz" ein
+  // Alltagswort. Faengt ein zu breites /satz/-Muster.
+  assert.strictEqual(R.resolveIntent('ein satz mit vielen woertern', S20), null);
+});
+
+test('Aufwaermfrage wird lokal beantwortet (trotz "soll ich" in BLOCK)', () => {
+  // Die natuerlichste Formulierung enthaelt "soll ich" und faellt damit in
+  // BLOCK. Der Aufwaerm-Intent steht deshalb VOR der BLOCK-Pruefung -- aber
+  // nur, wenn kein Schmerz-/Verletzungswort im Satz steht (Test weiter unten).
+  const r = R.resolveIntent('wie soll ich mich aufwaermen?', S20);
+  assert.strictEqual(r && r.intent, 'warmup');
+  assert.ok(r.answer.includes('20 kg'));
+});
+
+test('Aufwaermfrage mit Schmerzmeldung geht ans Modell', () => {
+  // Die Vorab-Ausnahme darf medizinische Fragen NICHT einfangen -- sonst
+  // beantwortet der Router "meine Schulter tut weh, wie soll ich mich
+  // aufwaermen?" mit einem Schema statt an das Modell abzugeben.
+  assert.strictEqual(
+    R.resolveIntent('meine schulter tut weh, wie soll ich mich aufwaermen?', S20),
+    null
+  );
+});
+
+test('Supersatz-Partner wird lokal beantwortet', () => {
+  const r = R.resolveIntent('was passt als supersatz dazu?', S20);
+  assert.strictEqual(r && r.intent, 'superset');
+  assert.ok(r.answer.includes('Rudern'));
+});
+
+test('Wochenfortschritt nennt Ist UND Ziel in der richtigen Reihenfolge', () => {
+  // Exakter String statt includes('3')+includes('4'): sonst bliebe der Test
+  // gruen, obwohl Ist und Ziel vertauscht sind.
+  const r = R.resolveIntent('wie viele trainings diese woche?', S20);
+  assert.strictEqual(r && r.intent, 'weekProgress');
+  assert.strictEqual(r.answer, 'Diese Woche 3 von 4 Einheiten.');
+});
+
+test('"woche" als Alltagswort loest keinen Wochenfortschritt aus (geht ans Modell)', () => {
+  assert.strictEqual(R.resolveIntent('diese woche war anstrengend', S20), null);
+});
+
+test('Streak wird lokal beantwortet', () => {
+  const r = R.resolveIntent('wie lang ist meine streak?', S20);
+  assert.strictEqual(r && r.intent, 'streak');
+  assert.ok(r.answer.includes('12'));
+});
+
+test('letzter PR nennt Uebung, Gewicht und Alter', () => {
+  // Alle drei einzeln pruefen: nur der Name waere auch dann gruen, wenn
+  // Gewicht oder Abstand im Satz fehlen. Prueft zugleich die Reihenfolge --
+  // "wann hatte ich" gehoert dem alten lastDone-Intent, der hier ohne
+  // Uebungsnamen null liefern und die Frage verschlucken wuerde.
+  const r = R.resolveIntent('wann hatte ich zuletzt einen pr?', S20);
+  assert.strictEqual(r && r.intent, 'lastPr');
+  assert.ok(r.answer.includes('Kniebeuge'));
+  assert.ok(r.answer.includes('102,5'));
+  assert.ok(r.answer.includes('6'));
+});
+
+test('durchschnittliche Trainingsdauer wird lokal beantwortet', () => {
+  const r = R.resolveIntent('wie lange trainiere ich im schnitt?', S20);
+  assert.strictEqual(r && r.intent, 'avgDuration');
+  assert.ok(r.answer.includes('58'));
+});
+
+test('gestrige Einheit wird lokal beantwortet', () => {
+  const r = R.resolveIntent('was habe ich gestern gemacht?', S20);
+  assert.strictEqual(r && r.intent, 'yesterday');
+  assert.ok(r.answer.includes('Push'));
+});
+
+test('Volumen einer Muskelgruppe trifft die richtige Gruppe', () => {
+  const r = R.resolveIntent('wie viel volumen brust diese woche?', S20);
+  assert.strictEqual(r && r.intent, 'muscleVolume');
+  assert.ok(r.answer.includes('4.800'));
+  assert.ok(!r.answer.includes('5.200'), 'darf nicht die andere Muskelgruppe nennen');
+});
+
+test('allgemeine Volumenfrage bleibt beim Gesamtvolumen-Intent', () => {
+  // Der Muskel-Intent steht VOR dem Gesamt-Intent und darf die allgemeine
+  // Frage trotzdem nicht schlucken -- er verlangt einen Muskelnamen im Satz.
+  const r = R.resolveIntent('wie viel volumen diese woche?', S20);
+  assert.strictEqual(r && r.intent, 'volume');
+});
+
+test('naechster Plantag wird lokal beantwortet', () => {
+  const r = R.resolveIntent('was steht als naechstes an?', S20);
+  assert.strictEqual(r && r.intent, 'nextPlanDay');
+  assert.ok(r.answer.includes('Mittwoch'));
+});
+
+test('heutiger Plan bleibt beim today-Intent', () => {
+  const r = R.resolveIntent('was steht heute an?', S20);
+  assert.strictEqual(r && r.intent, 'today');
+});
+
+test('Planliste verliert keinen Eintrag', () => {
+  const r = R.resolveIntent('welche plaene habe ich?', S20);
+  assert.strictEqual(r && r.intent, 'planList');
+  ['Push', 'Pull', 'Beine'].forEach(n =>
+    assert.ok(r.answer.includes(n), 'fehlender Plan im Text: ' + n));
+});
+
+test('fehlende Felder ergeben null statt eines erfundenen Werts', () => {
+  // Der teuerste denkbare Fehler waere eine konfident falsche Zahl. Bei
+  // fehlender Quelle muss die Frage ans Modell gehen.
+  assert.strictEqual(R.resolveIntent('wie lang ist meine streak?', { ...S20, streakWeeks: null }), null);
+  assert.strictEqual(R.resolveIntent('wie soll ich mich aufwaermen?', { ...S20, warmupText: null }), null);
+  assert.strictEqual(R.resolveIntent('wie lange trainiere ich im schnitt?', { ...S20, avgDurationMin: null }), null);
+  assert.strictEqual(R.resolveIntent('was ist mein naechster satz?', { ...S20, nextSetText: null }), null);
+  assert.strictEqual(R.resolveIntent('was passt als supersatz dazu?', { ...S20, supersetText: null }), null);
+  assert.strictEqual(R.resolveIntent('wie viele trainings diese woche?', { ...S20, weekGoal: null }), null);
+  assert.strictEqual(R.resolveIntent('wann hatte ich zuletzt einen pr?', { ...S20, lastPrKg: null }), null);
+  assert.strictEqual(R.resolveIntent('was habe ich gestern gemacht?', { ...S20, yesterdayText: null }), null);
+  assert.strictEqual(R.resolveIntent('was steht als naechstes an?', { ...S20, nextPlanDayText: null }), null);
+  assert.strictEqual(R.resolveIntent('welche plaene habe ich?', { ...S20, planNames: [] }), null);
+  assert.strictEqual(R.resolveIntent('wie viel volumen brust diese woche?', { ...S20, muscleVolume: null }), null);
+});
+
+test('wertende Fragen bleiben trotz neuer Intents beim Modell', () => {
+  // BLOCK darf durch Task 3 nicht durchloechert worden sein.
+  assert.strictEqual(R.resolveIntent('soll ich lieber mehr volumen bei brust machen?', S20), null);
+  assert.strictEqual(R.resolveIntent('warum ist mein naechster satz so schwer?', S20), null);
+});
+
+test('englische Varianten der neuen Intents werden erkannt', () => {
+  assert.strictEqual(R.resolveIntent('whats my next set?', S20).intent, 'nextSet');
+  assert.strictEqual(R.resolveIntent('how long is my streak?', S20).intent, 'streak');
+  assert.strictEqual(R.resolveIntent('how should i warm up?', S20).intent, 'warmup');
+});
