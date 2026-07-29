@@ -1738,7 +1738,7 @@ Abzulesen: `premiumHeads`, `budgetUsd`, die tatsächlichen Kosten des Monats. Li
 
 Jeweils eigene Spec, falls sie später kommen:
 
-- Vorschläge zur Änderung des Trainingsplans — **vom Nutzer ausdrücklich gestrichen**
+- ~~Vorschläge zur Änderung des Trainingsplans~~ — **2026-07-29 vom Nutzer wieder hineingeholt.** Siehe „Block 6 — Änderungsvorschläge am Trainingsplan" unten. Die frühere Streichung ist aufgehoben.
 - HealthKit-gestützte Erholung (Schlaf, HRV)
 - Formcheck per Videoaufnahme
 - Ausbau des Maschinen-Scanners (Sitzhöhe, Griffposition)
@@ -1764,3 +1764,31 @@ Stand bei Planerstellung: **92 Tests grün** (Ausgangsstand vor Block 0 waren 78
 **Die wichtigste Zahl im ganzen Plan** steht in Block 3: die Obergrenze von vier beziehungsweise acht Äußerungen je Trainingseinheit. Zwölf Trigger sind gebaut, höchstens acht kommen durch. Ein Coach, der alles sagt, was er weiß, wird abgeschaltet.
 
 **Die zweitwichtigste Erkenntnis** steht in diesem Plan an fünf Stellen: `save()` gibt es in dieser Codebasis nicht. Sie heißt `persist()`. Jeder `save()`-Aufruf scheitert still in einem `try/catch` und der Zustand geht verloren.
+
+---
+
+# Block 6 — Änderungsvorschläge am Trainingsplan
+
+**Nachträglich aufgenommen am 2026-07-29 auf ausdrücklichen Wunsch des Nutzers.** Dieser Block stand vorher unter „Was NICHT Teil dieses Plans ist" und war vom Nutzer selbst gestrichen worden. Die Streichung ist aufgehoben.
+
+**SPEC STEHT NOCH AUS.** Dieser Abschnitt ist eine Absichtserklärung mit offenen Fragen, keine ausführbare Task-Liste. Er wird vor der Umsetzung zu einer Spec ausgearbeitet — nach dem Muster von `docs/superpowers/specs/2026-07-28-live-coach-design.md`. Ein Agent, der hier ohne Spec anfängt, erfindet die Hälfte.
+
+**Absicht.** Der Coach beobachtet ohnehin schon, was stagniert (Block 3 liefert die Plateau-Diagnose) und wie sich das Volumen über die Muskelgruppen verteilt. Heute darf er das nur *beschreiben*. Nach diesem Block darf er einen konkreten Änderungsvorschlag am Trainingsplan machen — und der Nutzer nimmt ihn mit einem Tippen an oder verwirft ihn.
+
+**Was schon da ist und wiederverwendet wird, statt es neu zu bauen:**
+
+- Der KI-Plan-Import über den ` ```gtplan `-Block und `aicApplyPlan()` in `index.html` — ein vom Modell erzeugter Plan lässt sich bereits übernehmen. Suchmuster: `aicApplyPlan`.
+- `S.weekPlan` (Tagesbelegung), `S.workoutPresets` (`[{id,name,exIds}]`) und `S.customSplits` als Ziel jeder Änderung.
+- Die Plateau-Diagnose aus Task 16 (`js/coach-analyze.js`) als Auslöser.
+- Der Wochenbericht aus Block 5 als naheliegender Ort, an dem ein Vorschlag erscheinen kann.
+
+**Offene Fragen, die die Spec beantworten muss** — jede davon ändert den Zuschnitt erheblich:
+
+1. **Auslöser:** Meldet der Coach sich von selbst (und wenn ja, wie selten?), oder nur auf die Frage „was soll ich ändern?"? Gestaltungsregel 3 und 4 aus diesem Plan gelten weiter — im Training hat er höchstens vier bis acht Äußerungen, und ein Planvorschlag mitten in der Einheit widerspricht Regel 2 („im Training steht das Training vorn").
+2. **Eingriffstiefe:** Nur Übungen tauschen? Sätze und Wiederholungen anpassen? Trainingstage verschieben? Einen kompletten Plan ersetzen? Je tiefer, desto größer der Schaden bei einem schlechten Vorschlag.
+3. **Umkehrbarkeit:** Ein angenommener Vorschlag muss rückgängig zu machen sein. Ohne Sicherung des vorherigen Plans ist die Funktion nicht auslieferbar — der Nutzer verliert sonst eine über Monate gewachsene Struktur mit einem Fehltipp.
+4. **Rechnen oder fragen?** Algorithmisch (kostenlos, erklärbar, engstirnig) oder über das Modell (flexibel, kostet, kann halluzinieren)? Der Plan hält für Block 3 fest, dass Tiefe im Training vollständig algorithmisch ist; für Planvorschläge ist das nicht ausgemacht.
+5. **Begründungspflicht:** Ein Vorschlag ohne Zahl ist wertlos (Gestaltungsregel 8). Woher kommt die Zahl — Plateau-Dauer, Volumenverteilung, Frequenz, verpasste Tage?
+6. **Verhältnis zu den bestehenden Sicherungen:** Der Intent-Router blockt heute jede planende Frage bewusst (`BLOCK` enthält `plan`) und schickt sie ans Modell. Ein lokaler Planvorschlag muss sich in diese Ordnung einfügen, ohne die Sicherung aufzuweichen — die Erfahrung aus Block 0 ist eindeutig: jede Ausnahme an dieser Sicherung hat mehrere Reviewrunden gekostet.
+
+**Reihenfolge.** Dieser Block läuft **nach** Block 5. Er braucht die Plateau-Diagnose (Block 3) und den Wochenbericht (Block 5) als Träger; vorher gezogen, müsste er sich seine Auslöser selbst bauen.
