@@ -16,8 +16,16 @@
     // 2,99 € − 15 % Apple = 2,54 € ≈ 2,75 $ netto; 0,30 $ sind 11 % davon.
     // Ein Nutzer, der seine 150 Anfragen komplett ausreizt, kostet ~0,22 $.
     "USD_PER_USER": "0.30",
-    "MIN_MONTHLY_USD": "5",
+    // Sockel 25 (nicht 5): bei heutiger Nutzerzahl liegt Köpfe×0.30 NOCH UNTER dem
+    // alten festen 25-$-Deckel — Break-even erst bei ~84 Köpfen. Mit Sockel 25 wird
+    // der alte Deckel zur Untergrenze statt zur Obergrenze: nichts wird schlechter
+    // als vorher, ab ~84 Köpfen wächst er wie geplant mit. Ohne diesen Sockel stünde
+    // der Deckel direkt nach Deploy bei 5 $ gegen die im laufenden Monat schon
+    // aufgelaufenen Kosten — jeder zahlende Nutzer bekäme sofort 429.
+    "MIN_MONTHLY_USD": "25",
     // Bleibt als Not-Bremse: ist USD_PER_USER leer, gilt wieder dieser feste Wert.
+    // Greift der Deckel (fest oder mitwachsend), antworten /chat|/coach|/analyze mit
+    // 429 bis zum Monatswechsel — auch für das Founder-Konto, beim Testen im Blick behalten.
     "GLOBAL_MONTHLY_USD": "25"
   }
 }

@@ -45,8 +45,16 @@
 //                  (Default 0.30/2.50 ≈ Gemini 2.5 Flash) — rein für Anzeige + Spend-Cap-Berechnung
 //                  ACHTUNG: bei einem Lite-Modell sind die Defaults zu hoch → Dashboard-Kosten und
 //                  Spend-Cap greifen zu früh. Beim Modellwechsel BEIDE Werte mit umsetzen.
-//   GLOBAL_MONTHLY_USD = harter Kostendeckel/Monat über ALLE Nutzer zusammen (leer = kein Deckel);
-//                  bei Erreichen antworten /chat|/coach|/analyze mit 429, bis der Monat wechselt
+//   USD_PER_USER  = Budget je Premium-Kopf/Monat (USD) — der Kostendeckel wächst mit der
+//                  Premium-Nutzerzahl: Deckel = Premium-Köpfe des Monats × USD_PER_USER,
+//                  mind. MIN_MONTHLY_USD (siehe budgetCapUsd()). Leer/0 → Rückfall auf
+//                  GLOBAL_MONTHLY_USD als fester Deckel (Rückwärtskompatibilität).
+//   MIN_MONTHLY_USD = Sockel/Untergrenze für den mitwachsenden Deckel oben — nur wirksam,
+//                  solange USD_PER_USER gesetzt ist.
+//   GLOBAL_MONTHLY_USD = fester Kostendeckel/Monat über ALLE Nutzer zusammen (leer = kein Deckel);
+//                  aktiv als Rückfall, solange USD_PER_USER NICHT gesetzt ist (siehe budgetCapUsd());
+//                  bei Erreichen (fest oder mitwachsend) antworten /chat|/coach|/analyze mit 429,
+//                  bis der Monat wechselt — auch für das Founder-Konto, beim Testen im Blick behalten
 // Bindings:
 //   AI_QUOTA (KV Namespace) = führt Monatslimit (q:{uid}:{YYYY-MM}) UND globale Kosten-Stats (stats:{YYYY-MM}) fort
 
@@ -181,15 +189,42 @@ async function recordUsage(env, uid, usage) {
 // ── Premium-Kopfzahl je Monat (KV) — Basis für den mitwachsenden Kostendeckel ──
 // Jeder erfolgreich verifizierte Premium-Nutzer trägt sich einmal pro Monat ein.
 // Zwei Schlüssel statt einer Liste: ein Marker je Nutzer (pseen:) und ein
-// Gesamtzähler (pcount:). Der Marker verhindert Doppelzählung, ohne dass wir je
-// alle uids laden müssen — kv.list() über tausende Schlüssel wäre bei jedem
+// Gesamtzähler (pcount:) — kv.list() über tausende Schlüssel wäre bei jedem
 // Request zu teuer und zählt bei Cloudflare als Liste-Operation.
-async function premiumSeen(uid, env) {
+//
+// KEINE starke Konsistenz, KEIN CAS: Cloudflare KV ist edge-gecacht und global
+// eventual consistent. Der Marker verhindert Doppelzählung nur meistens, nicht
+// garantiert — real driftet das in BEIDE Richtungen:
+//   - Lost update: zwei neue Nutzer lesen parallel pcount=N, beide schreiben N+1
+//     → Endstand N+1 statt N+2. Beide Marker sind trotzdem gesetzt, der verlorene
+//     Kopf wird nie nachgeholt — die Drift läuft monoton nach UNTEN (Deckel zu knapp).
+//   - Doppelzählung: eine zweite Anfrage desselben Nutzers trifft innerhalb der
+//     Propagationszeit einen anderen PoP, der den Marker noch nicht sieht.
+//   - Monatswechsel ist der Worst Case: um 00:00 UTC am 1. ist JEDER Nutzer
+//     unmarkiert, jede erste Anfrage des Monats schreibt auf denselben
+//     pcount-Schlüssel. KV begrenzt Schreibzugriffe auf einen einzelnen Key auf
+//     ungefähr einen pro Sekunde.
+//   - Ein kaputter pcount-Wert kollabiert den Deckel dauerhaft: parseInt("abc")
+//     → NaN → || 0. Ist der schreibende Nutzer schon markiert, bleibt count bei 0;
+//     der nächste unmarkierte Nutzer schreibt "1" — alle bisher gezählten Köpfe
+//     sind für den Rest des Monats weg, weil ihre Marker jedes Nachzählen
+//     verhindern. Auslöser ist nicht exotisch, z. B. ein manuelles
+//     `wrangler kv key put` beim Debuggen reicht.
+// Durable Objects wären ein CAS-fähiger Ausweg, sind hier aber eine neue
+// Komponente (nicht erlaubt) — die Drift wird bewusst in Kauf genommen.
+// BETRIEBSREGEL: pcount:*-Schlüssel NIEMALS von Hand setzen/überschreiben.
+//
+// opts.readOnly = true: nur lesen, NICHTS schreiben (kein Marker, kein Increment).
+// Für den /stats-Dashboard-GET (M1-Review) — ein Lesezugriff darf den Zähler nicht
+// selbst hochtreiben und den Founder nicht als zahlenden Kopf eintragen (genau wie
+// TEST_UIDS bei monthlyUse()/recordUsage() das Dashboard nicht verfälschen soll).
+async function premiumSeen(uid, env, opts) {
   const kv = env.AI_QUOTA;
   if (!kv) return 0;
   const month = new Date().toISOString().slice(0, 7);
-  const mark = "pseen:" + uid + ":" + month;
   const cntKey = "pcount:" + month;
+  if (opts && opts.readOnly) return parseInt(await kv.get(cntKey)) || 0;
+  const mark = "pseen:" + uid + ":" + month;
   const already = await kv.get(mark);
   let count = parseInt(await kv.get(cntKey)) || 0;
   if (!already) {
@@ -204,7 +239,11 @@ async function premiumSeen(uid, env) {
 // Deckel = Kopfzahl × Budget je Nutzer, mit einem Sockel für den Monatsanfang:
 // beim ersten Nutzer des Monats wäre 1 × 0.30 sonst sofort erreicht, sobald ein
 // einzelner Nutzer sein Limit ausschöpft. MIN_MONTHLY_USD hält die Untergrenze.
-async function budgetCapUsd(uid, env) {
+// Fängt KV-Fehler (get/put) intern ab und fällt offen aus — wie monthlyStats()
+// oben es vormacht: ein KV-Wurf hier darf NICHT aus fetch() propagieren (Cloudflare
+// würde dann roh mit 500 ohne CORS-Header antworten und bereits verbrauchte
+// Tages-/Monatszähler blieben unrückerstattet — C2-Review).
+async function budgetCapUsd(uid, env, opts) {
   const perUser = parseFloat(env.USD_PER_USER);
   if (!(perUser > 0)) {
     // Rückwärtskompatibel: solange USD_PER_USER nicht gesetzt ist, gilt der alte
@@ -212,9 +251,15 @@ async function budgetCapUsd(uid, env) {
     const fixed = parseFloat(env.GLOBAL_MONTHLY_USD);
     return fixed > 0 ? fixed : null;
   }
-  const floorUsd = parseFloat(env.MIN_MONTHLY_USD) || 5;
-  const heads = await premiumSeen(uid, env);
-  return Math.max(floorUsd, heads * perUser);
+  const floorUsd = parseFloat(env.MIN_MONTHLY_USD) || 25;
+  try {
+    const heads = await premiumSeen(uid, env, opts);
+    return Math.max(floorUsd, heads * perUser);
+  } catch (e) {
+    console.log("[AI] Kopfzahl-Fehler, Deckel faellt auf Legacy-Wert zurueck:", e.message);
+    const fixed = parseFloat(env.GLOBAL_MONTHLY_USD);
+    return fixed > 0 ? fixed : null;
+  }
 }
 
 export default {
@@ -240,8 +285,16 @@ export default {
       if (uid !== FOUNDER_UID) return json({ error: "kein Zugriff" }, 403, cors);
       const stats = await monthlyStats(env);
       const costUsd = estCostUsd(env, stats.inTok, stats.outTok);
-      const budgetUsd = await budgetCapUsd(uid, env);
-      const premiumHeads = parseInt(await (env.AI_QUOTA ? env.AI_QUOTA.get("pcount:" + new Date().toISOString().slice(0, 7)) : null)) || 0;
+      // /stats ist ein GET (Dashboard-Read) — darf NICHTS schreiben. readOnly:true
+      // liest pcount nur (kein pseen-Marker, kein Increment), sonst würde jeder
+      // Dashboard-Aufruf den Founder als zahlenden Kopf eintragen (M1-Review).
+      // Wie history/users unten degradiert das optional — Hauptzahlen liefern
+      // trotzdem, falls KV hier hakt (I5-Review).
+      let budgetUsd = null, premiumHeads = 0;
+      try {
+        budgetUsd = await budgetCapUsd(uid, env, { readOnly: true });
+        premiumHeads = await premiumSeen(uid, env, { readOnly: true });
+      } catch (e) { /* Deckel/Kopfzahl optional — Hauptzahlen liefern trotzdem */ }
       // Alle KV-Monate (stats:YYYY-MM) fürs Dashboard: Historie + Ø-Kosten/Monat
       let history = [];
       try {
@@ -340,8 +393,17 @@ export default {
       catch (e) { console.log("[AI] JWS abgelehnt:", e.message); return json({ error: "Abo-Nachweis ungültig: " + e.message }, 402, cors); }
     }
 
-    // 2b) Reiner Kontostand — verbraucht nichts, zählt nichts hoch.
-    if (path === "/quota") return json({ quota: await quotaPeek(uid, env) }, 200, cors);
+    // 2b) Reiner Kontostand — verbraucht kein Tages-/Monatslimit, ändert die Antwort
+    // nicht. Zählt aber als Premium-Kopf für den Kostendeckel: Premium ist an dieser
+    // Stelle bereits verifiziert (Schritt 2 oben — TEST_UIDS oder echter JWS-Check),
+    // also ist ein /quota-Aufruf ein echter zahlender Nutzer, auch wenn er die KI nie
+    // nutzt (I3-Review). premiumSeen() darf /quota nicht zum Werfen bringen (C2) —
+    // Fehler werden verschluckt, /quota bleibt unverändert erfolgreich.
+    if (path === "/quota") {
+      try { await premiumSeen(uid, env); }
+      catch (e) { console.log("[AI] Kopfzahl-Fehler (quota):", e.message); }
+      return json({ quota: await quotaPeek(uid, env) }, 200, cors);
+    }
 
     // 3) Tageslimit (Missbrauchsbremse)
     const kind = path.slice(1); // "chat" | "coach" | "analyze" | "vision"
@@ -358,7 +420,10 @@ export default {
     const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month };
 
     // 5) Globales Monatsbudget (Kostendeckel über ALLE Nutzer zusammen, Hard-Stop) —
-    // nur aktiv wenn GLOBAL_MONTHLY_USD gesetzt ist (Var, kein Secret; siehe Kopfkommentar).
+    // wächst mit der Premium-Kopfzahl: budgetCapUsd() = Köpfe × USD_PER_USER, mind.
+    // MIN_MONTHLY_USD; ohne USD_PER_USER Rücksprung auf den festen GLOBAL_MONTHLY_USD
+    // (Var, kein Secret; siehe Kopfkommentar). budgetCapUsd() fängt KV-Fehler intern
+    // ab (fail-open) — kann selbst nicht werfen.
     const budgetUsd = await budgetCapUsd(uid, env);
     if (budgetUsd > 0) {
       const stats = await monthlyStats(env);
