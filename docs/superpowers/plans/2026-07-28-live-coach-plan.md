@@ -2286,13 +2286,12 @@ Ritual von oben durchlaufen. Changelog-Key: `cl-2026-07-28-coach-persoenlich`.
 
 ---
 
-### Task 11: `TtsPlugin.swift` und die Aufräumarbeit an `SpeechPlugin.swift`
+### Task 11: `TtsPlugin.swift`
 
-**`SpeechPlugin.swift` existiert seit dem 2026-07-25, ist aber nicht im Git.** Das Diktat funktioniert im Simulator und wäre bei einem frischen Klon des Repos weg. Diese Task holt das nach.
+**Korrektur gegenüber der Spec:** Die Spec (Abschnitt „Block 2") behauptet, `SpeechPlugin.swift` sei untracked. Das galt beim Schreiben der Spec, ist aber seit dem 2026-07-28 erledigt — die Datei ist getrackt (`git ls-files ios/App/App/Plugins/` zeigt sie). **Diese Task legt also nur das TTS-Plugin an**, sie holt nichts nach. Step 1 prüft das trotzdem, statt es zu glauben.
 
 **Files:**
 - Create: `ios/App/App/Plugins/TtsPlugin.swift`
-- Add to git: `ios/App/App/Plugins/SpeechPlugin.swift` (vorhanden, untracked)
 - Modify: `ios/App/App/Info.plist`
 
 **Interfaces:**
@@ -2305,10 +2304,10 @@ Ritual von oben durchlaufen. Changelog-Key: `cl-2026-07-28-coach-persoenlich`.
 - [ ] **Step 1: Zustand prüfen**
 
 ```bash
-cd /Users/lennywolter/Desktop/Claude/gymtrack && git status --short ios/App/App/Plugins/ && ls -la ios/App/App/Plugins/
+cd /Users/lennywolter/Desktop/Claude/gymtrack && git ls-files ios/App/App/Plugins/
 ```
 
-Erwartung: `SpeechPlugin.swift` erscheint als `??` (untracked). Ist er bereits getrackt, entfällt Step 5.
+Erwartung: `SpeechPlugin.swift` steht in der Liste. Fehlt sie wider Erwarten, wird sie in dieser Task mit committet (`git add ios/App/App/Plugins/SpeechPlugin.swift`) — die `project.pbxproj` verweist auf sie, ein frischer Klon würde sonst nicht bauen.
 
 - [ ] **Step 2: Ein vorhandenes Plugin als Vorlage lesen**
 
@@ -2451,13 +2450,21 @@ grep -n "NSSpeechRecognitionUsageDescription\|NSMicrophoneUsageDescription" ios/
 
 Die Texte sagen ausdrücklich, dass nichts gespeichert wird — das ist keine Höflichkeit, sondern die Zusage aus dem Datenschutz-Abschnitt der Spec.
 
-- [ ] **Step 5: Beide Plugins ins Repo**
+- [ ] **Step 5: Ins Repo**
 
 ```bash
-cd /Users/lennywolter/Desktop/Claude/gymtrack && git add -f ios/App/App/Plugins/SpeechPlugin.swift ios/App/App/Plugins/TtsPlugin.swift ios/App/App/Info.plist && git status --short ios/App/App/
+cd /Users/lennywolter/Desktop/Claude/gymtrack && git add ios/App/App/Plugins/TtsPlugin.swift ios/App/App/Info.plist && git status --short ios/App/App/
 ```
 
-Erwartung: beide Swift-Dateien als `A` (added). Wird `SpeechPlugin.swift` ignoriert, in `.gitignore` nachsehen, warum — und die Ignore-Regel korrigieren statt `-f` stehenzulassen.
+Erwartung: `TtsPlugin.swift` als `A` (added), `Info.plist` als `M`. Wird die Swift-Datei ignoriert, in `.gitignore` nachsehen und die Ignore-Regel korrigieren, statt mit `-f` darüber hinwegzugehen.
+
+**Xcode-Projektdatei:** `npx cap sync ios` nimmt neue Dateien in `Plugins/` nicht automatisch in `project.pbxproj` auf. Nach Step 6 prüfen, ob `TtsPlugin.swift` dort auftaucht:
+
+```bash
+grep -c "TtsPlugin.swift" ios/App/App.xcodeproj/project.pbxproj
+```
+
+Erwartung: mindestens 2 (Datei-Referenz + Build-Phase). Steht dort `0`, die Datei einmal in Xcode per Drag-and-drop in die Gruppe `Plugins` ziehen („Copy items" **aus**, Target `App` **an**) und die geänderte `project.pbxproj` mit committen — sonst compiliert das Plugin nie und fällt zur Laufzeit stumm aus.
 
 - [ ] **Step 6: Bauen und Registrierung prüfen**
 
@@ -2479,7 +2486,7 @@ Erwartung: eine Liste mit mindestens einer Stimme, und die App spricht hörbar. 
 - [ ] **Step 7: Commit**
 
 ```bash
-git commit -m "feat(ios): TtsPlugin fuer die Coach-Stimme, SpeechPlugin nachtraeglich ins Repo" && git push origin main
+git add ios/App/App.xcodeproj/project.pbxproj && git commit -m "feat(ios): TtsPlugin fuer die Coach-Stimme mit duckOthers" && git push origin main
 ```
 
 ---
