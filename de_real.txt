@@ -1,0 +1,140 @@
+% vom Arbeitsgewicht — gut dosiert.
+% über letzter Einheit.
+Alle Arbeitssätze am oberen Wiederholungsende,
+Alles im grünen Bereich
+Alles rausgeholt. Jetzt vollständig pausieren.
+Anmelden mit Apple\n\n
+Anstrengend bei niedriger Energie — ich habe die Vorschläge leicht gesenkt und die Pausen verlängert.
+Apple Sign In nicht verfügbar.\n_isNative:
+Apple: ⚠️ kein User — onAuthState-Fallback?
+Aufgewärmt. Jetzt sauber ins Arbeitsgewicht.
+Aufwärmsatz bei
+Aufwärmsatz notiert — Technik sitzt schon.
+Automatische Auswertung deiner Statistik — du siehst sofort, was wirkt.
+Beine schwer
+Bis zum Versagen — den Reiz hast du gesetzt.
+Bottom-Sheets lassen sich jetzt überall nach unten wegziehen — an der Kopfzeile und am Inhalt, nicht mehr nur am schmalen Griff
+Brust & Rücken
+Check-in war stark: größere Steigerung freigegeben.
+Das ist fast schon Arbeitsgewicht — nächster Satz zählt richtig.
+Datei konnte nicht gelesen werden!
+Daten wiederhergestellt! App wird neu geladen.
+Dein Coach kennt dein Training — Pläne, Technik und Fortschritt, jederzeit im Chat.
+Dein letzter Check-in passt zum Plan — normale Progression, normale Pausen.
+Dein letztes Training war sehr schwer. Gleiche Gewichte, etwas mehr Pause — sauber wiederholen schlägt heute jeden Sprung.
+Deine Muskulatur erholt sich noch. Ein ruhiger Tag zahlt sich morgen aus.
+Deine letzten sessions waren schwer bei wenig Energie. Ich nehme rund 8 % Gewicht raus und gebe dir längere Pausen.
+Deload aktiv: ~8 % weniger Gewicht, längere Pausen.
+Deload: ich habe die Vorschläge um ~8 % gesenkt und die Pausen verlängert.
+Die Beschriftungen in der Tab-Leiste kleben nicht mehr aneinander und werden nicht mehr abgeschnitten
+Du hast Luft nach oben
+Du hast die Übungen in diesem Training geändert.\n\nSoll
+Einheit im Kasten
+Einträge,
+Energie war niedrig: Vorschläge leicht gesenkt, Pausen länger.
+Englische App: Split-Erklärung, Erholungsliste, Gewichtsvorschläge und Community-Hinweise waren teilweise noch deutsch — durchgängig übersetzt
+Erholung geht heute vor
+Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, sobald wieder was bereit ist.
+Etwas zurückgenommen
+Feedback nach jedem Satz und passende Empfehlungen in Echtzeit.
+Gerät fotografieren — Übungen und Ausführung sofort erklärt.
+Gewicht halten
+Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.
+Google: ⚠️ kein User nach Login!
+Größere Steigerung ist freigegeben.
+Heute halten, nicht steigern
+Im Freundesprofil standen „Entfernen" und „Blockieren" beim Runterscrollen unter dem Rand — jetzt sind sie vollständig erreichbar
+KI bewertet Volumen, Balance und Technik-Trends mit klarem Score.
+Leicht gesenkt, Pausen etwas länger.
+Letzte Einheit als „Sehr schwer" bewertet — App setzt Progression aus und verlängert Pausen um 20 %.
+Letzte Einheit anstrengend bei niedriger Energie — App hat Gewichte um 4 % gesenkt.
+Letzte Einheit leicht bei hoher Energie — App gibt größere Steigerung frei und kürzt Pausen um 8 %.
+Letzte sessions mehrfach schwer bei niedriger Energie — App hat Gewichte um 8 % gesenkt und Pausen um 25 % verlängert.
+Letzter Check-in unauffällig — normale Progression.
+Letzter Satz steht — weiter zur nächsten Übung.
+Letztes Training locker bei voller Energie — ich gebe die größere Steigerung frei und kürze die Pausen leicht.
+Löschen fehlgeschlagen:\n
+Monats-Ranking — zählt workouts im
+März
+Nach deinem Check-in: Gewichte halten, Pausen etwas länger.
+Neue Reps-Bestleistung bei
+Plan läuft
+Punkte → Level
+Reps-Bestleistung bei
+Simulator: mit deinem Founder-Konto anmelden, um KI-Funktionen zu testen.
+Training calendar
+Training day
+Training days
+Training days per week:
+Training days per week:
+Training experience
+Training frequency
+Training plan templates
+Training plans
+Training plans
+Training time
+Training volume
+Training week·7 days
+Ungültige Backup-Datei!
+Warm genug. Ab jetzt Arbeitssätze.
+Weder ID- noch Access-Token erhalten
+Weiter mit
+Where am I unbalanced?
+Where am I unbalanced?
+Ziel erreicht!
+\n\nPrüfe in der Firebase Console:\n• Firestore Database wurde angelegt\n• Firestore-Regeln erlauben dem User Schreibzugriff
+alle gleich ·
+alte Posts gelöscht
+b, -1 wenn a
+btn btn-acc heute-train-btn
+deine Muskulatur
+denkt nach…
+die Heute-Seite lädt gleich nach dem Start noch mal neu
+direkt im Split übernommen
+dran ist
+einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.
+fertig — Volumen
+gesäß
+grün
+hoch und wieder runter ·
+holzfäll
+id_token abgelehnt + kein access_token
+ist dieselbe Bewegung wie
+kein code
+kein id_token
+klappt nicht
+liegestütz
+militär
+mittlerer-rücken
+nach zweimal Schließen
+nicht im users-Doc
+nicht immer da
+nicht settled
+oder „Push
+rückenstreck
+schräg
+schulterdrücken
+starte jetzt
+stehen bleiben — nach spätestens 8s den Zustand als „fest
+steigere jetzt
+steigere weiter
+und war ein PARSER-BLOCKER: der Browser kam erst nach dem Netz-Download des CDN-Skripts zum
+unterarmstütz
+wird global als „Muscle groups
+· heute
+· läuft ab am
+× pro Woche
+Über mich
+Übung abgeschlossen. Sauber durchgezogen.
+Übung „
+Übungen ·
+— Diagnose fertig —
+— bitte gelenkschonende Alternativen wählen
+— noch
+„vor 2 Stunden", „gestern" …
+✓ Plan übernommen:
+📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch
+🔄 Statistik-Modus-Switcher: Muskeln·PPL·Ober-Unter
+🔔 Beim Abmelden wird der Geräte-Push-Token jetzt aus dem Profil entfernt
+🔴 Roter Zähler am App-Icon verschwindet jetzt beim Öffnen der App zuverlässig
+🚫 Verhindert, dass ein neu angemeldeter Account auf demselben Gerät Push-Benachrichtigungen für Reaktionen auf Posts des alten Kontos bekommt
