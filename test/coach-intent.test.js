@@ -389,6 +389,62 @@ test('wertende Fragen bleiben trotz neuer Intents beim Modell', () => {
   assert.strictEqual(R.resolveIntent('warum ist mein naechster satz so schwer?', S20), null);
 });
 
+// --- Task 4: Begruendung des Gewichtsvorschlags ---------------------------
+// Der Intent laeuft VOR BLOCK (dort steht "warum"), deshalb pruefen mehrere
+// Tests ausdruecklich, dass die Ausnahme eng genug bleibt.
+const WR = {
+  exName: 'Bankdrücken', fromKg: 60, toKg: 62.5, stepKg: 2.5,
+  reason: 'repsHigh', lastReps: [8, 8, 8], repRange: [6, 8], ciFactor: 1
+};
+const S4 = { ...S20, weightReason: WR };
+
+test('Begruendung nennt Wiederholungen, Schrittweite und Zielgewicht', () => {
+  const r = R.resolveIntent('warum 62,5?', S4);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  // 8/8/8 statt bloss "8": der Bereich 6-8 steht ohnehin im Satz, ein
+  // includes('8') waere also auch dann gruen, wenn die tatsaechlich
+  // geschafften Wiederholungen gar nicht genannt werden.
+  assert.ok(r.answer.includes('8/8/8'), 'geschaffte Wiederholungen fehlen');
+  assert.ok(r.answer.includes('62,5'), 'Zielgewicht fehlt');
+  assert.ok(r.answer.includes('2,5 kg'), 'Schrittweite fehlt');
+});
+
+test('Begruendung auch ohne Zahl in der Frage', () => {
+  ['warum dieses gewicht?', 'wie kommst du auf das gewicht?', 'why this weight?']
+    .forEach(q => assert.strictEqual(R.resolveIntent(q, S4) && R.resolveIntent(q, S4).intent,
+                                     'weightWhy', 'nicht erkannt: ' + q));
+});
+
+test('Check-in-Absenkung wird mit Prozent und Ursache begruendet', () => {
+  const s = { ...S4, weightReason: { ...WR, reason: 'checkinDown', toKg: 55, ciFactor: 0.92 } };
+  const r = R.resolveIntent('warum 55?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(r.answer.includes('8'), 'Prozentwert falsch herum gerechnet');
+  assert.ok(/Check-in|Erholung/.test(r.answer), 'Ursache nicht benannt');
+});
+
+test('bei nicht erreichtem Bereich sagt die Begruendung, dass das Gewicht bleibt', () => {
+  const s = { ...S4, weightReason: { ...WR, reason: 'repsLow', toKg: 60, lastReps: [5, 5, 4] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(/bleibt/.test(r.answer), 'Auf- und Abstieg vertauscht');
+});
+
+test('ohne aktiven Vorschlag wird nichts begruendet', () => {
+  assert.strictEqual(R.resolveIntent('warum 62,5?', { ...S4, weightReason: null }), null);
+});
+
+test('die Warum-Ausnahme bleibt eng', () => {
+  // Medizinisch, wertend, und ein Warum weit weg von jedem Gewichtswort.
+  assert.strictEqual(R.resolveIntent('warum tut mir die schulter weh?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist mein plan so aufgebaut?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist mein naechster satz so schwer?', S4), null);
+  assert.strictEqual(
+    R.resolveIntent('warum haben wir eigentlich nie darueber geredet, was ein gutes gewicht waere?', S4),
+    null
+  );
+});
+
 test('englische Varianten der neuen Intents werden erkannt', () => {
   assert.strictEqual(R.resolveIntent('whats my next set?', S20).intent, 'nextSet');
   assert.strictEqual(R.resolveIntent('how long is my streak?', S20).intent, 'streak');

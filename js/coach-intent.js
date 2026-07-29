@@ -81,6 +81,42 @@
     return hit;
   }
 
+  // Task 4: Begruendungstext fuer den eigenen Gewichtsvorschlag. Nennt in
+  // jedem Fall Zahl, Regel und Schrittweite -- "weil du bereit bist" waere
+  // wertlos. wr folgt der Schnittstelle aus dem Task-4-Brief (exName, fromKg,
+  // toKg, stepKg, reason, lastReps, repRange, ciFactor).
+  function weightWhyAnswer(wr) {
+    var reps  = (wr.lastReps || []).join('/');
+    var range = (wr.repRange && wr.repRange.length === 2) ? wr.repRange[0] + '–' + wr.repRange[1] : '';
+    var step  = num(wr.stepKg) + ' kg';
+    var to    = num(wr.toKg) + ' kg';
+    var name  = wr.exName ? wr.exName + ': ' : '';
+    var pct   = wr.ciFactor != null ? Math.round((1 - wr.ciFactor) * 100) : 0;
+
+    if (wr.reason === 'repsHigh') {
+      return name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
+        ') — Regel: oben im Bereich steigt das Gewicht um die Schrittweite ' + step +
+        ', neues Gewicht ' + to + '.';
+    }
+    if (wr.reason === 'repsLow') {
+      return name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
+        '), den Bereich oben also nicht erreicht — Regel: das Gewicht bleibt bei ' + to +
+        ', die Schrittweite ' + step + ' greift erst, wenn der Bereich oben klappt.';
+    }
+    if (wr.reason === 'checkinUp') {
+      return name + 'Dein Check-in zeigt gute Erholung — Regel: dadurch ist die größere Schrittweite ' +
+        step + ' schon jetzt freigegeben, neues Gewicht ' + to + '.';
+    }
+    if (wr.reason === 'checkinDown') {
+      return name + 'Dein Check-in zeigt weniger Erholung — Regel: das Gewicht sinkt deshalb um ' + pct +
+        '% auf ' + to + ' (Basis-Schrittweite ' + step + ').';
+    }
+    // 'hold' bzw. unbekannter Wert: gleiche Formulierung wie repsLow-Fallback,
+    // aber mit Erholungs-Begruendung statt Wiederholungs-Begruendung.
+    return name + 'Zuletzt ' + reps + ' Wiederholungen im Bereich ' + range +
+      ' — Regel: Erholung geht vor Steigerung, Gewicht bleibt bei ' + to + ', Schrittweite ' + step + ' folgt danach.';
+  }
+
   function resolveIntent(text, snap) {
     var q = norm(text);
     if (!q) return null;
@@ -95,6 +131,34 @@
     if (!MED.test(q) && /aufwaerm|einwaerm|warm.?up/.test(q)) {
       if (!s.warmupText) return null;
       return { intent: 'warmup', answer: s.warmupText };
+    }
+
+    // VORAB-AUSNAHME 2 (Task 4): Begruendung des eigenen Gewichtsvorschlags.
+    // "warum" steht bewusst in BLOCK (siehe oben) -- ohne diese Ausnahme kaeme
+    // die Frage nie an, "warum" bleibt aber drin, sonst rutschen wertende
+    // Fragen ("warum ist mein plan so aufgebaut?") durch. Die Ausnahme ist eng
+    // gefasst: Warum-Wort und Gewichts-Signal (die vorgeschlagene Zahl,
+    // gewicht/weight/kilo/kg) muessen innerhalb von 24 Zeichen zueinander
+    // stehen -- sonst faellt der Satz durch (Testfall "warum haben wir
+    // eigentlich nie darueber geredet, was ein gutes gewicht waere?": Abstand
+    // > 24 Zeichen -> ans Modell). MED bleibt aussen vor: eine Schmerzfrage
+    // geht immer ans Modell, auch wenn zufaellig ein Gewichtswort danebensteht
+    // ("warum tut mir die schulter weh?"). Ohne aktiven Vorschlag
+    // (s.weightReason) greift die Ausnahme gar nicht -- sonst wuerde der
+    // Router eine Begruendung erfinden, wo gerade keine ansteht.
+    if (!MED.test(q) && s.weightReason) {
+      var wr = s.weightReason;
+      var whyWord = '(?:warum|wieso|weshalb|why|wie kommst du|how come)';
+      // norm() ersetzt Komma UND Punkt durch Leerzeichen -- "62,5" und "62.5"
+      // werden dadurch beide zu "62 5". Muster also aus Ganzzahl- und
+      // Nachkommateil bauen, das Leerzeichen dazwischen optional lassen.
+      var toParts = String(wr.toKg).split('.');
+      var numSig  = toParts.length === 2 ? toParts[0] + ' ?' + toParts[1] : String(Math.round(Number(wr.toKg)));
+      var wSignal = '(?:' + numSig + '|gewicht|weight|kilo|kg)';
+      var whyRe   = new RegExp(whyWord + '.{0,24}?' + wSignal + '|' + wSignal + '.{0,24}?' + whyWord);
+      if (whyRe.test(q)) {
+        return { intent: 'weightWhy', answer: weightWhyAnswer(wr) };
+      }
     }
 
     if (BLOCK.test(q)) return null;
