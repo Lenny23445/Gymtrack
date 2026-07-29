@@ -7983,6 +7983,11 @@ const I18N_EN = {
   'Frag mich zu Übungen, Technik oder lass dir einen kompletten Trainingsplan erstellen.':'Ask me about exercises, technique, or have me build you a complete workout plan.',
   'Erstelle mir einen Trainingsplan':'Create a workout plan for me','Alternative zu einer Übung finden':'Find an alternative exercise',
   'Wie kann ich mein Volumen steigern?':'How can I increase my volume?','Wo bin ich unausgeglichen?':'Where am I unbalanced?',
+  /* Kontextabhaengige Frage-Chips (Task 5) — drei Chip-Reihen je Trainingszustand */
+  'Was ist mein nächster Satz?':'What’s my next set?','Wie soll ich mich aufwärmen?':'How should I warm up?',
+  'Alternative zu dieser Übung':'Alternative to this exercise','Wie lief die Einheit?':'How did the session go?',
+  'Wie lang ist meine Streak?':'How long is my streak?','Was steht als Nächstes an?':'What’s next?',
+  'Wie viele Trainings diese Woche?':'How many workouts this week?',
   'Plan importieren':'Import plan','Hier ist dein Plan:':'Here is your plan:',
   'Dein aktueller Wochenplan wird ersetzt. Weiter?':'Your current weekly plan will be replaced. Continue?',
   'Plan importiert — du findest ihn im Heute-Tab.':'Plan imported — you’ll find it in the Today tab.',
@@ -23895,11 +23900,42 @@ function _aicRenderLog(){
   if (_aicBusy) log.innerHTML += `<div class="aic-typing"><span></span><span></span><span></span></div>`;
   log.scrollTop = log.scrollHeight + 999;
 }
+// Letzte Einheit < 6h her? Steuert, welche der drei Chip-Reihen erscheint —
+// dieselbe Konvention wie anderswo im Code (S.sessions[length-1] = juengste
+// Einheit, s. z. B. _relativeDate-Aufrufer), kein zusaetzliches Sortieren.
+function _aicRecentSessionDone(){
+  try {
+    const last = S.sessions && S.sessions.length ? S.sessions[S.sessions.length - 1] : null;
+    if (!last || !last.date) return false;
+    const t = new Date(last.date).getTime();
+    return isFinite(t) && (Date.now() - t) < 6 * 60 * 60 * 1000;
+  } catch(e) { return false; }
+}
 function _aicRenderSugg(){
   const el = document.getElementById('aic-sugg'); if (!el) return;
   if (_aicHist.length) { el.innerHTML = ''; return; }
-  const sugg = ['Erstelle mir einen Trainingsplan', 'Alternative zu einer Übung finden', 'Wie kann ich mein Volumen steigern?', 'Wo bin ich unausgeglichen?'];
-  el.innerHTML = sugg.map(s => `<button type="button" onclick="document.getElementById('aic-in').value='${s.replace(/'/g,"\\'")}';aicSend()">${s}</button>`).join('');
+  // Drei Zustaende, drei Chips (Reihenfolge bindend, siehe Task-5-Brief). Die
+  // ersten beiden jeder Reihe beantwortet der lokale Intent-Router
+  // (js/coach-intent.js) kostenlos & offline, nur der dritte geht ans Modell.
+  let sugg;
+  try {
+    sugg = isWorkoutActive()
+      ? ['Was ist mein nächster Satz?', 'Wie soll ich mich aufwärmen?', 'Alternative zu dieser Übung']
+      : _aicRecentSessionDone()
+        ? ['Wie lief die Einheit?', 'Wie lang ist meine Streak?', 'Wie kann ich mein Volumen steigern?']
+        : ['Was steht als Nächstes an?', 'Wie viele Trainings diese Woche?', 'Erstelle mir einen Trainingsplan'];
+  } catch(e) { sugg = ['Was steht als Nächstes an?', 'Wie viele Trainings diese Woche?', 'Erstelle mir einen Trainingsplan']; }
+  // data-sg="<index>": der Text kommt beim Klick aus DIESEM Array, nie aus dem
+  // DOM zurueckgelesen — der alte onclick-String baute Text ins Attribut und
+  // waere eine Injektionsstelle, sobald dort mal ein Uebungsname landet.
+  el.innerHTML = sugg.map((s, i) => `<button type="button" data-sg="${i}">${esc(tr(s))}</button>`).join('');
+  el.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => {
+      const ta = document.getElementById('aic-in');
+      if (ta) ta.value = sugg[Number(btn.dataset.sg)];
+      aicSend();
+    };
+  });
 }
 
 // ── Coach-Gedaechtnis: Bruecke zwischen App-Zustand und den Coach-Einheiten ──
