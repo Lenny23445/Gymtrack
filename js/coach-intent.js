@@ -19,6 +19,16 @@
   // jetzt direkt bei Intent 5 (siehe dort, inkl. Einschaetzung der Grenzen).
   var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
 
+  // Die beiden Vorab-Ausnahmen (Aufwaermen, Gewichtsbegruendung) liefen bisher
+  // an BLOCK KOMPLETT vorbei. Damit kam mit dem einen Wort, das die Ausnahme
+  // braucht, auch alles Wertende und Planende durch ("warum soll ich das
+  // gewicht nehmen?", "warum steht im plan 60 kg?"). Richtig ist: jede
+  // Ausnahme klammert genau das Wort aus, das sie braucht, und laesst den
+  // REST von BLOCK weiter greifen. Aufwaermen braucht "soll ich"/"should i",
+  // die Gewichtsbegruendung braucht "warum"/"erklaer".
+  var BLOCK_MINUS_SOLL  = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|meinst du|warum|erklaer|hurts|pain)/;
+  var BLOCK_MINUS_WARUM = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|sollte ich|soll ich|meinst du|hurts|pain|should i)/;
+
   // STRUKTURELLES GATE gegen Fehltreffer durch Alltagswoerter: manche
   // Ankerworte sind ausserhalb des Trainingskontexts voellig normale Woerter
   // (gewicht/weight, sets, volume, erhol/recover). So ein Wort allein beweist
@@ -47,7 +57,30 @@
   // enthaelt "soll ich" und faellt sonst in BLOCK, obwohl die Frage rein
   // schematisch ist. Die Ausnahme darf aber niemals eine Schmerz- oder
   // Verletzungsmeldung einfangen -- die gehoert ausnahmslos ans Modell.
-  var MED = /(schmerz|weh|verletz|zwick|hurts|pain)/;
+  //
+  // Sechs Wortstaemme (schmerz/weh/verletz/zwick/hurts/pain) waren dafuer viel
+  // zu wenig: "warum knackt das knie bei 60 kg?" enthaelt keinen davon und
+  // bekam eine Progressionsregel als Antwort. Deshalb in KLASSEN gedacht statt
+  // in Einzelwoertern:
+  //   MED_HARD  -- eindeutige Krankheits-/Beschwerde-/Behandlungswoerter,
+  //                blocken allein;
+  //   BODY + COMPLAIN -- ein Koerperteil zusammen mit einer Beschwerde- oder
+  //                Risikoaussage ("knackt das knie", "gefaehrlich fuer mein
+  //                knie"). Ein Koerperteil ALLEIN blockt bewusst nicht, sonst
+  //                waere jede normale Frage mit Muskelnamen betroffen.
+  // Beide Listen gelten nur fuer die zwei Ausnahmen -- ein Fehlalarm kostet
+  // hier nur eine lokale Antwort (die Frage geht ans Modell), waehrend ein
+  // Durchlasser eine medizinische Falschauskunft waere.
+  var MED_HARD = /schmerz|weh|verletz|zwick|ziep|hurts|pain|injur|\bache|\bsore\b|krank|erkaelt|fieber|grippe|entzuend|zerr|riss|gerissen|\breha\b|arzt|aerzt|physio|\bop\b|operation|meniskus|bandscheibe|kreuzband|\btaub\b|kribbel|prellung|kaputt/;
+  var BODY     = /knie|schulter|ruecken|nacken|huefte|handgelenk|ellenbogen|ellbogen|sprunggelenk|knoechel|wirbel|achilles|gelenk|sehne|knee|shoulder|wrist|elbow|ankle|joint|tendon/;
+  var COMPLAIN = /knack|knirsch|ziep|stich|brenn|schwill|geschwoll|taub|kribbel|klemm|gefaehrl|riskant|schaedl|schon(t|en)|blockiert|instabil|ueberlast/;
+  function medical(q) { return MED_HARD.test(q) || (BODY.test(q) && COMPLAIN.test(q)); }
+
+  // "gewicht"/"weight" ist auch das KOERPERgewicht. Der Coach begruendet aber
+  // ausschliesslich seinen eigenen Hantel-Vorschlag -- Waage-, Zu- und
+  // Abnehmfragen gehoeren ans Modell, auch wenn die vorgeschlagene Zahl
+  // zufaellig danebensteht ("wieso wiege ich 60 kilo?").
+  var BODYWEIGHT = /koerpergewicht|body ?weight|abnehm|zunehm|zugenommen|abgenommen|an gewicht|wiege ich|\bwaage\b|gewicht verloren/;
 
   // Muskelgruppen-Woerter als reines JA/NEIN, ob eine Volumenfrage ueberhaupt
   // muskelspezifisch gemeint ist. Die ZAHL kommt ausschliesslich aus
@@ -113,7 +146,15 @@
     }
     // 'hold' bzw. unbekannter Wert: gleiche Formulierung wie repsLow-Fallback,
     // aber mit Erholungs-Begruendung statt Wiederholungs-Begruendung.
-    return name + 'Zuletzt ' + reps + ' Wiederholungen im Bereich ' + range +
+    // "im Bereich" darf NICHT unbedingt behauptet werden: reason 'hold'
+    // entsteht auch bei einer als "Sehr schwer" bewerteten Einheit mit
+    // VERFEHLTEM Bereich ([5,5,4] bei 6-8) -- der Satz waere dann in sich
+    // widerspruechlich und faktisch falsch. Bereich wird deshalb nur genannt,
+    // nicht behauptet, wenn die Wiederholungen darunter/darueber lagen.
+    var inRange = !!(range && (wr.lastReps || []).length &&
+      (wr.lastReps || []).every(function (v) { return v >= wr.repRange[0] && v <= wr.repRange[1]; }));
+    var rangeTxt = !range ? '' : (inRange ? ' im Bereich ' + range : ' (Bereich ' + range + ')');
+    return name + 'Zuletzt ' + reps + ' Wiederholungen' + rangeTxt +
       ' — Regel: Erholung geht vor Steigerung, Gewicht bleibt bei ' + to + ', Schrittweite ' + step + ' folgt danach.';
   }
 
@@ -126,10 +167,15 @@
     // fast immer als "wie soll ich mich aufwaermen?" gefragt -- "soll ich" steht
     // in BLOCK, die Frage kaeme also nie an. Sie ist aber weder wertend noch
     // planend: die Antwort ist ein aus dem Arbeitsgewicht gerechnetes Schema.
-    // Fehlt das Schema, endet die Frage hier mit null und geht ans Modell --
-    // sie faellt bewusst NICHT auf die spaeteren Intents durch.
-    if (!MED.test(q) && /aufwaerm|einwaerm|warm.?up/.test(q)) {
-      if (!s.warmupText) return null;
+    // Fehlt das Schema, faellt die Frage auf die spaeteren Intents DURCH
+    // (frueher: harter Abbruch mit null). Der Abbruch hat echte Fragen
+    // verschluckt, sobald das Aufwaermwort nur nebenbei vorkam -- "wie viele
+    // saetze noch nach dem aufwaermen?" bekam gar keine Antwort mehr, obwohl
+    // Intent 3 sie beantworten kann. Und weil snap.warmupText bis Block 3
+    // nirgends gesetzt wird, war das der Normalfall, nicht der Sonderfall.
+    // BLOCK_MINUS_SOLL: alles ausser "soll ich"/"should i" greift weiter --
+    // "welchen plan soll ich zum aufwaermen nehmen?" ist eine Planfrage.
+    if (!medical(q) && !BLOCK_MINUS_SOLL.test(q) && /aufwaerm|einwaerm|warm.?up/.test(q) && s.warmupText) {
       return { intent: 'warmup', answer: s.warmupText };
     }
 
@@ -141,12 +187,15 @@
     // gewicht/weight/kilo/kg) muessen innerhalb von 24 Zeichen zueinander
     // stehen -- sonst faellt der Satz durch (Testfall "warum haben wir
     // eigentlich nie darueber geredet, was ein gutes gewicht waere?": Abstand
-    // > 24 Zeichen -> ans Modell). MED bleibt aussen vor: eine Schmerzfrage
-    // geht immer ans Modell, auch wenn zufaellig ein Gewichtswort danebensteht
-    // ("warum tut mir die schulter weh?"). Ohne aktiven Vorschlag
-    // (s.weightReason) greift die Ausnahme gar nicht -- sonst wuerde der
-    // Router eine Begruendung erfinden, wo gerade keine ansteht.
-    if (!MED.test(q) && s.weightReason) {
+    // > 24 Zeichen -> ans Modell). Medizinisches bleibt aussen vor: eine
+    // Schmerzfrage geht immer ans Modell, auch wenn zufaellig ein Gewichtswort
+    // danebensteht ("warum tut mir die schulter weh?"). Ebenso Koerpergewicht
+    // (BODYWEIGHT) und der Rest von BLOCK (BLOCK_MINUS_WARUM): begruendet wird
+    // nur die eigene Rechnung, NIE eine Empfehlung -- "warum soll ich das
+    // gewicht nehmen?" ist eine Erlaubnisfrage und gehoert ans Modell. Ohne
+    // aktiven Vorschlag (s.weightReason) greift die Ausnahme gar nicht --
+    // sonst wuerde der Router eine Begruendung erfinden, wo keine ansteht.
+    if (!medical(q) && !BODYWEIGHT.test(q) && !BLOCK_MINUS_WARUM.test(q) && s.weightReason) {
       var wr = s.weightReason;
       var whyWord = '(?:warum|wieso|weshalb|why|wie kommst du|how come)';
       // norm() ersetzt Komma UND Punkt durch Leerzeichen -- "62,5" und "62.5"
@@ -154,7 +203,13 @@
       // Nachkommateil bauen, das Leerzeichen dazwischen optional lassen.
       var toParts = String(wr.toKg).split('.');
       var numSig  = toParts.length === 2 ? toParts[0] + ' ?' + toParts[1] : String(Math.round(Number(wr.toKg)));
-      var wSignal = '(?:' + numSig + '|gewicht|weight|kilo|kg)';
+      // Die Zahl zaehlt nur als EIGENES Wort und nur mit Einheit dahinter oder
+      // am Satzende ("warum 62,5?", "warum sind es heute 60 kg?"). Ohne beides
+      // aktivierte jede zufaellig gleiche Zahl die Begruendung -- "warum
+      // trainiere ich 60 minuten?", "warum nur 100 kalorien?", und ueber den
+      // Teiltreffer in "160" sogar "warum ist mein 1rm 160 gesunken?".
+      var numTok  = '(?:^| )' + numSig + '(?= ?(?:kg|kilo|lbs|pfund)|$)';
+      var wSignal = '(?:' + numTok + '|gewicht|weight|kilo|kg)';
       var whyRe   = new RegExp(whyWord + '.{0,24}?' + wSignal + '|' + wSignal + '.{0,24}?' + whyWord);
       if (whyRe.test(q)) {
         return { intent: 'weightWhy', answer: weightWhyAnswer(wr) };
@@ -308,16 +363,21 @@
     // geratener Wert. Ein erfundener Wert waere eine Falschaussage des
     // Coaches und damit teurer als jeder Modellaufruf.
 
-    // 9) Supersatz-Partner der aktuellen Uebung.
-    if (/supersatz|supersaetze|superset/.test(q)) {
+    // 9) Supersatz-Partner der AKTUELLEN Uebung -- der bare Wortstamm matchte
+    // auch die Wissensfrage "was ist ein supersatz?" und beantwortete sie mit
+    // dem Partner der laufenden Uebung. Gate: zusaetzlich ein Bezug auf den
+    // eigenen, gerade laufenden Satz.
+    if (two(q, /supersatz|supersaetze|superset/, /\bdazu\b|partner|\bmein|aktuell|gerade|jetzt|\bhier\b|\bmy\b|current/)) {
       if (!s.supersetText) return null;
       return { intent: 'superset', answer: s.supersetText };
     }
 
     // 10) Wochenfortschritt -- "woche"/"week" allein ist ein Alltagswort
-    // ("diese Woche war anstrengend"). Gate: zweites Trainings- oder
-    // Zaehl-Signal noetig.
-    if (two(q, /woche|week/, /training|einheit|workout|session|wie viele|wieviele|how many|geschafft/)) {
+    // ("diese Woche war anstrengend"). Gate: zweites TRAININGS-Signal noetig.
+    // "wie viele"/"how many" taugt dafuer nicht: das ist ein reiner
+    // Mengenfrage-Marker ohne Trainingsbezug und hat "wie viele tage hat diese
+    // woche?" mit "Diese Woche 3 von 4 Einheiten." beantwortet.
+    if (two(q, /woche|week/, /training|einheit|workout|session|geschafft/)) {
       if (s.weekWorkouts == null || s.weekGoal == null) return null;
       return { intent: 'weekProgress',
                answer: 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };
@@ -333,22 +393,31 @@
     }
 
     // 12) Durchschnittliche Trainingsdauer -- "schnitt" allein ist mehrdeutig
-    // (Schnitt/schneiden), deshalb zusaetzlich ein Trainings- oder Dauer-Wort.
-    if (two(q, /schnitt|durchschnitt|average/, /trainier|training|workout|einheit|dauer|lange|lang/)) {
+    // (Schnitt/schneiden), deshalb zusaetzlich ein Trainings-Wort. Dauer-Woerter
+    // taugen als zweites Signal NICHT: "lang" matchte als Teilstring in
+    // "langhantel"/"langsam", und "dauer" liess die Frage nach der SATZdauer
+    // ("wie lange sollte ein durchschnittlicher satz dauern?") mit der
+    // Trainingsdauer beantworten. Beide Fragen gehen jetzt ans Modell.
+    if (two(q, /schnitt|durchschnitt|average/, /trainier|training|workout|einheit|session/)) {
       if (s.avgDurationMin == null) return null;
       return { intent: 'avgDuration',
                answer: 'Im Schnitt trainierst du ' + s.avgDurationMin + ' Minuten.' };
     }
 
-    // 13) Gestrige Einheit.
-    if (/gestern|yesterday/.test(q)) {
+    // 13) Gestrige Einheit -- "gestern" ist ein blankes Alltagswort und hat
+    // "was war gestern im fernsehen?" mit der gestrigen Einheit beantwortet.
+    // Gate: zweites Trainings-Signal noetig.
+    if (two(q, /gestern|yesterday/, /training|trainiert|workout|einheit|session|gemacht|volumen|uebung|\bgym\b|satz|saetze/)) {
       if (!s.yesterdayText) return null;
       return { intent: 'yesterday', answer: s.yesterdayText };
     }
 
     // 14) Naechster Plantag -- bewusst NACH Intent 8 (heute), damit
-    // "was steht heute an" dort bleibt.
-    if (/als naechstes an|als naechstes dran|naechste[rs]? (trainingstag|plantag|einheit)|next (training|workout) day|what.?s next/.test(q)) {
+    // "was steht heute an" dort bleibt. Das bare "what's next" ist hier eine
+    // praezise Phrase zu wenig: es traf auch "whats next after this set?"
+    // (Frage zum laufenden Training) und antwortete mit dem Plantag. Der
+    // englische Zweig verlangt deshalb den Plan-/Trainingsbezug im Wortlaut.
+    if (/als naechstes an|als naechstes dran|naechste[rs]? (trainingstag|plantag|einheit)|next (training|workout|plan) day|what.?s next (?:workout|training|session|day|on the plan)/.test(q)) {
       if (!s.nextPlanDayText) return null;
       return { intent: 'nextPlanDay', answer: s.nextPlanDayText };
     }

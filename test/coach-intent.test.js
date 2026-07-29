@@ -419,7 +419,11 @@ test('Check-in-Absenkung wird mit Prozent und Ursache begruendet', () => {
   const s = { ...S4, weightReason: { ...WR, reason: 'checkinDown', toKg: 55, ciFactor: 0.92 } };
   const r = R.resolveIntent('warum 55?', s);
   assert.strictEqual(r && r.intent, 'weightWhy');
-  assert.ok(r.answer.includes('8'), 'Prozentwert falsch herum gerechnet');
+  // W7: includes('8') war NICHT diskriminierend -- bei gedrehtem Vorzeichen
+  // lautet der Text "um -8%" und enthaelt weiterhin eine '8'. Geprueft wird
+  // deshalb der komplette Wortlaut inklusive Vorzeichenfreiheit.
+  assert.ok(/sinkt deshalb um 8\s?%/.test(r.answer), 'Prozentwert falsch herum gerechnet');
+  assert.ok(!/-\s?8\s?%/.test(r.answer), 'Prozentwert mit gedrehtem Vorzeichen');
   assert.ok(/Check-in|Erholung/.test(r.answer), 'Ursache nicht benannt');
 });
 
@@ -449,4 +453,96 @@ test('englische Varianten der neuen Intents werden erkannt', () => {
   assert.strictEqual(R.resolveIntent('whats my next set?', S20).intent, 'nextSet');
   assert.strictEqual(R.resolveIntent('how long is my streak?', S20).intent, 'streak');
   assert.strictEqual(R.resolveIntent('how should i warm up?', S20).intent, 'warmup');
+});
+
+// --- Review-Runde 5: die beiden Vorab-Ausnahmen und die Task-3-Gates --------
+// Beide Ausnahmen (Aufwaermen, Gewichtsbegruendung) laufen VOR BLOCK. Sie
+// haben BLOCK bisher komplett uebersprungen, statt nur das eine Wort
+// auszuklammern, das sie brauchen ("soll ich" bzw. "warum"). Alle Saetze hier
+// sind die im Reviewbericht ausgefuehrten Angriffssaetze.
+
+const S60  = { ...S4, weightReason: { ...WR, toKg: 60 } };
+const S100 = { ...S4, weightReason: { ...WR, toKg: 100 } };
+
+test('K2: medizinische Fragen kommen nicht durch die Gewichts-Ausnahme', () => {
+  // MED kannte nur sechs Wortstaemme -- Koerperteil plus Beschwerde ist die
+  // Klasse, nicht das Einzelwort.
+  assert.strictEqual(R.resolveIntent('warum knackt das knie bei 60 kg?', S60), null);
+  assert.strictEqual(R.resolveIntent('warum ziept es bei dem gewicht?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht so gefaehrlich fuer mein knie?', S4), null);
+});
+
+test('K2: Erlaubnis- und Planfragen kommen nicht durch die Gewichts-Ausnahme', () => {
+  // Begruendet wird ausschliesslich die eigene Rechnung, nie eine Empfehlung:
+  // "warum SOLL ICH das nehmen" ist eine Erlaubnisfrage und gehoert ans Modell.
+  assert.strictEqual(R.resolveIntent('warum soll ich das gewicht nehmen?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum steht im plan 60 kg?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist mein plan auf kg statt lbs?', S4), null);
+});
+
+test('K2: Koerpergewicht ist nicht das Hantelgewicht', () => {
+  assert.strictEqual(R.resolveIntent('wieso ist mein koerpergewicht gestiegen?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum nehme ich an gewicht zu?', S4), null);
+  assert.strictEqual(R.resolveIntent('wieso wiege ich 60 kilo?', S60), null);
+});
+
+test('K2: Aufwaerm-Ausnahme laesst Medizinisches und Planendes nicht durch', () => {
+  assert.strictEqual(R.resolveIntent('ich bin krank, wie soll ich mich aufwaermen?', S20), null);
+  assert.strictEqual(R.resolveIntent('ich hatte eine zerrung im ruecken, wie aufwaermen?', S20), null);
+  assert.strictEqual(R.resolveIntent('nach meiner knie-op, wie soll ich mich aufwaermen?', S20), null);
+  assert.strictEqual(R.resolveIntent('welchen plan soll ich zum aufwaermen nehmen?', S20), null);
+});
+
+test('W1: eine Zahl ohne Gewichtsbezug begruendet nichts', () => {
+  // numSig stand ohne Wortgrenze und ohne Einheiten-Anker im Muster.
+  assert.strictEqual(R.resolveIntent('warum bin ich seit 60 tagen nicht besser geworden?', S60), null);
+  assert.strictEqual(R.resolveIntent('warum trainiere ich 60 minuten?', S60), null);
+  assert.strictEqual(R.resolveIntent('warum ist mein 1rm 160 gesunken?', S60), null);
+  assert.strictEqual(R.resolveIntent('warum sind 100 wiederholungen zu viel?', S100), null);
+  assert.strictEqual(R.resolveIntent('warum nur 100 kalorien?', S100), null);
+});
+
+test('W1: die Zahl mit Einheit oder am Satzende bleibt ein Gewichtssignal', () => {
+  assert.strictEqual(R.resolveIntent('warum 60?', S60).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum sind es heute 60 kg?', S60).intent, 'weightWhy');
+});
+
+test('W2: fehlender Aufwaermtext laesst die Frage zu den spaeteren Intents durch', () => {
+  // snap.warmupText wird bis Block 3 nirgends gesetzt. Die Ausnahme brach die
+  // Frage bisher mit null ab, statt sie durchfallen zu lassen.
+  const r = R.resolveIntent('wie viele saetze noch nach dem aufwaermen?', { ...S20, warmupText: null });
+  assert.strictEqual(r && r.intent, 'setsLeft');
+  assert.ok(r.answer.includes('3'));
+});
+
+test('W3: reine Mengenfrage mit "woche" ist kein Wochenfortschritt', () => {
+  assert.strictEqual(R.resolveIntent('wie viele tage hat diese woche?', S20), null);
+  assert.strictEqual(R.resolveIntent('wie viele kalorien habe ich diese woche verbrannt?', S20), null);
+});
+
+test('W4: Satzdauer und "lang" als Teilwort sind keine Trainingsdauer', () => {
+  assert.strictEqual(R.resolveIntent('wie lange sollte ein durchschnittlicher satz dauern?', S20), null);
+  assert.strictEqual(R.resolveIntent('wie ist der durchschnitt bei langhantel uebungen?', S20), null);
+});
+
+test('W5: Alltagswoerter allein loesen Supersatz/gestern/Plantag nicht aus', () => {
+  assert.strictEqual(R.resolveIntent('was ist ein supersatz?', S20), null);
+  assert.strictEqual(R.resolveIntent('was war gestern im fernsehen?', S20), null);
+  assert.strictEqual(R.resolveIntent('whats next after this set?', S20), null);
+});
+
+test('W6: hold-Begruendung behauptet den Bereich nicht, wenn er verfehlt wurde', () => {
+  const s = { ...S4, weightReason: { ...WR, reason: 'hold', toKg: 60, lastReps: [5, 5, 4], repRange: [6, 8] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(!/im Bereich/.test(r.answer), 'behauptet faelschlich, die Wdh. laegen im Bereich');
+  assert.ok(r.answer.includes('5/5/4'), 'geschaffte Wiederholungen fehlen');
+  assert.ok(r.answer.includes('6–8'), 'Bereich fehlt');
+  assert.ok(/bleibt/.test(r.answer), 'Haltefall nicht benannt');
+});
+
+test('W6: hold-Begruendung sagt "im Bereich", wenn die Wdh. drin lagen', () => {
+  const s = { ...S4, weightReason: { ...WR, reason: 'hold', toKg: 60, lastReps: [7, 7, 6], repRange: [6, 8] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.ok(/im Bereich 6–8/.test(r.answer), 'korrekter Bereichsfall verloren');
 });

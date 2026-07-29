@@ -11382,20 +11382,29 @@ function _ciReadinessCalc(all, last) {
     bar:   null,
     plain: 'Letzter Check-in unauffällig — normale Progression.' };
 }
-// Begruendung des zuletzt berechneten Gewichtsvorschlags (Task 4, Coach-Chat
-// "Warum X?"). Bewusst NUR im Speicher, nie in S/persist() — die Begruendung
-// gilt fuer genau diesen Moment (die zuletzt fuer irgendeine Uebung berechnete
-// Zahl) und wuerde als Cloud-Feld sofort veralten. getSuggestedWeight() setzt
-// sie bei JEDEM Rueckgabepfad neu (auch auf null), sonst bliebe bei einem
-// Uebungswechsel die Begruendung der VORHERIGEN Uebung stehen — das waere eine
-// falsch zugeordnete Aussage im Chat.
-let _lastWeightReason = null;
+// Begruendungen der berechneten Gewichtsvorschlaege (Task 4, Coach-Chat
+// "Warum X?"), abgelegt JE UEBUNGS-ID. Bewusst NUR im Speicher, nie in
+// S/persist() — die Begruendung gilt fuer genau diesen Moment und wuerde als
+// Cloud-Feld sofort veralten.
+//
+// Eine einzelne _lastWeightReason-Variable war hier falsch: startActive() ruft
+// getSuggestedWeight() in einer Schleife ueber ALLE Uebungen der Einheit auf,
+// danach stand dort immer die Begruendung der LETZTEN Uebung. Am Bankdruecken
+// haette der Coach also das Gewicht der Beinpresse begruendet — eine
+// konfident formulierte Falschaussage — und "Warum 62,5?" haette die Zahl gar
+// nicht mehr getroffen. Invariante jetzt: die Begruendung, die _coachSnap()
+// ausliefert, gehoert zwingend zu der Uebung, deren Gewicht der Nutzer gerade
+// vor sich hat (Auswahl dort ueber die aktive Uebung in wkLogs). Passt keine,
+// bleibt weightReason null und die Frage geht ans Modell.
+let _weightReasons = {};
 // Gewichtsvorschlag nach Check-in-Lage anpassen (nur runter, nie hoch — hoch
 // passiert über die freigegebene größere Progressionsstufe, nicht per Faktor).
 // meta (optional): Begruendungs-Grunddaten aus getSuggestedWeight (Task 4) —
-// wird hier nur ergaenzt (fromKg/toKg/ciFactor) und in _lastWeightReason
-// abgelegt. ciFactor = angepasstes Gewicht / rohes Gewicht (1.0 = unveraendert),
-// Division durch 0 abgefangen ueber die isFinite/n>0-Pruefung unten.
+// wird hier nur ergaenzt (fromKg/toKg/ciFactor) und unter meta.exId in
+// _weightReasons abgelegt. ciFactor = angepasstes Gewicht / rohes Gewicht
+// (1.0 = unveraendert), Division durch 0 abgefangen ueber die isFinite/n>0-
+// Pruefung unten. Ohne exId wird nichts abgelegt — eine Begruendung ohne
+// Uebungsbezug waere nicht zuordenbar und damit wertlos.
 function _ciAdjustW(w, meta) {
   const r = _ciReadiness();
   const n = Number(w);
@@ -11404,9 +11413,9 @@ function _ciAdjustW(w, meta) {
     const raw  = Math.round((n * r.wFactor) / step) * step;
     return Math.min(n, Math.max(step, raw));
   })();
-  if (meta) {
+  if (meta && meta.exId) {
     const outN = Number(out);
-    _lastWeightReason = { ...meta, fromKg: n, toKg: outN,
+    _weightReasons[meta.exId] = { ...meta, fromKg: n, toKg: outN,
       ciFactor: (isFinite(n) && n > 0 && isFinite(outN)) ? outN / n : 1 };
   }
   return out;
@@ -11422,11 +11431,11 @@ function _ciBlocksProgression(sessionId) {
 }
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
-  // Jeder Rueckgabepfad setzt _lastWeightReason NEU (auch auf null) — sonst
-  // bliebe bei einem Uebungswechsel die Begruendung der VORHERIGEN Uebung
-  // stehen (Task 4: "Warum X?" im Coach-Chat wuerde dann eine falsch
-  // zugeordnete Zahl begruenden).
-  if (!hist.length) { _lastWeightReason = null; return ex.targetWeight ? Number(ex.targetWeight) : null; }
+  // Jeder Rueckgabepfad raeumt den Eintrag DIESER Uebung ab (bzw. schreibt ihn
+  // in _ciAdjustW neu) — sonst bliebe eine veraltete Begruendung zu genau
+  // dieser Uebung stehen, sobald sie keinen gerechneten Vorschlag mehr hat
+  // (Task 4: "Warum X?" im Coach-Chat wuerde dann eine tote Zahl begruenden).
+  if (!hist.length) { delete _weightReasons[ex.id]; return ex.targetWeight ? Number(ex.targetWeight) : null; }
   // Jüngste Einheit mit echtem Arbeitsgewicht suchen — nicht stur die allerletzte.
   // Sonst „vergisst" die App das Gewicht dauerhaft, sobald einmal eine Einheit
   // ohne Gewicht (nur Wdh) gespeichert wurde → nie wieder ein Vorschlag, keine PR.
@@ -11434,11 +11443,11 @@ function getSuggestedWeight(ex) {
   for (let i = hist.length - 1; i >= 0; i--) {
     if (_workSets(hist[i].sets).length) { lastIdx = i; break; }
   }
-  if (lastIdx < 0) { _lastWeightReason = null; return ex.targetWeight ? Number(ex.targetWeight) : null; }
+  if (lastIdx < 0) { delete _weightReasons[ex.id]; return ex.targetWeight ? Number(ex.targetWeight) : null; }
   const last = hist[lastIdx];
 
   const workSets = _workSets(last.sets);
-  if (!workSets.length) { _lastWeightReason = null; return null; }
+  if (!workSets.length) { delete _weightReasons[ex.id]; return null; }
 
   // Top-Sätze separat – gelten als eigene Kategorie (1 schwerer Arbeitssatz)
   const topSets  = workSets.filter(s => s.type === 'top');
@@ -11462,11 +11471,12 @@ function getSuggestedWeight(ex) {
   const stepSmall = cfgStep != null ? cfgStep : 2.5;
   const held = _ciBlocksProgression(last.id);
 
-  // Grunddaten fuer die Task-4-Begruendung (_lastWeightReason). repRange()
+  // Grunddaten fuer die Task-4-Begruendung (_weightReasons). repRange()
   // liefert {min,max}, die Router-Schnittstelle verlangt ein Array [min,max].
   const rr       = repRange(ex);
   const lastReps = mainSets.map(s => parseInt(s.r) || 0);
-  const reasonBase = { exName: ex.name, lastReps, repRange: [rr.min, rr.max] };
+  // exId bindet die Begruendung an genau diese Uebung (siehe _weightReasons).
+  const reasonBase = { exId: ex.id, exName: ex.name, lastReps, repRange: [rr.min, rr.max] };
 
   if (!held && lastIdx >= 1) {
     // vorletzte Einheit MIT Arbeitsgewicht (vor lastIdx)
@@ -24191,10 +24201,31 @@ function _coachSnap(){
     } catch(_) {}
 
     // --- Feld fuer Task 4: Begruendung des eigenen Gewichtsvorschlags -------
-    // _lastWeightReason ist reiner In-Memory-Zustand (siehe Kommentar dort) —
-    // hier nur durchreichen, kein neuer try noetig (kein Feldzugriff, der
-    // werfen koennte).
-    snap.weightReason = _lastWeightReason || null;
+    // Invariante: ausgeliefert wird NUR die Begruendung der Uebung, deren
+    // Gewicht der Nutzer gerade vor sich hat — das ist dieselbe Uebung, die
+    // oben schon snap.active gefuellt hat (erste Uebung mit offenem Satz).
+    // Ausserhalb eines laufenden Trainings gibt es keine solche Uebung, dann
+    // bleibt das Feld null und die Frage geht ans Modell.
+    //
+    // Zusaetzlich muss die begruendete Zahl die sein, die in der Satzzeile
+    // steht: bei Pyramiden-/Drop-Schema schreibt buildPlannedSets baseW *
+    // schemeMult in die Zeile, und der Nutzer kann das Gewicht per Wheel
+    // ueberschreiben. toKg ist aber das ungewichtete Basisgewicht — passt es
+    // nicht zum angezeigten Wert, wuerde der Coach eine Zahl begruenden, die
+    // nirgends dransteht. Dann lieber null.
+    snap.weightReason = null;
+    try {
+      const wrExId = snap.active && snap.active.exId;
+      if (wrExId) {
+        // Nach einem App-Neustart mitten im Training (_restoreActiveWk ruft
+        // getSuggestedWeight nicht auf) ist die Map leer — Begruendung dann
+        // einmalig nachrechnen, statt die Frage grundlos ans Modell zu geben.
+        if (!_weightReasons[wrExId]) { const _wrEx = exById(wrExId); if (_wrEx) getSuggestedWeight(_wrEx); }
+        const wr = _weightReasons[wrExId];
+        const shown = snap.active.nextW;
+        if (wr && shown != null && Math.abs(Number(wr.toKg) - Number(shown)) < 0.001) snap.weightReason = wr;
+      }
+    } catch(e) { console.warn('[Coach] Gewichtsbegruendung:', e); }
   } catch(e) { console.warn('[Coach] Snapshot:', e); }
   return snap;
 }
