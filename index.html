@@ -7469,6 +7469,9 @@ const I18N_EN = {
 'Daten wiederhergestellt! App wird neu geladen.':'Data restored. The app is reloading.',
 'Apple Sign In nicht verfügbar.':'Sign in with Apple is unavailable.',
 'Punkte → Level':'Points → level',
+'„vor 2 Stunden", „gestern" …':'“2 hours ago”, “yesterday” …',
+'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
+'einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'of an exercise, “Best” your best set so far. The 1RMs of all exercises in the group are added up.',
 /* ── Block 2: restliche sichtbare Texte ───────────────────────────────── */
 'Dein Plan':'Your plan','Über mich':'About me','Ziel erreicht!':'Goal reached!',
 'Ungültige Backup-Datei!':'Invalid backup file.',
@@ -7998,6 +8001,34 @@ const I18N_RX = [
  [/· heute/g, '· today'],
  [/fertig — Volumen/g, 'done — volume'],
  [/Weiter mit/g, 'Continue with'],
+ /* Dynamisch zusammengebaute Saetze — Name bzw. Zahl steht in der Mitte. */
+ [/Übung „(.*?)" wirklich löschen\?/g, 'Really delete exercise “$1”?'],
+ [/(\d+) Übungen · (\d+) Trainings gespeichert/g, '$1 exercises · $2 workouts saved'],
+ /* „Ziel: 3×8-12 Wdh" — Zielangabe steht in Uebungs-Statistik, Listenzeilen
+    und Coach-Hinweisen immer MIT angehaengten Werten, der feste Eintrag
+    'Ziel:' greift dort nie. */
+ [/\bZiel: /g, 'Goal: '],
+ [/Ziel ändern: /g, 'Change goal: '],
+ /* Tagesempfehlung und Erholungs-Hinweise — Muskelname und Prozent stehen
+    mitten im Satz, deshalb greift keine feste Phrase. */
+ [/ist zu (\d+) % erholt — der beste Fokus für heute\./g, 'is $1% recovered — the best focus for today.'],
+ [/liegt bei (\d+) % — heute lieber schonen\./g, 'is at $1% — better to take it easy today.'],
+ [/Nichts ist wieder voll da — /g, 'Nothing is fully back yet — '],
+ [/\. Ein ruhiger Tag zahlt sich morgen aus\./g, '. A quiet day pays off tomorrow.'],
+ [/ steht heute an\./g, ' is up today.'],
+ [/Letztes Training anstrengend bei niedriger Energie\. Heute /g, 'Last session was tough on low energy. Today '],
+ [/Mehrere schwere Einheiten bei wenig Energie\. Heute /g, 'Several hard sessions on low energy. Today '],
+ [/ und etwas mehr Pause\./g, ' and a little more rest.'],
+ [/ — bewusst leichter\./g, ' — deliberately lighter.'],
+ [/: leicht zurückgenommen/g, ': eased off slightly'],
+ [/Keine Übungen für /g, 'No exercises for '],
+ [/ aus der Cloud geladen/g, ' loaded from the cloud'],
+ [/(\d+) Übungen\b/g, '$1 exercises'],
+ [/(\d+) Übung\b/g, '$1 exercise'],
+ [/ bei (\d)/g, ' at $1'],
+ [/ statt /g, ' instead of '],
+ [/ abgenommen\b/g, ' lost'],
+ [/ zugenommen\b/g, ' gained'],
  // Inline-Icon-Buttons (Icon klebt im selben Textknoten wie der Text)
  [/Training starten/g,'Start workout'],
  // Widget-/Kraft-Fragmente & Kürzel
@@ -15278,9 +15309,9 @@ function openKraftDetail(mgId) {
 
   body.innerHTML = `
     <div class="kd-formula">
-      <b>So entsteht der Wert:</b> Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —
-      <b>Gewicht × (1 + Wdh ÷ 30)</b>. „Start" ist der beste Satz deiner <b>ersten Einheit</b> einer Übung,
-      „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.
+      <!-- Textknoten bewusst einzeilig: <b> zerteilt den Satz, und ein Fragment
+           mit Zeilenumbruch trifft keinen I18N_EN-Schluessel mehr. -->
+      <b>So entsteht der Wert:</b><span> Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet — </span><b>Gewicht × (1 + Wdh ÷ 30)</b><span>. „Start" ist der beste Satz deiner </span><b>ersten Einheit</b><span> einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.</span>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <span style="font-size:13px;color:var(--text2)">Gruppe gesamt</span>
