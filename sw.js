@@ -9,6 +9,7 @@ const SHELL = [
   './js/coach-log.js',
   './js/coach-intent.js',
   './js/coach-cache.js',
+  './js/coach-persona.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 

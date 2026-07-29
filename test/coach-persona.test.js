@@ -1,0 +1,206 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const P = require('../js/coach-persona.js');
+
+const DE = { name: 'Coach', tone: 'sachlich' };
+const VARS = { ex: 'Bankdrücken', kg: 62.5, reps: 8, sets: 3, vol: 7200, pct: 12,
+               weeks: 4, secs: 90, mins: 40, count: 3, days: 5 };
+
+// --- personaGet: jedes Feld garantiert gueltig ----------------------------
+
+test('Defaults bei fehlender Eingabe', () => {
+  const p = P.personaGet(undefined);
+  assert.strictEqual(p.name, 'Coach');
+  assert.strictEqual(p.tone, 'sachlich');
+  assert.strictEqual(p.voice, null);
+  assert.strictEqual(p.voiceOn, true);
+  assert.strictEqual(p.inTraining, 'key');
+  assert.strictEqual(p.setFeedback, true);
+  assert.strictEqual(p.pushLevel, 'normal');
+  assert.strictEqual(p.insights, true);
+  assert.strictEqual(p.preset, undefined);
+});
+
+test('ungueltiger Ton faellt auf sachlich zurueck', () => {
+  // Drei Sorten Muell: falscher String, null, falscher Typ. Ein Guard, der nur
+  // auf undefined prueft, laesst die anderen beiden durch.
+  ['boese', null, 42].forEach(v =>
+    assert.strictEqual(P.personaGet({ tone: v }).tone, 'sachlich', 'Ton: ' + v));
+});
+
+test('ungueltige Stufen fallen auf ihre Vorgabe zurueck', () => {
+  assert.strictEqual(P.personaGet({ inTraining: 'laut' }).inTraining, 'key');
+  assert.strictEqual(P.personaGet({ pushLevel: 'dauernd' }).pushLevel, 'normal');
+});
+
+test('Name wird getrimmt', () => {
+  assert.strictEqual(P.personaGet({ name: '   Max   ' }).name, 'Max');
+});
+
+test('Name wird auf 20 Zeichen gekuerzt', () => {
+  assert.strictEqual(P.personaGet({ name: 'A'.repeat(40) }).name.length, 20);
+});
+
+test('Name wird im Modul entschaerft, nicht erst beim Rendern', () => {
+  // Der Name geht auch in Notification-Titel und in den Prompt — Stellen ohne
+  // esc(). Deshalb muss die Entschaerfung HIER sitzen.
+  const p = P.personaGet({ name: '<img src=x onerror=alert(1)>' });
+  assert.ok(!/[<>]/.test(p.name), 'Markup-Zeichen ueberlebt: ' + p.name);
+});
+
+test('nach der Entschaerfung leerer Name wird zu Coach', () => {
+  assert.strictEqual(P.personaGet({ name: '<<<>>>' }).name, 'Coach');
+  assert.strictEqual(P.personaGet({ name: '   ' }).name, 'Coach');
+});
+
+test('gueltige Werte ueberleben unveraendert', () => {
+  const p = P.personaGet({ name: 'Nina', tone: 'hart', inTraining: 'full',
+                           setFeedback: false, pushLevel: 'eng', insights: false,
+                           voice: 'de-DE-1', voiceOn: false, preset: 'close' });
+  assert.strictEqual(p.name, 'Nina');
+  assert.strictEqual(p.tone, 'hart');
+  assert.strictEqual(p.inTraining, 'full');
+  assert.strictEqual(p.setFeedback, false);
+  assert.strictEqual(p.pushLevel, 'eng');
+  assert.strictEqual(p.insights, false);
+  assert.strictEqual(p.voice, 'de-DE-1');
+  assert.strictEqual(p.voiceOn, false);
+  assert.strictEqual(p.preset, 'close');
+});
+
+// --- Satzkatalog ----------------------------------------------------------
+
+test('KEYS ist abgeleitet, nicht von Hand gepflegt', () => {
+  assert.ok(Array.isArray(P.KEYS));
+  assert.ok(P.KEYS.length >= 24, 'zu wenige Schluessel: ' + P.KEYS.length);
+  assert.strictEqual(new Set(P.KEYS).size, P.KEYS.length, 'doppelte Schluessel');
+});
+
+test('Vollstaendigkeit: jeder Schluessel in vier Toenen und zwei Sprachen', () => {
+  // Der teuerste Fehler waere eine fehlende Kombination, die erst im Betrieb
+  // als leerer Coach-Satz auffaellt. Die Meldung MUSS die Kombination nennen —
+  // bei knapp 200 Faellen ist "irgendwas fehlt" wertlos.
+  P.KEYS.forEach(key => {
+    P.TONES.forEach(tone => {
+      ['de', 'en'].forEach(lang => {
+        const where = key + '/' + tone + '/' + lang;
+        const s = P.say(key, VARS, { name: 'Coach', tone }, lang);
+        assert.strictEqual(typeof s, 'string', 'kein String: ' + where);
+        assert.ok(s.length > 0, 'leer: ' + where);
+        assert.notStrictEqual(s, key, 'Schluessel statt Satz: ' + where);
+        assert.ok(!/\{[a-z]+\}/i.test(s), 'ungefuellter Platzhalter: ' + where + ' -> ' + s);
+      });
+    });
+  });
+});
+
+test('vier Toene ergeben vier verschiedene Saetze', () => {
+  // Faengt kopierte statt formulierte Toene.
+  const set = new Set(P.TONES.map(tone => P.say('greet', VARS, { tone }, 'de')));
+  assert.strictEqual(set.size, 4, 'Toene nicht verschieden: ' + [...set].join(' | '));
+});
+
+test('unbekannter Schluessel gibt leeren String zurueck statt zu werfen', () => {
+  assert.strictEqual(P.say('gibtsnicht', {}, DE, 'de'), '');
+});
+
+test('fehlende Platzhalterwerte lassen keine Luecke stehen', () => {
+  P.TONES.forEach(tone => {
+    const s = P.say('exOpen', {}, { tone }, 'de');
+    assert.ok(!/\{[a-z]+\}/i.test(s), 'Platzhalter sichtbar (' + tone + '): ' + s);
+    assert.ok(!/\s{2,}/.test(s), 'doppeltes Leerzeichen (' + tone + '): ' + s);
+  });
+});
+
+test('Zahlformat folgt der Sprache', () => {
+  assert.ok(P.say('exOpen', VARS, DE, 'de').includes('62,5'));
+  assert.ok(P.say('exOpen', VARS, DE, 'en').includes('62.5'));
+});
+
+test('Tausendertrennung folgt der Sprache', () => {
+  assert.ok(P.say('debrief', { sets: 18, vol: 7200 }, DE, 'de').includes('7.200'));
+  assert.ok(P.say('debrief', { sets: 18, vol: 7200 }, DE, 'en').includes('7,200'));
+});
+
+test('keine Tausendertrennung unter vier Stellen', () => {
+  const s = P.say('debrief', { sets: 9, vol: 900 }, DE, 'de');
+  assert.ok(s.includes('900'), s);
+  assert.ok(!/9\.00/.test(s), 'faelschlich getrennt: ' + s);
+});
+
+// --- Tonregeln, an denen die Definitionen gemessen werden -----------------
+
+test('kein Satz enthaelt ein Emoji', () => {
+  P.KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {
+    const s = P.say(key, VARS, { tone }, lang);
+    assert.ok(!/\p{Extended_Pictographic}/u.test(s),
+              'Emoji in ' + key + '/' + tone + '/' + lang + ': ' + s);
+  })));
+});
+
+test('Ton hart bleibt bei hoechstens acht Woertern', () => {
+  P.KEYS.forEach(key => ['de', 'en'].forEach(lang => {
+    const s = P.say(key, VARS, { tone: 'hart' }, lang);
+    const n = s.split(/\s+/).filter(Boolean).length;
+    assert.ok(n <= 8, 'zu lang (' + n + ' Woerter) bei ' + key + '/' + lang + ': ' + s);
+  }));
+});
+
+test('Ton ruhig verwendet kein Ausrufezeichen', () => {
+  P.KEYS.forEach(key => ['de', 'en'].forEach(lang => {
+    const s = P.say(key, VARS, { tone: 'ruhig' }, lang);
+    assert.ok(!s.includes('!'), 'Ausrufezeichen bei ' + key + '/' + lang + ': ' + s);
+  }));
+});
+
+test('forecast nennt eine Bedingung und verspricht nichts', () => {
+  // Eine Prognose ist keine Zusage. Wird in Task 21 erneut geprueft; hier
+  // faengt der Test es an der Quelle.
+  P.TONES.forEach(tone => {
+    const de = P.say('forecast', VARS, { tone }, 'de');
+    const en = P.say('forecast', VARS, { tone }, 'en');
+    assert.ok(/wenn|falls|sofern/i.test(de), 'keine Bedingung (de/' + tone + '): ' + de);
+    assert.ok(/\bif\b|as long as/i.test(en), 'keine Bedingung (en/' + tone + '): ' + en);
+  });
+});
+
+// --- personaLine ----------------------------------------------------------
+
+test('personaLine traegt den Namen und wuchert nicht', () => {
+  ['de', 'en'].forEach(lang => {
+    P.TONES.forEach(tone => {
+      const line = P.personaLine({ name: 'Nina', tone }, lang);
+      assert.ok(line.includes('Nina'), 'Name fehlt (' + tone + '/' + lang + '): ' + line);
+      assert.ok(line.length >= 20 && line.length <= 400,
+                'Laenge ' + line.length + ' (' + tone + '/' + lang + ')');
+    });
+  });
+});
+
+test('personaLine haelt auch ohne Eingabe die Zusage ein', () => {
+  const line = P.personaLine(undefined, 'de');
+  assert.ok(line.length >= 20 && line.length <= 400, 'Laenge ' + line.length);
+  assert.ok(line.includes('Coach'), line);
+});
+
+// --- Profile --------------------------------------------------------------
+
+test('die drei Profile sind vollstaendig', () => {
+  // Unvollstaendig heisst: Task 7 setzt das Profil und kippt es im selben Zug
+  // auf 'custom', weil ein Feld abweicht.
+  assert.strictEqual(P.PRESETS.quiet.inTraining, 'off');
+  assert.strictEqual(P.PRESETS.balanced.inTraining, 'key');
+  assert.strictEqual(P.PRESETS.close.inTraining, 'full');
+  ['quiet', 'balanced', 'close'].forEach(k => {
+    const pr = P.PRESETS[k];
+    assert.strictEqual(typeof pr.setFeedback, 'boolean', k + '.setFeedback');
+    assert.ok(P.PUSH.includes(pr.pushLevel), k + '.pushLevel: ' + pr.pushLevel);
+    assert.ok(P.LEVELS.includes(pr.inTraining), k + '.inTraining: ' + pr.inTraining);
+  });
+});
+
+test('Konstanten haben die vereinbarten Werte', () => {
+  assert.deepStrictEqual(P.TONES, ['ruhig', 'sachlich', 'hart', 'locker']);
+  assert.deepStrictEqual(P.LEVELS, ['off', 'key', 'full']);
+  assert.deepStrictEqual(P.PUSH, ['still', 'normal', 'eng']);
+});
