@@ -289,8 +289,19 @@
       .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  function num(n) {
-    return Number(n).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+  // Sprachanzeige, GENAU dasselbe Muster wie s.unit direkt darunter: das
+  // Modul kennt localStorage/GT_LANG NICHT und darf es nicht kennen -- s.lang
+  // traegt schon die aufgeloeste Anzeigesprache ('de'|'en'), gesetzt von
+  // _coachSnap() (index.html, dort liegt GT_LANG). Fehlt s.lang (jeder
+  // Snapshot vor dieser Aenderung, alle Bestandstests), gilt 'de' -- das ist
+  // die einzige Vorgabe, keine Erkennung aus dem Fragetext (der ist laengst
+  // zweisprachig erkennbar, sagt aber nichts ueber die gewuenschte
+  // Antwortsprache aus).
+  function langOf(s) { return (s && s.lang === 'en') ? 'en' : 'de'; }
+
+  function num(n, s) {
+    var locale = langOf(s) === 'en' ? 'en-US' : 'de-DE';
+    return Number(n).toLocaleString(locale, { maximumFractionDigits: 1 });
   }
 
   // Einheiten-Anzeige (Blockabschluss-Review Block 0, Befund 3): das Modul
@@ -303,7 +314,7 @@
   // Gewicht, Rekord, Wochenvolumen, Muskelvolumen, letzter Rekord,
   // Gewichtsbegruendung) statt sechs eigenstaendiger hartcodierter ' kg'.
   function unitOf(s) { return (s && s.unit === 'lbs') ? 'lbs' : 'kg'; }
-  function fmtW(n, s) { return num(n) + ' ' + unitOf(s); }
+  function fmtW(n, s) { return num(n, s) + ' ' + unitOf(s); }
 
   function datum(iso) {
     var p = String(iso || '').slice(0, 10).split('-');
@@ -330,24 +341,43 @@
     var to    = fmtW(wr.toKg, s);
     var name  = wr.exName ? wr.exName + ': ' : '';
     var pct   = wr.ciFactor != null ? Math.round((1 - wr.ciFactor) * 100) : 0;
+    // Antwortsprache, gleiches Muster wie ueberall im Modul: s.lang statt
+    // Fragetext, s.o. bei langOf(). Jeder der fuenf Zweige braucht seine
+    // eigene englische Fassung -- eine gemeinsame Vorlage mit eingesetzten
+    // Bruchstuecken wuerde in einer der beiden Sprachen falsch klingen.
+    var en = langOf(s) === 'en';
 
     if (wr.reason === 'repsHigh') {
-      return name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
-        ') — Regel: oben im Bereich steigt das Gewicht um die Schrittweite ' + step +
-        ', neues Gewicht ' + to + '.';
+      return en
+        ? name + 'Last time you hit ' + reps + ' reps (range ' + range +
+          ') — rule: at the top of the range the weight goes up by the step ' + step +
+          ', new weight ' + to + '.'
+        : name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
+          ') — Regel: oben im Bereich steigt das Gewicht um die Schrittweite ' + step +
+          ', neues Gewicht ' + to + '.';
     }
     if (wr.reason === 'repsLow') {
-      return name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
-        '), den Bereich oben also nicht erreicht — Regel: das Gewicht bleibt bei ' + to +
-        ', die Schrittweite ' + step + ' greift erst, wenn der Bereich oben klappt.';
+      return en
+        ? name + 'Last time you hit ' + reps + ' reps (range ' + range +
+          '), so the top of the range was not reached — rule: the weight stays at ' + to +
+          ', the step ' + step + ' only kicks in once the top of the range works.'
+        : name + 'Zuletzt ' + reps + ' Wiederholungen geschafft (Bereich ' + range +
+          '), den Bereich oben also nicht erreicht — Regel: das Gewicht bleibt bei ' + to +
+          ', die Schrittweite ' + step + ' greift erst, wenn der Bereich oben klappt.';
     }
     if (wr.reason === 'checkinUp') {
-      return name + 'Dein Check-in zeigt gute Erholung — Regel: dadurch ist die größere Schrittweite ' +
-        step + ' schon jetzt freigegeben, neues Gewicht ' + to + '.';
+      return en
+        ? name + 'Your check-in shows good recovery — rule: that already unlocks the bigger step ' +
+          step + ', new weight ' + to + '.'
+        : name + 'Dein Check-in zeigt gute Erholung — Regel: dadurch ist die größere Schrittweite ' +
+          step + ' schon jetzt freigegeben, neues Gewicht ' + to + '.';
     }
     if (wr.reason === 'checkinDown') {
-      return name + 'Dein Check-in zeigt weniger Erholung — Regel: das Gewicht sinkt deshalb um ' + pct +
-        '% auf ' + to + ' (Basis-Schrittweite ' + step + ').';
+      return en
+        ? name + 'Your check-in shows less recovery — rule: the weight drops by ' + pct +
+          '% to ' + to + ' (base step ' + step + ').'
+        : name + 'Dein Check-in zeigt weniger Erholung — Regel: das Gewicht sinkt deshalb um ' + pct +
+          '% auf ' + to + ' (Basis-Schrittweite ' + step + ').';
     }
     // 'hold' bzw. unbekannter Wert: gleiche Formulierung wie repsLow-Fallback,
     // aber mit Erholungs-Begruendung statt Wiederholungs-Begruendung.
@@ -358,9 +388,14 @@
     // nicht behauptet, wenn die Wiederholungen darunter/darueber lagen.
     var inRange = !!(range && (wr.lastReps || []).length &&
       (wr.lastReps || []).every(function (v) { return v >= wr.repRange[0] && v <= wr.repRange[1]; }));
-    var rangeTxt = !range ? '' : (inRange ? ' im Bereich ' + range : ' (Bereich ' + range + ')');
-    return name + 'Zuletzt ' + reps + ' Wiederholungen' + rangeTxt +
-      ' — Regel: Erholung geht vor Steigerung, Gewicht bleibt bei ' + to + ', Schrittweite ' + step + ' folgt danach.';
+    var rangeTxt = !range ? '' : en
+      ? (inRange ? ' within range ' + range : ' (range ' + range + ')')
+      : (inRange ? ' im Bereich ' + range : ' (Bereich ' + range + ')');
+    return en
+      ? name + 'Last time ' + reps + ' reps' + rangeTxt +
+        ' — rule: recovery comes before progression, weight stays at ' + to + ', step ' + step + ' follows after that.'
+      : name + 'Zuletzt ' + reps + ' Wiederholungen' + rangeTxt +
+        ' — Regel: Erholung geht vor Steigerung, Gewicht bleibt bei ' + to + ', Schrittweite ' + step + ' folgt danach.';
   }
 
   function resolveIntent(text, snap) {
@@ -483,7 +518,8 @@
     // "naechster Satz"-Bezug, sonst kein Treffer.
     if (two(q, /gewicht|weight/, /naechste[nsr]? satz|next set/)) {
       if (s.active && s.active.nextW != null) {
-        return { intent: 'nextWeight', answer: 'Nächster Satz: ' + fmtW(s.active.nextW, s) + '.' };
+        return { intent: 'nextWeight', answer: (langOf(s) === 'en' ? 'Next set: ' : 'Nächster Satz: ') +
+          fmtW(s.active.nextW, s) + '.' };
       }
       return null;
     }
@@ -508,7 +544,9 @@
       var b = (s.bestSet || {})[ex.id];
       if (!b) return null;
       return { intent: 'best',
-               answer: ex.name + ': ' + fmtW(b.w, s) + ' mal ' + b.r + ' Wiederholungen, am ' + datum(b.date) + '.' };
+               answer: langOf(s) === 'en'
+                 ? ex.name + ': ' + fmtW(b.w, s) + ' for ' + b.r + ' reps, on ' + datum(b.date) + '.'
+                 : ex.name + ': ' + fmtW(b.w, s) + ' mal ' + b.r + ' Wiederholungen, am ' + datum(b.date) + '.' };
     }
 
     // 3) Verbleibende Saetze
@@ -525,7 +563,9 @@
       var left = s.active.setsTotal - s.active.setsDone;
       if (left < 0) return null;
       return { intent: 'setsLeft',
-               answer: left === 1 ? 'Noch 1 Satz.' : 'Noch ' + left + ' Sätze.' };
+               answer: langOf(s) === 'en'
+                 ? (left === 1 ? '1 set left.' : left + ' sets left.')
+                 : (left === 1 ? 'Noch 1 Satz.' : 'Noch ' + left + ' Sätze.') };
     }
 
     // 4) Restpause -- "rest" allein ist ein normales englisches Wort
@@ -535,7 +575,9 @@
     // sind als feste Fachbegriffe ohne Alltagsbedeutung weiter bare genug.
     if (/pause|rest timer|my rest|rest[\s\S]*left/.test(q)) {
       if (!s.restLeftSec) return null;
-      return { intent: 'rest', answer: 'Noch ' + s.restLeftSec + ' Sekunden Pause.' };
+      return { intent: 'rest', answer: langOf(s) === 'en'
+        ? s.restLeftSec + ' seconds of rest left.'
+        : 'Noch ' + s.restLeftSec + ' Sekunden Pause.' };
     }
 
     // 5) Erholung -- Muskelgruppen-Name allein beweist keinen Fitnessbezug:
@@ -555,7 +597,9 @@
       var rec = s.recovery || {};
       var mg = Object.keys(rec).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
       if (!mg) return null;
-      return { intent: 'recovery', answer: mg + ' ist zu ' + rec[mg] + ' Prozent erholt.' };
+      return { intent: 'recovery', answer: langOf(s) === 'en'
+        ? mg + ' is ' + rec[mg] + '% recovered.'
+        : mg + ' ist zu ' + rec[mg] + ' Prozent erholt.' };
     }
 
     // 5b) Letzter PR -- MUSS vor Intent 6 stehen: "wann hatte ich zuletzt einen
@@ -565,11 +609,14 @@
     // das gehoert Intent 2 (Rekord EINER Uebung).
     if (/\bprs?\b|last pr|latest pr/.test(q)) {
       if (s.lastPrExName == null || s.lastPrKg == null || s.lastPrDaysAgo == null) return null;
-      var pd = s.lastPrDaysAgo === 0 ? 'heute'
-             : s.lastPrDaysAgo === 1 ? 'gestern'
-             : 'vor ' + s.lastPrDaysAgo + ' Tagen';
+      var isEn = langOf(s) === 'en';
+      var pd = isEn
+        ? (s.lastPrDaysAgo === 0 ? 'today' : s.lastPrDaysAgo === 1 ? 'yesterday' : s.lastPrDaysAgo + ' days ago')
+        : (s.lastPrDaysAgo === 0 ? 'heute' : s.lastPrDaysAgo === 1 ? 'gestern' : 'vor ' + s.lastPrDaysAgo + ' Tagen');
       return { intent: 'lastPr',
-               answer: 'Letzter Rekord: ' + s.lastPrExName + ' mit ' + fmtW(s.lastPrKg, s) + ', ' + pd + '.' };
+               answer: isEn
+                 ? 'Latest PR: ' + s.lastPrExName + ' at ' + fmtW(s.lastPrKg, s) + ', ' + pd + '.'
+                 : 'Letzter Rekord: ' + s.lastPrExName + ' mit ' + fmtW(s.lastPrKg, s) + ', ' + pd + '.' };
     }
 
     // 6) Letzte Ausfuehrung
@@ -578,7 +625,9 @@
       if (!ex2) return null;
       var d = (s.lastDone || {})[ex2.id];
       if (!d) return null;
-      return { intent: 'lastDone', answer: ex2.name + ' zuletzt am ' + datum(d) + '.' };
+      return { intent: 'lastDone', answer: langOf(s) === 'en'
+        ? ex2.name + ' last done on ' + datum(d) + '.'
+        : ex2.name + ' zuletzt am ' + datum(d) + '.' };
     }
 
     // 6b) Volumen EINER Muskelgruppe -- steht VOR Intent 7, sonst beantwortet
@@ -591,8 +640,11 @@
       var mv = s.muscleVolume || {};
       var mk = Object.keys(mv).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
       if (!mk || mv[mk] == null) return null;
+      var mkLbl = mk.charAt(0).toUpperCase() + mk.slice(1);
       return { intent: 'muscleVolume',
-               answer: mk.charAt(0).toUpperCase() + mk.slice(1) + ' diese Woche ' + fmtW(mv[mk], s) + ' Volumen.' };
+               answer: langOf(s) === 'en'
+                 ? mkLbl + ' this week ' + fmtW(mv[mk], s) + ' of volume.'
+                 : mkLbl + ' diese Woche ' + fmtW(mv[mk], s) + ' Volumen.' };
     }
 
     // 7) Wochenvolumen -- "volume" ist im Englischen zuerst Lautstaerke.
@@ -601,7 +653,9 @@
     // Schnappschuss oder Fehler beim Bauen), geht die Frage ans Modell.
     if (two(q, /volumen|volume|tonnage/, /woche|week|training|gesamt/)) {
       if (s.weekVolumeKg == null) return null;
-      return { intent: 'volume', answer: 'Diese Woche ' + fmtW(s.weekVolumeKg, s) + ' Gesamtvolumen.' };
+      return { intent: 'volume', answer: langOf(s) === 'en'
+        ? 'This week ' + fmtW(s.weekVolumeKg, s) + ' total volume.'
+        : 'Diese Woche ' + fmtW(s.weekVolumeKg, s) + ' Gesamtvolumen.' };
     }
 
     // 8) Was steht heute an -- die deutschen Wendungen sind ausserhalb des
@@ -669,7 +723,9 @@
         WEEK_TRAINED.test(q) || WEEK_COUNT.test(q)) {
       if (s.weekWorkouts == null || s.weekGoal == null) return null;
       return { intent: 'weekProgress',
-               answer: 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };
+               answer: langOf(s) === 'en'
+                 ? 'This week ' + s.weekWorkouts + ' of ' + s.weekGoal + ' sessions.'
+                 : 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };
     }
 
     // 11) Streak. Die App zaehlt sie in WOCHEN am Stueck (calcStreak().weeks),
@@ -677,8 +733,9 @@
     if (/streak|trainingsserie|serie in folge/.test(q)) {
       if (s.streakWeeks == null) return null;
       return { intent: 'streak',
-               answer: s.streakWeeks === 1 ? 'Eine Woche in Folge trainiert.'
-                                           : s.streakWeeks + ' Wochen in Folge trainiert.' };
+               answer: langOf(s) === 'en'
+                 ? (s.streakWeeks === 1 ? 'Trained 1 week in a row.' : 'Trained ' + s.streakWeeks + ' weeks in a row.')
+                 : (s.streakWeeks === 1 ? 'Eine Woche in Folge trainiert.' : s.streakWeeks + ' Wochen in Folge trainiert.') };
     }
 
     // 12) Durchschnittliche Trainingsdauer -- "schnitt" allein ist mehrdeutig
@@ -701,7 +758,9 @@
         AVG_GYM.test(q)) {
       if (s.avgDurationMin == null) return null;
       return { intent: 'avgDuration',
-               answer: 'Im Schnitt trainierst du ' + s.avgDurationMin + ' Minuten.' };
+               answer: langOf(s) === 'en'
+                 ? 'On average you train ' + s.avgDurationMin + ' minutes.'
+                 : 'Im Schnitt trainierst du ' + s.avgDurationMin + ' Minuten.' };
     }
 
     // 13) Gestrige Einheit -- "gestern" ist ein blankes Alltagswort und hat
@@ -740,7 +799,7 @@
     if (/welche plaene|meine plaene|plaene habe ich|planliste/.test(q)) {
       var pn = (s.planNames || []).filter(Boolean);
       if (!pn.length) return null;
-      return { intent: 'planList', answer: 'Deine Pläne: ' + pn.join(', ') + '.' };
+      return { intent: 'planList', answer: (langOf(s) === 'en' ? 'Your plans: ' : 'Deine Pläne: ') + pn.join(', ') + '.' };
     }
 
     return null;

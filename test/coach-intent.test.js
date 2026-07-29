@@ -1022,3 +1022,241 @@ test('Gegenprobe: dieselben sechs Antworten bleiben ohne s.unit unveraendert kg'
   assert.ok(R.resolveIntent('warum 62,5?', S4).answer.includes('62,5 kg'));
   assert.ok(R.resolveIntent('warum 62,5?', S4).answer.includes('2,5 kg'));
 });
+
+// --- Router-i18n: Antworten in der Sprache des Nutzers ----------------------
+// s.lang traegt die aufgeloeste Anzeigesprache ('de'|'en'), GENAU wie s.unit
+// ('kg'|'lbs') zwei Reviewrunden vorher: index.html (_coachSnap()) setzt sie
+// aus GT_LANG, das Modul liest niemals localStorage selbst. Fehlt s.lang
+// (jeder Snapshot oben in dieser Datei), bleibt der bisherige deutsche Text
+// exakt erhalten -- keiner der Tests oberhalb dieser Zeile wurde angefasst.
+//
+// Fragesprache und Antwortsprache sind ZWEI verschiedene Dinge: die Muster
+// erkennen ohnehin schon beide Sprachen (das war schon vor diesem Task so),
+// s.lang entscheidet ausschliesslich, in welcher Sprache geantwortet wird.
+// Ein paar Tests nutzen deshalb bewusst eine deutsche Frage mit lang:'en' --
+// genau der Fall eines Geraets auf Englisch, das trotzdem mal deutsch tippt,
+// und bei Intent 15 (Planliste) der EINZIGE moegliche Fall: dafuer gibt es gar
+// kein englisches Muster (siehe Kommentar am Intent), die Antwortsprache haengt
+// dort ausschliesslich an s.lang, nie an der Fragesprache.
+
+test('naechstes Gewicht antwortet englisch', () => {
+  const r = R.resolveIntent("what's the weight for the next set?", { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'nextWeight');
+  assert.strictEqual(r.answer, 'Next set: 82.5 kg.');
+});
+
+test('Rekord antwortet englisch', () => {
+  const r = R.resolveIntent("what's my personal best on bankdruecken?", { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'best');
+  assert.strictEqual(r.answer, 'Bankdruecken: 80 kg for 8 reps, on 20.07.2026.');
+});
+
+test('verbleibende Saetze antworten englisch, Singular und Plural', () => {
+  const r = R.resolveIntent('how many sets are left in my workout?', { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'setsLeft');
+  assert.strictEqual(r.answer, '3 sets left.');
+
+  const snapOne = { ...SNAP, lang: 'en', active: { ...SNAP.active, setsTotal: 3, setsDone: 2 } };
+  const r1 = R.resolveIntent('how many sets are left in my workout?', snapOne);
+  assert.strictEqual(r1.answer, '1 set left.', 'Singular "1 set left." falsch gebildet');
+});
+
+test('Restpause antwortet englisch', () => {
+  const r = R.resolveIntent('how long is my rest?', { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'rest');
+  assert.strictEqual(r.answer, '45 seconds of rest left.');
+});
+
+test('Erholung antwortet englisch', () => {
+  const r = R.resolveIntent('how recovered is my brust?', { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'recovery');
+  assert.strictEqual(r.answer, 'Brust is 92% recovered.');
+});
+
+test('letzter PR antwortet englisch, inklusive heute/gestern/vor-N-Tagen', () => {
+  const r = R.resolveIntent('when was my last pr?', { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'lastPr');
+  assert.strictEqual(r.answer, 'Latest PR: Kniebeuge at 102.5 kg, 6 days ago.');
+
+  const rToday = R.resolveIntent('when was my last pr?', { ...S20, lang: 'en', lastPrDaysAgo: 0 });
+  assert.ok(rToday.answer.includes('today'), 'lastPrDaysAgo=0 muss "today" ergeben: ' + rToday.answer);
+  const rYest = R.resolveIntent('when was my last pr?', { ...S20, lang: 'en', lastPrDaysAgo: 1 });
+  assert.ok(rYest.answer.includes('yesterday'), 'lastPrDaysAgo=1 muss "yesterday" ergeben: ' + rYest.answer);
+});
+
+test('letzte Ausfuehrung antwortet englisch', () => {
+  const r = R.resolveIntent('when was the last time i did bankdruecken?', { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'lastDone');
+  assert.strictEqual(r.answer, 'Bankdruecken last done on 20.07.2026.');
+});
+
+test('Volumen einer Muskelgruppe antwortet englisch', () => {
+  const r = R.resolveIntent('how much volume for brust this week?', { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'muscleVolume');
+  assert.strictEqual(r.answer, 'Brust this week 4,800 kg of volume.');
+});
+
+test('Wochenvolumen antwortet englisch', () => {
+  const r = R.resolveIntent('how much volume this week?', { ...SNAP, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'volume');
+  assert.strictEqual(r.answer, 'This week 12,500 kg total volume.');
+});
+
+test('Wochenfortschritt antwortet englisch', () => {
+  const r = R.resolveIntent('how many workouts this week?', { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'weekProgress');
+  assert.strictEqual(r.answer, 'This week 3 of 4 sessions.');
+});
+
+test('Streak antwortet englisch, Singular und Plural', () => {
+  const r = R.resolveIntent("what's my streak?", { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'streak');
+  assert.strictEqual(r.answer, 'Trained 12 weeks in a row.');
+
+  const r1 = R.resolveIntent("what's my streak?", { ...S20, lang: 'en', streakWeeks: 1 });
+  assert.strictEqual(r1.answer, 'Trained 1 week in a row.', 'Singular falsch gebildet');
+});
+
+test('durchschnittliche Trainingsdauer antwortet englisch', () => {
+  const r = R.resolveIntent("what's my average training duration?", { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'avgDuration');
+  assert.strictEqual(r.answer, 'On average you train 58 minutes.');
+});
+
+test('Planliste antwortet englisch (kein englisches Frage-Muster fuer diesen Intent -- s.lang entscheidet allein)', () => {
+  // Intent 15 hat bewusst KEIN englisches Frage-Muster (Kommentar im Modul:
+  // "plan" steht als Wortstamm absichtlich in BLOCK). Eine deutsche Frage mit
+  // lang:'en' ist hier der einzig moegliche Weg, die englische Antwort
+  // ueberhaupt zu erreichen -- und belegt zugleich, dass die Antwortsprache
+  // wirklich an s.lang haengt, nicht an der Fragesprache.
+  const r = R.resolveIntent('welche plaene habe ich?', { ...S20, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'planList');
+  assert.strictEqual(r.answer, 'Your plans: Push, Pull, Beine.');
+});
+
+// --- Gewichtsbegruendung: alle fuenf Zweige englisch -------------------------
+
+test('Gewichtsbegruendung repsHigh antwortet englisch', () => {
+  const r = R.resolveIntent('warum 62,5?', { ...S4, lang: 'en' });
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(r.answer.includes('8/8/8'), 'geschaffte Wiederholungen fehlen: ' + r.answer);
+  assert.ok(r.answer.includes('62.5 kg'), 'Zielgewicht fehlt: ' + r.answer);
+  assert.ok(r.answer.includes('2.5 kg'), 'Schrittweite fehlt: ' + r.answer);
+  assert.ok(/goes up/.test(r.answer), 'Steigerungs-Regel fehlt: ' + r.answer);
+  assert.ok(!/Regel|Gewicht|Wiederholungen/.test(r.answer), 'deutscher Rest im Text: ' + r.answer);
+});
+
+test('Gewichtsbegruendung repsLow antwortet englisch', () => {
+  const s = { ...S4, lang: 'en', weightReason: { ...WR, reason: 'repsLow', toKg: 60, lastReps: [5, 5, 4] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(/stays at/.test(r.answer), 'Halte-Regel fehlt: ' + r.answer);
+  assert.ok(r.answer.includes('5/5/4'), 'geschaffte Wiederholungen fehlen: ' + r.answer);
+});
+
+test('Gewichtsbegruendung checkinUp antwortet englisch', () => {
+  const s = { ...S4, lang: 'en', weightReason: { ...WR, reason: 'checkinUp', toKg: 65 } };
+  const r = R.resolveIntent('warum 65?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(/good recovery/.test(r.answer), 'Check-in-Begruendung fehlt: ' + r.answer);
+  assert.ok(r.answer.includes('65 kg'), 'Zielgewicht fehlt: ' + r.answer);
+});
+
+test('Gewichtsbegruendung checkinDown antwortet englisch, Prozent korrekt', () => {
+  const s = { ...S4, lang: 'en', weightReason: { ...WR, reason: 'checkinDown', toKg: 55, ciFactor: 0.92 } };
+  const r = R.resolveIntent('warum 55?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(/drops by 8\s?%/.test(r.answer), 'Prozentwert falsch: ' + r.answer);
+  assert.ok(!/-\s?8\s?%/.test(r.answer), 'Prozentwert mit gedrehtem Vorzeichen: ' + r.answer);
+  assert.ok(/check-?in|recovery/i.test(r.answer), 'Ursache nicht benannt: ' + r.answer);
+});
+
+test('Gewichtsbegruendung hold antwortet englisch, behauptet Bereich nicht faelschlich', () => {
+  const s = { ...S4, lang: 'en', weightReason: { ...WR, reason: 'hold', toKg: 60, lastReps: [5, 5, 4], repRange: [6, 8] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(!/within range/.test(r.answer), 'behauptet faelschlich, die Wdh. laegen im Bereich: ' + r.answer);
+  assert.ok(r.answer.includes('5/5/4'), 'geschaffte Wiederholungen fehlen: ' + r.answer);
+  assert.ok(r.answer.includes('6–8'), 'Bereich fehlt: ' + r.answer);
+  assert.ok(/stays at/.test(r.answer), 'Haltefall nicht benannt: ' + r.answer);
+});
+
+test('Gewichtsbegruendung hold antwortet englisch mit "within range", wenn die Wdh. drin lagen', () => {
+  const s = { ...S4, lang: 'en', weightReason: { ...WR, reason: 'hold', toKg: 60, lastReps: [7, 7, 6], repRange: [6, 8] } };
+  const r = R.resolveIntent('warum 60?', s);
+  assert.ok(/within range 6–8/.test(r.answer), 'korrekter Bereichsfall verloren: ' + r.answer);
+});
+
+// --- Vollstaendigkeitstest ---------------------------------------------------
+// Zaehlt nicht Intents auf einer Liste nach, sondern prueft strukturell: fuer
+// jeden textgenerierenden Intent des Moduls muss die englische Antwort (a)
+// existieren, (b) nicht leer sein und (c) sich vom deutschen Text unterscheiden.
+// Ein vergessener Intent waere hier NICHT einfach abwesend (das kann eine
+// Aufzaehlung uebersehen) -- er würde stattdessen mit rEn.answer === rDe.answer
+// auffallen, weil ohne Uebersetzung exakt derselbe String zurueckkommt. Genau
+// das ist der Fehler, den Baustein 3 App-weit hatte: die Muster erkennen
+// Englisch laengst, nur die Antwort blieb hart deutsch.
+const WR_TR = { exName: 'Bankdrücken', fromKg: 60, toKg: 62.5, stepKg: 2.5,
+                reason: 'repsHigh', lastReps: [8, 8, 8], repRange: [6, 8], ciFactor: 1 };
+const S4_TR = { ...S20, weightReason: WR_TR };
+
+const TRANSLATABLE_CASES = [
+  ['nextWeight',    "what's the weight for the next set?",        SNAP],
+  ['best',          "what's my personal best on bankdruecken?",   SNAP],
+  ['setsLeft',      'how many sets are left in my workout?',      SNAP],
+  ['rest',          'how long is my rest?',                       SNAP],
+  ['recovery',      'how recovered is my brust?',                 SNAP],
+  ['lastPr',        'when was my last pr?',                       S20],
+  ['lastDone',      'when was the last time i did bankdruecken?', SNAP],
+  ['muscleVolume',  'how much volume for brust this week?',       S20],
+  ['volume',        'how much volume this week?',                 SNAP],
+  ['weekProgress',  'how many workouts this week?',               S20],
+  ['streak',        "what's my streak?",                          S20],
+  ['avgDuration',   "what's my average training duration?",       S20],
+  ['planList',      'welche plaene habe ich?',                    S20],
+  ['weightWhy(repsHigh)',    'warum 62,5?', S4_TR],
+  ['weightWhy(repsLow)',     'warum 60?',   { ...S4_TR, weightReason: { ...WR_TR, reason: 'repsLow', toKg: 60, lastReps: [5, 5, 4] } }],
+  ['weightWhy(checkinUp)',   'warum 65?',   { ...S4_TR, weightReason: { ...WR_TR, reason: 'checkinUp', toKg: 65 } }],
+  ['weightWhy(checkinDown)', 'warum 55?',   { ...S4_TR, weightReason: { ...WR_TR, reason: 'checkinDown', toKg: 55, ciFactor: 0.92 } }],
+  ['weightWhy(hold)',        'warum 60?',   { ...S4_TR, weightReason: { ...WR_TR, reason: 'hold', toKg: 60, lastReps: [5, 5, 4], repRange: [6, 8] } }],
+];
+
+TRANSLATABLE_CASES.forEach(([label, q, snap]) => {
+  test('Vollstaendigkeit: ' + label + ' hat eine eigenstaendige englische Antwort', () => {
+    const rDe = R.resolveIntent(q, snap);
+    const rEn = R.resolveIntent(q, { ...snap, lang: 'en' });
+    assert.ok(rDe && rDe.answer, label + ': deutsche Antwort fehlt (Testfall selbst kaputt) fuer: ' + q);
+    assert.ok(rEn && rEn.answer, label + ': englische Antwort fehlt (Frage nicht erkannt?) fuer: ' + q);
+    assert.strictEqual(rEn.intent, rDe.intent, label + ': lang darf den erkannten Intent nicht aendern');
+    assert.notStrictEqual(rEn.answer, rDe.answer,
+      label + ': englische Antwort ist identisch mit der deutschen -- vergessene Uebersetzung');
+  });
+});
+
+// --- Text-Passthrough-Felder: werden NICHT vom Modul uebersetzt -------------
+// nextSetText/warmupText/supersetText/yesterdayText/nextPlanDayText/todayText
+// kommen bereits fertig aus dem Schnappschuss (index.html baut sie). Das Modul
+// reicht sie unveraendert durch, unabhaengig von s.lang -- Uebersetzung dieser
+// sechs Felder ist NICHT Aufgabe des Routers, sondern eine eigene Runde in
+// index.html.
+test('Text-Passthrough-Felder bleiben unveraendert, auch bei lang:"en"', () => {
+  const de = R.resolveIntent('was ist mein naechster satz?', S20);
+  const en = R.resolveIntent('was ist mein naechster satz?', { ...S20, lang: 'en' });
+  assert.strictEqual(en.answer, de.answer);
+  assert.strictEqual(en.answer, S20.nextSetText);
+
+  const deY = R.resolveIntent('was habe ich gestern gemacht?', S20);
+  const enY = R.resolveIntent('was habe ich gestern gemacht?', { ...S20, lang: 'en' });
+  assert.strictEqual(enY.answer, deY.answer);
+  assert.strictEqual(enY.answer, S20.yesterdayText);
+
+  const deT = R.resolveIntent('was steht heute an?', S20);
+  const enT = R.resolveIntent('was steht heute an?', { ...S20, lang: 'en' });
+  assert.strictEqual(enT.answer, deT.answer);
+  assert.strictEqual(enT.answer, S20.todayText);
+});
+
+test('unbekannter lang-Wert faellt wie fehlendes Feld auf Deutsch zurueck', () => {
+  const r = R.resolveIntent('wie viele saetze noch?', { ...SNAP, lang: 'fr' });
+  assert.strictEqual(r.answer, 'Noch 3 Sätze.');
+});

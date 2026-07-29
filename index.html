@@ -24145,8 +24145,14 @@ function _coachSnap(){
   // (kgToDisp()/unitLabel() liegen nur hier, nicht im Modul). Direkt am
   // Wert-Objekt gesetzt statt in try{}, damit es auch bei einem fruehen Wurf
   // unten immer vorhanden ist.
+  //
+  // lang: dasselbe Muster fuer die Antwortsprache (Router-i18n). Das Modul
+  // kennt localStorage/GT_LANG nicht und liest es nicht selbst — GT_LANG ist
+  // hier schon aus 'auto' aufgeloest (siehe Konstante oben in dieser Datei),
+  // s.lang bekommt also nie den Rohwert aus localStorage['gt_lang'].
   const snap = { exercises: [], bestSet: {}, lastDone: {}, recovery: {},
-                 unit: (S.unitMode === 'lbs' ? 'lbs' : 'kg') };
+                 unit: (S.unitMode === 'lbs' ? 'lbs' : 'kg'),
+                 lang: (GT_LANG === 'en' ? 'en' : 'de') };
   try {
     snap.exercises = (S.exercises || []).map(e => ({ id: e.id, name: e.name, muscleGroup: e.muscleGroup }));
     (S.sessions || []).forEach(s => {
