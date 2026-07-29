@@ -24182,14 +24182,20 @@ function _coachSnap(){
           const exN  = (exById(cur.exerciseId) || {}).name || '';
           const left = (cur.sets || []).filter(x => !x.done).length;
           const w = parseFloat(nxt.w), r = parseInt(nxt.r);
-          snap.nextSetText = (exN ? exN + ': ' : '') + 'noch ' + left + (left === 1 ? ' Satz' : ' Sätze')
+          // Zweisprachig ueber _cm(): der Router reicht dieses Feld unveraendert
+          // durch (es ist fertiger Text, kein Baustein), die Sprache muss also
+          // schon HIER entschieden werden — sonst antwortet der Router auf eine
+          // englische Frage englisch und nur dieser eine Satz bliebe deutsch.
+          snap.nextSetText = (exN ? exN + ': ' : '')
+            + _cm('noch ' + left + (left === 1 ? ' Satz' : ' Sätze'),
+                  left + (left === 1 ? ' set' : ' sets') + ' to go')
             + (isFinite(w) && w > 0 ? ', ' + kgToDisp(w) + ' ' + unitLabel() : '')
-            + (isFinite(r) && r > 0 ? ' mal ' + r + ' Wiederholungen' : '') + '.';
+            + (isFinite(r) && r > 0 ? _cm(' mal ' + r + ' Wiederholungen', ' for ' + r + ' reps') : '') + '.';
         }
         if (cur.ssGroup) {
           const p = wkLogs.find(l => l !== cur && l.ssGroup === cur.ssGroup);
           const pn = p ? (exById(p.exerciseId) || {}).name : '';
-          if (pn) snap.supersetText = 'Supersatz mit ' + pn + '.';
+          if (pn) snap.supersetText = _cm('Supersatz mit ' + pn + '.', 'Superset with ' + pn + '.');
         }
       }
     }
@@ -24238,8 +24244,15 @@ function _coachSnap(){
       const y = ys[ys.length - 1];
       if (y) {
         const n = (y.logs || []).length;
-        snap.yesterdayText = 'Gestern: ' + n + (n === 1 ? ' Übung' : ' Übungen') + ', '
-          + Math.round(sessionVolume(y)).toLocaleString('de-DE') + ' kg Volumen.';
+        // Zahl ueber GT_LOCALE statt hart 'de-DE', Gewicht ueber kgToDisp/
+        // unitLabel — sonst bekommt ein englischsprachiger lbs-Nutzer hier
+        // deutsche Tausenderpunkte und eine kg-Zahl, waehrend derselbe Router
+        // zwei Antworten weiter korrekt in lbs rechnet.
+        const yVol = Math.round(kgToDisp(sessionVolume(y)));
+        snap.yesterdayText = _cm('Gestern: ' + n + (n === 1 ? ' Übung' : ' Übungen'),
+                                 'Yesterday: ' + n + (n === 1 ? ' exercise' : ' exercises'))
+          + ', ' + yVol.toLocaleString(GT_LOCALE) + ' ' + unitLabel()
+          + _cm(' Volumen.', ' volume.');
       }
     } catch(_) {}
     try {
@@ -24266,7 +24279,9 @@ function _coachSnap(){
         const p = planFor(k);
         if (p && p.type !== 'none') {
           const d = dayByKey(k);
-          snap.nextPlanDayText = (d ? d.label : k) + ': ' + (_planLabelFor(k) || 'Training') + '.';
+          // d.label kommt aus DAYS und ist schon sprachabhaengig; nur der
+          // Fallback war hart deutsch.
+          snap.nextPlanDayText = (d ? d.label : k) + ': ' + (_planLabelFor(k) || tr('Training')) + '.';
           break;
         }
       }
