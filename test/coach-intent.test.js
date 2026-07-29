@@ -546,3 +546,86 @@ test('W6: hold-Begruendung sagt "im Bereich", wenn die Wdh. drin lagen', () => {
   const r = R.resolveIntent('warum 60?', s);
   assert.ok(/im Bereich 6–8/.test(r.answer), 'korrekter Bereichsfall verloren');
 });
+
+// --- Re-Review Runde 6: die Vorab-Ausnahmen als ERLAUBNISliste --------------
+// Beide Vorab-Ausnahmen waren Sperrlisten: "irgendwo im Satz ein Aufwaerm-/
+// Warum-Wort UND kein verbotenes Wort -> lokal antworten". Sperrlisten
+// versagen nach aussen offen -- jede Beschwerdeform, die nicht auf der Liste
+// steht, rutscht durch. Ab hier ist die Ausnahme auf die GANZE normalisierte
+// Frage verankert: haengt ein Nebensatz dran (Beschwerde, Vorerkrankung,
+// zweite Frage), passt die Form nicht mehr und die Frage laeuft wie jede
+// andere durch BLOCK und die uebrigen Intents weiter.
+
+test('W2: mit GESETZTEM Aufwaermtext verschluckt die Ausnahme keine fremden Fragen', () => {
+  // Der bisherige W2-Test pinnt warmupText: null -- also den Ruhezustand, in
+  // dem der Fehler gar nicht auftreten kann. Ab Block 3 ist das Feld gefuellt;
+  // genau dieser Zustand gehoert bewacht, sonst bleibt der Test gruen,
+  // waehrend der Verschlucker zurueckkommt. S20.warmupText IST gesetzt.
+  const cases = [
+    ['wie viele saetze noch nach dem aufwaermen?',              'setsLeft'],
+    ['wie lange pause nach dem aufwaermen?',                    'rest'],
+    ['was steht heute an nach dem aufwaermen?',                 'today'],
+    ['whats my next set after the warm up?',                    'nextSet'],
+    ['wie viel gewicht beim naechsten satz nach dem aufwaermen?', 'nextWeight'],
+    ['nach dem aufwaermen, wie viel volumen diese woche?',      'volume'],
+    ['nach dem aufwaermen, was steht heute an?',                'today'],
+    ['nach dem aufwaermen, wie ist meine streak?',              'streak'],
+    ['nach dem warm up, wie viele saetze noch?',                'setsLeft'],
+    ['warm up done, whats my next set?',                        'nextSet']
+  ];
+  cases.forEach(([q, want]) => {
+    const r = R.resolveIntent(q, S20);
+    assert.strictEqual(r && r.intent, want, 'falscher Intent fuer: ' + q);
+  });
+});
+
+test('K2-Rest: Aufwaerm-Ausnahme greift nicht, wenn eine Meldung davorsteht', () => {
+  // Keins dieser Woerter steht in MED_HARD -- eine Aufzaehlung haette sie alle
+  // durchgelassen. Die Ganzform-Verankerung faengt sie ohne neues Vokabular.
+  ['meine schulter tut weh, wie soll ich mich aufwaermen?',
+   'ich bin schwanger, wie soll ich mich aufwaermen?',
+   'mir ist schwindelig, wie soll ich mich aufwaermen?',
+   'nach meinem herzinfarkt, wie soll ich mich aufwaermen?',
+   'ich hab asthma, wie aufwaermen?',
+   'mein bizeps ist ueberdehnt, wie aufwaermen?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('K2-Rest: Gewichts-Ausnahme greift nicht bei angehaengter Beschwerde/Wertung', () => {
+  // Alle sechs ohne Koerperteilwort und ohne MED_HARD-Treffer -- die alte
+  // Sperrliste hat sie mit der Progressionsregel beantwortet.
+  assert.strictEqual(R.resolveIntent('warum knackt es bei 60 kg?', S60), null);
+  assert.strictEqual(R.resolveIntent('warum wird mir uebel bei dem gewicht?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht so ungesund?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht bei meiner arthrose ok?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht schlecht fuer mich?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht gut fuer meinen ruecken?', S4), null);
+});
+
+test('Erlaubnisliste: die bekannten Ganzformen bleiben lokal beantwortet', () => {
+  // Diese Liste IST die Spezifikation der beiden Ausnahmen. Faellt hier eine
+  // Form weg, ist die Verengung zu weit gegangen.
+  assert.strictEqual(R.resolveIntent('wie soll ich mich aufwaermen?', S20).intent, 'warmup');
+  assert.strictEqual(R.resolveIntent('how should i warm up?', S20).intent, 'warmup');
+  ['warum dieses gewicht?', 'wie kommst du auf das gewicht?', 'why this weight?']
+    .forEach(q => assert.strictEqual(R.resolveIntent(q, S4) && R.resolveIntent(q, S4).intent,
+                                     'weightWhy', 'verloren: ' + q));
+  assert.strictEqual(R.resolveIntent('warum 62,5?', S4).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum 60?', S60).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum sind es heute 60 kg?', S60).intent, 'weightWhy');
+});
+
+test('Minor: vier legitime Fragen gehen nicht mehr unnoetig ans Modell', () => {
+  // Fehlblocks aus der Task-3-Verschaerfung: je ein fehlendes Wort im zweiten
+  // Signal bzw. eine Ganzform. Die zugehoerigen Negativfaelle stehen
+  // unmittelbar danach und muessen weiter null liefern.
+  assert.strictEqual(R.resolveIntent('wie viele male habe ich diese woche trainiert?', S20).intent, 'weekProgress');
+  assert.strictEqual(R.resolveIntent('wie lange bin ich im schnitt im gym?', S20).intent, 'avgDuration');
+  assert.strictEqual(R.resolveIntent('habe ich einen supersatz?', S20).intent, 'superset');
+  assert.strictEqual(R.resolveIntent('was war gestern?', S20).intent, 'yesterday');
+  // Gegenprobe: die Gates duerfen dadurch nicht aufweichen.
+  assert.strictEqual(R.resolveIntent('wie viele tage hat diese woche?', S20), null);
+  assert.strictEqual(R.resolveIntent('wie lange sollte ein durchschnittlicher satz dauern?', S20), null);
+  assert.strictEqual(R.resolveIntent('was ist ein supersatz?', S20), null);
+  assert.strictEqual(R.resolveIntent('was war gestern im fernsehen?', S20), null);
+});
