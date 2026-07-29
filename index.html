@@ -7470,6 +7470,8 @@ const I18N_EN = {
 'Apple Sign In nicht verfügbar.':'Sign in with Apple is unavailable.',
 'Punkte → Level':'Points → level',
 '„vor 2 Stunden", „gestern" …':'“2 hours ago”, “yesterday” …',
+'Wochen-Streak':'Week streak','Persönliche Rekorde':'Personal records',
+'Letzte Übung für diesen Muskel:':'Last exercise for this muscle:',
 'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
 'einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'of an exercise, “Best” your best set so far. The 1RMs of all exercises in the group are added up.',
 /* ── Block 2: restliche sichtbare Texte ───────────────────────────────── */
@@ -8007,7 +8009,12 @@ const I18N_RX = [
  /* „Ziel: 3×8-12 Wdh" — Zielangabe steht in Uebungs-Statistik, Listenzeilen
     und Coach-Hinweisen immer MIT angehaengten Werten, der feste Eintrag
     'Ziel:' greift dort nie. */
- [/\bZiel: /g, 'Goal: '],
+ /* Ohne \b: der Wert davor kann direkt ankleben (z.B. "…8Ziel: 3×8"). */
+ [/Ziel: /g, 'Goal: '],
+ [/(\d+) Einheiten\b/g, '$1 sessions'],
+ [/(\d+) Einheit\b/g, '$1 session'],
+ [/ ist bereit/g, ' is ready'],
+ [/Wochen-Streak/g, 'Week streak'],
  [/Ziel ändern: /g, 'Change goal: '],
  /* Bestwert-Zeile einer Uebung: "aus 10×242 kg · 5. Jun 25" */
  [/\baus (\d+)×/g, 'from $1×'],
