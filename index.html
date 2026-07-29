@@ -8009,6 +8009,8 @@ const I18N_RX = [
     'Ziel:' greift dort nie. */
  [/\bZiel: /g, 'Goal: '],
  [/Ziel ändern: /g, 'Change goal: '],
+ /* Bestwert-Zeile einer Uebung: "aus 10×242 kg · 5. Jun 25" */
+ [/\baus (\d+)×/g, 'from $1×'],
  /* Tagesempfehlung und Erholungs-Hinweise — Muskelname und Prozent stehen
     mitten im Satz, deshalb greift keine feste Phrase. */
  [/ist zu (\d+) % erholt — der beste Fokus für heute\./g, 'is $1% recovered — the best focus for today.'],
