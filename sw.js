@@ -8,6 +8,7 @@ const SHELL = [
   './js/coach-memory.js',
   './js/coach-log.js',
   './js/coach-intent.js',
+  './js/coach-cache.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 

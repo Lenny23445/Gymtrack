@@ -5546,6 +5546,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <script src="./js/coach-memory.js"></script>
 <script src="./js/coach-log.js"></script>
 <script src="./js/coach-intent.js"></script>
+<script src="./js/coach-cache.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -24117,7 +24118,21 @@ async function aicSend(){
   // sich das je aendert).
   try {
     const msgs = _aicHist.slice(-16).map(m => ({ role: m.role, content: m.content }));
-    const res = await aiCall('chat', { messages: msgs, context: _aicContext() });
+    const payload = { messages: msgs, context: _aicContext() };
+    // Cache-Hinweis fuer den Worker: nur sachliche Fragen ohne Personenbezug.
+    // GT_LANG (nicht das rohe localStorage['gt_lang']) — das ist bereits die
+    // aufgeloeste Sprache ('auto' -> Geraetesprache) und exakt der Wert, der
+    // gleich als lang:GT_LANG mitgeschickt wird. Mit dem rohen Rohwert wuerden
+    // alle 'auto'-Nutzer (Standardeinstellung) faelschlich unter 'de' landen,
+    // auch bei englischem Geraet — Cache-Kollision mit falscher Antwortsprache.
+    try {
+      const exNames = (S.exercises || []).map(e => e && e.name).filter(Boolean);
+      if (!CoachCache.isPersonal(t, exNames)) {
+        payload.cacheable = true;
+        payload.cacheKey  = CoachCache.cacheKey(t, GT_LANG, 'gemini-3.5-flash-lite');
+      }
+    } catch (_) { /* ohne Cache-Hinweis laeuft der Aufruf normal ans Modell */ }
+    const res = await aiCall('chat', payload);
     if (!res) return;   // aiCall zeigt Fehler/Paywall bereits per Toast
     let txt = res.text || '';
     const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);

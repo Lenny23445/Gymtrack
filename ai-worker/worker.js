@@ -293,7 +293,7 @@ async function budgetCapUsd(uid, env, opts) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -464,6 +464,31 @@ export default {
       }
     }
 
+    // 5b) Geteilter Antwort-Cache. Der Client entscheidet mit CoachCache.isPersonal(),
+    // ob eine Frage cachefaehig ist, und schickt Schluessel + Erlaubnis mit. Der
+    // Worker vertraut dem NICHT blind: er cacht ausschliesslich /chat, nur wenn
+    // cacheKey dem erwarteten Muster entspricht, und niemals Antworten, die einen
+    // Plan-Import enthalten (die sind auf den Nutzer zugeschnitten).
+    const ckey = typeof body.cacheKey === 'string' ? body.cacheKey : null;
+    const mayCache = path === "/chat" && body.cacheable === true &&
+                     ckey && /^c:(de|en):[\w.\-]+:[0-9a-f]{16}$/.test(ckey);
+    if (mayCache && env.AI_QUOTA) {
+      try {
+        const hit = await env.AI_QUOTA.get(ckey);
+        if (hit) {
+          // Treffer kostet nichts — die vorher hochgezaehlten Zaehler zurueckgeben.
+          await dailyRefund(uid, kind, env);
+          await monthlyRefund(uid, env, weight);
+          try {
+            const cached = JSON.parse(hit);
+            cached.cached = true;
+            cached.quota = await quotaPeek(uid, env);
+            return json(cached, 200, cors);
+          } catch (_) { /* kaputter Eintrag → normal weiter zum Modell */ }
+        }
+      } catch (e) { console.log("[AI] Cache-Lookup-Fehler:", e.message); /* fail-open → normal weiter zum Modell */ }
+    }
+
     // 6) LLM aufrufen
     try {
       let result;
@@ -474,6 +499,22 @@ export default {
       try { await recordUsage(env, uid, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
       delete result.usage; // interne Kosten-Info, nicht an den Client
       result = stripEmojis(result); // No-Emoji-Garantie über ALLE Endpunkte
+      // runChat() liefert nie ein eigenes .plan-Feld — ein Plan-Import steckt als
+      // ```gtplan-Codeblock IM Text (erst der Client in aicSend() parst ihn per
+      // Regex heraus). Ein Guard auf result.plan waere hier also toter Code und
+      // wuerde personalisierte Trainingsplaene (aus Ziel/Erfahrung/Uebungsliste
+      // des jeweiligen Nutzers) ungeschuetzt in den geteilten Cache lassen.
+      const hasPlan = typeof result.text === "string" && /```gtplan\b/.test(result.text);
+      if (mayCache && env.AI_QUOTA && !hasPlan) {
+        // 30 Tage. Kein await auf den Antwortpfad legen — der Nutzer soll nicht
+        // auf den Cache-Schreibvorgang warten. Ein Fehler hier darf /chat nicht
+        // zum Absturz bringen (kein unbehandelter Wurf aus fetch()).
+        try {
+          const put = env.AI_QUOTA.put(ckey, JSON.stringify({ text: result.text }), { expirationTtl: 30 * 86400 });
+          if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(put);
+          else await put;
+        } catch (e) { console.log("[AI] Cache-Schreibfehler:", e.message); }
+      }
       result.quota = quota;
       return json(result, 200, cors);
     } catch (e) {
