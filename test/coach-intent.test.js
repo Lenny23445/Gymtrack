@@ -937,3 +937,88 @@ test('Minor: WEEK_COUNT kennt die sechs gelaeufigen Wochen-Zaehlformen wieder', 
   assert.strictEqual(R.resolveIntent('wie viele tage hat diese woche?', S20), null);
   assert.strictEqual(R.resolveIntent('wie viele kalorien habe ich diese woche verbrannt?', S20), null);
 });
+
+// --- Blockabschluss-Review Block 0, Befund 3: Einheiten-Bewusstsein --------
+// snap.nextSetText war bisher das einzige einheitenbewusste Feld (gebaut mit
+// kgToDisp()+unitLabel() in index.html) -- alle anderen Router-Antworten
+// haengten ' kg' hart an, auch im lbs-Modus. Das Modul rechnet selbst NICHTS
+// um (es kennt S/S.unitMode nicht): s.unit traegt schon die fertige
+// Anzeigeeinheit ('kg'|'lbs'), die eigentliche kg->lbs-Umrechnung passiert in
+// _coachSnap() (index.html), NICHT hier. Fehlt s.unit, gilt 'kg' -- deshalb
+// duerfen SNAP/S20/S4 oben (kein unit-Feld) unveraendert gruen bleiben.
+
+const SNAP_LBS = {
+  ...SNAP,
+  unit: 'lbs',
+  active: { ...SNAP.active, nextW: 181.5 },
+  bestSet: { ex1: { w: 176, r: 8, date: '2026-07-20' } },
+};
+
+test('naechstes Gewicht traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('wie viel gewicht beim naechsten satz?', SNAP_LBS);
+  assert.strictEqual(r && r.intent, 'nextWeight');
+  assert.ok(r.answer.includes('181,5 lbs'), 'lbs-Zahl fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes('kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+test('Rekord traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('was ist mein rekord bei bankdruecken?', SNAP_LBS);
+  assert.strictEqual(r && r.intent, 'best');
+  assert.ok(r.answer.includes('176 lbs'), 'lbs-Zahl fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes(' kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+const S20_LBS = {
+  ...S20,
+  unit: 'lbs',
+  weekVolumeKg: 27500,
+  muscleVolume: { brust: 10600, ruecken: 11500 },
+  lastPrKg: 226,
+};
+
+test('Wochenvolumen traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('wie viel volumen diese woche?', S20_LBS);
+  assert.strictEqual(r && r.intent, 'volume');
+  assert.ok(r.answer.includes('27.500 lbs'), 'lbs-Zahl fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes(' kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+test('Muskelvolumen traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('wie viel volumen brust diese woche?', S20_LBS);
+  assert.strictEqual(r && r.intent, 'muscleVolume');
+  assert.ok(r.answer.includes('10.600 lbs'), 'lbs-Zahl fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes(' kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+test('letzter PR traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('wann hatte ich zuletzt einen pr?', S20_LBS);
+  assert.strictEqual(r && r.intent, 'lastPr');
+  assert.ok(r.answer.includes('226 lbs'), 'lbs-Zahl fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes(' kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+const WR_LBS = {
+  exName: 'Bankdrücken', fromKg: 132, toKg: 137.5, stepKg: 5,
+  reason: 'repsHigh', lastReps: [8, 8, 8], repRange: [6, 8], ciFactor: 1,
+};
+const S4_LBS = { ...S20_LBS, weightReason: WR_LBS };
+
+test('Gewichtsbegruendung traegt im lbs-Modus die lbs-Beschriftung', () => {
+  const r = R.resolveIntent('warum 137,5?', S4_LBS);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(r.answer.includes('137,5 lbs'), 'Zielgewicht in lbs fehlt: ' + r.answer);
+  assert.ok(r.answer.includes('5 lbs'), 'Schrittweite in lbs fehlt: ' + r.answer);
+  assert.ok(!r.answer.includes(' kg'), 'kg haengt noch dran: ' + r.answer);
+});
+
+test('Gegenprobe: dieselben sechs Antworten bleiben ohne s.unit unveraendert kg', () => {
+  // SNAP/S20/S4 tragen bewusst kein unit-Feld -- der bestehende kg-Fall darf
+  // durch die neue Formatierung NICHT aufgeweicht werden.
+  assert.ok(R.resolveIntent('wie viel gewicht beim naechsten satz?', SNAP).answer.includes('82,5 kg'));
+  assert.ok(R.resolveIntent('was ist mein rekord bei bankdruecken?', SNAP).answer.includes('80 kg'));
+  assert.ok(R.resolveIntent('wie viel volumen diese woche?', SNAP).answer.includes('12.500 kg'));
+  assert.ok(R.resolveIntent('wie viel volumen brust diese woche?', S20).answer.includes('4.800 kg'));
+  assert.ok(R.resolveIntent('wann hatte ich zuletzt einen pr?', S20).answer.includes('102,5 kg'));
+  assert.ok(R.resolveIntent('warum 62,5?', S4).answer.includes('62,5 kg'));
+  assert.ok(R.resolveIntent('warum 62,5?', S4).answer.includes('2,5 kg'));
+});

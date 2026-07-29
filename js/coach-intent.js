@@ -293,6 +293,18 @@
     return Number(n).toLocaleString('de-DE', { maximumFractionDigits: 1 });
   }
 
+  // Einheiten-Anzeige (Blockabschluss-Review Block 0, Befund 3): das Modul
+  // kennt S/S.unitMode NICHT und darf es nicht kennen -- s.unit traegt schon
+  // die fertige Anzeigeeinheit ('kg'|'lbs'), gesetzt von _coachSnap()
+  // (index.html, dort liegen kgToDisp()/unitLabel()). Fehlt s.unit (jeder
+  // Snapshot vor dieser Aenderung, alle Bestandstests), gilt 'kg' -- das ist
+  // KEINE Umrechnung, nur eine Formatierung des bereits richtigen Werts.
+  // Einziges Hilfsmittel fuer alle sechs betroffenen Antworten (naechstes
+  // Gewicht, Rekord, Wochenvolumen, Muskelvolumen, letzter Rekord,
+  // Gewichtsbegruendung) statt sechs eigenstaendiger hartcodierter ' kg'.
+  function unitOf(s) { return (s && s.unit === 'lbs') ? 'lbs' : 'kg'; }
+  function fmtW(n, s) { return num(n) + ' ' + unitOf(s); }
+
   function datum(iso) {
     var p = String(iso || '').slice(0, 10).split('-');
     return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : '';
@@ -311,11 +323,11 @@
   // jedem Fall Zahl, Regel und Schrittweite -- "weil du bereit bist" waere
   // wertlos. wr folgt der Schnittstelle aus dem Task-4-Brief (exName, fromKg,
   // toKg, stepKg, reason, lastReps, repRange, ciFactor).
-  function weightWhyAnswer(wr) {
+  function weightWhyAnswer(wr, s) {
     var reps  = (wr.lastReps || []).join('/');
     var range = (wr.repRange && wr.repRange.length === 2) ? wr.repRange[0] + '–' + wr.repRange[1] : '';
-    var step  = num(wr.stepKg) + ' kg';
-    var to    = num(wr.toKg) + ' kg';
+    var step  = fmtW(wr.stepKg, s);
+    var to    = fmtW(wr.toKg, s);
     var name  = wr.exName ? wr.exName + ': ' : '';
     var pct   = wr.ciFactor != null ? Math.round((1 - wr.ciFactor) * 100) : 0;
 
@@ -460,7 +472,7 @@
                  'warum|wieso|weshalb|why)';
       var whyRe = new RegExp('^' + LEAD + why + ' ' + fill + wSig + tail + '$');
       if (whyRe.test(q)) {
-        return { intent: 'weightWhy', answer: weightWhyAnswer(wr) };
+        return { intent: 'weightWhy', answer: weightWhyAnswer(wr, s) };
       }
     }
 
@@ -471,7 +483,7 @@
     // "naechster Satz"-Bezug, sonst kein Treffer.
     if (two(q, /gewicht|weight/, /naechste[nsr]? satz|next set/)) {
       if (s.active && s.active.nextW != null) {
-        return { intent: 'nextWeight', answer: 'Nächster Satz: ' + num(s.active.nextW) + ' kg.' };
+        return { intent: 'nextWeight', answer: 'Nächster Satz: ' + fmtW(s.active.nextW, s) + '.' };
       }
       return null;
     }
@@ -496,7 +508,7 @@
       var b = (s.bestSet || {})[ex.id];
       if (!b) return null;
       return { intent: 'best',
-               answer: ex.name + ': ' + num(b.w) + ' kg mal ' + b.r + ' Wiederholungen, am ' + datum(b.date) + '.' };
+               answer: ex.name + ': ' + fmtW(b.w, s) + ' mal ' + b.r + ' Wiederholungen, am ' + datum(b.date) + '.' };
     }
 
     // 3) Verbleibende Saetze
@@ -557,7 +569,7 @@
              : s.lastPrDaysAgo === 1 ? 'gestern'
              : 'vor ' + s.lastPrDaysAgo + ' Tagen';
       return { intent: 'lastPr',
-               answer: 'Letzter Rekord: ' + s.lastPrExName + ' mit ' + num(s.lastPrKg) + ' kg, ' + pd + '.' };
+               answer: 'Letzter Rekord: ' + s.lastPrExName + ' mit ' + fmtW(s.lastPrKg, s) + ', ' + pd + '.' };
     }
 
     // 6) Letzte Ausfuehrung
@@ -580,7 +592,7 @@
       var mk = Object.keys(mv).filter(function (k) { return q.indexOf(norm(k)) >= 0; })[0];
       if (!mk || mv[mk] == null) return null;
       return { intent: 'muscleVolume',
-               answer: mk.charAt(0).toUpperCase() + mk.slice(1) + ' diese Woche ' + num(mv[mk]) + ' kg Volumen.' };
+               answer: mk.charAt(0).toUpperCase() + mk.slice(1) + ' diese Woche ' + fmtW(mv[mk], s) + ' Volumen.' };
     }
 
     // 7) Wochenvolumen -- "volume" ist im Englischen zuerst Lautstaerke.
@@ -589,7 +601,7 @@
     // Schnappschuss oder Fehler beim Bauen), geht die Frage ans Modell.
     if (two(q, /volumen|volume|tonnage/, /woche|week|training|gesamt/)) {
       if (s.weekVolumeKg == null) return null;
-      return { intent: 'volume', answer: 'Diese Woche ' + num(s.weekVolumeKg) + ' kg Gesamtvolumen.' };
+      return { intent: 'volume', answer: 'Diese Woche ' + fmtW(s.weekVolumeKg, s) + ' Gesamtvolumen.' };
     }
 
     // 8) Was steht heute an -- die deutschen Wendungen sind ausserhalb des

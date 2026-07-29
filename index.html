@@ -7986,6 +7986,7 @@ const I18N_EN = {
   'Wie viel Volumen diese Woche?':'How much volume this week?',
   /* Kontextabhaengige Frage-Chips (Task 5) — drei Chip-Reihen je Trainingszustand */
   'Was ist mein nächster Satz?':'What’s my next set?','Wie soll ich mich aufwärmen?':'How should I warm up?',
+  'Wie viele Sätze noch?':'How many sets left?',
   'Alternative zu dieser Übung':'Alternative to this exercise','Wie lief die Einheit?':'How did the session go?',
   'Wie lang ist meine Streak?':'How long is my streak?','Was steht als Nächstes an?':'What’s next?',
   'Wie viele Trainings diese Woche?':'How many workouts this week?',
@@ -8111,6 +8112,12 @@ const I18N_EN = {
   'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr':'Suggestions you dismiss five times in a row stop coming back',
   'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit':'Common questions such as "How many sets left?" or "What is my record on bench press?" are answered by the app itself, instantly',
   'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg':'Your memory is tied to your account: a second account on the same device sees none of it, and deleting your account deletes it',
+ /* Changelog: Coach schneller & guenstiger (29.07.2026) */
+  '29.07.2026 · Der Coach antwortet schneller und kostet weniger':'29 Jul 2026 · Your coach answers faster and costs less',
+  'Elf weitere Fragen beantwortet die App sofort selbst — Streak, Wochenfortschritt, letzter Rekord, nächster Plantag und mehr, ohne Wartezeit und auch ohne Empfang im Keller-Gym':'Eleven more questions are now answered by the app itself — streak, weekly progress, last record, next plan day and more, instantly and even without signal in a basement gym',
+  'Neu: Frag „Warum 62,5?" und der Coach erklärt dir die Rechnung hinter seinem Gewichtsvorschlag':'New: ask "Why 62.5?" and the coach explains the math behind its weight suggestion',
+  'Die Vorschläge über dem Eingabefeld richten sich jetzt danach, ob du gerade trainierst, eben fertig geworden bist oder pausierst':'The suggestions above the input field now depend on whether you are currently training, just finished, or resting',
+  'Fragen rund um Krankheit, Beschwerden oder Schwangerschaft beantwortet die App nicht mehr aus eigenen Zahlen, sondern reicht sie an den Coach weiter':'Questions about illness, complaints or pregnancy are no longer answered from the app\'s own numbers — they now go straight to the coach',
  /* Changelog: KI-Coach-Rahmen-Fix (24.07.2026) */
   '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
   '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
@@ -23930,7 +23937,14 @@ function _aicRenderSugg(){
   let sugg;
   try {
     sugg = isWorkoutActive()
-      ? ['Was ist mein nächster Satz?', 'Wie soll ich mich aufwärmen?', 'Alternative zu dieser Übung']
+        // Platz zwei ist bewusst NICHT "Wie soll ich mich aufwaermen?": s.warmupText
+        // bleibt bis Block 3 ueberall leer, WARMUP_ONLY liefert also durchgehend
+        // null und die Frage ginge ans Modell — derselbe Fall, den die Reihe
+        // darunter schon vermeidet ("Wie lief die Einheit?"). "Wie viele Saetze
+        // noch?" trifft den bestehenden setsLeft-Intent (braucht nur s.active) und
+        // ist im laufenden Training praktisch immer beantwortbar. Sobald warmupText
+        // in Block 3 befuellt wird, darf der Aufwaerm-Chip zurueck auf Platz zwei.
+      ? ['Was ist mein nächster Satz?', 'Wie viele Sätze noch?', 'Alternative zu dieser Übung']
       : _aicRecentSessionDone()
         // "Wie lief die Einheit?" steht bewusst auf Platz DREI statt eins: der
         // Router hat keinen Intent fuer die zuletzt beendete Einheit (nur einen
@@ -24124,7 +24138,15 @@ function _coachHandleAuthUser(user){
 // Schnappschuss fuer den Intent-Router. Bewusst hier gebaut statt im Router,
 // damit der Router nicht an interne App-Strukturen gebunden ist.
 function _coachSnap(){
-  const snap = { exercises: [], bestSet: {}, lastDone: {}, recovery: {} };
+  // unit: einzige Einheiten-Info, die js/coach-intent.js bekommt (Blockab-
+  // schluss-Review Block 0, Befund 3). Das Modul kennt S/S.unitMode nicht und
+  // rechnet selbst nichts um — alle Zahlen, die den Router unten erreichen,
+  // muessen deshalb schon als fertige Anzeigewerte in DIESER Einheit vorliegen
+  // (kgToDisp()/unitLabel() liegen nur hier, nicht im Modul). Direkt am
+  // Wert-Objekt gesetzt statt in try{}, damit es auch bei einem fruehen Wurf
+  // unten immer vorhanden ist.
+  const snap = { exercises: [], bestSet: {}, lastDone: {}, recovery: {},
+                 unit: (S.unitMode === 'lbs' ? 'lbs' : 'kg') };
   try {
     snap.exercises = (S.exercises || []).map(e => ({ id: e.id, name: e.name, muscleGroup: e.muscleGroup }));
     (S.sessions || []).forEach(s => {
@@ -24277,6 +24299,39 @@ function _coachSnap(){
         if (wr && shown != null && Math.abs(Number(wr.toKg) - Number(shown)) < 0.001) snap.weightReason = wr;
       }
     } catch(e) { console.warn('[Coach] Gewichtsbegruendung:', e); }
+
+    // --- Anzeigeeinheit: GANZ AM ENDE umrechnen (Befund 3) ------------------
+    // Muss nach allen kg-Vergleichen oben laufen, sonst brechen sie im
+    // lbs-Modus: der Bestsatz-Vergleich "w > cur.w" braucht durchgehend
+    // dieselbe Skala, und der Gewichtsbegruendungs-Abgleich direkt darueber
+    // vergleicht wr.toKg (kg, aus _weightReasons) gegen snap.active.nextW —
+    // waere nextW hier schon lbs, triaeft der Abgleich nie mehr.
+    // snap.nextSetText ist davon nicht betroffen: es baut seine Zahl weiter
+    // oben schon eigenstaendig aus dem rohen Satzwert (nxt.w) MIT
+    // kgToDisp()/unitLabel() — eine zweite Umrechnung hier wuerde es doppelt
+    // umrechnen, deshalb bleibt es unberuehrt.
+    // snap.weightReason wird als KOPIE umgerechnet, nie das Original aus
+    // _weightReasons mutiert — das Objekt wird an anderer Stelle (Progression
+    // in getSuggestedWeight/_ciAdjustW) weiter in kg gebraucht.
+    try { if (snap.active && snap.active.nextW != null) snap.active.nextW = kgToDisp(snap.active.nextW); } catch(_) {}
+    try { Object.keys(snap.bestSet).forEach(id => { snap.bestSet[id].w = kgToDisp(snap.bestSet[id].w); }); } catch(_) {}
+    try { if (snap.lastPrKg != null) snap.lastPrKg = kgToDisp(snap.lastPrKg); } catch(_) {}
+    try { if (snap.weekVolumeKg != null) snap.weekVolumeKg = kgToDisp(snap.weekVolumeKg); } catch(_) {}
+    try {
+      if (snap.muscleVolume) {
+        const mvDisp = {};
+        Object.keys(snap.muscleVolume).forEach(k => { mvDisp[k] = kgToDisp(snap.muscleVolume[k]); });
+        snap.muscleVolume = mvDisp;
+      }
+    } catch(_) {}
+    try {
+      if (snap.weightReason) {
+        snap.weightReason = Object.assign({}, snap.weightReason, {
+          toKg: kgToDisp(snap.weightReason.toKg),
+          stepKg: kgToDisp(snap.weightReason.stepKg)
+        });
+      }
+    } catch(_) {}
   } catch(e) { console.warn('[Coach] Snapshot:', e); }
   return snap;
 }
