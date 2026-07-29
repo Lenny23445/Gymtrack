@@ -8024,6 +8024,9 @@ const I18N_RX = [
  [/ ist bereit/g, ' is ready'],
  [/Wochen-Streak/g, 'Week streak'],
  [/Ziel ändern: /g, 'Change goal: '],
+ /* Uebungs-Bibliothek: "Chest·Ziel 3×8" — hier steht Ziel OHNE Doppelpunkt. */
+ [/Ziel (\d)/g, 'Goal $1'],
+ [/✓ vorhanden/g, '✓ in your library'],
  /* Bestwert-Zeile einer Uebung: "aus 10×242 kg · 5. Jun 25" */
  [/\baus (\d+)×/g, 'from $1×'],
  /* Tagesempfehlung und Erholungs-Hinweise — Muskelname und Prozent stehen
