@@ -195,6 +195,19 @@
   var WEEK_TRAINED  = /^wie (?:viele male|viel mal|oft) (?:habe|hab) ich (?:diese|die) woche (?:schon |bereits )?trainiert$/;
   var AVG_GYM       = /^wie lange bin ich (?:im schnitt |im durchschnitt |durchschnittlich )?im gym(?: (?:im schnitt|im durchschnitt|durchschnittlich))?$/;
 
+  // Fund bei Pruefung des letzten Commits (Leck 4, siehe Intent 10 unten):
+  // "training" stand dort als BARES Wort im Zweitsignal -- ein Teilstring-
+  // Match, nicht nur eine eigene Vokabel. "trainiert"/"trainieren" enthalten
+  // "training" NICHT als Teilstring (kein "ng" nach "raini"), deshalb blieb der
+  // Fehler von den bestehenden Krankheits-/Erlaubnistests unentdeckt -- aber
+  // "ins training"/"im training" treffen "training" trivial, und damit jede
+  // Krankheits- oder Erlaubnisfrage, die "training" als eigenstaendiges Wort
+  // nennt ("darf ich mit fieber ins training?"). Ganzform statt Wort, wie bei
+  // WEEK_TRAINED direkt darueber: deckt die eine bekannte legitime Formulierung
+  // ("wie viele trainings diese woche?") ab, ohne "training" als Teilstring
+  // wieder freizugeben.
+  var WEEK_COUNT    = /^(?:wie viele|wieviele) (?:trainings|einheiten)(?: habe ich)? (?:diese|die) woche(?: (?:schon|bereits))?$/;
+
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
       .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -536,8 +549,19 @@
     // medical() gilt nur fuer die zwei Vorab-Ausnahmen -- hier greift also gar
     // kein Schutz ausser diesem Gate. Zurueckgenommen; die Mengenfrage kommt
     // als verankerte Ganzform durch (WEEK_TRAINED, siehe oben).
-    if (two(q, /woche|week/, /training|einheit|workout|session|geschafft/) ||
-        WEEK_TRAINED.test(q)) {
+    //
+    // Leck 4 (Fund bei Pruefung des letzten Commits): "training" stand HIER
+    // ebenfalls bare im Zweitsignal, exakt dieselbe Schadensform wie bei
+    // "trainier" oben -- nur als Substantiv statt Verbstamm, deshalb kein
+    // Teilstring von "trainiert"/"trainieren" und von den bisherigen Tests
+    // nicht erfasst. "ins training"/"im training" treffen "training" trivial
+    // und liessen dieselben Krankheits-/Erlaubnisfragen wieder durch ("darf
+    // ich mit fieber ins training?" -> "Diese Woche 3 von 4 Einheiten.").
+    // Ebenso zurueckgenommen; die eine bekannte legitime Formulierung ("wie
+    // viele trainings diese woche?") kommt als verankerte Ganzform durch
+    // (WEEK_COUNT, siehe oben).
+    if (two(q, /woche|week/, /einheit|workout|session|geschafft/) ||
+        WEEK_TRAINED.test(q) || WEEK_COUNT.test(q)) {
       if (s.weekWorkouts == null || s.weekGoal == null) return null;
       return { intent: 'weekProgress',
                answer: 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };

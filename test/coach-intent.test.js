@@ -784,3 +784,19 @@ test('Minor: die vorgeschlagene Zahl ohne Trennzeichen ist kein Gewichtssignal',
   assert.strictEqual(R.resolveIntent('warum 62,5?', S4).intent, 'weightWhy');
   assert.strictEqual(R.resolveIntent('warum 62.5 kg?', S4).intent, 'weightWhy');
 });
+
+// --- Fund bei Pruefung des letzten Commits: uebersehenes Alltagswort --------
+// "training" stand im Zweitsignal von Intent 10 als BARES Wort (Teilstring-
+// Match) -- anders als "trainiert"/"trainieren" (Leck 1 oben), die "training"
+// gar nicht als Teilstring enthalten. "ins training"/"im training" treffen
+// "training" trivial. Dieselbe Schadensform wie die drei Lecks oben, nur
+// unentdeckt, weil kein bisheriger Testsatz "training" als eigenstaendiges
+// Wort im Satz hatte. Der Befund liegt seit dem urspruenglichen Bau des
+// Intents so vor, nicht erst seit dem letzten Commit.
+test('Leck 4: Krankheits-/Erlaubnisfragen mit dem Wort "Training" sind kein Wochenfortschritt', () => {
+  ['darf ich diese woche mit fieber ins training?',
+   'darf ich mit fieber diese woche ins training?',
+   'kann ich krank ins training diese woche?',
+   'ich bin schwanger, darf ich diese woche ins training?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
