@@ -1112,7 +1112,12 @@ body{
 body.sheet-modal .tabbar,
 body.sheet-modal #ai-bubble{pointer-events:none}
 .sheet{
-  background:var(--gl-bg-h);
+  /* Deckende Basis UNTER dem Glas-Verlauf. --gl-bg-h ist im Dark Mode nur
+     5–10 % deckend; greift backdrop-filter in der WKWebView nicht, schien
+     der Bildschirm dahinter durch — fremde Chips und Rahmenkanten mitten
+     im Sheet ("random line running down the middle"). */
+  background-color:var(--card);
+  background-image:var(--gl-bg-h);
   backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
   border-radius:var(--r-xl) var(--r-xl) 0 0;
@@ -7471,6 +7476,9 @@ const I18N_EN = {
 'Punkte → Level':'Points → level',
 '„vor 2 Stunden", „gestern" …':'“2 hours ago”, “yesterday” …',
 'Wochen-Streak':'Week streak','Persönliche Rekorde':'Personal records',
+/* Labels im Uebungs-Formular (SCHEME_SHORT + Wdh-Bereich) */
+'Gleich':'Straight','Aufsteigend':'Ascending','Pyramide':'Pyramid','Umgekehrt':'Reverse',
+'von':'from','bis':'to',
 'Letzte Übung für diesen Muskel:':'Last exercise for this muscle:',
 'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
 'einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'of an exercise, “Best” your best set so far. The 1RMs of all exercises in the group are added up.',
