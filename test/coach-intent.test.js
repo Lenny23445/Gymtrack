@@ -629,3 +629,158 @@ test('Minor: vier legitime Fragen gehen nicht mehr unnoetig ans Modell', () => {
   assert.strictEqual(R.resolveIntent('was ist ein supersatz?', S20), null);
   assert.strictEqual(R.resolveIntent('was war gestern im fernsehen?', S20), null);
 });
+
+// --- Re-Review 2: drei im selben Commit aufgeweichte Gates ------------------
+// Derselbe Commit, der die beiden Vorab-Ausnahmen auf Erlaubnislisten
+// umgestellt hat, hat gleichzeitig drei Intent-Gates geweitet, um Bequemlich-
+// keits-Minors zu schliessen. Alle Saetze hier lieferten am Stand davor null
+// und danach eine konfidente lokale Antwort -- dieselbe Schadensform, gegen
+// die die ganze Runde lief, nur in anderen Intents.
+
+test('Leck 1: Erlaubnis- und Krankheitsfragen sind kein Wochenfortschritt', () => {
+  // "trainier" als zweites Signal bei Intent 10. krank/fieber/schwanger stehen
+  // bewusst nicht in BLOCK, und medical() gilt nur fuer die zwei Vorab-
+  // Ausnahmen -- hier greift also gar kein Schutz ausser dem Gate selbst.
+  ['darf ich diese woche trainieren obwohl ich krank bin?',
+   'kann ich mit fieber diese woche trainieren?',
+   'ich bin schwanger, kann ich diese woche trainieren?',
+   'ich bin schwanger, kann ich diese woche noch trainieren?',
+   'ist es schlimm wenn ich diese woche nicht trainiere?',
+   'wie oft muss man in der woche trainieren?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Leck 2: das Gym als ORT ist keine Frage nach der eigenen Trainingsdauer', () => {
+  // "\bgym\b" als zweites Signal bei Intent 12. Das Gym ist als Ort Gegenstand
+  // vieler Fragen, die mit der eigenen Trainingsdauer nichts zu tun haben --
+  // exakt die W4-Fehlerklasse, die derselbe Kommentarblock geschlossen erklaert.
+  ['wie lange ist das gym im schnitt geoeffnet?',
+   'wie voll ist das gym im durchschnitt?',
+   'wie weit ist der durchschnittliche weg zum gym?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Leck 3: "habe ich" ist kein Bezug auf den laufenden Supersatz', () => {
+  // "hab(e)? ich" als zweites Signal bei Intent 9 -- ein Allerweltshilfsverb,
+  // kein Besitzbezug. Beantwortet die Wissensfrage mit dem laufenden Partner,
+  // also genau die W5-Fehlerklasse, fuer die das Gate gebaut wurde.
+  ['welche nachteile habe ich bei supersaetzen?',
+   'was habe ich davon wenn ich supersaetze mache?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('die vier Minor-Treffer der Vorrunde bleiben trotz geschlossener Lecks lokal', () => {
+  // Gegenprobe zu den drei Tests darueber: das Schliessen darf die vier
+  // Fragen nicht mitnehmen, fuer die die Signale ueberhaupt geweitet wurden.
+  assert.strictEqual(R.resolveIntent('wie viele male habe ich diese woche trainiert?', S20).intent, 'weekProgress');
+  assert.strictEqual(R.resolveIntent('wie lange bin ich im schnitt im gym?', S20).intent, 'avgDuration');
+  assert.strictEqual(R.resolveIntent('habe ich einen supersatz?', S20).intent, 'superset');
+  assert.strictEqual(R.resolveIntent('was war gestern?', S20).intent, 'yesterday');
+});
+
+// --- Re-Review 2: Trefferquote der beiden Erlaubnislisten -------------------
+// Die Verankerung ist der richtige Mechanismus, war aber zu eng geraten: von
+// 40 natuerlichen Formulierungen loesten nur noch 12 aus (30 %). Ursachen:
+// fehlende Fuellwoerter, gar keine fuehrende Interjektion, "kilo"/"kg" als
+// eigenstaendiges Gewichts-Signal ersatzlos entfallen -- und beim Aufwaermen
+// fehlte die im Deutschen haeufigste Form ueberhaupt, das trennbare Verb
+// ("wie waerme ich mich auf?"), die in KEINEM Stand je griff.
+
+test('Erlaubnisliste Aufwaermen: natuerliche Formulierungen loesen wieder aus', () => {
+  ['wie soll ich mich aufwärmen?',
+   'wie aufwärmen?',
+   'wie soll ich mich am besten aufwärmen?',
+   'wie soll ich mich vorher aufwärmen?',
+   'womit soll ich mich aufwärmen?',
+   'how do i warm up?',
+   // ab hier die vom Re-Review verworfenen Formen
+   'wie wärme ich mich auf?',
+   'sag mal, wie wärme ich mich am besten auf?',
+   'wie mache ich mich warm?',
+   'wie wärm ich mich auf',
+   'hey, wie soll ich mich aufwärmen?',
+   'was soll ich zum aufwärmen machen?',
+   'wie aufwärmen für bankdrücken?',
+   'wie soll ich mich aufwärmn?',
+   'aufwärmen?',
+   'how to warm up?',
+   'how should i warm up today?',
+   'whats a good warm up?',
+   'wie sieht mein aufwärmen aus?',
+   'gib mir ein aufwärmen'
+  ].forEach(q => {
+    const r = R.resolveIntent(q, S20);
+    assert.strictEqual(r && r.intent, 'warmup', 'nicht erkannt: ' + q);
+    assert.ok(r.answer.includes('20 kg'), 'falsche Antwort fuer: ' + q);
+  });
+});
+
+test('Erlaubnisliste Gewicht: natuerliche Formulierungen loesen wieder aus', () => {
+  [['warum dieses gewicht?', S4],
+   ['warum genau das gewicht?', S4],
+   ['wieso 62,5 kg?', S4],
+   ['wie kommst du auf das gewicht?', S4],
+   ['why this weight?', S4],
+   ['why 62.5 kg?', S4],
+   // ab hier die vom Re-Review verworfenen Formen
+   ['warum gerade dieses gewicht?', S4],
+   ['warum ausgerechnet dieses gewicht?', S4],
+   ['hey warum dieses gewicht?', S4],
+   ['sag mal, warum dieses gewicht?', S4],
+   ['und warum dieses gewicht?', S4],
+   ['warum schlägst du das gewicht vor?', S4],
+   ['wieso empfiehlst du 62,5?', S4],
+   ['warum steht da 62,5?', S4],
+   ['warum das gewicht heute?', S4],
+   ['warum diese kilos?', S4],
+   ['warum wieder das gleiche gewicht?', S4],
+   ['warum ist das gewicht so hoch?', S4],
+   ['warum nur 62,5?', S4],
+   ['warum so viel gewicht?', S4]
+  ].forEach(([q, snap]) => {
+    const r = R.resolveIntent(q, snap);
+    assert.strictEqual(r && r.intent, 'weightWhy', 'nicht erkannt: ' + q);
+    assert.ok(r.answer.includes('62,5'), 'falsche Antwort fuer: ' + q);
+  });
+});
+
+test('Weitung bricht die Verankerung nicht: die Angriffssaetze bleiben beim Modell', () => {
+  // Zehn Aufwaerm- und neun Gewichtssaetze aus beiden Reviewberichten. Keins
+  // der Woerter krampfanfall/betablocker/bandscheibenvorfall/trimester/
+  // herzinfarkt steht in MED_HARD -- sie werden von der Verankerung gefangen,
+  // nicht von Vokabular. Genau diese Ausfallrichtung darf die Weitung nicht
+  // umdrehen.
+  ['ich bin schwanger, wie soll ich mich aufwärmen?',
+   'mir ist schwindelig, wie soll ich mich aufwärmen?',
+   'nach meinem herzinfarkt, wie soll ich mich aufwärmen?',
+   'ich hab asthma, wie aufwärmen?',
+   'mein bizeps ist überdehnt, wie aufwärmen?',
+   'meine schulter tut weh, wie soll ich mich aufwärmen?',
+   'ich hatte gestern einen krampfanfall, wie soll ich mich aufwärmen?',
+   'ich nehme betablocker, wie soll ich mich aufwärmen?',
+   'mit meinem bandscheibenvorfall wie soll ich mich aufwärmen?',
+   'ich bin im ersten trimester, wie soll ich mich aufwärmen?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+
+  assert.strictEqual(R.resolveIntent('warum knackt es bei 60 kg?', S60), null);
+  ['warum wird mir übel bei dem gewicht?',
+   'warum ist das gewicht so ungesund?',
+   'warum ist das gewicht bei meiner arthrose ok?',
+   'warum ist das gewicht schlecht für mich?',
+   'warum ist das gewicht gut für meinen rücken?',
+   'warum ist das gewicht bei schwangerschaft ok?',
+   'warum ist das gewicht trotz meiner herzschwäche ok?',
+   'warum wird mir schwindelig bei dem gewicht?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S4), null, 'nicht abgegeben: ' + q));
+});
+
+test('Minor: die vorgeschlagene Zahl ohne Trennzeichen ist kein Gewichtssignal', () => {
+  // numSig baute aus 62.5 das Muster "62 ?5" -- das Leerzeichen war optional,
+  // also matchte auch "warum 625". norm() macht aus 62,5 und 62.5 IMMER "62 5",
+  // das Leerzeichen ist deshalb Pflicht; vorne zusaetzlich eine Wortgrenze.
+  assert.strictEqual(R.resolveIntent('warum 625?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum 605?', S60), null);
+  // Gegenprobe: die echten Formen bleiben.
+  assert.strictEqual(R.resolveIntent('warum 62,5?', S4).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum 62.5 kg?', S4).intent, 'weightWhy');
+});

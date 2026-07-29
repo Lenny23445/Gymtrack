@@ -99,16 +99,72 @@
   // einen Modellaufruf, statt eine medizinische Meldung mit einer
   // Trainingsanweisung zu beantworten. Neue Formulierungen gehoeren hier
   // aufgenommen -- NICHT als weiteres Verbotswort in MED_HARD.
+  //
+  // AUFBAU: die Liste ist aus BAUSTEINEN gebaut, nicht aus einer Sammlung
+  // fertiger Ganzformen. Weiten heisst deshalb "ein Wort mehr in einer Klasse"
+  // statt "eine Ganzform mehr in der Aufzaehlung" -- die erste Fassung war so
+  // eng, dass von 20 natuerlichen Aufwaermformulierungen nur 6 ausloesten.
+  //   LEAD    -- Anrede/Interjektion am Satzanfang ("hey", "sag mal", "und").
+  //              Ein einziges vorangestelltes Fuellwort brach vorher die
+  //              ganze Form. LEAD kann nichts einschleusen: die Woerter tragen
+  //              weder Beschwerde noch Wertung, dafuer braeuchte es ein Verb,
+  //              ein Adjektiv oder ein Substantiv -- und jedes davon bricht
+  //              die Form weiterhin am '$'.
+  //   WU_FILL -- erlaubte Fuellwoerter zwischen Frage- und Sachwort.
+  //   WU_WORD -- die Sachwoerter selbst, inkl. haeufigem Vertipper
+  //              ("aufwaermn") ueber das optionale 'e'.
+  // Beide Verbstellungen sind abgedeckt: die Verb-Endstellung ("wie soll ich
+  // mich aufwaermen") UND die trennbare Form ("wie waerme ich mich auf"), die
+  // im Deutschen die haeufigste ueberhaupt ist und in KEINEM Stand je griff --
+  // "aufwaermen" als geschlossenes Wort kommt darin gar nicht vor.
+  var LEAD = '(?:(?:hey|hi|hallo|moin|sag mal|sag|mal|ok|okay|also|und|bitte|du) )*';
+
+  var WU_FILL = '(?:(?:am besten|richtig|gut|kurz|schnell|heute|jetzt|nochmal|noch|' +
+                'vorher|davor|zuerst|denn|eigentlich|mich|mal) )*';
+  var WU_WORD = '(?:aufwaerme?n|einwaerme?n|warm ?machen)';
+  var EN_FILL = '(?:(?:best|properly|right|quickly|first|today|now) )*';
+
   var WARMUP_ONLY = new RegExp(
-    '^(?:' +
-      '(?:wie|womit|was)' +
-      '(?: (?:soll|sollte|muss|kann|mache|mach))?(?: ich)?(?: mich)?' +
-      '(?: (?:am besten|richtig|heute|jetzt|vorher|davor|zuerst))?(?: mich)?' +
-      ' (?:aufwaermen|einwaermen|warm ?machen)' +
+    '^' + LEAD + '(?:' +
+      // Verb-Endstellung: "wie soll ich mich (am besten) aufwaermen"
+      '(?:wie|womit|was)(?: (?:soll|sollte|muss|kann|mache|mach))?(?: ich)? ' + WU_FILL + WU_WORD +
     '|' +
-      'how (?:should|do|can|shall|would) (?:i|we)(?: best)? warm ?up' +
+      // Nominalisiert: "was soll ich zum aufwaermen machen"
+      '(?:wie|womit|was)(?: (?:soll|sollte|muss|kann))?(?: ich)? ' + WU_FILL +
+      'zum ' + WU_WORD + '(?: (?:machen|tun))?' +
+    '|' +
+      // Trennbares Verb: "wie waerme ich mich auf", "wie mache ich mich warm"
+      '(?:wie|womit|was) (?:waerme|waerm|mache|mach|krieg|kriege|bekomme) ich ' +
+      WU_FILL + '(?:auf|warm)' +
+    '|' +
+      // Blosse Nennung, Schau- und Bittform
+      '(?:' + WU_WORD + '|warm ?up)' +
+    '|' +
+      '(?:wie sieht|was ist) mein(?:e|s)? ' + WU_WORD + '(?: aus)?' +
+    '|' +
+      'gib mir (?:ein|eine|einen) ' + WU_WORD +
+    '|' +
+      // Englisch -- Pronomen optional ("how to warm up"), Nachlauf begrenzt
+      'how (?:should|do|can|shall|would|to)(?: (?:i|we|you))? ' + EN_FILL +
+      'warm ?up(?: (?:today|now|properly|first))?' +
+    '|' +
+      'what ?s a (?:good|proper|solid|nice|quick|decent) warm ?up' +
     ')$'
   );
+
+  // Optionales Ziel am Satzende ("wie aufwaermen fuer bankdruecken?"). Ein
+  // BELIEBIGER Nachsatz darf hier nicht stehen -- damit waere die Verankerung
+  // wieder offen und "wie aufwaermen fuer meine entzuendete schulter" bekaeme
+  // ein Schema. Zugelassen ist deshalb nur ein Ziel, das der Schnappschuss
+  // SELBST kennt: eine Muskelgruppe oder ein Uebungsname. Alles andere bleibt
+  // stehen und bricht die Form. medical() laeuft ohnehin ueber die ganze,
+  // ungekuerzte Frage.
+  function warmupCore(q, s) {
+    var m = /^(.+?) (?:fuer|for) (?:mein(?:e|en|em)? |das |die |den |der )?([a-z0-9 ]+)$/.exec(q);
+    if (!m) return q;
+    if (MUSCLE.test(m[2]) || findExercise(m[2], s.exercises)) return m[1];
+    return q;
+  }
 
   // "gewicht"/"weight" ist auch das KOERPERgewicht. Der Coach begruendet aber
   // ausschliesslich seinen eigenen Hantel-Vorschlag -- Waage-, Zu- und
@@ -123,6 +179,21 @@
   // Brust-Frage bei fehlendem s.muscleVolume vom Gesamtvolumen-Intent mit
   // einer konfident falschen Zahl beantwortet.
   var MUSCLE = /brust|ruecken|beine|\bbein\b|schulter|\barme\b|\barm\b|bauch|bizeps|trizeps|waden|gesaess|\bpo\b|chest|\bback\b|\blegs\b|shoulder|\barms\b|\babs\b|biceps|triceps|glutes|calves/;
+
+  // Drei Einzelfragen, die als BREITES zweites Signal je eine Fehlerklasse
+  // wieder aufgemacht haetten. Die Signale ("trainier" bei Intent 10,
+  // "\bgym\b" bei Intent 12, "hab(e)? ich" bei Intent 9) waren
+  // Bequemlichkeits-Weitungen und liessen medizinische, wertende und
+  // Wissensfragen mit einer konfidenten lokalen Antwort durch -- dieselbe
+  // Schadensform, die die Verankerung der Vorab-Ausnahmen gerade geschlossen
+  // hat, nur in anderen Intents. Zurueckgenommen; die jeweils EINE gemeldete
+  // Frage steht stattdessen hier als auf die ganze Frage verankerte Ganzform,
+  // dieselbe Loesung wie bei Intent 13. Der Preis einer nicht getroffenen
+  // Formulierung ist ein Modellaufruf, der Preis eines Lecks eine
+  // Konservenantwort auf "kann ich mit Fieber trainieren?".
+  var SUPERSET_MINE = /^(?:habe|hab) ich (?:gerade |jetzt |grad |noch |schon )?(?:einen |ein |nen )?(?:supersatz|superset)$/;
+  var WEEK_TRAINED  = /^wie (?:viele male|viel mal|oft) (?:habe|hab) ich (?:diese|die) woche (?:schon |bereits )?trainiert$/;
+  var AVG_GYM       = /^wie lange bin ich (?:im schnitt |im durchschnitt |durchschnittlich )?im gym(?: (?:im schnitt|im durchschnitt|durchschnittlich))?$/;
 
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
@@ -210,7 +281,7 @@
     // Fehlt das Schema, faellt die Frage auf die spaeteren Intents DURCH
     // (frueher: harter Abbruch mit null). Der Abbruch hat echte Fragen
     // verschluckt, sobald das Aufwaermwort nur nebenbei vorkam.
-    if (WARMUP_ONLY.test(q) && !medical(q) && !BLOCK_MINUS_SOLL.test(q) && s.warmupText) {
+    if (WARMUP_ONLY.test(warmupCore(q, s)) && !medical(q) && !BLOCK_MINUS_SOLL.test(q) && s.warmupText) {
       return { intent: 'warmup', answer: s.warmupText };
     }
 
@@ -241,22 +312,47 @@
       // werden dadurch beide zu "62 5". Muster also aus Ganzzahl- und
       // Nachkommateil bauen, das Leerzeichen dazwischen optional lassen.
       var toParts = String(wr.toKg).split('.');
-      var numSig  = toParts.length === 2 ? toParts[0] + ' ?' + toParts[1] : String(Math.round(Number(wr.toKg)));
+      // Das Leerzeichen ist PFLICHT, nicht optional: norm() ersetzt Komma UND
+      // Punkt durch ein Leerzeichen, "62,5" und "62.5" werden also immer zu
+      // "62 5". Mit optionalem Leerzeichen matchte auch "warum 625" und lieferte
+      // die Begruendung fuer 62,5 kg. Vorne zusaetzlich eine Wortgrenze, damit
+      // die Zahl nicht in einer groesseren steckt ("mein 1rm 160"). Hinten
+      // braucht es keine: die Form ist verankert, hinter der Zahl darf nur noch
+      // die Einheit oder ein aufgezaehltes Fuellwort stehen.
+      var numSig  = '\\b' + (toParts.length === 2 ? toParts[0] + ' ' + toParts[1]
+                                                  : String(Math.round(Number(wr.toKg))));
       // Fuellwoerter sind NAMENTLICH aufgezaehlt und stehen zwischen Warum-Wort
-      // und Gewichts-Signal. Alles, was nicht in dieser kurzen Liste steht,
-      // bricht die Form -- das ist der ganze Mechanismus.
-      var fill = '(?:(?:ist|sind|war|waren|es|das|dieses|dieser|diese|dies|denn|' +
-                 'eigentlich|genau|heute|jetzt|nun|is|are|it|the|this|that|now|today) )*';
-      // Gewichts-Signal am Satzende: entweder das Wort selbst, oder die
-      // vorgeschlagene Zahl (optional mit Einheit). Die Zahl steht dadurch
-      // automatisch als eigenes Wort und nur am Satzende -- "warum ist mein 1rm
-      // 160 gesunken?" und "warum nur 100 kalorien?" haben Text dahinter und
-      // fallen an '$'.
-      var wSig = '(?:gewicht|weight|' + numSig + '(?: ?(?:kg|kilo|lbs|pfund))?)';
-      var whyRe = new RegExp(
-        '^(?:warum|wieso|weshalb|why|wie kommst du (?:auf|darauf)|how come|' +
-        'how did you (?:get|pick|choose)) ' + fill + wSig + '$'
-      );
+      // und Gewichts-Signal. Alles, was nicht in dieser Liste steht, bricht die
+      // Form -- das ist der ganze Mechanismus. Die Liste darf ruhig lang sein,
+      // solange sie ausschliesslich inhaltsleere Woerter enthaelt: Beschwerde
+      // und Wertung brauchen ein Verb, ein Adjektiv oder ein Substantiv, und
+      // jedes davon bricht die Form weiterhin. Die erste Fassung war zu kurz --
+      // ein einziges "gerade"/"nur"/"wieder"/"so viel" kostete den Treffer.
+      var fill = '(?:(?:ist|sind|war|waren|es|das|dieses|dieser|diese|dies|den|dem|der|denn|' +
+                 'eigentlich|genau|gerade|ausgerechnet|nur|wieder|schon|noch|so|viel|' +
+                 'mein|meine|meinen|gleiche|gleichen|selbe|selben|steht|da|hier|' +
+                 'heute|jetzt|nun|' +
+                 'is|are|it|the|this|that|these|those|my|now|today|again|just|only|much) )*';
+      // Gewichts-Signal: das Wort selbst -- inklusive "kilo"/"kg", die als
+      // eigenstaendiges Signal ersatzlos entfallen waren und "warum diese
+      // kilos?" toetlich getroffen haben --, oder die vorgeschlagene Zahl mit
+      // optionaler Einheit. Koerpergewichts-Lesarten faengt BODYWEIGHT davor ab.
+      var wSig = '(?:gewicht|gewichte|weight|kilos?|kgs?|' + numSig +
+                 '(?: ?(?:kg|kilo|lbs|pfund))?)';
+      // Hinter dem Gewichts-Signal darf nur noch Inhaltsleeres stehen ("warum
+      // das gewicht heute?"), eine reine Mengen-Beurteilung ("so hoch") oder
+      // die zweite Haelfte eines trennbaren Verbs ("warum schlaegst du das
+      // gewicht vor?"). Wertendes und Medizinisches faellt weiter an '$':
+      // "so ungesund", "gut fuer meinen ruecken", "bei meiner arthrose ok".
+      var tail = '(?: (?:heute|jetzt|nun|noch|denn|eigentlich|hier|so|today|now))*' +
+                 '(?: (?:hoch|niedrig|schwer|leicht|high|low|heavy|light))?(?: vor)?';
+      // Frage-Einleitung. Die mehrwortigen Formen stehen vorn, damit sie vor
+      // dem blossen "warum" greifen.
+      var why  = '(?:wie kommst du (?:auf|darauf)|how come|how did you (?:get|pick|choose)|' +
+                 'why (?:do|did) you (?:suggest|pick|choose|recommend)|' +
+                 '(?:warum|wieso|weshalb) (?:schlaegst|empfiehlst|nimmst|waehlst|rechnest) du|' +
+                 'warum|wieso|weshalb|why)';
+      var whyRe = new RegExp('^' + LEAD + why + ' ' + fill + wSig + tail + '$');
       if (whyRe.test(q)) {
         return { intent: 'weightWhy', answer: weightWhyAnswer(wr) };
       }
@@ -413,12 +509,15 @@
     // auch die Wissensfrage "was ist ein supersatz?" und beantwortete sie mit
     // dem Partner der laufenden Uebung. Gate: zusaetzlich ein Bezug auf den
     // eigenen, gerade laufenden Satz.
-    // "habe ich"/"hab ich" gehoert dazu: "habe ich einen supersatz?" hat
-    // ausserhalb eines laufenden Trainings keine Alltagslesart und wird
-    // ohnehin durch das fehlende s.supersetText abgesichert. Die Wissensfrage
-    // "was ist ein supersatz?" bleibt davon unberuehrt.
+    // "hab(e)? ich" stand hier als zweites Signal und hat die Fehlerklasse
+    // wieder geoeffnet, fuer die das Gate gebaut wurde: "welche nachteile habe
+    // ich bei supersaetzen?" bekam den Partner der laufenden Uebung genannt.
+    // "habe ich" ist kein Besitzbezug auf den laufenden Satz, sondern ein
+    // Allerweltshilfsverb. Zurueckgenommen -- die eine gemeldete Frage kommt
+    // als verankerte Ganzform durch (SUPERSET_MINE, siehe oben).
     if (two(q, /supersatz|supersaetze|superset/,
-              /\bdazu\b|partner|\bmein|aktuell|gerade|jetzt|\bhier\b|\bmy\b|current|hab(e)? ich/)) {
+              /\bdazu\b|partner|\bmein|aktuell|gerade|jetzt|\bhier\b|\bmy\b|current/) ||
+        SUPERSET_MINE.test(q)) {
       if (!s.supersetText) return null;
       return { intent: 'superset', answer: s.supersetText };
     }
@@ -428,11 +527,17 @@
     // "wie viele"/"how many" taugt dafuer nicht: das ist ein reiner
     // Mengenfrage-Marker ohne Trainingsbezug und hat "wie viele tage hat diese
     // woche?" mit "Diese Woche 3 von 4 Einheiten." beantwortet.
-    // "trainier" muss neben "training" stehen: "trainiert" enthaelt "training"
-    // NICHT als Teilstring, "wie viele male habe ich diese woche trainiert?"
-    // ging deshalb unnoetig ans Modell. Die reinen Mengenfragen ("wie viele
-    // tage hat diese woche?") bleiben ohne Trainings-Signal weiter draussen.
-    if (two(q, /woche|week/, /trainier|training|einheit|workout|session|geschafft/)) {
+    // "trainier" stand hier als zweites Signal, damit "wie viele male habe ich
+    // diese woche trainiert?" nicht unnoetig ans Modell geht ("trainiert"
+    // enthaelt "training" nicht als Teilstring). Der Preis war zu hoch: der
+    // Wortstamm holt JEDE Erlaubnis- und Krankheitsfrage herein ("darf ich
+    // diese woche trainieren obwohl ich krank bin?" -> "Diese Woche 3 von 4
+    // Einheiten."). krank/fieber/schwanger stehen bewusst nicht in BLOCK, und
+    // medical() gilt nur fuer die zwei Vorab-Ausnahmen -- hier greift also gar
+    // kein Schutz ausser diesem Gate. Zurueckgenommen; die Mengenfrage kommt
+    // als verankerte Ganzform durch (WEEK_TRAINED, siehe oben).
+    if (two(q, /woche|week/, /training|einheit|workout|session|geschafft/) ||
+        WEEK_TRAINED.test(q)) {
       if (s.weekWorkouts == null || s.weekGoal == null) return null;
       return { intent: 'weekProgress',
                answer: 'Diese Woche ' + s.weekWorkouts + ' von ' + s.weekGoal + ' Einheiten.' };
@@ -453,12 +558,18 @@
     // "langhantel"/"langsam", und "dauer" liess die Frage nach der SATZdauer
     // ("wie lange sollte ein durchschnittlicher satz dauern?") mit der
     // Trainingsdauer beantworten. Beide Fragen gehen jetzt ans Modell.
-    // "\bgym\b" ist als zweites Signal sicher (Ort des Trainings, keine
-    // Alltagslesart) und holt "wie lange bin ich im schnitt im gym?" zurueck.
+    // "\bgym\b" stand hier als zweites Signal, mit der Begruendung, das Gym sei
+    // eindeutig der Ort des Trainings. Das haelt nicht: das Gym ist als ORT
+    // Gegenstand vieler Fragen, die mit der eigenen Trainingsdauer nichts zu
+    // tun haben ("wie lange ist das gym im schnitt geoeffnet?", "wie voll ist
+    // das gym im durchschnitt?") -- exakt die W4-Fehlerklasse, die dieser
+    // Kommentarblock direkt darueber fuer geschlossen erklaert. Zurueckgenommen;
+    // die eigene Verweildauer kommt als verankerte Ganzform durch (AVG_GYM).
     // "dauer" bleibt bewusst DRAUSSEN: es wuerde die Frage nach der SATZdauer
     // ("was ist die durchschnittliche dauer eines satzes?") mit der
     // Trainingsdauer beantworten -- genau der Fehler, den W4 geschlossen hat.
-    if (two(q, /schnitt|durchschnitt|average/, /trainier|training|workout|einheit|session|\bgym\b/)) {
+    if (two(q, /schnitt|durchschnitt|average/, /trainier|training|workout|einheit|session/) ||
+        AVG_GYM.test(q)) {
       if (s.avgDurationMin == null) return null;
       return { intent: 'avgDuration',
                answer: 'Im Schnitt trainierst du ' + s.avgDurationMin + ' Minuten.' };
