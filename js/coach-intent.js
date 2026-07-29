@@ -8,15 +8,49 @@
   // Ein Treffer verlangt ein eindeutiges Muster UND vorhandene Daten. Alles
   // Wertende, Planende oder Medizinische geht bewusst ans Modell.
   //
-  // Krankheits-Woerter (krank/erkaeltet/fieber/...) standen hier testweise
-  // drin, um eine Kollision in Intent 5 (Erholung) abzufangen -- falscher
-  // Hebel: BLOCK gilt fuer ALLE acht Intents, nicht nur fuer einen, und
-  // blockierte dadurch z.B. "ich bin erkaeltet, wie viele saetze noch?"
-  // komplett, obwohl die Frage mit Erholung nichts zu tun hat. Ausserdem loeste
-  // es nicht einmal das Problem, fuer das es gedacht war: der dokumentierte
-  // Fehltreffer ("ich war im Erholungsurlaub, meine Brust hat sich ausgeruht")
-  // enthaelt gar kein Krankheitswort. Entfernt -- Schutz fuer Intent 5 sitzt
-  // jetzt direkt bei Intent 5 (siehe dort, inkl. Einschaetzung der Grenzen).
+  // ======================================================================
+  // GESUNDHEITSFRAGEN: UMGEKEHRTE ENTSCHEIDUNG, BITTE VOR DEM AENDERN LESEN
+  // ======================================================================
+  // ALTE ENTSCHEIDUNG (rueckgaengig gemacht): Krankheits-Woerter (krank/
+  // erkaeltet/fieber/...) standen einmal hier in BLOCK und wurden entfernt.
+  // Begruendung damals: BLOCK gilt fuer ALLE Intents, nicht nur fuer den
+  // einen, den es schuetzen sollte, und blockierte deshalb auch fachfremde,
+  // voellig harmlose Fragen -- "ich bin erkaeltet, wie viele saetze noch?"
+  // bekam gar keine Antwort mehr, obwohl die Satzzahl mit der Erkaeltung
+  // nichts zu tun hat. Das ist sachlich richtig beobachtet, optimiert aber
+  // eine BEQUEMLICHKEIT (eine harmlose Frage kostet einen Modellaufruf) auf
+  // Kosten einer SICHERHEITSEIGENSCHAFT.
+  //
+  // WAS DARAUS WURDE: fuenf Reviewrunden lang wurde immer dieselbe
+  // Fehlerklasse gefunden -- eine Frage mit Gesundheitsbezug bekam irgendwo
+  // im Router eine lokale Konservenantwort:
+  //   "darf ich diese woche mit fieber trainieren?" -> "Diese Woche 3 von 4
+  //   Einheiten."
+  //   "wie soll ich mich aufwaermen fuer die brust nach meinem herzinfarkt?"
+  //   -> Aufwaermschema.
+  // Jede Runde schloss die Saetze, die zufaellig im Bericht standen (ein
+  // Signalwort raus, eine Ganzform rein), die naechste Runde fand mit der
+  // naechsten Formulierung die naechste Luecke -- in einem anderen Intent
+  // oder in derselben Frage, nur mit der Meldung im Nachsatz statt im
+  // Vorsatz. Der Grund ist strukturell: die Klasse wurde an zwoelf Stellen
+  // bekaempft, an denen sie sich zeigt, statt an der einen, an der sie
+  // entsteht.
+  //
+  // NEUE REGEL (Entscheidung des Nutzers): traegt die Frage IRGENDWO ein
+  // Krankheits-, Beschwerde-, Schwangerschafts-, Medikamenten- oder
+  // Behandlungssignal, antwortet der Router UEBERHAUPT nicht mehr, sondern
+  // gibt die Frage ans Modell -- ein GLOBALES Gate vor ALLEN Intents, siehe
+  // medical() weiter unten und der Aufruf am Kopf von resolveIntent().
+  // Nicht in BLOCK, weil die beiden Vorab-Ausnahmen an BLOCK vorbeilaufen
+  // duerfen -- am Gesundheits-Gate darf nichts vorbeilaufen.
+  //
+  // DER PREIS ist genau der oben beschriebene und wird bewusst bezahlt: eine
+  // harmlose Frage mit einem Krankheitswort drin ("ich bin erkaeltet, wie
+  // viele saetze noch?") kostet ab jetzt einen Modellaufruf. Ein Test haelt
+  // diesen Preis ausdruecklich fest ("Krankheitswort beendet den Router").
+  // Wer das Gate zurueckbaut, um den Modellaufruf zu sparen, oeffnet die
+  // Fehlerklasse wieder -- vollstaendig, nicht teilweise, weil KEIN Intent
+  // eigenen Gesundheitsschutz hat.
   var BLOCK = /(plan|programm|schmerz|weh|verletz|zwick|lieber|besser|sollte ich|soll ich|meinst du|warum|erklaer|hurts|pain|should i)/;
 
   // Die beiden Vorab-Ausnahmen (Aufwaermen, Gewichtsbegruendung) liefen bisher
@@ -52,33 +86,29 @@
   // weil sie ausserhalb des Trainings praktisch nie vorkommen.
   function two(q, a, b) { return a.test(q) && b.test(q); }
 
-  // Medizinische Teilmenge von BLOCK. Gebraucht fuer die Vorab-Ausnahmen, die
-  // VOR BLOCK laufen (Aufwaermen, Task 3): "wie soll ich mich aufwaermen?"
-  // enthaelt "soll ich" und faellt sonst in BLOCK, obwohl die Frage rein
-  // schematisch ist. Die Ausnahme darf aber niemals eine Schmerz- oder
-  // Verletzungsmeldung einfangen -- die gehoert ausnahmslos ans Modell.
-  //
-  // ACHTUNG, TRAGWEITE: diese Listen sind SPERRlisten und damit ausdruecklich
-  // NICHT mehr die tragende Schicht. Sie versagen nach aussen offen -- jede
-  // Beschwerdeform, die zufaellig nicht aufgezaehlt ist, rutscht durch
-  // ("warum knackt es bei 60 kg?", "ich bin schwanger, wie aufwaermen?",
-  // "warum wird mir uebel bei dem gewicht?"). Jede Reviewrunde schloss nur die
-  // Saetze, die zufaellig im Bericht standen. Die eigentliche Absicherung ist
-  // deshalb die Ganzform-Verankerung der beiden Ausnahmen (WARMUP_ONLY und
-  // whyRe weiter unten); MED_HARD/BODY/COMPLAIN bleiben nur als zusaetzliche
-  // Sicherung stehen, falls eine erlaubte Ganzform doch einmal zu weit ist.
-  //   MED_HARD  -- eindeutige Krankheits-/Beschwerde-/Behandlungswoerter,
-  //                blocken allein;
+  // GESUNDHEITS-SIGNALE -- die Liste des globalen Gates (siehe Kopf der
+  // Datei). Sie galt frueher nur fuer die zwei Vorab-Ausnahmen; seit der
+  // Umkehr der BLOCK-Entscheidung laeuft medical() vor ALLEN Intents.
+  //   MED_HARD  -- eindeutige Krankheits-/Beschwerde-/Schwangerschafts-/
+  //                Medikamenten-/Behandlungswoerter, blocken allein;
   //   BODY + COMPLAIN -- ein Koerperteil zusammen mit einer Beschwerde- oder
   //                Risikoaussage ("knackt das knie", "gefaehrlich fuer mein
   //                knie"). Ein Koerperteil ALLEIN blockt bewusst nicht, sonst
   //                waere jede normale Frage mit Muskelnamen betroffen.
-  // Beide Listen gelten nur fuer die zwei Ausnahmen -- ein Fehlalarm kostet
-  // hier nur eine lokale Antwort (die Frage geht ans Modell), waehrend ein
-  // Durchlasser eine medizinische Falschauskunft waere.
-  var MED_HARD = /schmerz|weh|verletz|zwick|ziep|hurts|pain|injur|\bache|\bsore\b|krank|erkaelt|fieber|grippe|entzuend|zerr|riss|gerissen|\breha\b|arzt|aerzt|physio|\bop\b|operation|meniskus|bandscheibe|kreuzband|\btaub\b|kribbel|prellung|kaputt/;
+  //
+  // DAS GATE IST BEWUSST EINE SPERRLISTE -- und anders als bei den beiden
+  // Vorab-Ausnahmen ist das hier herum richtig. Die Ausnahmen sind
+  // ERLAUBNISlisten, weil dort ein Durchlasser eine lokale Antwort auf eine
+  // unbekannte Frage waere; das Gate dagegen entscheidet nur, ob der Router
+  // schweigt. Ein Fehlalarm kostet einen Modellaufruf, ein Durchlasser waere
+  // eine medizinische Falschauskunft -- die Ausfallrichtung stimmt also, und
+  // eine unvollstaendige Liste macht das Gate schlechter, aber nie falsch.
+  // Neue Signalwoerter gehoeren deshalb HIER dazu und nirgends sonst; ein
+  // zweites Gate an einem einzelnen Intent ist genau der Fehler, den die
+  // Umkehr behoben hat.
+  var MED_HARD = /schmerz|weh|verletz|zwick|ziep|hurts|pain|injur|\bache|\bsore\b|krank|erkaelt|fieber|grippe|husten|schnupfen|entzuend|zerr|ueberdehn|riss|gerissen|frakt|verstauch|umgeknickt|\breha\b|arzt|aerzt|physio|\bop\b|operation|operier|narkose|meniskus|bandscheibe|kreuzband|\btaub\b|kribbel|prellung|kaputt|schwanger|trimester|stillzeit|wochenbett|asthma|allergi|infekt|corona|covid|impf|infarkt|schlaganfall|herzschwaech|herzfehler|herzrasen|herzstolper|kreislauf|ohnmacht|kollabier|blutdruck|blutung|diabet|epilep|krampf|migraene|arthrose|arthrit|osteoporose|skoliose|hernie|krebs|tumor|chemo|betablocker|medikament|tablette|antibiot|cortison|insulin|therapie|diagnos|symptom|attest|schwindel|uebelkeit|uebel|erbrech|atemnot|luftnot|panikattack|depress|burnout|essstoerung|magersucht|bulimie/;
   var BODY     = /knie|schulter|ruecken|nacken|huefte|handgelenk|ellenbogen|ellbogen|sprunggelenk|knoechel|wirbel|achilles|gelenk|sehne|knee|shoulder|wrist|elbow|ankle|joint|tendon/;
-  var COMPLAIN = /knack|knirsch|ziep|stich|brenn|schwill|geschwoll|taub|kribbel|klemm|gefaehrl|riskant|schaedl|schon(t|en)|blockiert|instabil|ueberlast/;
+  var COMPLAIN = /knack|knirsch|ziep|stich|brenn|schwill|geschwoll|taub|kribbel|klemm|steif|verspann|gefaehrl|riskant|schaedl|schon(t|en)|blockiert|instabil|ueberlast/;
   function medical(q) { return MED_HARD.test(q) || (BODY.test(q) && COMPLAIN.test(q)); }
 
   // ERLAUBNISLISTE der Aufwaerm-Ausnahme, verankert auf die GANZE normalisierte
@@ -154,23 +184,43 @@
 
   // Optionales Ziel am Satzende ("wie aufwaermen fuer bankdruecken?"). Ein
   // BELIEBIGER Nachsatz darf hier nicht stehen -- damit waere die Verankerung
-  // wieder offen und "wie aufwaermen fuer meine entzuendete schulter" bekaeme
-  // ein Schema. Zugelassen ist deshalb nur ein Ziel, das der Schnappschuss
-  // SELBST kennt: eine Muskelgruppe oder ein Uebungsname. Alles andere bleibt
-  // stehen und bricht die Form. medical() laeuft ohnehin ueber die ganze,
-  // ungekuerzte Frage.
+  // nach hinten wieder offen und "wie aufwaermen fuer die brust nach meinem
+  // herzinfarkt" bekaeme ein Schema.
+  //
+  // ENTSCHEIDEND: der Nachsatz muss ein Ziel SEIN, nicht eines ENTHALTEN. Die
+  // erste Fassung hat mit MUSCLE.test()/findExercise() nur gesucht, ob
+  // irgendwo im Rest ein Muskel- oder Uebungsname vorkommt -- beides
+  // unverankerte Teilstring-Tests. Damit schnitt ein beliebig langer Nachsatz
+  // weg, sobald ein einziges Zielwort darin stand, und 13 von 19
+  // medizinischen Nachsatz-Meldungen bekamen wieder ein Schema. Je kuerzer
+  // ein Nutzer-Uebungsname ist (Nutzer duerfen sie frei vergeben, z.B. "Dip"),
+  // desto beliebiger wurde der Nachsatz. Deshalb: Vergleich als GANZES gegen
+  // MUSCLE_EXACT bzw. gegen den exakten Uebungsnamen; die kurze Artikelliste
+  // im Muster ist die einzige zugelassene Umgebung. Alles andere bleibt
+  // stehen, bricht die Ganzform und kostet hoechstens einen Modellaufruf --
+  // auch eine an sich harmlose Variante ("fuer dips" bei der Uebung "Dip").
+  // Das ist der gewollte Ausfall nach innen.
+  function warmupTarget(t, s) {
+    if (MUSCLE_EXACT.test(t)) return true;
+    return (s.exercises || []).some(function (ex) { return norm(ex.name) === t; });
+  }
+
   function warmupCore(q, s) {
     var m = /^(.+?) (?:fuer|for) (?:mein(?:e|en|em)? |das |die |den |der )?([a-z0-9 ]+)$/.exec(q);
     if (!m) return q;
-    if (MUSCLE.test(m[2]) || findExercise(m[2], s.exercises)) return m[1];
-    return q;
+    return warmupTarget(m[2], s) ? m[1] : q;
   }
 
   // "gewicht"/"weight" ist auch das KOERPERgewicht. Der Coach begruendet aber
   // ausschliesslich seinen eigenen Hantel-Vorschlag -- Waage-, Zu- und
   // Abnehmfragen gehoeren ans Modell, auch wenn die vorgeschlagene Zahl
   // zufaellig danebensteht ("wieso wiege ich 60 kilo?").
-  var BODYWEIGHT = /koerpergewicht|body ?weight|abnehm|zunehm|zugenommen|abgenommen|an gewicht|wiege ich|\bwaage\b|gewicht verloren/;
+  // "viel kilos" ohne das Wort "gewicht" ist die Waage-Lesart ("warum so viel
+  // kilos?"), waehrend "diese kilos"/"so viel gewicht" den Hantelvorschlag
+  // meint und in der 40er-Erlaubnisliste steht. Diese eine Form laesst sich
+  // nicht durch Verengen der Erlaubnisliste trennen -- "so" und "viel" werden
+  // dort gebraucht --, deshalb steht sie hier.
+  var BODYWEIGHT = /koerpergewicht|body ?weight|abnehm|zunehm|zugenommen|abgenommen|an gewicht|wiege ich|\bwaage\b|gewicht verloren|viele? kilos?/;
 
   // Muskelgruppen-Woerter als reines JA/NEIN, ob eine Volumenfrage ueberhaupt
   // muskelspezifisch gemeint ist. Die ZAHL kommt ausschliesslich aus
@@ -179,6 +229,14 @@
   // Brust-Frage bei fehlendem s.muscleVolume vom Gesamtvolumen-Intent mit
   // einer konfident falschen Zahl beantwortet.
   var MUSCLE = /brust|ruecken|beine|\bbein\b|schulter|\barme\b|\barm\b|bauch|bizeps|trizeps|waden|gesaess|\bpo\b|chest|\bback\b|\blegs\b|shoulder|\barms\b|\babs\b|biceps|triceps|glutes|calves/;
+
+  // Verankerter Zwilling von MUSCLE fuer warmupCore(): "ist das GANZE Feld ein
+  // Muskelname?" statt "kommt irgendwo einer vor?". Aus derselben Quelle
+  // abgeleitet statt abgeschrieben -- eine zweite, handgepflegte Wortliste
+  // waere beim naechsten neuen Muskelwort sofort auseinandergelaufen. Die
+  // \b-Anker aus MUSCLE entfallen dabei, weil ^...$ strenger ist als jede
+  // Wortgrenze.
+  var MUSCLE_EXACT = new RegExp('^(?:' + MUSCLE.source.replace(/\\b/g, '') + ')$');
 
   // Drei Einzelfragen, die als BREITES zweites Signal je eine Fehlerklasse
   // wieder aufgemacht haetten. Die Signale ("trainier" bei Intent 10,
@@ -192,8 +250,18 @@
   // Formulierung ist ein Modellaufruf, der Preis eines Lecks eine
   // Konservenantwort auf "kann ich mit Fieber trainieren?".
   var SUPERSET_MINE = /^(?:habe|hab) ich (?:gerade |jetzt |grad |noch |schon )?(?:einen |ein |nen )?(?:supersatz|superset)$/;
-  var WEEK_TRAINED  = /^wie (?:viele male|viel mal|oft) (?:habe|hab) ich (?:diese|die) woche (?:schon |bereits )?trainiert$/;
+  var WEEK_TRAINED  = /^wie (?:viele male|viel mal|oft) (?:(?:habe|hab) ich (?:diese|die) woche (?:schon |bereits )?trainiert|war ich (?:diese|die) woche (?:schon |bereits )?(?:im|beim) (?:training|gym))$/;
   var AVG_GYM       = /^wie lange bin ich (?:im schnitt |im durchschnitt |durchschnittlich )?im gym(?: (?:im schnitt|im durchschnitt|durchschnittlich))?$/;
+
+  // Ganzform fuer die eigene gestrige Einheit (Intent 13). Ersetzt die beiden
+  // baren Woerter "training" und "\bgym\b" aus dem Zweitsignal: "gestern" ist
+  // ein Alltagswort, und "das gym" ist als ORT Gegenstand vieler Fragen, die
+  // mit der eigenen Einheit nichts zu tun haben ("wie lange war das gym
+  // gestern offen?" -> "Gestern: Push, 6 Uebungen, 5.400 kg Volumen."). Genau
+  // diese Begruendung hat "\bgym\b" schon aus Intent 12 entfernt; in Intent 13
+  // stand es unveraendert weiter drin. Der Besitzbezug ("ICH war", "MEIN
+  // training") ist das, was die Ortsfrage von der eigenen Einheit trennt.
+  var YEST_MINE     = /^(?:wie|was) war (?:mein|das) training gestern$|^wie war gestern (?:mein|das) training$|^wie lange war ich gestern (?:im|beim) (?:gym|training)$/;
 
   // Fund bei Pruefung des letzten Commits (Leck 4, siehe Intent 10 unten):
   // "training" stand dort als BARES Wort im Zweitsignal -- ein Teilstring-
@@ -206,7 +274,14 @@
   // WEEK_TRAINED direkt darueber: deckt die eine bekannte legitime Formulierung
   // ("wie viele trainings diese woche?") ab, ohne "training" als Teilstring
   // wieder freizugeben.
-  var WEEK_COUNT    = /^(?:wie viele|wieviele) (?:trainings|einheiten)(?: habe ich)? (?:diese|die) woche(?: (?:schon|bereits))?$/;
+  // Die erste Fassung war deutlich enger als das Signal, das sie ersetzt hat,
+  // und verlor sechs gelaeufige Formen (Praeteritum "hatte ich", das zu
+  // WEEK_TRAINED inkonsistente "hab ich", der Nachlauf "gemacht", "waren das",
+  // "in dieser woche"). Kein falscher Wert, nur unnoetige Modellaufrufe --
+  // angeglichen an WEEK_TRAINED. Die Mengenfrage bleibt draussen, weil
+  // "trainings|einheiten" Pflicht ist: "wie viele tage hat diese woche?"
+  // passt weiterhin nicht.
+  var WEEK_COUNT    = /^(?:wie viele|wieviele) (?:trainings|einheiten)(?: (?:habe|hab|hatte) ich| waren das)? (?:in )?(?:diese|dieser|die|der) woche(?: (?:schon|bereits))?(?: (?:gemacht|geschafft|absolviert))?$/;
 
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
@@ -281,6 +356,16 @@
     if (!q) return null;
     var s = snap || {};
 
+    // GLOBALES GESUNDHEITS-GATE -- steht vor ALLEM, auch vor den beiden
+    // Vorab-Ausnahmen, die an BLOCK vorbeilaufen duerfen. Ausfuehrliche
+    // Begruendung im Kopf der Datei (umgekehrte Entscheidung): jede Frage mit
+    // Krankheits-, Beschwerde-, Schwangerschafts-, Medikamenten- oder
+    // Behandlungssignal geht ans Modell, ohne dass irgendein Intent sie noch
+    // sieht. Diese eine Zeile ersetzt den Versuch, dieselbe Fehlerklasse in
+    // jedem Intent einzeln abzufangen -- ein Intent, der es nicht tut, reicht
+    // sonst, und genau das ist fuenf Runden lang passiert.
+    if (medical(q)) return null;
+
     // VORAB-AUSNAHME (laeuft VOR BLOCK). Aufwaermen wird im Deutschen fast
     // immer als "wie soll ich mich aufwaermen?" gefragt -- "soll ich" steht in
     // BLOCK, die Frage kaeme also nie an. Sie ist aber weder wertend noch
@@ -341,11 +426,19 @@
       // und Wertung brauchen ein Verb, ein Adjektiv oder ein Substantiv, und
       // jedes davon bricht die Form weiterhin. Die erste Fassung war zu kurz --
       // ein einziges "gerade"/"nur"/"wieder"/"so viel" kostete den Treffer.
+      // "mein|meine|meinen|my" standen hier und haben die Koerpergewichts-
+      // Lesart wieder hereingelassen, gegen die BODYWEIGHT ausdruecklich
+      // gebaut ist: zusammen mit "hoch|high" im tail passte "warum ist mein
+      // gewicht so hoch?" / "why is my weight so high?" in die Ganzform und
+      // bekam die Hantel-Progression als Antwort. Der Coach begruendet
+      // ausschliesslich SEINEN Vorschlag -- der heisst "das|dieses gewicht",
+      // nie "mein gewicht". Keine der 40 natuerlichen Formulierungen braucht
+      // den Possessivbegleiter, das Verengen kostet also nichts.
       var fill = '(?:(?:ist|sind|war|waren|es|das|dieses|dieser|diese|dies|den|dem|der|denn|' +
                  'eigentlich|genau|gerade|ausgerechnet|nur|wieder|schon|noch|so|viel|' +
-                 'mein|meine|meinen|gleiche|gleichen|selbe|selben|steht|da|hier|' +
+                 'gleiche|gleichen|selbe|selben|steht|da|hier|' +
                  'heute|jetzt|nun|' +
-                 'is|are|it|the|this|that|these|those|my|now|today|again|just|only|much) )*';
+                 'is|are|it|the|this|that|these|those|now|today|again|just|only|much) )*';
       // Gewichts-Signal: das Wort selbst -- inklusive "kilo"/"kg", die als
       // eigenstaendiges Signal ersatzlos entfallen waren und "warum diese
       // kilos?" toetlich getroffen haben --, oder die vorgeschlagene Zahl mit
@@ -606,8 +699,15 @@
     // hat kein zweites Wort, das man ergaenzen koennte, ohne "was war gestern
     // im fernsehen?" mitzunehmen. Also dieselbe Loesung wie bei den beiden
     // Vorab-Ausnahmen -- eine auf die ganze Frage verankerte Ganzform.
-    if (two(q, /gestern|yesterday/, /training|trainiert|workout|einheit|session|gemacht|volumen|uebung|\bgym\b|satz|saetze/) ||
-        /^(?:was|wie) war(?:s)? (?:es )?gestern$|^gestern$|^(?:what|how) was yesterday$/.test(q)) {
+    // "training" und "\bgym\b" sind hier zusaetzlich rausgeflogen: beide
+    // standen bare im Zweitsignal und trugen dieselbe Last wie an den
+    // Stellen, an denen sie schon zurueckgenommen wurden ("training" in
+    // Intent 10, "\bgym\b" in Intent 12). Die eigene gestrige Einheit kommt
+    // als verankerte Ganzform durch (YEST_MINE, siehe oben); "trainiert"
+    // bleibt, weil es kein Ortswort ist.
+    if (two(q, /gestern|yesterday/, /trainiert|workout|einheit|session|gemacht|volumen|uebung|satz|saetze/) ||
+        /^(?:was|wie) war(?:s)? (?:es )?gestern$|^gestern$|^(?:what|how) was yesterday$/.test(q) ||
+        YEST_MINE.test(q)) {
       if (!s.yesterdayText) return null;
       return { intent: 'yesterday', answer: s.yesterdayText };
     }

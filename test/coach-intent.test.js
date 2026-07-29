@@ -196,12 +196,24 @@ test('Restpause-Fragen ohne "rest timer"-Wortlaut bleiben lokal beantwortbar', (
 // belegen je eine der Korrekturen und diskriminieren (RED vor dem Fix, GREEN
 // danach) -- siehe Report fuer die je vorher/nachher-Konsole-Ausgabe.
 
-test('Krankheitswort blockiert keinen anderen Intent mehr (BLOCK-Rueckbau)', () => {
-  // Vorher: BLOCK enthielt "erkaelt" und loeschte JEDE Frage mit diesem Wort,
-  // auch eine, die nichts mit Erholung zu tun hat. Reviewer-Beispiel.
-  const r = R.resolveIntent('Ich bin erkaeltet, wie viele Saetze noch?', SNAP);
-  assert.strictEqual(r && r.intent, 'setsLeft');
-  assert.ok(r.answer.includes('3'));
+test('Krankheitswort beendet den Router (Umkehr des BLOCK-Rueckbaus)', () => {
+  // UMGEDREHT in Re-Review 3. Dieser Test erwartete bis dahin 'setsLeft': ein
+  // Krankheitswort sollte einen fachfremden Intent NICHT blockieren, damit
+  // eine harmlose Frage keinen Modellaufruf kostet. Diese Optimierung auf
+  // Bequemlichkeit hat fuenf Reviewrunden lang dieselbe Fehlerklasse offen
+  // gehalten -- irgendein Intent beantwortete eine Gesundheitsfrage lokal
+  // ("darf ich diese woche mit fieber trainieren?" -> "Diese Woche 3 von 4
+  // Einheiten."), und jede Runde schloss nur die Saetze, die zufaellig im
+  // Bericht standen. Entscheidung des Nutzers: die Sicherheitseigenschaft
+  // gewinnt gegen die Bequemlichkeit. Ab jetzt beendet JEDES Gesundheits-
+  // signal den Router vor ALLEN Intents (globales Gate, siehe Kopf von
+  // js/coach-intent.js).
+  //
+  // DER PREIS steht genau hier im Test: diese Frage ist harmlos, ihre
+  // Satzzahl waere lokal beantwortbar -- sie kostet ab jetzt einen
+  // Modellaufruf. Das ist gewollt und der einzige bekannte Preis. Wer den
+  // Test spaeter zurueckdreht, oeffnet die Fehlerklasse wieder.
+  assert.strictEqual(R.resolveIntent('Ich bin erkaeltet, wie viele Saetze noch?', SNAP), null);
 });
 
 test('Erholungsurlaub-Erzaehlsatz wird nicht als Erholungsabfrage gelesen (geht ans Modell)', () => {
@@ -799,4 +811,129 @@ test('Leck 4: Krankheits-/Erlaubnisfragen mit dem Wort "Training" sind kein Woch
    'kann ich krank ins training diese woche?',
    'ich bin schwanger, darf ich diese woche ins training?'
   ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+// --- Re-Review 3: EINE Stelle statt zwoelf ---------------------------------
+// Fuenf Runden lang wurde dieselbe Fehlerklasse gefunden (eine Frage mit
+// Gesundheitsbezug bekommt eine lokale Konservenantwort) und fuenf Mal
+// punktuell geschlossen: ein Signalwort raus, eine Ganzform rein. Die naechste
+// Formulierung fand die naechste Luecke. Ab hier steht ein GLOBALES
+// Gesundheits-Gate vor ALLEN Intents -- traegt die Frage irgendwo ein
+// Krankheits-, Beschwerde-, Schwangerschafts-, Medikamenten- oder
+// Behandlungssignal, antwortet der Router gar nicht mehr.
+
+test('Gesundheits-Gate: Krankheitsfragen bekommen in KEINEM Intent eine lokale Antwort', () => {
+  // Alle neun standen im Reviewbericht mit ihrer falschen lokalen Antwort.
+  // Sie verteilen sich auf drei verschiedene Intents (10, 12, 13) -- genau
+  // deshalb reicht kein weiteres Signalwort weniger an einer Stelle.
+  ['darf ich diese woche noch eine einheit machen wenn ich fieber habe?',
+   'kann ich diese woche trotz grippe eine einheit machen?',
+   'darf ich diese woche ein workout machen obwohl ich krank bin?',
+   'ist es ok diese woche eine session zu machen wenn ich schwanger bin?',
+   'ich hab diese woche nichts geschafft weil ich krank war',
+   'ist es im schnitt gefaehrlich mit fieber zu trainieren?',
+   'wie lange sollte man im schnitt mit einer erkaeltung trainieren?',
+   'war ich gestern zu krank fuers training?',
+   'durfte ich gestern mit fieber ins training?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Gesundheits-Gate: die Meldung im NACHSATZ zaehlt genauso wie im Vorsatz', () => {
+  // Dieselben Meldungen wie in der bewachten 19er-Angriffsliste, nur hinter
+  // der Aufwaermfrage statt davor. Die Testliste bewachte bisher
+  // ausschliesslich die Praefix-Stellung, deshalb blieb das 13 Saetze lang
+  // unentdeckt. herzinfarkt/schwanger/trimester/betablocker/krampfanfall/
+  // asthma standen dafuer bis hierher in KEINER Liste.
+  ['wie soll ich mich aufwaermen fuer die brust nach meinem herzinfarkt?',
+   'wie soll ich mich aufwaermen fuer bankdruecken, ich bin schwanger?',
+   'wie soll ich mich aufwaermen fuer die brust, ich bin schwanger',
+   'wie aufwaermen fuer beine obwohl ich asthma habe?',
+   'wie aufwaermen fuer kniebeuge waehrend ich betablocker nehme?',
+   'wie soll ich mich aufwaermen fuer die beine, ich nehme betablocker',
+   'wie aufwaermen fuer die brust wenn ich im ersten trimester bin?',
+   'wie waerme ich mich auf fuer die brust, ich bin im ersten trimester',
+   'wie aufwaermen fuer das bankdruecken nach meinem krampfanfall?',
+   'wie aufwaermen fuer den ruecken, mir ist schwindelig?',
+   'wie aufwaermen fuer meine steife schulter?',
+   'wie aufwaermen fuer meine operierte schulter?',
+   'how to warm up for chest after my heart attack?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Critical: der Nachsatz muss ein Ziel SEIN, nicht eines enthalten', () => {
+  // warmupCore() prueft mit MUSCLE/findExercise nur, ob der Nachsatz ein
+  // Zielwort ENTHAELT. Damit schnitt ein beliebig langer Nachsatz weg, sobald
+  // irgendwo ein Muskel- oder Uebungsname darin stand -- die Verankerung war
+  // nach hinten offen. Keiner dieser vier Saetze ist medizinisch: sie messen
+  // die Verankerung selbst, nicht die Sperrliste dahinter (genau der Fehler
+  // des vorigen Fixbelegs, der 'entzuendete schulter' als Beweis nahm und
+  // damit MED_HARD gemessen hat).
+  ['wie aufwaermen fuer die brust nach dem urlaub?',
+   'wie aufwaermen fuer bankdruecken bei meinem kumpel im keller?',
+   'wie aufwaermen fuer die beine und was mache ich danach?',
+   'wie soll ich mich aufwaermen fuer die arme meiner freundin?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Critical-Gegenprobe: das echte Ziel am Satzende bleibt erkannt', () => {
+  ['wie aufwaermen fuer bankdruecken?',
+   'wie aufwaermen fuer die brust?',
+   'wie aufwaermen fuer meine beine?',
+   'wie soll ich mich aufwaermen fuer kniebeuge?'
+  ].forEach(q => {
+    const r = R.resolveIntent(q, S20);
+    assert.strictEqual(r && r.intent, 'warmup', 'verloren: ' + q);
+  });
+});
+
+test('Important: die Koerpergewicht-Lesart ist keine Begruendung des Hantelgewichts', () => {
+  // "mein|my" in fill plus "hoch|high" in tail haben die Frage, gegen die
+  // BODYWEIGHT ausdruecklich gebaut ist, wieder in die Ganzform gelassen --
+  // der Coach erklaerte die Hantel-Progression auf eine Waage-Frage. Alle
+  // drei waren am Stand 7c92fd7 noch null.
+  assert.strictEqual(R.resolveIntent('warum ist mein gewicht so hoch?', S4), null);
+  assert.strictEqual(R.resolveIntent('why is my weight so high?', S4), null);
+  assert.strictEqual(R.resolveIntent('warum so viel kilos?', S4), null);
+  // Gegenprobe: die drei benachbarten Formen aus der 40er-Liste bleiben.
+  assert.strictEqual(R.resolveIntent('warum ist das gewicht so hoch?', S4).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum so viel gewicht?', S4).intent, 'weightWhy');
+  assert.strictEqual(R.resolveIntent('warum diese kilos?', S4).intent, 'weightWhy');
+});
+
+test('Important: das Gym als ORT ist auch keine Frage nach der gestrigen Einheit', () => {
+  // "\bgym\b" wurde in Runde 2 aus Intent 12 entfernt, weil das Gym als ORT
+  // Gegenstand vieler Fragen ist, die mit dem eigenen Training nichts zu tun
+  // haben -- und stand in Intent 13 unveraendert weiter drin, mit exakt
+  // demselben Effekt. Kein Gesundheitssignal, das Gate faengt es also nicht.
+  ['wie lange war das gym gestern offen?',
+   'wie voll war das gym gestern?',
+   'wie war das wetter gestern beim training in der stadt?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20), null, 'nicht abgegeben: ' + q));
+});
+
+test('Important-Gegenprobe: die eigene gestrige Einheit bleibt lokal', () => {
+  ['was war gestern?',
+   'was habe ich gestern gemacht?',
+   'wie war mein training gestern?',
+   'wie lange war ich gestern im gym?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20) && R.resolveIntent(q, S20).intent,
+                                    'yesterday', 'verloren: ' + q));
+});
+
+test('Minor: WEEK_COUNT kennt die sechs gelaeufigen Wochen-Zaehlformen wieder', () => {
+  // Die Ganzform war enger als das Signal, das sie ersetzt hat: Praeteritum,
+  // "hab ich" (inkonsistent zu WEEK_TRAINED, das "habe|hab" kennt), Nachlauf
+  // "gemacht", "waren das", "in dieser woche" und "wie oft war ich ... im
+  // training" fielen alle raus. Kein falscher Wert, nur Modellaufrufe.
+  ['wie viele trainings hatte ich diese woche?',
+   'wie viele trainings hab ich diese woche?',
+   'wie viele trainings habe ich diese woche gemacht?',
+   'wie viele trainings waren das diese woche?',
+   'wie viele trainings in dieser woche?',
+   'wie oft war ich diese woche im training?'
+  ].forEach(q => assert.strictEqual(R.resolveIntent(q, S20) && R.resolveIntent(q, S20).intent,
+                                    'weekProgress', 'nicht erkannt: ' + q));
+  // Gegenprobe: die Weitung darf die Mengenfrage nicht wieder hereinholen.
+  assert.strictEqual(R.resolveIntent('wie viele tage hat diese woche?', S20), null);
+  assert.strictEqual(R.resolveIntent('wie viele kalorien habe ich diese woche verbrannt?', S20), null);
 });
