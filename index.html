@@ -4516,6 +4516,14 @@ html:not([data-glass="off"]) .cal-card{
 .tabbar .tab{padding:7px 2px 8px;gap:3px;min-width:0}
 .tabbar .tab span{font-size:9.5px;letter-spacing:0;white-space:nowrap}
 .tabbar .tab svg{width:21px;height:21px}
+/* Labels dürfen weder aneinanderkleben noch am Kapselrand abreißen: jeder Tab
+   bekommt exakt ein Fünftel, das Label wird auf seine Spalte begrenzt. Ohne
+   max-width lief der längste Text unter den Nachbarn durch. */
+.tabbar .tab{flex:1 1 0}
+.tabbar .tab span{display:block;max-width:100%;text-align:center;text-overflow:ellipsis}
+/* Englische Labels sind spürbar länger als die deutschen (Achievements vs.
+   Erfolge) — eine Spur enger gesetzt, damit sie ganz in ihre Spalte passen. */
+html[lang="en"] .tabbar .tab span{font-size:9px;letter-spacing:-.15px}
 #ai-bubble{width:52px;height:52px;bottom:calc(8px + var(--sab))}
 /* Aktiver Tab: KEINE eigene Farbfläche — das übernimmt die gleitende Bubble
    (#tab-indicator). Zwei Highlights übereinander sahen doppelt/blau aus. */
@@ -6854,10 +6862,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     <div class="px" style="padding-bottom:18px">
       <div class="cs-intro">
         <div class="cs-intro-t">Was ist ein Split?</div>
-        Ein Split ist dein <b>Trainingsplan</b>: Du teilst dein Training in <b>Tage/Gruppen</b> auf
-        (z.&nbsp;B. „Push" = Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die
-        <b>Muskelgruppen</b> zu, die an dem Tag drankommen. Beim Training filterst du dann
-        bequem nach diesen Gruppen.
+        <!-- Jeder Textknoten steht bewusst auf EINER Zeile: die <b>-Tags zerteilen
+             den Satz, und ein Fragment mit Zeilenumbruch trifft keinen I18N_EN-Key
+             mehr — dann stand hier ein halb deutscher, halb englischer Absatz. -->
+        <span>Ein Split ist dein </span><b>Trainingsplan</b><span>: Du teilst dein Training in </span><b>Tage/Gruppen</b><span> auf (z.&nbsp;B. „Push" = Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die </span><b>Muskelgruppen</b><span> zu, die an dem Tag drankommen. Beim Training filterst du dann bequem nach diesen Gruppen.</span>
       </div>
       <div style="font-size:12px;color:var(--text2);margin:2px 0 6px;letter-spacing:.3px;text-transform:uppercase">Schnell-Vorlage</div>
       <div class="cs-presets">
@@ -6994,7 +7002,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       <h2>Freund hinzufügen</h2>
       <button class="x-btn" onclick="closeOv('ov-fradd')">✕</button>
     </div>
-    <div id="fradd-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--sab))"></div>
+    <div id="fradd-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(56px + var(--sab))"></div>
   </div>
 </div>
 
@@ -7005,7 +7013,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       <h2 id="frp-title">Profil</h2>
       <button class="x-btn" onclick="closeOv('ov-frprofile')">✕</button>
     </div>
-    <div id="frp-body" style="padding-bottom:calc(14px + var(--sab))"></div>
+    <!-- Puffer am INHALT, nicht am scrollenden Sheet: WebKit scrollt das
+         padding-bottom eines Scroll-Containers nicht mit, dadurch endete die
+         Liste am letzten Element und „Entfernen"/„Blockieren" lagen unten
+         außerhalb des Sheets. -->
+    <div id="frp-body" style="padding-bottom:calc(56px + var(--sab))"></div>
   </div>
 </div>
 
@@ -7165,7 +7177,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607250018';
+const APP_VERSION = 'gymtrack-v202607290100';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7411,6 +7423,9 @@ const I18N_EN = {
   'Übungen in dieser Gruppe':'Exercises in this group','Empfohlene Pause':'Recommended rest',
 'Leichte Ermüdung':'Light fatigue','Mittlere Ermüdung':'Moderate fatigue','Starke Ermüdung':'Heavy fatigue',
 'Vollständig erholt':'Fully recovered','Nicht erholt':'Not recovered','Wenig erholt':'Barely recovered','Fast bereit':'Almost ready','Bereit':'Ready',
+/* Die Erholungsliste liefert 'bereit' KLEIN (siehe _recWhen) — ohne eigenen
+   Eintrag blieb in der englischen App überall „bereit" stehen. */
+'bereit':'ready',
 'Erste Einheit':'First session','Muskel':'Muscle','Kraftaufbau':'Strength gain','Kraftsteigerung pro Muskel':'Strength gain per muscle',
 'Meilensteine ·':'Milestones ·','Meilenstein erreicht':'Milestone reached','Ausgangskraft':'Starting strength','Zuwachs':'Gain',
   'Tippen für Details ›':'Tap for details ›','Gruppe gesamt':'Group total',
@@ -7418,12 +7433,15 @@ const I18N_EN = {
 'So entsteht der Wert:':'How this value is calculated:',
 'Pro Satz wird ein geschätztes Einer-Maximum (1RM) berechnet —':'For each set an estimated one-rep max (1RM) is calculated —',
 'Gewicht × (1 + Wdh ÷ 30)':'Weight × (1 + reps ÷ 30)',
-'. „Start"ist der beste Satz deiner':'. “Start” is the best set of your','ersten Einheit':'first session','einer Übung,':'of an exercise,',
+/* Auch hier fehlte im Schlüssel ein Leerzeichen — der Satz blieb deutsch. */
+'. „Start" ist der beste Satz deiner':'. “Start” is the best set of your','ersten Einheit':'first session','einer Übung,':'of an exercise,',
 '„Bestwert"dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.':'“Best” is your best set so far. The 1RMs of all exercises in the group are summed.',
   'Trage Gewicht & Wiederholungen ein, um deine Kraftentwicklung pro Muskel zu sehen.':'Log weight & reps to see your strength development per muscle.',
 'In diesem Zeitraum gibt es noch nicht genug Trainings für eine Auswertung. Wähle einen längeren Zeitraum.':'Not enough workouts in this period for an analysis. Choose a longer period.',
 'Dieser Monat':'This month','Dieses Jahr':'This year','aktueller Zeitraum':'current period','· Trainingszeit ·':'· training time ·',
-'Erfolge':'Achievements','Zurück zu Erfolge':'Back to achievements','10 Std. Training':'10 h of training','50 Std. Training':'50 h of training',
+/* „Awards" statt „Achievements": passt als Tab-Label in seine Spalte, ohne
+   dass der Text am Rand der Leiste abreißt. */
+'Erfolge':'Awards','Zurück zu Erfolge':'Back to awards','10 Std. Training':'10 h of training','50 Std. Training':'50 h of training',
 '10 t Volumen':'10 t of volume','100 t Volumen':'100 t of volume','Geschafft':'Done',
 'Logge dein erstes Workout, um deine Erholung zu sehen.':'Log your first workout to see your recovery.',
 'Absolviere dein erstes Training, um Vorschläge zu erhalten.':'Complete your first workout to get suggestions.',
@@ -7459,8 +7477,12 @@ const I18N_EN = {
 'Eigenen Split erstellen':'Create your own split','Split bearbeiten':'Edit split','Was ist ein Split?':'What is a split?',
 'Ein Split ist dein':'A split is your','Trainingsplan':'training plan',
 ': Du teilst dein Training in':': you divide your training into','Tage/Gruppen':'days/groups',
-'auf (z. B. „Push"= Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die':'(e.g. “Push” = chest, shoulders, triceps). To each group you assign the',
-'zu, die an dem Tag drankommen. Beim Training filterst du dann bequem nach diesen Gruppen.':'that are up that day. During your workout you can then conveniently filter by these groups.',
+/* Schlüssel muss dem Textknoten ZEICHENGENAU entsprechen — hier fehlte das
+   Leerzeichen vor dem Gleichheitszeichen, deshalb blieb der halbe Absatz deutsch. */
+/* Satzgrenze bewusst hier: „Muskelgruppen" wird global als „Muscle groups"
+   übersetzt (Großschreibung), das steht nur am Satzanfang richtig. */
+'auf (z. B. „Push" = Brust, Schulter, Trizeps). Jeder Gruppe ordnest du die':'(e.g. “Push” = chest, shoulders, triceps).',
+'zu, die an dem Tag drankommen. Beim Training filterst du dann bequem nach diesen Gruppen.':'are assigned to each group and trained on that day. During your workout you then simply filter by these groups.',
   'Schnell-Vorlage':'Quick template','1. Name des Splits':'1. Split name','2. Deine Trainings-Gruppen':'2. Your training groups',
 '+ Gruppe hinzufügen':'+ Add group','Split löschen':'Delete split','Bitte gib dem Split einen Namen.':'Please give the split a name.',
 'Mindestens eine Gruppe mit Muskeln benötigt.':'At least one group with muscles is required.',
@@ -7587,6 +7609,14 @@ const I18N_EN = {
   'Rangliste zählt die aktuelle Woche (Mo–So).':'Leaderboard counts the current week (Mon–Sun).',
   'Trainiert gerade':'Working out now','Wochen-Vergleich mit Freunden':'Weekly comparison with friends',
   'Tippen für Rangliste & Freunde':'Tap for leaderboard & friends','Rekord':'Record','Neue':'New','Bereits':'Already',
+  /* Auf Englisch stehengebliebene Texte (Community-Zeile, Live-Coach, Profil-Bio,
+     Split-Hilfe, Kalender-Legende). */
+  'Rangliste, Freunde & Gym-Karte — dein Name und deine Wochen-Statistik werden für Freunde sichtbar':'Leaderboard, friends & gym map — your name and weekly stats become visible to friends',
+  'Tipps während des Satzes':'Tips during your set',
+  'Kurz & knackig — was treibt dich an?':'Short and sweet — what drives you?',
+  'Ein Split bündelt Übungen zu einem Trainingstag – z. B. „Oberkörper 1" oder „Push". Tippe auf':'A split bundles exercises into one training day – e.g. “Upper body 1” or “Push”. Tap',
+  ', wähle Übungen und Wochentage.':', then pick exercises and weekdays.',
+  'weniger':'less','mehr':'more',
   'Du bestimmst, was Freunde sehen. Name, Wochen-Trainingszahl und Streak sind Teil der Rangliste, solange die Community aktiv ist.':'You decide what friends see. Your name, weekly workout count and streak are part of the leaderboard while the community is active.',
   'Aktuelles Gym anzeigen':'Show current gym','Gym-Name und Position auf der Karte':'Gym name and position on the map',
   'Live-Trainingsstatus anzeigen':'Show live workout status','„Trainiert gerade" inkl. Dauer':'“Working out now” incl. duration',
@@ -7889,6 +7919,11 @@ const I18N_EN = {
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
  damit englische Ergebnisse Fixpunkte bleiben) */
 const I18N_RX = [
+ /* „Nächstes Mal: 21 kg ausprobieren." — die Zahl steht in der Mitte, deshalb
+    blieb nach den übrigen Regeln ein halb deutscher Satz stehen („next time
+    21 kg ausprobieren"). Muss VOR den Teilregeln laufen. */
+ [/: (.{1,24}?) ausprobieren\./g, ': try $1.'],
+ [/ ausprobieren\./g, '.'],
  // Inline-Icon-Buttons (Icon klebt im selben Textknoten wie der Text)
  [/Training starten/g,'Start workout'],
  // Widget-/Kraft-Fragmente & Kürzel
@@ -8082,6 +8117,16 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-feinschliff': {
+    label: '29.07.2026 · Feinschliff: Bedienung und englische Texte',
+    items: [
+      'Bottom-Sheets lassen sich jetzt überall nach unten wegziehen — an der Kopfzeile und am Inhalt, nicht mehr nur am schmalen Griff',
+      'Im Freundesprofil standen „Entfernen" und „Blockieren" beim Runterscrollen unter dem Rand — jetzt sind sie vollständig erreichbar',
+      'Die Beschriftungen in der Tab-Leiste kleben nicht mehr aneinander und werden nicht mehr abgeschnitten',
+      'Englische App: Split-Erklärung, Erholungsliste, Gewichtsvorschläge und Community-Hinweise waren teilweise noch deutsch — durchgängig übersetzt',
+      'Die Wochenübersicht gab es doppelt (Start- und Statistik-Seite); sie steht jetzt nur noch in der Statistik',
+    ]
+  },
   'cl-2026-07-25-checkin-autoregulation': {
     label: '25.07.2026 · Dein Check-in steuert jetzt das nächste Training',
     items: [
@@ -9622,7 +9667,8 @@ function setGlass(on) {
    Layout in S.heuteLayout = [{type, size:'lg'|'sm'}, …]
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
-  {type:'weekcal', size:'lg'},
+  /* 'weekcal' ist hier raus: dieselbe Wochenübersicht mit demselben Kalender
+     dahinter steht bereits im Statistik-Tab — zweimal dasselbe wirkte doppelt. */
   {type:'streak',  size:'sm'},
   {type:'recovery',size:'sm'},
   {type:'weight',  size:'md'},
@@ -9635,7 +9681,9 @@ const DEFAULT_HEUTE_LAYOUT = [
    Jedes Widget unterstützt alle drei Formen; sizes ist aufsteigend sortiert. */
 const HW_RANK = {sm:0, md:1, lg:2};
 const WIDGET_DEFS = {
-  weekcal: {title:'Diese Woche',     icon:'🗓️', label:'Diese Woche',      desc:'Trainingswoche · 7 Tage',     sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
+  /* 'weekcal' ist bewusst nicht mehr registriert — getHeuteLayout() filtert
+     unbekannte Typen, damit verschwindet die Dopplung auch aus bereits
+     gespeicherten Layouts. hwWeekcal() bleibt als Renderer ungenutzt stehen. */
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
@@ -9651,7 +9699,7 @@ const WIDGET_DEFS = {
   plans:   {title:'Deine Trainingspläne', icon:'', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
   social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
 };
-const WIDGET_PICK_ORDER = ['weekcal','woche','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
+const WIDGET_PICK_ORDER = ['woche','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
@@ -10013,10 +10061,10 @@ function openWidgetPicker(){ _pendingWidgetInsertAfter = null; document.body.cla
 function openWidgetPickerAt(afterIdx){ _pendingWidgetInsertAfter = afterIdx; document.body.classList.add('wpick-open'); renderWidgetPicker(); openOv('ov-widget-add'); }
 /* Galerie-Reihenfolge: erst die großen (span-2) „Feature"-Widgets, dann die
    quadratischen/kleinen paarweise – so entstehen keine Lücken im 2er-Raster. */
-const WIDGET_GALLERY_ORDER = ['weekcal','woche','history','muscles','onerm','streak','volume','recovery','weight','train','qadd','qweight'];
+const WIDGET_GALLERY_ORDER = ['woche','history','muscles','onerm','streak','volume','recovery','weight','train','qadd','qweight'];
 /* Repräsentative Start-Größe je Widget (so wie es nachher real aussieht). */
 const WIDGET_PREVIEW_SIZE = {
-  weekcal:'lg', woche:'lg', history:'lg', muscles:'lg', onerm:'lg',
+  woche:'lg', history:'lg', muscles:'lg', onerm:'lg',
   streak:'sm', volume:'sm', recovery:'sm', weight:'sm',
   train:'md', qadd:'md', qweight:'md'
 };
@@ -17796,24 +17844,64 @@ function initSheetSwipe() {
     const handle = sheet && sheet.querySelector(':scope > .sh-handle');
     if (!sheet || !handle) return;
 
-    let sy = 0, ly = 0, dragging = false, hasMoved = false;
+    let sy = 0, ly = 0, dragging = false, hasMoved = false, armed = false;
 
-    handle.addEventListener('touchstart', e => {
-      dragging  = true;
-      hasMoved  = false;
-      sy = ly   = e.touches[0].clientY;
-      sheet.style.transition = 'none';
-      /* WICHTIG: non-passive + preventDefault verhindert, dass der Browser
-         sofort einen Scroll startet und unsere touchmove-Events ignoriert */
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });   // muss non-passive sein!
+    /* Scrollbarer Vorfahre unter dem Finger. Steht der nicht ganz oben, gehört
+       die Abwärtsgeste dem Scrollen und nicht dem Sheet. */
+    const scrolledDown = t => {
+      for (let el = t; el && el !== ov; el = el.parentElement) {
+        if (el.scrollHeight - el.clientHeight > 2) {
+          const oy = getComputedStyle(el).overflowY;
+          if (oy === 'auto' || oy === 'scroll') return el.scrollTop > 0;
+        }
+      }
+      return false;
+    };
+    /* Eingabeelemente behalten ihre eigene Geste (Wheel, Slider, Textfeld, ✕). */
+    const ownsGesture = t => !!(t && t.closest && t.closest('input,textarea,select,.x-btn'));
 
-    handle.addEventListener('touchmove', e => {
-      if (!dragging) return;
+    const start = (e, immediate) => {
+      sy = ly  = e.touches[0].clientY;
+      hasMoved = false;
+      dragging = immediate;
+      armed    = true;
+      if (immediate) {
+        sheet.style.transition = 'none';
+        /* WICHTIG: non-passive + preventDefault verhindert, dass der Browser
+           sofort einen Scroll startet und unsere touchmove-Events ignoriert */
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    handle.addEventListener('touchstart', e => start(e, true), { passive: false });
+
+    /* Auch die Kopfzeile zieht — das ist die Stelle, die man intuitiv anfasst. */
+    const head = sheet.querySelector(':scope > .sh-head');
+    if (head) head.addEventListener('touchstart', e => {
+      if (ownsGesture(e.target)) return;
+      start(e, true);
+    }, { passive: false });
+
+    /* Und das Sheet selbst, solange sein Inhalt oben steht. Hier NICHT sofort
+       übernehmen: erst in touchmove entscheiden, sonst bricht das Scrollen. */
+    sheet.addEventListener('touchstart', e => {
+      if (dragging || ownsGesture(e.target) || scrolledDown(e.target)) return;
+      start(e, false);
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', e => {
+      if (!armed) return;
       ly = e.touches[0].clientY;
       const dy = ly - sy;
       if (dy <= 0) return;
+      if (!dragging) {
+        /* Erst ab einer klaren Abwärtsgeste übernehmen, damit Taps und
+           kurze Wischer im Inhalt unberührt bleiben. */
+        if (dy < 8 || scrolledDown(e.target)) return;
+        dragging = true;
+        sheet.style.transition = 'none';
+      }
       hasMoved = true;
       e.preventDefault();
       sheet.style.transform = `translateY(${(dy * 0.62).toFixed(1)}px)`;
@@ -17838,6 +17926,7 @@ function initSheetSwipe() {
     };
 
     const onEnd = () => {
+      armed = false;
       if (!dragging) return;
       dragging = false;
       const dy = ly - sy;
@@ -17853,8 +17942,9 @@ function initSheetSwipe() {
       }
     };
 
-    handle.addEventListener('touchend',    onEnd, { passive: true });
-    handle.addEventListener('touchcancel', onEnd, { passive: true });
+    /* Am Sheet, nicht am Griff: deckt per Bubbling Griff, Kopfzeile und Inhalt ab. */
+    sheet.addEventListener('touchend',    onEnd, { passive: true });
+    sheet.addEventListener('touchcancel', onEnd, { passive: true });
   });
 }
 
