@@ -903,6 +903,14 @@ body{
 .sp-color.on{border-color:var(--text)}
 .sp-color.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
 
+
+
+/* Das 1px-Randlicht darf NICHT auf dem scrollenden Sheet liegen: es ist so hoch
+   wie der sichtbare Bereich, wandert beim Scrollen aber mit dem Inhalt nach oben
+   und zieht seine Unterkante quer durch das Formular — die "zufaellige Linie",
+   die Beta-Tester gemeldet haben. Das Sheet hat ohnehin einen echten Rahmen. */
+.sheet::before{display:none!important}
+
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
   position:fixed;bottom:calc(6px + var(--sab));
@@ -1117,9 +1125,15 @@ body.sheet-modal #ai-bubble{pointer-events:none}
      der Bildschirm dahinter durch — fremde Chips und Rahmenkanten mitten
      im Sheet ("random line running down the middle"). */
   background-color:var(--card);
-  background-image:var(--gl-bg-h);
-  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
-  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  /* KEIN Verlauf: WebKit rendert linear-gradient auf hohen, scrollenden
+     Containern kachelweise — an der Kachelgrenze blieb eine sichtbare Kante
+     quer durch den Inhalt stehen (Harveys "random line"). */
+  background-image:none;
+  /* KEIN backdrop-filter: Der Hintergrund ist deckend, es gaebe nichts zu
+     blurren — WebKit zog aber auf dem hohen, scrollenden Sheet eine sichtbare
+     Kachelgrenze quer durch den Inhalt (Harveys "random line running down the
+     middle"). Ohne den Filter verschwindet die Kante, der Glas-Look kommt
+     weiterhin aus dem Verlauf darueber. */
   border-radius:var(--r-xl) var(--r-xl) 0 0;
   border:1px solid var(--gl-bdr);
   border-bottom:none;
@@ -4277,9 +4291,12 @@ html:not([data-glass="off"]) .btn-acc{
 /* ── 7 · SHEETS / MODALS ──────────────────────────────────────────
    Dichter als Karten (Content dahinter darf nicht durchlesen), aber weiter Glas. */
 html:not([data-glass="off"]) .sheet{
-  background:var(--gl-sheet)!important;
-  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
-  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat)) var(--gl-lift)!important;
+  /* Deckende Basis + KEIN backdrop-filter. --gl-sheet ist nur 78–88 % deckend
+     und verliess sich auf den Blur; WebKit zog auf dem hohen, scrollenden
+     Sheet aber eine Kachelgrenze quer durch den Inhalt — die sichtbare Linie
+     mitten im Formular. Ohne Filter ist die Kante weg, der Verlauf bleibt. */
+  background-color:var(--gl-sheet-solid,var(--card))!important;
+  background-image:none!important;
   border:1px solid var(--gl-bdr);
   box-shadow:var(--gl-rim),var(--gl-shad-lg);
 }
@@ -22129,6 +22146,8 @@ function hwSocial(size){
       <span class="soc-val" style="font-size:12.5px">${fmtKg(p._v)}</span>
     </div>`).join('') + `</div>`;
 }
+
+
 
 // ── DEMO/SIMULATIONS-SEED (nur wenn DEMO_SEED=true) ───────────────
 // Baut 6 Monate Trainingshistorie mit stetig steigendem Volumen +
