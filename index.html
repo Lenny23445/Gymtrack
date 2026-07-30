@@ -7414,7 +7414,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607300100';
+const APP_VERSION = 'gymtrack-v202607300101';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -23270,16 +23270,27 @@ function _coachMicroReact(li, si) {
         if (lastE1RM > 0 && curE1RM > 0) {
           const diff = (curE1RM - lastE1RM) / lastE1RM;
           const pct = Math.abs(Math.round(diff * 100));
-          if (diff >= 0.05) msg = _coachMicroPick(['Stark: +' + pct + ' % über letzter Einheit.', '+' + pct + ' % geschätzte Maximalkraft — sauber drauf gelegt.', 'Klare Verbesserung: +' + pct + ' % zum letzten Mal.']);
-          else if (diff >= 0.02) msg = _coachMicroPick(['Leicht gesteigert (+' + pct + ' %) — genau so entsteht Progression.', '+' + pct + ' % — kleiner Schritt, richtige Richtung.']);
-          else if (diff <= -0.08) msg = _coachMicroPick(['−' + pct + ' % heute — Erholung zählt auch. Ruhig angehen.', 'Heute etwas leichter (−' + pct + ' %) — passt, hör auf deinen Körper.']);
+          // Zahlen im Satz: der Woerterbuch-Weg (I18N_EN) trifft solche Texte nicht,
+          // deshalb beide Sprachen direkt hier — wie bei den uebrigen Coach-Phrasen.
+          if (diff >= 0.05) msg = _coachMicroPick([
+            _cm('Stark: +' + pct + ' % über letzter Einheit.', 'Strong: +' + pct + '% over your last session.'),
+            _cm('+' + pct + ' % geschätzte Maximalkraft — sauber drauf gelegt.', '+' + pct + '% estimated max strength — cleanly added.'),
+            _cm('Klare Verbesserung: +' + pct + ' % zum letzten Mal.', 'Clear improvement: +' + pct + '% vs. last time.')]);
+          else if (diff >= 0.02) msg = _coachMicroPick([
+            _cm('Leicht gesteigert (+' + pct + ' %) — genau so entsteht Progression.', 'Slight increase (+' + pct + '%) — that is how progression is built.'),
+            _cm('+' + pct + ' % — kleiner Schritt, richtige Richtung.', '+' + pct + '% — small step, right direction.')]);
+          else if (diff <= -0.08) msg = _coachMicroPick([
+            _cm('−' + pct + ' % heute — Erholung zählt auch. Ruhig angehen.', '−' + pct + '% today — recovery counts too. Take it easy.'),
+            _cm('Heute etwas leichter (−' + pct + ' %) — passt, hör auf deinen Körper.', 'A bit lighter today (−' + pct + '%) — fine, listen to your body.')]);
         }
       }
     }
     // Wdh-Bereich am oberen Ende → nächste Progressionsstufe direkt ankündigen
     if (!msg && (set.type || 'normal') !== 'warmup') {
       const { max } = repRange(ex);
-      if (max && r >= max) msg = _coachMicroPick(['Oberes Wdh-Ende erreicht — nächstes Mal ist mehr Gewicht drin.', 'Bereichs-Maximum geschafft. Progression steht an.']);
+      if (max && r >= max) msg = _coachMicroPick([
+        _cm('Oberes Wdh-Ende erreicht — nächstes Mal ist mehr Gewicht drin.', 'Top of the rep range — more weight is due next time.'),
+        _cm('Bereichs-Maximum geschafft. Progression steht an.', 'Range maximum hit. Progression is up next.')]);
     }
   } catch(_) {}
   if (!msg) {
@@ -23379,17 +23390,21 @@ function _coachEvalRun(li, si) {
     _coachState.seen.push(dedupeKey);
     try { _saveActiveWk(); } catch(_) {}
     const sugW = roundToStep(w * 1.025);
+    // Kartentext traegt Zahlen und den Muskelgruppen-Namen — das Woerterbuch
+    // (I18N_EN) greift nur bei exakten Phrasen, deshalb hier beide Sprachen.
+    const mgL = muscleLabel(mg);
     _coachCard = { exId: log.exerciseId, c: {
-      title: 'Top-Satz-Chance',
-      text: 'Alle Arbeitssätze am oberen Wiederholungsende, ' + (muscleLabel(mg) || 'deine Muskulatur') + ' ist frisch (' + Math.round(fatPct) + ' % Ermüdung). Jetzt progressiv überlasten: nächster Satz als Top-Satz mit ' + kgToDisp(sugW) + ' ' + unitLabel() + '.',
+      title: _cm('Top-Satz-Chance', 'Top-set opportunity'),
+      text: _cm('Alle Arbeitssätze am oberen Wiederholungsende, ' + (mgL || 'deine Muskulatur') + ' ist frisch (' + Math.round(fatPct) + ' % Ermüdung). Jetzt progressiv überlasten: nächster Satz als Top-Satz mit ' + kgToDisp(sugW) + ' ' + unitLabel() + '.',
+                'All working sets at the top of the rep range, ' + (mgL || 'your muscles') + ' is fresh (' + Math.round(fatPct) + '% fatigue). Time to overload: make the next set a top set with ' + kgToDisp(sugW) + ' ' + unitLabel() + '.'),
       options: [
-        { label: 'Top-Satz ' + kgToDisp(sugW) + ' ' + unitLabel(), action: { kind: 'topSet', value: sugW } },
-        { label: 'Extra-Satz', action: { kind: 'extraSet' } },
-        { label: 'Normal weiter', action: { kind: 'none' } },
+        { label: _cm('Top-Satz ', 'Top set ') + kgToDisp(sugW) + ' ' + unitLabel(), action: { kind: 'topSet', value: sugW } },
+        { label: _cm('Extra-Satz', 'Extra set'), action: { kind: 'extraSet' } },
+        { label: _cm('Normal weiter', 'Continue as planned'), action: { kind: 'none' } },
       ],
     }, applied: false, baseW: w, timer: null };
     renderLogCards();
-    try { _coachBarSet('msg', 'Top-Satz-Chance erkannt.', 6000); } catch(_) {}
+    try { _coachBarSet('msg', _cm('Top-Satz-Chance erkannt.', 'Top-set opportunity detected.'), 6000); } catch(_) {}
     _coachCard.timer = setTimeout(() => {
       if (_coachCard && _coachCard.exId === log.exerciseId && !_coachCard.applied) { _coachClearCard(); renderLogCards(); }
     }, 45000);
