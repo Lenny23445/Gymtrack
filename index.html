@@ -5152,7 +5152,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 /* KI-Sheets über Tabbar (1000) + Bubble (1060) — sonst verdecken die schwebenden
    Leisten die Sheet-Unterkante und blockieren Taps auf die unteren Buttons
    (gleiche Lösung wie #ov-paywall). */
-#ov-ai-chat,#ov-ai-analyze,#ov-plan-wizard,#ov-ai-scan{z-index:1080}
+#ov-ai-chat,#ov-ai-analyze,#ov-plan-wizard,#ov-ai-scan,#ov-coach-hub{z-index:1080}
 /* KI-Chat */
 #aic-log{display:flex;flex-direction:column;gap:10px;padding:4px 2px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .aic-msg{max-width:86%;padding:10px 13px;border-radius:16px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
@@ -5175,6 +5175,47 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:11px;cursor:pointer;white-space:nowrap}
 .aic-plan-btn{margin-top:4px;background:var(--prem-grad);color:#3a2500;border:none;border-radius:11px;padding:10px 14px;
   font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;align-self:flex-start}
+/* ═══ COACH-HUB (Task 9): Chat · Journal · Woche · Einstellungen ═══
+   KEIN eigenes Aussehen: Glas, Akzentfarbe (--acc-rgb) und Abstände kommen aus
+   denselben Bausteinen wie die .aic-*-Regeln darüber. Die Chip-Reihen der
+   Feinjustierung benutzen bewusst die bestehenden .pwz-chip-Regeln, die
+   Chat-Vorschau die bestehenden .aic-msg-Blasen — je weniger neue Optik, desto
+   weniger kann auseinanderlaufen. */
+.ch-tabs{display:flex;gap:6px;padding:2px 0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ch-tabs::-webkit-scrollbar{display:none}
+/* flex:1 0 auto statt flex:1 — "Einstellungen" ist mit nowrap breiter als ein
+   Viertel der Sheet-Breite und wurde bei flex:1 am rechten Rand abgeschnitten.
+   So füllen die vier Reiter die Zeile, ohne unter ihre Textbreite zu schrumpfen;
+   auf sehr schmalen Geräten scrollt die Zeile (overflow-x oben). */
+.ch-tab{flex:1 0 auto;white-space:nowrap;background:rgba(127,127,127,.09);border:1px solid var(--gl-bdr);
+  color:var(--text2);font-family:inherit;font-size:12px;font-weight:800;padding:9px 8px;border-radius:12px;cursor:pointer;
+  transition:background-color .15s,color .15s,border-color .15s}
+.ch-tab.on{background:rgba(var(--acc-rgb),.13);border-color:rgba(var(--acc-rgb),.32);color:var(--acc)}
+.ch-sec{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin:16px 0 8px}
+.ch-sec:first-child{margin-top:2px}
+.ch-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:2px 0 8px}
+.ch-row>span{flex:1;min-width:0;font-size:13.5px;font-weight:700;line-height:1.35}
+.ch-row>span i{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:var(--text2);margin-top:2px;line-height:1.4}
+.ch-jrn{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:7px;border-radius:13px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+.ch-jrn>span{flex:1;min-width:0;font-size:13.5px;font-weight:650;line-height:1.42;word-break:break-word}
+.ch-jrn>span i{display:block;font-style:normal;font-size:11px;font-weight:700;color:var(--text2);margin-top:3px;line-height:1.4}
+.ch-jrn.ghost{background:rgba(127,127,127,.06)}
+.ch-jrn.ghost>span{color:var(--text2);font-weight:600}
+.ch-jrn button{background:none;border:none;color:var(--text2);font-size:14px;line-height:1;padding:3px 2px;margin:-1px -2px 0 0;
+  cursor:pointer;opacity:.55;flex-shrink:0}
+.ch-jrn button:active{opacity:1}
+.ch-preset{display:block;width:100%;box-sizing:border-box;text-align:left;margin-bottom:7px;padding:11px 13px;border-radius:14px;
+  cursor:pointer;background:var(--inp-bg);border:1.5px solid var(--gl-bdr);color:var(--text);font-family:inherit;
+  transition:background-color .15s,border-color .15s,color .15s,opacity .15s}
+.ch-preset b{display:block;font-size:14px;font-weight:800;letter-spacing:-.2px}
+.ch-preset span{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-top:3px;line-height:1.45}
+.ch-preset.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.10)}
+.ch-preset.on b{color:var(--acc)}
+.ch-preset:disabled{opacity:.6;cursor:default}
+#ch-body details{margin-top:16px;border-top:1px solid var(--sep);padding-top:10px}
+#ch-body summary{font-size:13px;font-weight:800;color:var(--acc);cursor:pointer;list-style:none;padding:5px 0}
+#ch-body summary::-webkit-details-marker{display:none}
 /* KI-Analyse */
 .aia-score-wrap{display:flex;align-items:center;gap:16px;padding:12px;
   background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:16px}
@@ -7292,6 +7333,27 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div id="ai-radial"></div>
 <button type="button" id="ai-bubble" aria-label="KI-Coach"></button>
 
+<!-- SHEET: COACH-HUB (Task 9) — das Zuhause des Coaches.
+     Struktur bewusst identisch zum KI-Chat darunter (.ov > .sheet > .sh-handle
+     + .sh-head + .px). Die vier Reiter tragen KEINE Beschriftung im Markup:
+     renderCoachHub() setzt sie per textContent, damit tr() greift und der
+     Coach-Name nie als Markup landen kann. -->
+<div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2 id="ch-title">Coach</h2><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
+    <div class="px" style="padding-bottom:26px">
+      <div class="ch-tabs" role="tablist">
+        <button type="button" class="ch-tab" id="ch-tab-chat"     role="tab" onclick="coachHubTab('chat')"></button>
+        <button type="button" class="ch-tab" id="ch-tab-journal"  role="tab" onclick="coachHubTab('journal')"></button>
+        <button type="button" class="ch-tab" id="ch-tab-report"   role="tab" onclick="coachHubTab('report')"></button>
+        <button type="button" class="ch-tab" id="ch-tab-settings" role="tab" onclick="coachHubTab('settings')"></button>
+      </div>
+      <div id="ch-body" role="tabpanel"></div>
+    </div>
+  </div>
+</div>
+
 <!-- SHEET: KI-CHAT -->
 <div class="ov" id="ov-ai-chat" onclick="if(event.target===this)closeOv('ov-ai-chat')">
   <div class="sheet">
@@ -8123,6 +8185,28 @@ const I18N_EN = {
   '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
   '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
   '✨ Vorher schnitt der Glow durch die Übungskarte statt außen umzulaufen':'✨ Previously the glow cut through the exercise card instead of tracing the outer edge',
+  /* Coach-Hub (Task 9). Kurze, mehrdeutige Schalterwörter (Aus/Still/Eng/Normal,
+     Name, Ton) stehen bewusst NICHT hier, sondern laufen am Aufrufort über
+     _cm(de,en): als globaler Schlüssel würden sie jeden fremden Textknoten
+     mitübersetzen, der zufällig genauso heißt. */
+  'Letzter Wortwechsel':'Last exchange','Einschränkungen':'Limits','Vorlieben':'Preferences',
+  'Was funktioniert':'What works','Noch nichts notiert.':'Nothing noted yet.',
+  'Eintrag entfernen':'Remove entry','Bestätigung fällig':'Confirmation due',
+  'Wochenbericht':'Weekly report',
+  'Dein erster Wochenbericht kommt am Sonntag.':'Your first weekly report arrives on Sunday.',
+  'Wie soll dein Coach klingen?':'How should your coach sound?',
+  'Wie viel Coach willst du?':'How much coach do you want?',
+  'Ruhig':'Calm','Sachlich':'Factual','Hart':'Tough','Locker':'Casual',
+  'Zurückhaltend':'Reserved','Ausgewogen':'Balanced','Eng dabei':'Close by','Angepasst':'Custom',
+  'Kein Live-Coach, keine Rückmeldung nach dem Satz, stille Nachrichten.':'No live coach, no feedback after sets, quiet notifications.',
+  'Live-Coach bei Schlüsselmomenten, Rückmeldung nach dem Satz, normale Nachrichten.':'Live coach at key moments, feedback after sets, normal notifications.',
+  'Live-Coach bei jedem Satz, Rückmeldung nach dem Satz, enge Nachrichten.':'Live coach on every set, feedback after sets, close notifications.',
+  'Deine eigene Mischung aus der Feinjustierung.':'Your own mix from the fine tuning below.',
+  'Feinjustierung':'Fine tuning','Schlüsselmomente':'Key moments','Jeder Satz':'Every set',
+  'Nachrichten':'Notifications','Rückmeldung nach dem Satz':'Feedback after the set',
+  'Kurzer Kommentar, sobald ein Satz steht.':'A short comment as soon as a set is done.',
+  'Wie oft der Coach dich außerhalb der App anspricht.':'How often the coach reaches you outside the app.',
+  'Wie präsent der Coach während einer Einheit ist.':'How present the coach is during a session.',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -10766,6 +10850,16 @@ function renderCoachTodayCard() {
     const card = host.firstElementChild;
     if (card) {
       requestAnimationFrame(() => card.classList.add('in'));
+      // Task 9: die Karte ist der EINZIGE Zugang zum Coach-Hub (Gestaltungsregel 1).
+      // Der closest()-Wächter ist Pflicht: die Karte trägt einen "Training
+      // starten"-Button, und ohne ihn würde der Hub den Trainingsstart schlucken,
+      // den der Nutzer bisher an dieser Stelle hatte.
+      card.style.cursor = 'pointer';
+      card.onclick = (ev) => {
+        if (ev.target.closest('button, a')) return;
+        try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
+        try { openCoachHub('chat'); } catch(e2) { console.warn('[Coach] Hub öffnen:', e2); }
+      };
     }
   } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
 }
@@ -23731,6 +23825,225 @@ function setCoachPreset(name){
   persist();
   _coachOptRender();
 }
+// ═══ COACH-HUB (Task 9): Chat · Journal · Woche · Einstellungen ══════════
+// Das Zuhause des Coaches hinter der bestehenden .aic-Karte im Heute-Tab. Die
+// Karte ist der EINZIGE Zugang (Gestaltungsregel 1) — keine zweite Fläche auf
+// der Startseite, kein fünfter Tab.
+const _CH_TABS = ['chat','journal','report','settings'];
+let _chTab = 'chat';
+// Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
+// Unterschied, statt vier Adjektive zu lesen.
+function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: 60, reps: 8, sets: 3 }; }
+function _chToneLine(tone){
+  try { return CoachPersona.say('greet', _chToneVars(), CoachPersona.personaGet({ tone: tone }), _lang()); }
+  catch(_) { return ''; }
+}
+function openCoachHub(tab){
+  // Weiche auf die Einrichtung (Task 10). Bedingung ist '=== undefined', NICHT
+  // '!preset': 'custom' ist ein gesetztes Profil und darf die Einrichtung nicht
+  // erneut auslösen. Fehlt openCoachSetup (Task 10 noch nicht gebaut), öffnet
+  // der Hub normal — die Weiche darf den Zugang nie verschlucken.
+  try {
+    const frisch = !S.aiCoach || S.aiCoach.preset === undefined;
+    if (frisch && isPremium() && typeof openCoachSetup === 'function') { openCoachSetup(); return; }
+  } catch(e) { console.warn('[Coach] Hub-Weiche:', e); }
+  _chTab = _CH_TABS.indexOf(tab) >= 0 ? tab : 'chat';
+  openOv('ov-coach-hub');
+  renderCoachHub();
+}
+function coachHubTab(name){
+  if (_CH_TABS.indexOf(name) < 0) return;
+  _chTab = name;
+  try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
+  renderCoachHub();
+}
+function renderCoachHub(){
+  const ov = document.getElementById('ov-coach-hub');
+  // Früh zurück, wenn der Hub zu ist: der Aufruf kommt auch aus _coachOptRender()
+  // heraus, also aus Kontexten ohne Hub (Live-Leiste, Heute-Karte, Chat-Kopf).
+  if (!ov || !ov.classList.contains('on')) return;
+  const body = document.getElementById('ch-body'); if (!body) return;
+  try {
+    // Kopf und Reiter per textContent — dieselbe Begründung wie in
+    // _aicApplyName(): das ist die eine Stelle, an der der entschärfte Name
+    // doch noch als Markup landen könnte. tr() greift dabei trotzdem.
+    const h = document.getElementById('ch-title'); if (h) h.textContent = _coachName();
+    const lbl = { chat: tr('Chat'), journal: tr('Journal'), report: tr('Woche'), settings: tr('Einstellungen') };
+    _CH_TABS.forEach(k => {
+      const b = document.getElementById('ch-tab-' + k); if (!b) return;
+      b.textContent = lbl[k];
+      b.classList.toggle('on', k === _chTab);
+      b.setAttribute('aria-selected', k === _chTab ? 'true' : 'false');
+    });
+    body.innerHTML = _chTab === 'journal'  ? _chJournalHTML()
+                   : _chTab === 'report'   ? _chReportHTML()
+                   : _chTab === 'settings' ? _chSettingsHTML()
+                   :                         _chChatHTML();
+  } catch(e) { console.warn('[Coach] Hub-Render:', e); }
+}
+// ── Chat ─────────────────────────────────────────────────────────────────
+// Der bestehende Chat zieht bewusst NICHT physisch um: aicSend(), das Diktat
+// und der Verlauf hängen an ov-ai-chat, ein Umzug hätte alles davon angefasst,
+// ohne dass der Nutzer etwas davon hätte. Der Hub zeigt den letzten Wortwechsel
+// gekürzt und verlinkt das bestehende Overlay.
+function _chChatHTML(){
+  const nm = _coachName();
+  const hist = Array.isArray(_aicHist) ? _aicHist.slice(-2) : [];
+  const kurz = t => { const s = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+                      return s.length > 180 ? s.slice(0, 180) + '…' : s; };
+  const log = hist.length
+    ? `<div style="display:flex;flex-direction:column;gap:8px">${hist.map(m =>
+        `<div class="aic-msg ${m.role === 'user' ? 'aic-user' : 'aic-bot'}">${esc(kurz(m.content))}</div>`).join('')}</div>`
+    : `<div class="ch-jrn ghost"><span>${esc(_cm(
+        'Noch kein Gespräch. Frag ' + nm + ' nach Übungen, Technik oder deinem Plan.',
+        'No conversation yet. Ask ' + nm + ' about exercises, technique or your plan.'))}</span></div>`;
+  return `<div class="ch-sec">${esc(tr('Letzter Wortwechsel'))}</div>${log}
+    <div class="aic-btns"><button type="button" class="aic-go" onclick="coachHubOpenChat()">${
+      esc(_cm('Mit ' + nm + ' schreiben', 'Message ' + nm))}</button></div>`;
+}
+function coachHubOpenChat(){
+  try { closeOv('ov-coach-hub'); } catch(_) {}
+  try { openAiChat(); } catch(e) { console.warn('[Coach] Chat öffnen:', e); }
+}
+// ── Journal ──────────────────────────────────────────────────────────────
+// "Was ich über dich weiß" — das stärkste Vertrauenssignal des Vorhabens.
+// JEDER Eintrag ist Nutzer-/Modelltext ⇒ esc() zwingend, auch das Datum.
+const _CH_JRN_GROUPS = [
+  { k:'goal',   de:'Dein Ziel',       en:'Your goal' },
+  { k:'limits', de:'Einschränkungen', en:'Limits' },
+  { k:'prefs',  de:'Vorlieben',       en:'Preferences' },
+  { k:'works',  de:'Was funktioniert',en:'What works' }
+];
+// Ein 'until'-Feld gibt es im echten Dossier NICHT: js/coach-memory.js hält pro
+// Eintrag ausschließlich {t, ts} (toEntry/sanitizeList werfen alles andere weg).
+// Das Ablaufdatum wird deshalb aus ts + STALE_MS abgeleitet — und nur für
+// 'limits', weil auch nur die verfallen (dossierLoad schneidet dort ab).
+function _chEntryMeta(group, e){
+  const ts = (e && typeof e.ts === 'number' && isFinite(e.ts)) ? e.ts : 0;
+  let stale = 42 * 86400000;
+  try { if (window.CoachMemory && CoachMemory.STALE_MS) stale = CoachMemory.STALE_MS; } catch(_) {}
+  if (group === 'limits') {
+    if (!ts) return tr('Bestätigung fällig');
+    const d = new Date(ts + stale).toLocaleDateString(GT_LOCALE);
+    return _cm('gilt bis ' + d, 'valid until ' + d);
+  }
+  if (!ts) return '';
+  const d = new Date(ts).toLocaleDateString(GT_LOCALE);
+  return _cm('notiert am ' + d, 'noted on ' + d);
+}
+function _chJrnEmpty(){
+  return `<div class="ch-jrn ghost"><span>${esc(tr('Noch nichts notiert.'))}</span></div>`;
+}
+// group stammt aus _CH_JRN_GROUPS, index ist eine Zahl — beides eigener Code,
+// nie Fremdtext im onclick. Text und Datum gehen durch esc().
+function _chJrnRow(group, index, text, meta){
+  return `<div class="ch-jrn"><span>${esc(text)}${meta ? `<i>${esc(meta)}</i>` : ''}</span>` +
+    `<button type="button" onclick="_dossierRemove('${group}',${Number(index)})" ` +
+    `aria-label="${esc(tr('Eintrag entfernen'))}">✕</button></div>`;
+}
+function _chJournalHTML(){
+  let d = null;
+  try { d = _dossier(); } catch(e) { console.warn('[Coach] Dossier lesen:', e); }
+  d = d || {};
+  const nm = _coachName();
+  const out = [`<div class="ch-jrn ghost"><span>${esc(_cm(
+    nm + ' merkt sich nur, was du im Chat erzählst. Jede Zeile kannst du einzeln löschen.',
+    nm + ' only remembers what you say in the chat. You can delete each line on its own.'))}</span></div>`];
+  _CH_JRN_GROUPS.forEach(g => {
+    out.push(`<div class="ch-sec">${esc(tr(g.de))}</div>`);
+    // 'goal' ist EIN Wert (Whitelist im Modul), keine Liste — Index 0, damit
+    // _dossierRemove eine einheitliche Signatur behält.
+    if (g.k === 'goal') { out.push(d.goal ? _chJrnRow('goal', 0, String(d.goal), '') : _chJrnEmpty()); return; }
+    const list = Array.isArray(d[g.k]) ? d[g.k] : [];
+    if (!list.length) { out.push(_chJrnEmpty()); return; }
+    list.forEach((e, i) => out.push(_chJrnRow(g.k, i, (e && e.t) || '', _chEntryMeta(g.k, e))));
+  });
+  return out.join('');
+}
+// ── Woche ────────────────────────────────────────────────────────────────
+// Ehrlicher Platzhalter bis Block 5. Eine leere Fläche wäre schlechter als ein
+// Satz, der sagt, wann hier etwas steht.
+function _chReportHTML(){
+  const nm = _coachName();
+  return `<div class="ch-sec">${esc(tr('Wochenbericht'))}</div>
+    <div class="ch-jrn ghost"><span>${esc(tr('Dein erster Wochenbericht kommt am Sonntag.'))}
+      <i>${esc(_cm('Volumen, Streak und was ' + nm + ' aufgefallen ist — in einem Aufschlag.',
+                   'Volume, streak and what ' + nm + ' noticed — in one go.'))}</i></span></div>`;
+}
+// ── Einstellungen ────────────────────────────────────────────────────────
+const _CH_TONES = [
+  { k:'ruhig',    de:'Ruhig' },
+  { k:'sachlich', de:'Sachlich' },
+  { k:'hart',     de:'Hart' },
+  { k:'locker',   de:'Locker' }
+];
+const _CH_PRESETS = [
+  { k:'quiet',    de:'Zurückhaltend', s:'Kein Live-Coach, keine Rückmeldung nach dem Satz, stille Nachrichten.' },
+  { k:'balanced', de:'Ausgewogen',    s:'Live-Coach bei Schlüsselmomenten, Rückmeldung nach dem Satz, normale Nachrichten.' },
+  { k:'close',    de:'Eng dabei',     s:'Live-Coach bei jedem Satz, Rückmeldung nach dem Satz, enge Nachrichten.' }
+];
+// Chip-Reihe für einen Textschalter. Schlüssel und Werte sind eigene Literale,
+// kein Fremdtext im onclick.
+function _chChips(key, cur, items){
+  return `<div class="ch-row">${items.map(it =>
+    `<button type="button" class="pwz-chip${it.k === cur ? ' on' : ''}" ` +
+    `onclick="setAiCoachOpt('${key}','${it.k}')">${esc(it.lbl)}</button>`).join('')}</div>`;
+}
+function _chSwitch(key, on, title, sub){
+  return `<div class="ch-row"><span>${esc(title)}<i>${esc(sub)}</i></span>
+    <label class="tgl" onclick="event.stopPropagation()">
+      <input type="checkbox" ${on ? 'checked' : ''} onchange="setAiCoachOpt('${key}', this.checked)">
+      <span class="tgl-track"></span>
+    </label></div>`;
+}
+function _chSettingsHTML(){
+  const p = _persona();
+  const parts = [];
+  // Name: onchange (nicht oninput) — setAiCoachOpt zieht _coachOptRender() und
+  // damit renderCoachHub() nach sich, das Feld wird also neu gezeichnet. Bei
+  // jedem Tastendruck würde der Nutzer dabei den Fokus verlieren.
+  parts.push(`<div class="ch-sec">${esc(_cm('Name','Name'))}</div>
+    <input type="text" class="pf-inp" id="ch-name" maxlength="20" autocomplete="off" spellcheck="false"
+      value="${esc(p.name)}" placeholder="Coach" onchange="setAiCoachOpt('name', this.value)">`);
+  // Ton: derselbe Satz in allen vier Tönen (Beispielsatz aus dem Brief).
+  parts.push(`<div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>`);
+  parts.push(_CH_TONES.map(t =>
+    `<button type="button" class="ch-preset${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
+      <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
+  // Zweites Beispiel im GEWÄHLTEN Ton, über den echten _say()-Weg: wechselt beim
+  // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
+  parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex"><span>${esc(_cm(
+      'Noch ein Beispiel von ' + p.name + ':', 'Another example from ' + p.name + ':'))}
+    <i>${esc(_say('mid', { vol: 4200, pct: 104 }))}</i></span></div>`);
+  // Umfangs-Profil. Ist preset === 'custom', kommt eine vierte, deaktivierte
+  // Karte dazu: der Zustand hat einen Namen, ist aber nicht anwählbar.
+  parts.push(`<div class="ch-sec">${esc(tr('Wie viel Coach willst du?'))}</div>`);
+  parts.push(_CH_PRESETS.map(x =>
+    `<button type="button" class="ch-preset${x.k === p.preset ? ' on' : ''}" onclick="setCoachPreset('${x.k}')">
+      <b>${esc(tr(x.de))}</b><span>${esc(tr(x.s))}</span></button>`).join(''));
+  if (p.preset === 'custom') parts.push(
+    `<button type="button" class="ch-preset on" disabled>
+      <b>${esc(tr('Angepasst'))}</b><span>${esc(tr('Deine eigene Mischung aus der Feinjustierung.'))}</span></button>`);
+  // Feinjustierung: zugeklappt, weil die vier Einzelschalter die Ausnahme sind.
+  parts.push(`<details><summary>${esc(tr('Feinjustierung'))}</summary>
+    <div class="ch-sec">${esc(tr('Live-Coach im Training'))}</div>
+    <div class="ch-row"><span><i>${esc(tr('Wie präsent der Coach während einer Einheit ist.'))}</i></span></div>
+    ${_chChips('inTraining', p.inTraining, [
+        { k:'off',  lbl:_cm('Aus','Off') },
+        { k:'key',  lbl:tr('Schlüsselmomente') },
+        { k:'full', lbl:tr('Jeder Satz') }])}
+    ${_chSwitch('setFeedback', p.setFeedback, tr('Rückmeldung nach dem Satz'), tr('Kurzer Kommentar, sobald ein Satz steht.'))}
+    <div class="ch-sec">${esc(tr('Nachrichten'))}</div>
+    <div class="ch-row"><span><i>${esc(tr('Wie oft der Coach dich außerhalb der App anspricht.'))}</i></span></div>
+    ${_chChips('pushLevel', p.pushLevel, [
+        { k:'still',  lbl:_cm('Still','Quiet') },
+        { k:'normal', lbl:_cm('Normal','Normal') },
+        { k:'eng',    lbl:_cm('Eng','Close') }])}
+    ${_chSwitch('insights', p.insights, tr('Tagesempfehlung auf der Startseite'),
+                tr('Trainingsvorschlag laut Erholung deiner Muskelgruppen'))}
+  </details>`);
+  return parts.join('');
+}
 function renderPremiumSettings(){
   const el = document.getElementById('prem-settings-body'); if (!el) return;
   const prem = isPremium();
@@ -24119,6 +24432,33 @@ function _dossierSet(d){
   // Dokument von Konto B landet (Review Kritisch 1).
   _dossierPushFn = () => _dossierPush(uid, d);
   _dossierPushT = setTimeout(() => { _dossierPushT = null; _dossierPushFn = null; _dossierPush(uid, d); }, 4000);
+}
+// Task 9: EIN Journal-Eintrag raus. Baut ausschliesslich auf _dossier() und
+// _dossierSet() auf — kein zweiter Firestore-Schreibweg: _dossierSet() setzt den
+// Dirty-Marker und plant den bestehenden gedrosselten Push (4 s) selbst.
+// 'goal' ist EIN Wert, keine Liste (Whitelist im Modul); der Index bleibt in der
+// Signatur, damit der Aufrufer im Journal nicht zwei Wege kennen muss.
+function _dossierRemove(group, index){
+  try {
+    const d = _dossier();
+    if (group === 'goal') {
+      if (!d.goal) return;
+      d.goal = null;
+    } else {
+      if (['limits','prefs','works'].indexOf(group) < 0) return;
+      const list = Array.isArray(d[group]) ? d[group] : [];
+      const i = Number(index);
+      if (!(i >= 0 && i < list.length)) return;
+      list.splice(i, 1);
+      d[group] = list;
+    }
+    // Der Dirty-Marker haengt an genau diesem updatedAt — ohne neuen Wert wuerde
+    // ein spaeter bestaetigter Push die falsche Aenderung als erledigt abhaken.
+    d.updatedAt = Date.now();
+    _dossierSet(d);
+    try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
+    try { renderCoachHub(); } catch(_) {}
+  } catch(e) { console.warn('[Coach] Dossier-Eintrag entfernen:', e); }
 }
 // Sofort-Flush eines noch ausstehenden Pushs — gleiches Muster wie
 // _updateWidgetData(immediate)/_pushWidgetData (iOS friert JS beim
