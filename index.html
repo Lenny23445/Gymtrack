@@ -5269,13 +5269,14 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 /* Das zweite Beispiel (im gewählten Ton, mit Namen) war als fünfter Kasten
    unter vier Sprechblasen sichtbar zu viel. Es bleibt inhaltlich, verliert aber
    den Kastenrahmen und liegt als leise Bildunterschrift darunter. */
-/* #cs-tone-ex ist derselbe Beispielsatz in der Einrichtung (Task 10) — dieselbe
+/* #cst-tone-ex ist derselbe Beispielsatz in der Einrichtung (Task 10) — dieselbe
    Sache, deshalb dieselbe Regel. Eigene Id nur, weil beide Overlays gleichzeitig
-   im DOM stehen und ihren letzten Inhalt behalten. */
-#ch-tone-ex,#cs-tone-ex{background:none;border:none;padding:2px 3px 0;margin:-2px 0 4px}
-#ch-tone-ex::after,#cs-tone-ex::after{display:none}
-#ch-tone-ex>span,#cs-tone-ex>span{font-size:11.5px;font-weight:600;color:var(--text2)}
-#ch-tone-ex>span i,#cs-tone-ex>span i{color:var(--text);font-weight:650;font-size:12px;margin-top:3px}
+   im DOM stehen und ihren letzten Inhalt behalten. Prefix cst- statt cs-: die
+   Ids cs-title/cs-name/cs-body gehoeren dem Eigener-Split-Editor. */
+#ch-tone-ex,#cst-tone-ex{background:none;border:none;padding:2px 3px 0;margin:-2px 0 4px}
+#ch-tone-ex::after,#cst-tone-ex::after{display:none}
+#ch-tone-ex>span,#cst-tone-ex>span{font-size:11.5px;font-weight:600;color:var(--text2)}
+#ch-tone-ex>span i,#cst-tone-ex>span i{color:var(--text);font-weight:650;font-size:12px;margin-top:3px}
 #ch-body details{margin-top:20px;border-top:1px solid var(--sep);padding-top:12px}
 #ch-body summary{font-size:13.5px;font-weight:800;color:var(--acc);cursor:pointer;list-style:none;padding:7px 0}
 #ch-body summary::-webkit-details-marker{display:none}
@@ -7430,11 +7431,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-coach-setup">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="cs-title">Coach</h2>
+    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="cst-title">Coach</h2>
       <button class="x-btn" onclick="coachSetupDone(true)" aria-label="Überspringen">✕</button></div>
     <div class="px" style="padding-bottom:26px">
-      <div class="pwz-dots" id="cs-dots"></div>
-      <div id="cs-body"></div>
+      <div class="pwz-dots" id="cst-dots"></div>
+      <div id="cst-body"></div>
     </div>
   </div>
 </div>
@@ -24300,18 +24301,18 @@ function _csStep1HTML(){
   let roh = ''; try { roh = String((S.aiCoach && S.aiCoach.name) || ''); } catch(_) {}
   return `<div class="pwz-q">${esc(tr('Wie soll dein Coach heißen?'))}</div>
     <div class="pwz-s">${esc(tr('Name und Ton kannst du jederzeit ändern.'))}</div>
-    <input type="text" class="pf-inp" id="cs-name" maxlength="20" autocomplete="off" spellcheck="false"
+    <input type="text" class="pf-inp" id="cst-name" maxlength="20" autocomplete="off" spellcheck="false"
       value="${esc(roh)}" placeholder="Coach" onchange="coachSetupSetName(this)">
     <div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>
     ${_CH_TONES.map(t =>
       `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
         <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join('')}
-    <div class="ch-jrn ghost" id="cs-tone-ex">${_chToneExInner()}</div>`;
+    <div class="ch-jrn ghost" id="cst-tone-ex">${_chToneExInner()}</div>`;
 }
 // ── Schritt 2: Stimme ────────────────────────────────────────────────────
 // Die Stimmenliste kommt erst in Block 2. Solange sie fehlt, zeigt der Schritt
 // NUR den Schalter plus den Erklärsatz — kein leerer Listenrahmen, kein
-// Platzhalterkasten. #cs-voices trägt weder Klasse noch Inhalt und ist damit
+// Platzhalterkasten. #cst-voices trägt weder Klasse noch Inhalt und ist damit
 // 0 px hoch; Block 2 liefert nur noch _csRenderVoices(el) nach.
 function _csStep2HTML(){
   const p = _persona();
@@ -24319,7 +24320,7 @@ function _csStep2HTML(){
     <div class="pwz-s">${esc(tr('Er spricht nur, wenn du ihn über den Sprech-Button fragst — nie von selbst.'))}</div>
     ${_chSwitch('voiceOn', p.voiceOn, tr('Sprachausgabe'),
                 _cm('Antworten werden vorgelesen, wenn du fragst.', 'Answers are read aloud when you ask.'))}
-    <div id="cs-voices"></div>`;
+    <div id="cst-voices"></div>`;
 }
 // ── Schritt 3: Umfang ────────────────────────────────────────────────────
 function _csStep3HTML(){
@@ -24342,12 +24343,12 @@ function renderCoachSetup(){
   // _coachOptRender() heraus, also aus Kontexten ohne Einrichtung (Heute-Karte,
   // Live-Leiste, Chat-Kopf) — genau wie bei renderCoachHub().
   if (!ov || !ov.classList.contains('on')) return;
-  const body = document.getElementById('cs-body'); if (!body) return;
+  const body = document.getElementById('cst-body'); if (!body) return;
   try {
     // Kopf per textContent: die eine Stelle, an der der im Modul entschärfte
     // Name doch noch als Markup landen könnte. tr() greift trotzdem.
-    const h = document.getElementById('cs-title'); if (h) h.textContent = _coachName();
-    const dots = document.getElementById('cs-dots');
+    const h = document.getElementById('cst-title'); if (h) h.textContent = _coachName();
+    const dots = document.getElementById('cst-dots');
     if (dots) { let d = '';
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
@@ -24356,7 +24357,7 @@ function renderCoachSetup(){
                     : _csStep === 3 ? _csStep3HTML()
                     :                 _csStep1HTML()) + _csNavHTML();
     if (_csStep === 2) {
-      const el = document.getElementById('cs-voices');
+      const el = document.getElementById('cst-voices');
       if (el) { try { if (typeof _csRenderVoices === 'function') _csRenderVoices(el); }
                 catch(e) { console.warn('[Coach] Stimmenliste:', e); } }
     }
@@ -24372,11 +24373,11 @@ function coachSetupSetName(el){
   finally { _csHold = false; }
   try {
     const nm = _coachName();
-    const h = document.getElementById('cs-title'); if (h) h.textContent = nm;
+    const h = document.getElementById('cst-title'); if (h) h.textContent = nm;
     // Zeigt, was wirklich gespeichert wurde (safeName kürzt und entschärft) —
     // ein leer geräumtes Feld bleibt leer, damit der Platzhalter sichtbar wird.
     if (el) el.value = (S.aiCoach && S.aiCoach.name) ? nm : '';
-    const ex = document.getElementById('cs-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
+    const ex = document.getElementById('cst-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
   } catch(e) { console.warn('[Coach] Einrichtung Name anwenden:', e); }
 }
 function renderPremiumSettings(){
