@@ -1148,6 +1148,10 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 [data-theme="dark"] .sheet,
 [data-theme="dark"] .cal-card,
 [data-theme="dark"] .mus-card,
+/* Die klebende Fussleiste der Coach-Einrichtung liegt UEBER dem Inhalt und muss
+   denselben Grund tragen wie das Sheet selbst — mit dem hellen --gl-bg-h aus der
+   Grundregel schien im Dunkelmodus der Text darunter durch. */
+[data-theme="dark"] #cst-nav,
 [data-theme="dark"] .vol-card{
   /* Wirklich schwarz — blendet mit dem schwarzen Hintergrund, hebt sich nicht
      als helle Fläche ab. Feiner Rand (--gl-bdr) grenzt das Sheet ab, Text bleibt
@@ -5258,9 +5262,13 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ch-preset span{display:block;font-size:12.5px;font-weight:600;color:var(--text2);margin-top:4px;line-height:1.45}
 /* Nur die Ton-Karten: ihr Text IST gesprochene Rede, also als Sprechblase in
    den Formen der bestehenden .aic-bot-Blase — man liest "so redet sie",
-   nicht "hier steht eine Beschreibung". */
+   nicht "hier steht eine Beschreibung". Bausteine deshalb von dort: --inp-bg
+   plus 1px --gl-bdr und die abgeknickte untere linke Ecke. Vorher stand hier ein
+   eigenes rgba(127,127,127,.10) — zwei Regelsätze für dieselbe Coach-Äußerung,
+   die bei jeder Token-Änderung auseinanderlaufen. Der Rahmen trägt die Trennung
+   von der Karte, die dieselbe Füllung hat. */
 .ch-preset.ch-voice span{margin-top:8px;padding:8px 11px;border-radius:12px;border-bottom-left-radius:5px;
-  background:rgba(127,127,127,.10);color:var(--text);font-weight:650}
+  background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text);font-weight:650}
 .ch-preset.on{border-color:rgba(var(--acc-rgb),.55);background:rgba(var(--acc-rgb),.09)}
 .ch-preset.on::before{opacity:1}
 .ch-preset.on b{color:var(--acc)}
@@ -5277,6 +5285,25 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ch-tone-ex::after,#cst-tone-ex::after{display:none}
 #ch-tone-ex>span,#cst-tone-ex>span{font-size:11.5px;font-weight:600;color:var(--text2)}
 #ch-tone-ex>span i,#cst-tone-ex>span i{color:var(--text);font-weight:650;font-size:12px;margin-top:3px}
+/* Die primäre Aktion muss ohne Scrollen erreichbar sein. Gemessen bei 390×844:
+   Schritt 1 ist 936 px hoch, sichtbar sind 775 px — "Weiter" endete bei 879 px,
+   also 35 px unter dem Rand. Sichtbar blieben Name, die vier Töne und das ✕; wer
+   vorwärts will, findet dann nur das ✕, und das setzt 'balanced' — genau das
+   Ergebnis, das diese Task verhindern soll. Klebende Fußleiste statt fester
+   Sheet-Höhe: das Sheet bleibt inhaltsgroß (Schritt 2 ist nur 433 px hoch und
+   stünde sonst in halb leerer Glasfläche), die Leiste steht in jedem Schritt und
+   trägt auch die Stimmenliste aus Block 2. Dasselbe Mittel wie beim klebenden
+   .sh-handle oben. Die 100 px Bodenpolster des Sheets entfallen hier: sie halten
+   Platz für die schwebende Tableiste, die unter diesem Sheet (z 1080 über z 1000)
+   ohnehin verdeckt ist — die Fußleiste bringt ihren Sicherheitsabstand selbst. */
+#ov-coach-setup .sheet{padding-bottom:0}
+#cst-nav{position:sticky;bottom:0;z-index:6;margin:0 -20px;
+  padding:10px 20px calc(14px + var(--sab));
+  background:var(--gl-bg-h);
+  backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur-lg)) saturate(var(--gl-sat));
+  border-top:1px solid var(--gl-bdr)}
+#cst-nav .pwz-nav{margin-top:0}
 #ch-body details{margin-top:20px;border-top:1px solid var(--sep);padding-top:12px}
 #ch-body summary{font-size:13.5px;font-weight:800;color:var(--acc);cursor:pointer;list-style:none;padding:7px 0}
 #ch-body summary::-webkit-details-marker{display:none}
@@ -7433,9 +7460,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     <div class="sh-handle"></div>
     <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="cst-title">Coach</h2>
       <button class="x-btn" onclick="coachSetupDone(true)" aria-label="Überspringen">✕</button></div>
-    <div class="px" style="padding-bottom:26px">
+    <div class="px">
       <div class="pwz-dots" id="cst-dots"></div>
       <div id="cst-body"></div>
+      <!-- Die Navigationsleiste steht AUSSERHALB von #cst-body und klebt am
+           unteren Rand: die primaere Aktion eines Schritts darf nie unter dem
+           Bildschirmrand liegen (s. #cst-nav im Stil). -->
+      <div id="cst-nav"></div>
     </div>
   </div>
 </div>
@@ -23985,6 +24016,11 @@ function setCoachPreset(name){
 // der Startseite, kein fünfter Tab.
 const _CH_TABS = ['chat','journal','report','settings'];
 let _chTab = 'chat';
+// Wird von openCoachHub()/coachHubTab() gesetzt und von renderCoachHub()
+// verbraucht: nur diese zwei Wege setzen die Scrollposition zurück und lassen
+// die Überblendung laufen. Jeder andere Rerender (Schalter über
+// _coachOptRender()) lässt beides, wo es ist.
+let _chResetScroll = true;
 // Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
 // Unterschied, statt vier Adjektive zu lesen.
 function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: 60, reps: 8, sets: 3 }; }
@@ -24005,12 +24041,14 @@ function openCoachHub(tab){
     if (frisch && isPremium() && typeof openCoachSetup === 'function') { openCoachSetup(); return; }
   } catch(e) { console.warn('[Coach] Hub-Weiche:', e); }
   _chTab = _CH_TABS.indexOf(tab) >= 0 ? tab : 'chat';
+  _chResetScroll = true;
   openOv('ov-coach-hub');
   renderCoachHub();
 }
 function coachHubTab(name){
   if (_CH_TABS.indexOf(name) < 0) return;
   _chTab = name;
+  _chResetScroll = true;
   try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
   renderCoachHub();
 }
@@ -24042,20 +24080,28 @@ function renderCoachHub(){
     // aus dem DOM gelesen statt aus einem ontoggle-Merker: das toggle-Ereignis
     // feuert erst als eigene Aufgabe, ein schneller Tipp käme ihm zuvor.
     const detOffen = !!(body.querySelector('details') || {}).open;
+    // #ch-body ist der Scroller, und ein innerHTML-Austausch wirft seine Position
+    // weg. Bei einem SCHALTER muss sie stehen bleiben: _coachOptRender() rendert
+    // bei jeder Option neu, und ein Sprung an den Anfang nimmt den gerade
+    // getippten Chip aus dem Bild. Nur der REITERWECHSEL setzt sie zurück —
+    // sonst stünde man nach "Einstellungen" (zwei Bildschirme) auf "Woche"
+    // (drei Zeilen) unter dem Inhalt. Gleiche Absicht wie der details-Griff.
+    const zurueck = _chResetScroll; _chResetScroll = false;
+    const scrollVor = body.scrollTop;
     body.innerHTML = _chTab === 'journal'  ? _chJournalHTML()
                    : _chTab === 'report'   ? _chReportHTML()
                    : _chTab === 'settings' ? _chSettingsHTML()
                    :                         _chChatHTML();
     if (detOffen) { const d = body.querySelector('details'); if (d) d.open = true; }
-    // #ch-body ist seit der festen Sheet-Höhe der Scroller. Ohne Rücksetzen
-    // stünde man nach dem Wechsel von "Einstellungen" (zwei Bildschirme) auf
-    // "Woche" (drei Zeilen) unter dem Inhalt und sähe eine leere Fläche.
-    body.scrollTop = 0;
-    // Überblenden. Die Klasse muss neu gesetzt werden, damit die Animation
-    // erneut anläuft — ein reines innerHTML startet sie nicht.
-    body.classList.remove('ch-fade');
-    void body.offsetWidth;
-    body.classList.add('ch-fade');
+    body.scrollTop = zurueck ? 0 : scrollVor;
+    // Überblenden gehört zum Reiterwechsel, nicht zu jedem Rerender: bei jedem
+    // Schalter erneut anzulaufen ist Flackern, kein Übergang. Die Klasse muss
+    // neu gesetzt werden, damit die Animation läuft — innerHTML startet sie nicht.
+    if (zurueck) {
+      body.classList.remove('ch-fade');
+      void body.offsetWidth;
+      body.classList.add('ch-fade');
+    }
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
 }
 // Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
@@ -24282,7 +24328,23 @@ function coachSetupStep(n){
 // mittlere Wahl, nicht die lauteste.
 function _csSettlePreset(){
   S.aiCoach = S.aiCoach || { live:true, insights:true };
-  if (S.aiCoach.preset === undefined) setCoachPreset('balanced');
+  if (S.aiCoach.preset !== undefined) return;
+  setCoachPreset('balanced');
+  if (S.aiCoach.preset !== undefined) return;
+  // Rückfall auf direkte Feldschreibung. setCoachPreset() kehrt bei fehlendem
+  // CoachPersona.PRESETS wirkungslos zurück ('if (!P) return;'). Ohne diesen
+  // Deckel bliebe preset offen, coachSetupDone() übergäbe an openCoachHub(), und
+  // dessen Weiche startete die Einrichtung erneut: der Nutzer käme nur über ✕
+  // heraus und erreichte den Hub nie. Werte identisch zu PRESETS.balanced — der
+  // übrige Coach-Code verteidigt sich gegen denselben Teilausfall (_persona()
+  // mit doppeltem Rückfall, _chToneLine() im catch).
+  S.aiCoach.inTraining  = 'key';
+  S.aiCoach.setFeedback = true;
+  S.aiCoach.pushLevel   = 'normal';
+  S.aiCoach.live        = true;
+  S.aiCoach.preset      = 'balanced';
+  try { persist(); } catch(e) { console.warn('[Coach] Einrichtung sichern:', e); }
+  try { _coachOptRender(); } catch(_) {}
 }
 function coachSetupDone(skipped){
   try { _csSettlePreset(); } catch(e) { console.warn('[Coach] Einrichtung abschließen:', e); }
@@ -24291,7 +24353,13 @@ function coachSetupDone(skipped){
   // dasselbe noch einmal, jetzt zum Nachjustieren. Das ✕ ist ein Überspringen
   // und lässt den Nutzer, wo er war.
   if (skipped === false) setTimeout(() => {
-    try { openCoachHub('settings'); } catch(e) { console.warn('[Coach] Hub nach Einrichtung:', e); }
+    try {
+      // Schleifenwächter: wäre preset trotz Rückfall noch offen (etwa weil S
+      // nicht beschreibbar ist), würde openCoachHub() die Einrichtung erneut
+      // starten. Dann lieber nicht übergeben als den Nutzer einsperren.
+      if (!S.aiCoach || S.aiCoach.preset === undefined) { console.warn('[Coach] Einrichtung ohne Profil beendet — keine Übergabe an den Hub'); return; }
+      openCoachHub('settings');
+    } catch(e) { console.warn('[Coach] Hub nach Einrichtung:', e); }
   }, _CS_DELAY);
 }
 function _csNavHTML(){
@@ -24364,9 +24432,11 @@ function renderCoachSetup(){
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
     if (_csHold) return;
-    body.innerHTML = (_csStep === 2 ? _csStep2HTML()
-                    : _csStep === 3 ? _csStep3HTML()
-                    :                 _csStep1HTML()) + _csNavHTML();
+    body.innerHTML = _csStep === 2 ? _csStep2HTML()
+                   : _csStep === 3 ? _csStep3HTML()
+                   :                 _csStep1HTML();
+    // Getrennter Behälter, damit die Leiste nicht mit dem Inhalt wegscrollt.
+    const nav = document.getElementById('cst-nav'); if (nav) nav.innerHTML = _csNavHTML();
     if (_csStep === 2) {
       const el = document.getElementById('cst-voices');
       if (el) { try { if (typeof _csRenderVoices === 'function') _csRenderVoices(el); }
