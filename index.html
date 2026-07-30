@@ -5269,10 +5269,13 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 /* Das zweite Beispiel (im gewählten Ton, mit Namen) war als fünfter Kasten
    unter vier Sprechblasen sichtbar zu viel. Es bleibt inhaltlich, verliert aber
    den Kastenrahmen und liegt als leise Bildunterschrift darunter. */
-#ch-tone-ex{background:none;border:none;padding:2px 3px 0;margin:-2px 0 4px}
-#ch-tone-ex::after{display:none}
-#ch-tone-ex>span{font-size:11.5px;font-weight:600;color:var(--text2)}
-#ch-tone-ex>span i{color:var(--text);font-weight:650;font-size:12px;margin-top:3px}
+/* #cs-tone-ex ist derselbe Beispielsatz in der Einrichtung (Task 10) — dieselbe
+   Sache, deshalb dieselbe Regel. Eigene Id nur, weil beide Overlays gleichzeitig
+   im DOM stehen und ihren letzten Inhalt behalten. */
+#ch-tone-ex,#cs-tone-ex{background:none;border:none;padding:2px 3px 0;margin:-2px 0 4px}
+#ch-tone-ex::after,#cs-tone-ex::after{display:none}
+#ch-tone-ex>span,#cs-tone-ex>span{font-size:11.5px;font-weight:600;color:var(--text2)}
+#ch-tone-ex>span i,#cs-tone-ex>span i{color:var(--text);font-weight:650;font-size:12px;margin-top:3px}
 #ch-body details{margin-top:20px;border-top:1px solid var(--sep);padding-top:12px}
 #ch-body summary{font-size:13.5px;font-weight:800;color:var(--acc);cursor:pointer;list-style:none;padding:7px 0}
 #ch-body summary::-webkit-details-marker{display:none}
@@ -7427,7 +7430,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-coach-setup">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head"><h2 id="cs-title">Coach</h2>
+    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="cs-title">Coach</h2>
       <button class="x-btn" onclick="coachSetupDone(true)" aria-label="Überspringen">✕</button></div>
     <div class="px" style="padding-bottom:26px">
       <div class="pwz-dots" id="cs-dots"></div>
