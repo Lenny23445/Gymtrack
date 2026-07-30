@@ -227,3 +227,58 @@ test('ein kurzer Schluessel trifft nicht mitten im Wort', () => {
   assert.strictEqual(C.cueFor('Barbell Row', 'en'), C.cueFor('Rudern', 'en'));
   assert.strictEqual(C.cueFor('RDL', 'de'), C.cueFor('Rumänisches Kreuzheben', 'de'));
 });
+
+/* ── Geraeteerkennung aus dem Uebungsnamen (Blockabschluss-Review C1) ───────
+   Der Coach sagte Aufwaermsaetze an, die niemand auflegen kann, weil die
+   Verdrahtung barKg allein aus ex.showPlateCalc ableitete — einem Schalter,
+   den keine Bibliotheks- und keine Vorlagen-Uebung je setzt. Die einzige
+   belastbare Quelle daneben ist der NAME, und die Namensnormalisierung dieses
+   Moduls ist die einzige des Coach. Deshalb liegt equipFor() hier. */
+
+test('equipFor erkennt die Langhantel-Uebungen der Bibliothek', () => {
+  ['Bankdrücken', 'Schrägbankdrücken', 'Kniebeugen', 'Front-Kniebeuge', 'Kreuzheben',
+   'Rumänisches Kreuzheben', 'Schulterdrücken', 'Rudern (Langhantel)', 'T-Bar Rudern',
+   'Bizeps-Curls (LH)', 'Hip Thrust', 'Shrugs', 'Engers Bankdrücken', 'Aufrechtes Rudern']
+    .forEach(n => assert.strictEqual(C.equipFor(n), 'barbell', 'nicht als Langhantel erkannt: ' + n));
+});
+
+test('equipFor erkennt die Kurzhantel-Uebungen der Bibliothek', () => {
+  ['Kurzhantel-Bankdrücken', 'Kurzhantel-Rudern', 'KH-Schulterdrücken', 'Bizeps-Curls (KH)',
+   'Hammer-Curls', 'Seitheben', 'Frontheben', 'Arnold Press', 'Goblet Squat',
+   'Konzentrations-Curls', 'Reverse Flys']
+    .forEach(n => assert.strictEqual(C.equipFor(n), 'dumbbell', 'nicht als Kurzhantel erkannt: ' + n));
+});
+
+test('equipFor erkennt Maschine, Kabel und Steckgewicht', () => {
+  ['Latzug', 'Beinpresse', 'Beinstrecker', 'Beinbeuger', 'Butterfly (Maschine)',
+   'Kabelzug Brust', 'Trizepsdrücken (Kabel)', 'Cable Crunches', 'Face Pulls']
+    .forEach(n => assert.strictEqual(C.equipFor(n), 'machine', 'nicht als Maschine erkannt: ' + n));
+});
+
+test('das Geraetewort schlaegt den Bewegungsnamen, nicht der laengere Schluessel', () => {
+  // Der Punkt, an dem eine reine Laengenregel (wie bei cueFor) falsch waere:
+  // 'kurzhantelbankdruecken' enthaelt 'bankdruecken' (12 Zeichen) und
+  // 'kurzhantel' (10). Die Geraeteangabe ist die Aussage, der Bewegungsname
+  // nur die Vorgabe.
+  assert.strictEqual(C.equipFor('Kurzhantel-Bankdrücken'), 'dumbbell');
+  assert.strictEqual(C.equipFor('Bankdrücken'), 'barbell');
+  assert.strictEqual(C.equipFor('Kniebeuge an der Maschine'), 'machine');
+  assert.strictEqual(C.equipFor('Kreuzheben mit Kurzhanteln'), 'dumbbell');
+});
+
+test('equipFor liest beide Umlaut-Schreibweisen und ignoriert Zeichensetzung', () => {
+  assert.strictEqual(C.equipFor('bankdrucken'), 'barbell');
+  assert.strictEqual(C.equipFor('BANKDRÜCKEN  (schwer)'), 'barbell');
+  assert.strictEqual(C.equipFor('Bench Press'), 'barbell');
+  assert.strictEqual(C.equipFor('Dumbbell Row'), 'dumbbell');
+  assert.strictEqual(C.equipFor('Lat Pulldown'), 'machine');
+});
+
+test('ohne Anhaltspunkt gibt equipFor null statt zu raten', () => {
+  // null heisst 'keine Aussage'. Die Verdrahtung nimmt dann KEINE Stange an —
+  // eine erfundene Stange rundet auf Scheibenpaare, die es nicht gibt.
+  assert.strictEqual(C.equipFor('Irgendwas Neues'), null);
+  assert.strictEqual(C.equipFor(''), null);
+  assert.strictEqual(C.equipFor(null), null);
+  assert.strictEqual(C.equipFor(42), null);
+});

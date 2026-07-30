@@ -464,3 +464,53 @@ test('die Saetze beider Rueckgaben stehen in allen Toenen vollstaendig da', () =
     }));
   });
 });
+
+/* ── Eine Zahl, die keine Beobachtung ist, gibt es nicht (Review I4) ────────
+   Die Verdrahtung schrieb S.restTimerSecs — die EINSTELLUNG des Nutzers — in
+   jede Wochenzeile. Der Coach las dem Nutzer damit seine eigene Vorgabe als
+   Messung vor, und restDelta war strukturell immer 0. normRow() fuellte das
+   Loch bis hierher mit REST_DEFAULT auf: dieselbe Luege, nur mit 90 statt 120.
+   Ohne gemessene Pause gibt es jetzt keine Pausenzahl — und plateauSay()
+   waehlt den Schluessel ohne {secs}. */
+
+test('ohne gemessene Pause traegt die Diagnose keine Pausenzahl', () => {
+  const h = hist(5, 80, 120).map(r => { const c = Object.assign({}, r); delete c.avgRestSecs; return c; });
+  const d = A.plateau(h);
+  assert.ok(d, 'die Diagnose selbst haengt nicht an der Pause');
+  assert.strictEqual(d.avgRestSecs, null, 'REST_DEFAULT ist keine Beobachtung');
+  assert.strictEqual(d.restDelta, null);
+});
+
+test('null als Pausenwert ist dasselbe wie keine Pause', () => {
+  const d = A.plateau(hist(5, 80, () => null));
+  assert.ok(d);
+  assert.strictEqual(d.avgRestSecs, null);
+});
+
+test('gemessene Pausen zaehlen weiter, auch wenn einzelne Wochen fehlen', () => {
+  const h = hist(5, 80, 120);
+  delete h[2].avgRestSecs;
+  const d = A.plateau(h);
+  assert.strictEqual(d.avgRestSecs, 120, 'die vorhandenen Messungen muessen zaehlen');
+  assert.strictEqual(d.restDelta, 0);
+});
+
+test('plateauSay waehlt ohne Pausenzahl den Schluessel ohne {secs}', () => {
+  const d = A.plateau(hist(5, 80, () => null));
+  const say = A.plateauSay(d, 'Bankdruecken');
+  assert.strictEqual(say.key, 'plateauPlain');
+  assert.deepStrictEqual(say.vars, { ex: 'Bankdruecken', weeks: 5 });
+  assert.strictEqual(say.vars.secs, undefined, 'ein Wert ohne Vorlage wandert ungelesen durch');
+  ['de', 'en'].forEach(lang => P.TONES.forEach(tone => {
+    const s = P.say(say.key, say.vars, { tone: tone }, lang);
+    assert.ok(s.length > 0, 'leer: ' + say.key + '/' + tone + '/' + lang);
+    assert.ok(!/[{}]/.test(s), 'Restplatzhalter: ' + s);
+    assert.ok(!/\bSekunden\b|\bseconds\b/.test(s), 'behauptet doch eine Pausenzahl: ' + s);
+  }));
+});
+
+test('mit gemessener Pause bleibt es beim ausfuehrlichen Schluessel', () => {
+  const say = A.plateauSay(A.plateau(hist(5, 80, 120)), 'Bankdruecken');
+  assert.strictEqual(say.key, 'plateau');
+  assert.strictEqual(say.vars.secs, 120);
+});

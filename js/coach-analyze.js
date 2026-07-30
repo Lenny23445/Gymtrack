@@ -86,7 +86,12 @@
       wk: isoWeekIndex(ts),
       topKg: kg,
       vol: (vol === null || vol < 0) ? 0 : vol,
-      avgRestSecs: (rest === null || rest <= 0) ? REST_DEFAULT : rest
+      // NULL und nicht REST_DEFAULT: eine fehlende Messung mit 90 zu fuellen
+      // ergab eine Zahl, die der Coach als Beobachtung vorlas ('deine Pausen
+      // liegen im Schnitt bei 90 Sekunden'), obwohl niemand etwas gemessen
+      // hatte. REST_DEFAULT bleibt, wo er hingehoert: in costSecs(), wo eine
+      // Pause GESCHAETZT und nicht behauptet wird.
+      avgRestSecs: (rest === null || rest <= 0) ? null : rest
     };
   }
 
@@ -163,16 +168,26 @@
     var volPost = volMedian(seg.slice(half));
     if (volPre !== null && volPost !== null && volPost > volPre * (1 + VOL_TOL)) return null;
 
+    // Gemittelt wird ueber die Wochen, die WIRKLICH eine Messung tragen. Ohne
+    // eine einzige gibt es keine Pausenaussage — null heisst hier 'nicht
+    // beobachtet' und nicht 'null Sekunden'. Dasselbe fuer restDelta: es
+    // braucht zwei Messpunkte, sonst ist die Aenderung erfunden.
+    var gemessen = [];
+    for (var i = 0; i < seg.length; i++) {
+      if (seg[i].avgRestSecs !== null) gemessen.push(seg[i]);
+    }
     var restSum = 0;
-    for (var i = 0; i < seg.length; i++) restSum += seg[i].avgRestSecs;
+    for (var j = 0; j < gemessen.length; j++) restSum += gemessen[j].avgRestSecs;
 
     return {
       weeks: weeks,
       entries: seg.length,
       topKg: round1(last.topKg),
       volDelta: Math.round(last.vol - first.vol),
-      restDelta: Math.round(last.avgRestSecs - first.avgRestSecs),
-      avgRestSecs: Math.round(restSum / seg.length),
+      restDelta: gemessen.length >= 2
+        ? Math.round(gemessen[gemessen.length - 1].avgRestSecs - gemessen[0].avgRestSecs)
+        : null,
+      avgRestSecs: gemessen.length ? Math.round(restSum / gemessen.length) : null,
       weekFrom: isoWeekKey(first.ts),
       weekTo: isoWeekKey(last.ts)
     };
@@ -189,12 +204,16 @@
      fest, damit die Grenze nicht beim naechsten Textfix wieder faellt. */
   function plateauSay(diag, exName) {
     if (!diag || typeof diag !== 'object') return null;
-    var weeks = num(diag.weeks), secs = num(diag.avgRestSecs);
-    if (weeks === null || secs === null) return null;
-    return {
-      key: 'plateau',
-      vars: { ex: (exName === undefined || exName === null) ? '' : String(exName), weeks: weeks, secs: secs }
-    };
+    var weeks = num(diag.weeks);
+    if (weeks === null) return null;
+    var secs = num(diag.avgRestSecs);
+    var ex = (exName === undefined || exName === null) ? '' : String(exName);
+    // Ohne gemessene Pause faellt die Diagnose NICHT aus — der Stillstand ist
+    // die Aussage, die Pause war immer nur der Zusatz. Es gibt dafuer einen
+    // eigenen Satzschluessel ohne {secs}; einen Wert ohne Vorlage
+    // durchzureichen hiesse, den halben Satz zu riskieren.
+    if (secs === null) return { key: 'plateauPlain', vars: { ex: ex, weeks: weeks } };
+    return { key: 'plateau', vars: { ex: ex, weeks: weeks, secs: secs } };
   }
 
   // ── Zeitbudget ──────────────────────────────────────────────────────────

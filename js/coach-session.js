@@ -25,13 +25,19 @@
   // Was auf welcher Stufe ueberhaupt vorkommen darf. full ist key PLUS die
   // Feinheiten — abgeleitet, nicht zweimal von Hand gepflegt.
   // Nicht jede Art hat einen Ausloeser IN DIESEM MODUL: 'warmupIntro',
-  // 'restTip', 'recall', 'plateau', 'timeBudget' und 'cue' emittiert die
-  // Verdrahtung selbst ueber emit(sess, kind, key, vars) — die Texte dazu
-  // kommen aus CoachWarmup, CoachCues und CoachAnalyze. Die Liste steht hier,
-  // weil emit() die EINZIGE Ausgabestelle ist und die Obergrenze sonst nur
-  // fuer die Arten gaelte, die dieses Modul selbst ausloest.
+  // 'recall', 'plateau', 'timeBudget' und 'cue' emittiert die Verdrahtung
+  // selbst ueber emit(sess, kind, key, vars) — die Texte dazu kommen aus
+  // CoachWarmup, CoachCues und CoachAnalyze. Die Liste steht hier, weil emit()
+  // die EINZIGE Ausgabestelle ist und die Obergrenze sonst nur fuer die Arten
+  // gaelte, die dieses Modul selbst ausloest.
+  // 'restTip' ist mit der Blockabschluss-Review GESTRICHEN: die Art hatte in
+  // keinem Modul und in keiner Verdrahtung je einen Ausloeser, und ihr
+  // Katalogtext war ein Allgemeinplatz ('Schultern unten lassen') — genau das,
+  // was CoachCues fuer den Technikpunkt ausdruecklich ablehnt. Ein zweiter,
+  // schwaecherer Technikhinweis neben 'cue' haette ausserdem im knappsten
+  // Budget des Vorhabens um Plaetze konkurriert.
   var KEY_KINDS  = ['greet', 'greetFirst', 'exOpen', 'warmupIntro', 'debrief'];
-  var FULL_EXTRA = ['mid', 'restTip', 'restNext', 'fatigue', 'stall', 'recall',
+  var FULL_EXTRA = ['mid', 'restNext', 'fatigue', 'stall', 'recall',
                     'plateau', 'timeBudget', 'cue'];
   var LEVEL_KINDS = {
     off:  [],
@@ -89,6 +95,7 @@
       muted:        Array.isArray(c.muted) ? c.muted.map(String) : [],
       expectedSets: (exp !== null && exp > 0) ? Math.round(exp) : null,
       spoken:       0,      // Aeusserungen dieser Einheit, inklusive Abschluss
+      acks:         0,      // Quittungen auf die Satz-Rueckfrage (eigener Deckel)
       said:         {},     // welche Art schon vorkam (ONCE-Buchhaltung)
       setCount:     0,
       vol:          0,
@@ -174,6 +181,7 @@
 
     return Object.assign(base, {
       spoken:    intAtLeast(saved.spoken, saidCount),
+      acks:      intAtLeast(saved.acks, 0),
       said:      said,
       setCount:  intAtLeast(saved.setCount, 0),
       vol:       num(saved.vol) !== null && num(saved.vol) > 0 ? num(saved.vol) : 0,
@@ -239,6 +247,33 @@
       current: out
     });
     return { sess: next, out: out };
+  }
+
+  /* ackTake(sess) -> {sess, ok}
+
+     Die Quittung auf 'leicht'/'schwer' ist eine ANTWORT auf eine Handlung des
+     Nutzers, keine ungefragte Ansprache. Sie laeuft deshalb bewusst nicht
+     durch emit() und zaehlt nicht gegen CAP — sonst fraesse eine Reihe
+     beantworteter Saetze den ganzen Erzaehlbogen auf, und die Rueckfrage
+     bestrafte den, der sie beantwortet.
+
+     Ohne eigene Grenze war das aber ein Freibrief: gemessen wurden zwoelf
+     Quittungen in einer Einheit, zusaetzlich zu den acht Aeusserungen des
+     Bogens. ACK_CAP ist deshalb der zweite, kleine Deckel auf derselben
+     Flaeche. Er liegt im Zustand und nicht in einer Modulvariablen, damit er
+     einen App-Neustart mitten im Training ueberlebt.
+
+     Stufe 'off' schweigt auch hier: wer den Coach abgeschaltet hat, bekommt
+     auch keine Antwort auf einen Tipp, den es dort gar nicht gibt. */
+  var ACK_CAP = 3;
+
+  function ackTake(sess) {
+    var s = sess || {};
+    if (s.level === 'off' || !CAP[s.level]) return { sess: s, ok: false };
+    if (s.ended) return { sess: s, ok: false };
+    var used = (typeof s.acks === 'number' && isFinite(s.acks)) ? s.acks : 0;
+    if (used >= ACK_CAP) return { sess: s, ok: false };
+    return { sess: Object.assign({}, s, { acks: used + 1 }), ok: true };
   }
 
   function greetVars(lastSame, s) {
@@ -426,7 +461,9 @@
     onTick: onTick,
     sessionEnd: sessionEnd,
     emit: emit,
+    ackTake: ackTake,
     CAP: CAP,
+    ACK_CAP: ACK_CAP,
     LEVEL_KINDS: LEVEL_KINDS,
     ONCE: ONCE,
     STALL_MS: STALL_MS,

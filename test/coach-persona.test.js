@@ -257,3 +257,32 @@ test('Konstanten haben die vereinbarten Werte', () => {
   assert.deepStrictEqual(P.LEVELS, ['off', 'key', 'full']);
   assert.deepStrictEqual(P.PUSH, ['still', 'normal', 'eng']);
 });
+
+/* ── Die Einheit haengt am Wert, nicht am Katalogsatz (Review I5) ───────────
+   Gemessen wurde: lbs-Nutzer, zuletzt 100 kg. Die Satzliste zeigte 220 lbs,
+   die Coach-Leiste in derselben Sekunde 'zuletzt 100 kg'. Der Nutzer legt
+   100 lbs auf. Der Katalog ist einheitenrein; die Verdrahtung uebergibt den
+   fertig formatierten Wert samt Einheit. */
+
+const WERT_KEYS = ['greet', 'exOpen', 'mid', 'restNext', 'setAckEasy', 'setAckHard',
+                   'debrief', 'prCongrats'];
+
+test('kein Satz des Trainingsbogens schreibt eine Einheit fest', () => {
+  WERT_KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {
+    const tpl = P.say(key, { ex: 'X', kg: 60, reps: 8, sets: 3, vol: 7200, pct: 12 },
+                      { tone }, lang);
+    const where = key + '/' + tone + '/' + lang;
+    assert.ok(!/\b(kg|kilo|kilos|lbs|pound|pounds|Kilo)\b/i.test(tpl),
+      'feste Einheit im Katalog bei ' + where + ': ' + tpl);
+  })));
+});
+
+test('der uebergebene Wert traegt seine Einheit unveraendert in den Satz', () => {
+  WERT_KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {
+    const s = P.say(key, { ex: 'X', kg: '220 lbs', reps: 8, sets: 3, vol: '16.900 lbs', pct: 12 },
+                    { tone }, lang);
+    const where = key + '/' + tone + '/' + lang;
+    assert.ok(/lbs/.test(s), 'Einheit des Wertes verloren bei ' + where + ': ' + s);
+    assert.ok(!/\bkg\b/.test(s), 'kg neben lbs bei ' + where + ': ' + s);
+  })));
+});

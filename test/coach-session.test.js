@@ -328,7 +328,7 @@ test('Obergrenze und Stufenlisten haben die vereinbarten Werte', () => {
   assert.strictEqual(S.LEVEL_KINDS.off.length, 0);
   assert.deepStrictEqual(S.LEVEL_KINDS.key.slice().sort(),
     ['debrief', 'exOpen', 'greet', 'greetFirst', 'warmupIntro']);
-  ['mid', 'restTip', 'restNext', 'fatigue', 'stall', 'recall', 'plateau', 'timeBudget', 'cue']
+  ['mid', 'restNext', 'fatigue', 'stall', 'recall', 'plateau', 'timeBudget', 'cue']
     .forEach(function (k) { assert.ok(S.LEVEL_KINDS.full.indexOf(k) >= 0, 'full ohne ' + k); });
   S.LEVEL_KINDS.key.forEach(function (k) { assert.ok(S.LEVEL_KINDS.full.indexOf(k) >= 0, 'full ohne ' + k); });
   ['greet', 'greetFirst', 'mid', 'fatigue', 'stall', 'debrief', 'recall', 'plateau', 'timeBudget']
@@ -555,14 +555,67 @@ test('sessionNew legt bei gleichem wkTs trotzdem neu an', () => {
   assert.deepStrictEqual(newSess({ level: 'key' }).said, {});
 });
 
-// ── restTip loest kein Modulpfad aus ───────────────────────────────────────
+// ── restTip ist gestrichen ────────────────────────────────────────────────
 
-test('restTip steht auf full, wird aber von keinem Pfad des Moduls ausgeloest', () => {
-  // Dokumentierte Arbeitsteilung: den Technikhinweis emittiert die
-  // Verdrahtung selbst ueber emit(sess, 'restTip', …) mit dem Text aus
-  // CoachCues. Kippt das, ist entweder der Kommentar oder der Code falsch.
-  assert.ok(S.LEVEL_KINDS.full.indexOf('restTip') >= 0);
+test('restTip steht auf keiner Stufe mehr und kommt aus keinem Pfad', () => {
+  // Blockabschluss-Review: restTip hatte NIE einen Ausloeser — weder im Modul
+  // noch in der Verdrahtung. Der Katalogtext war zudem ein Allgemeinplatz
+  // ('Schultern unten lassen'), also genau das, was CoachCues fuer den
+  // Technikpunkt ausdruecklich ablehnt. Statt einen zweiten, schwaecheren
+  // Technikhinweis neben cue zu verdrahten und dem ohnehin knappen Budget
+  // einen weiteren Anwaerter zu geben, ist die Art gestrichen. Der Riegel
+  // haelt die Entscheidung fest: keine Stufe kennt sie, emit() laesst sie
+  // nicht durch, und der Satzkatalog hat sie nicht mehr.
+  assert.strictEqual(S.LEVEL_KINDS.full.indexOf('restTip'), -1);
+  assert.strictEqual(S.LEVEL_KINDS.key.indexOf('restTip'), -1);
   const kinds = fullRun('full').kinds().concat(deepRun('full').kinds());
-  assert.ok(kinds.indexOf('restTip') < 0, 'restTip kommt jetzt aus dem Modul: ' + kinds.join(','));
-  assert.strictEqual(S.emit(newSess({ level: 'full' }), 'restTip', 'restTip', { ex: 'Uebung' }).out.kind, 'restTip');
+  assert.ok(kinds.indexOf('restTip') < 0, 'restTip kommt aus dem Modul: ' + kinds.join(','));
+  assert.strictEqual(S.emit(newSess({ level: 'full' }), 'restTip', 'restTip', { ex: 'Uebung' }).out, null,
+    'eine gestrichene Art darf emit() nicht mehr passieren');
+  assert.strictEqual(P.KEYS.indexOf('restTip'), -1, 'der Satzkatalog traegt den toten Schluessel weiter');
+});
+
+/* ── Eigene Obergrenze fuer die Satz-Quittung (Review I3) ───────────────────
+   Die Quittung auf 'leicht'/'schwer' ist eine ANTWORT auf eine Nutzerhandlung
+   und zaehlt deshalb bewusst nicht gegen die Obergrenze der ungefragten
+   Ansprachen. Ohne eigene Grenze erschiene sie aber bei JEDEM Satz — gemessen
+   wurden 12 Quittungen in einer Einheit. Deshalb ein zweiter, kleiner Zaehler
+   im selben Zustand: er ueberlebt den Neustart, weil er sonst mit jedem
+   Neuladen von vorn begaenne. */
+
+test('ackTake gibt hoechstens ACK_CAP Quittungen frei und faellt danach still aus', () => {
+  assert.strictEqual(typeof S.ACK_CAP, 'number');
+  assert.ok(S.ACK_CAP >= 1 && S.ACK_CAP <= 4, 'unplausible Quittungsgrenze: ' + S.ACK_CAP);
+  let s = newSess({ level: 'full' });
+  let durch = 0;
+  for (let i = 0; i < S.ACK_CAP + 5; i++) {
+    const r = S.ackTake(s);
+    s = r.sess;
+    if (r.ok) durch++;
+  }
+  assert.strictEqual(durch, S.ACK_CAP);
+  assert.strictEqual(s.acks, S.ACK_CAP);
+});
+
+test('die Quittung verbraucht kein Budget des Erzaehlbogens', () => {
+  let s = newSess({ level: 'full' });
+  const vorher = s.spoken;
+  for (let i = 0; i < 10; i++) s = S.ackTake(s).sess;
+  assert.strictEqual(s.spoken, vorher, 'die Quittung hat gegen die Obergrenze gezaehlt');
+  assert.deepStrictEqual(s.said, {});
+});
+
+test('auf Stufe off gibt es auch keine Quittung', () => {
+  const r = S.ackTake(newSess({ level: 'off' }));
+  assert.strictEqual(r.ok, false);
+});
+
+test('sessionResume traegt den Quittungszaehler weiter', () => {
+  let s = newSess({ level: 'full' });
+  s = S.ackTake(s).sess;
+  s = S.ackTake(s).sess;
+  const back = S.sessionResume(JSON.parse(JSON.stringify(s)), T0);
+  assert.strictEqual(back.acks, 2, 'nach dem Neuladen begaenne die Quittung sonst von vorn');
+  const kaputt = S.sessionResume({ wkTs: T0, level: 'full', acks: 'viele' }, T0);
+  assert.strictEqual(kaputt.acks, 0);
 });

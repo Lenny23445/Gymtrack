@@ -5552,6 +5552,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes coachEq{0%,100%{height:4px;opacity:.5}45%{height:13px;opacity:1}}
 .coach-bar-lbl{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.3px}
 .coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
+/* Bilanz im Post-Workout-Check-in. Bewusst NUR eine Textzeile: die Coach-Leiste
+   gehoert ins Training, hier ist das Training vorbei. */
+.ci-coach{font-size:13.5px;color:var(--text);line-height:1.42;font-weight:600;
+  background:var(--card2,rgba(127,127,127,.10));border-radius:12px;padding:10px 12px;margin:0 0 16px}
 /* Satz-Rueckfrage (leicht/passend/schwer) — liegt INNERHALB der Coach-Leiste,
    keine eigene Flaeche, nichts Modales: sie ueberdeckt nichts und blockiert
    nichts. Verschwindet nach 8 s von selbst (_rpeAsk). */
@@ -17177,9 +17181,20 @@ function toggleSetDone(li,si) {
     // zaehlen nicht in den Bogen — sie sind kein Arbeitssatz.
     try {
       const _cl = wkLogs[li], _cs = _cl && _cl.sets && _cl.sets[si];
-      if (_cs && (_cs.type || 'normal') !== 'warmup')
+      if (_cs && (_cs.type || 'normal') !== 'warmup') {
+        const _now = Date.now();
+        // ECHTE Pause statt S.restTimerSecs: der Abstand zum zuletzt
+        // abgehakten Arbeitssatz. Erst ab dem zweiten Satz, und nur bis
+        // CS_REST_MAX_S — laenger ist eine Unterbrechung und keine Satzpause,
+        // und ein Ausreisser wuerde den Wochenschnitt unbrauchbar machen.
+        if (_csLastSetTs > 0) {
+          const _rs = Math.round((_now - _csLastSetTs) / 1000);
+          if (_rs > 0 && _rs <= CS_REST_MAX_S) _cs.rs = _rs;
+        }
+        _csLastSetTs = _now;
         _csSet({ exId: _cl.exerciseId, reps: parseInt(_cs.r) || null,
-                 kg: parseFloat(_cs.w) || null, ts: Date.now() });
+                 kg: parseFloat(_cs.w) || null, ts: _now });
+      }
     } catch(_) {}
     // Satz-Rueckfrage leicht/passend/schwer, in derselben Leiste, 8 s.
     try { _rpeAsk(li, si); } catch(_) {}
@@ -17321,16 +17336,23 @@ function finishWk() {
     });
   } catch(e) { console.warn('[Coach] Outcome:', e); }
   persist();
-  // Abschluss des Erzaehlbogens — VOR closeOv('ov-wk'), weil #wk-coach-bar die
-  // einzige Coach-Flaeche ist und in diesem Overlay liegt. sessionEnd() nutzt
-  // force: die Bilanz faellt nie am Budget aus (nur Stufe "off" schweigt).
-  // Danach wird S.coachSession genullt und persistiert (_csEnd).
+  // Abschluss des Erzaehlbogens. Er laeuft weiter VOR closeOv('ov-wk') — die
+  // Zeile geht aber nicht mehr nur in #wk-coach-bar (das Overlay schliesst
+  // 24 Zeilen weiter unten im selben Tick, die Haltezeit war dort tot),
+  // sondern zusaetzlich in _csFinalLine und von dort in das Check-in-Sheet,
+  // das ohnehin direkt danach aufgeht. sessionEnd() nutzt force: die Bilanz
+  // faellt nie am Budget aus (nur Stufe "off" schweigt). Danach wird
+  // S.coachSession genullt und persistiert (_csEnd).
   try {
     let _csSets = 0, _csVol = 0;
     valid.forEach(l => {
       try { _csSets += _workSets(l.sets || []).length; _csVol += setsVolume(l.sets || []); } catch(_) {}
     });
-    _csEnd({ sets: _csSets, vol: Math.round(_csVol * 10) / 10 });
+    // Bestwerte fuer 'prCongrats'. detectPRs() ist frei von Nebenwirkungen und
+    // liest nur S.sessions — die Kette in _finishWkContinue() bleibt unberuehrt.
+    let _csPrs = [];
+    try { _csPrs = detectPRs(_newSess) || []; } catch(_) { _csPrs = []; }
+    _csEnd({ sets: _csSets, vol: Math.round(_csVol * 10) / 10, prs: _csPrs });
   } catch(e) { console.warn('[Coach] Abschluss:', e); }
   // Gamification: Punkte-Ticker NICHT hier feuern — er läuft sonst unsichtbar
   // hinter dem Share-/Snap-Flow. Nur vormerken; ausgelöst wird er, sobald der
@@ -17425,10 +17447,21 @@ function _checkinOpen(sess, dayName) {
 }
 function _ciSetFeel(v) { _ciFeel = v; haptic(8); _renderCheckin(); }
 function _ciSetEnergy(v) { _ciEnergy = v; haptic(8); _renderCheckin(); }
+/* Die Bilanz des Erzaehlbogens auf dem Bildschirm, der nach dem Speichern
+   ohnehin steht. Sie ist KEINE zweite Coach-Flaeche: das Training ist zu
+   Ende, #wk-coach-bar existiert nicht mehr, und hier steht eine einzelne
+   Textzeile ohne Bedienelemente — kein Overlay im Overlay, nichts Modales.
+   Der Text kommt fertig formuliert aus _csEmit() (Persona, Sprache, Einheit)
+   und wird als Text gesetzt: er traegt Uebungsnamen, also Nutzertext. */
+function _ciCoachLineHTML() {
+  const t = (_csFinalLine || '').trim();
+  if (!t) return '';
+  return `<div class="ci-coach">${esc(t)}</div>`;
+}
 function _renderCheckin() {
   const el = document.getElementById('checkin-body');
   if (!el) return;
-  el.innerHTML = `
+  el.innerHTML = _ciCoachLineHTML() + `
     <div class="ob-q" style="font-size:18px">Wie hat sich dein Training angefühlt?</div>
     <div class="ob-opts" style="margin-top:14px">${CI_FEELS.map(f => `
       <button class="ob-opt${_ciFeel===f.v?' on':''}" onclick="_ciSetFeel(${f.v})">
@@ -23639,9 +23672,17 @@ function _coachMicroReact(li, si) {
       jede verschwindet nach ihrer Haltezeit von selbst (debrief 14 s, sonst 9 s).
       Faellt an einem Moment mehr als eine Aeusserung an (Trainingsstart, Uebung
       geoeffnet), reiht _csSeq() sie auf dem ZEITSTRAHL statt im Bild.
-   3. DIE OBERGRENZE (off 0, key 4, full 8) gilt fuer JEDE Quelle, weil jede
-      Aeusserung durch CoachSession.emit() laeuft — auch die der Nachbarmodule
-      (Aufwaermschema, Technikpunkt, Plateau, Zeitbudget, Satz-Quittung).
+   3. DIE OBERGRENZE (off 0, key 4, full 8) gilt fuer jede UNGEFRAGTE
+      Aeusserung, weil jede davon durch CoachSession.emit() laeuft — auch die
+      der Nachbarmodule (Aufwaermschema, Technikpunkt, Plateau, Zeitbudget).
+      NICHT dagegen zaehlt die Satz-Quittung: sie ist die Antwort auf eine
+      Handlung des Nutzers, und eine Rueckfrage, deren Beantwortung den
+      Erzaehlbogen aufzehrt, bestraft den, der antwortet. Bis zur
+      Blockabschluss-Review behauptete dieser Kommentar das Gegenteil und der
+      Code tat, was hier jetzt steht — gemessen wurden 12 Quittungen in einer
+      Einheit. Die Flaeche hat dafuer eine EIGENE Obergrenze
+      (CoachSession.ACK_CAP ueber _csAck()), damit nicht bei jedem Satz eine
+      Zeile erscheint.
    4. S.coachSession lebt REIN LOKAL: das Feld steht nicht im Whitelist-payload
       von _pushToCloud(), also gibt es keinen zweiten Firestore-Schreibpfad und
       firestore.rules bleibt unberuehrt. Geschrieben wird mit persist() —
@@ -23655,13 +23696,33 @@ function _coachMicroReact(li, si) {
 
 const CS_HOLD_MS      = 9000;    // Haltezeit einer Aeusserung
 const CS_HOLD_END_MS  = 14000;   // Abschluss darf laenger stehen
-const CS_GAP_MS       = 4500;    // Abstand zweier Aeusserungen desselben Moments
+// Abstand zweier Aeusserungen desselben Moments. Er ist die Haltezeit und
+// nicht die Haelfte davon: bei 4500 verdraengte die zweite Zeile die erste
+// nach der halben Lesezeit, und die Zusicherung "jede verschwindet nach ihrer
+// Haltezeit" galt nur fuer die letzte einer Reihe.
+const CS_GAP_MS       = CS_HOLD_MS;
 const CS_LEAD_MS      = 1000;    // Vorlauf am Trainingsstart (die Check-in-Zeile
                                  // aus startActive() steht bei 400 ms noch)
+// Schreibtakt fuer den Zustand: Zaehlerstaende (spoken/acks/said/ended) gehen
+// SOFORT auf die Platte, alles andere hoechstens alle CS_SAVE_MS. Ohne das
+// serialisierte _csPut() bei jedem Satz, jeder Pause und jeder Minute das
+// komplette S — bei voller Historie der teuerste Schreibvorgang der App im
+// Minutentakt, und zwar fuer Felder (rests, reps, lastTick), deren Verlust
+// hoechstens eine Ermuedungserkennung kostet.
+const CS_SAVE_MS      = 20000;
+// Obergrenze fuer eine gemessene Satzpause. Darueber ist es keine Pause,
+// sondern eine Unterbrechung (Telefonat, Geraet besetzt, App weggelegt) — und
+// ein einziger solcher Ausreisser macht den Wochenschnitt wertlos.
+const CS_REST_MAX_S   = 600;
 
 let _csLastExId = null;          // Entprellung fuer exOpen (das Modul entprellt nicht)
+let _csSeenEx   = null;          // je Einheit bereits angesagte Uebungen (Set)
 let _csSeqAt    = 0;             // naechster freier Sprechmoment (ms)
 let _csRestPlan = 0;             // geplante Laenge der laufenden Satzpause (s)
+let _csSaveTs   = 0;             // letzter tatsaechliche Schreibvorgang (ms)
+let _csSaveTmr  = null;          // nachlaufender Schreibvorgang
+let _csFinalLine = '';           // Bilanz fuer den Bildschirm NACH dem Training
+let _csLastSetTs = 0;            // Zeitpunkt des zuletzt abgehakten Arbeitssatzes
 
 function _csOn() {
   try { return isPremium() && _coachLevel() !== 'off'; } catch(_) { return false; }
@@ -23671,8 +23732,19 @@ function _csOn() {
 // einer anderen Einheit erzaehlte nach einem App-Neustart falsche Zahlen.
 function _csGet(wkTs) {
   try {
-    const s = S.coachSession;
+    let s = S.coachSession;
     if (!s || window.CoachSession.isStale(s, wkTs)) return null;
+    // Der Speicher wird nicht geglaubt. Kommt ein Zustand zurueck, dessen
+    // Zaehler kein Zahlwert ist (aelterer Stand, halber Schreibvorgang, von
+    // Hand veraenderte Ablage), ergab (s.spoken || 0) VOLLES Budget nach dem
+    // Neuladen — die teuerste Zahl des Vorhabens aus Versehen zurueckgesetzt.
+    // Die Reparaturschicht dafuer liegt im Modul; hier steht nur der Griff
+    // danach, und zwar an der einzigen Stelle, die jeder Pfad passiert.
+    if (typeof s.spoken !== 'number' || !s.said || typeof s.said !== 'object') {
+      const rep = window.CoachSession.sessionResume(s, wkTs);
+      if (!rep) return null;
+      S.coachSession = s = rep;      // ohne persist(): der naechste _csPut schreibt ohnehin
+    }
     // Nach sessionEnd() KEIN Modulaufruf mehr: 'ended' wird im Modul heute nicht
     // geprueft, onExerciseOpen() wuerde danach weiterreden (Training beenden und
     // zum Korrigieren erneut oeffnen ist der reale Ausloeser). Der Riegel steht
@@ -23681,9 +23753,32 @@ function _csGet(wkTs) {
     return s;
   } catch(_) { return null; }
 }
+/* Zustand setzen. Der Wert steht IMMER sofort im Speicherobjekt — nur der
+   Schreibvorgang auf die Platte ist getaktet. Sofort geschrieben wird, sobald
+   sich eine Zahl aendert, an der die Obergrenze haengt (spoken, acks, said,
+   ended): genau die muss einen Neustart mitten im Training ueberleben, sonst
+   faengt der Deckel von vorn an zu zaehlen. Alles andere (rests, reps,
+   setCount, lastTick) laeuft ueber den Nachlauf und kostet im schlechtesten
+   Fall eine Ermuedungserkennung. */
 function _csPut(sess) {
-  try { S.coachSession = sess || null; persist(); return true; }   // persist() - die Kurzform ohne Praefix gibt es hier nicht
-  catch(e) { console.warn('[Coach] Sessionzustand:', e); return false; }
+  try {
+    const alt = S.coachSession || {};
+    const neu = sess || null;
+    S.coachSession = neu;
+    const zaehlerNeu = !neu || (alt.spoken !== neu.spoken) || (alt.acks !== neu.acks) ||
+                       (alt.ended !== neu.ended) ||
+                       (Object.keys(alt.said || {}).length !== Object.keys(neu.said || {}).length);
+    if (zaehlerNeu || (Date.now() - _csSaveTs) >= CS_SAVE_MS) { _csFlush(); return true; }
+    if (!_csSaveTmr) _csSaveTmr = setTimeout(() => { _csSaveTmr = null; try { _csFlush(); } catch(_) {} },
+                                             CS_SAVE_MS);
+    return true;
+  } catch(e) { console.warn('[Coach] Sessionzustand:', e); return false; }
+}
+function _csFlush() {
+  if (_csSaveTmr) { clearTimeout(_csSaveTmr); _csSaveTmr = null; }
+  _csSaveTs = Date.now();
+  try { persist(); }   // persist() - die Kurzform ohne Praefix gibt es hier nicht
+  catch(e) { console.warn('[Coach] Sessionzustand schreiben:', e); }
 }
 
 /* Der EINZIGE Weg von einem Modul-out auf den Bildschirm. Die Module geben
@@ -23692,10 +23787,35 @@ function _csPut(sess) {
    extra: Zahlenreihe/Sachtext, den kein Katalogsatz tragen kann (Aufwaermsaetze).
    nurExtra: der Sachtext IST der Satz (Technikpunkt aus CoachCues, der laut
    Modulkommentar bewusst nicht durch say() laeuft).                          */
+/* Die EINHEIT haengt am WERT, nicht am Katalogsatz. Der Katalog ist seit der
+   Blockabschluss-Review einheitenrein ('{kg}' statt '{kg} kg'), weil er sonst
+   fuer lbs-Nutzer luegt: gemessen wurde 'zuletzt 100 kg' in der Coach-Leiste,
+   waehrend die Satzliste daneben 220 lbs zeigte — der Nutzer legt 100 lbs auf.
+   Die Module rechnen weiter rein in kg; umgerechnet und beschriftet wird
+   GENAU HIER, an der einzigen Stelle, an der Modulausgabe auf den Katalog
+   trifft. null bei Unsinn: CoachPersona.fill() entfernt einen Platzhalter ohne
+   Wert samt Leerzeichen, und ohne festes 'kg' bleibt dabei auch keine Einheit
+   ohne Zahl stehen. */
+function _csWeight(kg) {
+  try {
+    const n = parseFloat(kg);
+    if (!isFinite(n)) return null;
+    const loc = _lang() === 'en' ? 'en-US' : 'de-DE';
+    return Number(kgToDisp(n)).toLocaleString(loc, { maximumFractionDigits: 1 }) + ' ' + unitLabel();
+  } catch(_) { return null; }
+}
+// Nur 'kg' und 'vol' sind Gewichte. 'pct', 'mins', 'secs', 'weeks', 'reps',
+// 'sets' und 'count' bleiben Zahlen und werden von CoachPersona formatiert.
+function _csVars(vars) {
+  const v = Object.assign({}, vars || {});
+  ['kg', 'vol'].forEach(k => { if (typeof v[k] === 'number') v[k] = _csWeight(v[k]); });
+  return v;
+}
+
 function _csEmit(out, extra, nurExtra) {
   if (!out) return false;
   let txt = '';
-  if (!nurExtra) { try { txt = _say(out.key, out.vars) || ''; } catch(_) { txt = ''; } }
+  if (!nurExtra) { try { txt = _say(out.key, _csVars(out.vars)) || ''; } catch(_) { txt = ''; } }
   if (extra) txt = txt ? (txt + ' ' + extra) : String(extra);
   txt = String(txt).trim();
   if (!txt) return false;
@@ -23706,7 +23826,11 @@ function _csEmit(out, extra, nurExtra) {
   // in try/catch, damit Block 2 spaeter nachgeschoben werden kann, ohne diese
   // Stelle anzufassen.
   try { if (typeof speak === 'function') speak(txt); } catch(_) {}
-  return true;
+  // Gibt den TEXT zurueck, nicht true: _csEnd() braucht die Bilanz im Wortlaut
+  // fuer den Bildschirm, der nach dem Speichern ohnehin folgt. Ein nicht
+  // leerer String ist genauso wahr wie true, alle Aufrufstellen pruefen nur
+  // auf Wahrheit.
+  return txt;
 }
 
 /* Rueckhalt fuer die Schluesselmomente. emit() kennt nur EINEN reservierten
@@ -23718,14 +23842,39 @@ function _csEmit(out, extra, nurExtra) {
    restNext, restNext — mid und fatigue kamen nie).
    Der Rueckhalt sitzt hier, an der Aufrufstelle, und kann den Zaehler nur
    SENKEN — die Obergrenze wird davon nie gerissen, nur besser verteilt. */
-const CS_RESERVE = 2;                  // mid + fatigue
-function _csHasRoom(sess) {
+const CS_RESERVE      = 2;   // Anker (exOpen, warmupIntro): mid + fatigue bleiben frei
+const CS_RESERVE_FINE = 3;   // Feinheiten: zusaetzlich ein spaeterer Anker
+
+/* Der Rueckhalt gilt fuer ZWEI Klassen mit verschiedenen Zahlen — das war der
+   Fehler der ersten Fassung. Dort pruefte ihn nur die Feinheit, waehrend
+   exOpen und warmupIntro ungebremst durchliefen; nachgerechnet (3 Uebungen x
+   4 Saetze, Stufe full) frass die zweite Uebung mit ihren beiden Ankern genau
+   die zwei Reserveplaetze, und mid fiel bei Satz 6 wieder am Budget aus. Der
+   Rueckhalt verschob also nur, statt zu tragen.
+
+   Jetzt konkurrieren drei Klassen um dieselben acht Plaetze:
+     Anker      exOpen, warmupIntro — je Uebung, tragen den Ablauf
+     Feinheit   cue, recall, plateau, timeBudget — alle beim OEFFNEN faellig
+     Spaet      mid, fatigue, debrief — kommen erst in der zweiten Haelfte
+   Die Feinheiten sind zuerst da und wuerden ohne strengeren Rueckhalt das
+   ganze Budget der ersten Uebung verbrauchen. Deshalb duerfen sie einen Platz
+   weniger nehmen als die Anker.
+
+   Nur auf Stufe 'full': mid und fatigue gibt es auf 'key' gar nicht
+   (LEVEL_KINDS), ein Rueckhalt fuer sie waere dort ein Maulkorb fuer die
+   Schluesselmomente — bei CAP 4 blieben nach der Begruessung null Plaetze.
+   Der Rueckhalt kann den Zaehler immer nur SENKEN; die Obergrenze selbst
+   bleibt unberuehrt. */
+function _csRoom(sess, reserve) {
   try {
     const cap = window.CoachSession.CAP[sess.level] || 0;
-    const reserve = (sess.said && sess.said.debrief) ? 0 : 1;
-    return (cap - reserve - (sess.spoken || 0)) > CS_RESERVE;
+    if (sess.level !== 'full') reserve = 0;
+    const belegt = (sess.said && sess.said.debrief) ? 0 : 1;   // Platz des Abschlusses
+    return (cap - belegt - (sess.spoken || 0)) > reserve;
   } catch(_) { return false; }
 }
+function _csHasRoom(sess)     { return _csRoom(sess, CS_RESERVE); }
+function _csHasRoomFine(sess) { return _csRoom(sess, CS_RESERVE_FINE); }
 /* Fuer Aeusserungen, die INNERHALB eines Modulaufrufs entstehen (restNext aus
    onRest): das Ergebnis ist schon gebucht. Ist kein Platz mehr, wird die
    Buchung zurueckgenommen — eine Aeusserung, die nie auf dem Schirm war, darf
@@ -23734,7 +23883,13 @@ function _csHasRoom(sess) {
 function _csTake(sess, r) {
   if (!r || !r.out) return r || { sess: sess, out: null };
   if (_csHasRoom(sess)) return r;
-  return { sess: Object.assign({}, r.sess, { spoken: sess.spoken || 0, current: sess.current || null }),
+  // 'said' MUSS mit zurueck: emit() setzt said[kind] gemeinsam mit spoken.
+  // Wurde nur spoken erstattet, galt eine ONCE-Art danach als verbraucht,
+  // ohne je auf dem Schirm gewesen zu sein — sie kam dann nie wieder.
+  return { sess: Object.assign({}, r.sess, {
+             spoken:  sess.spoken || 0,
+             said:    Object.assign({}, sess.said || {}),
+             current: sess.current || null }),
            out: null };
 }
 
@@ -23755,42 +23910,92 @@ function _csSeq(fn) {
   _csLater(at - now, fn);
 }
 
-/* ── Raster und Stange aus den GERAETE-Einstellungen ──────────────────────
+/* ── Raster und Stange je UEBUNG ──────────────────────────────────────────
    EINE Bedeutung fuer beide Module: `step` ist die kleinste Scheibe JE SEITE.
    CoachWarmup.roundToPlate() verdoppelt intern (Scheiben liegen paarweise),
-   CoachRpe.adjustNext(kg, answer, step, barKg) rechnet seit der Fix-Welle
-   genauso. Derselbe Geraeteparameter darf nicht in einem Modul "je Seite" und
-   im anderen "Gesamtsprung" heissen — sonst entstehen Vorschlaege, die niemand
-   auflegen kann (57,5 kg waeren 18,75 kg je Seite).
+   CoachRpe.adjustNext(kg, answer, step, barKg) rechnet genauso. Derselbe
+   Geraeteparameter darf nicht in einem Modul "je Seite" und im anderen
+   "Gesamtsprung" heissen — sonst entstehen Vorschlaege, die niemand auflegen
+   kann (57,5 kg waeren 18,75 kg je Seite).
+
+   Die Blockabschluss-Review hat hier den teuersten Fehler des Blocks gefunden:
+   die Ableitung war ehrlich gemeint, aber leer. Gemessen wurde 'Aufwaermen:
+   17,5 kg x 5' fuer Bankdruecken — unter einer 20-kg-Stange — und bei 60 kg
+   '42 kg x 3' (11 kg je Seite). Zwei Ursachen, beide an dieser Stelle:
+
+   1. barKg haengte allein an ex.showPlateCalc. Diesen Schalter setzt KEIN
+      Import: pickExFromLibrary() uebernimmt ihn nicht, die Plan-Vorlagen und
+      _planImportEx() legen ihn nicht an, und im Uebungsformular ist er auf
+      false vorbelegt. Praktisch jede Uebung kam also als "keine Stange"
+      heraus. Sein TRUE bleibt die staerkste Aussage (der Nutzer hat es selbst
+      gesagt); sein false ist nur der Vorgabewert und damit KEINE Aussage —
+      dann entscheidet der Name ueber CoachCues.equipFor().
+   2. step war die kleinste Scheibe des Standardsatzes, und der endet bei
+      0,5 kg. Damit senkte 'schwer' 50 kg auf 49,5 kg (zahnlos) und das
+      Aufwaermen landete auf Stufen, die vier kleine Scheiben je Seite
+      braeuchten. Deshalb ein BODEN: 1,25 kg je Seite in kg, 2,5 lbs in lbs —
+      an der Stange also 2,5 kg bzw. 5 lbs Gesamtsprung.
+
+   Der Boden gilt bewusst fuer BEIDES, Aufwaermrunden wie Rueckfrage-Stufe:
+   die feine Scheibe brachte auch beim Aufwaermen genau die Zahl hervor, die
+   die Review als nicht auflegbar benannt hat (42 kg = 11 kg je Seite). Zwei
+   verschiedene Raster fuer dasselbe Geraet waeren zudem der Fehler, den der
+   Typkontrakt der Module ausdruecklich ausschliesst.
 
    Quellen im bestehenden Code:
-   - S.availablePlates via _availPlates() = im Studio vorhandene Scheiben,
-     kleinste zuletzt. Das ist die kleinste Scheibe je Seite = `step`.
-   - S.plateBar via _pcCurBar() = gewaehltes Stangengewicht; _pcBars() enthaelt
-     bewusst 0 ("ohne") fuer Maschine/Steckgewicht/Kabelzug.
-   - ex.showPlateCalc = der Schalter "Langhantel-Uebung" je Uebung
-     (Einstellungstext: "welche Scheiben pro Seite aufzustecken sind — fuer
-     Langhantel-Uebungen"). Ohne ihn ist barKg ZWINGEND 0, sonst rundet die App
-     fuer eine Maschine auf Langhantel-Paare.
+   - CoachCues.equipFor(name) = 'barbell' | 'dumbbell' | 'machine' | null.
+     null heisst 'keine Aussage' und wird hier wie 'machine' behandelt: eine
+     erfundene Stange rundet auf Scheibenpaare, die es am Geraet nicht gibt,
+     und verbietet zugleich jedes Gewicht unter 20 kg. Das ist der teurere
+     Fehler, also faellt der Zweifel gegen die Stange aus.
+   - S.plateBar via _pcCurBar() = gewaehltes Stangengewicht. Ohne Wahl liefert
+     es bars[0] (20 kg / 45 lbs) — eine Langhantel hat eine Stange, auch wenn
+     der Nutzer den Scheibenrechner nie geoeffnet hat. Steht dort ausdruecklich
+     0 ("ohne"), bleibt es bei 0: das ist eine Wahl und keine Vorgabe.
+   - S.availablePlates via _availPlates() = im Studio vorhandene Scheiben.
+     Die kleinste davon ist der Ausgangswert fuer step, der Boden hebt sie an.
    - S.unitMode: beide Werte liegen in der ANZEIGE-Einheit (lbs-Stangen 45/35,
      lbs-Scheiben) — deshalb dispToKg() an der Grenze. Die Module rechnen in kg. */
-function _csEquip(ex) {
-  let bar = 0, step = null;
+const CS_MIN_PLATE = { kg: 1.25, lbs: 2.5 };   // kleinste Scheibe, die als Sprung noch traegt
+const CS_STACK_STEP = { kg: 2.5, lbs: 5 };     // Stufe an Maschine/Kabel/Kurzhantel
+
+// 'barbell' | 'dumbbell' | 'machine'. Nie null: die Verdrahtung muss sich
+// entscheiden, und im Zweifel ohne Stange.
+function _csEquipKind(ex) {
   try {
-    if (ex && ex.showPlateCalc) {
-      const b = _pcCurBar();
+    if (ex && ex.showPlateCalc === true) return 'barbell';
+    const k = window.CoachCues.equipFor(ex && ex.name);
+    return (k === 'barbell' || k === 'dumbbell') ? k : 'machine';
+  } catch(_) { return 'machine'; }
+}
+
+function _csEquip(ex) {
+  let bar = 0, step = 0;
+  const einheit = (typeof unitLabel === 'function' && unitLabel() === 'lbs') ? 'lbs' : 'kg';
+  const kind = _csEquipKind(ex);
+  try {
+    if (kind === 'barbell') {
+      const b = _pcCurBar();                   // ohne Wahl: 20 kg / 45 lbs
       if (typeof b === 'number' && b > 0) bar = parseFloat(dispToKg(b)) || 0;
     }
   } catch(_) { bar = 0; }
   try {
-    const pl = (_availPlates() || []).map(p => parseFloat(p)).filter(p => p > 0);
-    if (pl.length) {
-      const small = parseFloat(dispToKg(Math.min.apply(null, pl)));
-      if (small > 0) step = small;
+    if (bar > 0) {
+      // An der Stange zaehlt die Scheibe je Seite — aber nie feiner als der Boden.
+      const pl = (_availPlates() || []).map(p => parseFloat(p)).filter(p => p > 0);
+      const kleinste = pl.length ? Math.min.apply(null, pl) : CS_MIN_PLATE[einheit];
+      const disp = Math.max(kleinste, CS_MIN_PLATE[einheit]);
+      step = parseFloat(dispToKg(disp)) || 0;
+    } else {
+      // Kurzhantel, Steckgewicht, Kabelzug: ein Sprung, kein Paar. Die App hat
+      // dafuer keine Bestandsangabe — der Scheibenkasten beschreibt die
+      // Langhantel, nicht den Stapel. Also eine ehrliche Konstante statt einer
+      // Zahl, die aus der falschen Quelle stammt.
+      step = parseFloat(dispToKg(CS_STACK_STEP[einheit])) || 0;
     }
   } catch(_) {}
   if (!(step > 0)) { try { step = window.CoachWarmup.DEFAULT_STEP; } catch(_) { step = 2.5; } }
-  return { step: step, barKg: bar };
+  return { step: step, barKg: bar, kind: kind };
 }
 
 /* ── Die fuenf Hilfsfunktionen, die es noch nicht gab ─────────────────────
@@ -23885,7 +24090,11 @@ function _csStart() {
   try {
     if (!_csOn() || !timerTs) return;
     _csLastExId = null;
+    _csSeenEx = new Set();
     _rpeAnswers = [];
+    _csFinalLine = '';
+    _csLastSetTs = 0;
+    _csSaveTs = 0;
     _csSeqAt = Date.now() + CS_LEAD_MS;
     const r = window.CoachSession.onStart(window.CoachSession.sessionNew({
       wkTs: timerTs, level: _coachLevel(), planName: _csPlanName(),
@@ -23904,13 +24113,31 @@ function _csStart() {
 function _csResume() {
   try {
     if (!_csOn() || !timerTs) return;
-    if (!_csGet(timerTs)) {
-      _csPut(window.CoachSession.sessionNew({
-        wkTs: timerTs, level: _coachLevel(), planName: _csPlanName(),
-        lastSame: _csLastSame(), muted: _coachMutedKinds(), expectedSets: _csExpectedSets()
-      }));
-    }
+    // Ueber sessionResume() und nicht ueber den rohen Zustand: die
+    // Reparaturschicht des Moduls (intAtLeast(spoken, saidCount), Typpruefung
+    // jedes Feldes) war bis zur Blockabschluss-Review Produktions-Totcode, weil
+    // hier nur _csGet() stand. Fehlte 'spoken' im gespeicherten Objekt oder war
+    // es kein Zahlwert, ergab (s.spoken || 0) VOLLES Budget nach dem Neuladen,
+    // obwohl die Einheit schon geredet hatte.
+    let sess = null;
+    try { sess = window.CoachSession.sessionResume(S.coachSession, timerTs); } catch(_) { sess = null; }
+    if (sess && sess.ended) sess = null;          // beendete Einheit wird nicht fortgesetzt
+    _csPut(sess || window.CoachSession.sessionNew({
+      wkTs: timerTs, level: _coachLevel(), planName: _csPlanName(),
+      lastSame: _csLastSame(), muted: _coachMutedKinds(), expectedSets: _csExpectedSets()
+    }));
     _csLastExId = null;
+    // Was schon Saetze hat, gilt als angesagt: sonst faengt der Bogen nach
+    // jedem Neustart bei jeder Uebung wieder von vorn an.
+    _csSeenEx = new Set();
+    try {
+      (wkLogs || []).forEach(l => {
+        if (l && (l.sets || []).some(s => s.done)) _csSeenEx.add(String(l.exerciseId));
+      });
+      if (sess && sess.exId) _csSeenEx.add(String(sess.exId));
+    } catch(_) {}
+    _csFinalLine = '';
+    _csLastSetTs = 0;
     _csSeqAt = Date.now() + CS_LEAD_MS;
     _csSyncCurrentEx();
   } catch(e) { console.warn('[Coach] Wiederaufnahme:', e); }
@@ -23938,13 +24165,26 @@ function _csExercise(ex) {
     // keine zweite Ansage. Das Modul entprellt nicht (exOpen gilt je Uebung,
     // steht deshalb bewusst nicht in CoachSession.ONCE).
     if (_csLastExId === exId) return;
+    // Der Vergleich mit der ZULETZT geoeffneten Uebung allein reicht nicht:
+    // "aktuell" ist die erste Uebung mit offenen Saetzen, und die springt
+    // zurueck, sobald der Nutzer zur Korrektur einen Satz einer frueheren
+    // Uebung abhakt. Gemessen: Uebung 1 fertig, ein Satz davon abgehakt ->
+    // exOpen + warmupIntro + cue ein zweites Mal; zweimal hin und her und der
+    // Coach schwieg bis zum Ende der Einheit. Deshalb die Menge der bereits
+    // angesagten Uebungen, nicht nur die letzte.
+    if (!_csSeenEx) _csSeenEx = new Set();
+    if (_csSeenEx.has(exId)) { _csLastExId = exId; return; }
+    _csSeenEx.add(exId);
     _csLastExId = exId;
     const sess = _csGet(timerTs); if (!sess) return;
     const lastKg = _csLastKgFor(exId);
-    const r = window.CoachSession.onExerciseOpen(sess, {
+    // Der Anker unterliegt dem Rueckhalt wie alles andere: ohne das frassen
+    // exOpen und warmupIntro der zweiten Uebung genau die zwei Plaetze, die
+    // fuer Halbzeit und Ermuedung reserviert waren.
+    const r = _csTake(sess, window.CoachSession.onExerciseOpen(sess, {
       id: exId, name: ex.name, targetSets: ex.targetSets,
       targetReps: ex.targetType === 'time' ? null : ex.targetReps, lastKg: lastKg
-    });
+    }));
     _csPut(r.sess);
     if (r.out) { const o = r.out; _csSeq(() => _csEmit(o)); }
     _csWarmup(ex, lastKg);
@@ -23970,6 +24210,7 @@ function _csWarmup(ex, lastKg) {
     if (!reihe) return;
     _csSeq(() => {
       const sess = _csGet(timerTs); if (!sess) return;
+      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
       const r = window.CoachSession.emit(sess, 'warmupIntro', 'warmupIntro', { ex: ex.name });
       _csPut(r.sess);
       if (r.out) _csEmit(r.out, reihe);
@@ -23996,7 +24237,7 @@ function _csCue(ex) {
     if (!cue) return;
     _csSeq(() => {
       const sess = _csGet(timerTs); if (!sess) return;
-      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
+      if (!_csHasRoomFine(sess)) return;          // strengerer Rueckhalt: Feinheiten sind zuerst da
       const r = window.CoachSession.emit(sess, 'cue', 'cue', { ex: ex.name });
       _csPut(r.sess);
       // Der Punkt IST der Satz: CoachCues liefert ihn fertig in beiden Sprachen
@@ -24016,7 +24257,7 @@ function _csRecall(ex) {
     if (!((tip.ts || 0) < (timerTs || 0))) return;
     _csSeq(() => {
       const sess = _csGet(timerTs); if (!sess) return;
-      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
+      if (!_csHasRoomFine(sess)) return;          // strengerer Rueckhalt: Feinheiten sind zuerst da
       const r = window.CoachSession.emit(sess, 'recall', 'recall', { ex: ex.name });
       _csPut(r.sess); if (r.out) _csEmit(r.out);
     });
@@ -24031,7 +24272,7 @@ function _csPlateau(ex) {
     if (!say) return;
     _csSeq(() => {
       const sess = _csGet(timerTs); if (!sess) return;
-      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
+      if (!_csHasRoomFine(sess)) return;          // strengerer Rueckhalt: Feinheiten sind zuerst da
       const r = window.CoachSession.emit(sess, 'plateau', say.key, say.vars);
       _csPut(r.sess); if (r.out) _csEmit(r.out);
     });
@@ -24042,10 +24283,28 @@ function _csPlateau(ex) {
 // kommt aus CoachAnalyze.isoWeekKey() — index.html hat bei getWeekKey() ein
 // anderes, nicht-ISO-Format ('2026-W5', ohne fuehrende Null). Die beiden Formate
 // werden hier NICHT zusammengefuehrt und nirgends gemischt (gehoert zu Block 5).
+/* Die Pause ist eine MESSUNG oder sie fehlt. Bis zur Blockabschluss-Review
+   stand hier S.restTimerSecs — die Einstellung des Nutzers — in jeder
+   Wochenzeile. Der Coach las damit dessen eigene Vorgabe als Beobachtung vor
+   ('deine Pausen liegen im Schnitt bei 90 Sekunden'), und plateau.restDelta
+   war strukturell immer 0. Gemessen wird jetzt in toggleSetDone(): der Abstand
+   zwischen zwei abgehakten Arbeitssaetzen landet als set.rs an der Einheit.
+   Ohne diese Zahl (jede Einheit vor dieser Aenderung) bleibt avgRestSecs
+   null — CoachAnalyze faellt dann auf den Satzschluessel ohne Pausenzahl
+   zurueck, statt eine zu erfinden. */
+function _csRestAvg(sets) {
+  try {
+    const v = (sets || [])
+      .filter(s => s && (s.type || 'normal') !== 'warmup')
+      .map(s => parseFloat(s.rs))
+      .filter(n => isFinite(n) && n > 0);
+    if (!v.length) return null;
+    return Math.round(v.reduce((a, b) => a + b, 0) / v.length);
+  } catch(_) { return null; }
+}
 function _csWeeklyHistory(exId) {
   const rows = new Map();
   try {
-    const rest = (typeof S.restTimerSecs === 'number' && S.restTimerSecs > 0) ? S.restTimerSecs : 90;
     (S.sessions || []).forEach(s => {
       const ts = new Date(s && s.date).getTime();
       if (!isFinite(ts)) return;
@@ -24057,9 +24316,13 @@ function _csWeeklyHistory(exId) {
         const topKg = top ? (parseFloat(top.w) || 0) : 0;
         if (!(topKg > 0)) return;
         let vol = 0; try { vol = setsVolume(l.sets || []); } catch(_) {}
+        const rest = _csRestAvg(l.sets);
         const cur = rows.get(wk);
         if (!cur || topKg > cur.topKg) rows.set(wk, { ts: ts, topKg: topKg, vol: vol, avgRestSecs: rest });
-        else if (vol > cur.vol) cur.vol = vol;
+        else {
+          if (vol > cur.vol) cur.vol = vol;
+          if (cur.avgRestSecs == null && rest != null) cur.avgRestSecs = rest;
+        }
       });
     });
   } catch(e) { console.warn('[Coach] Wochenverlauf:', e); }
@@ -24090,7 +24353,7 @@ function _csTimeBudget() {
     if (!say) return;
     _csSeq(() => {
       const sess = _csGet(timerTs); if (!sess) return;
-      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
+      if (!_csHasRoomFine(sess)) return;          // strengerer Rueckhalt: Feinheiten sind zuerst da
       const r = window.CoachSession.emit(sess, 'timeBudget', say.key, say.vars);
       _csPut(r.sess); if (r.out) _csEmit(r.out);
     });
@@ -24142,7 +24405,27 @@ function _csEnd(summary) {
     const sess = timerTs ? _csGet(timerTs) : null;
     if (sess) {
       const r = window.CoachSession.sessionEnd(sess, summary || {});
-      if (r.out) _csEmit(r.out);
+      // Bestwert an dieselbe Zeile, nicht als zweite Aeusserung: 'prCongrats'
+      // hatte bis zur Blockabschluss-Review keinen einzigen Aufrufer, und
+      // 'prs' war zugleich aus 'debrief' gefallen — Bestwerte kamen im Coach
+      // damit nirgends vor. Eine eigene Art dafuer haette einen weiteren Platz
+      // im knappsten Budget des Vorhabens gekostet und waere zudem auf einer
+      // Flaeche gelandet, die im selben Tick zugeht. Angehaengt wird nur ein
+      // echtes MAXIMALGEWICHT — ein geschaetztes 1RM als 'Bestwert' anzusagen
+      // waere eine Zahl, die so nie gehoben wurde.
+      let extra = '';
+      try {
+        const pr = ((summary && summary.prs) || []).find(x => x && x.type === 'weight');
+        if (pr) extra = _say('prCongrats', { ex: pr.exName, kg: _csWeight(pr.newVal) }) || '';
+      } catch(_) {}
+      const line = r.out ? _csEmit(r.out, extra || null) : '';
+      // Die Bilanz stand bisher NUR in #wk-coach-bar — und finishWk() schliesst
+      // ov-wk 24 Zeilen spaeter im selben Tick. Die 14 s Haltezeit waren tot:
+      // ausgerechnet die eine Aeusserung, die im Modul force bekommt, damit sie
+      // nie ausfaellt, hat der Nutzer nie gesehen. Sie wandert deshalb auf den
+      // Bildschirm, der nach dem Speichern ohnehin steht (Post-Workout-Check-in) —
+      // keine neue Flaeche im Training, kein Umbau des Abschluss-Ablaufs.
+      if (line) _csFinalLine = String(line);
     }
     _csDiscard();
   } catch(e) { console.warn('[Coach] Abschluss:', e); }
@@ -24201,6 +24484,22 @@ function _rpeAsk(li, si) {
     _coachBarRender();
   } catch(e) { console.warn('[Coach] Satz-Rueckfrage:', e); }
 }
+/* Eigene Obergrenze der Quittungsflaeche (CoachSession.ACK_CAP). Der Zaehler
+   liegt im Sessionzustand und nicht in einer Modulvariablen: sonst begaenne er
+   nach jedem Neuladen von vorn, genau wie es der Deckel des Bogens vor der
+   Blockabschluss-Review tat. Laeuft die Einheit nicht (Zustand weg, Stufe
+   off), gibt es keine Quittung. */
+function _csAck() {
+  try {
+    const sess = timerTs ? _csGet(timerTs) : null;
+    if (!sess) return false;
+    const r = window.CoachSession.ackTake(sess);
+    if (!r.ok) return false;
+    _csPut(r.sess);
+    return true;
+  } catch(e) { console.warn('[Coach] Quittung:', e); return false; }
+}
+
 function _rpeAnswer(a) {
   const p = _rpePend;
   _rpeClear(false);
@@ -24216,14 +24515,16 @@ function _rpeAnswer(a) {
     _rpeStoreOnLastSet(p.exId, window.CoachRpe.toRpe(a), a);
     if (next != null) _rpeSuggestNext(p.exId, next);
     // Quittung: gehoert zum SELBEN Kanal wie die Frage (setAsk) — Antwort auf
-    // einen eigenen Tipp des Nutzers, gesteuert allein von setFeedback, NICHT
-    // gegen die Obergrenze gerechnet. Sie durch emit() zu schicken, braeuchte
-    // force (setAck steht nicht in LEVEL_KINDS), und force gehoert laut Review
-    // ausschliesslich sessionEnd.
+    // eine Handlung des Nutzers, gesteuert von setFeedback. Sie zaehlt NICHT
+    // gegen die Obergrenze der ungefragten Aeusserungen (sonst bestrafte die
+    // Rueckfrage den, der sie beantwortet), sie durch emit() zu schicken
+    // braeuchte force, und force gehoert ausschliesslich sessionEnd.
+    // Stattdessen hat sie eine EIGENE, kleine Obergrenze: ohne die erschien
+    // sie bei jedem Satz — gemessen 12 Quittungen in einer Einheit.
     const ack = window.CoachRpe.ackFor(a, next);
-    if (ack) {
+    if (ack && _csAck()) {
       let txt = '';
-      try { txt = _say(ack.key, ack.vars) || ''; } catch(_) {}
+      try { txt = _say(ack.key, _csVars(ack.vars)) || ''; } catch(_) {}
       if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
     }
   } catch(e) { console.warn('[Coach] RPE-Antwort:', e); }
@@ -24839,7 +25140,11 @@ let _chTab = 'chat';
 let _chResetScroll = true;
 // Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
 // Unterschied, statt vier Adjektive zu lesen.
-function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: 60, reps: 8, sets: 3 }; }
+// Die Beispielwerte laufen durch dieselbe Formatierung wie jeder echte
+// Coach-Wert: der Satzkatalog traegt seit der Blockabschluss-Review keine feste
+// Einheit mehr, die Einheit haengt am Wert. Ohne _csWeight() stuende in der
+// Tonvorschau 'zuletzt 60 bei 8 Wiederholungen'.
+function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: _csWeight(60), reps: 8, sets: 3 }; }
 // _lang() folgt seit dem Sprach-Fix GT_LANG, deckt sich also mit Reitern,
 // Überschriften und dem Übungsnamen im Beispiel — kein eigener Sprach-Umweg
 // mehr nötig, _chToneLine() nutzt darum direkt _lang().
@@ -25088,7 +25393,8 @@ function _chToneExVars(){
       if (parseFloat(x.w) > 0 || parseInt(x.r) > 0) sets++;
     }));
     if (!(vol > 0) || !(sets > 0)) return null;
-    return { sets: sets, vol: vol };
+    // vol traegt seine Einheit selbst (s. _csWeight) — der Katalog kennt keine.
+    return { sets: sets, vol: _csWeight(vol) };
   } catch(e) { console.warn('[Coach] Beispielzahlen:', e); return null; }
 }
 // Inhalt der Beispielsatz-Zeile — eigene Funktion, weil coachHubSetName() sie

@@ -95,10 +95,10 @@
   var TXT = {
     de: {
       greet: {
-        ruhig:    'Letztes Mal {ex} mit {kg} kg, {sets} Sätze zu {reps}. Nimm dir Zeit.',
-        sachlich: '{ex}: zuletzt {kg} kg, {sets} Sätze zu {reps} Wiederholungen.',
-        hart:     '{ex}. {kg} Kilo. {sets} Sätze. Los.',
-        locker:   '{ex} mit {kg} kg — dein altes Spiel, oder?'
+        ruhig:    'Letztes Mal {ex} mit {kg}, {sets} Sätze zu {reps}. Nimm dir Zeit.',
+        sachlich: '{ex}: zuletzt {kg}, {sets} Sätze zu {reps} Wiederholungen.',
+        hart:     '{ex}. {kg}. {sets} Sätze. Los.',
+        locker:   '{ex} mit {kg} — dein altes Spiel, oder?'
       },
       greetFirst: {
         ruhig:    '{ex} steht heute zum ersten Mal an. Geh es ruhig an.',
@@ -107,16 +107,16 @@
         locker:   '{ex} zum ersten Mal — mal sehen, was drin ist.'
       },
       mid: {
-        ruhig:    'Halbzeit. Du liegst bei {vol} kg, etwa {pct} Prozent zur letzten Einheit.',
-        sachlich: 'Halbzeit: {vol} kg, {pct} Prozent gegenüber der letzten Einheit.',
-        hart:     'Halbzeit. {vol} Kilo. Nachlegen.',
-        locker:   'Schon {vol} kg bewegt, {pct} Prozent mehr als sonst. Läuft.'
+        ruhig:    'Halbzeit. Du liegst bei {vol}, etwa {pct} Prozent zur letzten Einheit.',
+        sachlich: 'Halbzeit: {vol}, {pct} Prozent gegenüber der letzten Einheit.',
+        hart:     'Halbzeit. {vol}. Nachlegen.',
+        locker:   'Schon {vol} bewegt, {pct} Prozent mehr als sonst. Läuft.'
       },
       exOpen: {
-        ruhig:    '{ex}: {sets} Sätze, zuletzt {kg} kg bei {reps} Wiederholungen.',
-        sachlich: '{ex}: {sets} Sätze geplant, zuletzt {kg} kg zu {reps} Wiederholungen.',
-        hart:     '{ex}. {kg} Kilo. {reps} Wiederholungen. Anfangen.',
-        locker:   '{ex} wieder — {kg} kg, {reps} Wiederholungen, {sets} Sätze.'
+        ruhig:    '{ex}: {sets} Sätze, zuletzt {kg} bei {reps} Wiederholungen.',
+        sachlich: '{ex}: {sets} Sätze geplant, zuletzt {kg} zu {reps} Wiederholungen.',
+        hart:     '{ex}. {kg}. {reps} Wiederholungen. Anfangen.',
+        locker:   '{ex} wieder — {kg}, {reps} Wiederholungen, {sets} Sätze.'
       },
       // Die Satzzahl steht NICHT im Text: warmupSets() liefert je nach
       // Arbeitsgewicht und Raster einen bis drei Saetze. "Zwei leichte Saetze"
@@ -136,10 +136,10 @@
         locker:   'Und, wie war der? Leicht, passend oder schwer?'
       },
       setAckEasy: {
-        ruhig:    'Gut. Beim nächsten Mal gehen wir auf {kg} kg.',
-        sachlich: 'Notiert. Nächster Vorschlag: {kg} kg.',
-        hart:     'Zu leicht. Nächstes Mal {kg} Kilo.',
-        locker:   'War wohl zu leicht — nächstes Mal {kg} kg.'
+        ruhig:    'Gut. Beim nächsten Mal gehen wir auf {kg}.',
+        sachlich: 'Notiert. Nächster Vorschlag: {kg}.',
+        hart:     'Zu leicht. Nächstes Mal {kg}.',
+        locker:   'War wohl zu leicht — nächstes Mal {kg}.'
       },
       // 'schwer' senkt um genau eine Rasterstufe (CoachRpe.adjustNext). Die
       // Quittung nennt deshalb das GESENKTE Gewicht und sagt auch, dass es
@@ -150,22 +150,21 @@
       // derselben Uebung eine Stufe niedriger") — also wurde der Text
       // nachgezogen, nicht die Rechnung.
       setAckHard: {
-        ruhig:    'Verstanden. Wir gehen eine Stufe zurück auf {kg} kg.',
-        sachlich: 'Notiert. Nächster Vorschlag: {kg} kg, eine Stufe niedriger.',
-        hart:     'Zu schwer. Runter auf {kg} Kilo.',
-        locker:   'Dann nehmen wir eine Stufe raus — {kg} kg.'
+        ruhig:    'Verstanden. Wir gehen eine Stufe zurück auf {kg}.',
+        sachlich: 'Notiert. Nächster Vorschlag: {kg}, eine Stufe niedriger.',
+        hart:     'Zu schwer. Runter auf {kg}.',
+        locker:   'Dann nehmen wir eine Stufe raus — {kg}.'
       },
-      restTip: {
-        ruhig:    'Bei {ex} hilft es, die Schultern unten zu lassen.',
-        sachlich: 'Technikpunkt {ex}: Schulterblätter fixieren, Bahn gleich halten.',
-        hart:     '{ex}: Schultern runter. Bahn halten.',
-        locker:   'Kleiner Tipp für {ex}: Schultern unten lassen, das spart Kraft.'
-      },
+      // 'restTip' ist mit der Blockabschluss-Review gestrichen: acht Saetze in
+      // zwei Sprachen ohne jeden Ausloeser — und inhaltlich ein Allgemeinplatz
+      // ('Schultern unten lassen'), der auf jede Uebung passt und bei keiner
+      // hilft. Genau das lehnt js/coach-cues.js fuer den Technikpunkt ab; der
+      // Katalog darf es dann nicht durch die Hintertuer wieder einfuehren.
       restNext: {
-        ruhig:    'Als Nächstes {kg} kg mit {reps} Wiederholungen.',
-        sachlich: 'Nächster Satz: {kg} kg, {reps} Wiederholungen.',
-        hart:     'Nächster Satz. {kg} Kilo. {reps} Stück.',
-        locker:   'Gleich weiter mit {kg} kg und {reps} Wiederholungen.'
+        ruhig:    'Als Nächstes {kg} mit {reps} Wiederholungen.',
+        sachlich: 'Nächster Satz: {kg}, {reps} Wiederholungen.',
+        hart:     'Nächster Satz. {kg}. {reps} Stück.',
+        locker:   'Gleich weiter mit {kg} und {reps} Wiederholungen.'
       },
       fatigue: {
         ruhig:    'Die Wiederholungen werden weniger. Etwas mehr Pause hilft jetzt.',
@@ -180,10 +179,10 @@
         locker:   'Zwölf Minuten Pause — noch dabei oder schon geduscht?'
       },
       debrief: {
-        ruhig:    '{sets} Sätze, {vol} kg bewegt. Solide Einheit.',
-        sachlich: 'Einheit beendet: {sets} Sätze, {vol} kg Gesamtvolumen.',
-        hart:     '{sets} Sätze. {vol} Kilo. Erledigt.',
-        locker:   '{sets} Sätze und {vol} kg später — Feierabend.'
+        ruhig:    '{sets} Sätze, {vol} bewegt. Solide Einheit.',
+        sachlich: 'Einheit beendet: {sets} Sätze, {vol} Gesamtvolumen.',
+        hart:     '{sets} Sätze. {vol}. Erledigt.',
+        locker:   '{sets} Sätze und {vol} später — Feierabend.'
       },
       recall: {
         ruhig:    'Bei {ex} hast du den Hinweis umgesetzt. Das zahlt sich aus.',
@@ -202,6 +201,18 @@
         hart:     '{ex} steht {weeks} Wochen. {secs} Sekunden Pause.',
         locker:   '{ex} klemmt seit {weeks} Wochen, im Schnitt {secs} Sekunden Pause.'
       },
+      // Dieselbe Beobachtung OHNE Pausenzahl. Sie ist der Regelfall, solange
+      // die Pausen einer Einheit nicht gemessen vorliegen: die Verdrahtung
+      // schrieb dort bis zur Blockabschluss-Review S.restTimerSecs hinein — die
+      // EINSTELLUNG des Nutzers, die er in den Optionen ohnehin sieht. Eine
+      // Zahl, die keine Beobachtung ist, gehoert in keinen Coach-Satz; also
+      // gibt es einen Schluessel ohne sie, statt eine erfundene zu fuellen.
+      plateauPlain: {
+        ruhig:    '{ex} steht seit {weeks} Wochen auf demselben Gewicht.',
+        sachlich: '{ex}: {weeks} Wochen ohne Steigerung des Topgewichts.',
+        hart:     '{ex} steht {weeks} Wochen. Nichts bewegt.',
+        locker:   '{ex} klemmt seit {weeks} Wochen auf derselben Zahl.'
+      },
       timeBudget: {
         ruhig:    '{mins} Minuten reichen für {count} Übungen. Der Rest kann warten.',
         sachlich: 'Zeitbudget {mins} Minuten: {count} Übungen priorisiert.',
@@ -215,10 +226,10 @@
         locker:   'Kurz vor {ex}: Rumpf fest machen, dann passt das.'
       },
       prCongrats: {
-        ruhig:    'Neuer Bestwert bei {ex}: {kg} kg.',
-        sachlich: 'Bestleistung {ex}: {kg} kg, alter Wert überboten.',
-        hart:     '{ex}: {kg} Kilo. Neuer Bestwert.',
-        locker:   '{kg} kg bei {ex} — das ist dein neuer Bestwert.'
+        ruhig:    'Neuer Bestwert bei {ex}: {kg}.',
+        sachlich: 'Bestleistung {ex}: {kg}, alter Wert überboten.',
+        hart:     '{ex}: {kg}. Neuer Bestwert.',
+        locker:   '{kg} bei {ex} — das ist dein neuer Bestwert.'
       },
       deload: {
         ruhig:    'Mehrere schwere Einheiten bei wenig Energie. Eine leichtere Woche hilft.',
@@ -261,10 +272,10 @@
     },
     en: {
       greet: {
-        ruhig:    'Last time {ex} at {kg} kg, {sets} sets of {reps}. Take your time.',
-        sachlich: '{ex}: last session {kg} kg, {sets} sets of {reps} reps.',
-        hart:     '{ex}. {kg} kilos. {sets} sets. Go.',
-        locker:   '{ex} at {kg} kg again? You know the drill.'
+        ruhig:    'Last time {ex} at {kg}, {sets} sets of {reps}. Take your time.',
+        sachlich: '{ex}: last session {kg}, {sets} sets of {reps} reps.',
+        hart:     '{ex}. {kg}. {sets} sets. Go.',
+        locker:   '{ex} at {kg} again? You know the drill.'
       },
       greetFirst: {
         ruhig:    '{ex} is on the plan for the first time. Ease into it.',
@@ -273,16 +284,16 @@
         locker:   'First time on {ex} — let us see what happens.'
       },
       mid: {
-        ruhig:    'Halfway. You are at {vol} kg, about {pct} percent versus last time.',
-        sachlich: 'Halfway: {vol} kg, {pct} percent versus the last session.',
-        hart:     'Halfway. {vol} kilos. Push.',
-        locker:   'Already {vol} kg moved, {pct} percent above usual. Not bad.'
+        ruhig:    'Halfway. You are at {vol}, about {pct} percent versus last time.',
+        sachlich: 'Halfway: {vol}, {pct} percent versus the last session.',
+        hart:     'Halfway. {vol}. Push.',
+        locker:   'Already {vol} moved, {pct} percent above usual. Not bad.'
       },
       exOpen: {
-        ruhig:    '{ex}: {sets} sets, last time {kg} kg for {reps} reps.',
-        sachlich: '{ex}: {sets} sets planned, last time {kg} kg for {reps} reps.',
-        hart:     '{ex}. {kg} kilos. {reps} reps. Start.',
-        locker:   '{ex} again — {kg} kg, {reps} reps, {sets} sets.'
+        ruhig:    '{ex}: {sets} sets, last time {kg} for {reps} reps.',
+        sachlich: '{ex}: {sets} sets planned, last time {kg} for {reps} reps.',
+        hart:     '{ex}. {kg}. {reps} reps. Start.',
+        locker:   '{ex} again — {kg}, {reps} reps, {sets} sets.'
       },
       warmupIntro: {
         ruhig:    'Warm up for {ex}: start light, then build.',
@@ -297,28 +308,22 @@
         locker:   'So how was it? Easy, right or hard?'
       },
       setAckEasy: {
-        ruhig:    'Good. Next time we go to {kg} kg.',
-        sachlich: 'Noted. Next suggestion: {kg} kg.',
-        hart:     'Too light. Next time {kg} kilos.',
-        locker:   'Too easy then — {kg} kg next time.'
+        ruhig:    'Good. Next time we go to {kg}.',
+        sachlich: 'Noted. Next suggestion: {kg}.',
+        hart:     'Too light. Next time {kg}.',
+        locker:   'Too easy then — {kg} next time.'
       },
       setAckHard: {
-        ruhig:    'Understood. We step back down to {kg} kg.',
-        sachlich: 'Noted. Next suggestion: {kg} kg, one step lower.',
-        hart:     'Too heavy. Down to {kg} kilos.',
-        locker:   'Then we take one step off — {kg} kg.'
-      },
-      restTip: {
-        ruhig:    'On {ex} it helps to keep the shoulders down.',
-        sachlich: 'Technique note on {ex}: fix the shoulder blades, keep the path.',
-        hart:     '{ex}: shoulders down. Keep the path.',
-        locker:   'Quick tip for {ex}: shoulders down, it saves energy.'
+        ruhig:    'Understood. We step back down to {kg}.',
+        sachlich: 'Noted. Next suggestion: {kg}, one step lower.',
+        hart:     'Too heavy. Down to {kg}.',
+        locker:   'Then we take one step off — {kg}.'
       },
       restNext: {
-        ruhig:    'Next up {kg} kg for {reps} reps.',
-        sachlich: 'Next set: {kg} kg, {reps} reps.',
-        hart:     'Next set. {kg} kilos. {reps} reps.',
-        locker:   'Up next: {kg} kg for {reps} reps.'
+        ruhig:    'Next up {kg} for {reps} reps.',
+        sachlich: 'Next set: {kg}, {reps} reps.',
+        hart:     'Next set. {kg}. {reps} reps.',
+        locker:   'Up next: {kg} for {reps} reps.'
       },
       fatigue: {
         ruhig:    'Your reps are dropping. A little more rest helps now.',
@@ -333,10 +338,10 @@
         locker:   'Twelve minutes idle — still here or already showered?'
       },
       debrief: {
-        ruhig:    '{sets} sets, {vol} kg moved. Solid session.',
-        sachlich: 'Session complete: {sets} sets, {vol} kg total volume.',
-        hart:     '{sets} sets. {vol} kilos. Done.',
-        locker:   '{sets} sets and {vol} kg later — that is a wrap.'
+        ruhig:    '{sets} sets, {vol} moved. Solid session.',
+        sachlich: 'Session complete: {sets} sets, {vol} total volume.',
+        hart:     '{sets} sets. {vol}. Done.',
+        locker:   '{sets} sets and {vol} later — that is a wrap.'
       },
       recall: {
         ruhig:    'You applied the note on {ex}. It is paying off.',
@@ -349,6 +354,12 @@
         sachlich: '{ex}: {weeks} weeks without progress. Average rest {secs} seconds.',
         hart:     '{ex} flat {weeks} weeks. {secs} seconds rest.',
         locker:   '{ex} stuck for {weeks} weeks, at {secs} seconds rest on average.'
+      },
+      plateauPlain: {
+        ruhig:    '{ex} has been at the same weight for {weeks} weeks.',
+        sachlich: '{ex}: {weeks} weeks without an increase in top weight.',
+        hart:     '{ex} flat {weeks} weeks. Nothing moved.',
+        locker:   '{ex} has been stuck on the same number for {weeks} weeks.'
       },
       timeBudget: {
         ruhig:    '{mins} minutes fit {count} exercises. The rest can wait.',
@@ -363,10 +374,10 @@
         locker:   'Quick one before {ex}: brace up and it flows.'
       },
       prCongrats: {
-        ruhig:    'New best on {ex}: {kg} kg.',
-        sachlich: 'Personal best on {ex}: {kg} kg, previous mark beaten.',
-        hart:     '{ex}: {kg} kilos. New best.',
-        locker:   '{kg} kg on {ex} — that is a new best.'
+        ruhig:    'New best on {ex}: {kg}.',
+        sachlich: 'Personal best on {ex}: {kg}, previous mark beaten.',
+        hart:     '{ex}: {kg}. New best.',
+        locker:   '{kg} on {ex} — that is a new best.'
       },
       deload: {
         ruhig:    'Several heavy sessions on low energy. A lighter week helps.',

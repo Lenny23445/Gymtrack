@@ -263,8 +263,85 @@
     return (lang === 'en' ? row.en : row.de) || null;
   }
 
-  var API = { cueFor: cueFor, normalize: normalize, CUES: CUES,
-              MIN_SUB_LEN: MIN_SUB_LEN };
+  /* ── Geraet aus dem Uebungsnamen (Blockabschluss-Review C1) ──────────────
+     Warum hier und nicht in coach-warmup.js: 'step' und 'barKg' sind Zahlen,
+     aber die Frage "hat diese Uebung eine Stange?" ist eine NAMENSFRAGE, und
+     die einzige Namensnormalisierung des Coach steht in dieser Datei
+     (fold/plainFold/hit, beide Umlaut-Schreibweisen, kurze Schluessel nur als
+     eigenes Wort). Ein zweiter Normalisierer waere bei der naechsten
+     Umlaut-Frage auseinandergelaufen — dieselbe Begruendung, mit der die
+     Zahlmodule ihr Format teilen.
+
+     Warum ueberhaupt der Name: die App kennt keinen Geraetetyp. ex.showPlateCalc
+     ist der einzige explizite Schalter, aber KEIN Import setzt ihn — weder
+     pickExFromLibrary() noch die Plan-Vorlagen noch _planImportEx(); im
+     Uebungsformular ist er auf false vorbelegt. Deshalb ist nur sein TRUE eine
+     Aussage; sein false ist der Vorgabewert und wird hier nicht gelesen.
+
+     ZWEI Tabellen und nicht eine mit Laengenregel: bei cueFor gewinnt der
+     laengste Treffer, weil der spezifischere Bewegungsname den besseren
+     Hinweis traegt. Beim Geraet ist es umgekehrt — 'kurzhantelbankdruecken'
+     enthaelt 'bankdruecken' (12 Zeichen) und 'kurzhantel' (10), und die
+     Geraeteangabe ist die Aussage, der Bewegungsname nur die uebliche
+     Ausfuehrung. Also erst die Marker, dann die Bewegung. */
+
+  var MARK = {
+    langhantel: 'barbell', barbell: 'barbell', lh: 'barbell', szstange: 'barbell',
+    kurzhantel: 'dumbbell', dumbbell: 'dumbbell', kh: 'dumbbell', kettlebell: 'dumbbell',
+    maschine: 'machine', machine: 'machine', kabel: 'machine', cable: 'machine',
+    seilzug: 'machine', geraet: 'machine'
+  };
+
+  // Nur Langhantel und Kurzhantel muessen hier stehen. Was uebrig bleibt, ist
+  // 'keine Aussage' — und die Verdrahtung nimmt dann KEINE Stange an. Eine
+  // erfundene Stange rundet auf Scheibenpaare, die es an einer Maschine nicht
+  // gibt; das ist der teurere Fehler.
+  var MOVE = {
+    bankdruecken: 'barbell', benchpress: 'barbell',
+    kniebeuge: 'barbell', squat: 'barbell', frontsquat: 'barbell',
+    kreuzheben: 'barbell', deadlift: 'barbell',
+    schulterdruecken: 'barbell', nackendruecken: 'barbell', overheadpress: 'barbell',
+    rudern: 'barbell', row: 'barbell',
+    hipthrust: 'barbell', shrug: 'barbell', frenchpress: 'barbell',
+    preachercurl: 'barbell', pullover: 'barbell',
+
+    splitsquat: 'dumbbell', gobletsquat: 'dumbbell',
+    ausfallschritt: 'dumbbell', lunge: 'dumbbell',
+    seitheben: 'dumbbell', lateralraise: 'dumbbell',
+    frontheben: 'dumbbell', frontraise: 'dumbbell',
+    reversefly: 'dumbbell', fliegende: 'dumbbell', chestfly: 'dumbbell',
+    hammercurl: 'dumbbell', konzentrationscurl: 'dumbbell', concentrationcurl: 'dumbbell',
+    bizepscurl: 'dumbbell', bicepscurl: 'dumbbell', arnoldpress: 'dumbbell',
+
+    latzug: 'machine', latpulldown: 'machine',
+    beinpresse: 'machine', legpress: 'machine',
+    beinstrecker: 'machine', legextension: 'machine',
+    beinbeuger: 'machine', beincurl: 'machine', legcurl: 'machine',
+    butterfly: 'machine', facepull: 'machine', trizepsdruecken: 'machine',
+    tricepspushdown: 'machine', hyperextension: 'machine'
+  };
+
+  function lookup(table, q, qp) {
+    var best = null;
+    Object.keys(table).forEach(function (k) {
+      if (!hit(q, k) && !hit(qp, plainKey(k))) return;
+      if (best === null || k.length > best.length) best = k;
+    });
+    return best === null ? null : table[best];
+  }
+
+  // 'barbell' | 'dumbbell' | 'machine' | null. null heisst ausdruecklich
+  // 'keine Aussage' und nicht 'Maschine' — die Entscheidung, was daraus folgt,
+  // gehoert an die Verdrahtungsstelle, die auch ex.showPlateCalc kennt.
+  function equipFor(exerciseName) {
+    var q = normalize(exerciseName);
+    if (!q) return null;
+    var qp = plainFold(exerciseName);
+    return lookup(MARK, q, qp) || lookup(MOVE, q, qp) || null;
+  }
+
+  var API = { cueFor: cueFor, equipFor: equipFor, normalize: normalize, CUES: CUES,
+              EQUIP_MARK: MARK, EQUIP_MOVE: MOVE, MIN_SUB_LEN: MIN_SUB_LEN };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachCues = API;

@@ -162,3 +162,41 @@ test('unsinnig hohe Arbeitsgewichte ergeben keine Aufwaermsaetze', () => {
   assert.ok(W.warmupSets(W.MAX_WORK_KG, { step: 2.5, barKg: 20 }).length > 0,
     'Die Obergrenze selbst ist noch gueltig');
 });
+
+/* ── Auflegbarkeit als eigene Zusicherung (Blockabschluss-Review C1) ────────
+   Der bestehende Bestand prueft die Rundung an einzelnen Zahlen. Was die
+   Review gemessen hat ('42 kg x 3' = 11 kg je Seite), faellt erst auf, wenn
+   man JEDE angesagte Zahl gegen das Raster haelt. Deshalb hier als Zusicherung
+   ueber eine Matrix statt als Einzelfall. */
+test('jeder angesagte Aufwaermsatz ist auflegbar: nie unter der Stange, Scheiben paarweise', () => {
+  const steps = [1.25, 2.5, 5];
+  const bars  = [0, 10, 15, 20, 20.4];
+  let geprueft = 0;
+  bars.forEach(bar => steps.forEach(step => {
+    for (let work = 30; work <= 200; work += 2.5) {
+      const sets = W.warmupSets(work, { step: step, barKg: bar });
+      sets.forEach(s => {
+        geprueft++;
+        assert.ok(s.kg >= bar - 1e-9, 'unter dem Stangengewicht: ' + s.kg + ' bei Stange ' + bar);
+        assert.ok(s.kg < work, 'nicht unter dem Arbeitsgewicht: ' + s.kg + ' bei ' + work);
+        const einheiten = (s.kg - bar) / inc(step, bar);
+        assert.ok(Math.abs(einheiten - Math.round(einheiten)) < 1e-6,
+          'nicht auflegbar: ' + s.kg + ' kg bei Stange ' + bar + ' und Scheibe ' + step +
+          ' -> ' + einheiten + ' Einheiten');
+      });
+    }
+  }));
+  assert.ok(geprueft > 500, 'zu wenige Faelle geprueft: ' + geprueft);
+});
+
+test('eine Scheibe unter 1,25 kg macht den Sprung nicht auflegbar-feiner, sondern nur kleiner', () => {
+  // Der Beleg zum Boden, den die Verdrahtung setzt: mit der 0,5er-Scheibe aus
+  // dem Standardsatz faellt eine Stufe an, fuer die man VIER Scheiben je Seite
+  // braucht. Das Modul rechnet korrekt — die Zahl ist trotzdem keine Ansage.
+  const fein = W.warmupSets(60, { step: 0.5, barKg: 20 }).map(s => s.kg);
+  const grob = W.warmupSets(60, { step: 1.25, barKg: 20 }).map(s => s.kg);
+  assert.ok(fein.some(kg => Math.abs((kg - 20) / 2.5 - Math.round((kg - 20) / 2.5)) > 1e-9),
+    'kein feiner Zwischenwert entstanden, der Test prueft nichts: ' + fein.join(','));
+  grob.forEach(kg => assert.ok(Math.abs((kg - 20) / 2.5 - Math.round((kg - 20) / 2.5)) < 1e-9,
+    'mit dem Boden bleibt eine nicht auflegbare Stufe: ' + kg));
+});
