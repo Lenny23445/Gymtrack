@@ -5547,6 +5547,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <script src="./js/coach-log.js"></script>
 <script src="./js/coach-intent.js"></script>
 <script src="./js/coach-cache.js"></script>
+<script src="./js/coach-persona.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -8808,7 +8809,20 @@ S.blocked   = Array.isArray(S.blocked) ? S.blocked : []; // blockierte UIDs (nur
 // Privatsphäre: was Freunde sehen dürfen (alles einzeln schaltbar)
 S.privacy = Object.assign({ gym:true, live:true, lastWk:true, stats:true, prs:false, feed:true }, S.privacy || {});
 // KI-Coach-Feature-Toggles (Premium) — bewusst geräte-lokal wie S.privacy, kein Cloud-Sync-Feld.
-S.aiCoach = Object.assign({ live:true, insights:true }, S.aiCoach || {});
+// preset fehlt hier absichtlich: solange es undefined ist, holt der Hub die
+// Einrichtung nach. 'custom' und 'quiet' sind gültige Werte und lösen sie nicht aus.
+S.aiCoach = Object.assign({
+  live:true, insights:true,
+  name:'', tone:'sachlich', voice:null, voiceOn:true,
+  inTraining:'key', setFeedback:true, pushLevel:'normal'
+}, S.aiCoach || {});
+// Invariante: live !== false ⟺ inTraining !== 'off'. Vier Stellen im Training
+// fragen die Stufe ab; wer nur eine der beiden Seiten setzt, umgeht sie.
+// Bestandsnutzer, die den Live-Coach abgeschaltet hatten, bleiben abgeschaltet —
+// sonst fängt der Coach nach dem Update ungefragt wieder an zu reden.
+if (S.aiCoach.live === false) S.aiCoach.inTraining = 'off';
+else if (S.aiCoach.inTraining === 'off') S.aiCoach.live = false;
+else S.aiCoach.live = true;
 // Post-Workout-Check-ins (Phase E): [{sid, d, feel:1-4, en:1-3}], auf 400 Einträge gedeckelt.
 if (!S.checkins) S.checkins = [];
 
@@ -8816,6 +8830,20 @@ let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
   _updateWidgetData();
 };
+
+// ── COACH-PERSONA: der dünne Wrapper um js/coach-persona.js ──────────
+// Das Modul kennt keine App-Globals, Persona und Sprache müssen hereinkommen.
+// Die Spec schreibt say(key, vars) — genau diese Kurzform sehen die
+// Aufrufstellen dank _say(). Jeder Helfer fällt im Fehlerfall auf den Standard
+// zurück: ein Fehler im Coach darf nie das laufende Training abbrechen.
+function _persona() {
+  try { return CoachPersona.personaGet(S.aiCoach); }
+  catch(_) { try { return CoachPersona.personaGet({}); } catch(__) { return { name:'Coach', tone:'sachlich', voice:null, voiceOn:true, inTraining:'key', setFeedback:true, pushLevel:'normal', insights:true }; } }
+}
+function _lang() { try { return localStorage.getItem('gt_lang') === 'en' ? 'en' : 'de'; } catch(_) { return 'de'; } }
+function _say(key, vars) { try { return CoachPersona.say(key, vars || {}, _persona(), _lang()); } catch(_) { return ''; } }
+function _coachName()  { return _persona().name; }
+function _coachLevel() { return _persona().inTraining; }
 
 // ── GLASS 2.0: CHART-DESIGN (globale Defaults + weiche Verläufe) ──
 if (window.Chart) {
@@ -16470,7 +16498,7 @@ function renderLogCards() {
   // (erste Übung mit offenen Sätzen) — sichtbares Signal, dass die KI mitliest.
   let _auraLi = -1;
   try {
-    if (typeof isPremium === 'function' && isPremium() && S.aiCoach && S.aiCoach.live !== false)
+    if (typeof isPremium === 'function' && isPremium() && _coachLevel() !== 'off')
       _auraLi = wkLogs.findIndex(l => (l.sets || []).some(s => !s.done));
   } catch(_) {}
   document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
@@ -22995,7 +23023,7 @@ function _coachBarSet(mode, msg, holdMs) {
 }
 function _coachBarRender() {
   const el = document.getElementById('wk-coach-bar'); if (!el) return;
-  const on = isPremium() && S.aiCoach && S.aiCoach.live !== false;
+  const on = isPremium() && _coachLevel() !== 'off';
   if (!on) { el.style.display = 'none'; return; }
   el.style.display = '';
   const thinking = _coachBarState.mode === 'thinking';
@@ -23087,7 +23115,7 @@ function _coachMicroPick(arr) {
 function _cm(de, en) { return GT_LANG === 'en' ? en : de; }
 
 function _coachMicroReact(li, si) {
-  if (!isPremium() || !S.aiCoach || S.aiCoach.live === false) return;
+  if (!isPremium() || _coachLevel() === 'off') return;
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
   const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
@@ -23192,7 +23220,7 @@ function _coachMicroReact(li, si) {
 }
 
 function _coachEvalRun(li, si) {
-  if (!isPremium() || !S.aiCoach || S.aiCoach.live === false) return;
+  if (!isPremium() || _coachLevel() === 'off') return;
   if (navigator.onLine === false) return;
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
@@ -23633,11 +23661,59 @@ function _premQuotaText(){
   const left = Math.max(0, (q.limit||0) - (q.used||0));
   return `Noch ${left} von ${q.limit} KI-Anfragen diesen Monat`;
 }
+// Felder, die als Text gespeichert werden. Alles andere bleibt ein Boolean.
+const _COACH_TEXT_KEYS = ['name','tone','voice','inTraining','pushLevel'];
+// Nur diese Schalter setzt ein Profil — nur sie können es auf 'custom' kippen.
+// Name, Ton und Stimme sind profilunabhängig.
+const _COACH_PRESET_KEYS = ['inTraining','setFeedback','pushLevel','live'];
+// Deckt der aktuelle Zustand das Profil noch? Verglichen wird gegen die
+// PRESETS des Moduls, damit Profil und Vergleich nicht auseinanderlaufen.
+function _coachPresetMatches(name){
+  let P = null; try { P = CoachPersona.PRESETS[name] || null; } catch(_) {}
+  if (!P) return false;
+  const p = _persona();
+  return p.inTraining === P.inTraining && p.setFeedback === P.setFeedback && p.pushLevel === P.pushLevel;
+}
+function _coachOptRender(){
+  try { if (typeof _coachBarRender === 'function') _coachBarRender(); } catch(_) {}
+  try { if (typeof renderCoachTodayCard === 'function') renderCoachTodayCard(); } catch(_) {}
+  try { if (typeof renderCoachHub === 'function') renderCoachHub(); } catch(_) {}
+}
 function setAiCoachOpt(key, val){
   S.aiCoach = S.aiCoach || { live:true, insights:true };
-  S.aiCoach[key] = !!val;
+  // Hier stand pauschal !!val. Das zerstörte jeden Textwert: 'key' → true,
+  // 'sachlich' → true, der vergebene Name → true.
+  if (_COACH_TEXT_KEYS.indexOf(key) >= 0) S.aiCoach[key] = (val == null ? '' : String(val));
+  else S.aiCoach[key] = !!val;
+  // Invariante in beide Richtungen halten: live !== false ⟺ inTraining !== 'off'.
+  if (key === 'inTraining') S.aiCoach.live = (S.aiCoach.inTraining !== 'off');
+  else if (key === 'live') {
+    if (S.aiCoach.live === false) S.aiCoach.inTraining = 'off';
+    else if (S.aiCoach.inTraining === 'off') S.aiCoach.inTraining = 'key';
+  }
+  // Weicht ein Profilschalter ab, heißt das Profil ab jetzt 'Angepasst'. Ein noch
+  // offenes preset (undefined) bleibt offen — sonst entfällt die Einrichtung.
+  if (_COACH_PRESET_KEYS.indexOf(key) >= 0) {
+    const cur = S.aiCoach.preset;
+    if (cur && cur !== 'custom' && !_coachPresetMatches(cur)) S.aiCoach.preset = 'custom';
+  }
   persist();
-  try { if (typeof _coachBarRender === 'function') _coachBarRender(); } catch(_) {}
+  _coachOptRender();
+}
+// Setzt die drei Profilschalter plus live in EINEM Zug. Bewusst nicht über
+// setAiCoachOpt: der erste Schalter würde preset sofort auf 'custom' kippen,
+// bevor die anderen beiden gesetzt sind.
+function setCoachPreset(name){
+  let P = null; try { P = CoachPersona.PRESETS[name] || null; } catch(_) {}
+  if (!P) return;
+  S.aiCoach = S.aiCoach || { live:true, insights:true };
+  S.aiCoach.inTraining  = P.inTraining;
+  S.aiCoach.setFeedback = P.setFeedback;
+  S.aiCoach.pushLevel   = P.pushLevel;
+  S.aiCoach.live        = (P.inTraining !== 'off');
+  S.aiCoach.preset      = name;
+  persist();
+  _coachOptRender();
 }
 function renderPremiumSettings(){
   const el = document.getElementById('prem-settings-body'); if (!el) return;
