@@ -3020,8 +3020,17 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .mx-year-head b{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
 .mx-year-head span{font-size:11.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
 .mx-year-body{display:flex;gap:5px;align-items:flex-start}
-.mx-year .mx-wdcol{grid-template-rows:12px repeat(7,var(--mxc))}
-.mx-year .mx-wdcol span{font-size:8.5px}
+/* Jahres-Ansicht: alle sieben Wochentage stehen an der Spalte. Die Zellen sind
+   hier nur ~4px hoch, darum bekommt die Vollansicht einen eigenen VERTIKALEN
+   Abstand (--mxgv) — sonst ist die Zeilenhoehe kleiner als die Schrift und es
+   passte nur jeder zweite Tag hinein. */
+.mx-year .mx-wdcol{grid-template-rows:12px repeat(7,var(--mxc));gap:var(--mxgv,var(--mxg))}
+.mx.full .mx-col{gap:var(--mxgv,var(--mxg))}
+/* Auch der Abstand Monatszeile → Raster muss --mxgv sein. Sonst startet die
+   Wochentags-Spalte (Kopf + --mxgv) tiefer als das Raster (Kopf + --mxg) und
+   jedes Label sitzt um die Differenz neben seiner Zeile. */
+.mx.full .mx-cols{gap:var(--mxgv,var(--mxg))}
+.mx-year .mx-wdcol span{font-size:7.5px;letter-spacing:-.02em;min-width:20px}
 .mx-year .mx-mrow{height:12px}
 .mx-year .mx-m{line-height:12px;font-size:8.5px;letter-spacing:.02em}
 .mx.full .mx-cell{border-radius:1.5px}
@@ -18947,6 +18956,7 @@ function _mxApplyFull(){
   if (view && !MX_FULL) {
     view.style.removeProperty('--mxc');
     view.style.removeProperty('--mxg');
+    view.style.removeProperty('--mxgv');
   }
   if (view) view.classList.toggle('full', MX_FULL);
   if (card) card.classList.toggle('full', MX_FULL && CAL_MODE === 'matrix');
@@ -19018,7 +19028,13 @@ function _mxRenderYears(wrap, today, map, level){
   const avail = Math.max(160, (wrap.clientWidth || 340) - wdW - 5);
   const cell  = Math.max(3, Math.floor((avail - 52*gap) / 53));
   const view  = document.getElementById('cal-view-matrix');
-  if (view) { view.style.setProperty('--mxc', cell+'px'); view.style.setProperty('--mxg', gap+'px'); }
+  // Vertikal mehr Luft als horizontal: nur so ist die Zeilenhoehe (Zelle + Abstand)
+  // gross genug, dass alle sieben Wochentags-Labels nebeneinander Platz haben.
+  if (view) {
+    view.style.setProperty('--mxc', cell+'px');
+    view.style.setProperty('--mxg', gap+'px');
+    view.style.setProperty('--mxgv', Math.max(gap, 9 - cell) + 'px');
+  }
 
   let html = '';
   years.forEach(year => {
@@ -19061,9 +19077,7 @@ function _mxRenderYears(wrap, today, map, level){
       <div class="mx-year-head"><b>${year}</b><span>${count} ${count===1?'Training':'Trainings'}</span></div>
       <div class="mx-year-body">
         <div class="mx-wdcol">
-          <span></span>
-          <span>${_WD_LBL[0]}</span><span></span><span>${_WD_LBL[2]}</span>
-          <span></span><span>${_WD_LBL[4]}</span><span></span><span>${_WD_LBL[6]}</span>
+          <span></span>${_WD_LBL.map(l => `<span>${l}</span>`).join('')}
         </div>
         <div class="mx-cols">
           <div class="mx-mrow m12">${months}</div>
@@ -19111,21 +19125,17 @@ function renderMatrix(){
 
   const MON_S = _MX_MON;
 
-  let months = '', cols = '';
+  let cols = '';
   let lastMonth = -1, sessCount = 0, bestStreak = 0, curStreak = 0;
+  const monAt = [];                       // {w, mo} — Spalte, in der ein Monat beginnt
 
   for (let w = 0; w < weeks; w++) {
     const colStart = new Date(start); colStart.setDate(start.getDate() + w*7);
 
-    // Monatsbeschriftung nur beim Monatswechsel (und nicht in der letzten Spalte,
-    // sonst läuft die Schrift aus dem Raster)
+    // Monatswechsel nur merken (und nicht in der letzten Spalte, sonst läuft die
+    // Schrift aus dem Raster). Die Zeile entsteht erst nach der Schleife.
     const mo = colStart.getMonth();
-    if (mo !== lastMonth && w < weeks - 1) {
-      months += `<div class="mx-m">${MON_S[mo]}</div>`;
-      lastMonth = mo;
-    } else {
-      months += `<div class="mx-m"></div>`;
-    }
+    if (mo !== lastMonth && w < weeks - 1) { monAt.push({ w, mo }); lastMonth = mo; }
 
     let cells = '', weekTrained = false;
     for (let i = 0; i < 7; i++) {
@@ -19149,6 +19159,19 @@ function renderMatrix(){
     if (weekTrained) { curStreak++; if (curStreak > bestStreak) bestStreak = curStreak; }
     else curStreak = 0;
   }
+
+  // Ein Monatskuerzel ist breiter als eine Spalte und laeuft nach rechts aus.
+  // Beginnt der Zeitraum mitten in einem Monat, liegen die ersten beiden Wechsel
+  // oft nur eine Spalte auseinander — die Labels klebten dann aneinander
+  // ("APRMAY"). In dem Fall gewinnt der spaetere, vollstaendige Monat.
+  const monKeep = new Map();
+  monAt.forEach((m, i) => {
+    const next = monAt[i + 1];
+    if (!next || next.w - m.w >= 2) monKeep.set(m.w, m.mo);
+  });
+  let months = '';
+  for (let w = 0; w < weeks; w++)
+    months += `<div class="mx-m">${monKeep.has(w) ? MON_S[monKeep.get(w)] : ''}</div>`;
 
   // Kompakte Ansicht: alle sieben Wochentage beschriften. Die Zeilen sind hier
   // 15px hoch (+4px Abstand) — die 9px-Labels passen vollstaendig hinein. Nur die
@@ -22738,7 +22761,7 @@ function _seedDemoData() {
     ['dm_squat','dm_press'],            // Legs
   ];
 
-  const WEEKS = 157;                                      // ~3 Jahre (Matrix-Screenshot)
+  const WEEKS = 187;                                      // ab Anfang 2023 (Matrix-Screenshot)
   const today = new Date(); today.setHours(18,0,0,0);
   const curMon = new Date(today);
   curMon.setDate(today.getDate() - ((today.getDay()+6)%7)); // Montag dieser Woche
@@ -22807,7 +22830,11 @@ function _seedDemoData() {
   if (!document.getElementById('dm-demo-style')) {
     const st = document.createElement('style');
     st.id = 'dm-demo-style';
-    st.textContent = '.week-dot.future{opacity:1 !important}';
+    // Demo-only: Wochen-Haken voll deckend UND jedes Trainings-Feld im Kalender
+    // gleich stark einfaerben. Sonst zeichnet die Volumen-Staffelung (l1–l4) die
+    // fruehen Jahre blass — im Screenshot soll die Serie gleichmaessig wirken.
+    st.textContent = '.week-dot.future{opacity:1 !important}' +
+      '.cal-cell.l1,.cal-cell.l2,.cal-cell.l3,.cal-cell.l4{background:var(--acc)!important;color:#fff!important}';
     document.head.appendChild(st);
   }
 }
