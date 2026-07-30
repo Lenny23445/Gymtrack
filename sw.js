@@ -15,6 +15,7 @@ const SHELL = [
   './js/coach-cues.js',
   './js/coach-rpe.js',
   './js/coach-analyze.js',
+  './js/coach-notify.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 

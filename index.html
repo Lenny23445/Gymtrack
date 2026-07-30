@@ -5705,6 +5705,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <script src="./js/coach-cues.js"></script>
 <script src="./js/coach-rpe.js"></script>
 <script src="./js/coach-analyze.js"></script>
+<!-- coach-notify MUSS nach coach-analyze stehen: der Frequenz-Deckel loest die
+     ISO-Wochenrechnung ueber CoachAnalyze.isoWeekKey auf. Fehlt sie, liefert
+     weekKey() null und der Deckel sperrt alles ausser dem Wochenbericht
+     (fail-closed) — der Coach waere stumm, ohne dass es auffiele. -->
+<script src="./js/coach-notify.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -9107,6 +9112,14 @@ else if (S.aiCoach.inTraining === 'off') S.aiCoach.live = false;
 else S.aiCoach.live = true;
 // Post-Workout-Check-ins (Phase E): [{sid, d, feel:1-4, en:1-3}], auf 400 Einträge gedeckelt.
 if (!S.checkins) S.checkins = [];
+// Proaktive Meldungen (Block 4): Zustand des Frequenz-Deckels (state) plus die
+// zuletzt geplanten Termine (plan) und der zuletzt gesehene Berechtigungsstand.
+// Bewusst GERÄTE-LOKAL: _pushCloud() zählt seine Felder einzeln auf, coachPush
+// steht dort nicht — kein zweiter Firestore-Schreibpfad, firestore.rules
+// unangetastet. Zwei Geräte dürfen sich ihre Zähler auch gar nicht gegenseitig
+// überschreiben: gemeldet wird auf dem Gerät, nicht im Konto.
+if (!S.coachPush || typeof S.coachPush !== 'object' || Array.isArray(S.coachPush)) S.coachPush = { state:null, plan:[], permOk:false, owns:false };
+if (!Array.isArray(S.coachPush.plan)) S.coachPush.plan = [];
 
 let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
@@ -9486,12 +9499,25 @@ let mgStatChart = null;
 let mgStatId = null;
 
 // ── NOTIFICATIONS ─────────────────────────────────────
+// Gibt seit Task 19 das Promise des gewaehlten Zweiges zurueck. Die fuenfzehn
+// bestehenden Aufrufstellen ignorieren den Rueckgabewert wie bisher; _cnSync()
+// wartet darauf, damit die Uebergabe der Erinnerung abgeschlossen ist, bevor
+// der naechste Lauf den Bestand liest.
 function scheduleWorkoutNotifications() {
   if (!S.notifEnabled) return;
   if (_isNative()) {
-    _scheduleNativeNotifications();
+    // Hat der Coach die Trainings-Erinnerung übernommen (Task 19), wird die
+    // generische NICHT mehr geplant: sonst lägen am selben Termin „Zeit fürs
+    // Training!" und „Heute steht Bankdrücken an: 3 Sätze zu 8 bei 62,5 kg"
+    // übereinander. Übernommen ist sie nur, wenn wirklich eine inhaltliche
+    // Erinnerung im Plan steht (_cnSync setzt S.coachPush.owns) — sonst bleibt
+    // die alte Planung stehen, statt durch eine halbe ersetzt zu werden.
+    if (_cnOwnsReminder()) return _cnDropGeneric();
+    return _scheduleNativeNotifications();
   } else {
-    _scheduleWebNotifications();
+    // Web-PWA: der Coach hat hier keinen Zustellweg (kein LocalNotifications-
+    // Plugin), also gibt es auch nichts zu verdrängen. sw.js bleibt zuständig.
+    return _scheduleWebNotifications();
   }
 }
 
@@ -9713,6 +9739,414 @@ function setNotifTime(val) {
   persist();
   scheduleWorkoutNotifications();
   updateNotifUI();
+}
+
+/* ═══ PROAKTIVE MELDUNGEN (Task 19): der Coach bei geschlossener App ════════
+   js/coach-notify.js entscheidet OB und WANN gemeldet wird — hier steht nur
+   das Zustellen. Zugestellt wird über @capacitor/local-notifications, denselben
+   Weg, den die Trainings-Erinnerung (ids 1000–1999) und der Pausen-Timer
+   (id 2500) schon nutzen. Ein zweiter Kanal wäre ein zweites System für
+   dieselbe Sache.
+
+   EIGENER NUMMERNRAUM 47000–47999, und der ist nicht optional: ein pauschales
+   LN.cancel() räumte den laufenden Pausen-Timer mit ab.
+
+   Rein lokal: S.coachPush steht nicht im Cloud-Payload, es gibt keinen
+   Netzaufruf in diesem Block, firestore.rules bleibt unberührt.
+
+   Jeder Einstiegspunkt liegt in try/catch: ein Fehler im Coach darf nie das
+   laufende Training oder den App-Start abbrechen. Gespeichert wird mit
+   persist(); ein save-Aufruf existiert in dieser App nicht, würfe einen
+   ReferenceError und stürbe im try/catch daneben still. */
+const CN_ID_BASE = 47000;
+const CN_ID_MAX  = 47999;
+// Derselbe Kanal wie die bestehende Trainings-Erinnerung: zwei Kanäle für
+// dieselbe Art Meldung wären zwei Schalter in den Systemeinstellungen.
+const CN_CHANNEL = 'gymtrack-reminders';
+
+/* Stabile Zahl aus der Text-id des Moduls ('kind:YYYY-MM-DD') —
+   LocalNotifications verlangt Integer. Die Art bekommt einen eigenen
+   Hunderterblock, der Tag den Rest: derselbe Kontext ergibt bei jedem Lauf
+   dieselbe id (keine Dubletten nach App-Neustart), und zwei Kandidaten
+   verschiedener Art können sich nie gegenseitig überschreiben. */
+function _cnIdFor(id) {
+  const s = String(id == null ? '' : id);
+  let ki = -1;
+  try { ki = (window.CoachNotify ? CoachNotify.KINDS : []).indexOf(s.split(':')[0]); } catch(_) {}
+  const slot = ki >= 0 ? ki : 9;   // 9 → 47900–47999, immer noch im eigenen Raum
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return CN_ID_BASE + slot * 100 + (h % 100);
+}
+
+/* Ortszeit gegen UTC in Minuten. Ohne diesen Wert rechnete der Tagesdeckel in
+   UTC — ein Nutzer auf UTC+9 bekäme das doppelte Tagesbudget, weil sein
+   Vormittag und sein Abend auf zwei UTC-Tage fallen. */
+function _cnTz() { try { return -new Date().getTimezoneOffset(); } catch(_) { return 0; } }
+
+function _cnLevel() { try { return _persona().pushLevel; } catch(_) { return 'still'; } }
+
+/* Keine Emojis, auch nicht im Titel: der Coach-Name ist Nutzereingabe. Das
+   Modul entschärft ihn für die Oberfläche, hier wird zusätzlich alles
+   Piktogrammartige und jedes Steuerzeichen entfernt — eine Meldung ist eine
+   Zeile Text. */
+function _cnPlain(s) {
+  try {
+    return String(s == null ? '' : s)
+      .replace(/[\p{Extended_Pictographic}\u{FE00}-\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{200D}]/gu, '')
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch(_) { return ''; }
+}
+
+function _cnTitle() {
+  try { return _cnPlain(_coachName()) || 'Coach'; } catch(_) { return 'Coach'; }
+}
+
+/* Diese drei Sätze tragen die Einheit im KATALOG ('{kg} kg', '{vol} kg') —
+   dort geht die blanke Zahl herein, sonst stünde da „62,5 kg kg". Bei
+   'prCongrats' steht keine Einheit im Satz, also hängt sie am Wert und kommt
+   aus _csWeight() — dieselbe Stelle, an der auch der Erzählbogen im Training
+   Modulausgabe auf den Katalog treffen lässt. */
+const _CN_UNIT_IM_SATZ = { anniversary:true, reminderPlan:true, reportReady:true };
+function _cnText(key, vars) {
+  try {
+    const v = Object.assign({}, vars || {});
+    if (!_CN_UNIT_IM_SATZ[key]) {
+      if (typeof v.kg  === 'number') v.kg  = _csWeight(v.kg);
+      if (typeof v.vol === 'number') v.vol = _csWeight(v.vol);
+    }
+    return _cnPlain(_say(key, v) || '');
+  } catch(e) { console.warn('[Coach] Meldungstext:', e); return ''; }
+}
+
+function _cnPersist() { try { persist(); } catch(e) { console.warn('[Coach] Meldungen sichern:', e); } }
+
+// Hat der Coach die Trainings-Erinnerung übernommen? Nur dann verdrängt er die
+// generische. Synchron gelesen, weil scheduleWorkoutNotifications() an
+// fünfzehn Stellen synchron gerufen wird.
+function _cnOwnsReminder() {
+  try { return !!(_isNative() && S.coachPush && S.coachPush.owns === true); } catch(_) { return false; }
+}
+
+// Die alte, generische Planung (ids 1000–1999) abräumen. Der Pausen-Timer
+// (2500) und der eigene Raum (47000+) bleiben unberührt.
+async function _cnDropGeneric() {
+  try {
+    const LN = _cap('LocalNotifications'); if (!LN) return;
+    const pend = await LN.getPending().catch(() => ({ notifications: [] }));
+    const ids = (((pend && pend.notifications) || []))
+      .filter(n => n && Number(n.id) >= 1000 && Number(n.id) < 2000)
+      .map(n => ({ id: Number(n.id) }));
+    if (ids.length) await LN.cancel({ notifications: ids }).catch(() => {});
+  } catch(e) { console.warn('[Coach] alte Erinnerung entfernen:', e); }
+}
+
+/* Nur die EIGENEN Termine abbestellen. Gelesen wird beides: der Bestand aus
+   getPending() (fängt Waisen aus früheren Ständen) und der zuletzt gemerkte
+   Plan (falls getPending() nichts liefert). Gefiltert wird strikt auf
+   47000–47999 — der Pausen-Timer läuft weiter. */
+async function _cnCancelOwn(LN, alt) {
+  try {
+    const ids = {};
+    try {
+      const pend = await LN.getPending().catch(() => ({ notifications: [] }));
+      (((pend && pend.notifications) || [])).forEach(n => {
+        const i = Number(n && n.id);
+        if (i >= CN_ID_BASE && i <= CN_ID_MAX) ids[i] = true;
+      });
+    } catch(_) {}
+    (alt || []).forEach(e => { if (e && e.id) ids[_cnIdFor(e.id)] = true; });
+    const liste = Object.keys(ids).map(i => ({ id: Number(i) }));
+    if (liste.length) await LN.cancel({ notifications: liste }).catch(() => {});
+  } catch(e) { console.warn('[Coach] Termine abbestellen:', e); }
+}
+
+// ── Die sechs Zulieferer: gegen den echten Code gebaut, nichts erfunden ─────
+
+// Zeitpunkt der letzten gespeicherten Einheit.
+function _cnLastWorkoutTs() {
+  try {
+    let best = null;
+    (S.sessions || []).forEach(s => {
+      const t = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      if (isFinite(t) && (best === null || t > best)) best = t;
+    });
+    return best;
+  } catch(e) { console.warn('[Coach] letzte Einheit:', e); return null; }
+}
+
+/* Übungs-ids eines Plantages — dieselbe Auflösung wie beim Trainingsstart
+   (Preset / Wochenplan-Gruppe / feste Liste). Keine zweite Lesart des
+   Wochenplans, sonst erinnerte die Meldung an etwas anderes, als der Start
+   danach vorauswählt. */
+function _cnPlanExIds(p) {
+  try {
+    if (!p) return [];
+    if (p.type === 'preset' && p.id) { const pr = presetById(p.id); return pr ? _presetExIdsExisting(pr) : []; }
+    if (p.type === 'exercises' && Array.isArray(p.exIds)) return p.exIds.filter(id => S.exercises.some(e => e.id === id));
+    if (p.type === 'group' && p.group) {
+      for (const m of allModes()) {
+        const g = m.groups.find(x => x.id === p.group);
+        if (g && g.muscles) return S.exercises.filter(e => exInGroup(e, m.id, g.id)).map(e => e.id);
+      }
+    }
+  } catch(e) { console.warn('[Coach] Plantag lesen:', e); }
+  return [];
+}
+
+/* Nächster geplanter Trainingstag MIT konkretem Inhalt: Übung, Gewicht, Sätze,
+   Wiederholungen. Die Uhrzeit ist die, die der Nutzer für seine Erinnerung
+   gewählt hat (S.notifTime) — der Coach erfindet keinen zweiten Termin.
+   Fehlt einer der vier Werte, gibt es keinen Kandidaten: das Modul striche ihn
+   ohnehin (Gestaltungsregel 8), und die generische Erinnerung bleibt dann
+   stehen, statt durch eine halbe ersetzt zu werden. */
+function _cnNextWorkout(now) {
+  try {
+    const keys = ['sun','mon','tue','wed','thu','fri','sat'];   // Index = getDay()
+    const teile = String(S.notifTime || '08:00').split(':');
+    const h  = Math.min(23, Math.max(0, parseInt(teile[0], 10) || 8));
+    const mi = Math.min(59, Math.max(0, parseInt(teile[1], 10) || 0));
+    for (let i = 0; i < 8; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + i);
+      d.setHours(h, mi, 0, 0);
+      if (d.getTime() <= now) continue;
+      const ids = _cnPlanExIds(planFor(keys[d.getDay()]));
+      for (let k = 0; k < ids.length; k++) {
+        const ex = exById(ids[k]);
+        if (!ex || ex.targetType === 'time') continue;
+        let kg = null;
+        try { kg = getSuggestedWeight(ex); } catch(_) { kg = null; }
+        const sets = parseInt(ex.targetSets, 10) || 0;
+        const reps = parseInt(ex.targetReps, 10) || 0;
+        if (!(kg > 0) || !(sets > 0) || !(reps > 0)) continue;
+        return { at: d.getTime(), ex: ex.name, kg: kg, sets: sets, reps: reps };
+      }
+    }
+  } catch(e) { console.warn('[Coach] nächstes Training:', e); }
+  return null;
+}
+
+/* Termin des Wochenberichts: Sonntagabend, 19 Uhr Ortszeit. Block 5 legt
+   später den fertigen Text hinein; der Kanal und der Deckel-Sonderweg
+   (UNCAPPED) stehen schon hier. */
+function _cnReportAt(now) {
+  try {
+    const d = new Date(now);
+    d.setHours(19, 0, 0, 0);
+    const bis = (7 - d.getDay()) % 7;          // 0 = Sonntag
+    if (bis > 0 || d.getTime() <= now) d.setDate(d.getDate() + (bis || 7));
+    return d.getTime();
+  } catch(e) { console.warn('[Coach] Berichtstermin:', e); return null; }
+}
+
+/* Volumen der laufenden ISO-Woche. Der Wochenschlüssel kommt aus
+   CoachAnalyze.isoWeekKey — die EINZIGE Wochenrechnung des Vorhabens. Das
+   Altformat von getWeekKey() ('2026-W5') bleibt hier bewusst außen vor; die
+   Zusammenführung ist Block 5. */
+function _cnWeekVol(now) {
+  try {
+    if (!window.CoachAnalyze) return null;
+    const wk = CoachAnalyze.isoWeekKey(now);
+    if (!wk) return null;
+    let vol = 0;
+    (S.sessions || []).forEach(s => {
+      const t = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      if (!isFinite(t) || CoachAnalyze.isoWeekKey(t) !== wk) return;
+      try { vol += sessionVolume(s) || 0; } catch(_) {}
+    });
+    return vol > 0 ? Math.round(vol) : null;
+  } catch(e) { console.warn('[Coach] Wochenvolumen:', e); return null; }
+}
+
+/* Deload: KEINE zweite Erholungsrechnung. Dieselbe Lage, die auch die
+   Gewichtsvorschläge, die Pausenlänge und die Tagesempfehlung steuert. */
+function _cnDeloadDue() {
+  try { const r = _ciReadiness(); return !!(r && r.mode === 'deload'); }
+  catch(e) { console.warn('[Coach] Deload-Prüfung:', e); return false; }
+}
+
+/* Jahresrückblick: eine Einheit vor 365 ± 3 Tagen, deren damaliges Topgewicht
+   heute überboten ist. Bei gleichem oder niedrigerem Gewicht null — ein
+   Rückblick, der Stillstand feiert, ist schlimmer als keiner. */
+function _cnAnniversary(now) {
+  try {
+    const JAHR = 365 * 864e5, TOL = 3 * 864e5;
+    const alt = [];
+    (S.sessions || []).forEach(s => {
+      const t = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      if (!isFinite(t)) return;
+      const ab = Math.abs((now - t) - JAHR);
+      if (ab <= TOL) alt.push({ ts: t, s: s, ab: ab });
+    });
+    if (!alt.length) return null;
+    alt.sort((a, b) => a.ab - b.ab);
+    for (let i = 0; i < alt.length; i++) {
+      let damals = null;
+      (alt[i].s.logs || []).forEach(l => {
+        const top = _coachTopSet(l.sets);
+        const w = top ? (parseFloat(top.w) || 0) : 0;
+        if (w > 0 && (!damals || w > damals.kg)) damals = { exId: l.exerciseId, kg: w };
+      });
+      if (!damals) continue;
+      const ex = exById(damals.exId);
+      if (!ex) continue;
+      let heute = 0;
+      (S.sessions || []).forEach(s => {
+        const t = (s && s.date) ? new Date(s.date).getTime() : NaN;
+        if (!isFinite(t) || t <= alt[i].ts) return;
+        (s.logs || []).forEach(l => {
+          if (l.exerciseId !== damals.exId) return;
+          const top = _coachTopSet(l.sets);
+          const w = top ? (parseFloat(top.w) || 0) : 0;
+          if (w > heute) heute = w;
+        });
+      });
+      if (heute > damals.kg) return { ex: ex.name, kg: damals.kg };
+    }
+  } catch(e) { console.warn('[Coach] Jahresrückblick:', e); }
+  return null;
+}
+
+/* Berechtigung — NUR vom Hub aus, beim Wechsel der Push-Stufe weg von 'still'.
+   An dieser Stelle versteht der Nutzer, wofür; beim ersten App-Start nicht.
+   Ohne Plugin (Web-PWA) gibt es nichts zu fragen und erst recht nichts
+   zurückzunehmen: die Einstellung bleibt stehen, _cnSync() schweigt ohnehin. */
+async function _cnPermission() {
+  try {
+    const LN = _cap('LocalNotifications');
+    if (!LN) return true;
+    let perm = await LN.checkPermissions().catch(() => ({ display:'prompt' }));
+    if (!perm || perm.display !== 'granted') {
+      perm = await LN.requestPermissions().catch(() => ({ display:'denied' }));
+    }
+    const ok = !!(perm && perm.display === 'granted');
+    if (ok) {
+      try { await LN.createChannel?.({ id: CN_CHANNEL, name:'Trainings-Erinnerungen', importance:4, visibility:1, sound:'default' }); } catch(_) {}
+    }
+    return ok;
+  } catch(e) { console.warn('[Coach] Berechtigung:', e); return false; }
+}
+
+/* Hängt an setAiCoachOpt('pushLevel', …) und setCoachPreset(): die neue Stufe
+   gilt sofort, nicht erst morgen. Weg von 'still' wird die Berechtigung
+   erfragt; verweigert der Nutzer, springt die Auswahl auf den vorigen Wert
+   zurück und ein ruhiger Hinweis erscheint. Das ist KEIN Fehler. */
+async function _cnLevelChanged(vorher) {
+  try {
+    const jetzt = _cnLevel();
+    if (jetzt !== 'still' && vorher === 'still') {
+      const ok = await _cnPermission();
+      if (!ok) {
+        S.aiCoach = S.aiCoach || {};
+        S.aiCoach.pushLevel = 'still';
+        try { _coachPresetSync(); } catch(_) {}
+        _cnPersist();
+        try { _coachOptRender(); } catch(_) {}
+        try { _dndToast(_cm('Ohne Mitteilungen meldet sich dein Coach nur in der App.',
+                            'Without notifications your coach only speaks inside the app.')); } catch(_) {}
+        await _cnSync();
+        return;
+      }
+    }
+    await _cnSync();
+  } catch(e) { console.warn('[Coach] Push-Stufe:', e); }
+}
+
+/* _cnSync() — verwirft zuerst die EIGENEN alten Termine, plant dann alles neu
+   und schreibt die Zähler fort.
+
+   Reihenfolge, und keine Stufe ist tauschbar:
+     1. Fällige Termine des letzten Plans in den Zustand schreiben. Nur die:
+        was noch aussteht, wird gleich verworfen und neu geplant und darf
+        deshalb NICHT gegen das Budget zählen — sonst verbrauchte jeder
+        App-Start das Tagesbudget ein zweites Mal und der Coach verstummte.
+     2. Eigene Termine abbestellen (nur 47000–47999).
+     3. Neu planen — der Deckel liegt VOR der Planung, im Modul.
+     4. Zustellen, sichern, die generische Erinnerung übergeben oder holen. */
+async function _cnSync(opts) {
+  const o = opts || {};
+  try {
+    if (!window.CoachNotify) return;
+    const LN = _cap('LocalNotifications');
+    if (!LN) return;                       // Web-PWA: kein Zustellweg, kein Eingriff
+    const tz  = _cnTz();
+    const now = Date.now();
+
+    let st = (S.coachPush && S.coachPush.state) || CoachNotify.notifyNew();
+    const alt = (S.coachPush && Array.isArray(S.coachPush.plan)) ? S.coachPush.plan : [];
+    alt.forEach(e => {
+      if (e && typeof e.at === 'number' && e.at <= now) st = CoachNotify.record(st, e.kind, e.at, tz);
+    });
+
+    await _cnCancelOwn(LN, alt);
+
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    const perm = await LN.checkPermissions().catch(() => ({ display:'prompt' }));
+    const erlaubt = !!(perm && perm.display === 'granted');
+    S.coachPush = { state: st, plan: [], permOk: erlaubt, owns: false };
+
+    if (!premium || !erlaubt) {
+      // Ohne Premium meldet der Coach nicht, ohne Berechtigung bleibt er still.
+      // Die generische Erinnerung holt sich dann ihren Platz zurück.
+      _cnPersist();
+      try { await scheduleWorkoutNotifications(); } catch(_) {}
+      return;
+    }
+
+    let busy = false;
+    try { busy = !!isWorkoutActive(); } catch(_) { busy = false; }
+
+    const plan = CoachNotify.planAll({
+      now: now,
+      level: _cnLevel(),
+      state: st,
+      tzOffsetMin: tz,
+      workoutActive: busy,
+      reportAt:  _cnReportAt(now),
+      reportVol: _cnWeekVol(now),
+      nextWorkout:   _cnNextWorkout(now),
+      lastWorkoutTs: _cnLastWorkoutTs(),
+      deload:        _cnDeloadDue(),
+      anniversary:   _cnAnniversary(now),
+      pr: o.pr || null
+    }) || [];
+
+    const notifs = [], behalten = [];
+    plan.forEach(e => {
+      const body = _cnText(e.key, e.vars);
+      if (!body) return;                    // ohne Satz keine Meldung
+      notifs.push({
+        id:        _cnIdFor(e.id),
+        title:     _cnTitle(),
+        body:      body,
+        schedule:  { at: new Date(e.at), allowWhileIdle: true },
+        sound:     'default',
+        channelId: CN_CHANNEL,
+        extra:     { coachKind: e.kind }
+      });
+      behalten.push({ id: e.id, at: e.at, kind: e.kind });
+    });
+
+    if (notifs.length) {
+      try { await LN.createChannel?.({ id: CN_CHANNEL, name:'Trainings-Erinnerungen', importance:4, visibility:1, sound:'default' }); } catch(_) {}
+      await LN.schedule({ notifications: notifs });
+    }
+
+    S.coachPush.plan = behalten;
+    S.coachPush.owns = behalten.some(e => e.kind === 'reminderPlan');
+    _cnPersist();
+    // Übernommen → die generische Erinnerung räumen; sonst holt sie sich ihren
+    // Platz zurück. Beides macht scheduleWorkoutNotifications() selbst, es liest
+    // dafür S.coachPush.owns — und ruft _cnSync() nicht seinerseits, also keine
+    // Schleife. Awaited, weil beide Zweige asynchron sind: sonst endete
+    // _cnSync(), während die Übergabe noch lief, und der nächste Lauf sähe
+    // einen halben Bestand.
+    try { await scheduleWorkoutNotifications(); } catch(_) {}
+  } catch(e) { console.warn('[Coach] Meldungen planen:', e); }
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -17380,6 +17814,20 @@ function finishWk() {
     try { _csPrs = detectPRs(_newSess) || []; } catch(_) { _csPrs = []; }
     _csEnd({ sets: _csSets, vol: Math.round(_csVol * 10) / 10, prs: _csPrs });
   } catch(e) { console.warn('[Coach] Abschluss:', e); }
+  // Block 4 (Task 19): neue Trainings-Erinnerung, PR-Gratulation und
+  // Deload-Pruefung. Laeuft NACH persist(), damit die frische Einheit schon in
+  // S.sessions steht — sonst plante der Rueckkehr-Anstoss gegen den alten
+  // Stand. Nur der Gewichts-PR traegt eine echte Kilozahl; ein geschaetztes
+  // 1RM waere in "Neuer Bestwert bei {ex}: {kg}" eine Zahl, die so nie auf der
+  // Stange lag. Bewusst nicht awaited: finishWk() wartet auf nichts.
+  try {
+    let _cnPr = null;
+    try {
+      const _p = (detectPRs(_newSess) || []).filter(x => x && x.type === 'weight' && x.newVal > 0)[0];
+      if (_p) _cnPr = { ex: _p.exName, kg: _p.newVal };
+    } catch(_) {}
+    _cnSync({ pr: _cnPr });
+  } catch(e) { console.warn('[Coach] Meldungen nach der Einheit:', e); }
   // Gamification: Punkte-Ticker NICHT hier feuern — er läuft sonst unsichtbar
   // hinter dem Share-/Snap-Flow. Nur vormerken; ausgelöst wird er, sobald der
   // Share-Flow geschlossen ist (_shfExit).
@@ -25105,6 +25553,10 @@ function setAiCoachOpt(key, val){
   // (Speicherquote), propagierte der Fehler bisher aus dem Handler heraus und
   // _coachOptRender() lief nie — Wert geschrieben, Bild nicht.
   try {
+  // Vorige Push-Stufe merken, BEVOR sie überschrieben wird: der Wechsel weg von
+  // 'still' fragt die Berechtigung, und bei Verweigerung springt die Auswahl
+  // genau hierauf zurück (Task 19).
+  let _cnVor = 'still'; try { _cnVor = _cnLevel(); } catch(_) {}
   S.aiCoach = S.aiCoach || { live:true, insights:true };
   // Hier stand pauschal !!val. Das zerstörte jeden Textwert: 'key' → true,
   // 'sachlich' → true, der vergebene Name → true.
@@ -25134,6 +25586,9 @@ function setAiCoachOpt(key, val){
   if (_COACH_PRESET_KEYS.indexOf(key) >= 0) _coachPresetSync();
   persist();
   _coachOptRender();
+  // Die neue Stufe gilt sofort, nicht erst morgen. Bewusst nicht awaited: eine
+  // Meldung ist ein Angebot, kein Dialog — der Schalter blockiert nichts.
+  if (key === 'pushLevel') { try { _cnLevelChanged(_cnVor); } catch(e2) { console.warn('[Coach] Push-Stufe:', e2); } }
   } catch(e) {
     console.warn('[Coach] Schalter:', e);
     // Das Bild muss trotzdem nachziehen: der Wert steht schon im Zustand.
@@ -25148,6 +25603,8 @@ function setCoachPreset(name){
   try {
   let P = null; try { P = CoachPersona.PRESETS[name] || null; } catch(_) {}
   if (!P) return;
+  // Ein Profil setzt pushLevel mit — derselbe Wechsel, dieselbe Berechtigung.
+  let _cnVor = 'still'; try { _cnVor = _cnLevel(); } catch(_) {}
   S.aiCoach = S.aiCoach || { live:true, insights:true };
   S.aiCoach.inTraining  = P.inTraining;
   S.aiCoach.setFeedback = P.setFeedback;
@@ -25159,6 +25616,7 @@ function setCoachPreset(name){
   delete S.aiCoach.liveWas;
   persist();
   _coachOptRender();
+  if (_cnLevel() !== _cnVor) { try { _cnLevelChanged(_cnVor); } catch(e2) { console.warn('[Coach] Push-Stufe:', e2); } }
   } catch(e) {
     console.warn('[Coach] Profil:', e);
     try { _coachOptRender(); } catch(_) {}
@@ -29444,6 +29902,10 @@ if (_isNative()) {
 } else {
   navigator.serviceWorker?.ready.then(() => scheduleWorkoutNotifications());
 }
+// Proaktive Meldungen (Task 19): setzt vor allem den Rueckkehr-Anstoss neu —
+// wer die App oeffnet, verschiebt ihn. Verzoegert, damit der Start nicht auf
+// das Plugin wartet; ohne LocalNotifications kehrt _cnSync() sofort zurueck.
+setTimeout(() => { try { _cnSync(); } catch(e) { console.warn('[Coach] Meldungen beim Start:', e); } }, 1200);
 
 // ── APPLE NATIVE FEATURES INITIALISIEREN ──────────────
 if (_isNative()) {
