@@ -5209,17 +5209,25 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 /* Segmented Control statt vier scrollender Pillen. Die scrollende Zeile zeigte
    je nach Sprache nur drei von vier Reitern und war die Hauptquelle des
    billigen Eindrucks. Gleiche Breite, ein Träger, der aktive sitzt darin. */
-.ch-tabs{display:flex;justify-content:space-between;gap:3px;padding:3px;margin:0 0 15px;border-radius:14px;
-  background:rgba(127,127,127,.10);border:1px solid var(--gl-bdr)}
+/* Gestaltungsregel 7: dieselbe Bedienabsicht ("eins von N wählen") muss in der
+   App gleich aussehen. Der Träger mit Pillen (Segmented Control) kam sonst
+   NIRGENDS vor und stand im selben Sheet gegen die .pwz-chip-Reihe der
+   Feinjustierung. Die Klassen bleiben (der Plan verlangt sie), das Aussehen ist
+   jetzt das der Chips: derselbe Rahmen (1.5px --gl-bdr), derselbe Radius, derselbe
+   aktive Zustand. Nur Schriftgrad und Polster sind eine Stufe knapper, damit vier
+   Reiter in eine Zeile passen. */
+.ch-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0 0 15px;
+  background:none;border:none;border-radius:0}
 /* flex:0 1 auto, NICHT 1 1 0: bei gleicher Breite bekommt jeder Reiter ein
    Viertel, und "Einstellungen" ist breiter als ein Viertel — es stand als
    "Einstellu…" da. Inhaltsbreite passt zusammen in die Zeile (~297 von 331px);
    schrumpfen darf sie auf sehr schmalen Geräten trotzdem. */
 .ch-tab{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  background:transparent;border:none;color:var(--text2);font-family:inherit;font-size:12px;font-weight:800;
-  letter-spacing:-.1px;padding:9px 9px;border-radius:11px;cursor:pointer;
-  transition:background-color .15s,color .15s}
-.ch-tab.on{background:rgba(var(--acc-rgb),.16);color:var(--acc);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+  border:1.5px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text);
+  font-family:inherit;font-size:13px;font-weight:700;letter-spacing:-.1px;
+  padding:9px 13px;border-radius:13px;cursor:pointer;
+  transition:background-color .15s,color .15s,border-color .15s}
+.ch-tab.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.10);color:var(--acc)}
 
 /* Abschnittstitel in der Skala der App (.row-title) statt als graues
    Uppercase-Label. Acht graue Kapitälchen-Zeilen hintereinander waren der
@@ -8332,7 +8340,7 @@ const I18N_EN = {
   'Name und Ton kannst du jederzeit ändern.':'You can change name and tone at any time.',
   'Er spricht nur, wenn du ihn über den Sprech-Button fragst — nie von selbst.':
     'He only speaks when you ask him via the talk button — never on his own.',
-  'Sprachausgabe':'Voice output',
+  'Das Journal braucht ein Konto.':'The journal needs an account.',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -9026,6 +9034,19 @@ S.aiCoach = Object.assign({
   name:'', tone:'sachlich', voice:null, voiceOn:true,
   inTraining:'key', setFeedback:true, pushLevel:'normal'
 }, S.aiCoach || {});
+// Ungültige Werte aus älteren oder fremden Ständen normalisieren. _persona() tut
+// das beim LESEN, die Felder selbst blieben bisher krumm — wer S.aiCoach direkt
+// anfasst (die Invariante darunter, der live-Schalter, _coachPresetMatches),
+// traf dann auf 'laut' oder 'dauernd'. Name und preset bleiben absichtlich roh:
+// safeName('') wäre 'Coach' — ein Name, den der Nutzer nie gewählt hat — und ein
+// ungültiges preset soll die Einrichtung auslösen, nicht stillschweigend zu
+// einem Profil werden.
+try {
+  const _cpNorm = CoachPersona.personaGet(S.aiCoach);
+  S.aiCoach.tone       = _cpNorm.tone;
+  S.aiCoach.inTraining = _cpNorm.inTraining;
+  S.aiCoach.pushLevel  = _cpNorm.pushLevel;
+} catch(e) { console.warn('[Coach] Normalisierung beim Start:', e); }
 // Invariante: live !== false ⟺ inTraining !== 'off'. Vier Stellen im Training
 // fragen die Stufe ab; wer nur eine der beiden Seiten setzt, umgeht sie.
 // Bestandsnutzer, die den Live-Coach abgeschaltet hatten, bleiben abgeschaltet —
@@ -10953,8 +10974,23 @@ function _aicCardTap(card) {
   if (!card) return;
   requestAnimationFrame(() => card.classList.add('in'));
   card.style.cursor = 'pointer';
+  // Die Karte ist der EINZIGE Zugang zum Hub — als reines Tap-Ziel war er für
+  // Tastatur und VoiceOver unerreichbar. aria-label benennt die AKTION statt des
+  // ganzen Kartentextes, damit die Vorlesestimme "Coach-Menü öffnen" sagt und
+  // nicht den kompletten Empfehlungsblock.
+  card.setAttribute('role', 'button');
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('aria-label', _cm('Coach-Menü öffnen', 'Open coach menu'));
   card.onclick = (ev) => {
     if (ev.target.closest('button, a')) return;
+    try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
+    try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
+  };
+  card.onkeydown = (ev) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+    // Der "Training starten"-Knopf in der Karte behält seine eigene Taste.
+    if (ev.target !== card && ev.target.closest('button, a')) return;
+    ev.preventDefault();
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
     try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
   };
@@ -23139,6 +23175,10 @@ async function premBuy(productId){
       // ein Profil hat (Verlängerung, zweites Gerät), wird nicht neu gefragt.
       setTimeout(() => {
         try {
+          // Gestaltungsregel 2: im Training kein Overlay, nichts Modales.
+          // openOv() schiebt das Trainings-Sheet über OV_STACK_EXEMPT weg. Die
+          // Einrichtung holt der Hub später nach — preset ist dann noch offen.
+          if (typeof isWorkoutActive === 'function' && isWorkoutActive()) return;
           const offen = !S.aiCoach || S.aiCoach.preset === undefined;
           if (offen && typeof openCoachSetup === 'function') openCoachSetup();
         } catch(e) { console.warn('[Coach] Einrichtung nach Kauf:', e); }
@@ -23398,6 +23438,13 @@ function _cm(de, en) { return GT_LANG === 'en' ? en : de; }
 
 function _coachMicroReact(li, si) {
   if (!isPremium() || _coachLevel() === 'off') return;
+  // "Rückmeldung nach dem Satz — Kurzer Kommentar, sobald ein Satz steht": genau
+  // dieser Kommentar ist gemeint, hier sitzt der Verbraucher des Schalters.
+  // _coachEvalRun() bleibt bewusst außen vor — das ist die Vorschlagskarte des
+  // Live-Coaches, die "Live-Coach im Training" (inTraining) steuert. Wäre sie
+  // mitgefangen, schaltete ein Schalter zwei Dinge ab und der andere wäre halb
+  // wirkungslos.
+  try { if (_persona().setFeedback === false) return; } catch(_) {}
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
   const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
@@ -23974,31 +24021,67 @@ function _coachOptRender(){
   // kehren früh zurück, solange ihr Overlay zu ist.
   try { if (typeof renderCoachSetup === 'function') renderCoachSetup(); } catch(_) {}
 }
+// Hält den Profilnamen an den drei Feldern statt nur in eine Richtung zu kippen:
+// beschreiben sie ein Profil, trägt der Zustand dessen Namen; beschreiben sie
+// keines, heißt er 'custom'. Vorher blieb 'custom' stehen, sobald es einmal
+// gesetzt war — ein Profil, das der Nutzer nie verlassen hat, war damit nach
+// einem verlustfreien Rundlauf trotzdem weg. Ein noch offenes preset (undefined)
+// bleibt offen, sonst entfällt die Einrichtung.
+function _coachPresetSync(){
+  if (!S.aiCoach || S.aiCoach.preset === undefined) return;
+  let namen = ['quiet','balanced','close'];
+  try { if (window.CoachPersona && CoachPersona.PRESETS) namen = Object.keys(CoachPersona.PRESETS); } catch(_) {}
+  for (let i = 0; i < namen.length; i++) {
+    if (_coachPresetMatches(namen[i])) { S.aiCoach.preset = namen[i]; return; }
+  }
+  S.aiCoach.preset = 'custom';
+}
 function setAiCoachOpt(key, val){
+  // Äußerer Deckel: die Funktion hängt direkt an inline onclick. Wirft persist()
+  // (Speicherquote), propagierte der Fehler bisher aus dem Handler heraus und
+  // _coachOptRender() lief nie — Wert geschrieben, Bild nicht.
+  try {
   S.aiCoach = S.aiCoach || { live:true, insights:true };
   // Hier stand pauschal !!val. Das zerstörte jeden Textwert: 'key' → true,
   // 'sachlich' → true, der vergebene Name → true.
   if (_COACH_TEXT_KEYS.indexOf(key) >= 0) S.aiCoach[key] = (val == null ? '' : String(val));
   else S.aiCoach[key] = !!val;
   // Invariante in beide Richtungen halten: live !== false ⟺ inTraining !== 'off'.
-  if (key === 'inTraining') S.aiCoach.live = (S.aiCoach.inTraining !== 'off');
+  if (key === 'inTraining') {
+    S.aiCoach.live = (S.aiCoach.inTraining !== 'off');
+    // Eine bewusst gewählte Stufe ersetzt die gemerkte.
+    if (S.aiCoach.inTraining !== 'off') delete S.aiCoach.liveWas;
+  }
   else if (key === 'live') {
-    if (S.aiCoach.live === false) S.aiCoach.inTraining = 'off';
-    else if (S.aiCoach.inTraining === 'off') S.aiCoach.inTraining = 'key';
+    if (S.aiCoach.live === false) {
+      // Stufe merken, BEVOR sie auf 'off' fällt. "Live-Coach im Training" in den
+      // Premium-Einstellungen ist ein reines Aus/Ein; vorher degradierte es
+      // "Eng dabei" (full) beim Wiedereinschalten auf 'key' und das Profil auf
+      // 'custom' — zwei Tipps, und aus einem Profil wurde ein Mischzustand,
+      // den kein Profil beschreibt.
+      if (S.aiCoach.inTraining !== 'off') S.aiCoach.liveWas = S.aiCoach.inTraining;
+      S.aiCoach.inTraining = 'off';
+    } else if (S.aiCoach.inTraining === 'off') {
+      const zurueck = S.aiCoach.liveWas;
+      S.aiCoach.inTraining = (zurueck === 'key' || zurueck === 'full') ? zurueck : 'key';
+      delete S.aiCoach.liveWas;
+    }
   }
-  // Weicht ein Profilschalter ab, heißt das Profil ab jetzt 'Angepasst'. Ein noch
-  // offenes preset (undefined) bleibt offen — sonst entfällt die Einrichtung.
-  if (_COACH_PRESET_KEYS.indexOf(key) >= 0) {
-    const cur = S.aiCoach.preset;
-    if (cur && cur !== 'custom' && !_coachPresetMatches(cur)) S.aiCoach.preset = 'custom';
-  }
+  if (_COACH_PRESET_KEYS.indexOf(key) >= 0) _coachPresetSync();
   persist();
   _coachOptRender();
+  } catch(e) {
+    console.warn('[Coach] Schalter:', e);
+    // Das Bild muss trotzdem nachziehen: der Wert steht schon im Zustand.
+    try { _coachOptRender(); } catch(_) {}
+  }
 }
 // Setzt die drei Profilschalter plus live in EINEM Zug. Bewusst nicht über
 // setAiCoachOpt: der erste Schalter würde preset sofort auf 'custom' kippen,
 // bevor die anderen beiden gesetzt sind.
 function setCoachPreset(name){
+  // Äußerer Deckel, gleiche Begründung wie bei setAiCoachOpt: inline onclick.
+  try {
   let P = null; try { P = CoachPersona.PRESETS[name] || null; } catch(_) {}
   if (!P) return;
   S.aiCoach = S.aiCoach || { live:true, insights:true };
@@ -24007,8 +24090,15 @@ function setCoachPreset(name){
   S.aiCoach.pushLevel   = P.pushLevel;
   S.aiCoach.live        = (P.inTraining !== 'off');
   S.aiCoach.preset      = name;
+  // Eine frische Profilwahl setzt die gemerkte Stufe des live-Schalters außer
+  // Kraft — sonst käme beim nächsten Ein die Stufe des alten Profils zurück.
+  delete S.aiCoach.liveWas;
   persist();
   _coachOptRender();
+  } catch(e) {
+    console.warn('[Coach] Profil:', e);
+    try { _coachOptRender(); } catch(_) {}
+  }
 }
 // ═══ COACH-HUB (Task 9): Chat · Journal · Woche · Einstellungen ══════════
 // Das Zuhause des Coaches hinter der bestehenden .aic-Karte im Heute-Tab. Die
@@ -24146,6 +24236,17 @@ function coachHubOpenChat(){
 // ── Journal ──────────────────────────────────────────────────────────────
 // "Was ich über dich weiß" — das stärkste Vertrauenssignal des Vorhabens.
 // JEDER Eintrag ist Nutzer-/Modelltext ⇒ esc() zwingend, auch das Datum.
+// GOALS in js/coach-memory.js sind deutsche Wörter und bleiben es auch — sie sind
+// GESPEICHERTE Daten. Übersetzt wird nur die Anzeige, und nur hier: ein globaler
+// I18N_EN-Schlüssel 'Kraft' würde jeden fremden Textknoten mitübersetzen, der
+// zufällig genauso heißt. Ein unbekannter Wert geht unverändert durch, statt zu
+// verschwinden.
+const _CH_GOAL_EN = { 'Masse':'Mass', 'Kraft':'Strength', 'Abnehmen':'Weight loss', 'Fitness':'Fitness' };
+function _chGoalLabel(g){
+  const v = String(g == null ? '' : g);
+  try { if (GT_LANG === 'en' && _CH_GOAL_EN[v]) return _CH_GOAL_EN[v]; } catch(_) {}
+  return v;
+}
 const _CH_JRN_GROUPS = [
   { k:'goal',   de:'Dein Ziel',       en:'Your goal' },
   { k:'limits', de:'Einschränkungen', en:'Limits' },
@@ -24184,14 +24285,24 @@ function _chJournalHTML(){
   try { d = _dossier(); } catch(e) { console.warn('[Coach] Dossier lesen:', e); }
   d = d || {};
   const nm = _coachName();
-  const out = [`<div class="ch-jrn ghost"><span>${esc(_cm(
-    nm + ' merkt sich nur, was du im Chat erzählst. Jede Zeile kannst du einzeln löschen.',
-    nm + ' only remembers what you say in the chat. You can delete each line on its own.'))}</span></div>`];
+  // Ohne Konto schreibt _dossierSet() nicht und _dossier() liefert leer: der
+  // Nutzer sah vier Mal "Noch nichts notiert." und erfuhr nie, dass ein Konto
+  // fehlt. Der Hinweis steht ZUERST, an der Stelle, an der die Erwartung
+  // entsteht.
+  let konto = true;
+  try { konto = !!_coachUid(); } catch(_) {}
+  const out = konto
+    ? [`<div class="ch-jrn ghost"><span>${esc(_cm(
+        nm + ' merkt sich nur, was du im Chat erzählst. Jede Zeile kannst du einzeln löschen.',
+        nm + ' only remembers what you say in the chat. You can delete each line on its own.'))}</span></div>`]
+    : [`<div class="ch-jrn ghost"><span>${esc(tr('Das Journal braucht ein Konto.'))}
+        <i>${esc(_cm('Ohne Anmeldung merkt sich ' + nm + ' nichts über dich — angemeldet steht hier, was er weiß.',
+                     'Without signing in ' + nm + ' remembers nothing about you — signed in, what he knows shows up here.'))}</i></span></div>`];
   _CH_JRN_GROUPS.forEach(g => {
     out.push(`<div class="ch-sec">${esc(tr(g.de))}</div>`);
     // 'goal' ist EIN Wert (Whitelist im Modul), keine Liste — Index 0, damit
     // _dossierRemove eine einheitliche Signatur behält.
-    if (g.k === 'goal') { out.push(d.goal ? _chJrnRow('goal', 0, String(d.goal), '') : _chJrnEmpty()); return; }
+    if (g.k === 'goal') { out.push(d.goal ? _chJrnRow('goal', 0, _chGoalLabel(d.goal), '') : _chJrnEmpty()); return; }
     const list = Array.isArray(d[g.k]) ? d[g.k] : [];
     if (!list.length) { out.push(_chJrnEmpty()); return; }
     list.forEach((e, i) => out.push(_chJrnRow(g.k, i, (e && e.t) || '', _chEntryMeta(g.k, e))));
@@ -24234,12 +24345,36 @@ function _chSwitch(key, on, title, sub){
       <span class="tgl-track"></span>
     </label></div>`;
 }
+// Zahlen für die zweite Beispielzeile — ECHTE, aus der letzten beendeten Einheit.
+// Vorher stand hier _say('mid', {vol:4200, pct:104}): erfundene Werte, die auf der
+// Vertrauensfläche wie eigene aussehen. 'debrief' statt 'mid' ist auch der
+// ehrliche Schlüssel: 'mid' sagt "Halbzeit" und würde einen Zusammenhang
+// behaupten, den es hier nicht gibt. Liegt keine Einheit vor, gibt es keine
+// Zeile — kein Platzhalter, keine Erfindung.
+function _chToneExVars(){
+  try {
+    const ses = (S.sessions || []).filter(x => x && Array.isArray(x.logs) && x.date);
+    if (!ses.length) return null;
+    const last = ses.slice().sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+    const vol = Math.round(sessionVolume(last));
+    let sets = 0;
+    (last.logs || []).forEach(l => (l.sets || []).forEach(x => {
+      if (parseFloat(x.w) > 0 || parseInt(x.r) > 0) sets++;
+    }));
+    if (!(vol > 0) || !(sets > 0)) return null;
+    return { sets: sets, vol: vol };
+  } catch(e) { console.warn('[Coach] Beispielzahlen:', e); return null; }
+}
 // Inhalt der Beispielsatz-Zeile — eigene Funktion, weil coachHubSetName() sie
-// einzeln nachzieht, ohne den ganzen Body zu ersetzen.
+// einzeln nachzieht, ohne den ganzen Body zu ersetzen. Leerer String heißt:
+// keine Zeile (der Aufrufer rendert den Kasten dann gar nicht).
 function _chToneExInner(){
+  const v = _chToneExVars();
+  if (!v) return '';
   const nm = _coachName();
-  return `<span>${esc(_cm('Noch ein Beispiel von ' + nm + ':', 'Another example from ' + nm + ':'))}
-    <i>${esc(_say('mid', { vol: 4200, pct: 104 }))}</i></span>`;
+  return `<span>${esc(_cm('So klingt ' + nm + ' nach deiner letzten Einheit:',
+                          'This is how ' + nm + ' sums up your last session:'))}
+    <i>${esc(_say('debrief', v))}</i></span>`;
 }
 function _chSettingsHTML(){
   const p = _persona();
@@ -24260,7 +24395,8 @@ function _chSettingsHTML(){
       <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
   // Zweites Beispiel im GEWÄHLTEN Ton, über die echte Persona: wechselt beim
   // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
-  parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex">${_chToneExInner()}</div>`);
+  const exInner = _chToneExInner();
+  if (exInner) parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex">${exInner}</div>`);
   // Umfangs-Profil. Ist preset === 'custom', kommt eine vierte, deaktivierte
   // Karte dazu: der Zustand hat einen Namen, ist aber nicht anwählbar.
   parts.push(`<div class="ch-sec">${esc(tr('Wie viel Coach willst du?'))}</div>`);
@@ -24299,7 +24435,7 @@ function _chSettingsHTML(){
 // _CH_PRESETS, _chToneLine, _chToneExInner, _chSwitch, .ch-preset/.ch-voice) —
 // kein zweites Aussehen für dieselbe Sache. Die Schrittführung nimmt die
 // bestehenden Wizard-Klassen (.pwz-dots/.pwz-q/.pwz-s/.pwz-nav).
-const _CS_STEPS = 3;
+const _CS_STEPS = 2;
 // Erst 420 ms nach dem Schließen der Paywall erscheint die Einrichtung: zwei
 // gleichzeitig laufende Overlay-Animationen sehen kaputt aus. Derselbe Versatz
 // trägt die Übergabe an den Hub am Ende.
@@ -24386,23 +24522,20 @@ function _csStep1HTML(){
     ${_CH_TONES.map(t =>
       `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
         <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join('')}
-    <div class="ch-jrn ghost" id="cst-tone-ex">${_chToneExInner()}</div>`;
+    ${(() => { const inner = _chToneExInner();
+        return inner ? `<div class="ch-jrn ghost" id="cst-tone-ex">${inner}</div>` : ''; })()}`;
 }
-// ── Schritt 2: Stimme ────────────────────────────────────────────────────
-// Die Stimmenliste kommt erst in Block 2. Solange sie fehlt, zeigt der Schritt
-// NUR den Schalter plus den Erklärsatz — kein leerer Listenrahmen, kein
-// Platzhalterkasten. #cst-voices trägt weder Klasse noch Inhalt und ist damit
-// 0 px hoch; Block 2 liefert nur noch _csRenderVoices(el) nach.
+// ── HIER STAND SCHRITT 2: STIMME ─────────────────────────────────────────
+// Block 2 (Stimme) ist gestrichen, nicht verschoben: TtsPlugin.swift und
+// AVSpeechSynthesizer gehen nur am Mac. Deshalb ist die Einrichtung zweistufig
+// (Name+Ton, dann Umfang) und der Schalter "Soll <Name> sprechen?" samt
+// Erklärsatz und dem Aufruf von _csRenderVoices(el) ist aus der Oberfläche
+// heraus. Wer die Stimme zurückbringt, hängt den Schritt HIER wieder ein und
+// stellt _CS_STEPS auf 3.
+// Das DATENFELD voiceOn bleibt unangetastet — in S.aiCoach wie in
+// CoachPersona.personaGet. Es ist nur unsichtbar, nicht weg.
+// ── Schritt 2: Umfang ────────────────────────────────────────────────────
 function _csStep2HTML(){
-  const p = _persona();
-  return `<div class="pwz-q">${esc(_cm('Soll ' + p.name + ' sprechen?', 'Should ' + p.name + ' speak?'))}</div>
-    <div class="pwz-s">${esc(tr('Er spricht nur, wenn du ihn über den Sprech-Button fragst — nie von selbst.'))}</div>
-    ${_chSwitch('voiceOn', p.voiceOn, tr('Sprachausgabe'),
-                _cm('Antworten werden vorgelesen, wenn du fragst.', 'Answers are read aloud when you ask.'))}
-    <div id="cst-voices"></div>`;
-}
-// ── Schritt 3: Umfang ────────────────────────────────────────────────────
-function _csStep3HTML(){
   const p = _persona();
   // Vorbelegt ist die MITTLERE, nicht die lauteste. preset ist hier noch offen
   // (undefined) — 'balanced' trägt trotzdem schon die Markierung, damit „Fertig"
@@ -24432,16 +24565,9 @@ function renderCoachSetup(){
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
     if (_csHold) return;
-    body.innerHTML = _csStep === 2 ? _csStep2HTML()
-                   : _csStep === 3 ? _csStep3HTML()
-                   :                 _csStep1HTML();
+    body.innerHTML = _csStep === 2 ? _csStep2HTML() : _csStep1HTML();
     // Getrennter Behälter, damit die Leiste nicht mit dem Inhalt wegscrollt.
     const nav = document.getElementById('cst-nav'); if (nav) nav.innerHTML = _csNavHTML();
-    if (_csStep === 2) {
-      const el = document.getElementById('cst-voices');
-      if (el) { try { if (typeof _csRenderVoices === 'function') _csRenderVoices(el); }
-                catch(e) { console.warn('[Coach] Stimmenliste:', e); } }
-    }
   } catch(e) { console.warn('[Coach] Einrichtung zeichnen:', e); }
 }
 // Der Name schreibt sich ohne Rerender des Bodys — dieselbe Aufteilung wie

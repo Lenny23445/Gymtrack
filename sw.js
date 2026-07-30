@@ -44,7 +44,7 @@ self.addEventListener('message', e => {
       const delay = n.timestamp - Date.now();
       if (delay <= 0) return;
       const t = setTimeout(() => {
-        self.registration.showNotification('Zeit fürs Training! 💪', {
+        self.registration.showNotification('Zeit fürs Training', {
           body: n.day + ': ' + n.label,
           tag: 'workout-' + n.timestamp,
           icon: './icon-192.png',

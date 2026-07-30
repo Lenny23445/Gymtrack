@@ -85,7 +85,13 @@
   //   locker   kumpelhaft, gern als Frage, nie Ironie ueber den Nutzer
   // Vier Toene heissen vier VERSCHIEDENE Saetze, nicht vier Umformulierungen
   // desselben Satzes. Und kein Satz lobt nur — jede Zeile traegt eine Zahl
-  // oder eine Beobachtung. Alle vier Regeln sind in der Testsuite verankert.
+  // oder eine Beobachtung.
+  // Was die Testsuite davon wirklich haelt: die vier verschiedenen Saetze, die
+  // Achtwortgrenze fuer 'hart' und das fehlende Ausrufezeichen bei 'ruhig' — je
+  // ein Test in test/coach-persona.test.js. Die vierte Regel ist eine
+  // Schreibregel und mechanisch nur teilweise pruefbar; ihr Riegel schliesst
+  // genau den Fall aus, den er sehen kann: keine Zeile ist ein blosser
+  // Lob-Ausruf ohne Inhalt. Der Rest liegt beim Lesen, nicht beim Test.
   var TXT = {
     de: {
       greet: {

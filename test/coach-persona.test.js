@@ -138,6 +138,27 @@ test('kein Satz enthaelt ein Emoji', () => {
   })));
 });
 
+// Teil-Riegel fuer die vierte Tonregel ('kein Satz lobt nur'). Mechanisch
+// vollstaendig pruefbar ist sie nicht - 'Beobachtung' laesst sich nicht
+// erkennen. Was der Riegel sehen kann, schliesst er aus: kein Satz besteht nur
+// aus Lob. Bis hierher stand im Modulkommentar, alle vier Regeln seien
+// verankert; das war fuer diese eine unwahr.
+test('kein Satz ist ein blosser Lob-Ausruf', () => {
+  const lob = /^(super|stark|klasse|top|perfekt|bravo|wow|sauber|gut|great|nice|awesome|perfect|solid|good|well done)[\s!.,]*$/i;
+  P.KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {
+    const s = P.say(key, VARS, { tone }, lang);
+    assert.ok(s.length > 0, 'leerer Satz bei ' + key + '/' + tone + '/' + lang);
+    // Geprueft wird die ZEILE, so wie die Regel sie formuliert ('jede Zeile
+    // traegt eine Zahl oder eine Beobachtung'). Satzweise waere strenger als
+    // die Regel: 'Gut. Beim naechsten Mal gehen wir auf 62,5 kg.' erfuellt sie,
+    // weil die Zeile die Zahl traegt - nur der erste Satz allein tut es nicht.
+    assert.ok(!lob.test(s.trim()),
+      'nur Lob in ' + key + '/' + tone + '/' + lang + ': ' + s);
+    assert.ok(s.trim().split(/\s+/).filter(Boolean).length >= 3,
+      'zu duenn fuer Zahl oder Beobachtung in ' + key + '/' + tone + '/' + lang + ': ' + s);
+  })));
+});
+
 test('Ton hart bleibt bei hoechstens acht Woertern', () => {
   P.KEYS.forEach(key => ['de', 'en'].forEach(lang => {
     const s = P.say(key, VARS, { tone: 'hart' }, lang);
