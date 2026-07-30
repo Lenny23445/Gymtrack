@@ -7566,7 +7566,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607290001';
+const APP_VERSION = 'gymtrack-v202607300001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8300,6 +8300,12 @@ const I18N_EN = {
   'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr':'Suggestions you dismiss five times in a row stop coming back',
   'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit':'Common questions such as "How many sets left?" or "What is my record on bench press?" are answered by the app itself, instantly',
   'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg':'Your memory is tied to your account: a second account on the same device sees none of it, and deleting your account deletes it',
+ /* Changelog: Coach bekommt einen Namen (29.07.2026) */
+  '29.07.2026 · Dein Coach bekommt einen Namen':'29 Jul 2026 · Your coach gets a name',
+  'Gib deinem Coach einen Namen und einen Ton — ruhig, sachlich, fordernd oder locker. Er redet ab sofort so mit dir':'Give your coach a name and a tone — calm, factual, tough or casual. It talks to you that way from now on',
+  'Neu: das Coach-Menü. Ein Tipp auf die Coach-Karte auf der Startseite öffnet Chat, Journal, Wochenbericht und Einstellungen':'New: the coach menu. Tapping the coach card on the home screen opens chat, journal, weekly report and settings',
+  'Im Journal siehst du zum ersten Mal, was der Coach über dich weiß — und kannst jeden einzelnen Eintrag löschen':'In the journal you can now see for the first time what the coach knows about you — and delete each entry individually',
+  'Beim Abschluss des Abos entscheidest du selbst, wie sehr sich der Coach einmischt: zurückhaltend, ausgewogen oder eng dabei':'When you complete your subscription, you decide yourself how much the coach gets involved: reserved, balanced or close by',
  /* Changelog: Coach schneller & guenstiger (29.07.2026) */
   '29.07.2026 · Der Coach antwortet schneller und kostet weniger':'29 Jul 2026 · Your coach answers faster and costs less',
   'Elf weitere Fragen beantwortet die App sofort selbst — Streak, Wochenfortschritt, letzter Rekord, nächster Plantag und mehr, ohne Wartezeit und auch ohne Empfang im Keller-Gym':'Eleven more questions are now answered by the app itself — streak, weekly progress, last record, next plan day and more, instantly and even without signal in a basement gym',
@@ -8549,6 +8555,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-coach-persoenlich': {
+    label: '29.07.2026 · Dein Coach bekommt einen Namen',
+    items: [
+      'Gib deinem Coach einen Namen und einen Ton — ruhig, sachlich, fordernd oder locker. Er redet ab sofort so mit dir',
+      'Neu: das Coach-Menü. Ein Tipp auf die Coach-Karte auf der Startseite öffnet Chat, Journal, Wochenbericht und Einstellungen',
+      'Im Journal siehst du zum ersten Mal, was der Coach über dich weiß — und kannst jeden einzelnen Eintrag löschen',
+      'Beim Abschluss des Abos entscheidest du selbst, wie sehr sich der Coach einmischt: zurückhaltend, ausgewogen oder eng dabei',
+    ]
+  },
   'cl-2026-07-29-coach-schneller': {
     label: '29.07.2026 · Der Coach antwortet schneller und kostet weniger',
     items: [
@@ -10975,12 +10990,16 @@ function _aicCardTap(card) {
   requestAnimationFrame(() => card.classList.add('in'));
   card.style.cursor = 'pointer';
   // Die Karte ist der EINZIGE Zugang zum Hub — als reines Tap-Ziel war er für
-  // Tastatur und VoiceOver unerreichbar. aria-label benennt die AKTION statt des
-  // ganzen Kartentextes, damit die Vorlesestimme "Coach-Menü öffnen" sagt und
-  // nicht den kompletten Empfehlungsblock.
-  card.setAttribute('role', 'button');
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', _cm('Coach-Menü öffnen', 'Open coach menu'));
+  // Tastatur und VoiceOver unerreichbar. role/tabindex/aria-label sitzen auf dem
+  // KOPFBEREICH (.aic-top), nicht auf der ganzen Karte: die Karte enthält den
+  // echten "Training starten"-Knopf, role="button" auf der ganzen Karte wäre
+  // also Button-in-Button (ungültige ARIA-Verschachtelung). aria-label benennt
+  // die AKTION statt des ganzen Kartentextes, damit die Vorlesestimme
+  // "Coach-Menü öffnen" sagt und nicht den kompletten Empfehlungsblock.
+  const top = card.querySelector('.aic-top') || card;
+  top.setAttribute('role', 'button');
+  top.setAttribute('tabindex', '0');
+  top.setAttribute('aria-label', _cm('Coach-Menü öffnen', 'Open coach menu'));
   card.onclick = (ev) => {
     if (ev.target.closest('button, a')) return;
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
@@ -10989,7 +11008,7 @@ function _aicCardTap(card) {
   card.onkeydown = (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
     // Der "Training starten"-Knopf in der Karte behält seine eigene Taste.
-    if (ev.target !== card && ev.target.closest('button, a')) return;
+    if (ev.target !== top && ev.target.closest('button, a')) return;
     ev.preventDefault();
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
     try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
@@ -23537,8 +23556,8 @@ function _coachMicroReact(li, si) {
             _cm('Letzter Satz steht — weiter zur nächsten Übung.', 'Last set is in — on to the next exercise.')]);
     } else {
       msg = _coachMicroPick([
-        _cm('Satz ' + doneWork + ' von ' + work.length + ' — noch ' + leftWork + '.',
-            'Set ' + doneWork + ' of ' + work.length + ' — ' + leftWork + ' to go.'),
+        _cm('Satz ' + doneWork + ' von ' + work + ' — noch ' + leftWork + '.',
+            'Set ' + doneWork + ' of ' + work + ' — ' + leftWork + ' to go.'),
         _cm('Notiert. Noch ' + leftWork + ' ' + (leftWork === 1 ? 'Satz' : 'Sätze') + ' auf dem Plan.',
             'Logged. ' + leftWork + ' set' + (leftWork === 1 ? '' : 's') + ' left on the plan.'),
         _cm(kgToDisp(w) + ' ' + unitLabel() + ' × ' + r + ' gebucht. Gleiches Tempo halten.',
