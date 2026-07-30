@@ -10077,9 +10077,17 @@ function closeOv(id) {
   updateWkMiniVisibility();
   try { _aibSyncVisibility(); } catch(_){}
 }
-document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
-  if (e.target===o) { if (o.id==='ov-icons') closeIconPicker(); else closeOv(o.id); }
-}));
+// Backdrop-Tipp schließt das Overlay — für JEDES .ov, unabhängig vom inline
+// onclick im Markup. Genau eine Ausnahme: die Coach-Einrichtung (Task 10). Dort
+// darf ein versehentlicher Tipp daneben nicht abbrechen; das ✕ überspringt
+// bewusst und sichtbar. Das fehlende onclick im Markup allein reicht dafür
+// nicht, dieser Sammel-Zuhörer hätte es überstimmt.
+document.querySelectorAll('.ov').forEach(o => {
+  if (o.id === 'ov-coach-setup') return;
+  o.addEventListener('click', e => {
+    if (e.target===o) { if (o.id==='ov-icons') closeIconPicker(); else closeOv(o.id); }
+  });
+});
 
 // ── THEME ─────────────────────────────────────────────
 function setTheme(t) {
