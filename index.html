@@ -24296,13 +24296,16 @@ function _csNavHTML(){
 // ── Schritt 1: Name und Ton ──────────────────────────────────────────────
 function _csStep1HTML(){
   const p = _persona();
-  // Rohwert statt _coachName(): ein leeres Feld zeigt den Platzhalter „Coach",
-  // statt den Nutzer erst das vorgeschriebene Wort löschen zu lassen.
-  let roh = ''; try { roh = String((S.aiCoach && S.aiCoach.name) || ''); } catch(_) {}
+  // Noch nichts vergeben ⇒ leeres Feld, damit der Platzhalter „Coach" sichtbar
+  // ist. Der Hub zeigt hier _coachName(), also immer „Coach" — beim ersten Mal
+  // müsste der Nutzer das Wort erst löschen, um seinen eigenen zu tippen. Steht
+  // ein Name, zeigt das Feld den WIRKSAMEN (safeName kürzt und entschärft),
+  // nicht den Rohwert.
+  let vorbelegt = ''; try { if (S.aiCoach && S.aiCoach.name) vorbelegt = p.name; } catch(_) {}
   return `<div class="pwz-q">${esc(tr('Wie soll dein Coach heißen?'))}</div>
     <div class="pwz-s">${esc(tr('Name und Ton kannst du jederzeit ändern.'))}</div>
     <input type="text" class="pf-inp" id="cst-name" maxlength="20" autocomplete="off" spellcheck="false"
-      value="${esc(roh)}" placeholder="Coach" onchange="coachSetupSetName(this)">
+      value="${esc(vorbelegt)}" placeholder="Coach" onchange="coachSetupSetName(this)">
     <div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>
     ${_CH_TONES.map(t =>
       `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
