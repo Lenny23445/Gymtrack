@@ -8925,7 +8925,7 @@ function _persona() {
   try { return CoachPersona.personaGet(S.aiCoach); }
   catch(_) { try { return CoachPersona.personaGet({}); } catch(__) { return { name:'Coach', tone:'sachlich', voice:null, voiceOn:true, inTraining:'key', setFeedback:true, pushLevel:'normal', insights:true }; } }
 }
-function _lang() { try { return localStorage.getItem('gt_lang') === 'en' ? 'en' : 'de'; } catch(_) { return 'de'; } }
+function _lang() { try { return GT_LANG === 'en' ? 'en' : 'de'; } catch(_) { return 'de'; } }
 function _say(key, vars) { try { return CoachPersona.say(key, vars || {}, _persona(), _lang()); } catch(_) { return ''; } }
 function _coachName()  { return _persona().name; }
 function _coachLevel() { return _persona().inTraining; }
