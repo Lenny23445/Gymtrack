@@ -8051,7 +8051,7 @@ const I18N_EN = {
   '📱 Homescreen-Widget und Live-Activity folgen der Systemsprache':'📱 Home screen widget and Live Activity follow the system language',
   // ── Heute-Widgets: Titel · Label · Beschreibung ──
   'Wochenziele':'Weekly goals','1RM-Bestwerte':'1RM bests','Trainingswoche · 7 Tage':'Training week · 7 days',
-  'Wochen-Tracker-Ringe':'Weekly tracker rings','Gewicht & Verlauf':'Weight & history','Deine letzten Einheiten':'Your recent sessions',
+  'Wochen-Tracker-Ringe':'Weekly tracker rings','Wochenübersicht Mo–So':'Week overview Mon–Sun','Gewicht & Verlauf':'Weight & history','Deine letzten Einheiten':'Your recent sessions',
   'Schnellstart-Button':'Quick-start button','Wochen in Folge':'Weeks in a row','Muskel-Erholung':'Muscle recovery',
   'Trainings-Heatmap':'Workout heatmap','Volumen-Verteilung':'Volume distribution','Schnellzugriff':'Quick access',
   'Wochen-Streak':'Week streak','Gesamt-Volumen':'Total volume','Trainings-Streak':'Workout streak',
@@ -10029,7 +10029,8 @@ function setGlass(on) {
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
   /* 'weekcal' ist hier raus: dieselbe Wochenübersicht mit demselben Kalender
-     dahinter steht bereits im Statistik-Tab — zweimal dasselbe wirkte doppelt. */
+     dahinter steht bereits im Statistik-Tab — zweimal dasselbe wirkte doppelt.
+     In der Widget-Auswahl steht es aber zur Verfügung (siehe WIDGET_DEFS). */
   {type:'streak',  size:'sm'},
   {type:'recovery',size:'sm'},
   {type:'weight',  size:'md'},
@@ -10042,9 +10043,11 @@ const DEFAULT_HEUTE_LAYOUT = [
    Jedes Widget unterstützt alle drei Formen; sizes ist aufsteigend sortiert. */
 const HW_RANK = {sm:0, md:1, lg:2};
 const WIDGET_DEFS = {
-  /* 'weekcal' ist bewusst nicht mehr registriert — getHeuteLayout() filtert
-     unbekannte Typen, damit verschwindet die Dopplung auch aus bereits
-     gespeicherten Layouts. hwWeekcal() bleibt als Renderer ungenutzt stehen. */
+  /* 'weekcal' steht bewusst NICHT in DEFAULT_HEUTE_LAYOUT — dieselbe Uebersicht
+     liegt schon im Statistik-Tab, standardmaessig waere das doppelt. Waehlbar ist
+     es aber wieder: wer die Woche auf dem Heute-Tab sehen will, holt es sich im
+     Bearbeiten-Modus dazu. */
+  weekcal: {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochenübersicht Mo–So',       sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
@@ -10060,7 +10063,7 @@ const WIDGET_DEFS = {
   plans:   {title:'Deine Trainingspläne', icon:'', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
   social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
 };
-const WIDGET_PICK_ORDER = ['woche','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
+const WIDGET_PICK_ORDER = ['woche','weekcal','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
 let heuteEditMode = false;
 
