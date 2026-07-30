@@ -10,6 +10,11 @@ const SHELL = [
   './js/coach-intent.js',
   './js/coach-cache.js',
   './js/coach-persona.js',
+  './js/coach-session.js',
+  './js/coach-warmup.js',
+  './js/coach-cues.js',
+  './js/coach-rpe.js',
+  './js/coach-analyze.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 

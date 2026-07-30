@@ -118,10 +118,15 @@
         hart:     '{ex}. {kg} Kilo. {reps} Wiederholungen. Anfangen.',
         locker:   '{ex} wieder — {kg} kg, {reps} Wiederholungen, {sets} Sätze.'
       },
+      // Die Satzzahl steht NICHT im Text: warmupSets() liefert je nach
+      // Arbeitsgewicht und Raster einen bis drei Saetze. "Zwei leichte Saetze"
+      // war eine feste Zusage, die das Schema regelmaessig nicht einhielt. Die
+      // Zahlenreihe haengt die Aufrufstelle an (der Katalog hat keinen
+      // Platzhalter dafuer — sie ist kein Wort, sondern eine Liste).
       warmupIntro: {
-        ruhig:    'Zum Aufwärmen für {ex}: zwei leichte Sätze, dann steigern.',
-        sachlich: 'Aufwärmschema für {ex}: drei Sätze mit steigendem Gewicht.',
-        hart:     'Aufwärmen für {ex}. Zwei Sätze. Kurz.',
+        ruhig:    'Zum Aufwärmen für {ex}: erst leicht, dann steigern.',
+        sachlich: 'Aufwärmschema für {ex}: steigende Sätze vor dem Arbeitsgewicht.',
+        hart:     'Aufwärmen für {ex}. Steigern. Kurz.',
         locker:   'Kurz warm werden für {ex}, dann wird es ernst.'
       },
       setAsk: {
@@ -136,11 +141,19 @@
         hart:     'Zu leicht. Nächstes Mal {kg} Kilo.',
         locker:   'War wohl zu leicht — nächstes Mal {kg} kg.'
       },
+      // 'schwer' senkt um genau eine Rasterstufe (CoachRpe.adjustNext). Die
+      // Quittung nennt deshalb das GESENKTE Gewicht und sagt auch, dass es
+      // gesenkt wurde. Die frueheren Varianten sagten "Gewicht bleibt bei
+      // {kg} kg" und standen damit im Widerspruch zur Rechnung: mit dem neuen,
+      // niedrigeren Wert im Platzhalter las sich die Quittung falsch. Der
+      // Brief zu Task 15 legt die Richtung fest ("naechster Vorschlag
+      // derselben Uebung eine Stufe niedriger") — also wurde der Text
+      // nachgezogen, nicht die Rechnung.
       setAckHard: {
-        ruhig:    'Verstanden. Wir bleiben bei {kg} kg, bis es sitzt.',
-        sachlich: 'Notiert. Gewicht bleibt bei {kg} kg.',
-        hart:     'Schwer. {kg} Kilo bleiben stehen.',
-        locker:   'Okay, das reicht erstmal — {kg} kg bleiben.'
+        ruhig:    'Verstanden. Wir gehen eine Stufe zurück auf {kg} kg.',
+        sachlich: 'Notiert. Nächster Vorschlag: {kg} kg, eine Stufe niedriger.',
+        hart:     'Zu schwer. Runter auf {kg} Kilo.',
+        locker:   'Dann nehmen wir eine Stufe raus — {kg} kg.'
       },
       restTip: {
         ruhig:    'Bei {ex} hilft es, die Schultern unten zu lassen.',
@@ -178,11 +191,16 @@
         hart:     '{ex}: Hinweis sitzt. Dranbleiben.',
         locker:   'Der Tipp bei {ex} hat gesessen, oder?'
       },
+      // {secs} ist die BEOBACHTETE mittlere Pause aus CoachAnalyze.plateau(),
+      // keine Vorgabe. 'Längere Pausen von {secs} Sekunden könnten helfen'
+      // empfahl dem Nutzer genau das, was er ohnehin tut — und Task 16 darf
+      // ausdruecklich nur beschreiben. Alle vier Toene nennen die Zahl deshalb
+      // als Befund; ein Rat gehoert in Block 6 und hat hier keine Spec.
       plateau: {
-        ruhig:    '{ex} steht seit {weeks} Wochen. Längere Pausen von {secs} Sekunden könnten helfen.',
+        ruhig:    '{ex} steht seit {weeks} Wochen. Deine Pausen liegen im Schnitt bei {secs} Sekunden.',
         sachlich: '{ex}: {weeks} Wochen ohne Steigerung. Durchschnittliche Pause {secs} Sekunden.',
         hart:     '{ex} steht {weeks} Wochen. {secs} Sekunden Pause.',
-        locker:   '{ex} klemmt seit {weeks} Wochen — mal {secs} Sekunden länger pausieren?'
+        locker:   '{ex} klemmt seit {weeks} Wochen, im Schnitt {secs} Sekunden Pause.'
       },
       timeBudget: {
         ruhig:    '{mins} Minuten reichen für {count} Übungen. Der Rest kann warten.',
@@ -267,9 +285,9 @@
         locker:   '{ex} again — {kg} kg, {reps} reps, {sets} sets.'
       },
       warmupIntro: {
-        ruhig:    'Warm up for {ex}: two light sets, then build.',
-        sachlich: 'Warm-up scheme for {ex}: three sets, weight increasing.',
-        hart:     'Warm up {ex}. Two sets. Quick.',
+        ruhig:    'Warm up for {ex}: start light, then build.',
+        sachlich: 'Warm-up scheme for {ex}: rising sets before the working weight.',
+        hart:     'Warm up {ex}. Build up. Quick.',
         locker:   'Quick warm-up for {ex}, then the real work.'
       },
       setAsk: {
@@ -285,10 +303,10 @@
         locker:   'Too easy then — {kg} kg next time.'
       },
       setAckHard: {
-        ruhig:    'Understood. We stay at {kg} kg until it settles.',
-        sachlich: 'Noted. Weight stays at {kg} kg.',
-        hart:     'Hard. {kg} kilos stay.',
-        locker:   'Fair enough — {kg} kg stays for now.'
+        ruhig:    'Understood. We step back down to {kg} kg.',
+        sachlich: 'Noted. Next suggestion: {kg} kg, one step lower.',
+        hart:     'Too heavy. Down to {kg} kilos.',
+        locker:   'Then we take one step off — {kg} kg.'
       },
       restTip: {
         ruhig:    'On {ex} it helps to keep the shoulders down.',
@@ -327,10 +345,10 @@
         locker:   'That tip on {ex} landed, right?'
       },
       plateau: {
-        ruhig:    '{ex} has been flat for {weeks} weeks. Longer rests of {secs} seconds may help.',
+        ruhig:    '{ex} has been flat for {weeks} weeks. Your rests average {secs} seconds.',
         sachlich: '{ex}: {weeks} weeks without progress. Average rest {secs} seconds.',
-        hart:     '{ex} flat {weeks} weeks. Rest {secs} seconds.',
-        locker:   '{ex} stuck for {weeks} weeks — maybe rest {secs} seconds longer?'
+        hart:     '{ex} flat {weeks} weeks. {secs} seconds rest.',
+        locker:   '{ex} stuck for {weeks} weeks, at {secs} seconds rest on average.'
       },
       timeBudget: {
         ruhig:    '{mins} minutes fit {count} exercises. The rest can wait.',
