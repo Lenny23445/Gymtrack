@@ -24,3 +24,6 @@ ios_distribution_*.cer
 .index.pre-lg.bak
 .seed_demo.py
 tiktok/
+
+# Arbeitsverzeichnis der Plan-Ausfuehrung (Ledger, Briefs, Review-Pakete) — Scratch
+.superpowers/
