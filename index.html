@@ -23861,16 +23861,11 @@ let _chTab = 'chat';
 // Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
 // Unterschied, statt vier Adjektive zu lesen.
 function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: 60, reps: 8, sets: 3 }; }
-// Sprache der Coach-Sätze im Hub kommt aus GT_LANG, NICHT aus _lang(): _lang()
-// liest nur gt_lang==='en' und liefert bei gt_lang='auto' auf einem englischen
-// Gerät 'de', während Reiter, Überschriften und der Übungsname im Beispiel über
-// tr()/_cm()/GT_LANG längst englisch sind — eine Karte in zwei Sprachen.
-function _chLang(){ return GT_LANG === 'en' ? 'en' : 'de'; }
-function _chSay(key, vars){
-  try { return CoachPersona.say(key, vars || {}, _persona(), _chLang()); } catch(_) { return ''; }
-}
+// _lang() folgt seit dem Sprach-Fix GT_LANG, deckt sich also mit Reitern,
+// Überschriften und dem Übungsnamen im Beispiel — kein eigener Sprach-Umweg
+// mehr nötig, _chToneLine() nutzt darum direkt _lang().
 function _chToneLine(tone){
-  try { return CoachPersona.say('greet', _chToneVars(), CoachPersona.personaGet({ tone: tone }), _chLang()); }
+  try { return CoachPersona.say('greet', _chToneVars(), CoachPersona.personaGet({ tone: tone }), _lang()); }
   catch(_) { return ''; }
 }
 function openCoachHub(tab){
@@ -24062,7 +24057,7 @@ function _chSwitch(key, on, title, sub){
 function _chToneExInner(){
   const nm = _coachName();
   return `<span>${esc(_cm('Noch ein Beispiel von ' + nm + ':', 'Another example from ' + nm + ':'))}
-    <i>${esc(_chSay('mid', { vol: 4200, pct: 104 }))}</i></span>`;
+    <i>${esc(_say('mid', { vol: 4200, pct: 104 }))}</i></span>`;
 }
 function _chSettingsHTML(){
   const p = _persona();
