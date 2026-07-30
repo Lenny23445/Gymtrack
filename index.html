@@ -7296,7 +7296,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-ai-chat" onclick="if(event.target===this)closeOv('ov-ai-chat')">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head"><h2>KI-Coach</h2><button class="x-btn" onclick="closeOv('ov-ai-chat')">✕</button></div>
+    <div class="sh-head"><h2 id="aic-title">KI-Coach</h2><button class="x-btn" onclick="closeOv('ov-ai-chat')">✕</button></div>
     <div class="px" style="padding-bottom:26px">
       <div id="aic-log"></div>
       <div class="aic-sugg" id="aic-sugg"></div>
@@ -10725,7 +10725,9 @@ function renderCoachTodayCard() {
     const s = _coachTodaySuggestion();
     if (!s) { host.innerHTML = ''; _aicSig = null; return; }
     const pct = Math.max(0, Math.min(100, Math.round(s.pct || 0)));
-    const sig = [s.kind, s.head, s.text, s.chip2, pct].join('|');
+    // Der Name gehoert in die Signatur: sonst haelt der Cache die Karte beim
+    // Umbenennen fest und der alte Name bleibt bis zur naechsten Inhaltsaenderung stehen.
+    const sig = [s.kind, s.head, s.text, s.chip2, pct, _coachName()].join('|');
     if (sig === _aicSig && host.firstElementChild) return;
     _aicSig = sig;
 
@@ -10738,7 +10740,7 @@ function renderCoachTodayCard() {
       <div class="aic-in">
         <div class="aic-top">
           <span class="aic-orb">${ICO.sparkle({s:14})}</span>
-          <span class="aic-lbl">${esc(tr('KI-Coach'))}</span>
+          <span class="aic-lbl">${esc(_coachName())}</span>
           <span class="aic-live"><i></i>${esc(s.chip)}</span>
         </div>
         <div class="aic-main">
@@ -23029,8 +23031,14 @@ function _coachBarRender() {
   const thinking = _coachBarState.mode === 'thinking';
   const msg = _coachBarState.msg || '';
   el.className = 'coach-bar' + (thinking ? ' thinking' : '');
+  // Die Leiste nennt den Coach beim Namen. Heisst er noch 'Coach', greifen weiter
+  // die Woerterbuch-Eintraege (EN: 'Coach live') statt einer zweiten Formulierung.
+  const nm = _coachName(), nmE = esc(nm);
+  const lbl = (nm === 'Coach')
+    ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
+    : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
   el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
-    `<span class="coach-bar-lbl">${thinking ? tr('Coach denkt nach…') : tr('Coach aktiv')}</span><span class="coach-ki-tag">KI</span></div>` +
+    `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
     (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
   // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
   // (z.B. Satz-Liste neu gebaut) die Animation erneut auslösen und flackern.
@@ -23674,8 +23682,16 @@ function _coachPresetMatches(name){
   const p = _persona();
   return p.inTraining === P.inTraining && p.setFeedback === P.setFeedback && p.pushLevel === P.pushLevel;
 }
+// Wer den Coach identifiziert hat, ist ab jetzt eine Person mit Namen.
+function _scnByCoach(){
+  const nm = _coachName();
+  if (nm === 'Coach') return tr('Erkannt von deinem KI-Coach');
+  return _cm('Erkannt von ' + esc(nm), 'Identified by ' + esc(nm));
+}
 function _coachOptRender(){
   try { if (typeof _coachBarRender === 'function') _coachBarRender(); } catch(_) {}
+  try { const b = document.getElementById('ai-bubble'); if (b) b.setAttribute('aria-label', _coachName()); } catch(_) {}
+  try { if (typeof _aicApplyName === 'function') _aicApplyName(); } catch(_) {}
   try { if (typeof renderCoachTodayCard === 'function') renderCoachTodayCard(); } catch(_) {}
   try { if (typeof renderCoachHub === 'function') renderCoachHub(); } catch(_) {}
 }
@@ -23936,6 +23952,8 @@ function _aibDock(){
 }
 function _aibInit(){
   const b = document.getElementById('ai-bubble'); if (!b) return;
+  // Auch die Vorlesehilfe soll den Namen nennen, nicht die Funktionsbezeichnung.
+  try { b.setAttribute('aria-label', _coachName()); } catch(_) {}
   _aibRender();
   b.addEventListener('click', toggleAiRadial);
   ['ob-screen', 'auth-gate'].forEach(id => {
@@ -23965,8 +23983,19 @@ function _aicPush(role, content){
   if (_aicHist.length > 30) _aicHist = _aicHist.slice(-30);
   try { localStorage.setItem('gt_aiChat', JSON.stringify(_aicHist)); } catch(_){}
 }
+// Der Kopf des Chats traegt den Namen. Bewusst per textContent: das ist die eine
+// Stelle, an der der entschaerfte Name doch noch als Markup landen koennte.
+function _aicApplyName(){
+  const nm = _coachName();
+  const h = document.getElementById('aic-title');
+  if (h) h.textContent = nm;
+  const inp = document.getElementById('aic-in');
+  // Platzhalter bleibt der alte, solange der Coach 'Coach' heisst.
+  if (inp) inp.placeholder = (nm === 'Coach') ? tr('Frag deinen Coach…') : _cm('Frag ' + nm + '…', 'Ask ' + nm + '…');
+}
 function openAiChat(seed){
   openOv('ov-ai-chat');
+  try { _aicApplyName(); } catch(_) {}
   _aicRenderLog();
   _aicRenderSugg();
   _aicMicInit();
@@ -24959,7 +24988,7 @@ function _scnRenderResult(){
       <div class="scn-device-ico">${ICO.check({s:20})}</div>
       <div style="flex:1;min-width:0">
         <div class="scn-device-t">${esc(v.device || '')}</div>
-        <div class="scn-device-s">${unsure ? tr('Nicht eindeutig erkannt — halte dich an die Schritte') : tr('Erkannt von deinem KI-Coach')}</div>
+        <div class="scn-device-s">${unsure ? tr('Nicht eindeutig erkannt — halte dich an die Schritte') : _scnByCoach()}</div>
       </div>
     </div>
     ${mgs.length ? `<div class="scn-mg">${mgs.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
