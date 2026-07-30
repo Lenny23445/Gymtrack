@@ -8194,6 +8194,7 @@ const I18N_EN = {
   'Eintrag entfernen':'Remove entry','Bestätigung fällig':'Confirmation due',
   'Wochenbericht':'Weekly report',
   'Dein erster Wochenbericht kommt am Sonntag.':'Your first weekly report arrives on Sunday.',
+  'Tippen für Chat, Journal und Einstellungen.':'Tap for chat, journal and settings.',
   'Wie soll dein Coach klingen?':'How should your coach sound?',
   'Wie viel Coach willst du?':'How much coach do you want?',
   'Ruhig':'Calm','Sachlich':'Factual','Hart':'Tough','Locker':'Casual',
@@ -10802,12 +10803,51 @@ function _coachTodaySuggestion() {
 // Signatur der zuletzt gerenderten Karte: verhindert, dass jeder renderHome()
 // (Tab-Wechsel, Sync, Timer) die Einblend-Animation erneut abfeuert.
 let _aicSig = null;
+// Beide Karten-Varianten hängen am selben Tap-Ziel: die Karte ist der EINZIGE
+// Zugang zum Coach-Hub (Gestaltungsregel 1). Der closest()-Wächter ist Pflicht —
+// die Karte trägt einen "Training starten"-Button, und ohne ihn würde der Hub den
+// Trainingsstart schlucken, den der Nutzer bisher an dieser Stelle hatte.
+function _aicCardTap(card) {
+  if (!card) return;
+  requestAnimationFrame(() => card.classList.add('in'));
+  card.style.cursor = 'pointer';
+  card.onclick = (ev) => {
+    if (ev.target.closest('button, a')) return;
+    try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
+    try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
+  };
+}
 function renderCoachTodayCard() {
   const host = document.getElementById('coach-today-card');
   if (!host) return;
   try {
     const s = _coachTodaySuggestion();
-    if (!s) { host.innerHTML = ''; _aicSig = null; return; }
+    if (!s) {
+      // "Tagesempfehlung auf der Startseite" aus heißt: kein EMPFEHLUNGSINHALT
+      // (Ring, Text, Chips, CTA) — die Karte selbst bleibt stehen, denn sie ist der
+      // einzige Zugang zum Coach-Hub. Ohne diesen Zweig löschte der Schalter den
+      // Zugang gleich mit und der Nutzer käme im Heute-Tab nicht mehr zum Coach.
+      // Andere Gründe für null (kein Premium, ganz frisches Konto) lassen die
+      // Fläche weiter leer — dort gibt es auch nichts zu öffnen.
+      let stumm = false;
+      try { stumm = !!(isPremium() && S.aiCoach && S.aiCoach.insights === false); } catch(_) {}
+      if (!stumm) { host.innerHTML = ''; _aicSig = null; return; }
+      const sigQ = 'quiet|' + _coachName();
+      if (sigQ === _aicSig && host.firstElementChild) return;
+      _aicSig = sigQ;
+      host.innerHTML = `<div class="aic">
+        <span class="aic-aur" aria-hidden="true"></span>
+        <div class="aic-in">
+          <div class="aic-top">
+            <span class="aic-orb">${ICO.sparkle({s:14})}</span>
+            <span class="aic-lbl">${esc(_coachName())}</span>
+          </div>
+          <div class="aic-sub">${esc(tr('Tippen für Chat, Journal und Einstellungen.'))}</div>
+        </div>
+      </div>`;
+      _aicCardTap(host.firstElementChild);
+      return;
+    }
     const pct = Math.max(0, Math.min(100, Math.round(s.pct || 0)));
     // Der Name gehoert in die Signatur: sonst haelt der Cache die Karte beim
     // Umbenennen fest und der alte Name bleibt bis zur naechsten Inhaltsaenderung stehen.
@@ -10847,20 +10887,7 @@ function renderCoachTodayCard() {
         </div>` : ''}
       </div>
     </div>`;
-    const card = host.firstElementChild;
-    if (card) {
-      requestAnimationFrame(() => card.classList.add('in'));
-      // Task 9: die Karte ist der EINZIGE Zugang zum Coach-Hub (Gestaltungsregel 1).
-      // Der closest()-Wächter ist Pflicht: die Karte trägt einen "Training
-      // starten"-Button, und ohne ihn würde der Hub den Trainingsstart schlucken,
-      // den der Nutzer bisher an dieser Stelle hatte.
-      card.style.cursor = 'pointer';
-      card.onclick = (ev) => {
-        if (ev.target.closest('button, a')) return;
-        try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
-        try { openCoachHub('chat'); } catch(e2) { console.warn('[Coach] Hub öffnen:', e2); }
-      };
-    }
+    _aicCardTap(host.firstElementChild);
   } catch(e) { console.warn('[Coach] today card render:', e); host.innerHTML = ''; }
 }
 // Altlast: wer die Karte früher weggeklickt hat, trägt den Ausblend-Schlüssel noch
@@ -23834,8 +23861,16 @@ let _chTab = 'chat';
 // Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
 // Unterschied, statt vier Adjektive zu lesen.
 function _chToneVars(){ return { ex: _cm('Bankdrücken','Bench press'), kg: 60, reps: 8, sets: 3 }; }
+// Sprache der Coach-Sätze im Hub kommt aus GT_LANG, NICHT aus _lang(): _lang()
+// liest nur gt_lang==='en' und liefert bei gt_lang='auto' auf einem englischen
+// Gerät 'de', während Reiter, Überschriften und der Übungsname im Beispiel über
+// tr()/_cm()/GT_LANG längst englisch sind — eine Karte in zwei Sprachen.
+function _chLang(){ return GT_LANG === 'en' ? 'en' : 'de'; }
+function _chSay(key, vars){
+  try { return CoachPersona.say(key, vars || {}, _persona(), _chLang()); } catch(_) { return ''; }
+}
 function _chToneLine(tone){
-  try { return CoachPersona.say('greet', _chToneVars(), CoachPersona.personaGet({ tone: tone }), _lang()); }
+  try { return CoachPersona.say('greet', _chToneVars(), CoachPersona.personaGet({ tone: tone }), _chLang()); }
   catch(_) { return ''; }
 }
 function openCoachHub(tab){
@@ -23875,11 +23910,37 @@ function renderCoachHub(){
       b.classList.toggle('on', k === _chTab);
       b.setAttribute('aria-selected', k === _chTab ? 'true' : 'false');
     });
+    // Body NICHT ersetzen, solange eine Namensänderung läuft (s. coachHubSetName):
+    // onchange feuert beim Blur, also zwischen pointerdown und pointerup des
+    // nächsten Tipps — ein Rerender dazwischen nimmt die getippte Karte aus dem
+    // DOM, der Klick landet auf dem Vorfahren und der erste Tipp ist verloren.
+    if (_chHoldBody) return;
+    // Aufgeklappte Feinjustierung überlebt den Rerender. Ohne diesen Griff klappt
+    // sie bei jedem der vier Schalter zu und die Scrollposition springt. Bewusst
+    // aus dem DOM gelesen statt aus einem ontoggle-Merker: das toggle-Ereignis
+    // feuert erst als eigene Aufgabe, ein schneller Tipp käme ihm zuvor.
+    const detOffen = !!(body.querySelector('details') || {}).open;
     body.innerHTML = _chTab === 'journal'  ? _chJournalHTML()
                    : _chTab === 'report'   ? _chReportHTML()
                    : _chTab === 'settings' ? _chSettingsHTML()
                    :                         _chChatHTML();
+    if (detOffen) { const d = body.querySelector('details'); if (d) d.open = true; }
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
+}
+// Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
+// Beispielsatz-Vorspann sind die einzigen Stellen im Hub, die ihn tragen.
+let _chHoldBody = false;
+function coachHubSetName(el){
+  _chHoldBody = true;
+  try { setAiCoachOpt('name', (el && el.value) || ''); }
+  catch(e) { console.warn('[Coach] Name setzen:', e); }
+  finally { _chHoldBody = false; }
+  try {
+    const h = document.getElementById('ch-title'); if (h) h.textContent = _coachName();
+    // Zeigt, was wirklich gespeichert wurde: safeName() kürzt und entschärft.
+    if (el) el.value = _coachName();
+    const ex = document.getElementById('ch-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
+  } catch(e) { console.warn('[Coach] Name anwenden:', e); }
 }
 // ── Chat ─────────────────────────────────────────────────────────────────
 // Der bestehende Chat zieht bewusst NICHT physisch um: aicSend(), das Diktat
@@ -23996,25 +24057,30 @@ function _chSwitch(key, on, title, sub){
       <span class="tgl-track"></span>
     </label></div>`;
 }
+// Inhalt der Beispielsatz-Zeile — eigene Funktion, weil coachHubSetName() sie
+// einzeln nachzieht, ohne den ganzen Body zu ersetzen.
+function _chToneExInner(){
+  const nm = _coachName();
+  return `<span>${esc(_cm('Noch ein Beispiel von ' + nm + ':', 'Another example from ' + nm + ':'))}
+    <i>${esc(_chSay('mid', { vol: 4200, pct: 104 }))}</i></span>`;
+}
 function _chSettingsHTML(){
   const p = _persona();
   const parts = [];
-  // Name: onchange (nicht oninput) — setAiCoachOpt zieht _coachOptRender() und
-  // damit renderCoachHub() nach sich, das Feld wird also neu gezeichnet. Bei
-  // jedem Tastendruck würde der Nutzer dabei den Fokus verlieren.
+  // Name: onchange (nicht oninput) — bei jedem Tastendruck zu speichern würde den
+  // Fokus kosten. coachHubSetName() statt setAiCoachOpt() direkt: der Schreibweg
+  // darf den Body nicht ersetzen, sonst verschluckt er den nächsten Tipp.
   parts.push(`<div class="ch-sec">${esc(_cm('Name','Name'))}</div>
     <input type="text" class="pf-inp" id="ch-name" maxlength="20" autocomplete="off" spellcheck="false"
-      value="${esc(p.name)}" placeholder="Coach" onchange="setAiCoachOpt('name', this.value)">`);
+      value="${esc(p.name)}" placeholder="Coach" onchange="coachHubSetName(this)">`);
   // Ton: derselbe Satz in allen vier Tönen (Beispielsatz aus dem Brief).
   parts.push(`<div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>`);
   parts.push(_CH_TONES.map(t =>
     `<button type="button" class="ch-preset${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
       <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
-  // Zweites Beispiel im GEWÄHLTEN Ton, über den echten _say()-Weg: wechselt beim
+  // Zweites Beispiel im GEWÄHLTEN Ton, über die echte Persona: wechselt beim
   // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
-  parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex"><span>${esc(_cm(
-      'Noch ein Beispiel von ' + p.name + ':', 'Another example from ' + p.name + ':'))}
-    <i>${esc(_say('mid', { vol: 4200, pct: 104 }))}</i></span></div>`);
+  parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex">${_chToneExInner()}</div>`);
   // Umfangs-Profil. Ist preset === 'custom', kommt eine vierte, deaktivierte
   // Karte dazu: der Zustand hat einen Namen, ist aber nicht anwählbar.
   parts.push(`<div class="ch-sec">${esc(tr('Wie viel Coach willst du?'))}</div>`);
