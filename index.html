@@ -7583,7 +7583,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607300001';
+const APP_VERSION = 'gymtrack-v202607300002';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8317,6 +8317,14 @@ const I18N_EN = {
   'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr':'Suggestions you dismiss five times in a row stop coming back',
   'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit':'Common questions such as "How many sets left?" or "What is my record on bench press?" are answered by the app itself, instantly',
   'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg':'Your memory is tied to your account: a second account on the same device sees none of it, and deleting your account deletes it',
+ /* Changelog: Coach begleitet Training (29.07.2026) */
+  '29.07.2026 · Der Coach begleitet dein Training':'29 Jul 2026 · Your coach guides your workout',
+  'Er begrüßt dich mit dem, was du beim letzten Mal geschafft hast, ordnet zur Halbzeit ein und zieht am Ende Bilanz':'It greets you with what you achieved last time, checks in at the halfway point, and sums up at the end',
+  'Beim Öffnen einer Übung sagt er dir dein Aufwärmschema an — in Kilo, nicht in Prozent':'When you open an exercise, it tells you your warm-up scheme — in kilos, not percent',
+  'Nach jedem Satz kannst du mit einem Tipp sagen: leicht, passend oder schwer. Das nächste Gewicht richtet sich danach':'After each set, one tap tells it: light, right or heavy. The next weight follows your answer',
+  'Er merkt, wenn deine Wiederholungen fallen und die Pausen länger werden — und sagt es, bevor du dich verausgabst':'It notices when your reps drop and your rests get longer — and says so before you push too far',
+  'Alles davon läuft ohne Internet. Auch im Keller-Gym':'All of this works without internet. Even in a basement gym',
+  'Wie oft er sich meldet, bestimmst du: höchstens vier Mal pro Training, oder acht, oder gar nicht':'You decide how often it speaks up: at most four times per workout, or eight, or never',
  /* Changelog: Coach bekommt einen Namen (29.07.2026) */
   '29.07.2026 · Dein Coach bekommt einen Namen':'29 Jul 2026 · Your coach gets a name',
   'Gib deinem Coach einen Namen und einen Ton — ruhig, sachlich, fordernd oder locker. Er redet ab sofort so mit dir':'Give your coach a name and a tone — calm, factual, tough or casual. It talks to you that way from now on',
@@ -8572,6 +8580,17 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-coach-training': {
+    label: '29.07.2026 · Der Coach begleitet dein Training',
+    items: [
+      'Er begrüßt dich mit dem, was du beim letzten Mal geschafft hast, ordnet zur Halbzeit ein und zieht am Ende Bilanz',
+      'Beim Öffnen einer Übung sagt er dir dein Aufwärmschema an — in Kilo, nicht in Prozent',
+      'Nach jedem Satz kannst du mit einem Tipp sagen: leicht, passend oder schwer. Das nächste Gewicht richtet sich danach',
+      'Er merkt, wenn deine Wiederholungen fallen und die Pausen länger werden — und sagt es, bevor du dich verausgabst',
+      'Alles davon läuft ohne Internet. Auch im Keller-Gym',
+      'Wie oft er sich meldet, bestimmst du: höchstens vier Mal pro Training, oder acht, oder gar nicht',
+    ]
+  },
   'cl-2026-07-29-coach-persoenlich': {
     label: '29.07.2026 · Dein Coach bekommt einen Namen',
     items: [
