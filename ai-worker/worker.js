@@ -789,6 +789,19 @@ function stripAdditionalProps(schema) {
   return rest;
 }
 
+// Antwortsprache haengt AM lang-Parameter, nicht an der Sprache der Daten.
+// Die App haelt ihre Daten bewusst deutsch (Uebungsnamen, Muskelgruppen-IDs,
+// Dossier-Eintraege, Check-in-Notizen) und uebersetzt nur die Anzeige — im
+// englischen App-Modus bekam das Modell also einen komplett deutschen Payload
+// und antwortete deutsch, obwohl der Systemprompt englisch war (Live-Coach-
+// Karte "Stagnation erkannt" in der EN-App). Diese Regel steht deshalb in
+// JEDEM Prompt, ganz am Ende und damit am naechsten an der Ausgabe.
+function langRule(de) {
+  return de
+    ? "\nSPRACHE: Antworte ausschliesslich auf Deutsch, egal in welcher Sprache die Daten stehen. Uebungsnamen aus den Daten bleiben unveraendert."
+    : "\nLANGUAGE: Always answer in English — every field, including titles and button labels. The data you receive (exercise names, muscle groups, notes, earlier messages) is often German; that never changes your output language. Keep exercise names exactly as they appear in the data, do not translate them.";
+}
+
 // ═══════════════ /chat — Coach-Chat inkl. Trainingsplan-Erstellung ═══════════════
 
 async function runChat(body, lang, env, opts) {
@@ -822,7 +835,7 @@ You do NOT know this user: you have no training data, no profile and no stated l
 Do NOT output any code blocks (no gtplan, no gtmem) and do not build a training plan.
 No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.
 STRICTLY FORBIDDEN: emojis and pictographic symbols of any kind. The app renders its own icons; your output is plain text.`;
-    const shot = await llm(env, { system: sysShared, messages: msgs, maxTokens: 1200 });
+    const shot = await llm(env, { system: sysShared + langRule(de), messages: msgs, maxTokens: 1200 });
     return { text: shot.text, usage: shot.usage };
   }
   const sys = (de
@@ -854,7 +867,7 @@ If this message reveals something permanently true about the user — a physical
 Only include fields that are genuinely new. At most two entries per message. No "ts" field and no dates — the app sets the timestamp. Do not memorise anything that only applies to this one question.
 No medical diagnoses — advise seeing a doctor for pain/injuries. Stay on training topics.
 STRICTLY FORBIDDEN: emojis and pictographic symbols of any kind — neither in the answer text nor in the plan (plan name, day labels, exercise names). The app renders its own icons; your output is plain text.`) +
-    "\n\n=== NUTZERDATEN ===\n" + ctx;
+    langRule(de) + (de ? "\n\n=== NUTZERDATEN ===\n" : "\n\n=== USER DATA ===\n") + ctx;
   const { text, usage } = await llm(env, { system: sys, messages: msgs, maxTokens: 1200 });
   return { text, usage };
 }
@@ -914,7 +927,7 @@ Trigger types: jump=clear performance increase, drop=clear performance drop, rep
 If the data contains "limits", these are the user's physical limitations: never suggest anything that loads them. If it contains "muted", those are suggestion kinds the user repeatedly ignored — do not use those kinds any more.
 No emojis — anywhere, including title and button labels.`;
   const { text, usage } = await llm(env, {
-    system: sys,
+    system: sys + langRule(de),
     messages: [{ role: "user", content: JSON.stringify(t).slice(0, 2000) }],
     maxTokens: 300,
     schema: COACH_SCHEMA,
@@ -1026,7 +1039,7 @@ recos: 2-3 recommendations, max 14 words each, concrete and with a number.
 actions: 0-3 DIRECTLY applicable changes (only if the data truly supports them, else empty). kind="sets": change target sets (field sets, 1-8). kind="reps": change rep range (repMin+repMax, 1-30). kind="addEx": add a missing exercise (muscleGroup ONLY from brust/ruecken/beine/arme/schultern/core, plus sets/repMin/repMax). exercise = EXACT exercise name from the data (for addEx the new name). label = short button text (max 5 words). why = 1 sentence with a number from the data.
 No emojis — in any field (summary, points, recos, labels).`;
   const { text, usage } = await llm(env, {
-    system: sys,
+    system: sys + langRule(de),
     messages: [{ role: "user", content: data }],
     // Kürzeres Zielformat (Kennzahlen statt Fließtext) braucht weniger Ausgabe,
     // aber score+summary+4 metrics+6 bars+4 points+3 recos+3 actions passen bei
@@ -1101,7 +1114,7 @@ howTo: 3-5 short steps for the MAIN exercise (max 12 words each). These steps ar
 caution: 1 sentence — most common mistake on this machine.
 No emojis — in any field.`;
   const { text, usage } = await llm(env, {
-    system: sys,
+    system: sys + langRule(de),
     messages: [{
       role: "user",
       content: de ? "Welches Trainingsgerät ist das und welche Übungen macht man daran?" : "Which training machine is this and which exercises are done on it?",
