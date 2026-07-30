@@ -314,6 +314,22 @@ test('der Anstoss nach der Pause nennt die tatsaechlichen Tage', () => {
 
 // ── Vollstaendigkeit: jede Rueckgabe muss einen ganzen Satz ergeben ───────
 
+// Alle Platzhalternamen des Satzkatalogs. Wird als Koeder benutzt: was das
+// Modul NICHT selbst mitliefert, bekommt einen auffaelligen Wert. Taucht der
+// im gerenderten Satz auf, verlangt die Vorlage einen Wert, den das Modul nie
+// schickt — und im Betrieb stuende dort dann die nackte Einheit ('zuletzt kg
+// bei 8 Wiederholungen'). Genau dieser Befund hat in Block 3 alle Tests
+// ueberlebt, weil fill() den Platzhalter samt Leerzeichen still entfernt und
+// eine Suche nach '{kg}' deshalb nie anschlaegt.
+const ALL_VARS = ['count', 'days', 'ex', 'kg', 'mins', 'pct', 'reps', 'secs', 'sets', 'vol', 'weeks'];
+const BAIT = 'KOEDER';
+
+function withBait(vars) {
+  const out = {};
+  ALL_VARS.forEach((k) => { out[k] = BAIT; });
+  return Object.assign(out, vars);
+}
+
 test('jede geplante Meldung ergibt in vier Toenen und zwei Sprachen einen ganzen Satz', () => {
   const seen = {};
   Object.keys(SOLO).forEach((kind) => {
@@ -324,16 +340,25 @@ test('jede geplante Meldung ergibt in vier Toenen und zwei Sprachen einen ganzen
     seen[kind] = true;
     TONES.forEach((tone) => {
       LANGS.forEach((lang) => {
-        const txt = P.say(p.key, p.vars, { tone: tone }, lang);
         const at = kind + '/' + p.key + '/' + tone + '/' + lang;
+        const txt = P.say(p.key, p.vars, { tone: tone }, lang);
         assert.ok(txt && txt.length > 0, at + ' ergibt keinen Satz');
         assert.ok(!/\{[a-z]+\}/i.test(txt), at + ' laesst einen Platzhalter stehen: ' + txt);
-        assert.ok(!/(^|\s)(kg|kilos?|Kilo|reps?|Wiederholungen|Saetze|Sätze|sets)(\s|[.,;:!?]|$)/.test(
-          txt.replace(/\d[\d.,]*\s*(kg|Kilo|kilos?)/gi, 'X')
-             .replace(/\d[\d.,]*\s*(Sätze|Saetze|sets|Wiederholungen|reps?)/gi, 'X')
-             .replace(/(Sätze|Saetze|sets|Wiederholungen|reps?)\s*(zu|of|,)?\s*X/gi, 'X')
-        ), at + ' traegt eine Einheit ohne Zahl: ' + txt);
+        const baited = P.say(p.key, withBait(p.vars), { tone: tone }, lang);
+        assert.ok(baited.indexOf(BAIT) < 0,
+          at + ' braucht einen Wert, den das Modul nicht liefert: ' + baited);
       });
+    });
+    // Die Gegenrichtung: kein mitgeschickter Wert ist tot. Ein Platzhalter, den
+    // keine der acht Vorlagen kennt, macht die Meldung nicht reicher — er
+    // verschaerft nur den Riegel aus Gestaltungsregel 8 und streicht Meldungen,
+    // die haetten kommen duerfen.
+    Object.keys(p.vars).forEach((v) => {
+      const less = Object.assign({}, p.vars);
+      delete less[v];
+      const changed = TONES.some((tone) => LANGS.some((lang) =>
+        P.say(p.key, less, { tone: tone }, lang) !== P.say(p.key, p.vars, { tone: tone }, lang)));
+      assert.ok(changed, kind + ' schickt ' + v + ' mit, keine Vorlage nutzt es');
     });
   });
   assert.deepStrictEqual(Object.keys(seen).sort(), Object.keys(SOLO).sort(),
@@ -344,7 +369,7 @@ test('kein Rueckgabewert traegt ein Emoji', () => {
   const plan = N.planAll(ctx());
   assert.ok(plan.length > 0);
   const blob = JSON.stringify(plan);
-  assert.ok(!/[‼-㊙\uD83C-􏰀-\uDFFF️☀-➿]/.test(blob),
+  assert.ok(!/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}]/u.test(blob),
     'Emoji im Plan: ' + blob);
 });
 
