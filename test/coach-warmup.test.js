@@ -118,3 +118,47 @@ test('format einer leeren Liste bleibt leer', () => {
   assert.strictEqual(W.format([], 'de'), '');
   assert.strictEqual(W.format(null, 'de'), '');
 });
+
+// ── Typkontrakt: Zahlen sind Zahlen ───────────────────────────────────────
+// Ein Zahlstring ist keine Zahl. Frueher lieferte roundToPlate('60', 2.5, 20)
+// stumm 20 — also 'Aufwaermen mit 20 kg' statt mit 45. Ein stiller falscher
+// Wert ist teurer als gar keiner: null zwingt die Aufrufstelle zur Umwandlung.
+
+test('roundToPlate lehnt einen Zahlstring ab, statt still die Stange zu liefern', () => {
+  assert.strictEqual(W.roundToPlate('60', 2.5, 20), null);
+  assert.strictEqual(W.roundToPlate('60'), null);
+});
+
+test('roundToPlate liefert bei unbrauchbarem Gewicht null', () => {
+  [null, undefined, NaN, {}, [], true].forEach(v => {
+    assert.strictEqual(W.roundToPlate(v, 2.5, 20), null, 'nicht null bei ' + String(v));
+  });
+});
+
+test('roundToPlate haelt den Kontrakt auch fuer step und barKg', () => {
+  // Unbrauchbare OPTIONEN fallen auf die Vorgabe zurueck — nur das Gewicht
+  // selbst ist Pflicht. Sonst waere jeder Aufruf ohne Geraeteangabe wertlos.
+  assert.strictEqual(W.roundToPlate(43.7, '2.5', 20), W.roundToPlate(43.7, 2.5, 20));
+  assert.strictEqual(W.roundToPlate(43.7, 2.5, '20'), W.roundToPlate(43.7, 2.5, undefined));
+});
+
+// ── Untergrenze und Obergrenze ────────────────────────────────────────────
+
+test('MIN_WORK_KG ist die zugesicherte Untergrenze von 30 kg', () => {
+  assert.strictEqual(W.MIN_WORK_KG, 30);
+  // Ohne Stange greift keine andere Schranke: hier entscheidet MIN_WORK_KG
+  // allein. Genau diese Kante ist die Zusicherung aus dem Brief.
+  assert.deepStrictEqual(W.warmupSets(29.9, { step: 2.5, barKg: 0 }), [],
+    '29,9 kg liegen unter der Untergrenze');
+  assert.ok(W.warmupSets(30, { step: 2.5, barKg: 0 }).length > 0,
+    '30 kg liegen genau auf der Untergrenze und muessen Aufwaermsaetze ergeben');
+});
+
+test('unsinnig hohe Arbeitsgewichte ergeben keine Aufwaermsaetze', () => {
+  assert.strictEqual(typeof W.MAX_WORK_KG, 'number');
+  assert.deepStrictEqual(W.warmupSets(1e9, { step: 2.5, barKg: 20 }), [],
+    'Eine Tippfehler-Eingabe darf keine 500-Millionen-kg-Saetze ansagen');
+  assert.deepStrictEqual(W.warmupSets(W.MAX_WORK_KG + 0.1, { step: 2.5, barKg: 20 }), []);
+  assert.ok(W.warmupSets(W.MAX_WORK_KG, { step: 2.5, barKg: 20 }).length > 0,
+    'Die Obergrenze selbst ist noch gueltig');
+});

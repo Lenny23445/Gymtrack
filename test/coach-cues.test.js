@@ -116,3 +116,114 @@ test('die Tabelle deckt mindestens zwoelf Uebungen ab', () => {
   const distinct = new Set(cueKeys().map(k => C.CUES[k].de));
   assert.ok(distinct.size >= 12, 'nur ' + distinct.size + ' verschiedene Hinweise');
 });
+
+// ── Jede Zuordnung einzeln festgenagelt ───────────────────────────────────
+// Vorher waren vier der Hinweise an einen Uebungsnamen gebunden; die uebrigen
+// haetten paarweise vertauscht sein koennen, ohne dass ein Test es merkt
+// (Beinbeuger mit dem Text zum Beinstrecker liest sich fuer die Suite gleich
+// gut). Die Tabelle unten bindet JEDEN Hinweis an einen Namen, wie ihn ein
+// Nutzer eintippt — und prueft zugleich, dass er nicht bei einem der
+// Nachbareintraege landet.
+const ZUORDNUNG = [
+  ['Bankdrücken',              'bankdruecken'],
+  ['Bench Press',              'benchpress'],
+  ['Kniebeugen',               'kniebeuge'],
+  ['Bulgarian Split Squat',    'splitsquat'],
+  ['Ausfallschritte',          'ausfallschritt'],
+  ['Kreuzheben',               'kreuzheben'],
+  ['Rumänisches Kreuzheben',   'rumaenischeskreuzheben'],
+  ['Schulterdrücken',          'schulterdruecken'],
+  ['Klimmzug',                 'pullup'],
+  ['Latzug',                   'latzug'],
+  ['Rudern (Langhantel)',      'rudern'],
+  ['Aufrechtes Rudern',        'aufrechtesrudern'],
+  ['Beinpresse',               'beinpresse'],
+  ['Beinbeuger',               'beinbeuger'],
+  ['Beinstrecker',             'beinstrecker'],
+  ['Wadenheben',               'wadenheben'],
+  ['Hip Thrust',               'hipthrust'],
+  ['Bizepscurl',               'bizeps'],
+  ['Hammercurl',               'hammercurl'],
+  ['Trizepsdrücken',           'trizepsdruecken'],
+  ['Dips',                     'dips'],
+  ['Seitheben',                'seitheben'],
+  ['Face Pull',                'facepull'],
+  ['Fliegende',                'fliegende'],
+  ['Reverse Fly',              'reversefly'],
+  ['Plank',                    'plank'],
+  ['Liegestütze',              'liegestuetz'],
+  ['Shrugs',                   'shrug'],
+  ['Crunches',                 'crunch'],
+  ['Beinheben',                'beinheben']
+];
+
+test('jeder Uebungsname trifft genau seinen Hinweis, nicht den des Nachbarn', () => {
+  const seen = new Set();
+  ZUORDNUNG.forEach(([name, key]) => {
+    const row = C.CUES[key];
+    assert.ok(row, 'Schluessel fehlt in der Tabelle: ' + key);
+    ['de', 'en'].forEach(lang => {
+      assert.strictEqual(C.cueFor(name, lang), row[lang],
+        'falscher Hinweis fuer "' + name + '" (' + lang + '): ' + C.cueFor(name, lang));
+    });
+    seen.add(row.de);
+  });
+  const alle = new Set(Object.keys(C.CUES).map(k => C.CUES[k].de));
+  assert.strictEqual(seen.size, alle.size,
+    'nicht jeder Hinweis der Tabelle ist an einen Namen gebunden: ' + (alle.size - seen.size) + ' offen');
+});
+
+test('benachbarte Geraete bekommen nicht denselben Hinweis', () => {
+  // Der teuerste Tippfehler in einer solchen Tabelle ist die Vertauschung
+  // zweier eng verwandter Eintraege.
+  const paare = [['Beinbeuger', 'Beinstrecker'], ['Latzug', 'Klimmzug'],
+                 ['Rudern', 'Aufrechtes Rudern'], ['Bizepscurl', 'Hammercurl'],
+                 ['Kreuzheben', 'Rumänisches Kreuzheben'], ['Fliegende', 'Reverse Fly']];
+  paare.forEach(([a, b]) => {
+    assert.notStrictEqual(C.cueFor(a, 'de'), C.cueFor(b, 'de'), a + ' und ' + b + ' teilen sich einen Hinweis');
+  });
+});
+
+// ── Normalisierung ────────────────────────────────────────────────────────
+
+test('dekomponierter Umlaut trifft denselben Eintrag wie der komponierte', () => {
+  // 'ü' gibt es als ein Zeichen (U+00FC) und als u + Trema (U+0075 U+0308).
+  // Beides kommt aus echten Eingaben; die Aufloesung der Umlaute muss deshalb
+  // nach der Komposition passieren, nicht davor.
+  const base = C.cueFor('Bankdrücken', 'de');
+  assert.ok(base, 'ohne Basis-Treffer prueft der Vergleich nichts');
+  assert.strictEqual(C.cueFor('Bankdrücken', 'de'), base);
+  assert.strictEqual(C.normalize('Bankdrücken'), C.normalize('Bankdrücken'));
+});
+
+test('die Schreibweise ohne Umlaut trifft denselben Eintrag', () => {
+  // Auf einer Tastatur ohne Umlaute und in vielen Importen steht 'Bankdrucken'.
+  assert.strictEqual(C.cueFor('Bankdrucken', 'de'), C.cueFor('Bankdrücken', 'de'));
+  assert.strictEqual(C.cueFor('Schulterdrucken', 'de'), C.cueFor('Schulterdrücken', 'de'));
+  assert.strictEqual(C.cueFor('Klimmzuge', 'de'), C.cueFor('Klimmzüge', 'de'));
+});
+
+test('Einzahl und Mehrzahl treffen denselben Eintrag', () => {
+  const pull = C.cueFor('Klimmzug', 'de');
+  assert.ok(pull, 'Klimmzug ohne Hinweis');
+  assert.strictEqual(C.cueFor('Klimmzüge', 'de'), pull);
+  assert.strictEqual(C.cueFor('Pull-ups', 'en'), C.cueFor('Klimmzug', 'en'));
+});
+
+test('gaengige Varianten treffen den passenden Eintrag', () => {
+  assert.strictEqual(C.cueFor('Chin-up', 'de'), C.cueFor('Klimmzug', 'de'));
+  assert.strictEqual(C.cueFor('Nackendrücken', 'de'), C.cueFor('Schulterdrücken', 'de'));
+  assert.strictEqual(C.cueFor('Bein-Curl', 'de'), C.cueFor('Beinbeuger', 'de'));
+});
+
+test('ein kurzer Schluessel trifft nicht mitten im Wort', () => {
+  // 'row' steckt in 'narrowgrip'. Wer drei Zeichen per indexOf sucht, sagt
+  // beim Enggriff-Bankdruecken den Ruder-Hinweis an.
+  assert.strictEqual(C.cueFor('Narrow Grip', 'de'), null,
+    'Ruder-Hinweis bei einer Griffangabe');
+  assert.strictEqual(C.cueFor('Narrow Grip Bench Press', 'de'), C.cueFor('Bankdrücken', 'de'));
+  // Als eigenes Wort muss der kurze Schluessel weiterhin treffen.
+  assert.strictEqual(C.cueFor('Row', 'en'), C.cueFor('Rudern', 'en'));
+  assert.strictEqual(C.cueFor('Barbell Row', 'en'), C.cueFor('Rudern', 'en'));
+  assert.strictEqual(C.cueFor('RDL', 'de'), C.cueFor('Rumänisches Kreuzheben', 'de'));
+});

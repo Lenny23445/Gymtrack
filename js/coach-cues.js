@@ -15,13 +15,32 @@
 
   // Normalisierung: klein, Umlaute aufgeloest, alles ausser a-z0-9 entfernt.
   // Damit trifft 'Bankdrücken Kurzhantel' denselben Eintrag wie 'Bankdrücken'.
-  function normalize(v) {
+  //
+  // Die Reihenfolge ist der ganze Punkt. Ein 'ü' gibt es als EIN Zeichen
+  // (U+00FC) und als u + Trema (U+0075 U+0308); beides kommt aus echten
+  // Eingaben und aus Importen. Wer die Umlaute VOR der Normalform aufloest,
+  // trifft die zerlegte Schreibweise nicht und wirft das Trema danach weg —
+  // aus 'Bankdrücken' wurde dann 'bankdrucken' und damit ein anderer
+  // Schluessel als aus 'Bankdrücken'. Deshalb: erst NFC (zusammenziehen), dann
+  // Umlaute, dann NFD ohne kombinierende Zeichen (fuer é, ñ und Verwandte).
+  function fold(v, plain) {
     if (typeof v !== 'string') return '';
-    return v.toLowerCase()
-      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-      .normalize('NFD')
+    var s = v.toLowerCase().normalize('NFC');
+    s = plain
+      ? s.replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss')
+      : s.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+    return s.normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '');
   }
+
+  function normalize(v) { return fold(v, false); }
+
+  // Zweite Lesart derselben Eingabe: Umlaut auf den blanken Vokal. Auf einer
+  // Tastatur ohne Umlaute und in vielen Importen steht 'Bankdrucken' oder
+  // 'Klimmzuge'. Beide Lesarten werden gegen die entsprechend gefalteten
+  // Schluessel geprueft, statt fuer jede Schreibweise einen Alias zu pflegen.
+  function plainFold(v) { return fold(v, true); }
 
   // Ein Hinweis, mehrere Schluessel: derselbe Punkt gilt fuer den deutschen
   // und den englischen Uebungsnamen und fuer die Varianten. Deshalb liegen die
@@ -160,10 +179,12 @@
     romaniandeadlift:       RDL,
     rdl:                    RDL,
     schulterdruecken:       OHP,
+    nackendruecken:         OHP,
     overheadpress:          OHP,
     arnoldpress:            OHP,
-    klimmzueg:              PULLUP,
+    klimmzug:               PULLUP,
     pullup:                 PULLUP,
+    chinup:                 PULLUP,
     latzug:                 LATPULL,
     latpulldown:            LATPULL,
     rudern:                 ROW,
@@ -173,6 +194,7 @@
     beinpresse:             LEGPRESS,
     legpress:               LEGPRESS,
     beinbeuger:             LEGCURL,
+    beincurl:               LEGCURL,
     legcurl:                LEGCURL,
     beinstrecker:           LEGEXT,
     legextension:           LEGEXT,
@@ -203,6 +225,25 @@
     legraise:               LEGRAISE
   };
 
+  // Ab dieser Laenge darf ein Schluessel MITTEN im Namen treffen. Darunter
+  // waere der Treffer Zufall: 'row' steckt in 'narrowgrip', und cueFor('Narrow
+  // Grip') sagte dann den Ruder-Hinweis an. Kurze Schluessel muessen deshalb
+  // ein eigenes Wort sein — am Anfang, am Ende oder als ganzer Name.
+  var MIN_SUB_LEN = 4;
+
+  function hit(q, k) {
+    if (!q || !k || q.length < k.length) return false;
+    if (k.length >= MIN_SUB_LEN) return q.indexOf(k) >= 0;
+    return q.indexOf(k) === 0 || q.lastIndexOf(k) === q.length - k.length;
+  }
+
+  // Die Schluessel stehen in der 'ue'-Schreibweise. Fuer die zweite Lesart der
+  // Eingabe (Tastatur ohne Umlaute) wird derselbe Schluessel auf den blanken
+  // Vokal gezogen: 'bankdruecken' -> 'bankdrucken'.
+  function plainKey(k) {
+    return k.replace(/ue/g, 'u').replace(/oe/g, 'o').replace(/ae/g, 'a');
+  }
+
   // Der laengste passende Schluessel gewinnt: 'rumaenischeskreuzheben' enthaelt
   // 'kreuzheben', 'bulgariansplitsquats' enthaelt 'squat'. Der spezifische
   // Hinweis ist immer der richtige.
@@ -211,9 +252,10 @@
   function cueFor(exerciseName, lang) {
     var q = normalize(exerciseName);
     if (!q) return null;
+    var qp = plainFold(exerciseName);
     var best = null;
     Object.keys(CUES).forEach(function (k) {
-      if (q.indexOf(k) < 0) return;
+      if (!hit(q, k) && !hit(qp, plainKey(k))) return;
       if (best === null || k.length > best.length) best = k;
     });
     if (best === null) return null;
@@ -221,7 +263,8 @@
     return (lang === 'en' ? row.en : row.de) || null;
   }
 
-  var API = { cueFor: cueFor, normalize: normalize, CUES: CUES };
+  var API = { cueFor: cueFor, normalize: normalize, CUES: CUES,
+              MIN_SUB_LEN: MIN_SUB_LEN };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachCues = API;

@@ -104,6 +104,21 @@
     return out;
   }
 
+  // Median statt Mittelwert: eine einzelne starke Woche verschiebt ihn nicht.
+  // Eintraege ohne Volumenzahl bleiben aussen vor, statt als 0 mitzurechnen —
+  // sonst zoege eine fehlende Zahl den Wert kuenstlich nach unten. Kommt gar
+  // keine Zahl zusammen, gibt es kein Urteil (null), nicht das Urteil 0.
+  function volMedian(rows) {
+    var v = [];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].vol > 0) v.push(rows[i].vol);
+    }
+    if (!v.length) return null;
+    v.sort(function (a, b) { return a - b; });
+    var m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+
   // Nur der letzte zusammenhaengende Abschnitt wird beurteilt.
   function trailingRun(list) {
     var start = 0;
@@ -121,9 +136,13 @@
      - der beurteilte Abschnitt mindestens MIN_WEEKS Kalenderwochen spannt,
      - am Ende nicht mehr Gewicht steht als am Anfang und
      - das Volumen nicht deutlich gewachsen ist.
-     Ein einzelner Ausreisser in der Mitte hebt das Plateau NICHT auf: es
-     zaehlen erste und letzte Woche des Abschnitts, nicht das Maximum. Sonst
-     genuegte eine gute Woche, um die Diagnose auf Dauer stumm zu stellen. */
+     Ein einzelner Ausreisser hebt das Plateau NICHT auf. Fuer das Topgewicht
+     zaehlen deshalb erste und letzte Woche des Abschnitts, nicht das Maximum.
+     Fuer das Volumen zaehlt der Median der zweiten gegen den der ersten
+     Haelfte: 'letzte gegen erste Woche' verletzte dieselbe Zusage von der
+     anderen Seite — eine starke Schlusswoche stellte die Diagnose stumm, eine
+     schwache Startwoche ebenso, und fehlte die Volumenzahl der ERSTEN Zeile,
+     griff der Riegel ueberhaupt nicht mehr. */
   function plateau(history) {
     var all = normHistory(history);
     if (all.length < MIN_WEEKS) return null;
@@ -135,7 +154,14 @@
     var weeks = last.wk - first.wk + 1;
     if (weeks < MIN_WEEKS) return null; // mehrere Eintraege in derselben Woche
     if (last.topKg > first.topKg + EPS) return null;
-    if (first.vol > 0 && last.vol > first.vol * (1 + VOL_TOL)) return null;
+
+    // Ohne brauchbare Volumenzahlen auf beiden Seiten entscheidet das
+    // Topgewicht allein. Das ist der dokumentierte Rueckfall, kein Versehen:
+    // eine Historie ohne 'vol' traegt zum Volumen schlicht keine Aussage.
+    var half   = Math.floor(seg.length / 2);
+    var volPre = volMedian(seg.slice(0, half));
+    var volPost = volMedian(seg.slice(half));
+    if (volPre !== null && volPost !== null && volPost > volPre * (1 + VOL_TOL)) return null;
 
     var restSum = 0;
     for (var i = 0; i < seg.length; i++) restSum += seg[i].avgRestSecs;
@@ -154,7 +180,13 @@
 
   /* plateauSay(diag, exName) -> {key:'plateau', vars:{ex, weeks, secs}} | null
      secs ist die BEOBACHTETE mittlere Pause des Abschnitts, keine Vorgabe.
-     Formuliert wird daraus in CoachPersona.say(). */
+     Formuliert wird daraus in CoachPersona.say() — und dort steht der Wert
+     jetzt in allen vier Toenen als Beobachtung. Vorher lasen ihn 'ruhig' und
+     'locker' als Rat ('Laengere Pausen von 120 Sekunden koennten helfen'), was
+     dem Nutzer genau das empfahl, was er ohnehin tut. Task 16 beschreibt;
+     Verschreiben ist Block 6 und hat hier keine Spec. Ein Test in
+     test/coach-analyze.test.js haelt den gerenderten Satz auf Beobachtung
+     fest, damit die Grenze nicht beim naechsten Textfix wieder faellt. */
   function plateauSay(diag, exName) {
     if (!diag || typeof diag !== 'object') return null;
     var weeks = num(diag.weeks), secs = num(diag.avgRestSecs);
@@ -225,11 +257,18 @@
     return out;
   }
 
-  /* prioritizeSay(result, minutes) -> {key:'timeBudget', vars:{mins, count}} */
+  /* prioritizeSay(result, minutes) -> {key:'timeBudget', vars:{mins, count}} | null
+
+     Der Satz besteht aus genau diesen zwei Zahlen. Fehlte das Budget, blieb
+     die Einheit ohne Wert stehen ('Minuten reichen fuer 2 Uebungen'), und ohne
+     eine einzige priorisierte Uebung sagte er 'reichen fuer 0 Uebungen'.
+     Beides ist keine Auskunft — dann schweigt der Coach lieber. */
   function prioritizeSay(result, minutes) {
     var keep = (result && Array.isArray(result.keep)) ? result.keep : [];
     var mins = num(minutes);
-    return { key: 'timeBudget', vars: { mins: mins === null ? '' : Math.round(mins), count: keep.length } };
+    if (mins === null || mins <= 0) return null;
+    if (!keep.length) return null;
+    return { key: 'timeBudget', vars: { mins: Math.round(mins), count: keep.length } };
   }
 
   var API = {

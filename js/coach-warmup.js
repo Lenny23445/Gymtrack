@@ -6,7 +6,25 @@
 
    Das Modul formuliert KEINEN Coach-Satz. format() setzt nur die Zahlenreihe
    ('20 kg × 5, 30 kg × 3'); der Satz drumherum kommt aus
-   CoachPersona.say('warmupIntro', …) an der Verdrahtungsstelle. */
+   CoachPersona.say('warmupIntro', …) an der Verdrahtungsstelle. Der Satz nennt
+   deshalb auch keine feste Satzzahl: das Schema liefert bis zu drei Saetze und
+   faellt nach dem Runden auf zwei oder einen zurueck.
+
+   TYPKONTRAKT (gilt wortgleich in js/coach-rpe.js — zwei Coach-Module duerfen
+   Zahlen nicht verschieden lesen):
+   - Ein GEWICHT ist eine endliche Zahl. '60' ist ein String und damit kein
+     Gewicht. Es wird nicht umgewandelt: roundToPlate() gibt null zurueck,
+     warmupSets() eine leere Liste. Vorher lieferte roundToPlate('60', 2.5, 20)
+     still 20 — also die Ansage 'Aufwaermen mit 20 kg' statt mit 45. Ein
+     stiller falscher Wert ist teurer als gar keiner.
+   - Eine OPTION (step, barKg) darf fehlen oder unbrauchbar sein und faellt
+     dann auf ihre Vorgabe zurueck. Sonst waere jeder Aufruf ohne Geraeteangabe
+     wertlos.
+   - 'step' ist IMMER die kleinste Scheibe JE SEITE. Liegt eine Stange im
+     Spiel, ist die kleinste Gesamtstufe darueber 2*step; ohne Stange
+     (Maschine, Steckgewicht, Kabelzug) ist step die Stufe des Stapels selbst.
+   Die Umwandlung gehoert an die Verdrahtungsstelle, die weiss, woher der Wert
+   kommt (Eingabefeld, Speicher, Import). */
 (function (root) {
   'use strict';
 
@@ -21,6 +39,11 @@
   var DEFAULT_STEP = 2.5;  // kleinste Scheibe JE SEITE
   var DEFAULT_BAR  = 20;   // Standard-Langhantel
   var MIN_WORK_KG  = 30;   // darunter gibt es nichts sinnvoll aufzuwaermen
+  // Oberhalb davon ist die Eingabe ein Tippfehler und keine Angabe. Ohne diese
+  // Schranke sagte warmupSets(1e9) drei Saetze zu 500 Millionen Kilo an. Der
+  // Wert liegt bewusst weit ueber jedem realen Arbeitssatz — auch ueber dem,
+  // was an einer Beinpresse steht — damit er nur Unsinn abfaengt.
+  var MAX_WORK_KG  = 1000;
 
   function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : NaN; }
 
@@ -42,13 +65,16 @@
     return barKg > 0 ? step * 2 : step;
   }
 
+  // Unbrauchbares Gewicht -> null, NICHT das Stangengewicht: siehe Typkontrakt
+  // im Kopf der Datei.
   function roundToPlate(kg, step, barKg) {
     var s = stepOf(step);
     var b = barOf(barKg);
     var w = num(kg);
+    if (!isFinite(w)) return null;
     // Unter dem Stangengewicht gibt es nichts abzunehmen: die leere Stange ist
     // die Untergrenze, nicht die Null.
-    if (!isFinite(w) || w <= b) return r3(b);
+    if (w <= b) return r3(b);
     var inc = plateStep(s, b);
     var steps = Math.round((w - b) / inc);
     if (steps < 0) steps = 0;
@@ -63,6 +89,7 @@
     var bar  = barOf(o.barKg);
     var work = num(workKg);
     if (!isFinite(work) || work <= 0) return [];
+    if (work > MAX_WORK_KG) return [];
 
     // Untergrenze: zwei Stufen ueber der Stange, aber nie unter 30 kg. Wer mit
     // 25 kg arbeitet, waermt sich nicht an einer 20-kg-Stange auf.
@@ -108,7 +135,8 @@
     SCHEME: SCHEME,
     DEFAULT_STEP: DEFAULT_STEP,
     DEFAULT_BAR: DEFAULT_BAR,
-    MIN_WORK_KG: MIN_WORK_KG
+    MIN_WORK_KG: MIN_WORK_KG,
+    MAX_WORK_KG: MAX_WORK_KG
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

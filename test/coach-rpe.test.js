@@ -6,6 +6,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const R = require('../js/coach-rpe.js');
+const W = require('../js/coach-warmup.js');
+const P = require('../js/coach-persona.js');
 
 /* ---------- Modul-Vertrag ---------- */
 
@@ -175,4 +177,82 @@ test('summarize zaehlt unbeantwortet und Unsinn nicht als passend', () => {
 test('summarize mischt deutsche und englische Antworten', () => {
   assert.deepStrictEqual(R.summarize(['hard', 'schwer', 'ok']),
     { easy: 0, ok: 1, hard: 2, trend: 'hard' });
+});
+
+/* ---------- step heisst in beiden Modulen dasselbe ---------- */
+
+test('step ist die kleinste Scheibe JE SEITE, an der Stange also 2*step', () => {
+  // Vorher bedeutete 'step' hier den Gesamtsprung und in coach-warmup die
+  // Scheibe je Seite. Derselbe Geraeteparameter an beide ergab 57,5 kg — mit
+  // 2,5er-Scheiben 18,75 kg je Seite, also nicht auflegbar.
+  assert.strictEqual(R.adjustNext(60, 'schwer', 2.5, 20), 55);
+  assert.strictEqual(R.adjustNext(60, 'leicht', 2.5, 20), 65);
+});
+
+test('an der Stange ist jeder Vorschlag auflegbar', () => {
+  [40, 47.5, 60, 62.5, 100, 142.5].forEach(function (kg) {
+    ['leicht', 'schwer'].forEach(function (a) {
+      const r = R.adjustNext(kg, a, 2.5, 20);
+      assert.strictEqual((r - 20) % 5, 0, a + ' bei ' + kg + ' ergibt ' + r + ' — nicht auflegbar');
+    });
+  });
+});
+
+test('der Vorschlag faellt nie unter das Stangengewicht', () => {
+  assert.strictEqual(R.adjustNext(20, 'schwer', 2.5, 20), 20,
+    '17,5 kg unter einer 20-kg-Stange gibt es nicht');
+  assert.strictEqual(R.adjustNext(25, 'schwer', 2.5, 20), 20);
+  assert.strictEqual(R.adjustNext(15, 'schwer', 2.5, 20), 20);
+});
+
+test('ohne vierten Parameter bleibt es die Maschine mit einem Stapel', () => {
+  // Bestehende Aufrufstellen mit drei Argumenten duerfen nicht werfen und
+  // muessen dasselbe Ergebnis wie vorher liefern.
+  assert.strictEqual(R.adjustNext(60, 'schwer', 2.5), 57.5);
+  assert.strictEqual(R.adjustNext(60, 'schwer', 2.5, 0), 57.5);
+  assert.strictEqual(R.adjustNext(60, 'schwer', 2.5, 'Langhantel'), 57.5);
+});
+
+test('coach-rpe und coach-warmup rechnen auf demselben Raster', () => {
+  const step = 2.5, bar = 20;
+  [45, 60, 82.5, 100].forEach(function (kg) {
+    const down = R.adjustNext(kg, 'schwer', step, bar);
+    assert.strictEqual(down, W.roundToPlate(down, step, bar),
+      'coach-warmup wuerde ' + down + ' anders runden');
+  });
+});
+
+/* ---------- Typkontrakt: Zahlen sind Zahlen ---------- */
+
+test('ein Zahlstring ist kein Gewicht', () => {
+  assert.strictEqual(R.adjustNext('60', 'schwer', 2.5), null);
+  assert.strictEqual(R.ackFor('schwer', '57.5'), null);
+});
+
+/* ---------- Quittung und Rechnung ergeben zusammen einen wahren Satz ---- */
+
+test('die Quittung nennt das Gewicht, das die Rechnung liefert', () => {
+  // Einseitig gefixt bliebe der Widerspruch gruen: die Rechnung senkt auf
+  // 57,5 kg, der Katalogtext behauptete 'Gewicht bleibt bei 57,5 kg' nach
+  // einem 60-kg-Satz. Deshalb laeuft der Test durch BEIDE Module.
+  const cases = [
+    { kg: 60, answer: 'schwer', expect: 57.5, de: '57,5', en: '57.5' },
+    { kg: 60, answer: 'leicht', expect: 62.5, de: '62,5', en: '62.5' }
+  ];
+  cases.forEach(function (c) {
+    const next = R.adjustNext(c.kg, c.answer, 2.5);
+    assert.strictEqual(next, c.expect);
+    const ack = R.ackFor(c.answer, next);
+    assert.ok(ack, 'keine Quittung fuer ' + c.answer);
+    P.TONES.forEach(function (tone) {
+      const de = P.say(ack.key, ack.vars, { tone: tone }, 'de');
+      const en = P.say(ack.key, ack.vars, { tone: tone }, 'en');
+      assert.ok(de.includes(c.de), c.answer + '/' + tone + '/de nennt das neue Gewicht nicht: ' + de);
+      assert.ok(en.includes(c.en), c.answer + '/' + tone + '/en nennt das neue Gewicht nicht: ' + en);
+      assert.ok(!/[{}]/.test(de) && !/[{}]/.test(en), 'Restplatzhalter bei ' + c.answer + '/' + tone);
+      // Der Satz darf nicht behaupten, es bliebe beim alten Gewicht.
+      assert.ok(!/bleib|stays|stay\b/i.test(de), 'behauptet Bestaendigkeit (de/' + tone + '): ' + de);
+      assert.ok(!/bleib|stays|stay\b/i.test(en), 'behauptet Bestaendigkeit (en/' + tone + '): ' + en);
+    });
+  });
 });

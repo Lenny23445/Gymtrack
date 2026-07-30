@@ -185,6 +185,38 @@ test('forecast nennt eine Bedingung und verspricht nichts', () => {
   });
 });
 
+test('die Quittung auf "schwer" behauptet keine Bestaendigkeit', () => {
+  // CoachRpe.adjustNext senkt bei 'schwer' um eine Stufe und uebergibt das
+  // GESENKTE Gewicht. 'Gewicht bleibt bei 57,5 kg' nach einem 60-kg-Satz
+  // widerspricht damit der eigenen Rechnung — der Katalogtext war die falsche
+  // Seite des Widerspruchs.
+  ['de', 'en'].forEach(lang => P.TONES.forEach(tone => {
+    const s = P.say('setAckHard', { kg: 57.5 }, { tone }, lang);
+    const where = 'setAckHard/' + tone + '/' + lang;
+    assert.ok(!/bleib|stays|stay\b/i.test(s), 'behauptet Bestaendigkeit in ' + where + ': ' + s);
+    assert.ok(/57[.,]5/.test(s), 'nennt das neue Gewicht nicht in ' + where + ': ' + s);
+  }));
+});
+
+test('warmupIntro nennt keine feste Satzzahl', () => {
+  // Das Schema in js/coach-warmup.js liefert bis zu drei Saetze und faellt je
+  // nach Rundung auf zwei oder einen zurueck. Eine im Text festgeschriebene
+  // Zahl widerspricht dann der Liste, die daneben steht.
+  ['de', 'en'].forEach(lang => P.TONES.forEach(tone => {
+    const s = P.say('warmupIntro', { ex: 'Bankdrücken' }, { tone }, lang);
+    assert.ok(!/\b(zwei|drei|two|three|[123])\b/i.test(s),
+      'feste Satzzahl in warmupIntro/' + tone + '/' + lang + ': ' + s);
+  }));
+});
+
+test('der Plateau-Satz beschreibt die beobachtete Pause, statt sie zu empfehlen', () => {
+  const rat = /könnte|koennte|sollte|solltest|hilft|helfen|versuch|probier|länger|laenger|longer|may help|might help|should|\btry\b/i;
+  ['de', 'en'].forEach(lang => P.TONES.forEach(tone => {
+    const s = P.say('plateau', { ex: 'Bankdrücken', weeks: 5, secs: 120 }, { tone }, lang);
+    assert.ok(!rat.test(s), 'Empfehlung statt Beobachtung in plateau/' + tone + '/' + lang + ': ' + s);
+  }));
+});
+
 // --- personaLine ----------------------------------------------------------
 
 test('personaLine traegt den Namen und wuchert nicht', () => {

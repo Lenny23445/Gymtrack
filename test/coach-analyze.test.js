@@ -353,4 +353,114 @@ test('die Konstanten haben die vereinbarten Werte', () => {
   assert.strictEqual(A.MIN_WEEKS, 4);
   assert.strictEqual(A.SEC_PER_SET, 55);
   assert.strictEqual(A.REST_DEFAULT, 90);
+  assert.strictEqual(A.MAX_GAP_WEEKS, 3);
+});
+
+// ── MAX_GAP_WEEKS: die dokumentierte Grenze selbst ────────────────────────
+// Getestet waren bisher nur Luecke 1 und Luecke 5 — die Grenze dazwischen
+// blieb offen, also haette 2 statt 3 unbemerkt durchgehen koennen.
+
+test('genau drei ausgelassene Wochen trennen den Verlauf noch nicht', () => {
+  // Wochen 0,1,2,3 dann Luecke 4,5,6 (drei Wochen) und weiter ab 7.
+  const d = A.plateau([0, 1, 2, 3, 7, 8].map(o => entryAt(o, 80)));
+  assert.ok(d, 'Drei ausgelassene Wochen sind Alltag und gehoeren in dasselbe Plateau');
+  assert.strictEqual(d.entries, 6, 'der Abschnitt darf nicht getrennt worden sein');
+  assert.strictEqual(d.weeks, 9);
+});
+
+test('vier ausgelassene Wochen trennen den Verlauf', () => {
+  const d = A.plateau([0, 1, 2, 3, 8, 9, 10, 11].map(o => entryAt(o, 80)));
+  assert.ok(d);
+  assert.strictEqual(d.entries, 4, 'ab der vierten ausgelassenen Woche zaehlt nur der Abschnitt danach');
+  assert.strictEqual(d.weeks, 4);
+});
+
+// ── Volumenriegel ─────────────────────────────────────────────────────────
+
+test('eine einzelne starke Schlusswoche hebt das Plateau nicht auf', () => {
+  // Dieselbe Zusage wie fuer das Topgewicht: ein Ausreisser kippt die Diagnose
+  // nicht. Der Vergleich 'letzte gegen erste Woche' tat genau das.
+  const h = hist(6, 80, 120, 2400);
+  h[5].vol = 3600;
+  const d = A.plateau(h);
+  assert.ok(d, 'Eine einzelne Woche mit mehr Volumen ist kein Fortschritt, sondern ein Ausreisser');
+  assert.strictEqual(d.weeks, 6);
+});
+
+test('anhaltend steigendes Volumen hebt das Plateau weiterhin auf', () => {
+  assert.strictEqual(A.plateau(hist(6, 80, 120, i => 2400 + i * 200)), null,
+    'Mehr Wiederholungen ueber mehrere Wochen sind Fortschritt und muessen die Diagnose stoppen');
+});
+
+test('eine einzelne schwache Startwoche taeuscht keinen Fortschritt vor', () => {
+  const h = hist(6, 80, 120, 2400);
+  h[0].vol = 1200;
+  assert.ok(A.plateau(h), 'Ein Ausreisser nach unten am Anfang darf das Plateau nicht loeschen');
+});
+
+test('fehlendes Volumen in einer Woche legt den Riegel nicht still', () => {
+  // Frueher haing der ganze Riegel an first.vol: fehlte der Wert in der ersten
+  // Zeile, meldete das Modul jede flache Historie als Plateau — auch bei
+  // deutlich wachsendem Volumen danach.
+  const h = hist(6, 80, 120, i => 2400 + i * 300);
+  delete h[0].vol;
+  assert.strictEqual(A.plateau(h), null,
+    'Ohne die erste Volumenzahl entscheiden die uebrigen, nicht der Zufall');
+});
+
+test('eine Historie ganz ohne Volumen faellt auf das Topgewicht zurueck', () => {
+  const h = hist(5, 80, 120).map(r => { delete r.vol; return r; });
+  const d = A.plateau(h);
+  assert.ok(d, 'Ohne Volumenzahlen entscheidet das Topgewicht allein — dokumentierter Rueckfall');
+  assert.strictEqual(d.volDelta, 0);
+});
+
+// ── plateauSay beschreibt, es verschreibt nicht ───────────────────────────
+
+test('der Plateau-Satz liest die beobachtete Pause nicht als Empfehlung', () => {
+  // {secs} ist der MITTELWERT der beobachteten Pausen. Als Rat gelesen
+  // empfiehlt der Coach genau das, was der Nutzer ohnehin tut. Verschreiben
+  // ist Block 6 und hat hier keine Spec.
+  const say = A.plateauSay(A.plateau(hist(5, 80, 120)), 'Bankdruecken');
+  const rat = /könnte|koennte|sollte|solltest|hilft|helfen|versuch|probier|länger|laenger|longer|may help|might help|should|\btry\b/i;
+  ['de', 'en'].forEach(lang => {
+    P.TONES.forEach(tone => {
+      const s = P.say(say.key, say.vars, { tone: tone }, lang);
+      assert.ok(!rat.test(s), 'Empfehlung statt Beobachtung in plateau/' + tone + '/' + lang + ': ' + s);
+      assert.ok(s.includes('120'), 'die beobachtete Pause fehlt in plateau/' + tone + '/' + lang + ': ' + s);
+    });
+  });
+});
+
+// ── prioritizeSay ohne Zeitbudget ─────────────────────────────────────────
+
+test('ohne brauchbares Zeitbudget gibt es keinen Zeitbudget-Satz', () => {
+  // Sonst steht die Einheit ohne Zahl da: 'Minuten reichen fuer 2 Uebungen.'
+  [null, undefined, 'bald', NaN, -5].forEach(m => {
+    assert.strictEqual(A.prioritizeSay({ keep: ['a', 'b'], drop: [] }, m), null, 'nicht null bei ' + String(m));
+  });
+});
+
+test('ohne priorisierte Uebung gibt es keinen Zeitbudget-Satz', () => {
+  assert.strictEqual(A.prioritizeSay({ keep: [], drop: [] }, 30), null);
+  assert.strictEqual(A.prioritizeSay(null, 30), null);
+});
+
+test('die Saetze beider Rueckgaben stehen in allen Toenen vollstaendig da', () => {
+  const einheit = /(^|[^0-9\s])\s*\b(kg|Kilo|kilos|Prozent|percent)\b/;
+  const faelle = [
+    A.plateauSay(A.plateau(hist(5, 80, 120)), 'Bankdruecken'),
+    A.prioritizeSay(A.prioritize(EX4, 30), 30)
+  ];
+  faelle.forEach(say => {
+    assert.ok(say, 'keine Rueckgabe, nichts geprueft');
+    ['de', 'en'].forEach(lang => P.TONES.forEach(tone => {
+      const w = say.key + '/' + tone + '/' + lang;
+      const s = P.say(say.key, say.vars, { tone: tone }, lang);
+      assert.ok(s.length > 0, 'leer: ' + w);
+      assert.ok(!/[{}]/.test(s), 'Restplatzhalter: ' + w + ' -> ' + s);
+      assert.ok(!/\s{2,}/.test(s), 'doppeltes Leerzeichen: ' + w + ' -> ' + s);
+      assert.ok(!einheit.test(s), 'Einheit ohne Zahl: ' + w + ' -> ' + s);
+    }));
+  });
 });

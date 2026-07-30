@@ -340,3 +340,229 @@ test('Obergrenze und Stufenlisten haben die vereinbarten Werte', () => {
 // die Werte zurueck, die der Aufrufer hereingegeben hat. Ein solcher Test
 // pruefte die Testdaten, nicht das Modul. Der Emoji-Riegel fuer die Saetze
 // sitzt in test/coach-persona.test.js, wo die Texte liegen.
+
+// ── Der gerenderte Satz, nicht nur der Schluessel ──────────────────────────
+// Muster aus test/coach-analyze.test.js: geprueft wird der SATZ, den
+// CoachPersona daraus macht — alle vier Toene, beide Sprachen. Nur so faellt
+// ein Platzhalter ohne Wert auf: fill() entfernt ihn still und laesst die
+// Einheit stehen ('zuletzt kg bei 8 Wiederholungen'). Der Schluessel allein
+// sieht dabei jedes Mal richtig aus.
+
+// Eine Einheit, vor der keine Zahl steht. '60 kg' ist sauber, 'zuletzt kg'
+// nicht. Bewusst nur die Einheiten, die im Katalog IMMER an einem Platzhalter
+// haengen — 'zwoelf Minuten' und 'zwanzig Sekunden' stehen dort ausgeschrieben
+// und sind kein Fehler.
+const ORPHAN_UNIT = /(^|[^0-9\s])\s*\b(kg|Kilo|kilos|Prozent|percent)\b/;
+
+function assertRendered(out, where) {
+  assert.ok(out, 'keine Aeusserung, nichts geprueft: ' + where);
+  ['de', 'en'].forEach(function (lang) {
+    P.TONES.forEach(function (tone) {
+      const w = where + '/' + tone + '/' + lang;
+      const s = P.say(out.key, out.vars, { tone: tone }, lang);
+      assert.ok(s.length > 0, 'leerer Satz: ' + w);
+      assert.ok(!/[{}]/.test(s), 'Restplatzhalter: ' + w + ' -> ' + s);
+      assert.ok(!/\s{2,}/.test(s), 'doppeltes Leerzeichen: ' + w + ' -> ' + s);
+      assert.ok(!ORPHAN_UNIT.test(s), 'Einheit ohne Zahl: ' + w + ' -> ' + s);
+    });
+  });
+}
+
+test('jede Aeusserung eines vollen Laufs ergibt einen vollstaendigen Satz', () => {
+  const outs = fullRun('full').outs.concat(deepRun('full').outs);
+  assert.ok(outs.length > 0, 'nichts geprueft');
+  outs.forEach(function (o, i) { assertRendered(o, o.kind + '#' + i); });
+});
+
+test('Uebung ohne Vorgewicht ergibt keinen halben Satz', () => {
+  // Trifft JEDE erstmals gefahrene Uebung, im ersten Training also durchgehend.
+  const r = S.onExerciseOpen(newSess({ level: 'key' }),
+    { id: 'x', name: 'Bankdrücken', targetSets: 3, targetReps: 8 });
+  assert.ok(r.out, 'die erste Uebung darf nicht stumm bleiben');
+  assert.strictEqual(r.out.kind, 'exOpen');
+  assert.strictEqual(r.out.key, 'greetFirst', 'ohne Vorgewicht traegt der Satzschluessel keinen {kg}-Platzhalter');
+  assertRendered(r.out, 'exOpen ohne lastKg');
+});
+
+test('Uebung mit Vorgewicht behaelt den vollen Satz', () => {
+  const r = S.onExerciseOpen(newSess({ level: 'key' }),
+    { id: 'x', name: 'Bankdrücken', targetSets: 3, targetReps: 8, lastKg: 60 });
+  assert.strictEqual(r.out.key, 'exOpen');
+  assertRendered(r.out, 'exOpen vollstaendig');
+});
+
+test('Uebung ohne Namen sagt nichts, statt einen Satz ohne Subjekt zu bauen', () => {
+  assert.strictEqual(S.onExerciseOpen(newSess({ level: 'key' }), { id: 'x', lastKg: 60, targetSets: 3, targetReps: 8 }).out, null);
+});
+
+test('Uebung mit Gewicht aber ohne Satz- oder Wiederholungszahl schweigt', () => {
+  const base = newSess({ level: 'key' });
+  assert.strictEqual(S.onExerciseOpen(base, { id: 'x', name: 'Bankdrücken', lastKg: 60, targetReps: 8 }).out, null);
+  assert.strictEqual(S.onExerciseOpen(base, { id: 'x', name: 'Bankdrücken', lastKg: 60, targetSets: 3 }).out, null);
+});
+
+test('Begruessung ohne vollstaendige Vorwerte faellt auf die Erstansage zurueck', () => {
+  const r = S.onStart(newSess({ level: 'key', lastSame: { ex: 'Bankdrücken', vol: 4000 } }));
+  assert.strictEqual(r.out.kind, 'greetFirst');
+  assertRendered(r.out, 'greet ohne Zahlen');
+});
+
+test('ohne Namen und ohne Vorwerte gibt es keine Begruessung', () => {
+  assert.strictEqual(S.onStart(newSess({ level: 'key', lastSame: null, planName: null })).out, null,
+    'Eine Begruessung ohne Subjekt ist keine Begruessung');
+});
+
+test('Halbzeit ohne Vorwochenvolumen wird unterdrueckt statt halb gesagt', () => {
+  const p = play(newSess({ level: 'full', expectedSets: 2, lastSame: { ex: 'Bankdrücken', kg: 60, sets: 3, reps: 10 } }));
+  p.do(function (s) { return S.onExerciseOpen(s, openEx(1)); });
+  p.do(function (s) { return S.onSet(s, { exId: 'ex1', reps: 10, kg: 50, ts: T0 }); });
+  assert.ok(p.kinds().indexOf('mid') < 0,
+    'Ohne Vergleichswert traegt die Halbzeit nur einen leeren Prozentplatz: ' + p.kinds().join(','));
+});
+
+test('Halbzeit mit Vorwochenvolumen ergibt einen vollstaendigen Satz', () => {
+  const p = play(newSess({ level: 'full', expectedSets: 2 }));
+  p.do(function (s) { return S.onExerciseOpen(s, openEx(1)); });
+  const o = p.do(function (s) { return S.onSet(s, { exId: 'ex1', reps: 10, kg: 50, ts: T0 }); });
+  assert.strictEqual(o.kind, 'mid');
+  assertRendered(o, 'mid');
+});
+
+test('Pausenvorschau ohne Vorgewicht wird unterdrueckt', () => {
+  const s = S.onExerciseOpen(newSess({ level: 'full' }), { id: 'x', name: 'Bankdrücken', targetSets: 3, targetReps: 8 }).sess;
+  assert.strictEqual(S.onRest(s, 90).out, null,
+    'Eine Vorschau ohne Gewicht kuendigt nichts an, sie zeigt nur eine Einheit');
+});
+
+test('Pausenvorschau mit Vorgewicht ergibt einen vollstaendigen Satz', () => {
+  assertRendered(S.onRest(restSess(), 90).out, 'restNext');
+});
+
+test('die Bilanz ergibt einen vollstaendigen Satz und traegt keinen toten Platzhalter', () => {
+  const o = S.sessionEnd(newSess({ level: 'full' }), { sets: 9, vol: 4860, prs: 2 }).out;
+  assertRendered(o, 'debrief');
+  assert.strictEqual(o.vars.prs, undefined,
+    'Der Katalog kennt {prs} nicht — ein Wert, den kein Satz liest, gehoert nicht in die Rueckgabe');
+});
+
+// ── Der erzwungene Abschluss zaehlt mit ────────────────────────────────────
+
+test('der erzwungene Abschluss zaehlt gegen spoken', () => {
+  const r = S.sessionEnd(newSess({ level: 'full' }), { sets: 9, vol: 4860 });
+  assert.strictEqual(r.sess.spoken, 1, 'force darf die Buchhaltung nicht umgehen');
+});
+
+test('ein vorgezogener Abschluss frisst sein Budget, statt es zu verschenken', () => {
+  // Der Pfad einer neunten Aeusserung: erst der Abschluss, dann weitere
+  // Ansagen. Zaehlt der Abschluss nicht mit, kommen CAP+1 Aeusserungen durch.
+  ['key', 'full'].forEach(function (level) {
+    const p = play(newSess({ level: level }));
+    assert.strictEqual(p.do(function (s) { return S.emit(s, 'debrief', 'debrief', { sets: 9, vol: 100 }, true); }).kind, 'debrief');
+    for (let i = 0; i < 20; i++) p.do(function (s) { return S.onExerciseOpen(s, openEx(i)); });
+    assert.ok(p.outs.length <= S.CAP[level], level + ': ' + p.outs.length + ' Aeusserungen bei CAP ' + S.CAP[level]);
+  });
+});
+
+// ── force gilt nur fuer den Abschluss ──────────────────────────────────────
+
+test('force hebelt Stufenfilter und Budget nur fuer den Abschluss aus', () => {
+  assert.strictEqual(S.emit(newSess({ level: 'key' }), 'cue', 'cue', { ex: 'Uebung' }, true).out, null,
+    'force an einer beliebigen Art wuerde Stufe und Obergrenze zugleich aushebeln');
+});
+
+test('erzwungene Nicht-Abschluss-Aeusserungen sprengen die Obergrenze nicht', () => {
+  const p = play(newSess({ level: 'full' }));
+  for (let i = 0; i < 20; i++) {
+    p.do(function (s) { return S.emit(s, 'cue', 'cue', { ex: 'Uebung ' + i }, true); });
+  }
+  p.do(function (s) { return S.sessionEnd(s, { sets: 9, vol: 100 }); });
+  assert.ok(p.outs.length <= S.CAP.full, 'Obergrenze gerissen: ' + p.outs.length);
+});
+
+test('force ueberspringt die Mute-Liste nicht', () => {
+  assert.strictEqual(S.emit(newSess({ level: 'full', muted: ['debrief'] }), 'debrief', 'debrief', {}, true).out, null);
+});
+
+// ── Nach dem Abschluss ist Schluss ─────────────────────────────────────────
+
+test('nach dem Abschluss sagt der Coach nichts mehr', () => {
+  // Realer Ausloeser: Training beenden, dann erneut oeffnen, um einen Satz zu
+  // korrigieren.
+  const p = play(newSess({ level: 'full' }));
+  p.do(function (s) { return S.onStart(s); });
+  p.do(function (s) { return S.sessionEnd(s, { sets: 9, vol: 4860 }); });
+  const before = p.outs.length;
+  for (let i = 0; i < 6; i++) p.do(function (s) { return S.onExerciseOpen(s, openEx(i)); });
+  p.do(function (s) { return S.onSet(s, { exId: 'ex1', reps: 10, kg: 60, ts: T0 }); });
+  p.do(function (s) { return S.onRest(s, 120); });
+  p.do(function (s) { return S.onTick(s, T0 + 60 * MIN); });
+  assert.strictEqual(p.outs.length, before, 'nach dem Abschluss kamen ' + (p.outs.length - before) + ' Aeusserungen nach');
+  assert.strictEqual(p.s.ended, true);
+});
+
+test('der Abschluss setzt ended auch auf Stufe off', () => {
+  const r = S.sessionEnd(newSess({ level: 'off' }), { sets: 5, vol: 100 });
+  assert.strictEqual(r.out, null);
+  assert.strictEqual(r.sess.ended, true, 'ohne ended liefe die Einheit nach dem Beenden weiter');
+});
+
+// ── Wiedereinstieg in eine laufende Einheit ────────────────────────────────
+
+test('sessionResume traegt Budget und ONCE-Buchhaltung weiter', () => {
+  const p = play(newSess({ level: 'key' }));
+  p.do(function (s) { return S.onStart(s); });
+  for (let i = 0; i < 2; i++) p.do(function (s) { return S.onExerciseOpen(s, openEx(i)); });
+  const saved = JSON.parse(JSON.stringify(p.s));   // so kommt der Zustand aus dem Speicher zurueck
+  const back = S.sessionResume(saved, T0);
+  assert.ok(back, 'ein Zustand derselben Einheit muss uebernommen werden');
+  assert.strictEqual(back.spoken, p.s.spoken);
+  assert.strictEqual(back.said.greet, true);
+
+  const q = play(back);
+  for (let i = 0; i < 20; i++) q.do(function (s) { return S.onExerciseOpen(s, openEx(i)); });
+  q.do(function (s) { return S.sessionEnd(s, { sets: 9, vol: 100 }); });
+  assert.ok(p.outs.length + q.outs.length <= S.CAP.key,
+    'Nach dem Wiedereinstieg kamen zusammen ' + (p.outs.length + q.outs.length) + ' Aeusserungen durch');
+  assert.strictEqual(q.outs.filter(function (o) { return o.kind === 'greet'; }).length, 0,
+    'Die Begruessung darf nach dem Wiedereinstieg nicht ein zweites Mal kommen');
+});
+
+test('sessionResume lehnt einen Zustand aus einer anderen Einheit ab', () => {
+  assert.strictEqual(S.sessionResume(newSess(), T0 + 999), null);
+  assert.strictEqual(S.sessionResume(null, T0), null);
+  assert.strictEqual(S.sessionResume(undefined, T0), null);
+  assert.strictEqual(S.sessionResume('{}', T0), null);
+  assert.strictEqual(S.sessionResume(newSess(), null), null);
+});
+
+test('sessionResume repariert einen beschaedigten Zustand, statt ihm zu glauben', () => {
+  const back = S.sessionResume({ wkTs: T0, level: 'voll', spoken: '-3', said: { greet: true, mid: 0 }, rests: 'viele', reps: null }, T0);
+  assert.ok(back);
+  assert.strictEqual(back.level, 'key', 'unbekannte Stufe faellt auf die Vorgabe zurueck');
+  assert.strictEqual(back.said.greet, true);
+  assert.ok(!back.said.mid, 'ein falsy Eintrag ist keine gesagte Art');
+  assert.ok(Array.isArray(back.rests) && Array.isArray(back.reps));
+  assert.ok(back.spoken >= 1, 'weniger Aeusserungen als gesagte Arten waere geschenktes Budget: ' + back.spoken);
+});
+
+test('sessionNew legt bei gleichem wkTs trotzdem neu an', () => {
+  // Der Unterschied zu sessionResume muss sichtbar sein: wer fortsetzen will,
+  // ruft resume; sessionNew setzt zurueck, auch bei derselben Einheit.
+  const p = play(newSess({ level: 'key' }));
+  p.do(function (s) { return S.onStart(s); });
+  assert.ok(p.s.spoken > 0);
+  assert.strictEqual(newSess({ level: 'key' }).spoken, 0);
+  assert.deepStrictEqual(newSess({ level: 'key' }).said, {});
+});
+
+// ── restTip loest kein Modulpfad aus ───────────────────────────────────────
+
+test('restTip steht auf full, wird aber von keinem Pfad des Moduls ausgeloest', () => {
+  // Dokumentierte Arbeitsteilung: den Technikhinweis emittiert die
+  // Verdrahtung selbst ueber emit(sess, 'restTip', …) mit dem Text aus
+  // CoachCues. Kippt das, ist entweder der Kommentar oder der Code falsch.
+  assert.ok(S.LEVEL_KINDS.full.indexOf('restTip') >= 0);
+  const kinds = fullRun('full').kinds().concat(deepRun('full').kinds());
+  assert.ok(kinds.indexOf('restTip') < 0, 'restTip kommt jetzt aus dem Modul: ' + kinds.join(','));
+  assert.strictEqual(S.emit(newSess({ level: 'full' }), 'restTip', 'restTip', { ex: 'Uebung' }).out.kind, 'restTip');
+});
