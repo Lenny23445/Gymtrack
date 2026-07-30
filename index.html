@@ -17181,7 +17181,14 @@ function toggleSetDone(li,si) {
     // zaehlen nicht in den Bogen — sie sind kein Arbeitssatz.
     try {
       const _cl = wkLogs[li], _cs = _cl && _cl.sets && _cl.sets[si];
-      if (_cs && (_cs.type || 'normal') !== 'warmup') {
+      // Ein Satz zaehlt EINMAL in den Bogen. Abhaken, zur Korrektur wieder
+      // abwaehlen und erneut abhaken ist ein realer Ablauf; ohne diesen Riegel
+      // wuchsen setCount und Volumen bei jedem Mal weiter, die Halbzeit kam zu
+      // frueh und meldete ein Volumen, das so nie bewegt wurde.
+      if (!_csSeenSets) _csSeenSets = new Set();
+      const _ck = String(_cl && _cl.exerciseId) + '|' + si;
+      if (_cs && (_cs.type || 'normal') !== 'warmup' && !_csSeenSets.has(_ck)) {
+        _csSeenSets.add(_ck);
         const _now = Date.now();
         // ECHTE Pause statt S.restTimerSecs: der Abstand zum zuletzt
         // abgehakten Arbeitssatz. Erst ab dem zweiten Satz, und nur bis
@@ -23717,6 +23724,7 @@ const CS_REST_MAX_S   = 600;
 
 let _csLastExId = null;          // Entprellung fuer exOpen (das Modul entprellt nicht)
 let _csSeenEx   = null;          // je Einheit bereits angesagte Uebungen (Set)
+let _csSeenSets = null;          // je Einheit bereits gezaehlte Saetze (Set)
 let _csSeqAt    = 0;             // naechster freier Sprechmoment (ms)
 let _csRestPlan = 0;             // geplante Laenge der laufenden Satzpause (s)
 let _csSaveTs   = 0;             // letzter tatsaechliche Schreibvorgang (ms)
@@ -24091,6 +24099,7 @@ function _csStart() {
     if (!_csOn() || !timerTs) return;
     _csLastExId = null;
     _csSeenEx = new Set();
+    _csSeenSets = new Set();
     _rpeAnswers = [];
     _csFinalLine = '';
     _csLastSetTs = 0;
@@ -24130,9 +24139,15 @@ function _csResume() {
     // Was schon Saetze hat, gilt als angesagt: sonst faengt der Bogen nach
     // jedem Neustart bei jeder Uebung wieder von vorn an.
     _csSeenEx = new Set();
+    _csSeenSets = new Set();
     try {
       (wkLogs || []).forEach(l => {
-        if (l && (l.sets || []).some(s => s.done)) _csSeenEx.add(String(l.exerciseId));
+        if (!l) return;
+        (l.sets || []).forEach((s, i) => {
+          if (!s || !s.done || (s.type || 'normal') === 'warmup') return;
+          _csSeenEx.add(String(l.exerciseId));
+          _csSeenSets.add(String(l.exerciseId) + '|' + i);   // schon gezaehlt
+        });
       });
       if (sess && sess.exId) _csSeenEx.add(String(sess.exId));
     } catch(_) {}
@@ -24438,6 +24453,9 @@ function _csDiscard() {
   try { _rpeFlushTrend(); } catch(_) {}
   _rpeAnswers = [];
   _csLastExId = null;
+  _csSeenEx = null;
+  _csSeenSets = null;
+  _csLastSetTs = 0;
   _csSeqAt = 0;
   try { S.coachSession = null; persist(); }      // persist() - die Kurzform ohne Praefix gibt es hier nicht
   catch(e) { console.warn('[Coach] Zustand verwerfen:', e); }
