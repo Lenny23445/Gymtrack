@@ -22740,15 +22740,19 @@ function _seedDemoData() {
   try { localStorage.setItem('gt_premiumDev', '1'); } catch(_){}
   const r2 = v => Math.round(v / 2.5) * 2.5;              // auf 2,5-kg-Schritte runden
   // Übungen (fester Split: Push / Pull / Legs)
+  // base = realistisches ENDgewicht nach den drei Jahren. Der Verlauf startet bei
+  // 50 % davon (siehe factor). Vorher standen hier Startgewichte, die ein zweiter
+  // Durchgang auf eine Ziel-Volumenkurve hochskaliert hat — dabei kamen 245 kg
+  // Bankdruecken heraus.
   const EX = [
-    { id:'dm_bench', name:'Bankdrücken',      muscleGroup:'brust',     base:60  },
-    { id:'dm_ohp',   name:'Schulterdrücken',  muscleGroup:'schultern', base:38  },
-    { id:'dm_dip',   name:'Dips',             muscleGroup:'arme',      base:45  },
-    { id:'dm_dead',  name:'Kreuzheben',       muscleGroup:'ruecken',   base:110 },
-    { id:'dm_row',   name:'Langhantelrudern', muscleGroup:'ruecken',   base:55  },
-    { id:'dm_curl',  name:'Bizeps-Curls',     muscleGroup:'arme',      base:20  },
-    { id:'dm_squat', name:'Kniebeugen',       muscleGroup:'beine',     base:90  },
-    { id:'dm_press', name:'Beinpresse',       muscleGroup:'beine',     base:150 },
+    { id:'dm_bench', name:'Bankdrücken',      muscleGroup:'brust',     base:100 },
+    { id:'dm_ohp',   name:'Schulterdrücken',  muscleGroup:'schultern', base:60  },
+    { id:'dm_dip',   name:'Dips',             muscleGroup:'arme',      base:75  },
+    { id:'dm_dead',  name:'Kreuzheben',       muscleGroup:'ruecken',   base:180 },
+    { id:'dm_row',   name:'Langhantelrudern', muscleGroup:'ruecken',   base:90  },
+    { id:'dm_curl',  name:'Bizeps-Curls',     muscleGroup:'arme',      base:35  },
+    { id:'dm_squat', name:'Kniebeugen',       muscleGroup:'beine',     base:150 },
+    { id:'dm_press', name:'Beinpresse',       muscleGroup:'beine',     base:260 },
   ];
   S.exercises = EX.map(e => {
     const ex = { id:e.id, name:e.name, emoji:'', muscleGroup:e.muscleGroup,
@@ -22758,10 +22762,14 @@ function _seedDemoData() {
     return ex;
   });
   const baseOf = id => EX.find(e => e.id === id).base;
+  // Satzzahl je Plan so gewaehlt, dass alle drei Einheiten aehnlich viel Volumen
+  // ergeben (~10,5 t bei vollem Gewicht). Sonst zeichnet der Wechsel Push/Pull/Legs
+  // ein Zickzack ins Volumen-Chart — genau das sollte der alte, weggeworfene
+  // Normalisierungs-Durchgang glaetten.
   const TEMPLATES = [
-    ['dm_bench','dm_ohp','dm_dip'],     // Push
-    ['dm_dead','dm_row','dm_curl'],     // Pull
-    ['dm_squat','dm_press'],            // Legs
+    { ex:['dm_bench','dm_ohp','dm_dip'],  sets:5 },   // Push  ~10,4 t
+    { ex:['dm_dead','dm_row','dm_curl'],  sets:4 },   // Pull  ~10,7 t
+    { ex:['dm_squat','dm_press'],         sets:3 },   // Legs  ~10,7 t
   ];
 
   const WEEKS = 187;                                      // ab Anfang 2023 (Matrix-Screenshot)
@@ -22776,9 +22784,11 @@ function _seedDemoData() {
     const dayIdx = [0,1,2,3,4,5];
     const weekMon = new Date(curMon);
     weekMon.setDate(curMon.getDate() - (WEEKS - 1 - w) * 7);
-    // Fortschritt 0..1 über die 6 Monate → stetige Progression
+    // Fortschritt 0..1 über die drei Jahre → stetige Progression
     const prog = w / (WEEKS - 1);
-    const factor = 0.55 + 0.45 * prog;                   // Gewichts-Skalierung 55%→100%
+    // 50 % → 100 % des Zielgewichts, leicht beschleunigend. Damit steigt auch das
+    // Volumen glatt und ohne den frueheren Nachbearbeitungs-Durchgang.
+    const factor = 0.5 + 0.5 * Math.pow(prog, 1.25);
     for (const di of dayIdx) {
       const d = new Date(weekMon);
       d.setDate(weekMon.getDate() + di);
@@ -22788,10 +22798,10 @@ function _seedDemoData() {
       // die negative Zeitdifferenz die Erholung überall auf 0% ziehen).
       const isFuture = d.getTime() > Date.now();
       const tpl = TEMPLATES[tmplIdx % TEMPLATES.length]; tmplIdx++;
-      const logs = tpl.map(exId => {
+      const logs = tpl.ex.map(exId => {
         const w0 = Math.max(2.5, r2(baseOf(exId) * factor));
         const sets = [];
-        for (let s = 0; s < 4; s++) {
+        for (let s = 0; s < tpl.sets; s++) {
           const reps = 8 + ((s + di) % 3);               // 8..10
           const wt   = s === 0 ? r2(w0 * 0.9) : w0;       // 1. Satz etwas leichter
           sets.push(isFuture ? { w: wt, r: reps, type:'warmup' } : { w: wt, r: reps });
@@ -22806,25 +22816,11 @@ function _seedDemoData() {
       });
     }
   }
-  // Zweiter Pass: jedes Session-Volumen auf eine glatt & progressiv steigende
-  // Kurve normalisieren → Overall-Chart wird eine saubere Linie nach oben
-  // (kein Zickzack durch unterschiedliche Push/Pull/Legs-Volumina).
-  const N = sessions.length;
-  const V0 = 4500, V1 = 27000;                           // Start- → End-Volumen (kg)
-  sessions.forEach((ses, i) => {
-    const p = N > 1 ? i / (N - 1) : 1;
-    const trend = V0 + (V1 - V0) * Math.pow(p, 1.55);    // deutlich beschleunigender Aufwärtstrend
-    // Nur noch eine sehr langsame, flache Welle um den Trend. Die alte Schwankung
-    // hatte eine Periode von ~11 Sessions — bei ~940 Sessions im schmalen
-    // Volumen-Chart wurde daraus ein zackiges Rauschband statt einer Linie.
-    const wobble = 1 + 0.012 * Math.sin(i * 0.06);
-    const target = trend * wobble;
-    const raw = ses.logs.reduce((a,l)=>a + l.sets.reduce((b,s)=>b + s.w*s.r, 0), 0);
-    if (raw > 0) {
-      const k = target / raw;
-      ses.logs.forEach(l => l.sets.forEach(s => { s.w = Math.round(s.w * k * 2) / 2; }));
-    }
-  });
+  // KEIN Nachbearbeiten der Gewichte mehr. Der frühere zweite Durchgang hat jede
+  // Einheit auf eine Ziel-Volumenkurve bis 27 t skaliert — bei rund zwölf Sätzen à
+  // neun Wiederholungen ergab das 245 kg Bankdrücken. Die Kurve steigt jetzt allein
+  // über factor (50 % → 100 % des Zielgewichts), die Einheiten sind über die
+  // Satzzahlen in TEMPLATES aneinander angeglichen.
   S.sessions = sessions;
   S.onboarded = true;                                    // Onboarding überspringen
   // Demo: direkt Statistik-Tab zeigen (nur zum Screenshot-Prüfen)
