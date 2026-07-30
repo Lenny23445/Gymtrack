@@ -123,6 +123,16 @@ test('der Tageszaehler laeuft am naechsten Tag zurueck', () => {
   assert.strictEqual(N.mayNotify(s, 'deload', 'normal', T0 + DAY), true);
 });
 
+// Der Zaehler muss beim Tageswechsel auf 1 SPRINGEN, nicht nur eine andere
+// Grenze sehen. Wer nur an einem Tag prueft, merkt nicht, dass er weiterlaeuft
+// — der Fehler zeigt sich erst am zweiten Tag mit zwei Meldungen.
+test('der Tageszaehler zaehlt nur den laufenden Tag', () => {
+  let s = N.record(N.notifyNew(), 'prCongrats', T0);
+  s = N.record(s, 'deload', T0 + DAY);
+  assert.strictEqual(s.dayCount, 1, 'Zaehler schleppt den Vortag mit: ' + s.dayCount);
+  assert.strictEqual(N.mayNotify(s, 'returnNudge', 'eng', T0 + DAY + HOUR), true);
+});
+
 test('vier Meldungen in einer Woche sind auf normal das Ende', () => {
   let s = N.notifyNew();
   ['prCongrats', 'deload', 'returnNudge', 'anniversary'].forEach((k, i) => {
@@ -138,6 +148,16 @@ test('der Wochenzaehler laeuft in der naechsten Woche zurueck', () => {
     s = N.record(s, k, T0 + i * DAY);
   });
   assert.strictEqual(N.mayNotify(s, 'reminderPlan', 'normal', T0 + 8 * DAY), true);
+});
+
+test('der Wochenzaehler zaehlt nur die laufende Woche', () => {
+  let s = N.notifyNew();
+  ['prCongrats', 'deload', 'returnNudge', 'anniversary'].forEach((k, i) => {
+    s = N.record(s, k, T0 + i * DAY);
+  });
+  s = N.record(s, 'reminderPlan', T0 + 8 * DAY);
+  assert.strictEqual(s.weekCount, 1, 'Zaehler schleppt die Vorwoche mit: ' + s.weekCount);
+  assert.strictEqual(N.mayNotify(s, 'prCongrats', 'normal', T0 + 9 * DAY), true);
 });
 
 test('der Bericht wird nicht gegen den Deckel gerechnet', () => {
@@ -266,6 +286,19 @@ test('das Nachtfenster richtet sich nach der Zeitzone des Nutzers', () => {
   });
 });
 
+// Der Tagesdeckel meint den Kalendertag des NUTZERS. Auf UTC+9 liegen dessen
+// Vormittag und Abend auf zwei UTC-Tagen — ohne Zeitzone bekaeme er zwei
+// Budgets fuer einen Tag.
+test('der Tagesdeckel richtet sich nach dem lokalen Kalendertag', () => {
+  const tz = 9 * 60;
+  const a = Date.UTC(2026, 6, 29, 22, 0, 0); // 30.07. 07:00 Ortszeit
+  const b = Date.UTC(2026, 6, 30, 2, 0, 0);  // 30.07. 11:00 Ortszeit
+  assert.notStrictEqual(N.dayKey(a), N.dayKey(b), 'Testaufbau stimmt nicht');
+  assert.strictEqual(N.dayKey(a, tz), N.dayKey(b, tz));
+  const s = N.record(N.notifyNew(), 'prCongrats', a, tz);
+  assert.strictEqual(N.mayNotify(s, 'deload', 'normal', b, tz), false);
+});
+
 test('wer gerade trainiert, bekommt keine Trainingserinnerung und keinen Deload', () => {
   const kinds = N.planAll(ctx({ workoutActive: true })).map((p) => p.kind);
   assert.ok(kinds.indexOf('reminderPlan') < 0, 'Erinnerung mitten im Training');
@@ -365,12 +398,21 @@ test('jede geplante Meldung ergibt in vier Toenen und zwei Sprachen einen ganzen
     'nicht jede Art wurde geprueft');
 });
 
+// Der Uebungsname ist Nutzereingabe und wandert ungefiltert in den
+// Meldungstext. Ein Emoji im Namen waere ein Emoji in der Meldung.
 test('kein Rueckgabewert traegt ein Emoji', () => {
-  const plan = N.planAll(ctx());
+  const plan = N.planAll(ctx({ pr: { ex: 'Bankdrücken 💪🔥', kg: 140 } }));
   assert.ok(plan.length > 0);
   const blob = JSON.stringify(plan);
   assert.ok(!/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}]/u.test(blob),
     'Emoji im Plan: ' + blob);
+  const pr = plan.filter((p) => p.kind === 'prCongrats')[0];
+  assert.ok(pr, 'Bestwert nicht geplant');
+  assert.strictEqual(pr.vars.ex, 'Bankdrücken');
+});
+
+test('ein Name aus lauter Symbolen streicht die Meldung', () => {
+  assert.deepStrictEqual(N.planAll(bare({ pr: { ex: '💪🔥', kg: 140 } })), []);
 });
 
 // ── Konstanten sind Anforderung, nicht Zufall ────────────────────────────
