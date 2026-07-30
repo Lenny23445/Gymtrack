@@ -15,3 +15,12 @@ ios_distribution_*.cer
 
 # lokale App-Store-Build-Artefakte (Mac)
 .appstore-build/
+
+# Autosync-Schutz (2026-07-30): lokale Artefakte, die nie nach GitHub sollen
+**/.DS_Store
+.sim-build/
+**/.wrangler/
+*.bak
+.index.pre-lg.bak
+.seed_demo.py
+tiktok/
