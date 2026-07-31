@@ -2219,7 +2219,33 @@ html[data-glass] .tabbar::before{display:block!important}
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   position:relative;z-index:1;
 }
-.hdr-greet-row h1{flex:1;min-width:0}
+/* Profilbild oben links (ersetzt die Begrüßung); margin-right:auto hält die
+   Badges rechts als Gruppe zusammen (kein flex:1-Element mehr in der Reihe) */
+.hdr-ava{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;margin-right:auto;
+  padding:0;overflow:hidden;position:relative;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--gl-bg-t);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--gl-bdr);
+  box-shadow:var(--gl-shad);
+  transition:transform .15s,opacity .12s;
+  -webkit-appearance:none;appearance:none;
+}
+.hdr-ava:active{transform:scale(.92);opacity:.85}
+.hdr-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.hdr-ava::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:linear-gradient(160deg,rgba(255,255,255,.20) 0%,transparent 55%);
+  pointer-events:none;
+}
+.hdr-ava-ini{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:16px;font-weight:700;letter-spacing:.02em;color:var(--acc);
+  background:linear-gradient(150deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.06));
+}
+.hdr-ava svg{width:21px;height:21px;color:var(--text2)}
 
 /* ── SHAKE ANIMATION ── */
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -12114,10 +12140,20 @@ function _hResizeEnd(){
   }
 }
 
+/* Profilbild oben links auf der Heute-Seite (ersetzt die Begrüßung).
+   Tipp öffnet das Profil-Sheet. Fallback: Initialen, sonst Kopf-Silhouette. */
+function _renderHdrAva(){
+  const el = document.getElementById('hdr-ava'); if (!el) return;
+  let photo = null;
+  try { photo = _profilePhoto() || _fbUser?.photoURL || null; } catch(_){}
+  const name = _profileName();
+  if (photo) el.innerHTML = `<img src="${esc(photo)}" alt="">`;
+  else if (name) el.innerHTML = `<span class="hdr-ava-ini">${_socInitials(name)}</span>`;
+  else el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.5"/><path d="M5.2 19.2c1.4-2.9 3.9-4.4 6.8-4.4s5.4 1.5 6.8 4.4"/></svg>';
+}
+
 function renderHome() {
-  const h = new Date().getHours();
-  document.getElementById('greet-h').textContent = h<12 ? 'Guten Morgen' : h<17 ? 'Guten Tag' : 'Guten Abend';
-  document.getElementById('greet-d').textContent = new Date().toLocaleDateString(GT_LOCALE,{weekday:'long',day:'numeric',month:'long'});
+  _renderHdrAva();
   renderStreak();
   _renderLevelBadge();
  renderHeuteGrid();
