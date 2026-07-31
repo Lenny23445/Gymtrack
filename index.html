@@ -5179,55 +5179,100 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:11px;cursor:pointer;white-space:nowrap}
 .aic-plan-btn{margin-top:4px;background:var(--prem-grad);color:#3a2500;border:none;border-radius:11px;padding:10px 14px;
   font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;align-self:flex-start}
-/* ═══ COACH-HUB (Task 9): Chat · Journal · Woche · Einstellungen ═══
+/* ═══ COACH-HUB: ein Blatt mit fünf aufklappenden Kacheln ═══
    KEIN eigenes Aussehen: Glas, Akzentfarbe (--acc-rgb) und Abstände kommen aus
    denselben Bausteinen wie die .aic-*-Regeln darüber. Die Chip-Reihen der
    Feinjustierung benutzen bewusst die bestehenden .pwz-chip-Regeln, die
    Chat-Vorschau die bestehenden .aic-msg-Blasen — je weniger neue Optik, desto
-   weniger kann auseinanderlaufen. */
+   weniger kann auseinanderlaufen.
+   Das Hochwertige kommt aus Bewegung, Dichte und echten Zahlen, nicht aus einer
+   zweiten Designsprache. */
 /* Sheet mit FESTER Höhe, und nur #ch-body scrollt. Vorher wuchs das Sheet mit
-   dem Inhalt des aktiven Reiters: "Woche" ist drei Zeilen lang, "Einstellungen"
-   füllt zwei Bildschirme — jeder Reiterwechsel schob die Unterkante und die
-   ganze Fläche sprang. Feste Höhe + innerer Scroller = kein Sprung mehr.
-   78vh statt 86vh: bei 86vh blieben auf "Woche" (drei Zeilen Inhalt) 500px
-   schwarze Leere stehen. 78vh hält den Sprung bei null und das Loch klein. */
+   dem Inhalt: "Woche" ist drei Zeilen lang, "Umfang und Meldungen" füllt zwei
+   Bildschirme — jeder Wechsel schob die Unterkante und die ganze Fläche sprang.
+   Feste Höhe + innerer Scroller = kein Sprung mehr. Mit dem Akkordeon gilt das
+   erst recht: eine aufklappende Kachel darf das Blatt nicht wachsen lassen. */
 #ov-coach-hub .sheet{height:min(78vh,var(--sheet-cap));display:flex;flex-direction:column;
   overflow:hidden;padding-bottom:0}
 #ov-coach-hub .sheet>.px{flex:1;min-height:0;display:flex;flex-direction:column}
 #ch-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   padding-bottom:calc(100px + var(--sab))}
-/* Reiterwechsel überblendet statt hart zu schneiden. */
-#ch-body.ch-fade{animation:chFade .17s var(--ease-out)}
-@keyframes chFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#ch-body.ch-fade{animation:none}}
 
 /* Kopf trägt denselben Orb wie die Heute-Karte: der Hub soll sichtbar dasselbe
-   Objekt sein wie die Karte, die ihn öffnet, und kein fremdes Menü. */
+   Objekt sein wie die Karte, die ihn öffnet, und kein fremdes Menü. Der Name
+   steht groß, darunter klein "dein Coach" — der in Task 8 vergebene Name bliebe
+   sonst unsichtbar, und "KI-Hub" wäre sachlich falsch: die KI-Werkzeuge wohnen
+   in der Blase, hier wohnt der Trainingscoach. */
 .ch-head{display:flex;align-items:center;gap:9px}
-.ch-head h2{flex:1;min-width:0}
+.ch-head h2{margin:0}
+.ch-head-t{flex:1;min-width:0}
+.ch-head-t i{display:block;font-style:normal;font-size:11.5px;font-weight:650;color:var(--text2);
+  margin-top:1px;letter-spacing:-.1px}
 
-/* Segmented Control statt vier scrollender Pillen. Die scrollende Zeile zeigte
-   je nach Sprache nur drei von vier Reitern und war die Hauptquelle des
-   billigen Eindrucks. Gleiche Breite, ein Träger, der aktive sitzt darin. */
-/* Gestaltungsregel 7: dieselbe Bedienabsicht ("eins von N wählen") muss in der
-   App gleich aussehen. Der Träger mit Pillen (Segmented Control) kam sonst
-   NIRGENDS vor und stand im selben Sheet gegen die .pwz-chip-Reihe der
-   Feinjustierung. Die Klassen bleiben (der Plan verlangt sie), das Aussehen ist
-   jetzt das der Chips: derselbe Rahmen (1.5px --gl-bdr), derselbe Radius, derselbe
-   aktive Zustand. Nur Schriftgrad und Polster sind eine Stufe knapper, damit vier
-   Reiter in eine Zeile passen. */
-.ch-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0 0 15px;
-  background:none;border:none;border-radius:0}
-/* flex:0 1 auto, NICHT 1 1 0: bei gleicher Breite bekommt jeder Reiter ein
-   Viertel, und "Einstellungen" ist breiter als ein Viertel — es stand als
-   "Einstellu…" da. Inhaltsbreite passt zusammen in die Zeile (~297 von 331px);
-   schrumpfen darf sie auf sehr schmalen Geräten trotzdem. */
-.ch-tab{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  border:1.5px solid var(--gl-bdr);background:var(--inp-bg);color:var(--text);
-  font-family:inherit;font-size:13px;font-weight:700;letter-spacing:-.1px;
-  padding:9px 13px;border-radius:13px;cursor:pointer;
-  transition:background-color .15s,color .15s,border-color .15s}
-.ch-tab.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.10);color:var(--acc)}
+/* ── Die fünf Kacheln ────────────────────────────────────────────────────
+   Ein Tipp klappt an Ort und Stelle auf, kein Ebenenwechsel: der Nutzer wollte
+   wörtlich "alles auf einem Beleg".
+   Bausteine sind die der .ch-jrn-Zeile (getöntes Glas + 1px --gl-bdr) mit dem
+   Radius der .ch-preset-Karte — nichts Neues, nur größer gefasst. Damit ist auch
+   der seit Task 10 geparkte Gestaltungsregel-7-Verstoß erledigt: das Segmented
+   Control (.ch-tabs/.ch-tab) war ein Bedienidiom, das die App sonst nirgends
+   hat, und stand im selben Blatt gegen die .pwz-chip-Reihen. Es entfällt
+   ersatzlos. */
+.ch-card{position:relative;overflow:hidden;border-radius:15px;margin:0 0 10px;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+/* Haarlinie oben — derselbe Baustein wie .ch-jrn::before/.aic::after. */
+.ch-card::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
+/* Lichtstreifen beim Öffnen: EINMAL, nicht wiederholt. Dieselben Keyframes
+   (coachSweep) wie die Coach-Leiste und die .aic-Karte. */
+.ch-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;pointer-events:none;opacity:0;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent);
+  transform:translateX(-170%)}
+.ch-card-h{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;
+  padding:13px 14px;background:none;border:none;color:var(--text);font-family:inherit;
+  text-align:left;cursor:pointer}
+.ch-card-h:active{background:rgba(127,127,127,.06)}
+.ch-card-t{flex:1;min-width:0;font-size:14.5px;font-weight:800;letter-spacing:-.2px}
+/* Die Kennzahl: das Einzige, was die zugeklappte Kachel sagt — deshalb steht sie
+   in der Zeile und nicht darunter. */
+.ch-card-m{flex-shrink:0;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:12.5px;font-weight:700;color:var(--acc);letter-spacing:-.1px}
+.ch-card-c{flex-shrink:0;display:block;color:var(--text2);transition:transform .26s cubic-bezier(.22,.61,.36,1)}
+.ch-card.on .ch-card-c{transform:rotate(180deg);color:var(--acc)}
+.ch-card.on .ch-card-t{color:var(--acc)}
+/* Aufklappen über grid-template-rows 0fr -> 1fr. NICHT über max-height: das
+   rastet bei unbekannter Inhaltshöhe (ein zu kleiner Wert schneidet ab, ein zu
+   großer macht die Kurve unbrauchbar). */
+.ch-card-w{display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows .26s cubic-bezier(.22,.61,.36,1)}
+.ch-card.on .ch-card-w{grid-template-rows:1fr}
+/* visibility statt display: der Übergang braucht den Inhalt im Layout, der
+   zugeklappte Zustand darf ihn aber weder in die Tab-Reihenfolge noch in die
+   Vorlesehilfe lassen. Die Sichtbarkeit springt erst NACH dem Zulaufen. */
+.ch-card-b{min-height:0;overflow:hidden;visibility:hidden;
+  transition:visibility 0s linear .26s}
+.ch-card.on .ch-card-b{visibility:visible;transition-delay:0s}
+.ch-card-b>.ch-in{padding:0 14px 13px}
+.ch-card-b .ch-sec:first-child{margin-top:2px}
+@media (prefers-reduced-motion:no-preference){
+  .ch-card.flash::after{animation:coachSweep .95s cubic-bezier(.4,0,.2,1)}
+  /* Inhalt blendet ein und hebt sich 8 px, je Element 40 ms versetzt, höchstens
+     fünf Stufen. Bewusst OHNE fill-mode: der Ruhezustand ist sichtbar, damit
+     eine Engine, die die Animation gar nicht startet (Paint-Throttling,
+     Snapshot-Renderer), keine leere Fläche hinterlässt — dieselbe Begründung
+     wie bei .aic.in. */
+  .ch-card.on .ch-card-b>.ch-in>*{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
+  .ch-card.on .ch-card-b>.ch-in>:nth-child(2){animation-delay:.04s}
+  .ch-card.on .ch-card-b>.ch-in>:nth-child(3){animation-delay:.08s}
+  .ch-card.on .ch-card-b>.ch-in>:nth-child(4){animation-delay:.12s}
+  .ch-card.on .ch-card-b>.ch-in>:nth-child(n+5){animation-delay:.16s}
+}
+@keyframes chRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* Alle Übergänge auf 0 ms — nicht nur der Aufklapp-Übergang. */
+@media (prefers-reduced-motion:reduce){
+  .ch-card,.ch-card-w,.ch-card-b,.ch-card-c{transition-duration:0s!important;transition-delay:0s!important}
+  .ch-card::after,.ch-card.flash::after,.ch-card .ch-card-b>.ch-in>*{animation:none!important}
+}
 
 /* Abschnittstitel in der Skala der App (.row-title) statt als graues
    Uppercase-Label. Acht graue Kapitälchen-Zeilen hintereinander waren der
