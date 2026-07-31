@@ -8377,6 +8377,12 @@ const I18N_EN = {
   'Er spricht nur, wenn du ihn über den Sprech-Button fragst — nie von selbst.':
     'He only speaks when you ask him via the talk button — never on his own.',
   'Das Journal braucht ein Konto.':'The journal needs an account.',
+  /* Coach-Einrichtung, Schritt 3 (Trainings-Erinnerung). Die Frage selbst und
+     die beiden Erklärsätze tragen den Coach-Namen bzw. die Uhrzeit und laufen
+     deshalb am Aufrufort über _cm(de,en). */
+  'Die Erinnerung nennt Übung, Sätze, Wiederholungen und Gewicht deines nächsten Trainings.':
+    'The reminder names the exercise, sets, reps and weight of your next workout.',
+  'Nicht erinnern':'No reminder','Ja, erinnere mich':'Yes, remind me',
 };
 
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
@@ -26128,7 +26134,7 @@ function _chSettingsHTML(){
 // _CH_PRESETS, _chToneLine, _chToneExInner, _chSwitch, .ch-preset/.ch-voice) —
 // kein zweites Aussehen für dieselbe Sache. Die Schrittführung nimmt die
 // bestehenden Wizard-Klassen (.pwz-dots/.pwz-q/.pwz-s/.pwz-nav).
-const _CS_STEPS = 2;
+const _CS_STEPS = 3;
 // Erst 420 ms nach dem Schließen der Paywall erscheint die Einrichtung: zwei
 // gleichzeitig laufende Overlay-Animationen sehen kaputt aus. Derselbe Versatz
 // trägt die Übergabe an den Hub am Ende.
@@ -26220,11 +26226,11 @@ function _csStep1HTML(){
 }
 // ── HIER STAND SCHRITT 2: STIMME ─────────────────────────────────────────
 // Block 2 (Stimme) ist gestrichen, nicht verschoben: TtsPlugin.swift und
-// AVSpeechSynthesizer gehen nur am Mac. Deshalb ist die Einrichtung zweistufig
-// (Name+Ton, dann Umfang) und der Schalter "Soll <Name> sprechen?" samt
+// AVSpeechSynthesizer gehen nur am Mac. Deshalb führt die Einrichtung von
+// Name+Ton direkt auf den Umfang, und der Schalter "Soll <Name> sprechen?" samt
 // Erklärsatz und dem Aufruf von _csRenderVoices(el) ist aus der Oberfläche
-// heraus. Wer die Stimme zurückbringt, hängt den Schritt HIER wieder ein und
-// stellt _CS_STEPS auf 3.
+// heraus. Wer die Stimme zurückbringt, hängt den Schritt HIER wieder ein, zählt
+// die Schritte danach um und stellt _CS_STEPS auf 4.
 // Das DATENFELD voiceOn bleibt unangetastet — in S.aiCoach wie in
 // CoachPersona.personaGet. Es ist nur unsichtbar, nicht weg.
 // ── Schritt 2: Umfang ────────────────────────────────────────────────────
@@ -26242,6 +26248,88 @@ function _csStep2HTML(){
       `<button type="button" class="ch-preset${x.k === cur ? ' on' : ''}" onclick="setCoachPreset('${x.k}')">
         <b>${esc(tr(x.de))}</b><span>${esc(tr(x.s))}</span></button>`).join('')}`;
 }
+// ── Schritt 3: die Trainings-Erinnerung ──────────────────────────────────
+// Die INHALTLICHE Erinnerung („Heute Push — Bank 3 × 8 @ 62,5", Block 4) hängt
+// an S.notifEnabled. Der Schalter steht per Default AUS und liegt in den
+// Einstellungen unter „Benachrichtigungen"; die Systemberechtigung wiederum
+// bietet bisher nur die Zeile „Mitteilungen erlauben" im Coach-Hub an. Ein
+// frischer Nutzer sieht die Vorzeigefunktion des Blocks also nie.
+//
+// Deshalb steht die Frage HIER: es ist derselbe Moment, in dem der Nutzer
+// ohnehin bewusst festlegt, wie sehr sich der Coach einmischt — und die einzige
+// Stelle, an der er versteht, wofür sein Gerät gleich nach Erlaubnis fragt.
+// ZULETZT, weil danach nichts mehr kommt: der Systemdialog erscheint direkt nach
+// dem Ja, nicht drei Bildschirme später. iOS zeigt ihn EINMAL pro Installation,
+// eine Ablehnung ist dauerhaft.
+//
+// Vorbelegt ist die ZURÜCKHALTENDE Karte. „Fertig" ohne Tipp schaltet nichts
+// ein; nichts wird ungefragt aktiviert. Die Zeile im Hub bleibt, wo sie ist —
+// sie ist der Nachhol-Weg für Bestandsnutzer.
+function _csStep3HTML(){
+  const nm = _coachName();
+  const zeit = S.notifTime || '08:00';
+  const an = S.notifEnabled === true;
+  return `<div class="pwz-q">${esc(_cm('Soll dich ' + nm + ' an dein Training erinnern?',
+                                       'Should ' + nm + ' remind you about your workouts?'))}</div>
+    <div class="pwz-s">${esc(tr('Die Erinnerung nennt Übung, Sätze, Wiederholungen und Gewicht deines nächsten Trainings.'))}</div>
+    <button type="button" class="ch-preset${an ? '' : ' on'}" onclick="coachSetupReminder(false)">
+      <b>${esc(tr('Nicht erinnern'))}</b><span>${esc(_cm(
+        nm + ' meldet sich nur, wenn du die App öffnest.',
+        nm + ' only speaks up when you open the app.'))}</span></button>
+    <button type="button" class="ch-preset${an ? ' on' : ''}" onclick="coachSetupReminder(true)">
+      <b>${esc(tr('Ja, erinnere mich'))}</b><span>${esc(_cm(
+        'Täglich um ' + zeit + ' Uhr an deinen Trainingstagen. Dein Gerät fragt dich einmal um Erlaubnis.',
+        'Daily at ' + zeit + ' on your training days. Your device asks for permission once.'))}</span></button>`;
+}
+// Gemeinsamer Rückweg für „Nicht erinnern" UND für die Ablehnung des
+// Systemdialogs. Bewusst über den bestehenden Schalterweg toggleNotif(false):
+// der räumt die schon geplanten Termine (ids 1000–1999) mit ab, statt sie
+// verwaist stehen zu lassen — ein zweiter Abräumpfad wäre die nächste Stelle,
+// die auseinanderläuft.
+async function _csReminderOff(){
+  try { await toggleNotif(false); }
+  catch(e) {
+    console.warn('[Coach] Erinnerung aus:', e);
+    // Der Zustand muss auch dann stimmen, wenn der Schalterweg platzt.
+    S.notifEnabled = false;
+    try { persist(); } catch(_) {}
+  }
+  try { renderCoachSetup(); } catch(_) {}
+  // Der Coach-Plan trägt die inhaltliche Erinnerung — er muss sie mit fallen lassen.
+  try { await _cnSync(); } catch(e) { console.warn('[Coach] Erinnerung planen:', e); }
+}
+/* Der EINZIGE Ort in der Einrichtung, an dem die Systemberechtigung erfragt
+   wird — über denselben Weg wie der Hub (_cnPermission), aus demselben Grund:
+   ein Dialog pro Installation. Ohne Premium fragt _cnPermission() gar nicht
+   erst; der Riegel steht dort und nicht hier, damit ihn keine Fläche umgeht.
+   Verweigert der Nutzer, ist das KEIN Fehler: der Schalter bleibt aus, ein
+   ruhiger Hinweis erscheint, die Karte springt zurück — genau wie in
+   _cnLevelChanged() und coachHubAskPerm(). Äußerer Deckel wie überall in dieser
+   Fläche: die Funktion hängt an einem inline onclick und darf weder den Kauf
+   noch die Einrichtung abbrechen. */
+async function coachSetupReminder(on){
+  try {
+    if (!on) { await _csReminderOff(); return; }
+    let ok = false;
+    try { ok = await _cnPermission(); }
+    catch(e) { console.warn('[Coach] Erinnerung Berechtigung:', e); ok = false; }
+    if (!ok) {
+      try { _dndToast(_cm('Ohne Mitteilungen meldet sich dein Coach nur in der App.',
+                          'Without notifications your coach only speaks inside the app.')); } catch(_) {}
+      await _csReminderOff();
+      return;
+    }
+    S.notifEnabled = true;
+    try { persist(); } catch(e) { console.warn('[Coach] Erinnerung sichern:', e); }
+    try { updateNotifUI(); } catch(_) {}
+    try { renderCoachSetup(); } catch(_) {}
+    // Die Erinnerung soll ab heute stehen, nicht erst beim nächsten App-Start.
+    try { await _cnSync(); } catch(e) { console.warn('[Coach] Erinnerung planen:', e); }
+  } catch(e) {
+    console.warn('[Coach] Erinnerung:', e);
+    try { renderCoachSetup(); } catch(_) {}
+  }
+}
 function renderCoachSetup(){
   const ov = document.getElementById('ov-coach-setup');
   // Früh zurück, wenn die Einrichtung zu ist: der Aufruf kommt auch aus
@@ -26258,7 +26346,9 @@ function renderCoachSetup(){
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
     if (_csHold) return;
-    body.innerHTML = _csStep === 2 ? _csStep2HTML() : _csStep1HTML();
+    body.innerHTML = _csStep === 3 ? _csStep3HTML()
+                   : _csStep === 2 ? _csStep2HTML()
+                   : _csStep1HTML();
     // Getrennter Behälter, damit die Leiste nicht mit dem Inhalt wegscrollt.
     const nav = document.getElementById('cst-nav'); if (nav) nav.innerHTML = _csNavHTML();
   } catch(e) { console.warn('[Coach] Einrichtung zeichnen:', e); }
