@@ -24167,6 +24167,22 @@ function _cpgFreeBlobs(){
   _cpgBlobs.forEach(u => { try { URL.revokeObjectURL(u); } catch(_){} });
   _cpgBlobs.clear();
 }
+/* Die beiden nächsten Fotos vorab dekodieren. Ohne das trifft die erste
+   Dekodierung eines Bildes den Moment, in dem seine Karte auftaucht — gemessen
+   28 ms Spitzenframe mitten im Ziehen. img.decode() erledigt dieselbe Arbeit
+   vorher und außerhalb des Hauptthreads, danach ist das Auftauchen kostenlos. */
+function _cpgPrime(){
+  for (let k = 1; k <= 2; k++) {
+    const it = _cpgItems[_cpgIdx + k];
+    if (!it || it.kind !== 'post' || !it.img || it._primed) continue;
+    it._primed = true;
+    try {
+      const im = new Image();
+      im.src = _cpgImgSrc(it);
+      if (im.decode) im.decode().catch(() => {});
+    } catch(_){}
+  }
+}
 function _cpgActText(a){
   const name = a.uid === _fbUser?.uid ? tr('Du') : (a.name || 'Athlet');
   if (a.type === 'pr') return { day: (a.prName || 'PR'), meta: name + ' · ' + tr('Neuer Rekord') + (a.prVal ? ': ' + a.prVal : '') };
@@ -24323,11 +24339,13 @@ function _cpgRenderStack(dir){
       if (_cpgItems[_cpgIdx + 1] !== under) return;
       const t = w.querySelector('.cpg-card.top');
       if (t) t.insertAdjacentHTML('beforebegin', _cpgCardHTML(under, 'under'));
+      _cpgPrime();
     }));
     return;
   }
   w.innerHTML = countHTML + (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
   _cpgBindSwipe(w);
+  _cpgPrime();
 }
 /* Rahmenbreite gepuffert: sie ändert sich nur, wenn sich das Fenster ändert
    (.cpg-wrap hängt an 100dvh). Jeder Kartenwechsel las sie vorher neu und erzwang
