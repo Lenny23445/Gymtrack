@@ -25139,9 +25139,8 @@ function _coachBarRender() {
   // kein Dialog — der Rest des Trainings bleibt bedienbar (s. _rpeAsk).
   let ask = '';
   try { ask = _rpeAskHTML(); } catch(_) { ask = ''; }
-  // KEIN Bedienelement in der Leiste (s. CSS-Kommentar bei .coach-bar-mic):
-  // Fragen an den Coach laufen ueber den KI-Chat, nicht ueber ein zweites
-  // Mikrofon im Training.
+  // KEIN Bedienelement in der Leiste: Fragen an den Coach laufen ueber den
+  // KI-Chat (Knopf unten rechts), nicht ueber ein zweites Mikrofon im Training.
   el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
     `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
     (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '') + ask;
