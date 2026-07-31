@@ -382,10 +382,15 @@ angefasst.
   Debounce-Push eines *vor* der Räumung angestoßenen `persist()` theoretisch
   vorher feuern. Für die Räumung selbst ist das mit Schritt 9b geschlossen; für
   die übrigen Felder ist es Bestand und außerhalb dieses Auftrags.
-* **Dieser Prüflauf und dieser Bericht liegen im Repo, sind aber nicht
-  eingecheckt:** `.superpowers/sdd/.gitignore` enthält eine einzelne Zeile `*`
-  und schlägt die Lockerung aus `002acac` (`.gitignore` im Wurzelverzeichnis)
-  ab. Das ist eine Repo-Entscheidung und wurde hier bewusst nicht umgeworfen —
-  am selben `.gitignore` arbeitet gerade der zweite Schreiber. Commit-fähig
-  gemacht wird das mit `git rm --cached`/Anpassung jener Datei, nicht mit einem
-  `git add -f` aus dieser Aufgabe heraus.
+* **Die Änderung ist nicht unter dem vorgesehenen Commit gelandet.** Während
+  dieser Arbeit lief im selben Arbeitsverzeichnis ein zweiter Schreiber (Commits
+  `002acac`, `c484062`, `fc347da` zum Hub-Umbau) **und** ein Autosync-Job, der
+  pauschal alles einsammelt. Der Autosync hat die fertige `index.html` um 11:16
+  als `5421bae autosync: rechner 2026-07-31 11:16` eingecheckt und gepusht —
+  zusammen mit dem gesamten `.superpowers`-Verzeichnis, das derselbe zweite
+  Schreiber kurz zuvor aus dem `.gitignore` genommen hatte. Die beiden
+  vorgesehenen Commits (`fix(coach):` und `feat(coach): Persona-Synchronisierung`)
+  konnten deshalb nicht mehr gesetzt werden; die Änderung nachträglich
+  umzuhängen hieße, bereits gepushte Historie umzuschreiben, und das ist
+  ausdrücklich ausgeschlossen. Die Inhalte selbst sind vollständig und geprüft —
+  nur die Commit-Nachricht nennt sie nicht.
