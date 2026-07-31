@@ -7513,7 +7513,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><span class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></span><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
+    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
       <div id="ch-body"></div>
     </div>
@@ -26099,13 +26099,17 @@ function _chScrollOpen(k){
   } catch(e) { console.warn('[Coach] Kachel in Sicht planen:', e); }
 }
 /* Eine Kachel als Markup. k stammt aus _CH_CARDS und ist eigener Code, nie
-   Fremdtext im onclick. Titel und Kennzahl gehen durch esc(). */
-function _chCardHTML(c){
+   Fremdtext im onclick. Titel und Kennzahl gehen durch esc().
+   cur ist der Wochen-Zwischenstand aus _crCurrent(): er wird EINMAL je
+   Renderlauf gerechnet und durchgereicht, weil ihn sonst die Kennzahl und der
+   Inhalt der Wochen-Kachel je zweimal über alle Einheiten rechnen würden — und
+   gerendert wird bei jedem Schalter. */
+function _chCardHTML(c, cur){
   const on = (_chOpen === c.k);
   let inner = '', kz = '';
-  try { inner = _chCardBody(c.k) || ''; }
+  try { inner = _chCardBody(c.k, cur) || ''; }
   catch(e) { console.warn('[Coach] Kachelinhalt ' + c.k + ':', e); inner = ''; }
-  try { kz = _chCardMetric(c.k) || ''; }
+  try { kz = _chCardMetric(c.k, cur) || ''; }
   catch(e) { console.warn('[Coach] Kennzahl ' + c.k + ':', e); kz = ''; }
   return `<section class="ch-card${on ? ' on' : ''}" id="ch-card-${c.k}">
       <button type="button" class="ch-card-h" id="ch-h-${c.k}" aria-expanded="${on ? 'true' : 'false'}"
@@ -26119,17 +26123,17 @@ function _chCardHTML(c){
       </div>
     </section>`;
 }
-function _chCardBody(k){
+function _chCardBody(k, cur){
   if (k === 'chat')    return _chChatHTML();
-  if (k === 'week')    return _chReportHTML();
+  if (k === 'week')    return _chReportHTML(cur);
   if (k === 'persona') return _chPersonaHTML();
   if (k === 'scope')   return _chScopeHTML();
   if (k === 'journal') return _chJournalHTML();
   return '';
 }
-function _chCardMetric(k){
+function _chCardMetric(k, cur){
   if (k === 'chat')    return _chKzChat();
-  if (k === 'week')    return _chKzWeek();
+  if (k === 'week')    return _chKzWeek(cur);
   if (k === 'persona') return _chKzPersona();
   if (k === 'scope')   return _chKzScope();
   if (k === 'journal') return _chKzJournal();
@@ -26150,9 +26154,9 @@ function _chKzChat(){
    (_csWeight), nie am Satz — ein lbs-Nutzer sieht lbs. Ohne Vorwoche gibt es
    keinen Vergleich und deshalb auch keinen Pfeil: eine Steigerung gegen nichts
    hat niemand erbracht. */
-function _chKzWeek(){
+function _chKzWeek(cur){
   try {
-    const cur = _crCurrent();
+    if (cur === undefined) cur = _crCurrent();   // null ist ein gültiges Ergebnis
     if (!cur || !cur.rep || !cur.rep.numbers) return _cm('diese Woche noch nichts', 'nothing this week yet');
     const n   = cur.rep.numbers;
     const vol = Math.round(Number(n.vol) || 0);
@@ -26217,7 +26221,9 @@ function renderCoachHub(){
     // getippten Chip aus dem Bild. Nur das ÖFFNEN des Blattes setzt sie zurück.
     const zurueck = _chResetScroll; _chResetScroll = false;
     const scrollVor = body.scrollTop;
-    body.innerHTML = _CH_CARDS.map(_chCardHTML).join('');
+    // Der Wochen-Zwischenstand EINMAL je Renderlauf — s. _chCardHTML.
+    let cur = null; try { cur = _crCurrent(); } catch(e2) { console.warn('[Coach] Wochenstand:', e2); }
+    body.innerHTML = _CH_CARDS.map(c => _chCardHTML(c, cur)).join('');
     if (detOffen) { const d = body.querySelector('#ch-card-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
@@ -26776,10 +26782,14 @@ function _crArchivHTML(list) {
   return out.join('');
 }
 
-function _chReportHTML(){
+/* cur ist der Zwischenstand aus _crCurrent(). Er kommt von der Aufrufstelle
+   herein, weil ihn dort auch die Kennzahl der Kachel braucht — zweimal über
+   alle Einheiten zu rechnen wäre bei jedem Schalter der doppelte Preis.
+   Fehlt er (undefined), wird er hier geholt; null bleibt ein gültiges Ergebnis. */
+function _chReportHTML(cur){
   const out = [];
   try {
-    const cur    = _crCurrent();
+    if (cur === undefined) cur = _crCurrent();
     const archiv = (S.coachReports || []).filter(r => r && (!cur || r.weekKey !== cur.rep.weekKey));
     const kopf   = (unter) => `<div class="ch-sec">${esc(tr('Wochenbericht'))}${unter ? `<i>${esc(unter)}</i>` : ''}</div>`;
 
