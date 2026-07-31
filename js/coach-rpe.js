@@ -42,6 +42,11 @@
   // meinten — so bleibt adjustNext(60,'schwer',2.5) weiterhin 57,5.
   var DEFAULT_BAR = 0;
   var TREND_MIN = 2; // Ein einzelner Satz behauptet noch keinen Trend.
+  // Toleranz der Ableitung, in Wiederholungen. Eine einzelne Wiederholung mehr
+  // oder weniger ist Tagesform — mit TOL 1 loeste praktisch jeder Satz eine
+  // Anpassung aus, und die Anpassung waere damit so beliebig wie das Rauschen,
+  // das sie ausloest.
+  var TOL = 2;
 
   function bucketOf(answer) {
     if (typeof answer !== 'string') return null;
@@ -121,6 +126,38 @@
     return { key: b === 'easy' ? 'setAckEasy' : 'setAckHard', vars: { kg: w } };
   }
 
+  /* derive(reps, opts) -> 'easy' | 'ok' | 'hard' | null
+
+     Dieselbe Skala wie bucketOf(), nur aus Zahlen statt aus einer Antwort. Die
+     Rueckfrage nach jedem Satz ist damit entfallen: was der Nutzer geantwortet
+     haette, steht bereits im Satz. Weniger Wiederholungen als prognostiziert
+     heisst schwer, mehr heisst leicht.
+
+     opts: {min, max, target, type}
+     - min/max sind die Grenzen des Wiederholungsbereichs der Uebung. Sie sind
+       HARTE Kanten: unterhalb des Minimums ist der Satz schwer und oberhalb des
+       Maximums leicht, ganz gleich, was die Prognose sagte.
+     - target ist die Prognose (Vorschlag der App). Fehlt sie, gilt das Minimum —
+       der Anfang des Bereichs ist die Vorgabe der Double Progression.
+     - type === 'fail' (bis zum Versagen) unter der Prognose ist immer schwer:
+       da war die Grenze erreicht, nicht die Wiederholungszahl.
+     Zahl heisst Zahl (Typkontrakt im Kopf der Datei): '8' ist ein String und
+     ergibt null, statt still als 8 gelesen zu werden. */
+  function derive(reps, opts) {
+    var r = numOf(reps);
+    if (!isFinite(r) || r <= 0) return null;
+    var o = opts || {};
+    var min = numOf(o.min); if (!isFinite(min) || min <= 0) min = 1;
+    var max = numOf(o.max); if (!isFinite(max) || max < min) max = min;
+    var tgt = numOf(o.target); if (!isFinite(tgt) || tgt <= 0) tgt = min;
+    if (tgt < min) tgt = min;
+    if (tgt > max) tgt = max;
+    if (o.type === 'fail' && r < tgt) return 'hard';
+    if (r < min || r <= tgt - TOL) return 'hard';
+    if (r > max || r >= tgt + TOL) return 'easy';
+    return 'ok';
+  }
+
   // Trend fuers Dossier. Mehrheit UND mindestens zwei gleiche Antworten,
   // sonst 'ok': ein Gleichstand oder eine einzelne Angabe ist kein Trend.
   function summarize(answers) {
@@ -136,9 +173,9 @@
   }
 
   var API = { toRpe: toRpe, adjustNext: adjustNext, ackFor: ackFor,
-              summarize: summarize,
+              summarize: summarize, derive: derive,
               RPE: RPE, DEFAULT_STEP: DEFAULT_STEP, DEFAULT_BAR: DEFAULT_BAR,
-              TREND_MIN: TREND_MIN };
+              TREND_MIN: TREND_MIN, TOL: TOL };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachRpe = API;

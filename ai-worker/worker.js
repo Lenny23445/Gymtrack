@@ -798,7 +798,13 @@ function stripAdditionalProps(schema) {
 // JEDEM Prompt, ganz am Ende und damit am naechsten an der Ausgabe.
 function langRule(de) {
   return de
-    ? "\nSPRACHE: Antworte ausschliesslich auf Deutsch, egal in welcher Sprache die Daten stehen. Uebungsnamen aus den Daten bleiben unveraendert."
+    // Der Nachsatz zu den Uebungsnamen war frueher ein Halbsatz und wurde
+    // regelmaessig ignoriert: das Modell hat "Bench Press" zu "Bankdruecken"
+    // gemacht, weil der Rest der Anweisung Deutsch verlangt. Der Name ist aber
+    // Nutzereingabe und kein zu uebersetzender Text — so, wie die Uebung
+    // angelegt wurde, heisst sie auch im Training.
+    ? "\nSPRACHE: Antworte ausschliesslich auf Deutsch, egal in welcher Sprache die Daten stehen." +
+      "\nAUSNAHME UEBUNGSNAMEN: Namen aus den Daten (Feld \"ex\", Uebungsliste, Plaene) sind Nutzereingaben. Gib sie ZEICHENGENAU so wieder, wie sie dort stehen — englische, abgekuerzte oder eigenwillig geschriebene Namen bleiben unveraendert. Nicht uebersetzen, nicht eindeutschen, nicht korrigieren, nicht durch einen gelaeufigeren Namen ersetzen."
     : "\nLANGUAGE: Always answer in English — every field, including titles and button labels. The data you receive (exercise names, muscle groups, notes, earlier messages) is often German; that never changes your output language. Keep exercise names exactly as they appear in the data, do not translate them.";
 }
 
@@ -911,7 +917,8 @@ Gib ENTWEDER "action" ODER "options" zurück (nie beide, nie leer bei reinem Lob
 - Ist die Lage eindeutig (klar EIN sinnvoller nächster Schritt): "action" setzen.
 - Gibt es mehrere sinnvolle Wege (z. B. Dropsatz ODER ein Satz mehr ODER normal weiter): "options" mit 2-3 Einträgen {label: kurzer Button-Text max. 3 Wörter, action}.
 - Reines Lob ohne konkrete Aktion: "action":{"kind":"none"}, kein "options".
-action.kind: "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz), "dropSet" (Dropsatz), "topSet" (nächster Satz = neuer Bestwert/Top-Satz), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (keine Aktion).
+action.kind: "weight" (Gewicht anpassen, value=neues kg), "extraSet" (zusätzlicher Satz), "removeSet" (einen noch offenen Satz streichen), "dropSet" (Dropsatz), "topSet" (nächster Satz = neuer Bestwert/Top-Satz), "rest" (mehr Pause), "deload" (Intensität reduzieren), "none" (keine Aktion).
+ÜBUNGSNAMEN: das Feld "ex" ist der Name, den der Nutzer selbst vergeben hat. Übernimm ihn ZEICHENGENAU, auch wenn er englisch, abgekürzt oder ungewöhnlich geschrieben ist. Niemals übersetzen, eindeutschen, korrigieren oder durch einen geläufigeren Namen ersetzen — "Bench Press" bleibt "Bench Press" und wird nicht zu "Bankdrücken".
 Trigger-Typen: jump=deutliche Leistungssteigerung, drop=deutlicher Leistungsabfall, repmax=alle Sätze am oberen Wiederholungsende (Gewicht könnte steigen), fatigue=hohe Ermüdung erkannt, stall=Stagnation über mehrere Einheiten.
 Steht "readiness" in den Daten, stammt sie aus dem Post-Workout-Check-in und die App hat die Vorschläge BEREITS angepasst. Respektiere sie: bei state "deload"/"hold"/"easy" niemals Gewicht erhöhen oder Zusatzsätze vorschlagen (eher "rest", "none", saubere Ausführung); bei "push" darfst du offensiv steigern.
 Stehen in den Daten "limits", sind das koerperliche Einschraenkungen des Nutzers: schlage nichts vor, was sie belastet. Steht dort "muted", sind das Vorschlagstypen, die der Nutzer wiederholt ignoriert hat — verwende diese kinds nicht mehr.
@@ -922,7 +929,8 @@ Return EITHER "action" OR "options" (never both, never empty on pure praise):
 - Clear situation (one obvious next step): set "action".
 - Multiple sensible paths (e.g. drop set OR one more set OR continue as planned): set "options" with 2-3 entries {label: short button text max 3 words, action}.
 - Pure praise, no concrete action: "action":{"kind":"none"}, no "options".
-action.kind: "weight" (adjust weight, value=new kg), "extraSet", "dropSet", "topSet" (next set = new best/top set), "rest", "deload", "none".
+action.kind: "weight" (adjust weight, value=new kg), "extraSet", "removeSet" (drop one not-yet-completed set), "dropSet", "topSet" (next set = new best/top set), "rest", "deload", "none".
+EXERCISE NAMES: the "ex" field is the name the user chose. Reproduce it CHARACTER FOR CHARACTER, even if it is German, abbreviated or unusually spelled. Never translate, localise, correct or swap it for a more common name.
 Trigger types: jump=clear performance increase, drop=clear performance drop, repmax=all sets at top of rep range, fatigue=high fatigue detected, stall=stagnation across sessions.
 If the data contains "limits", these are the user's physical limitations: never suggest anything that loads them. If it contains "muted", those are suggestion kinds the user repeatedly ignored — do not use those kinds any more.
 No emojis — anywhere, including title and button labels.`;

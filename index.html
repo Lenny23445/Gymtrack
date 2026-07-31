@@ -5775,8 +5775,20 @@ textarea.pf-inp{height:auto;padding:12px 13px}
              linear-gradient(var(--card),var(--card));
   border:1px solid rgba(var(--acc-rgb),.32);
   box-shadow:0 4px 18px rgba(var(--acc-rgb),.13);
-  transition:border-color .35s,box-shadow .35s;
+  /* height MUSS animierbar sein: die Leiste waechst und schrumpft bei jeder
+     Nachricht (eine Zeile mehr oder weniger). Ohne Uebergang springt die
+     darunter liegende Uebungskarte — genau der Ruckler, der als "keine
+     Animation" auffiel. Den konkreten Von/Bis-Wert setzt _coachBarRender()
+     per JS, weil height:auto nicht interpolierbar ist; hier steht nur die Kurve. */
+  transition:height .3s cubic-bezier(.2,.9,.3,1),margin-bottom .3s cubic-bezier(.2,.9,.3,1),
+             padding .3s cubic-bezier(.2,.9,.3,1),opacity .22s ease,border-color .35s,box-shadow .35s;
 }
+/* Aus-Zustand (Coach abgeschaltet / kein Premium): eingeklappt statt display:none,
+   damit Ein- und Ausblenden dieselbe Kurve nehmen wie jede Hoehenaenderung.
+   BEWUSST ohne !important — _coachBarAnimate() setzt waehrend der Bewegung eine
+   Inline-Hoehe, und ein !important hier wuerde genau die ueberstimmen. */
+.coach-bar.is-off{height:0;margin-bottom:0;padding-top:0;padding-bottom:0;opacity:0;border-width:0}
+@media (prefers-reduced-motion:reduce){ .coach-bar{transition:border-color .35s,box-shadow .35s} }
 /* Aura: langsam wanderndes Licht — signalisiert "läuft mit", ohne zu blinken. */
 .coach-bar::before{
   content:'';position:absolute;inset:-45% -20%;z-index:-1;pointer-events:none;
@@ -5826,14 +5838,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    gehoert ins Training, hier ist das Training vorbei. */
 .ci-coach{font-size:13.5px;color:var(--text);line-height:1.42;font-weight:600;
   background:var(--card2,rgba(127,127,127,.10));border-radius:12px;padding:10px 12px;margin:0 0 16px}
-/* Satz-Rueckfrage (leicht/passend/schwer) — liegt INNERHALB der Coach-Leiste,
-   keine eigene Flaeche, nichts Modales: sie ueberdeckt nichts und blockiert
-   nichts. Verschwindet nach 8 s von selbst (_rpeAsk). */
-.cb-ask3{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
-.cb-ask3-q{font-size:12.5px;color:var(--text2);font-weight:700;flex:1 1 100%;line-height:1.35}
-.cb-ask3 button{flex:1 1 0;min-width:72px;padding:7px 4px;border-radius:10px;font-size:12.5px;font-weight:800;
-  color:var(--acc);background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.30);cursor:pointer}
-.cb-ask3 button:active{background:rgba(var(--acc-rgb),.20)}
+/* Die Satz-Rueckfrage (.cb-ask3) ist entfallen: der Coach leitet die
+   Einschaetzung aus Soll und Ist ab (_rpeDerive), statt nach jedem Satz zu
+   fragen. Damit gibt es in der Leiste wieder GENAU eine Sorte Inhalt — Kopf
+   und Nachricht. */
 .coach-card{position:relative;display:flex;border-radius:14px;overflow:hidden;margin-bottom:10px;
   background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
 .coach-card-bar{width:4px;flex-shrink:0;background:var(--acc)}
@@ -7899,7 +7907,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310016';
+const APP_VERSION = 'gymtrack-v202607310017';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9105,6 +9113,18 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-31-coach-autoregulation': {
+    label: '31.07.2026 · Live-Coach: rechnet mit, statt zu fragen',
+    items: [
+      'Keine Rückfrage „leicht, passend oder schwer?" mehr nach jedem Satz — der Coach liest es an deinen Wiederholungen ab und passt das Gewicht der offenen Sätze selbst an',
+      'Erkennt Ermüdung im Verlauf der Übung und nimmt einen Satz raus; bist du frisch und alles läuft am oberen Wiederholungsende, hängt er einen an',
+      'Satzpausen richten sich zusätzlich nach der Ermüdung der Muskelgruppe und danach, wie der letzte Satz gelaufen ist',
+      'Passt deinen Wiederholungsbereich an, wenn du zwei Einheiten lang durchgehend darüber oder darunter liegst',
+      'Vergleicht endlich richtig mit deiner letzten Einheit: Aufwärmsätze und noch nicht abgehakte Sätze zählen nicht mehr als Leistung mit',
+      'Übungsnamen bleiben so, wie du sie angelegt hast — „Bench Press" wird nicht mehr zu „Bankdrücken"',
+      'Die Coach-Leiste wächst und schrumpft jetzt weich statt zu springen',
+    ]
+  },
   'cl-2026-07-31-fokus-modus': {
     label: '31.07.2026 · Training: Fokus auf deine aktuelle Übung',
     items: [
@@ -13084,6 +13104,36 @@ function html_sug(type, icon, title, text) {
 // Hilfsfunktion: Arbeitssätze extrahieren (ohne Aufwärmsätze)
 function _workSets(sets) {
   return sets.filter(s => s.w && s.r && (s.type || 'normal') !== 'warmup');
+}
+/* Arbeitssaetze der LAUFENDEN Einheit, die wirklich schon gehoben wurden.
+   buildPlannedSets() fuellt Gewicht und Wiederholungen im Voraus aus — fuer
+   abgeschlossene Einheiten ist _workSets() deshalb richtig, fuer das laufende
+   Training aber falsch: dort zaehlt es geplante Saetze als erbracht. Genau
+   daraus entstanden die falschen Aussagen des Live-Coaches (Top-Satz-Chance
+   schon beim ersten Satz, Volumen "fertig", bevor etwas gehoben war). Das
+   Haekchen (done) ist die einzige Quelle dafuer, dass ein Satz gelaufen ist. */
+function _loggedWorkSets(sets) {
+  return (sets || []).filter(s => s.done && s.w && s.r && (s.type || 'normal') !== 'warmup');
+}
+/* Position des Satzes si unter den ARBEITSSAETZEN (Aufwaermsaetze zaehlen nicht).
+   Ohne diese Umrechnung verglich der Coach Satz-Index gegen Satz-Index — und
+   traf damit im Verlauf regelmaessig einen Aufwaermsatz der letzten Einheit als
+   "Vergleichswert vom letzten Mal". */
+function _workPosOf(sets, si) {
+  let n = -1;
+  for (let i = 0; i <= si && i < (sets || []).length; i++) {
+    if (((sets[i].type) || 'normal') !== 'warmup') n++;
+  }
+  return n;
+}
+/* Vergleichssatz aus der letzten Einheit: gleiche Arbeitssatz-Position, sonst
+   der schwerste Arbeitssatz. Aufwaermsaetze fliegen vorher raus. */
+function _lastWorkBase(lastSets, workPos) {
+  const work = _workSets(lastSets || []);
+  if (!work.length) return null;
+  const byPos = workPos >= 0 ? work[workPos] : null;
+  if (byPos && parseFloat(byPos.w) > 0 && parseInt(byPos.r) > 0) return byPos;
+  return work.slice().sort((a, b) => (parseFloat(b.w) || 0) - (parseFloat(a.w) || 0))[0] || null;
 }
 // Reps-Prüfung: fail = immer als "erreicht" zählen
 function _repsOk(s, target) {
@@ -18567,6 +18617,24 @@ function smartRestSecs(ex, set) {
   const rd = _ciReadiness();
   if (rd && rd.restMult !== 1) secs *= rd.restMult;
 
+  // Ermuedung der Muskelgruppe (Erholungsmodell). Wer mit 70 % Restermuedung in
+  // die Uebung geht, braucht zwischen den Saetzen laenger — das ist derselbe
+  // Wert, aus dem der Live-Coach auch Volumen und Vorschlaege ableitet.
+  try {
+    const mgRec = getMuscleGroupRecovery();
+    const fat = (ex && ex.muscleGroup && mgRec[ex.muscleGroup]) ? (mgRec[ex.muscleGroup].fatPct || 0) : 0;
+    if (fat >= 60)      secs *= 1.20;
+    else if (fat >= 40) secs *= 1.10;
+    else if (fat <= 15) secs *= 0.95;
+  } catch(_) {}
+
+  // Wie sich der GERADE beendete Satz gemessen hat (_rpeDerive schreibt die
+  // abgeleitete Einschaetzung auf den Satz). Ein Satz unter der Prognose heisst
+  // laengere Pause, einer darueber darf kuerzer werden.
+  const feel = set && set.rpeAnswer;
+  if (feel === 'hard')      secs *= 1.15;
+  else if (feel === 'easy') secs *= 0.92;
+
   secs = Math.round(secs / 5) * 5;          // auf 5s runden
   return Math.max(45, Math.min(240, secs)); // sinnvolle Grenzen 45s–4min
 }
@@ -18759,8 +18827,9 @@ function toggleSetDone(li,si) {
                  kg: parseFloat(_cs.w) || null, ts: _now });
       }
     } catch(_) {}
-    // Satz-Rueckfrage leicht/passend/schwer, in derselben Leiste, 8 s.
-    try { _rpeAsk(li, si); } catch(_) {}
+    // Satz-Einschaetzung: abgeleitet aus Soll und Ist, nicht mehr erfragt.
+    // Steht VOR startRestTimer() — smartRestSecs() liest die Einschaetzung.
+    try { _rpeDerive(li, si); } catch(_) {}
     const log = wkLogs[li];
     if (log.ssGroup) {
       // Superset: Pause erst, wenn ALLE gekoppelten Übungen Satz Nr. si fertig haben
@@ -25124,29 +25193,58 @@ function _coachBarSet(mode, msg, holdMs) {
     _coachBarState = { mode: 'idle', msg: '' }; _coachBarRender();
   }, holdMs);
 }
+/* Hoehenwechsel der Leiste weich fahren (FLIP).
+   Warum ueberhaupt JS: die Leiste hat keine feste Hoehe — sie traegt mal nur den
+   Kopf, mal Kopf + ein- bis dreizeilige Nachricht. CSS kann height:auto nicht
+   interpolieren, also misst diese Funktion VORHER und NACHHER und laesst die
+   Differenz von der CSS-Kurve fahren. Danach wieder height:'' — sonst bliebe die
+   Leiste auf einem eingefrorenen Pixelwert stehen und ein spaeterer Zeilenumbruch
+   (Drehung, groessere Schrift) wuerde abgeschnitten. */
+function _coachBarAnimate(el, apply) {
+  const reduce = (() => { try { return matchMedia('(prefers-reduced-motion:reduce)').matches; } catch(_) { return false; } })();
+  const wasHidden = el.style.display === 'none';
+  const from = wasHidden ? 0 : el.getBoundingClientRect().height;
+  apply();
+  if (reduce) { el.style.height = ''; return; }
+  el.style.height = '';                        // fuer die Messung frei laufen lassen
+  const to = el.classList.contains('is-off') ? 0 : el.getBoundingClientRect().height;
+  if (Math.abs(to - from) < 0.5) return;       // kein Sprung, keine Animation
+  el.style.height = from + 'px';
+  void el.offsetWidth;                         // Reflow: Startwert festschreiben
+  el.style.height = to + 'px';
+  if (el._cbEndTimer) clearTimeout(el._cbEndTimer);
+  el._cbEndTimer = setTimeout(() => { el.style.height = ''; el._cbEndTimer = null; }, 340);
+}
 function _coachBarRender() {
   const el = document.getElementById('wk-coach-bar'); if (!el) return;
   const on = isPremium() && _coachLevel() !== 'off';
-  if (!on) { el.style.display = 'none'; return; }
-  el.style.display = '';
+  if (!on) {
+    // Nicht mehr display:none — sonst gibt es nichts zu animieren. Erst
+    // einklappen, danach aus dem Fluss nehmen.
+    if (el.style.display === 'none') return;
+    _coachBarAnimate(el, () => { el.className = 'coach-bar is-off'; el.innerHTML = ''; });
+    setTimeout(() => { if (el.classList.contains('is-off')) el.style.display = 'none'; }, 340);
+    return;
+  }
   const thinking = _coachBarState.mode === 'thinking';
   const msg = _coachBarState.msg || '';
-  el.className = 'coach-bar' + (thinking ? ' thinking' : '');
   // Die Leiste nennt den Coach beim Namen. Heisst er noch 'Coach', greifen weiter
   // die Woerterbuch-Eintraege (EN: 'Coach live') statt einer zweiten Formulierung.
   const nm = _coachName(), nmE = esc(nm);
   const lbl = (nm === 'Coach')
     ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
     : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
-  // Satz-Rueckfrage: dieselbe Flaeche, direkt unter der Nachricht. Kein Overlay,
-  // kein Dialog — der Rest des Trainings bleibt bedienbar (s. _rpeAsk).
-  let ask = '';
-  try { ask = _rpeAskHTML(); } catch(_) { ask = ''; }
   // KEIN Bedienelement in der Leiste: Fragen an den Coach laufen ueber den
   // KI-Chat (Knopf unten rechts), nicht ueber ein zweites Mikrofon im Training.
-  el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
-    `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
-    (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '') + ask;
+  // Auch keine Satz-Rueckfrage mehr: die Einschaetzung leitet _rpeDerive() aus
+  // Soll und Ist ab, statt sie nach jedem Satz zu erfragen.
+  _coachBarAnimate(el, () => {
+    el.style.display = '';
+    el.className = 'coach-bar' + (thinking ? ' thinking' : '');
+    el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
+      `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
+      (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
+  });
   // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
   // (z.B. Satz-Liste neu gebaut) die Animation erneut auslösen und flackern.
   if (msg && msg !== _coachBarRender._last) {
@@ -25177,7 +25275,11 @@ function _coachEval(li, si) {
 // Alle bisher geloggten Arbeitssätze (kein Aufwärmen) dieser Übung im laufenden
 // Training am/über dem oberen Ende des Ziel-Wdh-Bereichs?
 function _coachAllSetsAtRepMax(log, ex) {
-  const mainSets = _workSets(log.sets || []);
+  // _loggedWorkSets statt _workSets: die geplanten Saetze tragen bereits die
+  // vorgeschlagenen Wiederholungen, und die liegen nach einer Steigerung genau
+  // am oberen Bereichsende. Ohne done-Pruefung meldete die Regel deshalb schon
+  // beim ERSTEN Satz "alle Saetze am oberen Wdh-Ende".
+  const mainSets = _loggedWorkSets(log.sets || []);
   if (!mainSets.length) return false;
   const { max } = repRange(ex);
   return mainSets.every(s => s.type === 'fail' || parseInt(s.r) >= max);
@@ -25193,7 +25295,9 @@ function _coachTopSet(sets) {
 function _coachIsStalled(exId, log) {
   const hist = exHistory(exId);
   if (hist.length < 1) return false;
-  const curTop = _coachTopSet(log.sets);
+  // Nur gehobene Saetze: sonst waere der "aktuelle Top-Satz" der geplante
+  // schwerste Satz, und Stagnation stuende fest, bevor er gelaufen ist.
+  const curTop = _coachTopSet(_loggedWorkSets(log.sets));
   if (!curTop) return false;
   const curW = parseFloat(curTop.w) || 0, curR = parseInt(curTop.r) || 0;
   if (!curW || !curR) return false;
@@ -25207,9 +25311,13 @@ function _coachVolDelta(exId, li) {
   try {
     const hist = exHistory(exId);
     if (!hist.length) return null;
-    const lastVol = setsVolume(hist[hist.length-1].sets || []);
+    // BEIDE Seiten gleich gefiltert. Vorher stand links das volle Satz-Array der
+    // letzten Einheit (Aufwaermsaetze eingerechnet) und rechts nur die
+    // Arbeitssaetze — die gemeldete Prozentzahl war damit systematisch zu
+    // negativ, bei zwei Aufwaermsaetzen um gut 15 Prozentpunkte.
+    const lastVol = setsVolume(_workSets(hist[hist.length-1].sets || []));
     if (!(lastVol > 0)) return null;
-    const curVol = setsVolume(_workSets((wkLogs[li] && wkLogs[li].sets) || []));
+    const curVol = setsVolume(_loggedWorkSets((wkLogs[li] && wkLogs[li].sets) || []));
     if (!(curVol > 0)) return null;
     return Math.round(((curVol - lastVol) / lastVol) * 100);
   } catch(_) { return null; }
@@ -25278,12 +25386,10 @@ function _coachMicroReact(li, si) {
   try {
     const hist = exHistory(log.exerciseId);
     if (hist.length) {
-      const lastSets = hist[hist.length - 1].sets || [];
-      let base = lastSets[si];
-      if (!base || !(parseFloat(base.w) > 0)) {
-        const work = lastSets.filter(s => (s.type || 'normal') !== 'warmup');
-        base = work.slice().sort((a, b) => (parseFloat(b.w) || 0) - (parseFloat(a.w) || 0))[0] || null;
-      }
+      // Arbeitssatz gegen Arbeitssatz. Vorher wurde der Satz-Index direkt in die
+      // letzte Einheit gehalten: bei zwei Aufwaermsaetzen landete der Vergleich
+      // auf einem AUFWAERMSATZ und meldete "+40 % ueber letzter Einheit".
+      const base = _lastWorkBase(hist[hist.length - 1].sets || [], _workPosOf(log.sets, si));
       if (base && parseFloat(base.w) > 0 && parseInt(base.r) > 0) {
         const lastE1RM = epley1RM(parseFloat(base.w), parseInt(base.r));
         const curE1RM  = epley1RM(w, r);
@@ -25323,7 +25429,9 @@ function _coachMicroReact(li, si) {
     all.forEach((s, i) => {
       if ((s.type || 'normal') === 'warmup') return;
       work++;
-      if (i <= si && parseFloat(s.w) > 0 && parseInt(s.r) > 0) doneWork++;
+      // done statt "hat Werte": die geplanten Saetze sind vorausgefuellt, damit
+      // zaehlte frueher jeder offene Satz als erledigt.
+      if (s.done || i === si) doneWork++;
     });
     const leftWork = Math.max(0, work - doneWork);
     if ((set.type || 'normal') === 'fail') {
@@ -25366,14 +25474,12 @@ function _coachMicroReact(li, si) {
    3. DIE OBERGRENZE (off 0, key 4, full 8) gilt fuer jede UNGEFRAGTE
       Aeusserung, weil jede davon durch CoachSession.emit() laeuft — auch die
       der Nachbarmodule (Aufwaermschema, Technikpunkt, Plateau, Zeitbudget).
-      NICHT dagegen zaehlt die Satz-Quittung: sie ist die Antwort auf eine
-      Handlung des Nutzers, und eine Rueckfrage, deren Beantwortung den
-      Erzaehlbogen aufzehrt, bestraft den, der antwortet. Bis zur
-      Blockabschluss-Review behauptete dieser Kommentar das Gegenteil und der
-      Code tat, was hier jetzt steht — gemessen wurden 12 Quittungen in einer
-      Einheit. Die Flaeche hat dafuer eine EIGENE Obergrenze
-      (CoachSession.ACK_CAP ueber _csAck()), damit nicht bei jedem Satz eine
-      Zeile erscheint.
+      NICHT dagegen zaehlen die Aeusserungen, die eine ANPASSUNG begleiten
+      (Gewicht der offenen Saetze, Satz raus/dazu, Wdh-Bereich). Sie sind keine
+      Beobachtung, sondern die Ansage einer Aenderung, die der Nutzer sonst
+      stillschweigend im Satz-Log vorfaende — schweigen waere hier der
+      schlechtere Fehler. Ihre Haeufigkeit begrenzt die Sache selbst: eine
+      Anpassung geschieht je Uebung hoechstens einmal.
    4. S.coachSession lebt REIN LOKAL: das Feld steht nicht im Whitelist-payload
       von _pushToCloud(), also gibt es keinen zweiten Firestore-Schreibpfad und
       firestore.rules bleibt unberuehrt. Geschrieben wird mit persist() —
@@ -26133,7 +26239,6 @@ function _csEnd(summary) {
 // Zustand verwerfen (Abschluss, Abbruch). Danach liefert _csGet() null und kein
 // Modulaufruf kann mehr reden.
 function _csDiscard() {
-  try { _rpeClear(false); } catch(_) {}
   try { _rpeFlushTrend(); } catch(_) {}
   _rpeAnswers = [];
   _csLastExId = null;
@@ -26145,108 +26250,80 @@ function _csDiscard() {
   catch(e) { console.warn('[Coach] Zustand verwerfen:', e); }
 }
 
-/* ══ SATZ-RUECKFRAGE: leicht / passend / schwer (Task 15, hier verdrahtet) ══
-   Drei Chips INNERHALB der Coach-Leiste — keine neue Flaeche, nichts Modales.
-   Nach 8 Sekunden unbeantwortet verschwinden sie von selbst und blockieren
-   nichts. Eine neue Reihe entfernt zuerst die alte.                           */
-const RPE_ASK_MS = 8000;
-let _rpePend    = null;    // {exId, kg}
-let _rpeTimer   = null;
-let _rpeAnswers = [];      // Antworten dieser Einheit (Trend fuers Dossier)
+/* ══ SATZ-EINSCHAETZUNG: abgeleitet statt erfragt ═════════════════════════════
+   Bis hierher fragte der Coach nach JEDEM Arbeitssatz "leicht, passend oder
+   schwer?" — drei Chips in der Leiste. Die Antwort steht aber bereits in den
+   Zahlen: Wer unter der prognostizierten Wiederholungszahl bleibt, hatte einen
+   schweren Satz; wer deutlich darueber liegt, einen leichten. Eine Frage, deren
+   Antwort man schon kennt, ist eine Unterbrechung ohne Ertrag.
+   Die Skala bleibt dieselbe (CoachRpe: easy/ok/hard) und damit auch alles, was
+   daran haengt: Gewichtsanpassung, Pausenlaenge, Dossier-Trend.                */
+let _rpeAnswers = [];      // Einschaetzungen dieser Einheit (Trend fuers Dossier)
 
-function _rpeAskHTML() {
-  if (!_rpePend) return '';
-  let q = '';
-  try { q = _say('setAsk'); } catch(_) {}
-  if (!q) q = _cm('Wie hat sich der Satz angefühlt?', 'How did that set feel?');
-  const opts = [['leicht', _cm('Leicht', 'Easy')], ['passend', _cm('Passend', 'Right')],
-                ['schwer', _cm('Schwer', 'Hard')]];
-  return `<div class="cb-ask3"><span class="cb-ask3-q">${esc(q)}</span>` +
-    opts.map(o => `<button type="button" onclick="_rpeAnswer('${o[0]}')">${esc(o[1])}</button>`).join('') +
-    `</div>`;
+/* Nur die Uebersetzung App-Daten -> Modul-Vertrag. Die Regel selbst steht in
+   CoachRpe.derive(): dort ist sie ohne DOM pruefbar, und dieselbe Datei haelt
+   bereits die Skala (easy/ok/hard) und die Gewichtsrechnung dazu. */
+function _rpeBucketOf(set, ex, log) {
+  const { min, max } = repRange(ex);
+  return window.CoachRpe.derive(parseInt(set && set.r) || 0, {
+    min, max,
+    target: parseInt(log && log.sugR) || 0,
+    type: (set && set.type) || 'normal',
+  });
 }
-function _rpeClear(render) {
-  if (_rpeTimer) { clearTimeout(_rpeTimer); _rpeTimer = null; }
-  _rpePend = null;
-  if (render !== false) { try { _coachBarRender(); } catch(_) {} }
-}
-function _rpeAsk(li, si) {
+function _rpeDerive(li, si) {
   try {
-    if (!isPremium() || _coachLevel() === 'off') return;
+    if (!isPremium() || _coachLevel() === 'off') return false;
     // Derselbe Schalter wie in _coachMicroReact: "Rueckmeldung nach dem Satz".
-    if (_persona().setFeedback === false) return;
-    const log = wkLogs[li]; if (!log) return;
-    const set = log.sets && log.sets[si]; if (!set) return;
-    if ((set.type || 'normal') === 'warmup') return;   // Aufwaermsatz braucht keine Einschaetzung
-    const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
-    const kg = parseFloat(set.w); if (!(kg > 0)) return;
-    _rpeClear(false);
-    _rpePend = { exId: log.exerciseId, kg: kg };
-    _rpeTimer = setTimeout(() => { try { _rpeClear(); } catch(_) {} }, RPE_ASK_MS);
-    _coachBarRender();
-  } catch(e) { console.warn('[Coach] Satz-Rueckfrage:', e); }
-}
-/* Eigene Obergrenze der Quittungsflaeche (CoachSession.ACK_CAP). Der Zaehler
-   liegt im Sessionzustand und nicht in einer Modulvariablen: sonst begaenne er
-   nach jedem Neuladen von vorn, genau wie es der Deckel des Bogens vor der
-   Blockabschluss-Review tat. Laeuft die Einheit nicht (Zustand weg, Stufe
-   off), gibt es keine Quittung. */
-function _csAck() {
-  try {
-    const sess = timerTs ? _csGet(timerTs) : null;
-    if (!sess) return false;
-    const r = window.CoachSession.ackTake(sess);
-    if (!r.ok) return false;
-    _csPut(r.sess);
-    return true;
-  } catch(e) { console.warn('[Coach] Quittung:', e); return false; }
-}
+    if (_persona().setFeedback === false) return false;
+    const log = wkLogs[li]; if (!log) return false;
+    const set = log.sets && log.sets[si]; if (!set || !set.done) return false;
+    if ((set.type || 'normal') === 'warmup') return false;
+    const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return false;
+    const kg = parseFloat(set.w); if (!(kg > 0)) return false;
 
-function _rpeAnswer(a) {
-  const p = _rpePend;
-  _rpeClear(false);
-  try { haptic(12); } catch(_) {}
-  try {
-    if (!p) return;
-    const ex = exById(p.exId);
-    const eq = _csEquip(ex);
-    // Vierter Parameter (barKg): sonst liefert adjustNext(20,'schwer',…) 17,5 kg
-    // unter einer 20-kg-Stange. Zahlen sind hier bereits Number (parseFloat in
-    // _rpeAsk / _csEquip) — CoachWarmup nimmt keine Zahlstrings.
-    const next = window.CoachRpe.adjustNext(p.kg, a, eq.step, eq.barKg);
-    _rpeStoreOnLastSet(p.exId, window.CoachRpe.toRpe(a), a);
-    if (next != null) _rpeSuggestNext(p.exId, next);
-    // Quittung: gehoert zum SELBEN Kanal wie die Frage (setAsk) — Antwort auf
-    // eine Handlung des Nutzers, gesteuert von setFeedback. Sie zaehlt NICHT
-    // gegen die Obergrenze der ungefragten Aeusserungen (sonst bestrafte die
-    // Rueckfrage den, der sie beantwortet), sie durch emit() zu schicken
-    // braeuchte force, und force gehoert ausschliesslich sessionEnd.
-    // Stattdessen hat sie eine EIGENE, kleine Obergrenze: ohne die erschien
-    // sie bei jedem Satz — gemessen 12 Quittungen in einer Einheit.
-    const ack = window.CoachRpe.ackFor(a, next);
-    if (ack && _csAck()) {
-      let txt = '';
-      try { txt = _say(ack.key, _csVars(ack.vars)) || ''; } catch(_) {}
-      if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
-    }
-  } catch(e) { console.warn('[Coach] RPE-Antwort:', e); }
-  try { _coachBarRender(); } catch(_) {}
-}
-// Einschaetzung an den letzten erledigten Arbeitssatz derselben Uebung.
-function _rpeStoreOnLastSet(exId, rpe, answer) {
-  try {
-    const log = (wkLogs || []).find(l => l && l.exerciseId === exId); if (!log) return false;
-    const sets = log.sets || [];
-    for (let i = sets.length - 1; i >= 0; i--) {
-      if (sets[i].done && (sets[i].type || 'normal') !== 'warmup') {
-        sets[i].rpe = rpe; sets[i].rpeAnswer = answer; break;
+    const bucket = _rpeBucketOf(set, ex, log);
+    if (!bucket) return false;
+    set.rpe = window.CoachRpe.toRpe(bucket);
+    set.rpeAnswer = bucket;
+    _rpeAnswers.push(bucket);
+
+    let gesagt = false;
+    // Gewicht nachziehen — aber nur, wenn der Satz auch mit dem VORGESCHLAGENEN
+    // Gewicht gelaufen ist. Wer bewusst schwerer oder leichter aufgelegt hat,
+    // hat damit eine Entscheidung getroffen; die Prognose gilt dann nicht mehr,
+    // und der Coach wuerde sie ueberschreiben statt zu unterstuetzen.
+    const sug = parseFloat(log.sugW) || 0;
+    const eq  = _csEquip(ex);
+    const eigenmaechtig = sug > 0 && Math.abs(kg - sug) > (eq.step || 2.5) + 0.01;
+    if (bucket !== 'ok' && !eigenmaechtig) {
+      const next = window.CoachRpe.adjustNext(kg, bucket, eq.step, eq.barKg);
+      const offen = (log.sets || []).some(s => !s.done && (s.type || 'normal') !== 'warmup');
+      if (next != null && offen && Math.abs(next - kg) > 0.01) {
+        _rpeSuggestNext(log.exerciseId, next);
+        // Die Quittung haengt hier NICHT mehr an CoachSession.ackTake(): die
+        // Obergrenze existierte, weil die alte Rueckfrage nach jedem Satz eine
+        // Antwort und damit eine Quittung erzeugte. Jetzt spricht der Coach nur,
+        // wenn sich wirklich etwas geaendert hat — und eine stille
+        // Gewichtsaenderung waere schlimmer als eine Zeile zu viel.
+        const ack = window.CoachRpe.ackFor(bucket, next);
+        if (ack) {
+          let txt = '';
+          try { txt = _say(ack.key, _csVars(ack.vars)) || ''; } catch(_) {}
+          if (txt) { _coachBarSet('msg', txt, CS_HOLD_MS); gesagt = true; }
+        }
       }
     }
-    _rpeAnswers.push(answer);
     _saveActiveWk();
-    return true;
-  } catch(e) { console.warn('[Coach] RPE speichern:', e); return false; }
+    return gesagt;
+  } catch(e) { console.warn('[Coach] Satz-Einschaetzung:', e); return false; }
 }
+/* _csAck() (Obergrenze der Quittungsflaeche ueber CoachSession.ACK_CAP) ist
+   entfallen. Es deckelte die Antwort auf die Satz-Rueckfrage, weil die bei
+   JEDEM Satz kam. Die Rueckfrage gibt es nicht mehr; was jetzt spricht, sagt
+   eine tatsaechliche Aenderung an und geschieht je Uebung hoechstens einmal.
+   Ein Deckel darueber wuerde die Aenderung stumm machen, nicht seltener. */
+
 // Naechster Vorschlag derselben Uebung: die noch offenen Arbeitssaetze bekommen
 // das neue Gewicht, log.sugW zieht mit (dieselbe Struktur, die startActive()
 // und getSuggestedWeight() benutzen).
@@ -26329,6 +26406,119 @@ function _coachDropChance(li, si, set, w, r, ex) {
   }, 45000);
   return true;
 }
+/* ── VOLUMEN: Satz raus / Satz dazu ───────────────────────────────────────────
+   Rein lokal und ohne Modell-Aufruf, aus denselben Zahlen, die auch die
+   Gewichtsvorschlaege tragen: Leistungsverlauf INNERHALB der Uebung, Ermuedung
+   der Muskelgruppe (Erholungsmodell) und die Lage aus dem Check-in.
+
+   Warum das ueberhaupt hier entschieden wird und nicht vom Modell: ein Satz
+   mehr oder weniger ist eine Planaenderung. Sie muss erklaerbar und
+   reproduzierbar sein ("zehn Prozent unter deinem besten Satz heute, 62 Prozent
+   Ermuedung"), und sie darf nicht davon abhaengen, ob gerade Empfang da ist.
+
+   Hoechstens EINE Volumenaenderung je Uebung und Einheit (_coachState.seen) —
+   sonst schrumpfte eine schwere Uebung Satz fuer Satz auf null.               */
+function _coachVolumeAdjust(li, si) {
+  const log = wkLogs[li]; if (!log) return false;
+  const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return false;
+  const key = log.exerciseId + '|vol';
+  if (_coachState.seen.indexOf(key) !== -1) return false;
+
+  const done = _loggedWorkSets(log.sets);
+  if (done.length < 2) return false;              // ein einzelner Satz ist kein Verlauf
+  const offenIdx = [];
+  (log.sets || []).forEach((s, i) => { if (!s.done && (s.type || 'normal') !== 'warmup') offenIdx.push(i); });
+
+  let fatPct = 0;
+  try {
+    const mgRec = getMuscleGroupRecovery();
+    if (ex.muscleGroup && mgRec[ex.muscleGroup]) fatPct = mgRec[ex.muscleGroup].fatPct || 0;
+  } catch(_) {}
+  let mode = null;
+  try { const rd = _ciReadiness(); if (rd) mode = rd.mode; } catch(_) {}
+  const gebremst = (mode === 'deload' || mode === 'hold' || mode === 'easy');
+
+  // Leistungsabfall innerhalb der Uebung: bester Satz von heute gegen den
+  // zuletzt gehobenen. Epley normiert Gewicht und Wiederholungen auf eine Zahl,
+  // sonst waeren "5 kg mehr bei 3 Wdh weniger" nicht vergleichbar.
+  const e1 = s => epley1RM(s.w, s.r);
+  const best = Math.max.apply(null, done.map(e1));
+  const letzt = e1(done[done.length - 1]);
+  const abfall = best > 0 ? (best - letzt) / best : 0;
+  const schwer = done.filter(s => s.rpeAnswer === 'hard').length;
+
+  // SATZ RAUS: es muss noch mehr als ein Arbeitssatz offen sein — den letzten
+  // offenen zu streichen waere kein Volumenschnitt, sondern ein Abbruch.
+  if (offenIdx.length >= 2 &&
+      (abfall >= 0.10 || schwer >= 2 || (fatPct >= 60 && abfall >= 0.05) ||
+       (gebremst && fatPct >= 45 && abfall >= 0.05))) {
+    _coachState.seen.push(key);
+    delSet(li, offenIdx[offenIdx.length - 1]);   // rendert selbst neu
+    try { _saveActiveWk(); } catch(_) {}
+    let txt = ''; try { txt = _say('volCut', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
+    if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
+    try { haptic(12); } catch(_) {}
+    return true;
+  }
+
+  // SATZ DAZU: erst wenn die Uebung sonst zu Ende waere, und nur bei frischer
+  // Muskulatur ohne Leistungsabfall. Im Deload/Hold gar nicht — dort hat der
+  // Check-in bereits entschieden, dass heute weniger richtig ist.
+  if (offenIdx.length === 0 && !gebremst && fatPct < 30 && abfall <= 0.02) {
+    const { max } = repRange(ex);
+    const amLimit = done.every(s => s.type === 'fail' || parseInt(s.r) >= max);
+    if (amLimit) {
+      _coachState.seen.push(key);
+      addSet(li);                                 // rendert selbst neu
+      try { _saveActiveWk(); } catch(_) {}
+      let txt = ''; try { txt = _say('volAdd', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
+      if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
+      try { haptic(12); } catch(_) {}
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ── WIEDERHOLUNGSBEREICH nachziehen ─────────────────────────────────────────
+   Nur bei einem echten Missverhaeltnis, und zwar mit STRIKTER Ungleichung:
+   "alle Saetze am oberen Ende" ist der Normalfall der Double Progression und
+   bedeutet mehr GEWICHT, nicht einen anderen Bereich. Erst wenn ueber zwei
+   Einheiten hinweg jeder Arbeitssatz ausserhalb des Bereichs landet, passt der
+   Bereich selbst nicht. Verschoben wird um zwei Wiederholungen, die Spanne
+   bleibt — der Nutzer hat sie gewaehlt.                                        */
+function _coachRepRangeAdjust(li) {
+  const log = wkLogs[li]; if (!log) return false;
+  const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return false;
+  const key = log.exerciseId + '|range';
+  if (_coachState.seen.indexOf(key) !== -1) return false;
+  const heute = _loggedWorkSets(log.sets);
+  if (heute.length < 2) return false;
+  const hist = exHistory(log.exerciseId);
+  if (!hist.length) return false;
+  const vorher = _workSets(hist[hist.length - 1].sets || []);
+  if (vorher.length < 2) return false;
+
+  const { min, max } = repRange(ex);
+  const spanne = max - min;
+  const alle = (list, f) => list.every(s => f(parseInt(s.r) || 0));
+  let neuMin = null;
+  if (alle(heute, r => r > max) && alle(vorher, r => r > max))      neuMin = min + 2;
+  else if (alle(heute, r => r < min) && alle(vorher, r => r < min)) neuMin = min - 2;
+  if (neuMin == null) return false;
+  neuMin = Math.max(3, Math.min(22, neuMin));
+  const neuMax = Math.max(neuMin, Math.min(25, neuMin + spanne));
+  if (neuMin === min && neuMax === max) return false;
+
+  _coachState.seen.push(key);
+  ex.repMin = neuMin; ex.repMax = neuMax;
+  try { persist(); } catch(_) {}
+  const lbl = neuMin === neuMax ? String(neuMax) : (neuMin + '–' + neuMax);
+  let txt = ''; try { txt = _say('repRange', { reps: lbl }) || ''; } catch(_) {}
+  if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
+  return true;
+}
+
 function _coachEvalRun(li, si) {
   if (!isPremium() || _coachLevel() === 'off') return;
   const log = wkLogs[li]; if (!log) return;
@@ -26353,6 +26543,12 @@ function _coachEvalRun(li, si) {
   // genommen wird die Mitte.
   if (_coachDropChance(li, si, set, w, r, ex)) return;
 
+  // Volumen und Wiederholungsbereich: ebenfalls lokal, ebenfalls kostenlos,
+  // ebenfalls vor dem Netz-Check. Beides sind Planaenderungen aus eigenen
+  // Zahlen — sie duerfen nicht davon abhaengen, ob gerade Empfang da ist.
+  try { if (_coachVolumeAdjust(li, si)) return; } catch(e) { console.warn('[Coach] Volumen:', e); }
+  try { if (_coachRepRangeAdjust(li))   return; } catch(e) { console.warn('[Coach] Wdh-Bereich:', e); }
+
   // Ab hier ist alles Weitere ein MODELL-Aufruf. Der Netz-Check stand früher ganz
   // oben und hat damit auch die lokalen, kostenlosen Auswertungen abgewürgt —
   // ohne Empfang gab es gar keinen Live-Coach mehr, obwohl Top- und Dropsatz-
@@ -26370,12 +26566,9 @@ function _coachEvalRun(li, si) {
   // hier also nie versehentlich mit.
   const hist = exHistory(log.exerciseId);
   if (!hist.length) return;
-  const lastSets = hist[hist.length - 1].sets || [];
-  let base = lastSets[si];
-  if (!base || !(parseFloat(base.w) > 0)) {
-    const work = lastSets.filter(s => (s.type || 'normal') !== 'warmup');
-    base = work.slice().sort((a,b) => (parseFloat(b.w)||0) - (parseFloat(a.w)||0))[0] || null;
-  }
+  // Arbeitssatz gegen Arbeitssatz (siehe _lastWorkBase) — der rohe Satz-Index
+  // traf sonst Aufwaermsaetze der letzten Einheit.
+  const base = _lastWorkBase(hist[hist.length - 1].sets || [], _workPosOf(log.sets, si));
   if (!base) return;
   const lastW = parseFloat(base.w) || 0, lastR = parseInt(base.r) || 0;
   if (!(lastW > 0) || !(lastR > 0)) return;
@@ -26596,6 +26789,15 @@ function _coachApplyAction(li, action, baseW) {
     case 'extraSet':
       addSet(li); // bestehende Funktion — rendert bereits selbst neu
       break;
+    case 'removeSet': {
+      // Gegenstueck zu extraSet. Entfernt wird der LETZTE noch offene
+      // Arbeitssatz — nie ein abgehakter (das waere eine geloeschte Leistung)
+      // und nie der letzte verbliebene (delSet() riegelt das zusaetzlich ab).
+      let ziel = -1;
+      (log.sets || []).forEach((s, i) => { if (!s.done && (s.type || 'normal') !== 'warmup') ziel = i; });
+      if (ziel >= 0) delSet(li, ziel);
+      break;
+    }
     case 'rest':
       // Nur wenn GERADE eine Pause läuft, sinnvoll verlängerbar. S.restTimerSecs ist
       // ein persistentes, globales Nutzer-Setting — das für einen einzelnen Coach-Tipp
@@ -29763,11 +29965,9 @@ function _coachWipeLocal(){
     if (_csSaveTmr) { clearTimeout(_csSaveTmr); _csSaveTmr = null; }
     _csLastExId = null; _csSeenEx = null; _csSeenSets = null;
     _csSeqAt = 0; _csRestPlan = 0; _csSaveTs = 0; _csFinalLine = ''; _csLastSetTs = 0;
-    // _rpeClear(false) nimmt die Rueckfrage-Chips vom Bildschirm; die
-    // gesammelten Antworten gehen NICHT mehr ins Dossier (_rpeFlushTrend
+    // Die gesammelten Einschaetzungen gehen NICHT ins Dossier (_rpeFlushTrend
     // bleibt bewusst aus): der Schreibweg zeigte auf die uid des vorigen
     // Kontos und wuerde das gerade geraeumte Dossier neu anlegen.
-    try { _rpeClear(false); } catch(_) {}
     _rpeAnswers = [];
     _coachState = _coachDefaultState();
     try { _coachClearCard(); } catch(_) { _coachCard = null; }

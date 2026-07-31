@@ -256,3 +256,60 @@ test('die Quittung nennt das Gewicht, das die Rechnung liefert', () => {
     });
   });
 });
+
+// --- derive(): Einschaetzung aus Soll und Ist statt aus einer Rueckfrage ----
+
+test('derive: weniger als prognostiziert ist schwer, mehr ist leicht', () => {
+  const o = { min: 8, max: 12, target: 10 };
+  assert.strictEqual(R.derive(8,  o), 'hard');  // zwei unter der Prognose
+  assert.strictEqual(R.derive(9,  o), 'ok');    // eine daneben ist Tagesform
+  assert.strictEqual(R.derive(10, o), 'ok');
+  assert.strictEqual(R.derive(11, o), 'ok');
+  assert.strictEqual(R.derive(12, o), 'easy');  // zwei ueber der Prognose
+});
+
+test('derive: die Bereichsgrenzen schlagen die Prognose', () => {
+  // Prognose 8 am unteren Ende: 13 liegt nur fuenf darueber, aber eben auch
+  // ausserhalb des Bereichs — das ist leicht, egal was die Prognose sagte.
+  assert.strictEqual(R.derive(13, { min: 8, max: 12, target: 8 }), 'easy');
+  // Umgekehrt: Prognose 12, gehoben 7 — unter dem Minimum, also schwer.
+  assert.strictEqual(R.derive(7, { min: 8, max: 12, target: 12 }), 'hard');
+});
+
+test('derive: fehlende Prognose faellt auf den Bereichsanfang zurueck', () => {
+  // Ohne target gilt min (Vorgabe der Double Progression): 8 ist dann passend.
+  assert.strictEqual(R.derive(8, { min: 8, max: 12 }), 'ok');
+  assert.strictEqual(R.derive(10, { min: 8, max: 12 }), 'easy');
+});
+
+test('derive: Versagenssatz unter der Prognose ist immer schwer', () => {
+  // Eine einzelne Wiederholung unter der Prognose waere sonst 'ok' — bis zum
+  // Versagen gegangen heisst aber, dass die Grenze erreicht war.
+  assert.strictEqual(R.derive(9, { min: 8, max: 12, target: 10 }), 'ok');
+  assert.strictEqual(R.derive(9, { min: 8, max: 12, target: 10, type: 'fail' }), 'hard');
+});
+
+test('derive: Unsinn ergibt null statt einer erfundenen Einschaetzung', () => {
+  const o = { min: 8, max: 12, target: 10 };
+  assert.strictEqual(R.derive(0, o), null);
+  assert.strictEqual(R.derive(-3, o), null);
+  assert.strictEqual(R.derive('10', o), null);   // Typkontrakt: Zahl heisst Zahl
+  assert.strictEqual(R.derive(undefined, o), null);
+});
+
+test('derive: verdrehter oder fehlender Bereich wirft nicht', () => {
+  // max < min und fehlende Angaben duerfen hoechstens zu einer groben, aber
+  // gueltigen Einschaetzung fuehren — nie zu einer Ausnahme im Training.
+  ['easy', 'ok', 'hard'].includes(R.derive(10, { min: 12, max: 8, target: 10 }));
+  assert.ok(['easy', 'ok', 'hard'].indexOf(R.derive(10, {})) >= 0);
+  assert.ok(['easy', 'ok', 'hard'].indexOf(R.derive(10, null)) >= 0);
+});
+
+test('derive speist dieselbe Skala wie die frueheren Antworten', () => {
+  // Der Rueckgabewert muss ohne Umweg in toRpe()/adjustNext() passen — sonst
+  // haette der Umbau eine zweite, stille Skala eingefuehrt.
+  const b = R.derive(8, { min: 8, max: 12, target: 10 });
+  assert.strictEqual(b, 'hard');
+  assert.strictEqual(R.toRpe(b), R.RPE.hard);
+  assert.strictEqual(R.adjustNext(60, b, 2.5), 57.5);
+});

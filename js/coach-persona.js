@@ -135,6 +135,28 @@
         hart:     'Satz: leicht, passend, schwer?',
         locker:   'Und, wie war der? Leicht, passend oder schwer?'
       },
+      // Volumen- und Bereichsanpassung. Diese drei Schluessel begleiten eine
+      // Aenderung, die die App gerade VORGENOMMEN hat — sie muessen deshalb
+      // sagen, WAS sich geaendert hat und WORAUS. Ein blosses "gut gemacht"
+      // waere hier eine stille Planaenderung mit Beiwerk.
+      volCut: {
+        ruhig:    'Ich nehme einen Satz raus, {pct} Prozent Ermüdung.',
+        sachlich: 'Ermüdung {pct} Prozent: ein Arbeitssatz weniger.',
+        hart:     'Ein Satz raus. {pct} Prozent Ermüdung.',
+        locker:   'Der letzte Satz kann weg — {pct} Prozent Ermüdung reichen.'
+      },
+      volAdd: {
+        ruhig:    'Da ist noch Luft, ich hänge einen Satz an.',
+        sachlich: 'Leistung stabil bei {pct} Prozent Ermüdung: ein Satz mehr.',
+        hart:     'Noch ein Satz. Da geht mehr.',
+        locker:   'Du wirkst frisch — einer geht noch, oder?'
+      },
+      repRange: {
+        ruhig:    'Dein Wiederholungsbereich passt nicht mehr. Neu: {reps}.',
+        sachlich: 'Wiederholungsbereich angepasst auf {reps}.',
+        hart:     'Neuer Bereich: {reps}. Danach richten.',
+        locker:   'Der alte Bereich war zu eng — jetzt {reps}.'
+      },
       setAckEasy: {
         ruhig:    'Gut. Beim nächsten Mal gehen wir auf {kg}.',
         sachlich: 'Notiert. Nächster Vorschlag: {kg}.',
@@ -313,6 +335,24 @@
         sachlich: 'Rate that set: easy, right or hard?',
         hart:     'Set: easy, right, hard?',
         locker:   'So how was it? Easy, right or hard?'
+      },
+      volCut: {
+        ruhig:    'I am dropping one set, fatigue is at {pct} percent.',
+        sachlich: 'Fatigue {pct} percent: one working set fewer.',
+        hart:     'One set out. {pct} percent fatigue.',
+        locker:   'Last set can go — {pct} percent fatigue is enough.'
+      },
+      volAdd: {
+        ruhig:    'There is room left, so I am adding one set.',
+        sachlich: 'Output steady at {pct} percent fatigue: one set more.',
+        hart:     'One more set. There is room.',
+        locker:   'You look fresh — one more, right?'
+      },
+      repRange: {
+        ruhig:    'Your rep range no longer fits. New: {reps}.',
+        sachlich: 'Rep range adjusted to {reps}.',
+        hart:     'New range: {reps}. Work to it.',
+        locker:   'That old range was too tight — now {reps}.'
       },
       setAckEasy: {
         ruhig:    'Good. Next time we go to {kg}.',
