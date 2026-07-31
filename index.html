@@ -7803,7 +7803,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310003';
+const APP_VERSION = 'gymtrack-v202607310004';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8600,7 +8600,7 @@ const I18N_EN = {
      nicht am Aufrufort, weil kein anderer Textknoten der App genauso heißt
      (geprüft) und der Titel dann in EINER Zeile beide Sprachen trägt. */
   'Gespräch':'Conversation','Persönlichkeit':'Personality',
-  'Umfang und Meldungen':'Scope and notifications','dein Coach':'your coach',
+  'Umfang und Meldungen':'Scope and notifications','Umfang':'Scope','dein Coach':'your coach',
   /* Das Kraftziel der Wochenkachel. Eigene, eindeutige Wörter — kein anderer
      Textknoten der App heisst so (geprüft). */
   'Kraftziel':'Strength target','Ziel setzen':'Set a target',
@@ -8708,7 +8708,7 @@ const I18N_RX = [
   // hier nie. Deshalb nur der Rest-Teil, gegen die bereits halb englische Form.
   [/· seit (\d+) Std\. (\d+) Min\./g, '· for $1 h $2 min'],
   [/· seit (\d+) Min\./g, '· for $1 min'],
-  [/Diese Woche · Du vs\. /g, 'This week · You vs. '],
+  [/· Du vs\. /g, '· You vs. '],   // „Diese Woche" ersetzt schon der ·-Segmentschritt
   [/ einen neuen Rekord aufgestellt:/g, ' set a new record:'],
  [/-Wochen-Streak/g,'-week streak'],
   [/Monats-Ranking — zählt Trainings im /g, 'Monthly ranking — counts workouts in '],
@@ -12121,7 +12121,7 @@ function _aicCardTap(card) {
     los();
     if (ev.target.closest('button, a')) return;
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
-    try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
+    try { openCoachHub(); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
   };
   card.onkeydown = (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
@@ -12129,7 +12129,7 @@ function _aicCardTap(card) {
     if (ev.target !== top && ev.target.closest('button, a')) return;
     ev.preventDefault();
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
-    try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
+    try { openCoachHub(); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
   };
 }
 function renderCoachTodayCard() {
@@ -18837,9 +18837,9 @@ Object.assign(ICO, {
   planAdd:o=>_svg('<rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v6M9 16h6"/>',o),
   trendUp:o=>_svg('<path d="M3.5 17l6-6 4 4 7-8"/><path d="M15.5 6.5H20.5V11.5"/>',o),
   gear:o=>_svg('<circle cx="12" cy="12" r="3"/><path d="M12 4v2.4M12 17.6V20M20 12h-2.4M6.4 12H4M17.66 6.34l-1.7 1.7M8.04 15.96l-1.7 1.7M17.66 17.66l-1.7-1.7M8.04 8.04L6.34 6.34"/>',o),
-  // Aufklapp-Winkel der Coach-Kacheln. Zeigt zugeklappt nach unten und dreht
-  // sich beim Öffnen um 180° (.ch-card.on .ch-card-c) — ein Zeichen, zwei
-  // Zustände, keine zweite Form.
+  // Winkel. Zeigt von Haus aus nach unten; der Zurück-Pfeil im Coach-Hub dreht
+  // ihn per CSS um 90° nach links (.ch-back) — ein Zeichen, mehrere Richtungen,
+  // keine zweite Form.
   chevron:o=>_svg('<path d="M6 9.5 12 15.5 18 9.5"/>',o),
   // Zeigt an, dass hinter einer Fläche mehr liegt — der Einstieg in den
   // Coach-Hub auf der Heute-Karte. Dieselbe Form wie chevron, nur gedreht.
@@ -26517,107 +26517,6 @@ function _chZoom(vor, urs, stage){
     }, _CH_ZOOM_MS + 60);
   } catch(e) { console.warn('[Coach] Ebenenwechsel:', e); }
 }
-/* Der Wechsel zwischen einer und zwei Spalten animiert nicht von selbst:
-   grid-column ist keine übergangsfähige Eigenschaft, die Kachel spränge auf
-   volle Breite und die anderen sprängen in ihre neuen Zellen.
-
-   Deshalb FLIP: die Lage ALLER Kacheln vor der Umschaltung messen, umschalten,
-   danach messen, jede Kachel per transform auf ihre alte Lage zurückwerfen und
-   von dort in 260 ms auf die neue laufen lassen. Die Verzerrung, die dabei am
-   Rahmen entsteht, hebt der innere Knoten (.ch-card-i) mit der Kehrskalierung
-   exakt wieder auf — sonst würde die Schrift der aufwachsenden Kachel während
-   des Übergangs gestaucht.
-
-   Die HÖHE bleibt Sache des bestehenden grid-template-rows-Übergangs: zum
-   Messzeitpunkt ist die Kachel noch flach, die Höhe wächst danach von selbst,
-   und die anderen Kacheln folgen dem Layout. Der Sprung, den FLIP auffängt,
-   ist der der Spalten.
-
-   Bei reduzierter Bewegung entfällt der ganze Griff — es bleibt beim
-   sofortigen Umschalten. */
-const _CH_FLIP_MS = 260;
-function _chFlip(cards, vorher){
-  try {
-    if (!vorher) return;
-    cards.forEach((el, i) => {
-      const a = vorher[i]; if (!a) return;
-      const b = el.getBoundingClientRect();
-      if (!b.width || !b.height || !a.width || !a.height) return;
-      const dx = a.left - b.left, dy = a.top - b.top;
-      const sx = a.width / b.width, sy = a.height / b.height;
-      if (Math.abs(dx) < .5 && Math.abs(dy) < .5 &&
-          Math.abs(sx - 1) < .005 && Math.abs(sy - 1) < .005) return;
-      const inner = el.querySelector('.ch-card-i');
-      el.style.transition = 'none';
-      el.style.transformOrigin = 'top left';
-      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
-      if (inner) { inner.style.transition = 'none';
-                   inner.style.transform = 'scale(' + (1 / sx) + ',' + (1 / sy) + ')'; }
-      void el.offsetWidth;                                  // Lage festschreiben
-      const kurve = _CH_FLIP_MS + 'ms cubic-bezier(.22,.61,.36,1)';
-      el.style.transition = 'transform ' + kurve;
-      el.style.transform = '';
-      if (inner) { inner.style.transition = 'transform ' + kurve; inner.style.transform = ''; }
-      setTimeout(() => {
-        try {
-          el.style.transition = ''; el.style.transform = ''; el.style.transformOrigin = '';
-          if (inner) { inner.style.transition = ''; inner.style.transform = ''; }
-        } catch(_) {}
-      }, _CH_FLIP_MS + 40);
-    });
-  } catch(e) { console.warn('[Coach] Kachelwechsel bewegen:', e); }
-}
-function _chApplyOpen(){
-  const kacheln = _CH_CARD_IDS.map(k => document.getElementById('ch-card-' + k)).filter(Boolean);
-  let vorher = null;
-  try {
-    if (!_chReduceMotion() && kacheln.length) vorher = kacheln.map(el => el.getBoundingClientRect());
-  } catch(_) { vorher = null; }
-  _CH_CARD_IDS.forEach(k => {
-    const sec = document.getElementById('ch-card-' + k); if (!sec) return;
-    const on = (k === _chOpen);
-    /* Der Lichtstreifen läuft EINMAL und nur beim Öffnen — derselbe Baustein
-       (coachSweep) wie auf der .aic-Karte. Die Klasse muss abgenommen, ein
-       Layout erzwungen und neu gesetzt werden, sonst startet die Animation beim
-       zweiten Öffnen nicht erneut. */
-    if (on && !sec.classList.contains('on')) {
-      sec.classList.remove('flash');
-      void sec.offsetWidth;
-      sec.classList.add('flash');
-    }
-    sec.classList.toggle('on', on);
-    const h = document.getElementById('ch-h-' + k);
-    if (h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
-  });
-  _chFlip(kacheln, vorher);
-}
-/* Die geöffnete Kachel in Sicht holen. Erst NACH dem Aufklappen messen (260 ms
-   Übergang): währenddessen ist die Kachel halb hoch und das Ergebnis wäre eine
-   halbe Bewegung. Höher als bis zur Oberkante der Kachel wird nie gescrollt —
-   sonst schöbe eine lange Kachel ihren eigenen Kopf aus dem Bild. */
-let _chScrollTimer = null;
-function _chScrollOpen(k){
-  try {
-    if (_chScrollTimer) { clearTimeout(_chScrollTimer); _chScrollTimer = null; }
-    _chScrollTimer = setTimeout(() => {
-      _chScrollTimer = null;
-      try {
-        const ov = document.getElementById('ov-coach-hub');
-        if (!ov || !ov.classList.contains('on')) return;
-        if (_chOpen !== k) return;
-        const body = document.getElementById('ch-body');
-        const sec  = document.getElementById('ch-card-' + k);
-        if (!body || !sec) return;
-        const br = body.getBoundingClientRect(), sr = sec.getBoundingClientRect();
-        if (sr.top >= br.top && sr.bottom <= br.bottom) return;   // schon ganz im Bild
-        const oben = body.scrollTop + (sr.top - br.top);
-        let ziel = oben + sr.height - br.height;                  // Unterkante ins Bild
-        if (ziel > oben) ziel = oben;                             // Kopf bleibt sichtbar
-        body.scrollTop = Math.max(0, ziel);
-      } catch(e) { console.warn('[Coach] Kachel in Sicht:', e); }
-    }, 300);
-  } catch(e) { console.warn('[Coach] Kachel in Sicht planen:', e); }
-}
 /* Eine Kachel des Rasters. k stammt aus _CH_CARDS und ist eigener Code, nie
    Fremdtext im onclick. Label und Wert gehen durch esc().
    cur ist der Wochen-Zwischenstand aus _crCurrent(): er wird EINMAL je
@@ -26831,18 +26730,18 @@ function _chWeekDraw(){
     mk('chw-vol-cv', _chWeekCfg.vol);
     mk('chw-mus-cv', _chWeekCfg.mus);
     mk('chw-1rm-cv', _chWeekCfg.rm);
-    /* Gezeichnet wird im Moment des Tipps — da ist die Kachel noch eine halbe
-       Spalte breit und ihr Inhalt zugeklappt. Chart.js misst dabei eine Fläche,
-       die es gleich nicht mehr gibt: die Kachel wächst in 260 ms auf die volle
-       Breite. Der Beobachter von Chart.js zieht zwar nach, aber nicht
-       zuverlässig, während gleichzeitig eine FLIP-Transformation läuft — nach
-       dem Übergang deshalb EINMAL nachmessen lassen. Ohne diese Zeile stand das
-       Diagramm mit Achsen, aber ohne Balken da (nachgesehen, nicht vermutet). */
+    /* Gezeichnet wird im Moment des Tipps — da läuft der Zoom der Detailebene
+       noch, sie steht also auf scale(.93) und ist unter .ch-lift kurzzeitig
+       absolut positioniert. Chart.js misst dabei eine Fläche, die es gleich
+       nicht mehr gibt; sein Beobachter zieht zwar nach, aber nicht zuverlässig,
+       während gleichzeitig eine Transformation läuft — nach dem Übergang
+       deshalb EINMAL nachmessen lassen. Ohne diese Zeile stand das Diagramm mit
+       Achsen, aber ohne Balken da (nachgesehen, nicht vermutet). */
     if (_chWeekInst.length) {
       setTimeout(() => {
         try { _chWeekInst.forEach(c => { try { c.resize(); } catch(_) {} }); }
         catch(e) { console.warn('[Coach] Diagramme nachmessen:', e); }
-      }, _CH_FLIP_MS + 60);
+      }, _CH_ZOOM_MS + 60);
     }
     _chWeekCountUp();
   } catch(e) { console.warn('[Coach] Wochendiagramme:', e); }
@@ -26855,7 +26754,7 @@ function _chWeekDraw(){
 function _chWeekCountUp(){
   try {
     if (_chReduceMotion()) return;
-    const els = [...document.querySelectorAll('#ch-card-week .chw-n[data-n]')];
+    const els = [...document.querySelectorAll('#ch-panel-week .chw-n[data-n]')];
     els.forEach(el => {
       const ziel = parseFloat(el.getAttribute('data-n'));
       const ende = el.getAttribute('data-txt') || el.textContent;
@@ -27252,13 +27151,16 @@ function coachHubSetName(el){
   catch(e) { console.warn('[Coach] Name setzen:', e); }
   finally { _chHoldBody = false; }
   try {
-    const h = document.getElementById('ch-title'); if (h) h.textContent = _coachName();
+    // Der Name steht in der Detailebene in der UNTERZEILE — im Titel steht der
+    // Kachelname ("Persönlichkeit"). Ohne diese Unterscheidung überschriebe das
+    // Tippen im Namensfeld die Überschrift des Blattes.
+    const sub = document.getElementById('ch-sub'); if (sub) sub.textContent = _coachName();
     // Zeigt, was wirklich gespeichert wurde: safeName() kürzt und entschärft.
     if (el) el.value = _coachName();
     const ex = document.getElementById('ch-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
     // Die Kennzahl der Kachel trägt den Namen mit — sie wird ohne Rerender des
     // Bodys nicht nachgezogen. textContent, nie innerHTML.
-    const kz = document.querySelector('#ch-card-persona .ch-card-m');
+    const kz = document.querySelector('#ch-tile-persona .ch-tile-v');
     if (kz) kz.textContent = _chKzPersona();
   } catch(e) { console.warn('[Coach] Name anwenden:', e); }
 }
@@ -29337,7 +29239,7 @@ function _coachWipeLocal(){
   // 8. Oberflaeche auf Anfang: der Hub darf nicht auf der Kachel "Woche" stehen
   //    bleiben — Konto B landete sonst direkt in fremden Zahlen.
   schritt('Hub', () => {
-    _chOpen = 'chat'; _chResetScroll = true;
+    _chOpen = ''; _chResetScroll = true;
     // Auch die Zieleingabe und ihr Hinweis gehoerten dem vorigen Konto.
     _chGoalOpen = false; _chGoalEx = ''; _chGoalHint = '';
     try { _chWeekDestroy(); } catch(_) {}
