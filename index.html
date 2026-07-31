@@ -7968,7 +7968,7 @@ const I18N_EN = {
   'Wenn du die App löschst, kannst du dich einfach wieder anmelden und alles ist da.':'If you delete the app, just sign in again and everything is back.',
   'Abmelden':'Sign out','Konto löschen':'Delete account',
   'Löscht dein Konto und alle Cloud-Daten unwiderruflich.':'Deletes your account and all cloud data irreversibly.',
-  'Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und die Wochenberichte werden zurückgesetzt.':'Really sign out?\n\nYour workouts and exercises stay on this device. Your coach starts over for the next account: name, tone, session arc and the weekly reports are reset.',
+  'Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und das Berichtsarchiv gehen von diesem Gerät — die Zahlen der laufenden Woche rechnet er aus deinen Einheiten neu. Meldest du dich später wieder mit diesem Konto an, kommen Name und Ton zurück.':'Really sign out?\n\nYour workouts and exercises stay on this device. Your coach starts over for the next account: name, tone, session arc and the report archive leave this device — the figures for the current week are recalculated from your sessions. Sign in with this account again later and name and tone come back.',
   'Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.':'Permanently delete your account and all cloud data?\n\nYour workouts, exercises and settings in the cloud will be removed irreversibly. This can NOT be undone.',
   'Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?':'Final warning — your account will be deleted now. Continue?',
   'Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.':'For security you need to sign in once more. Your account will then be deleted automatically.',
@@ -9125,6 +9125,27 @@ const COACH_PERSONA_DEFAULTS = Object.freeze({
   inTraining:'key', setFeedback:true, pushLevel:'normal'
 });
 function _coachPersonaDefaults(){ return Object.assign({}, COACH_PERSONA_DEFAULTS); }
+/* Die Persona in der Form, die in die Cloud geht (s. _pushToCloud). Der
+   JSON-Rundlauf ist kein Zierrat: ein Schluessel mit dem Wert undefined laesst
+   Firestore den KOMPLETTEN Push abweisen, und der Fehler stirbt dort in einem
+   catch — die App verlöre still jede weitere Sicherung. */
+function _coachCloudPersona(){
+  try { return S.aiCoach ? JSON.parse(JSON.stringify(S.aiCoach)) : null; }
+  catch(e) { console.warn('[Coach] Persona für die Cloud:', e); return null; }
+}
+/* Ist das ueberhaupt eine Persona? preset === undefined heisst in dieser App an
+   jeder Stelle dasselbe: die Einrichtung steht noch aus (der Hub startet dann
+   den Assistenten). Fuer die Zusammenfuehrung ist genau das "nicht gesetzt" —
+   siehe die Begruendung in _mergeData. */
+function _coachPersonaGesetzt(o){
+  return (o && typeof o === 'object' && o.preset !== undefined) ? o : null;
+}
+// Fingerabdruck der Persona. Reicht, um nach einem Cloud-Merge zu entscheiden,
+// ob die Coach-Flaechen nachgezogen werden muessen — _dataSig() kennt aiCoach
+// bewusst nicht (kein voller Rerender der Startseite fuer einen Namen).
+function _coachPersonaSig(){
+  try { return JSON.stringify(S.aiCoach || null); } catch(_) { return String(Math.random()); }
+}
 // Termin des Wochenberichts, ebenfalls als Fabrik: die Zeilen unten schreiben
 // day/hour direkt auf das Objekt.
 function _coachReportAtDefault(){ return { day:0, hour:18 }; }
@@ -9912,21 +9933,38 @@ async function _cnDropGeneric() {
 /* Nur die EIGENEN Termine abbestellen. Gelesen wird beides: der Bestand aus
    getPending() (fängt Waisen aus früheren Ständen) und der zuletzt gemerkte
    Plan (falls getPending() nichts liefert). Gefiltert wird strikt auf
-   47000–47999 — der Pausen-Timer läuft weiter. */
+   47000–47999 — der Pausen-Timer läuft weiter.
+
+   Rückgabe: null, wenn alles durchkam, sonst EIN Satz, der den Fehlschlag
+   nennt. Der Ablauf bleibt derselbe wie vorher (ein Lesefehler verhindert das
+   Abbestellen nicht, der gemerkte Plan trägt es dann allein) — neu ist nur,
+   dass der Aufrufer davon erfährt. _cnSyncRun() ignoriert den Wert bewusst: ein
+   fehlgeschlagenes Abbestellen korrigiert dort der nächste Lauf. Beim
+   Kontowechsel gibt es keinen nächsten Lauf, deshalb sieht
+   _coachDropOwnNotifs() genau hin (Abschluss-Review Block 5, Wichtig 2). */
 async function _cnCancelOwn(LN, alt) {
   try {
     const ids = {};
+    let lesefehler = null;
     try {
-      const pend = await LN.getPending().catch(() => ({ notifications: [] }));
+      const pend = await LN.getPending().catch(e => { lesefehler = (e && e.message) || e; return { notifications: [] }; });
       (((pend && pend.notifications) || [])).forEach(n => {
         const i = Number(n && n.id);
         if (i >= CN_ID_BASE && i <= CN_ID_MAX) ids[i] = true;
       });
-    } catch(_) {}
+    } catch(e) { lesefehler = (e && e.message) || e; }
     (alt || []).forEach(e => { if (e && e.id) ids[_cnIdFor(e.id)] = true; });
     const liste = Object.keys(ids).map(i => ({ id: Number(i) }));
-    if (liste.length) await LN.cancel({ notifications: liste }).catch(() => {});
-  } catch(e) { console.warn('[Coach] Termine abbestellen:', e); }
+    let abbestellfehler = null;
+    if (liste.length) await LN.cancel({ notifications: liste }).catch(e => { abbestellfehler = (e && e.message) || e; });
+    if (lesefehler || abbestellfehler) {
+      return 'Termine abbestellen: ' + (abbestellfehler ? ('cancel: ' + abbestellfehler) : ('getPending: ' + lesefehler));
+    }
+    return null;
+  } catch(e) {
+    console.warn('[Coach] Termine abbestellen:', e);
+    return 'Termine abbestellen: ' + ((e && e.message) || e);
+  }
 }
 
 // ── Die sechs Zulieferer: gegen den echten Code gebaut, nichts erfunden ─────
@@ -10017,9 +10055,11 @@ function _cnReportAt(now) {
 }
 
 /* Volumen der laufenden ISO-Woche. Der Wochenschlüssel kommt aus
-   CoachAnalyze.isoWeekKey — die EINZIGE Wochenrechnung des Vorhabens. Das
-   Altformat von getWeekKey() ('2026-W5') bleibt hier bewusst außen vor; die
-   Zusammenführung ist Block 5. */
+   CoachAnalyze.isoWeekKey — die EINZIGE Wochenrechnung des Vorhabens.
+   getWeekKey() ('2026-W5') bleibt hier bewusst außen vor, und zwar nicht wegen
+   des Formats: es ist eine andere Rechnung (Wochen ab dem 1. Januar statt ab
+   dem ersten Donnerstag) und liefert an Jahresgrenzen eine andere Woche. Siehe
+   den Kommentar bei _crWeekKey. */
 function _cnWeekVol(now) {
   try {
     if (!window.CoachAnalyze) return null;
@@ -10196,18 +10236,49 @@ async function _cnLevelChanged(vorher) {
    trägt eigene Angaben (etwa den frischen Bestwert aus finishWk), die ein
    übersprungener Lauf verlieren würde. */
 let _cnLauf = null;
-function _cnSync(opts) {
+
+/* Die Kette ist NICHT nur fuer zwei _cnSync()-Laeufe da, sondern auch fuer die
+   Raeumung beim Kontowechsel — und die braucht BEIDE Riegel, weil jeder allein
+   ein Leck laesst (Abschluss-Review Block 5, Kritisch 1):
+
+   1. _cnEnqueue() haengt _coachDropOwnNotifs() in dieselbe Kette. Ohne das
+      startet das Abbestellen NEBEN einem laufenden _cnSyncRun: dessen
+      LN.schedule() ist dann womoeglich schon unterwegs und landet NACH dem
+      cancel — der Coach von Konto A meldet sich auf dem Sperrbildschirm von
+      Konto B. Nur die Reihenfolge ueber die Kette schliesst das aus.
+   2. _coachGen ist das Merkmal des Kontos: _coachWipeLocal() zaehlt es hoch,
+      jeder Lauf merkt sich seinen Stand beim Start und prueft ihn VOR jedem
+      Zurueckschreiben. Ohne das rettet ein Lauf, der st/alt noch aus
+      S.coachPush von Konto A gelesen hat und in _cnCancelOwn/checkPermissions
+      haengt, dessen Zaehler (dayCount, weekCount, sentTs) beim Zurueckschreiben
+      wieder herein — die Kette allein verhindert das nicht, weil die Raeumung
+      S.coachPush SYNCHRON auf null setzt und danach erst drankommt. Konto B
+      erbte sonst das verbrauchte Budget von Konto A, und zwar dauerhaft: der
+      Stand steht ueber _cnPersist() auch in ft4.
+   Das Fenster sind zwei native Bruecken-Runden, auf dem Geraet 50-300 ms.
+
+   _coachGen ist bewusst KONTO-weit und nicht meldungs-eigen: derselbe Zaehler
+   kappt den Berichtslauf (_crBuildRun), der ueber seinen Modellaufruf ein
+   genauso langes Fenster hat. Ein zweiter Zaehler daneben liefe beim ersten
+   neuen Feld auseinander. */
+let _coachGen = 0;
+function _cnEnqueue(fn) {
   try {
     const vorher = _cnLauf || Promise.resolve();
-    const lauf = vorher.catch(() => {}).then(() => _cnSyncRun(opts));
+    const lauf = vorher.catch(() => {}).then(fn);
     _cnLauf = lauf;
     lauf.catch(() => {}).then(() => { if (_cnLauf === lauf) _cnLauf = null; });
     return lauf;
   } catch(e) { console.warn('[Coach] Meldungen einreihen:', e); return Promise.resolve(); }
 }
+function _cnSync(opts) { return _cnEnqueue(() => _cnSyncRun(opts)); }
 
 async function _cnSyncRun(opts) {
   const o = opts || {};
+  // Der Kontostand beim START dieses Laufs. Aendert er sich unterwegs, gehoert
+  // alles, was dieser Lauf in der Hand haelt, dem vorigen Konto.
+  const gen = _coachGen;
+  const veraltet = () => _coachGen !== gen;
   try {
     const LN = _cap('LocalNotifications');
     /* Fail-closed, und zwar VOR allem anderen: fällt js/coach-notify.js einmal
@@ -10244,6 +10315,11 @@ async function _cnSyncRun(opts) {
     try { premium = !!isPremium(); } catch(_) { premium = false; }
     const perm = await LN.checkPermissions().catch(() => ({ display:'prompt' }));
     const erlaubt = !!(perm && perm.display === 'granted');
+    /* Erster Riegel, und zwar VOR dem ersten Schreibzugriff: st traegt die
+       Zaehler des Kontos, das beim Start dieses Laufs angemeldet war. Hat die
+       Raeumung inzwischen S.coachPush geleert, ist hier Schluss — geschrieben
+       wird nichts, abbestellt ist oben schon. */
+    if (veraltet()) return;
     S.coachPush = { state: st, plan: [], permOk: erlaubt, owns: false };
 
     if (!premium || !erlaubt) {
@@ -10317,10 +10393,19 @@ async function _cnSyncRun(opts) {
     });
 
     if (notifs.length) {
+      // Zweiter Riegel: nach dem Wechsel wird nichts mehr GEPLANT. Sonst
+      // stellte dieser Lauf die 47xxx wieder hin, die die Raeumung gerade
+      // abbestellt hat. Den Zustand raeumt der finally-Block unten.
+      if (veraltet()) return;
       await _cnChannel(LN);
       await LN.schedule({ notifications: notifs });
     }
 
+    /* Dritter Riegel: schedule() ist eine Bruecken-Runde und damit selbst ein
+       Fenster. Faellt der Wechsel hier hinein, wird der Plan nicht mehr
+       fortgeschrieben — die eben geplanten Termine raeumt _coachDropOwnNotifs()
+       ab, das ueber _cnEnqueue() in derselben Kette HINTER diesem Lauf steht. */
+    if (veraltet()) return;
     S.coachPush.plan = behalten;
     S.coachPush.owns = behalten.some(e => e.kind === 'reminderPlan');
     _cnPersist();
@@ -10332,6 +10417,19 @@ async function _cnSyncRun(opts) {
     // einen halben Bestand.
     try { await scheduleWorkoutNotifications(); } catch(_) {}
   } catch(e) { console.warn('[Coach] Meldungen planen:', e); }
+  finally {
+    /* Letzter Riegel, und der einzige, der WIRKLICH jeden Ausgang abdeckt: die
+       drei Pruefungen oben verhindern das Planen, aber zwischen dem letzten
+       Schreibzugriff und dem Ende dieses Laufs liegen noch zwei await auf
+       scheduleWorkoutNotifications(). Faellt der Kontowechsel dorthin, stuende
+       S.coachPush danach wieder mit den Zaehlern des vorigen Kontos da — nur
+       eben ohne dass irgendeine Zeile oben es gemerkt haette. Die Zusicherung
+       lautet deshalb: kehrt dieser Lauf zurueck und hat sich das Konto
+       unterwegs geaendert, ist S.coachPush leer. */
+    try {
+      if (veraltet() && S.coachPush) { S.coachPush = null; _cnPersist(); }
+    } catch(e) { console.warn('[Coach] Meldungen nach Kontowechsel:', e); }
+  }
 }
 
 // ── HELPERS ───────────────────────────────────────────
@@ -25730,6 +25828,14 @@ function _coachOptRender(){
   try { if (typeof _coachBarRender === 'function') _coachBarRender(); } catch(_) {}
   try { const b = document.getElementById('ai-bubble'); if (b) b.setAttribute('aria-label', _coachName()); } catch(_) {}
   try { if (typeof _aicApplyName === 'function') _aicApplyName(); } catch(_) {}
+  /* Der Chat-Verlauf selbst, nicht nur sein Kopf. Bisher deckte diese Funktion
+     #aic-log nicht ab: nach der Datentrennung war _aicHist leer und gt_aiChat
+     weg, auf dem Bildschirm stand die Unterhaltung des vorigen Kontos aber
+     weiter — das Blatt bleibt beim Auth-Wechsel offen und niemand zeichnet es
+     neu (Abschluss-Review Block 5, Wichtig 3). Beide Funktionen kehren sofort
+     zurueck, wenn ihr Element nicht da ist. */
+  try { if (typeof _aicRenderLog  === 'function') _aicRenderLog(); } catch(_) {}
+  try { if (typeof _aicRenderSugg === 'function') _aicRenderSugg(); } catch(_) {}
   try { if (typeof renderCoachTodayCard === 'function') renderCoachTodayCard(); } catch(_) {}
   try { if (typeof renderCoachHub === 'function') renderCoachHub(); } catch(_) {}
   // Die Einrichtung (Task 10) hängt an derselben Leine: ohne diesen Aufruf
@@ -26062,10 +26168,17 @@ const CR_TAGE_DE = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freit
 const CR_TAGE_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 /* Der Schlüssel der Woche, die bei ts liegt — ISO über CoachAnalyze, die
-   EINZIGE Wochenrechnung des Vorhabens. getWeekKey() in dieser Datei trägt das
-   Altformat '2026-W5' und bleibt unangetastet: es ist ein SPEICHERSCHLÜSSEL
-   (S.trackerCounts[id][wk], mitsamt Cloud-Spiegel und Widget-Snapshot). Eine
-   Umstellung würde jeden bestehenden Tracker-Ring auf null zurücksetzen.
+   EINZIGE Wochenrechnung des Vorhabens. getWeekKey() in dieser Datei bleibt
+   unangetastet: es ist ein SPEICHERSCHLÜSSEL (S.trackerCounts[id][wk], mitsamt
+   Cloud-Spiegel und Widget-Snapshot). Eine Umstellung würde jeden bestehenden
+   Tracker-Ring auf null zurücksetzen.
+   Und es ist kein Altformat, sondern ein ANDERER ALGORITHMUS:
+   Math.ceil(((d - jan1)/86400000 + jan1.getDay() + 1)/7) zählt Wochen ab dem
+   1. Januar, ISO zählt ab dem ersten Donnerstag. Beide Zahlen fallen an
+   Jahresgrenzen auseinander (und getWeekKey kennt eine Woche 53, die ISO dort
+   nicht hat). Wer die beiden je zusammenführen will, kommt deshalb mit einem
+   padStart(2,'0') nicht hin — das machte die Schlüssel gleich lang und die
+   Wochen trotzdem verschieden.
    Gerechnet wird über Donnerstag 12:00 der LOKALEN Woche und nicht über ts
    selbst: isoWeekKey rechnet in UTC, ein Montag 00:30 in UTC+2 fiele dort noch
    in die Vorwoche — und der Bericht der frischen Woche landete unter dem
@@ -26262,16 +26375,34 @@ async function _crAskModel(n, forecast) {
     if (navigator.onLine === false) return '';
     try { if (_coachQuotaExhausted()) return ''; } catch(_) {}
     const en = _lang() === 'en';
+    /* Die EINHEIT hängt am WERT, nicht am Satz — dieselbe Regel wie in
+       _coachSnap() und _cnText(). Vorher gingen vol/prevVol/volDelta/muscles
+       und forecast.goalKg ROH in kg ans Modell und trugen das 'kg' im
+       Schlüsselnamen: für einen lbs-Nutzer schrieb der Einordnungstext dann
+       „12.345 kg", während die Zahlenzeile direkt darunter „27.216 lbs" zeigte
+       — zwei Zahlen für dieselbe Sache auf demselben Bildschirm, und derselbe
+       Satz ging über _crNotifBody() auf den Sperrbildschirm.
+       Umgerechnet wird über kgToDisp(), genau hier an der Grenze; das Modul
+       rechnet weiter rein in kg. Die Schlüssel heißen deshalb einheitenlos und
+       die Einheit steht EINMAL im Feld 'unit' — ein Schlüssel 'volumeKg' mit
+       einem lbs-Wert wäre die Lüge nur an einer anderen Stelle. */
+    const einheit = unitLabel();
+    const muskeln = {};
+    try {
+      const mus = (n.muscles && typeof n.muscles === 'object') ? n.muscles : {};
+      Object.keys(mus).forEach(k => { muskeln[k] = kgToDisp(Number(mus[k]) || 0); });
+    } catch(_) {}
     const zahlen = {
       workouts: n.workouts || 0, sets: n.sets || 0,
-      volumeKg: n.vol || 0, prevVolumeKg: n.prevVol || 0, volumeDeltaKg: n.volDelta || 0,
+      unit: einheit,
+      volume: kgToDisp(n.vol || 0), prevVolume: kgToDisp(n.prevVol || 0), volumeDelta: kgToDisp(n.volDelta || 0),
       prs: (n.prs || []).length, streakWeeks: n.streak || 0,
-      muscleVolumeKg: n.muscles || {}
+      muscleVolume: muskeln
     };
-    if (forecast) { zahlen.goalKg = forecast.goalKg; zahlen.goalInWeeks = forecast.weeks; }
+    if (forecast) { zahlen.goal = kgToDisp(forecast.goalKg); zahlen.goalInWeeks = forecast.weeks; }
     const auftrag = en
-      ? 'Summarise this training week for the user. Exactly three sentences, no emojis, no promises about the future. Use only the numbers given and invent nothing. Do not suggest any change to the training plan.'
-      : 'Fasse diese Trainingswoche für den Nutzer zusammen. Genau drei Sätze, keine Emojis, keine Zusagen über die Zukunft. Nutze ausschließlich die genannten Zahlen und erfinde nichts. Mach keinen Vorschlag zur Änderung des Trainingsplans.';
+      ? 'Summarise this training week for the user. Exactly three sentences, no emojis, no promises about the future. Use only the numbers given and invent nothing. Every weight value is already in the unit named by the "unit" field — write that unit and convert nothing. Do not suggest any change to the training plan.'
+      : 'Fasse diese Trainingswoche für den Nutzer zusammen. Genau drei Sätze, keine Emojis, keine Zusagen über die Zukunft. Nutze ausschließlich die genannten Zahlen und erfinde nichts. Alle Gewichtsangaben stehen bereits in der Einheit, die das Feld "unit" nennt — nenne genau diese Einheit und rechne nichts um. Mach keinen Vorschlag zur Änderung des Trainingsplans.';
     const inhalt = CoachPersona.personaLine(_persona(), _lang()) + '\n\n' + auftrag + '\n\n' + JSON.stringify(zahlen);
     const res = await aiCall('chat', { messages: [{ role: 'user', content: inhalt }] });
     return _crClean(res && res.text);
@@ -26298,6 +26429,9 @@ function _crBuild() {
   } catch(e) { console.warn('[Coach] Bericht einreihen:', e); return Promise.resolve(null); }
 }
 async function _crBuildRun() {
+  // Kontostand beim Start — dasselbe Merkmal wie in _cnSyncRun (s. _cnLauf).
+  // Der Modellaufruf unten ist eine Netzrunde und damit ein langes Fenster.
+  const gen = _coachGen;
   try {
     if (!window.CoachReport || !window.CoachAnalyze) return null;
     const now = Date.now();
@@ -26322,10 +26456,18 @@ async function _crBuildRun() {
       if (fc) forecast = { weeks: fc.weeks, goalKg: fc.goalKg, currentKg: fc.currentKg, ex: ziel.ex };
     }
     const rep = { weekKey: wk, label: _crLabel(ws), numbers: nums, text: '', forecast: forecast, ts: now };
+    // Hat die Datentrennung inzwischen zugeschlagen, gehoert dieser Bericht dem
+    // vorigen Konto und darf das gerade geleerte Archiv nicht wieder fuellen.
+    if (_coachGen !== gen) return null;
     S.coachReports = [rep].concat(S.coachReports.filter(r => r && r.weekKey !== wk)).slice(0, CR_MAX);
     persist();
     const txt = await _crAskModel(nums, forecast);
-    // rep liegt als Referenz in S.coachReports — die Zuweisung landet im Archiv.
+    /* Zweite Pruefung nach der Netzrunde. Nur solange das Konto dasselbe ist,
+       liegt rep als Referenz in S.coachReports und die Zuweisung landet im
+       Archiv; nach einer Raeumung ist S.coachReports ein neues, leeres Array
+       und rep haengt an nichts mehr — die Zuweisung waere dann ein persist()
+       ohne Wirkung und der Modelltext von Konto A im Speicher von Konto B. */
+    if (_coachGen !== gen) return null;
     if (txt) { rep.text = txt; persist(); }
     try { renderCoachHub(); } catch(_) {}
     return rep;
@@ -27494,11 +27636,25 @@ async function _dossierPull(uid){
      STILL sterben — der Zustand des vorigen Kontos ueberlebte dann den
      naechsten Start.
    - Die geplanten Meldungen (47000-47999) raeumt _coachDropOwnNotifs() ab.
-     Das ist der einzige asynchrone Teil und laeuft bewusst NEBEN dem
-     Kontowechsel: der Abmelde-Pfad ist synchron und wartet auf nichts.       */
+     Das ist der einzige asynchrone Teil; der Abmelde-Pfad ist synchron und
+     wartet auf nichts. Seit der Abschluss-Review von Block 5 laeuft er aber
+     nicht mehr NEBEN _cnSync(), sondern ueber _cnEnqueue() in DERSELBEN
+     Warteschlange — und der Zaehler _coachGen sagt jedem laufenden Lauf, dass
+     das Konto unter ihm gewechselt hat. Siehe den Kommentar bei _cnLauf.     */
 function _coachWipeLocal(){
   const fehler = [];
   const schritt = (name, fn) => { try { fn(); } catch(e) { fehler.push(name + ': ' + ((e && e.message) || e)); } };
+
+  /* Als ALLERERSTES und ausserhalb von schritt(): der Zaehler muss auch dann
+     hochgehen, wenn gleich ein Schritt wirft. Er ist das Merkmal, an dem ein
+     laufender _cnSyncRun/_crBuildRun erkennt, dass sein Zustand dem vorigen
+     Konto gehoert — ohne ihn schreibt so ein Lauf die Zaehler von Konto A
+     nach der Raeumung wieder herein (Abschluss-Review Block 5, Kritisch 1). */
+  _coachGen++;
+  // Und die Berichts-Kette kappen: ein neuer _crBuild() soll nicht hinter dem
+  // Lauf des vorigen Kontos warten. Der alte Lauf selbst laeuft aus und
+  // schreibt wegen _coachGen nichts mehr.
+  _crLauf = null;
 
   // 1. Persona zurueck auf die Voreinstellung. preset fehlt in der Fabrik und
   //    bleibt damit undefined: das naechste Konto durchlaeuft die Einrichtung
@@ -27550,8 +27706,27 @@ function _coachWipeLocal(){
   //    Konto A's muted-Liste ginge unter Konto B an den /coach-Payload raus.
   schritt('Aktions-Log', () => { S.coachLog = []; });
 
-  // 6. Chatverlauf. Liegt nicht in S, sondern unter gt_aiChat.
-  schritt('Chatverlauf', () => { _aicHist = []; localStorage.removeItem('gt_aiChat'); });
+  /* 6. Chatverlauf. Liegt nicht in S, sondern unter gt_aiChat.
+        _aicPlanPending gehoert dazu: es haelt den zuletzt vorgeschlagenen
+        Trainingsplan, und der Knopf "Plan importieren" in _aicRenderLog()
+        haengt allein daran. Ohne das Nullen liest Konto B nicht nur die
+        Unterhaltung von Konto A weiter (das Blatt bleibt beim Auth-Wechsel
+        offen), es kann dessen Plan ueber aicApplyPlan() in SEIN Konto
+        uebernehmen. Gezeichnet wird in Schritt 10 — _coachOptRender() ruft
+        seit der Abschluss-Review auch _aicRenderLog(). */
+  schritt('Chatverlauf', () => {
+    _aicHist = []; _aicPlanPending = null; localStorage.removeItem('gt_aiChat');
+  });
+
+  /* 6b. Analyse-Blatt. _aiaActions traegt die uebernehmbaren Vorschlaege der
+        letzten Auswertung (Uebung + Split), _aiaScope den analysierten Split —
+        dieselbe Luecke wie beim Plan, nur ueber _aiaApply(). Der Inhalt des
+        Blattes wird mitgenommen: er nennt Zahlen und Uebungsnamen von Konto A
+        und wird sonst von niemandem neu gezeichnet. */
+  schritt('Analyse', () => {
+    _aiaActions = []; _aiaScope = null;
+    const el = document.getElementById('aia-body'); if (el) el.innerHTML = '';
+  });
 
   // 7. Kontingent-Anzeige. Der gemerkte Stand gehoert dem vorigen Konto; ohne
   //    das Raeumen zeigte das Radialmenue dessen Restanfragen, bis der naechste
@@ -27563,6 +27738,17 @@ function _coachWipeLocal(){
 
   // 9. Schreiben. persist(), nicht save().
   schritt('persist', () => { persist(); });
+
+  /* 9b. Und den Cloud-Anstoss, den persist() eben gesetzt hat, wieder
+        abbestellen. Der Debounce-Timer feuert 800 ms spaeter — beim
+        Kontowechsel also womoeglich erst, wenn _fbUser schon das NEUE Konto
+        traegt. Er schriebe dann den geraeumten Zustand (unter anderem die
+        leere Persona-Voreinstellung) in das Dokument von Konto B, bevor
+        _onLogin() dessen Cloud-Stand ueberhaupt gelesen hat — und die Persona,
+        die dort steht, waere weg. Die Datentrennung ist eine LOKALE Trennung;
+        sie schreibt nichts in die Cloud. Beim Abmelden greift zusaetzlich, dass
+        _onLogout() _fbUser sofort auf null setzt. */
+  schritt('Cloud-Anstoss', () => { if (_pushTimer) { clearTimeout(_pushTimer); _pushTimer = null; } });
 
   // 10. Bild nachziehen — die Heute-Karte traegt den Coach-Namen.
   schritt('Rendern', () => { _coachOptRender(); });
@@ -27582,22 +27768,42 @@ function _coachWipeLocal(){
    nicht mehr, und die generische Planung (1000-1999) holt sich ihren Platz
    zurueck — sofern der Schalter dafuer ueberhaupt an ist.
 
-   Nachgesehen statt geglaubt: _cnCancelOwn() schluckt jeden Fehler selbst.
-   Bleibt danach auch nur EIN 47xxx-Termin stehen, meldet sich der Coach des
-   Vorbesitzers auf dem Sperrbildschirm des neuen Kontos — das muss laut sein. */
+   Nachgesehen statt geglaubt: _cnCancelOwn() meldet seinen Fehler jetzt zurueck
+   (es schluckte ihn frueher selbst). Bleibt danach auch nur EIN 47xxx-Termin
+   stehen, meldet sich der Coach des Vorbesitzers auf dem Sperrbildschirm des
+   neuen Kontos — das muss laut sein.
+
+   Und wenn die Nachkontrolle selbst nicht durchkommt (Plugin-Fehler, App im
+   Hintergrund), ist das KEIN stiller Erfolg: dann ist ungeprueft, ob das
+   Abbestellen ueberhaupt angekommen ist. Frueher stand hier ein blankes
+   return {ok:false} ohne Konsole und ohne Bildschirm (Abschluss-Review Block 5,
+   Wichtig 2).
+
+   Der Lauf haengt ueber _cnEnqueue() in der _cnSync()-Kette: er beginnt erst,
+   wenn ein laufender _cnSyncRun fertig ist. Sonst raeumt er ab, waehrend dessen
+   LN.schedule() noch unterwegs ist — und die 47xxx stehen danach wieder. */
 function _coachDropOwnNotifs(altPlan){
-  return (async () => {
+  return _cnEnqueue(async () => {
     const LN = _cap('LocalNotifications');
     if (!LN) return { ok:true, rest:0 };            // Web-PWA: kein Zustellweg
-    await _cnCancelOwn(LN, altPlan || []);
+    const abbestellFehler = await _cnCancelOwn(LN, altPlan || []);
     try { await scheduleWorkoutNotifications(); } catch(_) {}
-    const pend = await LN.getPending().catch(() => null);
-    if (!pend) return { ok:false, rest:-1 };
+    let lesefehler = null;
+    const pend = await LN.getPending().catch(e => { lesefehler = (e && e.message) || e; return null; });
+    if (!pend) {
+      _coachWipeFailed(['Meldungen: der Bestand liess sich nicht nachlesen (' +
+        (lesefehler || 'kein Ergebnis') + ') — ob die Termine des vorigen Kontos abbestellt sind, ist ungeprueft']
+        .concat(abbestellFehler ? [abbestellFehler] : []));
+      return { ok:false, rest:-1 };
+    }
     const rest = (((pend && pend.notifications) || []))
       .filter(n => Number(n && n.id) >= CN_ID_BASE && Number(n && n.id) <= CN_ID_MAX).length;
-    if (rest > 0) _coachWipeFailed(['Meldungen: ' + rest + ' Termin(e) im Bereich 47000-47999 stehen noch']);
+    // Ein Fehler beim Abbestellen ist nur dann einer, wenn danach auch wirklich
+    // etwas stehen geblieben ist — sonst waere es ein Alarm ohne Schaden.
+    if (rest > 0) _coachWipeFailed(['Meldungen: ' + rest + ' Termin(e) im Bereich 47000-47999 stehen noch']
+      .concat(abbestellFehler ? [abbestellFehler] : []));
     return { ok: rest === 0, rest: rest };
-  })().catch(e => {
+  }).catch(e => {
     _coachWipeFailed(['Meldungen abbestellen: ' + ((e && e.message) || e)]);
     return { ok:false, rest:-1 };
   });
@@ -29458,6 +29664,20 @@ async function _pushToCloud() {
       gymLat:     S.gymLat ?? null,
       gymLng:     S.gymLng ?? null,
       checkins:   S.checkins || [],
+      /* Die Persona des Coaches — Name, Ton, Umfang im Training, Push-Stufe.
+         Sie gehoert dem KONTO, nicht dem Geraet: wer sich abmeldet und wieder
+         anmeldet, bekam bisher sein Dossier zurueck, musste dem Coach aber
+         Namen und Ton neu geben. 'aiCoach' steht bereits im hasOnly() der
+         Rules, firestore.rules bleibt unangetastet.
+         Was NICHT mitgeht und warum: das DOSSIER (eigene Subcollection mit
+         strengeren Rules — dort stehen gemeldete Einschraenkungen, also
+         Gesundheitsangaben), und S.coachSession/S.coachPush/S.coachReports
+         (geraete-lokal, s. die Kommentare an ihren Voreinstellungen).
+         JSON-Rundlauf statt roher Referenz: ein Feld mit dem Wert undefined
+         (etwa ein nie gesetztes preset) laesst Firestore den KOMPLETTEN Push
+         abweisen — und zwar still im catch unten. stringify wirft solche
+         Schluessel weg, statt das ganze Dokument zu verlieren. */
+      aiCoach:    _coachCloudPersona(),
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
@@ -29559,6 +29779,28 @@ function _mergeData(local, cloud) {
     gymName:      pick(cloud.gymName, local.gymName) ?? null,
     gymLat:       pick(cloud.gymLat,  local.gymLat)  ?? null,
     gymLng:       pick(cloud.gymLng,  local.gymLng)  ?? null,
+    /* Persona des Coaches (Name, Ton, Umfang im Training, Push-Stufe) —
+       DIESELBE Strategie wie fuer die uebrigen strukturierten Felder: pick(),
+       also der zuletzt geschriebene Stand, gemessen an updatedAt des ganzen
+       Dokuments. Zwei Geraete mit verschiedenen Personas entscheidet damit das
+       Geraet, dessen Stand juenger ist — und zwar das aiCoach-Objekt AM
+       STUECK. Kein feldweises Mischen: ein halber Coach (Name von hier, Ton von
+       dort) waere niemandes Coach.
+       Der einzige Zusatz ist die Lesart von "nicht gesetzt": eine Persona ohne
+       abgeschlossene Einrichtung ist fuer pick() das, was null fuer jedes
+       andere Feld ist. Ohne diese Lesart gaebe es die Erweiterung gar nicht —
+       _coachWipeLocal() setzt die Persona auf die Voreinstellung UND ruft
+       persist(), damit ist local.updatedAt beim Login nach jedem Kontowechsel
+       juenger als die Cloud. pick() nach der reinen Uhr lieferte also immer die
+       leere Voreinstellung und schriebe sie beim Push direkt danach auch noch
+       ueber die Persona, die in der Cloud des Kontos steht.
+       Reihenfolge, die das traegt: erst raeumt _coachHandleAuthUser(), dann
+       merged _onLogin(). Andersherum zoege der Merge die Persona des
+       Vorbesitzers wieder herein.
+       Aufgefuellt auf die Voreinstellung, damit ein aelterer Cloud-Stand ohne
+       ein spaeter hinzugekommenes Feld keine Luecke hinterlaesst. */
+    aiCoach:      Object.assign(_coachPersonaDefaults(),
+                    pick(_coachPersonaGesetzt(cloud.aiCoach), _coachPersonaGesetzt(local.aiCoach)) || local.aiCoach || {}),
     updatedAt:    Math.max(cloud.updatedAt || 0, local.updatedAt || 0, Date.now())
   };
 }
@@ -29610,9 +29852,16 @@ async function _onLogin(user) {
       const cloud  = snap.data();
       _cloudHadData = (cloud.exercises||[]).length > 0 || (cloud.sessions||[]).length > 0;
       console.log('[GymTrack] ☁️ Cloud-Daten gefunden — merge mit lokal');
+      const personaVorher = _coachPersonaSig();
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
       _origPersist();
+      /* Die Persona kommt seit Block 5 aus der Cloud zurueck — genau hier, beim
+         Wiederanmelden auf demselben Konto. _dataSig() kennt sie bewusst nicht
+         (sie soll keinen vollen Rerender der Startseite ausloesen), also blieben
+         Heute-Karte, Hub und Chat-Kopf sonst bis zum naechsten Start auf
+         "Coach" stehen. */
+      if (_coachPersonaSig() !== personaVorher) { try { _coachOptRender(); } catch(_) {} }
       // Geänderte Daten zurückschreiben
       await _pushToCloud();
       console.log('[GymTrack] ☁️ Cloud-Push (nach Merge) ok');
@@ -29652,9 +29901,12 @@ async function _onLogin(user) {
       if ((cloud.updatedAt || 0) <= (S.updatedAt || 0)) return;
       _syncing = true;
       const sig = _dataSig();
+      const personaVorher = _coachPersonaSig();
       const merged = _mergeData(S, cloud);
       Object.assign(S, merged);
       _origPersist();
+      // Zweites Geraet hat den Coach umbenannt oder den Ton geaendert — s.o.
+      if (_coachPersonaSig() !== personaVorher) { try { _coachOptRender(); } catch(_) {} }
       if (_dataSig() !== sig) {        // s.o.: kein Rerender ohne echte Änderung
         setTheme(S.theme || 'dark');
         applyCompanion();
@@ -30619,8 +30871,16 @@ async function doSignOut() {
      Fassung ("Deine lokalen Daten bleiben erhalten") war nach der
      Datentrennung nur noch halb wahr — und die fehlende Haelfte ist die
      ueberraschende. tr() greift jetzt ebenfalls; vorher stand der Satz auch
-     fuer englische Nutzer auf Deutsch da. */
-  if (!confirm(tr('Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und die Wochenberichte werden zurückgesetzt.'))) return;
+     fuer englische Nutzer auf Deutsch da.
+     Zwei Praezisierungen aus der Abschluss-Review von Block 5:
+     - "die Wochenberichte werden zurueckgesetzt" stimmte, wirkte aber
+       widerlegt: der Reiter "Woche" zeigt dem neuen Konto sofort wieder
+       Zahlen. Geraeumt ist das ARCHIV; die Zahlen der laufenden Woche rechnet
+       der Coach aus den Einheiten neu, die auf dem Geraet bleiben.
+     - Name und Ton kommen seit der Persona-Synchronisierung auf DEMSELBEN
+       Konto aus der Cloud zurueck. Ein Satz, der sie ohne Einschraenkung als
+       "zurueckgesetzt" ankuendigt, waere jetzt falsch. */
+  if (!confirm(tr('Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und das Berichtsarchiv gehen von diesem Gerät — die Zahlen der laufenden Woche rechnet er aus deinen Einheiten neu. Meldest du dich später wieder mit diesem Konto an, kommen Name und Ton zurück.'))) return;
   // Push-Token dieses Geräts aus dem Profil löschen — sonst bleibt er im Konto
   // stehen und der nächste Account, der sich auf DIESEM Gerät anmeldet, bekommt
   // fälschlich Flammen-Push-Benachrichtigungen für Posts des alten Kontos.
