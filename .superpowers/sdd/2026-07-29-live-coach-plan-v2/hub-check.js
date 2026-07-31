@@ -670,7 +670,11 @@ const KACHELSTAND = () => {
       await wait(350);
     } catch (_) {}
     try {
-      await page.click('#chw-goal-in', { clickCount: 3 });
+      // Feld leeren wie in task-9/task-10: ein Dreifachklick markiert in
+      // diesem Sheet nicht zuverlaessig, und ein angehaengter Wert waere ein
+      // Testartefakt (aus 104 und 93 wuerde 10493).
+      await page.click('#chw-goal-in');
+      await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control');
       await page.type('#chw-goal-in', String(wert));
       await page.click('#chw-goal-save');
       await wait(600);
