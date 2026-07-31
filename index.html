@@ -2323,7 +2323,11 @@ html[data-glass] .tabbar::before{display:block!important}
   flex-wrap:nowrap!important;
   padding:2px 0 4px;
 }
-.heute-train-btn{width:100%}
+/* Der Schnellstart ist ein KNOPF, keine Flaeche: er sass vorher als hoher Block
+   im Raster und zog optisch mehr Gewicht als die Tageskarte darueber. Breite
+   bleibt voll (sonst reisst die Rasterzelle auf), die Hoehe faellt. */
+.heute-train-btn{width:100%;padding:10px 14px;font-size:14px;border-radius:14px;
+  min-height:0;line-height:1.2;align-self:center}
 
 /* ── HEUTE WIDGET-RASTER: 2-Spalten-Grid mit dichter Packung ──
    Quadrat (sm) = 1 Spalte × 2 Einheiten · Rechteck (md) = 1 Spalte × 1 Einheit
@@ -2348,6 +2352,12 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-content>.card,
 .hw-content>.tracker-row,
 .hw-content>.btn{height:100%;min-height:0}
+/* Ausnahme vom Strecken — MUSS nach der Regel darueber stehen: gleiche
+   Spezifitaet, also entscheidet die Reihenfolge (davor gesetzt blieb sie
+   wirkungslos, der Knopf fuellte weiter die ganze Zelle). Der Schnellstart ist
+   ein flacher Knopf, kein blauer Block: volle Breite, feste kleine Hoehe,
+   margin:auto setzt ihn mittig in die Zelle. */
+.hw-content>.heute-train-btn{height:46px;min-height:0;margin:auto 0;align-self:stretch}
 .hw-card,.hw-quick{display:flex;flex-direction:column;overflow:hidden}
 /* sm/md: Inhalt zentriert */
 .hw-sm .hw-card,.hw-md .hw-card{align-items:center;justify-content:center;text-align:center}
@@ -5966,7 +5976,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
 @keyframes aicOrb{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.55);opacity:0}}
 @keyframes aicDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
-.aic-in{position:relative;z-index:1;padding:13px 15px 14px}
+/* Kompakter als zuvor (13/15/14 → 11/13/12): die Karte ist der Einstieg in
+   den Coach, nicht der halbe Heute-Tab. */
+.aic-in{position:relative;z-index:1;padding:10px 12px 11px}
 .aic-top{display:flex;align-items:center;gap:8px}
 .aic-orb{position:relative;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;flex-shrink:0;
   color:#fff;background:linear-gradient(140deg,var(--acc),rgba(var(--acc-rgb),.62));
@@ -5991,7 +6003,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   box-shadow:0 0 8px rgba(var(--acc-rgb),.9)}
 .aic-x{background:none;border:none;color:var(--text2);font-size:13px;line-height:1;padding:4px;margin:-4px -5px -4px 0;
   cursor:pointer;opacity:.55;flex-shrink:0}
-.aic-main{display:flex;align-items:center;gap:13px;margin-top:11px}
+.aic-main{display:flex;align-items:center;gap:10px;margin-top:8px}
 /* Linke Zone: der Ring und darunter der Name der Muskelgruppe, deren Erholung
    er zeigt. Ohne den Namen wäre die Zahl ein Wert ohne Bezug. */
 .aic-left{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
@@ -6000,9 +6012,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 /* Der Satz vom Coach: dieselbe Sprechblase wie im Hub (abgeknickte untere
    linke Ecke), getönt statt neutral, weil er auf der Akzentfläche der Karte
    liegt. Keine neue Farbe — --acc-rgb wie die Karte selbst. */
-.aic-say{font-size:12.8px;line-height:1.45;color:var(--text);font-weight:650;margin-top:11px;
-  padding:9px 12px;border-radius:12px;border-bottom-left-radius:5px;
+.aic-say{font-size:11.8px;line-height:1.38;color:var(--text);font-weight:650;margin-top:8px;
+  padding:7px 10px;border-radius:12px;border-bottom-left-radius:5px;
   background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20)}
+/* 62 px ist KEIN Zierwert: das SVG im Ring traegt feste Maße und skaliert nicht
+   mit der Box. Kleiner gesetzt, ragt der Ring heraus und legt sich ueber den
+   Text (gemessen bei 44 px: 'Legs' verschwand unter dem Bogen). Die Karte wird
+   ueber Abstaende und Schriftgrade kleiner, nicht ueber diese Zahl. */
 .aic-ringbox{position:relative;width:62px;height:62px;flex-shrink:0}
 .aic-r-bg{fill:none;stroke:rgba(var(--acc-rgb),.16);stroke-width:5}
 .aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
@@ -6010,19 +6026,19 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   white-space:nowrap;font-size:15px;font-weight:900;letter-spacing:-.3px}
 .aic-r-val span{font-size:9px;font-weight:800;opacity:.75;margin-left:1px}
 .aic-txt{flex:1;min-width:0}
-.aic-head{font-size:17px;font-weight:900;line-height:1.18;color:var(--text);letter-spacing:-.35px}
-.aic-sub{font-size:12.8px;line-height:1.45;color:var(--text2);margin-top:4px;font-weight:600}
-.aic-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.aic-head{font-size:14.5px;font-weight:900;line-height:1.18;color:var(--text);letter-spacing:-.35px}
+.aic-sub{font-size:12.2px;line-height:1.4;color:var(--text2);margin-top:3px;font-weight:600}
+.aic-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .aic-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;letter-spacing:.2px;
   padding:4px 9px;border-radius:999px;color:var(--acc);
   background:rgba(var(--acc-rgb),.13);border:1px solid rgba(var(--acc-rgb),.26)}
 .aic-chip.ghost{color:var(--text2);background:rgba(127,127,127,.10);border-color:var(--gl-bdr)}
-.aic-btns{display:flex;gap:8px;margin-top:12px}
-.aic-go{flex:1;border:none;border-radius:13px;padding:11px 12px;font-family:inherit;font-size:13.5px;font-weight:800;
+.aic-btns{display:flex;gap:8px;margin-top:10px}
+.aic-go{flex:1;border:none;border-radius:13px;padding:9px 12px;font-family:inherit;font-size:13px;font-weight:800;
   color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--acc),rgba(var(--acc-rgb),.74));
   box-shadow:0 7px 20px rgba(var(--acc-rgb),.34);transition:transform .12s ease,box-shadow .12s ease}
 .aic-go:active{transform:scale(.975);box-shadow:0 4px 12px rgba(var(--acc-rgb),.28)}
-.aic-later{border:1px solid var(--gl-bdr);border-radius:13px;padding:11px 14px;font-family:inherit;
+.aic-later{border:1px solid var(--gl-bdr);border-radius:13px;padding:9px 13px;font-family:inherit;
   font-size:13px;font-weight:700;color:var(--text2);background:rgba(127,127,127,.08);cursor:pointer}
 </style>
 </head>
@@ -7959,7 +7975,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310030';
+const APP_VERSION = 'gymtrack-v202607310033';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -11610,7 +11626,9 @@ const WIDGET_DEFS = {
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
-  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
+  // Schnellstart heisst Schnellstart: kurzes Wort, flacher Knopf, und er startet
+  // das Training direkt statt in die Auswahl zu fuehren (s. startWorkoutDirect).
+  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:()=>`<button class="btn btn-acc heute-train-btn" onclick="startWorkoutDirect()">▶&nbsp; Start</button>`},
   streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},
   volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['sm','md','lg'], lgRows:2, build:hwVolume},
   recovery:{title:'Erholung',        icon:'🔋', label:'Erholung',          desc:'Muskel-Erholung',             sizes:['sm','md','lg'], lgRows:3, build:hwRecovery},
@@ -17845,6 +17863,27 @@ function renderMgStatChart(sessions) {
 }
 
 // ── WORKOUT ───────────────────────────────────────────
+/* Schnellstart vom Heute-Tab: ein Tipp, und das Training LAEUFT.
+
+   Bis hierher fuehrte der Knopf in die Uebungsauswahl, wo man den zweiten
+   Knopf ("Training starten") noch einmal druecken musste — obwohl der
+   Wochenplan die Uebungen ohnehin vorausgewaehlt hatte. Das kehrt eine
+   frühere Entscheidung um (Changelog: "Erst der finale Training-starten-Knopf
+   führt ins aktive Training"), und zwar bewusst.
+
+   Die Auswahl selbst bleibt der Rueckfallweg: hat der heutige Tag keinen Plan
+   (oder keine der geplanten Uebungen existiert noch), steht das Blatt offen auf
+   Schritt 1 statt mit einer Fehlermeldung dazustehen. openWorkout() baut die
+   Vorauswahl in wkExIds — deshalb erst oeffnen, dann pruefen. */
+function startWorkoutDirect() {
+  if (isWorkoutActive()) { resumeWorkout(); return; }
+  openWorkout();
+  if (Array.isArray(wkExIds) && wkExIds.length) {
+    try { if (typeof haptic === 'function') haptic(12); } catch(_) {}
+    startActive();
+  }
+}
+
 function openWorkout() {
   // Wenn ein Training bereits läuft → nur wieder anzeigen, NICHT zurücksetzen
   if (isWorkoutActive()) {
