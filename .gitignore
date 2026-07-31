@@ -25,5 +25,9 @@ ios_distribution_*.cer
 .seed_demo.py
 tiktok/
 
-# Arbeitsverzeichnis der Plan-Ausfuehrung (Ledger, Briefs, Review-Pakete) — Scratch
-.superpowers/
+# Arbeitsverzeichnis der Plan-Ausfuehrung. Pruefskripte, Ledger, Briefs und
+# Berichte gehoeren ins Repo — ohne sie kann der zweite Rechner nichts von dem
+# verifizieren, was hier gebaut wurde. Nur die schweren Zwischenprodukte bleiben
+# lokal: Review-Diffs (bis 120 KB je Stueck) und Screenshots.
+.superpowers/**/review-*.diff
+.superpowers/**/*.png
