@@ -7786,7 +7786,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310002';
+const APP_VERSION = 'gymtrack-v202607310003';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8447,6 +8447,16 @@ const I18N_EN = {
   'Nicht eindeutig erkannt — halte dich an die Schritte':'Not clearly identified — follow the steps below',
   'KI bewertet Volumen, Balance & Technik-Trends mit Score':'AI rates volume, balance & technique trends with a score',
   'Jetzt freischalten':'Unlock now','Jederzeit kündbar':'Cancel anytime','Über deinen App Store':'Via your App Store','Sofort aktiv':'Active instantly',
+  // Paywall-Showcase (_PW_FEATS) — die Texte dort sind laenger als die Kurzform
+  // weiter oben; tr() matcht exakt, deshalb brauchen sie eigene Eintraege.
+  'Dein Coach kennt dein Training — Pläne, Technik und Fortschritt, jederzeit im Chat.':'Your coach knows your training — plans, technique and progress, anytime in chat.',
+  'Feedback nach jedem Satz und passende Empfehlungen in Echtzeit.':'Feedback after every set and matching recommendations in real time.',
+  'Gerät fotografieren — Übungen und Ausführung sofort erklärt.':'Snap a machine — exercises and form explained instantly.',
+  'KI bewertet Volumen, Balance und Technik-Trends mit klarem Score.':'AI rates volume, balance and technique trends with a clear score.',
+  'Automatische Auswertung deiner Statistik — du siehst sofort, was wirkt.':'Automatic evaluation of your stats — you see instantly what works.',
+  // Paywall-CTA (_pwBotHTML) + Live-Coach-Zeile in den Premium-Einstellungen
+  'Jahresplan freischalten':'Unlock yearly plan','Monatsplan freischalten':'Unlock monthly plan',
+  'Tipps während des Satzes':'Tips during your set',
   'nur 1,67 €/Monat':'just €1.67/month','NEU':'NEW',
   'Dein perfekter Plan':'Your perfect plan','Wie oft pro Woche?':'How often per week?',
   'Was ist dein Ziel?':'What is your goal?','Wie viel Zeit pro Einheit?':'How much time per session?',
@@ -8720,9 +8730,8 @@ const I18N_RX = [
    ' per month, renews automatically. Cancel anytime in the App Store.'],
   [/Spare (\d+) %/g, 'Save $1%'],
   [/\/Monat\b/g, '/month'],
-  [/per year·/g, 'per year · '],   // ' · '-Segmentsplit in tr() joint ohne Spaces
   [/Kauf fehlgeschlagen: /g, 'Purchase failed: '],
- [/Wiederherstellung fehlgeschlagen: /g,'Restore failed:'],
+ [/Wiederherstellung fehlgeschlagen: /g,'Restore failed: '],
  // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
  [/ bekommt aktuell nur (\d+)% deines Trainingsvolumens\./g,'currently gets only $1% of your training volume.'],
  [/Im Bereich (.+) Wdh\. wächst dein 1RM am stärksten\./g,'Your estimated 1RM grows fastest in the $1 rep range.'],
@@ -8754,7 +8763,7 @@ function tr(s) {
     out = out.split(' · ').map(p => {
       const t = p.trim(), h = I18N_EN[t];
  return h !== undefined ? p.replace(t, h): p;
- }).join('·');
+ }).join(' · ');
  }
   for (let i = 0; i < I18N_RX.length; i++) out = out.replace(I18N_RX[i][0], I18N_RX[i][1]);
   return out;
