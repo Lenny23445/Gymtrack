@@ -111,6 +111,80 @@
     return Math.round((bar + units * inc) * 1000) / 1000;
   }
 
+  /* ── Lastanpassung nach Wiederholungsabweichung ────────────────────────────
+     adjustNext() bewegt GENAU EINE Rasterstufe. Das ist an einer Maschine mit
+     2,5-kg-Stufe brauchbar und beim Kreuzheben Unsinn: mit 1,25er-Scheiben sind
+     das 2,5 kg auf 200 kg — ein Prozent, nachdem die Wiederholungen um drei
+     eingebrochen sind. Die Stufengroesse beschreibt das GERAET, nicht die Last.
+
+     Sportwissenschaftlich ist die Last relativ: das Verhaeltnis von Last zu
+     erreichbaren Wiederholungen. Genau das beschreibt die Epley-Gleichung, mit
+     der die App ohnehin ueberall rechnet (1RM = w * (1 + r/30)). Nach ihr
+     aufgeloest ergibt sich das Gewicht, das bei GLEICHER geschaetzter
+     Maximalkraft die Zielwiederholungen zulaesst:
+
+         w_neu = w * (1 + r_ist/30) / (1 + r_ziel/30)
+
+     Kreuzheben 200 kg, Ziel 8, geschafft 5  ->  184 kg statt 199,5 kg.
+     Beinpresse 100 kg, Ziel 12, geschafft 9 ->  93 kg.
+
+     Gedeckelt wird trotzdem, denn die Gleichung ist eine Schaetzung und kein
+     Gesetz: mehr als 15 Prozent runter ist innerhalb einer Einheit kein
+     Anpassen mehr, sondern ein anderer Trainingsreiz, und mehr als 10 Prozent
+     rauf traegt keine Progressionslehre. Beide Grenzen sind ueberschreibbar.
+
+     Gerundet wird auf das Raster des GERAETS (an der Stange Scheibe je Seite
+     mal zwei, sonst die Stufe des Stapels) — und immer um mindestens eine
+     Stufe, sonst haette eine erkannte Abweichung folgenlos bleiben koennen. */
+  var CAP_DOWN = 0.15;
+  var CAP_UP   = 0.10;
+
+  function usableCap(v, fallback) {
+    var c = numOf(v);
+    return (c > 0 && c < 1) ? c : fallback;
+  }
+
+  // Auf das Geraeteraster legen. 'dir' erzwingt Bewegung: eine Anpassung, die
+  // beim Ausgangsgewicht landet, waere eine Anpassung, die nichts anpasst.
+  function snapTo(ziel, inc, bar, dir, von) {
+    var q = (ziel - bar) / inc;
+    var minUnits = bar > 0 ? 0 : 1;
+    var units = Math.round(q);
+    if (units < minUnits) units = minUnits;
+    var out = Math.round((bar + units * inc) * 1000) / 1000;
+    if (dir !== 0 && Math.abs(out - von) < 1e-9) {
+      units += dir;
+      if (units < minUnits) units = minUnits;
+      out = Math.round((bar + units * inc) * 1000) / 1000;
+    }
+    return out;
+  }
+
+  /* adjustByReps(kg, opts) -> Zahl | null
+     opts: {reps, target, step, barKg, maxDownPct, maxUpPct}
+     step ist wie ueberall in diesem Modul die kleinste Scheibe JE SEITE; ohne
+     barKg gilt Maschine/Kabel/Kurzhantel, dort ist step die ganze Stufe. */
+  function adjustByReps(kg, opts) {
+    var w = numOf(kg);
+    if (!isFinite(w) || w <= 0) return null;
+    var o = opts || {};
+    var r = numOf(o.reps), t = numOf(o.target);
+    if (!isFinite(r) || r <= 0 || !isFinite(t) || t <= 0) return null;
+    if (r === t) return w;
+
+    var s = usableStep(o.step);
+    var bar = usableBar(o.barKg);
+    var inc = bar > 0 ? s * 2 : s;
+
+    var ziel = w * (1 + r / 30) / (1 + t / 30);
+    var unten = w * (1 - usableCap(o.maxDownPct, CAP_DOWN));
+    var oben  = w * (1 + usableCap(o.maxUpPct, CAP_UP));
+    if (ziel < unten) ziel = unten;
+    if (ziel > oben)  ziel = oben;
+
+    return snapTo(ziel, inc, bar, r < t ? -1 : 1, w);
+  }
+
   // Quittung als Schluessel + Platzhalter, damit die Antwort nicht ins Leere
   // geht. 'passend' und keine Antwort erzeugen nichts: hoechstens eine
   // Aeusserung gleichzeitig, und ohne Neuigkeit gibt es keine.
@@ -172,10 +246,11 @@
     return out;
   }
 
-  var API = { toRpe: toRpe, adjustNext: adjustNext, ackFor: ackFor,
-              summarize: summarize, derive: derive,
+  var API = { toRpe: toRpe, adjustNext: adjustNext, adjustByReps: adjustByReps,
+              ackFor: ackFor, summarize: summarize, derive: derive,
               RPE: RPE, DEFAULT_STEP: DEFAULT_STEP, DEFAULT_BAR: DEFAULT_BAR,
-              TREND_MIN: TREND_MIN, TOL: TOL };
+              TREND_MIN: TREND_MIN, TOL: TOL,
+              CAP_DOWN: CAP_DOWN, CAP_UP: CAP_UP };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachRpe = API;

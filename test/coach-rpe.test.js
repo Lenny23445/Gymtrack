@@ -313,3 +313,70 @@ test('derive speist dieselbe Skala wie die frueheren Antworten', () => {
   assert.strictEqual(R.toRpe(b), R.RPE.hard);
   assert.strictEqual(R.adjustNext(60, b, 2.5), 57.5);
 });
+
+// --- adjustByReps(): relative Last statt einer Rasterstufe -----------------
+
+test('adjustByReps: schwere Langhantel bewegt sich sinnvoll, nicht um eine Scheibe', () => {
+  // Genau der gemeldete Fall: Kreuzheben, Wiederholungen um drei eingebrochen.
+  // adjustNext() haette 2,5 kg genommen (eine Scheibe je Seite mal zwei).
+  const eine = R.adjustNext(200, 'schwer', 1.25, 20);
+  assert.strictEqual(eine, 197.5, 'Ausgangslage der alten Rechnung');
+  // Epley: 200 * (1+5/30) / (1+8/30) = 184,2 -> auf dem Scheibenraster 185.
+  // Also 15 kg statt 2,5 kg, und dabei innerhalb des 15-Prozent-Deckels (170).
+  const neu = R.adjustByReps(200, { reps: 5, target: 8, step: 1.25, barKg: 20 });
+  assert.strictEqual(neu, 185);
+  assert.ok(neu >= 170, 'ueber den 15-Prozent-Deckel hinaus: ' + neu);
+  assert.strictEqual((neu - 20) % 2.5, 0, 'nicht auf dem Scheibenraster: ' + neu);
+});
+
+test('adjustByReps: Maschine rastet auf der Stapelstufe ein, ohne Stange', () => {
+  // Kein barKg: die Stufe ist der ganze Sprung, nicht die Scheibe je Seite.
+  const neu = R.adjustByReps(100, { reps: 9, target: 12, step: 2.5 });
+  assert.strictEqual(neu % 2.5, 0, 'nicht auf der Stapelstufe: ' + neu);
+  assert.ok(neu < 100 && neu >= 85, 'unplausible Maschinen-Last: ' + neu);
+});
+
+test('adjustByReps: mehr Wiederholungen als Ziel heben die Last', () => {
+  const neu = R.adjustByReps(60, { reps: 12, target: 10, step: 1.25, barKg: 20 });
+  assert.ok(neu > 60, 'keine Steigerung: ' + neu);
+  assert.ok(neu <= 66, 'ueber den 10-Prozent-Deckel: ' + neu);
+});
+
+test('adjustByReps: Deckel begrenzen die Schaetzung in beide Richtungen', () => {
+  // Ein Totaleinbruch (1 statt 12) wuerde rechnerisch weit unter die Haelfte
+  // gehen — das ist kein Anpassen mehr, sondern ein anderes Training.
+  const runter = R.adjustByReps(100, { reps: 1, target: 12, step: 2.5 });
+  assert.ok(runter >= 85, 'unter den 15-Prozent-Deckel gefallen: ' + runter);
+  const rauf = R.adjustByReps(100, { reps: 30, target: 8, step: 2.5 });
+  assert.ok(rauf <= 110, 'ueber den 10-Prozent-Deckel gestiegen: ' + rauf);
+});
+
+test('adjustByReps: eigene Deckel schlagen die Vorgabe', () => {
+  const eng = R.adjustByReps(100, { reps: 5, target: 10, step: 2.5, maxDownPct: 0.05 });
+  assert.ok(eng >= 95, 'eigener Deckel ignoriert: ' + eng);
+});
+
+test('adjustByReps: eine erkannte Abweichung bleibt nie folgenlos', () => {
+  // Kleine Abweichung an schwerer Last: die Rundung koennte auf dem
+  // Ausgangsgewicht landen. Dann muss mindestens eine Stufe gegangen werden.
+  const neu = R.adjustByReps(300, { reps: 9, target: 10, step: 1.25, barKg: 20 });
+  assert.notStrictEqual(neu, 300, 'Anpassung ohne Wirkung');
+  assert.ok(neu < 300);
+});
+
+test('adjustByReps: Ziel getroffen laesst das Gewicht stehen', () => {
+  assert.strictEqual(R.adjustByReps(80, { reps: 10, target: 10, step: 2.5 }), 80);
+});
+
+test('adjustByReps: die leere Stange ist die Untergrenze', () => {
+  const neu = R.adjustByReps(20, { reps: 2, target: 10, step: 1.25, barKg: 20 });
+  assert.strictEqual(neu, 20, 'unter das Stangengewicht gerechnet: ' + neu);
+});
+
+test('adjustByReps: Unsinn ergibt null statt einer erfundenen Last', () => {
+  assert.strictEqual(R.adjustByReps(0, { reps: 5, target: 8 }), null);
+  assert.strictEqual(R.adjustByReps('100', { reps: 5, target: 8 }), null);
+  assert.strictEqual(R.adjustByReps(100, { reps: 0, target: 8 }), null);
+  assert.strictEqual(R.adjustByReps(100, {}), null);
+  assert.strictEqual(R.adjustByReps(100, null), null);
+});

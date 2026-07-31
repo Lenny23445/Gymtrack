@@ -7907,7 +7907,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310017';
+const APP_VERSION = 'gymtrack-v202607310018';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9117,6 +9117,8 @@ const CHANGELOG = {
     label: '31.07.2026 · Live-Coach: rechnet mit, statt zu fragen',
     items: [
       'Keine Rückfrage „leicht, passend oder schwer?" mehr nach jedem Satz — der Coach liest es an deinen Wiederholungen ab und passt das Gewicht der offenen Sätze selbst an',
+      'Die Gewichtsanpassung rechnet jetzt relativ (Epley) statt in einer Scheibe: bricht die Wiederholungszahl beim Kreuzheben ein, gehen 15 kg runter statt 2,5 — an der Maschine rastet es auf der Stapelstufe ein',
+      'Progressionssprünge nach Muskelgruppe: 5 % an Beinen und Rücken, 3,5 % an der Brust, 2,5 % an Schultern, Armen und Rumpf',
       'Erkennt Ermüdung im Verlauf der Übung und nimmt einen Satz raus; bist du frisch und alles läuft am oberen Wiederholungsende, hängt er einen an',
       'Satzpausen richten sich zusätzlich nach der Ermüdung der Muskelgruppe und danach, wie der letzte Satz gelaufen ist',
       'Passt deinen Wiederholungsbereich an, wenn du zwei Einheiten lang durchgehend darüber oder darunter liegst',
@@ -26263,11 +26265,17 @@ let _rpeAnswers = [];      // Einschaetzungen dieser Einheit (Trend fuers Dossie
 /* Nur die Uebersetzung App-Daten -> Modul-Vertrag. Die Regel selbst steht in
    CoachRpe.derive(): dort ist sie ohne DOM pruefbar, und dieselbe Datei haelt
    bereits die Skala (easy/ok/hard) und die Gewichtsrechnung dazu. */
+function _rpeTargetReps(ex, log) {
+  const { min, max } = repRange(ex);
+  let t = parseInt(log && log.sugR) || 0;
+  if (!(t > 0)) t = min;               // ohne Prognose gilt der Bereichsanfang
+  return Math.max(min, Math.min(max, t));
+}
 function _rpeBucketOf(set, ex, log) {
   const { min, max } = repRange(ex);
   return window.CoachRpe.derive(parseInt(set && set.r) || 0, {
     min, max,
-    target: parseInt(log && log.sugR) || 0,
+    target: _rpeTargetReps(ex, log),
     type: (set && set.type) || 'normal',
   });
 }
@@ -26297,7 +26305,15 @@ function _rpeDerive(li, si) {
     const eq  = _csEquip(ex);
     const eigenmaechtig = sug > 0 && Math.abs(kg - sug) > (eq.step || 2.5) + 0.01;
     if (bucket !== 'ok' && !eigenmaechtig) {
-      const next = window.CoachRpe.adjustNext(kg, bucket, eq.step, eq.barKg);
+      // Relativ statt eine Rasterstufe: 2,5 kg weniger auf 200 kg Kreuzheben
+      // waeren ein Prozent, nachdem die Wiederholungen eingebrochen sind. Das
+      // Raster des Geraets (Stange mit Scheibe je Seite, sonst Stapelstufe)
+      // bestimmt nur, wo das Ergebnis einrastet — nicht, wie weit es geht.
+      const next = window.CoachRpe.adjustByReps(kg, {
+        reps: parseInt(set.r) || 0,
+        target: _rpeTargetReps(ex, log),
+        step: eq.step, barKg: eq.barKg,
+      });
       const offen = (log.sets || []).some(s => !s.done && (s.type || 'normal') !== 'warmup');
       if (next != null && offen && Math.abs(next - kg) > 0.01) {
         _rpeSuggestNext(log.exerciseId, next);
@@ -26406,6 +26422,16 @@ function _coachDropChance(li, si, set, w, r, ex) {
   }, 45000);
   return true;
 }
+/* Relativer Progressionssprung je Muskelgruppe. Uebliche Praxis in der
+   Kraftlehre: an den grossen Ketten (Beine, Ruecken) sind 5 Prozent ein
+   normaler Schritt, an der Brust rund 3, an kleinen eingelenkigen Muskeln
+   (Schultern, Arme, Rumpf) 2,5 — dort ist die absolute Last so klein, dass
+   5 Prozent oft unter der kleinsten Scheibe liegen und der naechste moegliche
+   Sprung schon ein Satz-Killer ist. */
+function _coachProgPct(mg) {
+  return ({ beine: 0.05, ruecken: 0.05, brust: 0.035 })[mg] || 0.025;
+}
+
 /* ── VOLUMEN: Satz raus / Satz dazu ───────────────────────────────────────────
    Rein lokal und ohne Modell-Aufruf, aus denselben Zahlen, die auch die
    Gewichtsvorschlaege tragen: Leistungsverlauf INNERHALB der Uebung, Ermuedung
@@ -26511,8 +26537,12 @@ function _coachRepRangeAdjust(li) {
   if (neuMin === min && neuMax === max) return false;
 
   _coachState.seen.push(key);
-  ex.repMin = neuMin; ex.repMax = neuMax;
+  // Dieselben drei Felder wie applyRepRange() in der Uebungs-Bearbeitung —
+  // targetReps ist der Kompatibilitaetswert (oberes Ende) und wuerde sonst auf
+  // dem alten Bereich stehen bleiben.
+  ex.repMin = neuMin; ex.repMax = neuMax; ex.targetReps = neuMax;
   try { persist(); } catch(_) {}
+  try { renderLogCards(); } catch(_) {}
   const lbl = neuMin === neuMax ? String(neuMax) : (neuMin + '–' + neuMax);
   let txt = ''; try { txt = _say('repRange', { reps: lbl }) || ''; } catch(_) {}
   if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
@@ -26598,7 +26628,11 @@ function _coachEvalRun(li, si) {
   if (type === 'repmax' && fatPct < 30) {
     _coachState.seen.push(dedupeKey);
     try { _saveActiveWk(); } catch(_) {}
-    const sugW = roundToStep(w * 1.025);
+    // Progressionssprung relativ und nach Muskelgruppe. Pauschale 2,5 % waren
+    // an der Kurzhantel-Seitheben-Schulter zu viel und beim Kreuzheben zu
+    // wenig: grosse mehrgelenkige Ketten vertragen groessere relative Spruenge
+    // als kleine eingelenkige Muskeln, deren absolute Last ohnehin klein ist.
+    const sugW = roundToStep(w * (1 + _coachProgPct(mg)));
     // Kartentext traegt Zahlen und den Muskelgruppen-Namen — das Woerterbuch
     // (I18N_EN) greift nur bei exakten Phrasen, deshalb hier beide Sprachen.
     const mgL = muscleLabel(mg);
