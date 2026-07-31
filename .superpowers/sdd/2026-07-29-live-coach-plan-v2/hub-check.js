@@ -1155,6 +1155,133 @@ const KACHELSTAND = () => {
     JSON.stringify({ da: r.da, dauer: r.dauer }));
   await page.emulateMediaFeatures([]);
 
+  /* ══════════════════════════════════════════════════════════════════════
+     NACHTRAG — sichtbarer Einstieg auf der Karte, Kacheln als Raster
+     ══════════════════════════════════════════════════════════════════════ */
+
+  await boot();
+  r = O(await ev(() => {
+    S.weekPlan = S.weekPlan || {};
+    S.weekPlan[todayKey()] = { type: 'exercises', exIds: ['ex0', 'ex1'] };
+    persist();
+    closeOv('ov-coach-hub'); closeOv('ov-ai-chat');
+    goTabId('heute'); renderHome();
+    const host = document.getElementById('coach-today-card');
+    const top = host ? host.querySelector('.aic-top') : null;
+    const pfeil = host ? host.querySelector('.aic-go-hint') : null;
+    return {
+      pfeil: !!pfeil,
+      // Ein Symbol aus ICO, kein Zeichen aus der Schrift.
+      svg: !!(pfeil && pfeil.querySelector('svg')),
+      zeichen: pfeil ? (pfeil.textContent || '').replace(/\s+/g, '') : 'x',
+      inZeile: !!(pfeil && top && top.contains(pfeil)),
+      versteckt: pfeil ? pfeil.getAttribute('aria-hidden') : null,
+      // Gestaltungsregel 1: genau EIN Coach-Einstieg im Heute-Tab.
+      einstiege: [...document.querySelectorAll('#pg-heute *')].filter(el =>
+        /openCoachHub/.test(String(el.onclick || '') + ' ' + (el.getAttribute('onclick') || ''))).length,
+      karten: document.querySelectorAll('#pg-heute .aic').length,
+      pad: document.querySelectorAll('#heute-pad > div').length
+    };
+  }));
+  check('Die Heute-Karte zeigt, dass sie eine Tuer ist: ein Pfeil nach rechts in der Zeile mit dem Coach-Namen, als ICO-Symbol und nicht als Schriftzeichen — und es bleibt bei EINEM Coach-Einstieg im Heute-Tab',
+    r.pfeil === true && r.svg === true && r.zeichen === '' && r.inZeile === true &&
+    r.versteckt === 'true' && r.einstiege === 1 && r.karten === 1 && r.pad === 2,
+    JSON.stringify(r));
+
+  // Druckzustand: die Karte reagiert auf den Finger, der CTA nimmt seinen
+  // eigenen Druck (sonst schluckte die Karte den Trainingsstart).
+  let druck = { karte: null, cta: null, danach: null };
+  try {
+    const top = await page.$('#coach-today-card .aic-top');
+    const box = await top.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    druck.karte = await ev(() => !!document.querySelector('#coach-today-card .aic.press'));
+    await page.mouse.up();
+    await wait(120);
+    druck.danach = await ev(() => !!document.querySelector('#coach-today-card .aic.press'));
+    const go = await page.$('#coach-today-card .aic-go');
+    const gb = go ? await go.boundingBox() : null;
+    if (gb) {
+      await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
+      await page.mouse.down();
+      druck.cta = await ev(() => !!document.querySelector('#coach-today-card .aic.press'));
+      await page.mouse.up();
+    }
+  } catch (e) { druck.fehler = String(e.message).slice(0, 140); }
+  await wait(200);
+  await ev(() => { try { closeOv('ov-coach-hub'); } catch (_) {} });
+  check('Druckzustand: ein Finger auf der Karte drueckt sie sichtbar ein und laesst sie beim Loslassen wieder los — ein Finger auf "Training starten" NICHT (derselbe closest("button, a")-Waechter)',
+    druck.karte === true && druck.danach === false && druck.cta === false,
+    JSON.stringify(druck));
+
+  // ── Raster: zwei Spalten ────────────────────────────────────────────────
+  const RASTER = () => {
+    const body = document.getElementById('ch-body');
+    const secs = [...document.querySelectorAll('#ch-body .ch-card')];
+    const r0 = body ? body.getBoundingClientRect() : null;
+    const rects = secs.map(s => { const b = s.getBoundingClientRect();
+      return { id: s.id, top: Math.round(b.top), left: Math.round(b.left),
+               w: Math.round(b.width), h: Math.round(b.height),
+               on: s.classList.contains('on'),
+               sichtbar: getComputedStyle(s).display !== 'none' && b.width > 10 && b.height > 10 }; });
+    return {
+      wrap: body ? getComputedStyle(body).flexWrap : null,
+      breite: r0 ? Math.round(r0.width) : 0,
+      rects: rects,
+      // Kennzahlen duerfen umbrechen, aber nicht abgeschnitten werden.
+      kz: [...document.querySelectorAll('#ch-body .ch-card-m')].map(m =>
+        ({ txt: (m.textContent || '').replace(/\s+/g, ' ').trim(),
+           voll: m.scrollWidth <= m.clientWidth + 1,
+           // Zeilen ueber die Hoehe, nicht ueber getClientRects(): die Kennzahl
+           // ist ein Blockkasten und liefert dort immer genau ein Rechteck.
+           zeilen: Math.round(m.offsetHeight / (parseFloat(getComputedStyle(m).lineHeight) || 16)) })),
+      titel: [...document.querySelectorAll('#ch-body .ch-card-t')].map(t =>
+        ({ txt: (t.textContent || '').trim(), voll: t.scrollWidth <= t.clientWidth + 1 })),
+      symbole: document.querySelectorAll('#ch-body .ch-card-ico svg').length
+    };
+  };
+  // Ein langer Name erzwingt eine lange Kennzahl ("Alexandra-Josefine · fordernd").
+  await boot();
+  await ev(() => { try { setAiCoachOpt('name', 'Alexandragabriel'); setAiCoachOpt('tone', 'sachlich'); } catch (_) {} });
+  await hubAuf('chat');
+  await tippKachel('chat');                 // alle zu: das Raster in Reinform
+  const rasterZu = O(await ev(RASTER));
+  const reihen = {};
+  (rasterZu.rects || []).forEach(x => { (reihen[x.top] = reihen[x.top] || []).push(x.left); });
+  const paare = Object.keys(reihen).filter(t => reihen[t].length === 2);
+  check('Die fuenf Kacheln liegen als Raster mit ZWEI Spalten, nicht als Liste: mindestens zwei Reihen tragen je zwei Kacheln nebeneinander (gleiche Oberkante, verschiedene linke Kante)',
+    (rasterZu.rects || []).length === 5 &&
+    (rasterZu.wrap || '') === 'wrap' &&
+    paare.length >= 2 && paare.every(t => reihen[t][0] !== reihen[t][1]) &&
+    (rasterZu.rects || []).every(x => x.sichtbar && x.w < rasterZu.breite * 0.75 || x.w >= rasterZu.breite * 0.9),
+    JSON.stringify({ wrap: rasterZu.wrap, breite: rasterZu.breite, reihen: reihen }));
+
+  check('Jede zugeklappte Kachel traegt ein Symbol, ihren Titel und ihre Kennzahl — und nichts davon ist abgeschnitten: lange Kennzahlen brechen um, statt zu verschwinden',
+    rasterZu.symbole === 5 &&
+    (rasterZu.kz || []).length === 5 && (rasterZu.kz || []).every(k => k.txt.length > 2 && k.voll) &&
+    (rasterZu.kz || []).some(k => k.zeilen >= 2) &&
+    (rasterZu.titel || []).length === 5 && (rasterZu.titel || []).every(t => t.voll),
+    JSON.stringify({ symbole: rasterZu.symbole, kz: rasterZu.kz, titel: rasterZu.titel }).slice(0, 800));
+
+  // Die alleinstehende fuenfte Kachel nimmt die volle Breite.
+  const letzte = (rasterZu.rects || [])[4] || {};
+  check('Fuenf Kacheln in zwei Spalten lassen eine allein in der letzten Reihe: sie bekommt die VOLLE Breite, damit kein Loch im Raster steht',
+    letzte.w >= rasterZu.breite * 0.9,
+    JSON.stringify({ letzte: letzte, breite: rasterZu.breite }));
+
+  // ── Offene Kachel spannt ueber beide Spalten ────────────────────────────
+  const auf = await tippKachel('week');
+  const rasterAuf = O(await ev(RASTER));
+  const offen = (rasterAuf.rects || []).find(x => x.on) || {};
+  const zuKacheln = (rasterAuf.rects || []).filter(x => !x.on);
+  check('Ein Tipp laesst die Kachel ueber BEIDE Spalten aufwachsen — und die anderen vier bleiben sichtbar, statt zu verschwinden ("alles auf einem Beleg")',
+    auf === true && offen.id === 'ch-card-week' &&
+    offen.w >= rasterAuf.breite * 0.9 && zuKacheln.length === 4 &&
+    zuKacheln.every(x => x.sichtbar) &&
+    zuKacheln.some(x => x.w < rasterAuf.breite * 0.75),
+    JSON.stringify({ offen: offen, zu: zuKacheln.map(x => x.id + ':' + x.w) }).slice(0, 500));
+
   await browser.close();
   server.close();
 

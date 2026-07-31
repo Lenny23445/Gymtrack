@@ -428,3 +428,124 @@ Blase, die Coach-Einrichtung (behält ihre Tonkarten).
   nicht sieht". Wenn die Review das anders sieht, ist die Zeile der Kandidat.
 - `.aic-head` trägt jetzt die Wochenzeile statt der Überschrift; wer den
   Selektor anderswo als „Überschrift" liest, liest jetzt eine Zahl.
+
+---
+
+## Nachtrag — sichtbarer Einstieg auf der Karte, Kacheln als Raster
+
+Zwei Korrekturen am Aussehen, nachdem der Nutzer den gebauten Hub gesehen hat.
+Die Struktur aus den Tasks 2–4 bleibt unverändert.
+
+### 1. Die Karte sieht jetzt aus wie eine Tür
+
+- Die Zeile mit dem Coach-Namen trägt rechts einen Pfeil (`ICO.chevronRight`,
+  neu). Ein Symbol aus `ICO`, kein Zeichen aus der Schrift; `aria-hidden`, weil
+  die Vorlesehilfe ihre Auskunft schon über das `aria-label` auf `.aic-top`
+  bekommt. Er steht in **beiden** Kartenfassungen, auch in der schmalen ohne
+  Tagesempfehlung.
+- Die Karte bekommt einen Druckzustand (`.aic.press`, `scale(.985)`, der Pfeil
+  rutscht 2 px mit). Gesetzt wird er in `_aicCardTap()` per `pointerdown` und
+  **nicht** über `:active`: `:active` greift auch auf Vorfahren des gedrückten
+  Elements, die Karte wäre also mitgeschrumpft, wenn der Nutzer „Training
+  starten" drückt — genau die Fläche, die der `closest('button, a')`-Wächter
+  ausnimmt. Losgelassen wird auf `pointerup`, `pointercancel` und
+  `pointerleave`, sonst bliebe die Karte eingedrückt stehen.
+- `transition` der `.aic` für `transform` von .24 s auf .13 s: ein Druck, der
+  240 ms braucht, liest sich als Verzögerung, nicht als Reaktion. Das Ein- und
+  Ausblenden (`opacity`) bleibt bei .24 s.
+- Gestaltungsregel 1 gilt weiter und wird geprüft: genau **ein** Coach-Einstieg
+  im Heute-Tab (`#pg-heute [onclick*="openCoachHub"]`), eine `.aic`-Karte, zwei
+  Flächen unter der Kopfzeile.
+
+### 2. Die Kacheln sind ein Raster
+
+- `#ch-body` trägt zwei Spalten; zugeklappt ist jede Kachel ein annähernd
+  quadratisches Feld (169 × ~114 px bei 390 Breite) mit **Symbol, Titel und
+  Kennzahl** untereinander. Symbole: `chatBubble`, `chart2`, `sparkle`, `gear`,
+  `book` (neu in `ICO`).
+- Ein Tipp lässt die Kachel über **beide Spalten** aufwachsen; die anderen vier
+  bleiben sichtbar und rücken nach. Offen wechselt der Kopf zurück in die
+  Zeilenform, damit der Inhalt nicht unter einem hohen, halb leeren Kasten
+  klebt.
+- **Die fünfte Kachel bekommt die volle Breite** (`:last-child:nth-child(odd)`).
+  Begründung: eine halbe Kachel neben einer leeren Zelle wäre das einzige Loch
+  im sonst dichten Raster, und ein Loch liest sich als „hier fehlt etwas". Die
+  Regel ist allgemein formuliert und greift bei jeder ungeraden Anzahl.
+- **Kennzahlen brechen um statt abzuschneiden**: `white-space:normal`,
+  `overflow-wrap:anywhere`, kein `text-overflow`. Geprüft mit einem langen Namen
+  („Alexandragabriel · Sachlich") über `scrollWidth <= clientWidth` und die
+  Zeilenzahl aus Höhe ÷ Zeilenhöhe.
+
+**Zwei Dinge, die beim Bau nachgemessen und nicht vermutet wurden:**
+
+1. **Kein CSS-Grid, sondern `flex-wrap`.** Als Rasterzelle muss der Browser die
+   Höhe der Kachel vorab bestimmen; dabei fällt der Aufklapp-Übergang im
+   Inneren (`grid-template-rows: 0fr → 1fr`) auf null zusammen. Gemessen: die
+   offene Kachel blieb 110 px hoch, während ihr Inhalt 352 px maß und
+   abgeschnitten wurde — inklusive des Ton-Reglers, der dadurch nicht mehr
+   bedienbar war. Mit `display:flex; flex-wrap:wrap` und
+   `flex-basis: calc(50% - 5px)` bzw. `100%` stimmt beides.
+2. **Der Spaltenwechsel animiert über FLIP.** `grid-column`/`flex-basis`-Sprünge
+   animieren nicht von selbst. `_chFlip()` misst die Lage aller fünf Kacheln vor
+   der Umschaltung, wirft sie danach per `transform` auf die alte Lage zurück
+   und lässt sie in 260 ms `cubic-bezier(.22,.61,.36,1)` auf die neue laufen.
+   Die dabei entstehende Verzerrung hebt der neue innere Knoten `.ch-card-i`
+   mit der Kehrskalierung exakt wieder auf — sonst wäre die Schrift der
+   aufwachsenden Kachel während des Übergangs gestaucht. Die **Höhe** bleibt
+   Sache des bestehenden `grid-template-rows`-Übergangs: zum Messzeitpunkt ist
+   die Kachel noch flach, die Höhe wächst danach von selbst, und die anderen
+   Kacheln folgen dem Layout. Bei `prefers-reduced-motion: reduce` entfällt der
+   ganze Griff.
+3. **Diagramme messen nach dem Übergang noch einmal nach.** Gezeichnet wird im
+   Moment des Tipps — da ist die Kachel noch eine halbe Spalte breit. Der
+   Beobachter von Chart.js zieht nicht zuverlässig nach, während gleichzeitig
+   eine FLIP-Transformation läuft; ein `resize()` 320 ms später schließt die
+   Lücke.
+
+**Unverändert:** genau eine Kachel offen, erneuter Tipp schließt sie,
+Scroll-Rettung, `_chHoldBody`, frühe Rückkehr bei geschlossenem Blatt,
+`prefers-reduced-motion` auf 0 ms, Zeitkurve 260 ms `cubic-bezier(.22,.61,.36,1)`.
+
+### Testzahlen
+
+| | vorher (rot) | nachher |
+| --- | --- | --- |
+| `node --test test/*.js` | 574 | **574** |
+| `hub-check` | 57/62 | **62/62** |
+| `fix-check` | 14/14 | **14/14** |
+| `task-9` | 20/20 | **20/20** |
+| `task-10` | 46/46 | **46/46** |
+
+Neu in `hub-check.js`: sechs Prüfungen (Einstiegs-Pfeil als ICO-Symbol in der
+Namenszeile bei genau einem Coach-Einstieg; Druckzustand auf der Karte, nicht
+auf dem CTA; zwei Spalten mit zwei Kacheln je Reihe; Symbol, Titel und Kennzahl
+ohne Abschnitt und mit Umbruch; volle Breite für die alleinstehende fünfte;
+offene Kachel über beide Spalten bei sichtbar bleibenden anderen).
+
+### Belege
+
+`.superpowers/sdd/2026-07-31-coach-hub-umbau/` — `raster-zu.png`,
+`raster-woche.png`, `raster-ton.png`, `raster-karte.png`, erzeugt von
+`raster-shots.js` (390×844, dunkles Thema, Coach „Nina", Premium erzwungen,
+Port 8805).
+
+### Anmerkung zum Belegskript
+
+`raster-shots.js` stellt für den Aufbau des Bestands die Uhr fest („Mittwoch
+dieser Woche") und **lässt sie danach wieder los**: Chart.js rechnet seine
+Animationen über `Date.now()`, und mit stehender Uhr blieben die Balken auf
+Höhe 0 — der erste Beleg zeigte Achsen ohne Balken. Ein Harness-Artefakt, kein
+Fehler der App (gegengeprüft mit laufender Uhr über dieselbe Zeigerfolge).
+
+### Offene Punkte
+
+- Die Kacheln einer Reihe sind gleich hoch (`align-items:stretch`), die Reihen
+  untereinander nicht — eine Kennzahl, die umbricht, macht ihre Reihe höher.
+  Bewusst so: eine feste Höhe für alle schnitte die umbrechende Kennzahl ab.
+- Beim Öffnen einer Kachel bleibt im Raster eine halbe Zelle frei, wenn die
+  offene Kachel an ungerader Position steht. `grid-auto-flow: dense` hätte das
+  gefüllt, aber die Lesereihenfolge von der DOM-Reihenfolge abgekoppelt; für
+  fünf selbsterklärende Kacheln war mir die freie Zelle das kleinere Übel.
+- `_chFlip()` läuft bei jedem Kachelwechsel über fünf Elemente mit je zwei
+  erzwungenen Layouts. Bei 390 × 844 unauffällig gemessen, aber es ist die
+  teuerste Stelle des Nachtrags.

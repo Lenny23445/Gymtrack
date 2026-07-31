@@ -5195,8 +5195,16 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ov-coach-hub .sheet{height:min(78vh,var(--sheet-cap));display:flex;flex-direction:column;
   overflow:hidden;padding-bottom:0}
 #ov-coach-hub .sheet>.px{flex:1;min-height:0;display:flex;flex-direction:column}
+/* ZWEI SPALTEN statt einer Liste. Fünf Kacheln untereinander waren fünf
+   Absätze für fünf Fragen; als Raster sieht der Nutzer alle auf einen Blick.
+   align-content:start, sonst zöge der Scroller die Reihen auseinander, sobald
+   der Inhalt kürzer ist als die Fläche. */
 #ch-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  padding-bottom:calc(100px + var(--sab))}
+  padding-bottom:calc(100px + var(--sab));
+  /* align-items bleibt auf stretch: so sind die Kacheln einer Reihe gleich
+     hoch, auch wenn eine Kennzahl umbricht und die andere nicht. Die Höhe der
+     Reihe kommt trotzdem aus dem Inhalt. */
+  display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px}
 
 /* Kopf trägt denselben Orb wie die Heute-Karte: der Hub soll sichtbar dasselbe
    Objekt sein wie die Karte, die ihn öffnet, und kein fremdes Menü. Der Name
@@ -5218,8 +5226,26 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    Control (.ch-tabs/.ch-tab) war ein Bedienidiom, das die App sonst nirgends
    hat, und stand im selben Blatt gegen die .pwz-chip-Reihen. Es entfällt
    ersatzlos. */
-.ch-card{position:relative;overflow:hidden;border-radius:15px;margin:0 0 10px;
+.ch-card{position:relative;overflow:hidden;border-radius:15px;margin:0;
   background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+/* Zwei Spalten über flex-wrap und NICHT über CSS-Grid: als Rasterzelle müsste
+   der Browser die Höhe der Kachel vorab bestimmen, und dabei fällt der
+   Aufklapp-Übergang (grid-template-rows: 0fr → 1fr) im Inneren auf null
+   zusammen — die offene Kachel bliebe so hoch wie die zugeklappte und
+   schnitte ihren Inhalt ab. Nachgemessen, nicht vermutet. */
+.ch-card{flex:0 0 calc(50% - 5px);max-width:calc(50% - 5px)}
+/* Die offene Kachel spannt über beide Spalten; die anderen rücken nach und
+   BLEIBEN sichtbar — "alles auf einem Beleg". */
+.ch-card.on{flex-basis:100%;max-width:100%}
+/* Fünf Kacheln in zwei Spalten lassen eine allein in der letzten Reihe. Sie
+   bekommt die volle Breite: eine halbe Kachel neben einer leeren Zelle wäre
+   das einzige Loch im sonst dichten Raster, und ein Loch liest sich als
+   "hier fehlt etwas". Die Regel greift allgemein bei ungerader Anzahl. */
+.ch-card:last-child:nth-child(odd){flex-basis:100%;max-width:100%}
+/* Träger für die FLIP-Gegenskalierung: die Kachel selbst wird beim Wechsel
+   zwischen einer und zwei Spalten verzerrt animiert, dieser Knoten hebt die
+   Verzerrung für den Inhalt exakt wieder auf. */
+.ch-card-i{transform-origin:top left}
 /* Haarlinie oben — derselbe Baustein wie .ch-jrn::after und .ch-preset::after. */
 .ch-card::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
@@ -5228,18 +5254,37 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ch-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;pointer-events:none;opacity:0;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent);
   transform:translateX(-170%)}
-.ch-card-h{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;
-  padding:13px 14px;background:none;border:none;color:var(--text);font-family:inherit;
+/* Zugeklappt ein annähernd quadratisches Feld: Symbol, Titel, Kennzahl
+   untereinander. Die Zeilenform von früher passt in eine halbe Spalte nicht
+   mehr — und eine abgeschnittene Zahl ist schlimmer als keine. */
+.ch-card-h{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;
+  width:100%;min-height:112px;box-sizing:border-box;
+  padding:12px 12px 11px;background:none;border:none;color:var(--text);font-family:inherit;
   text-align:left;cursor:pointer}
 .ch-card-h:active{background:rgba(127,127,127,.06)}
-.ch-card-t{flex:1;min-width:0;font-size:14.5px;font-weight:800;letter-spacing:-.2px}
-/* Die Kennzahl: das Einzige, was die zugeklappte Kachel sagt — deshalb steht sie
-   in der Zeile und nicht darunter. */
-.ch-card-m{flex-shrink:0;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-size:12.5px;font-weight:700;color:var(--acc);letter-spacing:-.1px}
-.ch-card-c{flex-shrink:0;display:block;color:var(--text2);transition:transform .26s cubic-bezier(.22,.61,.36,1)}
+.ch-card-ico{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;flex-shrink:0;
+  color:var(--acc);background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.20);
+  margin-bottom:2px}
+.ch-card-t{font-size:13.5px;font-weight:800;letter-spacing:-.2px;line-height:1.25;
+  overflow-wrap:anywhere}
+/* Die Kennzahl ist das Einzige, was die zugeklappte Kachel sagt. Sie BRICHT UM
+   statt abzuschneiden: "Alexandragabriel · Sachlich" oder ein Wochenvolumen
+   mit Pfeil und Prozent passen in eine halbe Spalte nicht in eine Zeile. */
+.ch-card-m{margin-top:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;
+  font-size:12px;font-weight:700;color:var(--acc);letter-spacing:-.1px;line-height:1.3}
+/* Der Winkel sitzt oben rechts in der Ecke — in der Spaltenform gibt es keine
+   Zeile mehr, an deren Ende er stehen könnte. */
+.ch-card-c{position:absolute;top:11px;right:10px;display:block;color:var(--text2);
+  transition:transform .26s cubic-bezier(.22,.61,.36,1)}
 .ch-card.on .ch-card-c{transform:rotate(180deg);color:var(--acc)}
 .ch-card.on .ch-card-t{color:var(--acc)}
+/* Offen ist die Kachel voll breit — dann steht der Kopf wieder als Zeile, sonst
+   klebte der Inhalt unter einem hohen, halb leeren Kasten. */
+.ch-card.on .ch-card-h{flex-direction:row;align-items:center;gap:10px;min-height:0;padding:12px 14px 10px}
+.ch-card.on .ch-card-ico{margin-bottom:0}
+.ch-card.on .ch-card-t{flex:1;min-width:0}
+.ch-card.on .ch-card-m{margin-top:0;max-width:46%;text-align:right}
+.ch-card.on .ch-card-c{position:static;margin-left:2px}
 /* Aufklappen über grid-template-rows 0fr -> 1fr. NICHT über max-height: das
    rastet bei unbekannter Inhaltshöhe (ein zu kleiner Wert schneidet ab, ein zu
    großer macht die Kurve unbrauchbar). */
@@ -5695,7 +5740,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,rgba(var(--acc-rgb),.02)),var(--gl-bg-h);
   border:1px solid rgba(var(--acc-rgb),.30);
   box-shadow:0 12px 30px rgba(var(--acc-rgb),.15),inset 0 1px 0 rgba(255,255,255,.10);
-  transition:opacity .24s ease,transform .24s ease}
+  /* transform kürzer als opacity: das Ein-/Ausblenden bleibt bei .24s, der
+     Druck unter dem Finger muss sofort kommen — 240 ms fühlten sich wie eine
+     Verzögerung an, nicht wie eine Reaktion. */
+  transition:opacity .24s ease,transform .13s ease}
 /* WICHTIG: Ruhezustand ist SICHTBAR. Ein-/Ausblenden läuft über Keyframes ohne
    fill-mode — so bleibt die Karte auch dann lesbar, wenn eine Engine die
    Animation gar nicht startet (Paint-Throttling, Snapshot-Renderer, reduzierte
@@ -5742,6 +5790,17 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-orb::before{content:'';position:absolute;inset:0;border-radius:50%;
   border:1px solid rgba(var(--acc-rgb),.85);opacity:.55}
 .aic-lbl{font-size:11.5px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:var(--acc)}
+/* Der Karte ansehen, dass sie eine TÜR ist: ohne Signal las sie sich als
+   Anzeige, und der einzige Zugang zum Coach blieb unentdeckt. Der Pfeil sitzt
+   am rechten Ende der Namenszeile und ist rein dekorativ — die Vorlesehilfe
+   bekommt ihre Auskunft über das aria-label auf .aic-top. */
+.aic-go-hint{margin-left:auto;display:grid;place-items:center;flex-shrink:0;color:var(--acc);opacity:.75;
+  transition:transform .16s cubic-bezier(.22,.61,.36,1)}
+.aic.press .aic-go-hint{transform:translateX(2px)}
+/* Druckzustand der ganzen Karte. Gesetzt wird er in _aicCardTap() und NICHT
+   über :active — sonst schrumpfte die Karte auch beim Tipp auf "Training
+   starten", den derselbe closest("button, a")-Wächter ausnimmt. */
+.aic.press{transform:scale(.985)}
 .aic-live{display:flex;align-items:center;gap:5px;margin-left:auto;font-size:10.5px;font-weight:800;
   color:var(--text2);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
 .aic-live i{width:5px;height:5px;border-radius:50%;background:var(--acc);flex-shrink:0;
@@ -11984,7 +12043,22 @@ function _aicCardTap(card) {
   top.setAttribute('role', 'button');
   top.setAttribute('tabindex', '0');
   top.setAttribute('aria-label', _cm('Coach-Menü öffnen', 'Open coach menu'));
+  /* Druckzustand unter dem Finger. Bewusst in JS und nicht als :active im
+     Stylesheet: :active greift auch auf Vorfahren des gedrückten Elements, die
+     Karte schrumpfte also mit, wenn der Nutzer "Training starten" drückt —
+     genau die Fläche, die derselbe closest("button, a")-Wächter ausnimmt.
+     Losgelassen wird auf jedem Weg (up, cancel, leave), sonst bliebe die Karte
+     eingedrückt stehen. */
+  const los = () => { try { card.classList.remove('press'); } catch(_) {} };
+  card.onpointerdown = (ev) => {
+    try { if (ev.target.closest('button, a')) return; card.classList.add('press'); }
+    catch(_) {}
+  };
+  card.onpointerup = los;
+  card.onpointercancel = los;
+  card.onpointerleave = los;
   card.onclick = (ev) => {
+    los();
     if (ev.target.closest('button, a')) return;
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
     try { openCoachHub('chat'); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
@@ -12022,6 +12096,7 @@ function renderCoachTodayCard() {
           <div class="aic-top">
             <span class="aic-orb">${ICO.sparkle({s:14})}</span>
             <span class="aic-lbl">${esc(_coachName())}</span>
+            <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
           </div>
           <div class="aic-sub">${esc(tr('Tippen für Chat, Journal und Einstellungen.'))}</div>
         </div>
@@ -12060,6 +12135,7 @@ function renderCoachTodayCard() {
           <span class="aic-orb">${ICO.sparkle({s:14})}</span>
           <span class="aic-lbl">${esc(_coachName())}</span>
           <span class="aic-live"><i></i>${esc(s.chip)}</span>
+          <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
         </div>
         <div class="aic-main">
           <div class="aic-left">
@@ -18702,6 +18778,12 @@ Object.assign(ICO, {
   // sich beim Öffnen um 180° (.ch-card.on .ch-card-c) — ein Zeichen, zwei
   // Zustände, keine zweite Form.
   chevron:o=>_svg('<path d="M6 9.5 12 15.5 18 9.5"/>',o),
+  // Zeigt an, dass hinter einer Fläche mehr liegt — der Einstieg in den
+  // Coach-Hub auf der Heute-Karte. Dieselbe Form wie chevron, nur gedreht.
+  chevronRight:o=>_svg('<path d="M9.5 6 15.5 12 9.5 18"/>',o),
+  // Symbol der Journal-Kachel. Ein aufgeschlagenes Heft: das Journal ist das,
+  // was der Coach über den Nutzer notiert hat.
+  book:o=>_svg('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 15.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5z"/>',o),
 });
 // Phase E: Check-in-Anstrengungs-Gauge (4 Balken, 1..4 davon gefüllt = Intensität)
 Object.assign(ICO, {
@@ -26202,11 +26284,11 @@ function setCoachPreset(name){
 // Gestaltungsregel-7-Verstoß: das Segmented Control war ein Bedienidiom, das
 // die App sonst nirgends hat.
 const _CH_CARDS = [
-  { k:'chat',    de:'Gespräch' },
-  { k:'week',    de:'Woche' },
-  { k:'persona', de:'Persönlichkeit' },
-  { k:'scope',   de:'Umfang und Meldungen' },
-  { k:'journal', de:'Journal' }
+  { k:'chat',    de:'Gespräch',             ico:'chatBubble' },
+  { k:'week',    de:'Woche',                ico:'chart2' },
+  { k:'persona', de:'Persönlichkeit',       ico:'sparkle' },
+  { k:'scope',   de:'Umfang und Meldungen', ico:'gear' },
+  { k:'journal', de:'Journal',              ico:'book' }
 ];
 const _CH_CARD_IDS = _CH_CARDS.map(c => c.k);
 // Welche Kachel offen ist. '' heißt: keine — ein gültiger Zustand. Wird beim
@@ -26267,7 +26349,62 @@ function coachHubOpen(name){
     if (_chOpen) _chScrollOpen(_chOpen);
   } catch(e) { console.warn('[Coach] Kachel öffnen:', e); }
 }
+/* Der Wechsel zwischen einer und zwei Spalten animiert nicht von selbst:
+   grid-column ist keine übergangsfähige Eigenschaft, die Kachel spränge auf
+   volle Breite und die anderen sprängen in ihre neuen Zellen.
+
+   Deshalb FLIP: die Lage ALLER Kacheln vor der Umschaltung messen, umschalten,
+   danach messen, jede Kachel per transform auf ihre alte Lage zurückwerfen und
+   von dort in 260 ms auf die neue laufen lassen. Die Verzerrung, die dabei am
+   Rahmen entsteht, hebt der innere Knoten (.ch-card-i) mit der Kehrskalierung
+   exakt wieder auf — sonst würde die Schrift der aufwachsenden Kachel während
+   des Übergangs gestaucht.
+
+   Die HÖHE bleibt Sache des bestehenden grid-template-rows-Übergangs: zum
+   Messzeitpunkt ist die Kachel noch flach, die Höhe wächst danach von selbst,
+   und die anderen Kacheln folgen dem Layout. Der Sprung, den FLIP auffängt,
+   ist der der Spalten.
+
+   Bei reduzierter Bewegung entfällt der ganze Griff — es bleibt beim
+   sofortigen Umschalten. */
+const _CH_FLIP_MS = 260;
+function _chFlip(cards, vorher){
+  try {
+    if (!vorher) return;
+    cards.forEach((el, i) => {
+      const a = vorher[i]; if (!a) return;
+      const b = el.getBoundingClientRect();
+      if (!b.width || !b.height || !a.width || !a.height) return;
+      const dx = a.left - b.left, dy = a.top - b.top;
+      const sx = a.width / b.width, sy = a.height / b.height;
+      if (Math.abs(dx) < .5 && Math.abs(dy) < .5 &&
+          Math.abs(sx - 1) < .005 && Math.abs(sy - 1) < .005) return;
+      const inner = el.querySelector('.ch-card-i');
+      el.style.transition = 'none';
+      el.style.transformOrigin = 'top left';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')';
+      if (inner) { inner.style.transition = 'none';
+                   inner.style.transform = 'scale(' + (1 / sx) + ',' + (1 / sy) + ')'; }
+      void el.offsetWidth;                                  // Lage festschreiben
+      const kurve = _CH_FLIP_MS + 'ms cubic-bezier(.22,.61,.36,1)';
+      el.style.transition = 'transform ' + kurve;
+      el.style.transform = '';
+      if (inner) { inner.style.transition = 'transform ' + kurve; inner.style.transform = ''; }
+      setTimeout(() => {
+        try {
+          el.style.transition = ''; el.style.transform = ''; el.style.transformOrigin = '';
+          if (inner) { inner.style.transition = ''; inner.style.transform = ''; }
+        } catch(_) {}
+      }, _CH_FLIP_MS + 40);
+    });
+  } catch(e) { console.warn('[Coach] Kachelwechsel bewegen:', e); }
+}
 function _chApplyOpen(){
+  const kacheln = _CH_CARD_IDS.map(k => document.getElementById('ch-card-' + k)).filter(Boolean);
+  let vorher = null;
+  try {
+    if (!_chReduceMotion() && kacheln.length) vorher = kacheln.map(el => el.getBoundingClientRect());
+  } catch(_) { vorher = null; }
   _CH_CARD_IDS.forEach(k => {
     const sec = document.getElementById('ch-card-' + k); if (!sec) return;
     const on = (k === _chOpen);
@@ -26284,6 +26421,7 @@ function _chApplyOpen(){
     const h = document.getElementById('ch-h-' + k);
     if (h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
   });
+  _chFlip(kacheln, vorher);
 }
 /* Die geöffnete Kachel in Sicht holen. Erst NACH dem Aufklappen messen (260 ms
    Übergang): währenddessen ist die Kachel halb hoch und das Ergebnis wäre eine
@@ -26325,15 +26463,22 @@ function _chCardHTML(c, cur){
   catch(e) { console.warn('[Coach] Kachelinhalt ' + c.k + ':', e); inner = ''; }
   try { kz = _chCardMetric(c.k, cur) || ''; }
   catch(e) { console.warn('[Coach] Kennzahl ' + c.k + ':', e); kz = ''; }
+  // Das Symbol kommt aus ICO und ist rein dekorativ — Titel und Kennzahl
+  // stehen als Text daneben, die Vorlesehilfe braucht es nicht.
+  let ico = '';
+  try { ico = (ICO[c.ico] || ICO.sparkle)({ s: 17 }); } catch(_) { ico = ''; }
   return `<section class="ch-card${on ? ' on' : ''}" id="ch-card-${c.k}">
-      <button type="button" class="ch-card-h" id="ch-h-${c.k}" aria-expanded="${on ? 'true' : 'false'}"
-        aria-controls="ch-p-${c.k}" onclick="coachHubOpen('${c.k}')">
-        <span class="ch-card-t">${esc(tr(c.de))}</span>
-        <span class="ch-card-m">${esc(kz)}</span>
-        <span class="ch-card-c" aria-hidden="true">${ICO.chevron({s:18})}</span>
-      </button>
-      <div class="ch-card-w" id="ch-p-${c.k}" role="region" aria-labelledby="ch-h-${c.k}">
-        <div class="ch-card-b"><div class="ch-in">${inner}</div></div>
+      <div class="ch-card-i">
+        <button type="button" class="ch-card-h" id="ch-h-${c.k}" aria-expanded="${on ? 'true' : 'false'}"
+          aria-controls="ch-p-${c.k}" onclick="coachHubOpen('${c.k}')">
+          <span class="ch-card-ico" aria-hidden="true">${ico}</span>
+          <span class="ch-card-t">${esc(tr(c.de))}</span>
+          <span class="ch-card-m">${esc(kz)}</span>
+          <span class="ch-card-c" aria-hidden="true">${ICO.chevron({s:18})}</span>
+        </button>
+        <div class="ch-card-w" id="ch-p-${c.k}" role="region" aria-labelledby="ch-h-${c.k}">
+          <div class="ch-card-b"><div class="ch-in">${inner}</div></div>
+        </div>
       </div>
     </section>`;
 }
@@ -26511,6 +26656,19 @@ function _chWeekDraw(){
     mk('chw-vol-cv', _chWeekCfg.vol);
     mk('chw-mus-cv', _chWeekCfg.mus);
     mk('chw-1rm-cv', _chWeekCfg.rm);
+    /* Gezeichnet wird im Moment des Tipps — da ist die Kachel noch eine halbe
+       Spalte breit und ihr Inhalt zugeklappt. Chart.js misst dabei eine Fläche,
+       die es gleich nicht mehr gibt: die Kachel wächst in 260 ms auf die volle
+       Breite. Der Beobachter von Chart.js zieht zwar nach, aber nicht
+       zuverlässig, während gleichzeitig eine FLIP-Transformation läuft — nach
+       dem Übergang deshalb EINMAL nachmessen lassen. Ohne diese Zeile stand das
+       Diagramm mit Achsen, aber ohne Balken da (nachgesehen, nicht vermutet). */
+    if (_chWeekInst.length) {
+      setTimeout(() => {
+        try { _chWeekInst.forEach(c => { try { c.resize(); } catch(_) {} }); }
+        catch(e) { console.warn('[Coach] Diagramme nachmessen:', e); }
+      }, _CH_FLIP_MS + 60);
+    }
     _chWeekCountUp();
   } catch(e) { console.warn('[Coach] Wochendiagramme:', e); }
 }
