@@ -11914,18 +11914,19 @@ function _aicNextMuscle(){
              pct: Math.max(0, Math.min(100, Math.round(top.r.recPct))) };
   } catch(e) { console.warn('[Coach] Nächste Muskelgruppe:', e); return null; }
 }
-// Volumen der laufenden Woche und der Vorwoche, in kg. Dieselbe Rechnung wie
-// in der Wochenkachel — eine zweite Lesart hiesse: zwei Zahlen für dieselbe
-// Woche auf zwei Flächen derselben App.
+/* Volumen der laufenden Woche und der Vorwoche, in kg. Beides kommt aus
+   _crNowNumbers() — DERSELBEN Quelle, aus der auch die Wochenkachel liest.
+   Zwei getrennte Rechnungen hiessen: zwei Zahlen für dieselbe Woche auf zwei
+   Flächen derselben App, und genau das ist hier schon einmal passiert.
+   Die Vorwoche kommt aus n.prevVol und nicht mehr aus einem zweiten Lauf über
+   ws - 7 * 864e5: prevVol rechnet über den Kalender (CoachReport.shiftWeeks),
+   die Millisekunden landeten in der Woche nach der Frühjahrsumstellung eine
+   Stunde und damit eine ganze Woche zu weit zurück. */
 function _aicWeek(){
   try {
-    if (!window.CoachReport) return null;
-    const ws = CoachReport.weekStart(Date.now());
-    if (ws === null) return null;
-    const ses = _crSessions();
-    const n = CoachReport.weekNumbers(ses, ws);
-    const v = CoachReport.weekNumbers(ses, ws - 7 * 864e5);
-    return { vol: Math.round(Number(n && n.vol) || 0), prev: Math.round(Number(v && v.vol) || 0) };
+    const n = _crNowNumbers();
+    if (!n) return null;
+    return { vol: Math.round(Number(n.vol) || 0), prev: Math.round(Number(n.prevVol) || 0) };
   } catch(e) { console.warn('[Coach] Wochenvolumen der Karte:', e); return null; }
 }
 // Die Einheit hängt am WERT (_csWeight). Ohne Vorwoche kein Pfeil und kein
@@ -12071,9 +12072,14 @@ function renderCoachTodayCard() {
             </div>
             ${ringLbl ? `<div class="aic-r-lbl">${esc(ringLbl)}</div>` : ''}
           </div>
+          <!-- Was HEUTE ansteht trägt die große Schrift, die Wochenzahl steht
+               kleiner darunter: die sichtbarste Zeile der Startseite gehört der
+               Handlungsaufforderung, nicht einer Kennzahl. Getauscht sind nur
+               Gewichtung und Reihenfolge — beide Angaben bleiben auf der Karte,
+               Pfeil und Prozent zur Vorwoche hängen weiter an der Zahl. -->
           <div class="aic-txt">
-            ${wochenZeile ? `<div class="aic-head">${esc(wochenZeile)}</div>` : ''}
-            <div class="aic-sub">${esc(s.head)}</div>
+            <div class="aic-head">${esc(s.head)}</div>
+            ${wochenZeile ? `<div class="aic-sub">${esc(wochenZeile)}</div>` : ''}
           </div>
         </div>
         ${satz ? `<div class="aic-say">${esc(satz)}</div>` : ''}
@@ -26401,16 +26407,25 @@ function _chWeekBarData(cur){
     (S.coachReports || []).forEach(r => {
       if (r && r.weekKey && !arch[r.weekKey]) arch[r.weekKey] = r;
     });
-    // Der Zwischenstand der laufenden Woche zählt wie ein Bericht: er ist aus
-    // denselben Zahlen gerechnet und steht schon oben in der Kachel.
-    if (cur && cur.rep && cur.rep.weekKey && !arch[cur.rep.weekKey]) arch[cur.rep.weekKey] = cur.rep;
+    /* Die laufende Woche kommt aus cur und ÜBERSCHREIBT einen Archiveintrag für
+       genau diese Woche. Sie trägt die Zahlen aus den Einheiten (_crNowNumbers);
+       der archivierte Bericht wurde am Termin gebaut und wäre für die laufende
+       Woche ein eingefrorener Stand — der Balken stünde dann auf einem anderen
+       Wert als die Kennzahl direkt darüber. Für ABGESCHLOSSENE Wochen bleibt das
+       Archiv die Quelle. */
+    if (cur && cur.rep && cur.rep.weekKey) arch[cur.rep.weekKey] = cur.rep;
     const ses = _crSessions();
     let erste = 0;
     ses.forEach(s => { if (s && isFinite(s.ts) && (!erste || s.ts < erste)) erste = s.ts; });
     const max = (window.CoachCharts && CoachCharts.MAX_BARS) || 8;
-    const now = Date.now();
+    /* Zurück gezählt wird über den KALENDER, nicht über i * 7 * 864e5: zwischen
+       00:00 und 00:59 lokal rutschte die Millisekundenrechnung in den Wochen
+       nach der Frühjahrsumstellung über eine Wochengrenze und übersprang eine
+       Woche — acht Balken, die keine acht zusammenhängenden Wochen waren. */
+    const jetzt = CoachReport.weekStart(Date.now());
+    if (jetzt === null) return out;
     for (let i = max - 1; i >= 0; i--) {
-      const ws = CoachReport.weekStart(now - i * 7 * 864e5);
+      const ws = CoachReport.shiftWeeks(jetzt, -i);
       if (ws === null) continue;
       const key = _crWeekKey(ws);
       if (!key) continue;
@@ -26419,7 +26434,7 @@ function _chWeekBarData(cur){
       if (rep) {
         vol = Math.round(Number((rep.numbers || {}).vol) || 0);
       } else {
-        if (erste && ws + 7 * 864e5 <= erste) continue;   // ganz vor der ersten Einheit
+        if (erste && CoachReport.shiftWeeks(ws, 1) <= erste) continue;   // ganz vor der ersten Einheit
         const n = CoachReport.weekNumbers(ses, ws);
         vol = Math.round(Number(n && n.vol) || 0);
       }
@@ -26561,9 +26576,20 @@ function _chGoalIst(exId){
    Arbeitssätzen der letzten acht Wochen zuerst — daran arbeitet der Nutzer
    erkennbar. Aufwärmsätze zählen nicht mit; sie sagen nichts über den
    Schwerpunkt. Danach der Rest seiner Übungen, damit "eine andere wählen"
-   nicht an einer Vorauswahl endet. */
+   nicht an einer Vorauswahl endet.
+
+   Zur Wahl steht nur, was MIN_WEEKS Messwochen mit Gewicht hat. Zwei Gründe,
+   und beide sind bindend:
+   - ex.targetWeight ist NICHT nur das Kraftziel. getSuggestedWeight() gibt
+     genau dieses Feld als ARBEITSGEWICHT zurück, solange die Übung keine
+     Historie mit Gewicht hat. Ein Ziel auf so einer Übung wird im Training als
+     Last angesagt und trägt die Aufwärmleiter — der Nutzer setzt sich ein Ziel
+     und bekommt es als Vorgabe zurück.
+   - Darunter liefert _crGoal() ohnehin nie eine Prognose (dieselbe Schwelle).
+     Es geht also keine Funktion verloren, nur eine Zeile, die nichts könnte. */
 function _chGoalCandidates(){
   try {
+    if (!window.CoachReport) return [];
     const seit = Date.now() - 8 * 7 * 864e5;
     const zahl = Object.create(null);
     (S.sessions || []).forEach(s => {
@@ -26578,7 +26604,8 @@ function _chGoalCandidates(){
         });
       });
     });
-    const frei = (S.exercises || []).filter(e => e && e.id && e.targetType !== 'time' && e.name);
+    const frei = (S.exercises || []).filter(e => e && e.id && e.targetType !== 'time' && e.name &&
+      _crHistory(e.id).length >= CoachReport.MIN_WEEKS);
     return frei.slice().sort((a, b) => (zahl[b.id] || 0) - (zahl[a.id] || 0));
   } catch(e) { console.warn('[Coach] Zielkandidaten:', e); return []; }
 }
@@ -26626,7 +26653,36 @@ function coachSetGoal(exId, kgDisp){
   try {
     const ex = exById(exId);
     if (!ex) { _chGoalHint = _cm('Wähl zuerst eine Übung.', 'Pick an exercise first.'); renderCoachHub(); return; }
-    const n = parseFloat(String(kgDisp == null ? '' : kgDisp).replace(',', '.'));
+    /* Ohne MIN_WEEKS Messwochen wird hier NICHTS geschrieben — derselbe Riegel
+       wie in _chGoalCandidates(), aber am Schreibweg selbst: ex.targetWeight ist
+       zugleich das Feld, aus dem getSuggestedWeight() ohne Historie das
+       ARBEITSGEWICHT ansagt. Ein Ziel dort wäre im Training eine Last, keine
+       Absicht. Der Riegel gehört an beide Stellen, weil die Auswahl nur die
+       Oberfläche ist und dieser Weg der einzige Schreibpfad. */
+    const min = (window.CoachReport && CoachReport.MIN_WEEKS) || 4;
+    if (_crHistory(exId).length < min) {
+      _chGoalHint = _cm(
+        'Für ' + String(ex.name || '') + ' fehlt noch Verlauf: erst ab ' + min + ' Wochen mit Gewicht kann dein Coach rechnen.',
+        'Not enough history for ' + String(ex.name || '') + ' yet: your coach needs ' + min + ' weeks logged with weight.');
+      renderCoachHub(); return;
+    }
+    const roh = String(kgDisp == null ? '' : kgDisp).trim();
+    if (!roh) {
+      _chGoalHint = _cm('Trag ein Zielgewicht ein.', 'Enter a target weight.');
+      renderCoachHub(); return;
+    }
+    /* Ziffern und HÖCHSTENS ein Trennzeichen. Ohne diese Prüfung wird "1.200"
+       still zu 1,2 (parseFloat liest den Punkt als Dezimaltrenner), fällt unter
+       das erreichte Maximum und wird mit "Du hebst rechnerisch schon …"
+       abgelehnt — einer Auskunft über die falsche Sache. Der Eingabefehler wird
+       jetzt benannt und die Eingabe zitiert, damit der Nutzer sieht, was
+       angekommen ist. */
+    if (!/^\d+([.,]\d{1,2})?$/.test(roh)) {
+      _chGoalHint = _cm('„' + roh + '“ ist keine Zahl. Trag sie ohne Tausenderpunkt ein, zum Beispiel 102,5.',
+                        '“' + roh + '” is not a number. Enter it without a thousands separator, for example 102.5.');
+      renderCoachHub(); return;
+    }
+    const n = parseFloat(roh.replace(',', '.'));
     if (!isFinite(n) || n <= 0) {
       _chGoalHint = _cm('Trag ein Zielgewicht ein.', 'Enter a target weight.');
       renderCoachHub(); return;
@@ -26684,9 +26740,20 @@ function _chGoalHTML(){
           'Sag, wohin du willst — dann rechnet dein Coach, wie lange es dauert.',
           'Say where you want to get to — your coach works out how long it takes.'))}</span></button>`);
     }
-    if (_chGoalOpen) {
+    if (_chGoalOpen && !_chGoalCandidates().length) {
+      /* Noch keine Übung mit genug Messwochen: eine leere Chip-Reihe wäre eine
+         Fläche, die nichts sagt. Der Grund steht stattdessen da — und was zu
+         tun ist, damit die Zeile etwas kann. */
+      const min = (window.CoachReport && CoachReport.MIN_WEEKS) || 4;
+      out.push(`<div class="ch-jrn ghost" id="chw-goal-leer"><span>${esc(_cm(
+        'Noch keine Übung mit genug Verlauf.', 'No exercise has enough history yet.'))}<i>${esc(_cm(
+        'Ab ' + min + ' Wochen, in denen du eine Übung mit Gewicht loggst, rechnet dein Coach daraus eine Prognose.',
+        'Once you have logged an exercise with weight in ' + min + ' weeks, your coach can turn it into a forecast.'))}</i></span></div>`);
+    } else if (_chGoalOpen) {
       const kand = _chGoalCandidates();
-      if (!_chGoalEx && kand[0]) _chGoalEx = kand[0].id;
+      // Die gemerkte Übung muss noch in der Auswahl stehen — sonst zeigte die
+      // Reihe keinen markierten Chip und der Speicherknopf liefe ins Leere.
+      if (!kand.some(e => e.id === _chGoalEx)) _chGoalEx = kand[0].id;
       const chips = kand.map((e, i) =>
         `<button type="button" class="pwz-chip${e.id === _chGoalEx ? ' on' : ''}" ` +
         `onclick="coachHubGoalPick(${Number(i)})">${esc(String(e.name))}</button>`).join('');
@@ -27315,19 +27382,43 @@ function _crMaybePrepare() {
    Bericht; eine leere Fläche wäre hier die schlechtere Auskunft als die Zahlen,
    die längst feststehen. Erzeugt wird dabei NICHTS — der Renderer läuft
    synchron und darf weder speichern noch ins Netz. */
+/* Die Zahlen der LAUFENDEN Woche — die EINE Quelle für "diese Woche".
+   Heute-Karte (_aicWeek) und Wochenkachel (_chKzWeek, _chWeekNumsHTML,
+   _chWeekBarData) lesen ausschliesslich hier; sonst nennen zwei Flächen
+   derselben App zwei Zahlen für dieselbe Woche. */
+function _crNowNumbers() {
+  try {
+    if (!window.CoachReport) return null;
+    const ws = CoachReport.weekStart(Date.now());
+    if (ws === null) return null;
+    const n = CoachReport.weekNumbers(_crSessions(), ws);
+    if (!n) return null;
+    n.streak = _crStreak();
+    return n;
+  } catch(e) { console.warn('[Coach] Zahlen der laufenden Woche:', e); return null; }
+}
 function _crCurrent() {
   try {
     if (!window.CoachReport || !window.CoachAnalyze) return null;
     const now = Date.now();
     const wk  = _crWeekKey(now);
     if (!wk) return null;
+    const nums = _crNowNumbers();
     const da = (S.coachReports || []).filter(r => r && r.weekKey === wk)[0];
-    if (da) return { rep: da, fertig: true };
+    /* Liegt für die laufende Woche schon ein Bericht im Archiv, trägt er weiter
+       seinen TEXT und seine PROGNOSE — die sind am Termin geschrieben worden und
+       werden hier nicht neu erfunden. Die ZAHLEN kommen trotzdem aus den
+       Einheiten: der Bericht läuft Sonntag 18:00, und wer danach noch trainiert,
+       sähe seine Einheit sonst in der Heute-Karte und nicht in der Kachel. Der
+       eingefrorene Wert ist für die laufende Woche keine Auskunft, sondern ein
+       veralteter Stand. Für ABGESCHLOSSENE Wochen bleibt der Archivwert
+       massgeblich (_crArchivHTML, _chWeekBarData) — dort ist er das, was der
+       Nutzer am Wochenende gelesen hat. Der gespeicherte Bericht wird dabei
+       NICHT angefasst: der Renderer läuft synchron und schreibt nicht. */
+    if (da) return { rep: nums ? Object.assign({}, da, { numbers: nums }) : da, fertig: true };
+    if (!nums || nums.workouts <= 0) return null;
     const ws = CoachReport.weekStart(now);
     if (ws === null) return null;
-    const nums = CoachReport.weekNumbers(_crSessions(), ws);
-    if (!nums || nums.workouts <= 0) return null;
-    nums.streak = _crStreak();
     return { rep: { weekKey: wk, label: _crLabel(ws), numbers: nums, text: '', forecast: null, ts: now },
              fertig: false };
   } catch(e) { console.warn('[Coach] Wochenzahlen:', e); return null; }
@@ -27366,8 +27457,14 @@ function _chWeekNumsHTML(cur) {
     if (!n) return '';
     let vor = null;
     try {
+      // Eine Woche zurück über den KALENDER (CoachReport.shiftWeeks), nicht über
+      // 7 * 864e5: an der Frühjahrsumstellung ist eine Woche 167 Stunden lang,
+      // und die Millisekunden landeten auf Sonntag 23:00 — also eine Woche zu
+      // weit zurück. Volumen kommt aus n.prevVol, das intern denselben Weg geht;
+      // Einheiten und Sätze der Vorwoche stehen dort nicht und werden hier
+      // geholt.
       const ws = CoachReport.weekStart(Date.now());
-      if (ws !== null) vor = CoachReport.weekNumbers(_crSessions(), ws - 7 * 864e5);
+      if (ws !== null) vor = CoachReport.weekNumbers(_crSessions(), CoachReport.shiftWeeks(ws, -1));
     } catch(e) { console.warn('[Coach] Vorwoche:', e); }
     const kachel = (roh, txt, einheit, label, vorWert) =>
       `<div class="aia-stat"><div class="aia-stat-v"><span class="chw-n" data-n="${esc(String(roh))}" ` +
@@ -27827,7 +27924,17 @@ function _chToneUp(){
        bleibt nur der Rerender — und der wartet, bis der Griff eingerastet ist.
        Sofort gerendert ersetzte er den Knoten, und die 180 ms waeren nie zu
        sehen. */
-    setTimeout(() => { try { renderCoachHub(); } catch(_) {} }, 190);
+    setTimeout(() => {
+      try {
+        renderCoachHub();
+        /* Der Rerender ersetzt den Knoten, und der Fokus fällt dabei auf BODY —
+           danach war der Regler mit den Pfeiltasten nicht mehr zu bewegen,
+           obwohl _chToneDown() ihn zu Beginn der Geste ausdrücklich fokussiert
+           hat. Dieselbe Zeile wie am Ende von _chToneKey(), aus demselben
+           Grund. */
+        const el = document.getElementById('ch-tone-slider'); if (el) el.focus();
+      } catch(_) {}
+    }, 190);
   } catch(e) { console.warn('[Coach] Regler loslassen:', e); _chToneRelease(); }
 }
 /* Der Wächter muss auch dann fallen, wenn die Geste unsauber endet — sonst

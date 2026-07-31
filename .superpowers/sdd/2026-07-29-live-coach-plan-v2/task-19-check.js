@@ -58,7 +58,14 @@ const server = http.createServer((req, res) => {
    index.html gegen einen alten Cache — genau der Zustand, den der Bump
    verhindern soll. Dazu die Formregel des Changelogs: kein Schluessel darf dem
    Muster gymtrack-v\d+ folgen (das Deploy-Skript ueberschreibt solche
-   Eintraege), und der neueste steht vorn. */
+   Eintraege).
+
+   Der Blockabschluss-Eintrag wurde hier urspruenglich als ERSTER verlangt.
+   Diese Zusicherung altert bei jedem Release: sobald eine spaetere Welle einen
+   neueren Eintrag darueber setzt, wird die Pruefung rot, ohne dass am Produkt
+   etwas kaputt waere — genau das ist mit den zwei Eintraegen des Hub-Umbaus
+   passiert. Gefordert ist deshalb nur noch, dass der Eintrag VORHANDEN ist; die
+   Reihenfolge des Changelogs ist keine Zusicherung von Task 19. */
 const holCache = (s) => s ? ((s.match(/const CACHE\s*=\s*['"]([^'"]+)['"]/) || [])[1] || null) : null;
 const holVer   = (s) => s ? ((s.match(/const APP_VERSION\s*=\s*['"]([^'"]+)['"]/) || [])[1] || null) : null;
 const holClKeys = (s) => {
@@ -283,19 +290,19 @@ const SYNC = async (o) => {
     idFor: typeof _cnIdFor === 'function' ? _cnIdFor('reminderPlan:2026-07-30') : null,
     sync: typeof _cnSync, perm: typeof _cnPermission
   }));
-  check('Registrierung: js/coach-notify.js haengt als script-Tag NACH coach-analyze, in build.js und im SHELL-Precache; APP_VERSION (index.html) und CACHE (sw.js) tragen DENSELBEN Wert, der Blockabschluss-Eintrag steht als ERSTER im CHANGELOG und kein Schluessel folgt dem Muster gymtrack-v\\d+; CoachNotify ist geladen und die Wochenrechnung loest auf',
+  check('Registrierung: js/coach-notify.js haengt als script-Tag NACH coach-analyze, in build.js und im SHELL-Precache; APP_VERSION (index.html) und CACHE (sw.js) tragen DENSELBEN Wert, der Blockabschluss-Eintrag steht im CHANGELOG und kein Schluessel folgt dem Muster gymtrack-v\\d+; CoachNotify ist geladen und die Wochenrechnung loest auf',
     statisch.tag > 0 && statisch.tagAnalyze > 0 && statisch.tag > statisch.tagAnalyze &&
     statisch.build === true && statisch.shell === true &&
     typeof statisch.cache === 'string' && typeof statisch.ver === 'string' &&
     statisch.cache === statisch.ver &&
     typeof statisch.clKeys === 'string' &&
-    (statisch.clKeys || '').split(',')[0] === CL_NEU &&
+    (statisch.clKeys || '').split(',').indexOf(CL_NEU) >= 0 &&
     statisch.clVerboten === 0 &&
     r.notify === 'object' && r.analyze === 'object' && typeof r.wk === 'string' &&
     r.idBase === 47000 && r.idFor >= 47000 && r.idFor <= 47999 &&
     r.sync === 'function' && r.perm === 'function',
     JSON.stringify({ statisch: Object.assign({}, statisch, { clKeys: (statisch.clKeys || '').split(',').slice(0, 3) }),
-                     erwartetErster: CL_NEU, r }).slice(0, 800));
+                     erwartetVorhanden: CL_NEU, r }).slice(0, 800));
 
   // ── 2) Stufe "Still": geplant wird NUR der Wochenbericht ────────────────
   const still = N(await ev(SYNC, { level: 'still' }));

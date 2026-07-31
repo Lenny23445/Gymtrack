@@ -337,6 +337,12 @@
     goalForecast: goalForecast,
     epley1rm: epley1rm,
     weekStart: weekStart,
+    // Nach aussen gegeben, weil die Anzeige dieselbe Wochenverschiebung braucht
+    // wie weekNumbers() sie intern benutzt. Vorher rechnete index.html an drei
+    // Stellen ws - 7 * 864e5 — an der Fruehjahrsumstellung eine Stunde und
+    // damit eine ganze Woche daneben. Eine zweite Wochenrechnung im Haus laeuft
+    // frueher oder spaeter auseinander; also gibt es sie nur hier.
+    shiftWeeks: shiftWeeks,
     reportSay: reportSay,
     forecastSay: forecastSay,
     MIN_WEEKS: MIN_WEEKS,

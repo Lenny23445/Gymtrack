@@ -463,13 +463,24 @@ const KACHELSTAND = () => {
                    hubUnterBody: document.getElementById('ov-coach-hub').parentElement === document.body,
                    coachTab: [...document.querySelectorAll('.tabbar .tab')].some(b =>
                      /coach|hub/i.test((b.getAttribute('onclick') || '') + ' ' + b.textContent)) };
+    /* Die drei Flaechenzahlen oben zaehlen RAHMEN. Eine zweite Coach-Flaeche als
+       .hw-Kachel INNERHALB von #heute-grid liesse alle drei unveraendert — genau
+       die Form, die ein kuenftiges Coach-Widget haette. Gezaehlt wird deshalb
+       zusaetzlich, was der Nutzer wirklich vor sich hat: die EINSTIEGE in den
+       Hub. Beide Verdrahtungsarten zaehlen mit, das inline-Attribut und der per
+       JS gesetzte Handler (die Heute-Karte nutzt den zweiten Weg). */
+    const einstieg = (wurzel) => [...document.querySelectorAll(wurzel + ' *')].filter(el =>
+      /openCoachHub/.test(String(el.onclick || '') + ' ' + (el.getAttribute('onclick') || ''))).length;
+    nach.einstiege = einstieg('#pg-heute');
+    nach.einstiegeGrid = einstieg('#heute-grid');
     return { vor, nach };
   }));
-  check('Gestaltungsregel 1: der Heute-Tab hat vorher und nachher gleich viele Flaechen, genau EINE .aic-Karte, fuenf Tab-Knoepfe und keinen zweiten Coach-Einstieg',
+  check('Gestaltungsregel 1: der Heute-Tab hat vorher und nachher gleich viele Flaechen, genau EINE .aic-Karte, fuenf Tab-Knoepfe — und genau EINEN Einstieg in den Coach-Hub, auch keinen als Kachel innerhalb von #heute-grid',
     (r.vor || {}).pad === (r.nach || {}).pad && (r.vor || {}).pad === 2 &&
     (r.vor || {}).aic === 1 && (r.nach || {}).aic === 1 &&
     (r.nach || {}).tabs === 5 && (r.nach || {}).hubImHeute === false &&
-    (r.nach || {}).hubUnterBody === true && (r.nach || {}).coachTab === false,
+    (r.nach || {}).hubUnterBody === true && (r.nach || {}).coachTab === false &&
+    (r.nach || {}).einstiege === 1 && (r.nach || {}).einstiegeGrid === 0,
     JSON.stringify(r));
 
   // ── 14) lbs: die Wochen-Kennzahl nennt keine kg-Zahl ────────────────────
@@ -775,6 +786,37 @@ const KACHELSTAND = () => {
     r.xss === 0 && r.imgs === 0 && r.roh === false && /<img src=x onerror/.test(r.text || ''),
     JSON.stringify({ xss: r.xss, imgs: r.imgs, roh: r.roh, text: (r.text || '').slice(0, 160) }));
 
+  /* ── 31d) ... und derselbe Name in der OFFENEN Uebungsauswahl ────────────
+     31c schliesst die Auswahl (coachSetGoal() setzt _chGoalOpen = false), die
+     Chip-Reihe wird mit dem Markup-Namen also nie gezeichnet. Genau dort steht
+     aber die zweite Stelle, an der ein Uebungsname in innerHTML landet — und
+     Uebungsnamen kommen aus der Cloud und aus dem Import, sind also Fremdtext.
+     Deshalb noch einmal, mit echtem Tipp auf den Kopf, damit die Auswahl offen
+     ist, wenn gemessen wird. */
+  let auswahlAuf = false;
+  try { await page.click('#chw-goal-cta'); auswahlAuf = true; }
+  catch (e) { auswahlAuf = String(e.message).slice(0, 140); }
+  await wait(500);
+  r = O(await ev(() => {
+    window.__xss2 = 0;
+    const pick = document.querySelector('#chw-goal .chw-pick');
+    const chips = [...document.querySelectorAll('#chw-goal .chw-pick .pwz-chip')];
+    return {
+      offen: (typeof _chGoalOpen === 'boolean') ? _chGoalOpen : null,
+      chips: chips.length,
+      xss: window.__xss2,
+      imgs: pick ? pick.querySelectorAll('img').length : -1,
+      roh: /<img/i.test(pick ? pick.innerHTML : ''),
+      // Der Name MUSS in der Reihe stehen, sonst prueft der Rest nichts.
+      text: chips.map(b => (b.textContent || '').trim()).join(' | ')
+    };
+  }));
+  check('Uebungsname mit Markup in der OFFENEN Uebungsauswahl: der Chip traegt ihn als TEXT (esc() vor innerHTML) — kein <img>-Element, kein onerror, und der Name steht wirklich in der Reihe',
+    auswahlAuf === true && r.offen === true && r.chips >= 2 && r.xss === 0 &&
+    r.imgs === 0 && r.roh === false && /<img src=x onerror/.test(r.text || ''),
+    JSON.stringify({ auswahlAuf, offen: r.offen, chips: r.chips, xss: r.xss,
+                     imgs: r.imgs, roh: r.roh, text: (r.text || '').slice(0, 200) }));
+
   // ── 32) lbs: keine kg-Zahl in der Kachel, Achsen nennen lbs ─────────────
   await boot({ unit: 'lbs' });
   await ev(() => { try { coachSetGoal('ex0', 300); } catch (_) {} });
@@ -909,8 +951,14 @@ const KACHELSTAND = () => {
       tabs: document.querySelectorAll('.tabbar .tab').length,
       ring: ((q('.aic-r-val') || {}).textContent || '').trim(),
       gruppe: ((q('.aic-r-lbl') || {}).textContent || '').trim(),
-      woche: ((q('.aic-head') || {}).textContent || '').trim(),
-      heute: ((q('.aic-sub') || {}).textContent || '').trim(),
+      /* Seit der Hierarchie-Entscheidung traegt .aic-head das, was HEUTE ansteht
+         (die groessere Schrift), und .aic-sub die Wochenzahl. Getauscht wurde
+         die Gewichtung, nicht der Inhalt: beide Angaben stehen weiter auf der
+         Karte, und welche gross ist, misst der Groessenvergleich unten. */
+      woche: ((q('.aic-txt .aic-sub') || {}).textContent || '').trim(),
+      heute: ((q('.aic-head') || {}).textContent || '').trim(),
+      wocheGr: (() => { const el = q('.aic-txt .aic-sub'); return el ? parseFloat(getComputedStyle(el).fontSize) : -1; })(),
+      heuteGr: (() => { const el = q('.aic-head'); return el ? parseFloat(getComputedStyle(el).fontSize) : -1; })(),
       satz: ((q('.aic-say') || {}).textContent || '').trim(),
       cta: !!q('.aic-go'),
       rolle: (q('.aic-top') || { getAttribute: () => null }).getAttribute('role'),
@@ -941,11 +989,13 @@ const KACHELSTAND = () => {
     !!r.soll && karte.gruppe === r.soll.lbl && karte.ring.indexOf(String(r.soll.pct)) === 0,
     JSON.stringify({ soll: r.soll, ring: karte.ring, gruppe: karte.gruppe }));
 
-  check('Heute-Karte, Zone rechts: erste Zeile ist das Volumen der laufenden Woche mit Pfeil und Prozent zur Vorwoche (gegen CoachReport.weekNumbers gerechnet), zweite Zeile sagt, was heute ansteht',
+  check('Heute-Karte, Zone rechts: was heute ansteht steht GROSS, das Volumen der laufenden Woche mit Pfeil und Prozent zur Vorwoche (gegen CoachReport.weekNumbers gerechnet) kleiner darunter — beide Angaben bleiben auf der Karte',
     /[↑↓→]/.test(karte.woche || '') && /%/.test(karte.woche || '') &&
     (karte.woche || '').indexOf(String(r.vol).replace(/\B(?=(\d{3})+(?!\d))/g, '.')) >= 0 &&
-    (karte.heute || '').length > 3 && !/NaN|undefined/.test(karte.woche + karte.heute),
-    JSON.stringify({ vol: r.vol, vorVol: r.vorVol, woche: karte.woche, heute: karte.heute }));
+    (karte.heute || '').length > 3 && !/NaN|undefined/.test(karte.woche + karte.heute) &&
+    karte.heuteGr > karte.wocheGr,
+    JSON.stringify({ vol: r.vol, vorVol: r.vorVol, woche: karte.woche, heute: karte.heute,
+                     heuteGr: karte.heuteGr, wocheGr: karte.wocheGr }));
 
   check('Heute-Karte: darunter EIN Satz vom Coach aus der Sprachfabrik, der CTA "Training starten" steht weiter da, und der Kopfbereich behaelt Rolle und Tastaturzugang',
     (karte.satz || '').length > 10 && karte.cta === true && karte.rolle === 'button' &&
