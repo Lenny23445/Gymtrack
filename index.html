@@ -5980,6 +5980,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <script src="./js/coach-memory.js"></script>
 <script src="./js/coach-log.js"></script>
 <script src="./js/coach-intent.js"></script>
+<!-- Sprach-Parser: MUSS nach coach-intent.js stehen, er leiht sich dessen
+     Gesundheits-Gate (CoachIntent.medical). Fehlt es, handelt er auf nichts. -->
+<script src="./js/coach-speech.js"></script>
 <script src="./js/coach-cache.js"></script>
 <script src="./js/coach-persona.js"></script>
 <!-- coach-voice steht direkt hinter coach-persona: die Stimmwahl (pickVoice)
@@ -7886,7 +7889,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310011';
+const APP_VERSION = 'gymtrack-v202607310012';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8753,8 +8756,9 @@ const I18N_EN = {
   'Die Uhrzeit kannst du selbst festlegen':'You can set the time yourself',
   /* Changelog: Coach-Hub-Umbau (31.07.2026) */
   '31.07.2026 · Dein Profilbild auf der Startseite':'31 Jul 2026 · Your profile picture on the home screen',
-  'Die Begrüßung oben links ist Geschichte — dort sitzt jetzt dein Profilbild, klar und aufgeräumt':'The greeting in the top left is gone — your profile picture now lives there, clean and tidy',
+  'Die Begrüßung oben links ist Geschichte — dort sitzen jetzt dein Profilbild und dein Name, klar und aufgeräumt':'The greeting in the top left is gone — your profile picture and name now live there, clean and tidy',
   'Ein Tipp aufs Bild öffnet dein Profil: Foto und Name direkt bearbeiten':'Tap the picture to open your profile: edit photo and name right there',
+  'Ein neues Foto gilt sofort nach der Auswahl — ganz ohne Speichern-Knopf':'A new photo applies the moment you pick it — no save button needed',
   'Ohne Foto zeigt der Kreis deine Initialen in deiner Themefarbe':'Without a photo the circle shows your initials in your theme color',
   '31.07.2026 · Dein Coach-Menü, neu gebaut':'31 Jul 2026 · Your coach menu, rebuilt',
   'Ein Tipp auf die Coach-Karte öffnet ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Ein Tipp auf eine Kachel zoomt in sie hinein, der Pfeil oben links führt zurück':'Tapping the coach card opens a sheet with five tiles — chat, week, personality, scope and journal. Tapping a tile zooms into it, the arrow at the top left leads back',
@@ -9088,8 +9092,9 @@ const CHANGELOG = {
   'cl-2026-07-31-heute-avatar': {
     label: '31.07.2026 · Dein Profilbild auf der Startseite',
     items: [
-      'Die Begrüßung oben links ist Geschichte — dort sitzt jetzt dein Profilbild, klar und aufgeräumt',
+      'Die Begrüßung oben links ist Geschichte — dort sitzen jetzt dein Profilbild und dein Name, klar und aufgeräumt',
       'Ein Tipp aufs Bild öffnet dein Profil: Foto und Name direkt bearbeiten',
+      'Ein neues Foto gilt sofort nach der Auswahl — ganz ohne Speichern-Knopf',
       'Ohne Foto zeigt der Kreis deine Initialen in deiner Themefarbe',
     ]
   },
