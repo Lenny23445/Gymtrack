@@ -7803,7 +7803,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310004';
+const APP_VERSION = 'gymtrack-v202607310005';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8587,7 +8587,7 @@ const I18N_EN = {
   'Die Uhrzeit kannst du selbst festlegen':'You can set the time yourself',
   /* Changelog: Coach-Hub-Umbau (31.07.2026) */
   '31.07.2026 · Dein Coach-Menü, neu gebaut':'31 Jul 2026 · Your coach menu, rebuilt',
-  'Ein Tipp auf die Coach-Karte öffnet jetzt ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Jede klappt an Ort und Stelle auf':'Tapping the coach card now opens a sheet with five tiles — chat, week, personality, scope and journal. Each expands right where it is',
+  'Ein Tipp auf die Coach-Karte öffnet ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Ein Tipp auf eine Kachel zoomt in sie hinein, der Pfeil oben links führt zurück':'Tapping the coach card opens a sheet with five tiles — chat, week, personality, scope and journal. Tapping a tile zooms into it, the arrow at the top left leads back',
   'Die Wochenkachel zeigt deinen Verlauf: acht Wochen Volumen, wohin deine Sätze gingen, und dein geschätztes Maximum über die Zeit':'The week tile shows your history: eight weeks of volume, where your sets went, and your estimated max over time',
   'Setz dir ein Kraftziel für eine Übung, und der Coach sagt dir, wann du es bei gleichbleibendem Tempo erreichst':'Set a strength goal for an exercise, and the coach tells you when you will reach it at your current pace',
   'Den Ton wählst du jetzt mit einem Regler — der Beispielsatz ändert sich, während du ziehst':'You now pick the tone with a slider — the example sentence changes as you drag it',
@@ -8600,6 +8600,7 @@ const I18N_EN = {
      nicht am Aufrufort, weil kein anderer Textknoten der App genauso heißt
      (geprüft) und der Titel dann in EINER Zeile beide Sprachen trägt. */
   'Gespräch':'Conversation','Persönlichkeit':'Personality',
+  'Jede Kachel zeigt ihre Zahl groß und ihren Namen klein — Wochenvolumen, Ton, Einträge: du siehst den Stand, ohne zu tippen':'Every tile shows its number large and its name small — weekly volume, tone, entries: you see where you stand without tapping',
   'Umfang und Meldungen':'Scope and notifications','Umfang':'Scope','dein Coach':'your coach',
   /* Das Kraftziel der Wochenkachel. Eigene, eindeutige Wörter — kein anderer
      Textknoten der App heisst so (geprüft). */
@@ -8861,7 +8862,8 @@ const CHANGELOG = {
   'cl-2026-07-31-coach-hub': {
     label: '31.07.2026 · Dein Coach-Menü, neu gebaut',
     items: [
-      'Ein Tipp auf die Coach-Karte öffnet jetzt ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Jede klappt an Ort und Stelle auf',
+      'Ein Tipp auf die Coach-Karte öffnet ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Ein Tipp auf eine Kachel zoomt in sie hinein, der Pfeil oben links führt zurück',
+      'Jede Kachel zeigt ihre Zahl groß und ihren Namen klein — Wochenvolumen, Ton, Einträge: du siehst den Stand, ohne zu tippen',
       'Die Wochenkachel zeigt deinen Verlauf: acht Wochen Volumen, wohin deine Sätze gingen, und dein geschätztes Maximum über die Zeit',
       'Setz dir ein Kraftziel für eine Übung, und der Coach sagt dir, wann du es bei gleichbleibendem Tempo erreichst',
       'Den Ton wählst du jetzt mit einem Regler — der Beispielsatz ändert sich, während du ziehst',
