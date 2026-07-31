@@ -805,14 +805,7 @@
     return null;
   }
 
-  // medical() wird MIT exportiert, damit der Sprach-Parser (js/coach-speech.js)
-  // dasselbe Gate benutzt statt ein zweites nachzubauen. Zwei Wortlisten laufen
-  // auseinander, und dann entscheidet die schlechtere — genau der Fehler, den
-  // die Umkehr am Kopf dieser Datei behoben hat. Es erwartet ROHTEXT und
-  // normalisiert selbst.
-  function medicalPublic(text) { return medical(norm(text)); }
-
-  var API = { resolveIntent: resolveIntent, medical: medicalPublic };
+  var API = { resolveIntent: resolveIntent };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachIntent = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -8,7 +8,7 @@ const files = ['index.html', 'sw.js', 'manifest.json', 'icon-192.png', 'icon-512
                'js/coach-persona.js', 'js/coach-voice.js', 'js/coach-session.js', 'js/coach-warmup.js',
                'js/coach-cues.js', 'js/coach-rpe.js', 'js/coach-analyze.js',
                'js/coach-notify.js', 'js/coach-report.js', 'js/coach-charts.js',
-               'js/workout-focus.js', 'js/coach-speech.js'];
+               'js/workout-focus.js'];
 if (!fs.existsSync(path.join('www', 'js'))) fs.mkdirSync(path.join('www', 'js'), { recursive: true });
 files.forEach(file => {
   if (fs.existsSync(file)) {
