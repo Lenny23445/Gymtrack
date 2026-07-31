@@ -29783,11 +29783,76 @@ function _pwzStart(){
   openAiChat(seed);
 }
 
-// ── KI-CHAT: DIKTIERFUNKTION ─────────
+// ── DIKTAT: EIN KERN FÜR CHAT UND TRAINING ─────────
 // Native App (WKWebView) kennt die Web Speech API NICHT → dort läuft Diktat über
 // das eigene SpeechPlugin.swift (SFSpeechRecognizer). Web/PWA nutzt weiter die
 // Web Speech API, wo verfügbar (Safari Desktop, Chrome).
-let _aicRec = null, _aicRecOn = false, _aicSpeechListener = null;
+//
+// Beide Einstiege — der Mikrofon-Knopf im KI-Chat und der Sprech-Knopf in der
+// Coach-Leiste des Trainings — laufen durch _sttStart/_sttStop. Genau EIN
+// Aufnahmezustand für die ganze App: zwei gleichzeitige Mikrofonzugriffe gibt
+// es auf iOS ohnehin nicht, und ein zweiter Zustand hätte den Knopf im jeweils
+// anderen Kontext hängen lassen. Die Diktat-Logik steht deshalb nur hier, nicht
+// zweimal.
+let _sttRec = null, _sttOn = false, _sttListener = null;
+let _sttOnText = null, _sttOnEnd = null, _sttLast = '';
+function _sttBusy(){ return _sttOn; }
+// Räumt IMMER vollständig auf und meldet den letzten Stand zurück — auch wenn
+// der Start scheitert. Sonst bliebe ein 'rec'-Knopf stehen, der nichts aufnimmt.
+function _sttFinish(){
+  const txt = _sttLast, cb = _sttOnEnd;
+  _sttOn = false; _sttRec = null; _sttOnText = null; _sttOnEnd = null; _sttLast = '';
+  if (_sttListener) { try { _sttListener.remove(); } catch(_) {} _sttListener = null; }
+  if (cb) { try { cb(txt); } catch(e) { console.warn('[Diktat] Abschluss:', e); } }
+}
+async function _sttStop(){
+  if (!_sttOn) return;
+  if (_isNative()) {
+    const SP = _cap('SpeechPlugin');
+    try { if (SP) await SP.stop(); } catch(_) {}
+    _sttFinish(); return;
+  }
+  // Der Web-Zweig meldet sich über onend zurück; nur wenn stop() selbst wirft,
+  // räumen wir hier auf.
+  try { if (_sttRec) _sttRec.stop(); } catch(_) { _sttFinish(); }
+}
+// onText(text, isFinal) sieht jeden Zwischenstand, onEnd(text) den letzten.
+async function _sttStart(onText, onEnd){
+  if (_sttOn) { await _sttStop(); return false; }
+  _sttOnText = onText || null; _sttOnEnd = onEnd || null; _sttLast = '';
+  const push = (t, fin) => {
+    _sttLast = t;
+    if (_sttOnText) { try { _sttOnText(t, fin); } catch(e) { console.warn('[Diktat] Verarbeitung:', e); } }
+  };
+  if (_isNative()) {
+    const SP = _cap('SpeechPlugin'); if (!SP) { _sttFinish(); return false; }
+    try {
+      _sttListener = await SP.addListener('result', (ev) => {
+        push(String(ev.transcript || '').trim(), !!ev.isFinal);
+        if (ev.isFinal) _sttFinish();
+      });
+      await SP.start({ lang: GT_LANG === 'en' ? 'en-US' : 'de-DE' });
+      _sttOn = true; haptic(8); return true;
+    } catch(e) { console.warn('[Diktat] Start:', e); _sttFinish(); return false; }
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { _sttFinish(); return false; }
+  const rec = new SR();
+  rec.lang = GT_LANG === 'en' ? 'en-US' : 'de-DE';
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onresult = (ev) => {
+    let t = '';
+    for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+    push(t.trim(), false);
+  };
+  rec.onend = () => _sttFinish();
+  rec.onerror = () => _sttFinish();
+  try { rec.start(); _sttRec = rec; _sttOn = true; haptic(8); return true; }
+  catch(_) { _sttFinish(); return false; }
+}
+
+// ── KI-CHAT: DIKTIERFUNKTION ─────────
 function _aicMicInit(){
   const btn = document.getElementById('aic-mic'); if (!btn) return;
   if (_isNative()) { btn.style.display = _cap('SpeechPlugin') ? '' : 'none'; return; }
@@ -29796,48 +29861,117 @@ function _aicMicInit(){
 }
 function aicMicToggle(){
   const btn = document.getElementById('aic-mic'); if (!btn) return;
-  if (_isNative()) return _aicMicToggleNative(btn);
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  if (_aicRecOn) { try { _aicRec && _aicRec.stop(); } catch(_){} return; }
+  if (_sttBusy()) { _sttStop(); return; }
   const inp = document.getElementById('aic-in');
   const baseText = inp ? inp.value : '';
-  const rec = new SR();
-  rec.lang = GT_LANG === 'en' ? 'en-US' : 'de-DE';
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.onresult = (ev) => {
-    let t = '';
-    for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
-    if (inp) { inp.value = (baseText ? baseText + ' ' : '') + t.trim(); _aicGrow(inp); }
-  };
-  rec.onend = () => { _aicRecOn = false; _aicRec = null; btn.classList.remove('rec'); };
-  rec.onerror = () => { _aicRecOn = false; _aicRec = null; btn.classList.remove('rec'); };
-  try { rec.start(); _aicRec = rec; _aicRecOn = true; btn.classList.add('rec'); haptic(8); }
-  catch(_) { _aicRecOn = false; _aicRec = null; }
+  _sttStart(
+    (t) => { if (inp) { inp.value = (baseText ? baseText + ' ' : '') + t; _aicGrow(inp); } },
+    () => { btn.classList.remove('rec'); }
+  ).then(ok => { if (ok) btn.classList.add('rec'); });
 }
-async function _aicMicToggleNative(btn){
-  const SP = _cap('SpeechPlugin'); if (!SP) return;
-  if (_aicRecOn) {
-    try { await SP.stop(); } catch(_){}
-    _aicRecOn = false; btn.classList.remove('rec');
-    if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; }
+
+// ── COACH-STIMME (Block 2) ─────────
+// Verfügbarkeit EINMAL ermitteln und merken: _coachBarRender() läuft oft, und
+// SpeechPlugin.isAvailable() ist asynchron — es beantwortet die BERECHTIGUNG,
+// nicht nur das Vorhandensein des Plugins. Bis die Antwort da ist, gilt "keine
+// Fähigkeit": lieber kurz kein Knopf als ein Knopf, der nichts tut.
+async function _coachCapsInit(){
+  try {
+    const SP = _cap('SpeechPlugin');
+    let stt = !!SP;
+    if (SP) { try { const r = await SP.isAvailable(); stt = !!(r && r.available); } catch(_) { stt = false; } }
+    _cvCaps = window.CoachVoice.available({
+      tts: !!_cap('TtsPlugin'), stt: stt,
+      webTts: typeof speechSynthesis !== 'undefined',
+      webStt: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+    });
+  } catch(e) { console.warn('[Coach] Sprachfähigkeiten:', e); _cvCaps = { tts: false, stt: false }; }
+  try { _coachBarRender(); } catch(_) {}
+}
+function _coachLangTag(){ return GT_LANG === 'en' ? 'en-US' : 'de-DE'; }
+// Stimmenliste der aktuellen Sprache — nativ aus dem Plugin, im Browser aus
+// speechSynthesis. Immer {id, name, lang, quality}, also genau die Form, die
+// CoachVoice.pickVoice erwartet.
+async function _coachVoiceList(){
+  const lang = _coachLangTag();
+  const TTS = _cap('TtsPlugin');
+  if (TTS) {
+    try { const r = await TTS.voices({ lang: lang }); return (r && r.voices) || []; }
+    catch(e) { console.warn('[Coach] Stimmen:', e); return []; }
+  }
+  if (typeof speechSynthesis === 'undefined') return [];
+  try {
+    const base = lang.slice(0, 2).toLowerCase();
+    return speechSynthesis.getVoices()
+      .filter(v => String(v.lang || '').toLowerCase().indexOf(base) === 0)
+      .map(v => ({ id: v.voiceURI, name: v.name, lang: v.lang, quality: v.localService ? 'default' : 'enhanced' }));
+  } catch(e) { console.warn('[Coach] Stimmen:', e); return []; }
+}
+// Spricht — und scheitert dabei STUMM. Die Sprachausgabe darf den Ablauf nie
+// stören: kein Toast, kein sichtbarer Fehler, nur console.warn.
+async function coachSpeak(text){
+  try {
+    const p = _persona();
+    if (p.voiceOn === false) return;
+    const t = window.CoachVoice.speakable(text);
+    if (!t) return;
+    const TTS = _cap('TtsPlugin');
+    if (TTS) { await TTS.speak({ text: t, voiceId: p.voice || '', lang: _coachLangTag() }); return; }
+    if (typeof speechSynthesis === 'undefined') return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    const id = window.CoachVoice.pickVoice(await _coachVoiceList(), p.voice || null, GT_LANG === 'en' ? 'en' : 'de');
+    if (id) { const v = speechSynthesis.getVoices().filter(x => x.voiceURI === id)[0]; if (v) u.voice = v; }
+    u.lang = _coachLangTag();
+    speechSynthesis.speak(u);
+  } catch(e) { console.warn('[Coach] Sprachausgabe:', e); }
+}
+function coachStopSpeak(){
+  try { const TTS = _cap('TtsPlugin'); if (TTS) { TTS.stop(); return; } }
+  catch(e) { console.warn('[Coach] Stimme stoppen:', e); }
+  try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch(_) {}
+}
+// Der Sprech-Knopf im Training: drücken → laut fragen → Antwort GESPROCHEN UND
+// ANGEZEIGT. Ein reiner Sprachkanal wäre im Gym unbrauchbar, man will die Zahl
+// auch sehen — deshalb immer beides, Leiste und Stimme.
+function coachAsk(){
+  if (_sttBusy()) { _sttStop(); return; }
+  coachStopSpeak();                     // eine laufende Antwort weicht der neuen Frage
+  _coachAskOn = true; try { _coachBarRender(); } catch(_) {}
+  _sttStart(null, (t) => {
+    _coachAskOn = false; try { _coachBarRender(); } catch(_) {}
+    const q = String(t || '').trim();
+    if (q) _coachAnswer(q);
+  }).then(ok => { if (!ok) { _coachAskOn = false; try { _coachBarRender(); } catch(_) {} } });
+}
+// Erst der lokale Router (kostenlos, offline), dann das Modell — dieselbe
+// Reihenfolge wie im Chat (aicSend), nur ohne Chat-Fläche.
+async function _coachAnswer(q){
+  let local = null;
+  try { local = window.CoachIntent.resolveIntent(q, _coachSnap()); }
+  catch(e) { console.warn('[Coach] Intent-Router:', (e && e.message) || ''); local = null; }
+  if (local) { _coachSayOut(local.answer); return; }
+  if (navigator.onLine === false) {
+    _coachSayOut(_cm('Dafür brauche ich kurz Internet. Deine Zahlen und Vorschläge laufen auch ohne weiter.',
+                     'I need a connection for that. Your numbers and suggestions keep working without one.'));
     return;
   }
-  const inp = document.getElementById('aic-in');
-  const baseText = inp ? inp.value : '';
+  _coachBarSet('thinking');
   try {
-    _aicSpeechListener = await SP.addListener('result', (ev) => {
-      if (inp) { inp.value = (baseText ? baseText + ' ' : '') + String(ev.transcript || '').trim(); _aicGrow(inp); }
-      if (ev.isFinal) { _aicRecOn = false; btn.classList.remove('rec'); if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; } }
-    });
-    await SP.start({ lang: GT_LANG === 'en' ? 'en-US' : 'de-DE' });
-    _aicRecOn = true; btn.classList.add('rec'); haptic(8);
-  } catch(e) {
-    _aicRecOn = false; btn.classList.remove('rec');
-    if (_aicSpeechListener) { _aicSpeechListener.remove(); _aicSpeechListener = null; }
-    console.warn('[KI-Chat] Diktat:', e);
-  }
+    const res = await aiCall('chat', { messages: [{ role: 'user', content: q }], context: _aicContext() });
+    if (!res) { _coachBarSet('idle'); return; }   // aiCall zeigt Fehler/Paywall bereits per Toast
+    // Code-Blöcke (```gtplan / ```gtmem) gehören in den Chat, nicht in die
+    // Leiste und erst recht nicht ins Ohr.
+    const txt = String(res.text || '').replace(/```[\s\S]*?```/g, '').trim();
+    if (txt) _coachSayOut(txt); else _coachBarSet('idle');
+  } catch(e) { console.warn('[Coach] Frage:', e); _coachBarSet('idle'); }
+}
+// Die EINZIGE Stelle, an der im Training Ton entsteht — und sie hängt ausnahmslos
+// an einer Nutzerfrage (Gestaltungsregel 6: der Coach redet nie von selbst los).
+// Kein Trigger, kein Timer und kein Satz-Feedback ruft coachSpeak().
+function _coachSayOut(txt){
+  try { _coachBarSet('msg', txt, 30000); } catch(e) { console.warn('[Coach] Antwort anzeigen:', e); }
+  coachSpeak(txt);
 }
 
 // ── GERÄTE-SCANNER (Kamera → /vision → Übungs-Animation) ─────────
