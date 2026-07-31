@@ -7933,7 +7933,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310022';
+const APP_VERSION = 'gymtrack-v202607310023';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18508,10 +18508,10 @@ function _restoreActiveWk() {
 }
 
 /* ── Fokus-Modus: welche Uebung ist "dran"? ──
-   _wkFocusLi lebt hier im Modul, weil renderLogCards() #log-cards bei jedem
-   Satz-Haken komplett per innerHTML ersetzt — die Klassen muessen beim Rendern
-   mitkommen (kein Nachpatchen → kein Flackern), der Observer wird danach neu
-   angebunden. Die Auswahl selbst (Geometrie, Superset-Einheit) rechnet
+   _wkFocusLi lebt hier im Modul, weil es den Zustand ueber Renderlaeufe hinweg
+   traegt. Gesetzt werden die Klassen ausschliesslich von _wkFocusApply() — auch
+   direkt nach jedem Rendern, also noch vor dem naechsten Bild und damit ohne
+   Flackern. Die Auswahl selbst (Geometrie, Superset-Einheit) rechnet
    WorkoutFocus (js/workout-focus.js, unter node --test geprueft). */
 let _wkFocusLi = -1;
 /* Kartenlage in KOORDINATEN DES SCROLLERS (top/bottom relativ zum Inhalt, nicht
@@ -18635,6 +18635,46 @@ function _wkFocusObserve() {
   _wkFocusSoon();
 }
 
+/* ── Karten-Diff: nur austauschen, was sich geaendert hat ──────────────────
+   Bis hierher ersetzte jeder Satz-Haken #log-cards komplett per innerHTML. Bei
+   sechs Uebungen heisst das: sechs Glaskarten (jede mit backdrop-filter, also
+   je einer eigenen Weichzeichner-Ebene) werden verworfen und neu aufgebaut,
+   dazu alle Satzzeilen, Wischgriffe und Knoepfe — fuer EINEN Haken. Genau das
+   war das Stocken beim Abhaken.
+
+   Jetzt liefert renderLogCards() je Uebung ein Stueck Markup. Verglichen wird
+   Zeichenkette gegen Zeichenkette; ausgetauscht wird nur, wo sie sich
+   unterscheiden. Beim Abhaken ist das genau eine Karte, die anderen behalten
+   ihre Ebenen und ihren Zustand.
+
+   Bricht die Annahme (Anzahl geaendert, Karte nicht auffindbar, erster
+   Aufbau), faellt die Funktion auf den vollstaendigen Aufbau zurueck — der
+   Diff ist eine Abkuerzung, nie die einzige Moeglichkeit. */
+let _lcChunks = null;
+function _lcApply(chunks) {
+  const wrap = document.getElementById('log-cards');
+  if (!wrap) return;
+  const voll = () => {
+    wrap.innerHTML = chunks.join('');
+    _lcChunks = chunks.slice();
+  };
+  if (!_lcChunks || _lcChunks.length !== chunks.length || !wrap.firstElementChild) return voll();
+  for (let i = 0; i < chunks.length; i++) {
+    if (chunks[i] === _lcChunks[i]) continue;
+    const card = wrap.querySelector('.ex-card[data-li="' + i + '"]');
+    if (!card) return voll();                      // Annahme gebrochen → alles neu
+    // Der Supersatz-Verbinder gehoert zum Stueck und steht VOR der Karte.
+    const vor = card.previousElementSibling;
+    const alt = (vor && vor.classList.contains('ss-connector')) ? [vor, card] : [card];
+    const tmp = document.createElement('div');
+    tmp.innerHTML = chunks[i];
+    const neu = [...tmp.childNodes];
+    alt[0].before(...neu);
+    alt.forEach(n => n.remove());
+  }
+  _lcChunks = chunks.slice();
+}
+
 function renderLogCards() {
   // Vorschlagskarte des Live-Coaches gehört zu einer bestimmten Übung — wenn die
   // (z. B. per Swipe) aus dem Training entfernt wurde, ist die Karte hinfällig.
@@ -18646,9 +18686,12 @@ function renderLogCards() {
     if (typeof isPremium === 'function' && isPremium() && _coachLevel() !== 'off')
       _auraLi = wkLogs.findIndex(l => (l.sets || []).some(s => !s.done));
   } catch(_) {}
-  const _fUnit = (_wkFocusLi >= 0 && _wkFocusLi < wkLogs.length && typeof WorkoutFocus !== 'undefined')
-    ? WorkoutFocus.focusUnitOf(wkLogs, _wkFocusLi) : [];
-  document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
+  // Das Dimmen steht bewusst NICHT mehr im Markup: es haengt allein an
+  // _wkFocusApply(). Sonst haetten Vorlage und DOM zwei Quellen fuer denselben
+  // Zustand — und beim Karten-Diff unten wuerde eine Karte mit unveraendertem
+  // Markup eine zwischenzeitlich gesetzte Klasse behalten. _wkFocusApply()
+  // laeuft am Ende dieser Funktion, also noch vor dem naechsten Bild.
+  const _chunks = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${repGoalShort(ex)}`;
@@ -18657,7 +18700,7 @@ function renderLogCards() {
     const ssLinked = !!log.ssGroup;
     const ssConnector = ssLinked && li > 0 && wkLogs[li-1].ssGroup === log.ssGroup
       ? '<div class="ss-connector"><span></span></div>' : '';
-    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}${_fUnit.length && !_fUnit.includes(li) ? ' dimmed' : ''}" data-li="${li}">
+    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}" data-li="${li}">
       <div class="ex-card-swipe-bg"><span>🗑 Entfernen</span></div>
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
@@ -18709,9 +18752,13 @@ function renderLogCards() {
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
       </div>
     </div>`;
-  }).join('');
+  });
+  _lcApply(_chunks);
   _attachSwipeToDelete();
+  // Erst die Fokus-Schicht neu anbinden (sie begrenzt _wkFocusLi nach dem
+  // Entfernen/Umsortieren), dann die Klassen setzen — noch im selben Bild.
   try { _wkFocusObserve(); } catch(_) {}
+  try { _wkFocusApply(); } catch(_) {}
   _saveActiveWkSoon();
   try { _coachBarRender(); } catch(_) {}
   // "Uebung geoeffnet": die erste Uebung mit offenen Saetzen — dieselbe Uebung
@@ -34171,5 +34218,113 @@ document.addEventListener('touchmove', e => {
   else init();
 })();
 </script>
+<!-- ===== TEMP-BENCH-CPG-START (nur lokal, NICHT committen) ===== -->
+<script>
+(function(){
+  function out(s){ var p=document.getElementById('bench-out'); if(p) p.textContent=s; console.log('[BENCH]\n'+s); }
+  function mkImg(seed){
+    var cv=document.createElement('canvas'); cv.width=720; cv.height=960;
+    var g=cv.getContext('2d');
+    // Blockrauschen: schlecht komprimierbar -> realistische Post-Groesse wie echte Share-Cards
+    var s=seed*9301+7;
+    for(var y=0;y<960;y+=6) for(var x=0;x<720;x+=6){
+      s=(s*9301+49297)%233280; var v=Math.floor(s/233280*255);
+      g.fillStyle='rgb('+v+','+((v*3+seed*40)%255)+','+((v*7+90)%255)+')';
+      g.fillRect(x,y,6,6);
+    }
+    var url;
+    for (var qi=0, qs=[0.72,0.6,0.48,0.38]; qi<qs.length; qi++){
+      url=cv.toDataURL('image/jpeg',qs[qi]);
+      if(url.length<900000) return url;
+    }
+    return cv.toDataURL('image/jpeg',0.3);
+  }
+  function mkPost(i,img){
+    return { id:'bench'+i, uid:'benchuid'+i, kind:'post', ts:Date.now()-i*3600000,
+      img:img, rawImg:false, layout:'classic', visibility:'public',
+      dayName:'Push-Training', dur:52, gym:'Bench Gym', mgs:['Brust','Trizeps','Schultern'],
+      name:'Athlet '+i, photo:null, flames:{} };
+  }
+  // Frame-Sampler
+  function sampler(){
+    var frames=[], last=0, on=true;
+    function tick(t){ if(!on) return; if(last) frames.push(t-last); last=t; requestAnimationFrame(tick); }
+    requestAnimationFrame(tick);
+    return { stop:function(){ on=false; return frames; } };
+  }
+  // Wischen nachbilden: identisch zum forward-Zweig in _cpgBindSwipe (touchend)
+  function benchSwipe(){
+    return new Promise(function(res){
+      var w=document.getElementById('cpg-wrap');
+      var card=w.querySelector('.cpg-card.top'), under=w.querySelector('.cpg-card.under');
+      var W=w.clientWidth||320;
+      var sm=sampler(), renderMs=0, decodeMs=0;
+      if(card){
+        card.style.transition='transform .3s cubic-bezier(.3,.7,.4,1), opacity .3s';
+        card.style.transform='translateX('+(-W*1.15)+'px) rotate(-14deg) scale(.8)';
+        card.style.opacity='0';
+      }
+      if(under){
+        under.style.transition='transform .34s cubic-bezier(.34,1.45,.55,1), opacity .25s';
+        under.style.transform='scale(1)'; under.style.opacity='1';
+      }
+      setTimeout(function(){
+        var t0=performance.now();
+        _cpgIdx+=1; _cpgRenderStack();
+        renderMs=performance.now()-t0;
+        var img=document.querySelector('#cpg-wrap .cpg-card.top img.cpg-img');
+        var d0=performance.now();
+        var done=function(){ decodeMs=performance.now()-d0; };
+        (img&&img.decode?img.decode().then(done,done):Promise.resolve().then(done))
+          .then(function(){
+            setTimeout(function(){
+              var f=sm.stop();
+              var max=0, over20=0, over32=0;
+              for(var i=0;i<f.length;i++){ if(f[i]>max)max=f[i]; if(f[i]>20)over20++; if(f[i]>32)over32++; }
+              res({ renderMs:renderMs, decodeMs:decodeMs, maxFrame:max, over20:over20, over32:over32, frames:f.length });
+            },350);
+          });
+      },300);
+    });
+  }
+  async function run(){
+    var host=document.createElement('div');
+    host.id='bench-host';
+    host.style.cssText='position:fixed;inset:0;z-index:99999;background:#0b0b0d;padding:40px 16px 140px;overflow:hidden';
+    host.innerHTML='<div class="cpg-wrap" id="cpg-wrap"></div>'
+      +'<pre id="bench-out" style="position:fixed;left:6px;right:6px;bottom:6px;margin:0;font:10px/1.3 ui-monospace,monospace;color:#7dff9b;background:rgba(0,0,0,.86);padding:7px;border-radius:8px;white-space:pre-wrap;z-index:100000"></pre>';
+    document.body.appendChild(host);
+    out('Bench: generiere 6 Bilder (720x960 JPEG)…');
+    var imgs=[], sizes=[];
+    for(var i=0;i<6;i++){ var u=mkImg(i+1); imgs.push(u); sizes.push(Math.round(u.length/1024)); await new Promise(function(r){setTimeout(r,0);}); }
+    _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
+    _cpgIdx = 0; _cpgMode='public';
+    var t0=performance.now(); _cpgRenderStack(); var first=performance.now()-t0;
+    await new Promise(function(r){setTimeout(r,600);});
+    var rows=[], n=4;
+    for(var s=0;s<n;s++){
+      var r=await benchSwipe();
+      rows.push(r);
+      out('Bench läuft… Swipe '+(s+1)+'/'+n);
+      await new Promise(function(rr){setTimeout(rr,250);});
+    }
+    var txt='BENCH cpg — '+APP_VERSION+'\n'
+      +'img-KB(base64): '+sizes.join(' ')+'\n'
+      +'first render: '+first.toFixed(1)+' ms\n';
+    var sumR=0,sumD=0,sumMax=0,sumO20=0,sumO32=0;
+    rows.forEach(function(r,i){
+      txt+='swipe'+(i+1)+': render '+r.renderMs.toFixed(1)+'ms  decode '+r.decodeMs.toFixed(1)
+        +'ms  maxFrame '+r.maxFrame.toFixed(1)+'ms  >20ms '+r.over20+'/'+r.frames+'  >32ms '+r.over32+'\n';
+      sumR+=r.renderMs; sumD+=r.decodeMs; sumMax+=r.maxFrame; sumO20+=r.over20; sumO32+=r.over32;
+    });
+    txt+='MITTEL: render '+(sumR/rows.length).toFixed(1)+'ms  decode '+(sumD/rows.length).toFixed(1)
+      +'ms  maxFrame '+(sumMax/rows.length).toFixed(1)+'ms  >20ms '+(sumO20/rows.length).toFixed(1)
+      +'  >32ms '+(sumO32/rows.length).toFixed(1);
+    out(txt);
+  }
+  setTimeout(function(){ try{ run(); }catch(e){ out('BENCH-FEHLER: '+(e&&e.message||e)); } }, 2600);
+})();
+</script>
+<!-- ===== TEMP-BENCH-CPG-END ===== -->
 </body>
 </html>
