@@ -7899,7 +7899,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310015';
+const APP_VERSION = 'gymtrack-v202607310016';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15085,10 +15085,13 @@ function confirmWheel() {
     value = String(reps);
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
-  // Coach-Vorschlagskarte (_coachEval) wird NICHT mehr hier ausgeloest: Gewicht/Wdh
-  // sind erst eingetragen, der Satz gilt noch nicht als erledigt. Auswertung jetzt
-  // in toggleSetDone(), wenn der Nutzer den Satz wirklich abhakt (s. dort).
-  try { _coachMicroReact(li, si); } catch(_) {}
+  // HIER meldet sich der Coach NICHT — weder mit der Vorschlagskarte
+  // (_coachEval) noch mit dem Kurzkommentar (_coachMicroReact). Gewicht und
+  // Wiederholungen sind an dieser Stelle nur EINGETRAGEN; wer beim naechsten
+  // Satz schon das Gewicht aendert, hat ihn noch nicht gemacht. Der Kommentar
+  // kam dann zu einem Satz, der noch gar nicht gelaufen war.
+  // Beides haengt jetzt ausschliesslich am Haekchen (toggleSetDone) —
+  // Aufwaermsaetze eingeschlossen, die werden mit abgehakt.
   if (typeof haptic === 'function') haptic(12);
   closeOv('ov-wheel');
   // PR-Feier NICHT hier — erst wenn der Satz per Häkchen bestätigt wird (toggleSetDone).
