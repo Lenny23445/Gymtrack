@@ -31,3 +31,6 @@ tiktok/
 # lokal: Review-Diffs (bis 120 KB je Stueck) und Screenshots.
 .superpowers/**/review-*.diff
 .superpowers/**/*.png
+
+# Laufzeitdateien des Brainstorm-Servers (Sitzungstoken, PID, Port) — nie ins Repo
+.superpowers/brainstorm/
