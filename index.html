@@ -7786,7 +7786,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310001';
+const APP_VERSION = 'gymtrack-v202607310002';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8819,6 +8819,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-coach-stimme': {
+    label: '31.07.2026 · Dein Coach hat jetzt eine Stimme',
+    items: [
+      'Drück im Training auf den Sprech-Knopf und frag laut: „Wie führe ich die Übung aus?" — die Antwort kommt gesprochen und geschrieben',
+      'Such dir bei der Einrichtung die Stimme aus, die dir gefällt, und hör sie dir vorher an',
+      'Laufende Musik wird nur leiser, nicht unterbrochen',
+      'Der Coach redet nie von selbst los — nur wenn du ihn fragst',
+    ]
+  },
   'cl-2026-07-31-coach-hub': {
     label: '31.07.2026 · Dein Coach-Menü, neu gebaut',
     items: [
@@ -28259,7 +28268,7 @@ function _chScopeHTML(){
 // _CH_PRESETS, _chToneLine, _chToneExInner, _chSwitch, .ch-preset/.ch-voice) —
 // kein zweites Aussehen für dieselbe Sache. Die Schrittführung nimmt die
 // bestehenden Wizard-Klassen (.pwz-dots/.pwz-q/.pwz-s/.pwz-nav).
-const _CS_STEPS = 3;
+const _CS_STEPS = 4;
 // Erst 420 ms nach dem Schließen der Paywall erscheint die Einrichtung: zwei
 // gleichzeitig laufende Overlay-Animationen sehen kaputt aus. Derselbe Versatz
 // trägt die Übergabe an den Hub am Ende.
@@ -28349,17 +28358,71 @@ function _csStep1HTML(){
     ${(() => { const inner = _chToneExInner();
         return inner ? `<div class="ch-jrn ghost" id="cst-tone-ex">${inner}</div>` : ''; })()}`;
 }
-// ── HIER STAND SCHRITT 2: STIMME ─────────────────────────────────────────
-// Block 2 (Stimme) ist gestrichen, nicht verschoben: TtsPlugin.swift und
-// AVSpeechSynthesizer gehen nur am Mac. Deshalb führt die Einrichtung von
-// Name+Ton direkt auf den Umfang, und der Schalter "Soll <Name> sprechen?" samt
-// Erklärsatz und dem Aufruf von _csRenderVoices(el) ist aus der Oberfläche
-// heraus. Wer die Stimme zurückbringt, hängt den Schritt HIER wieder ein, zählt
-// die Schritte danach um und stellt _CS_STEPS auf 4.
-// Das DATENFELD voiceOn bleibt unangetastet — in S.aiCoach wie in
-// CoachPersona.personaGet. Es ist nur unsichtbar, nicht weg.
-// ── Schritt 2: Umfang ────────────────────────────────────────────────────
+// ── Schritt 2: Stimme ────────────────────────────────────────────────────
+// Wieder da, seit TtsPlugin.swift steht (dieser Kommentar beschrieb bis eben den
+// Weg zurück, jetzt beschreibt er den Zustand): _CS_STEPS ist wieder 4, und das
+// DATENFELD voiceOn, das die ganze Zeit in S.aiCoach und CoachPersona.personaGet
+// mitlief, hat endlich wieder einen Schalter.
+//
+// Der Erklärsatz nennt beide Zusagen, die den Unterschied machen: gefragt wird
+// nur auf Knopfdruck, und laufende Musik wird leiser statt abgeschnitten
+// (.duckOthers im Plugin). Ohne diese zwei Sätze klingt "sprechen" nach einer
+// App, die im Gym von selbst losredet.
 function _csStep2HTML(){
+  const nm = _coachName();
+  const an = _persona().voiceOn !== false;
+  return `<div class="pwz-q">${esc(_cm('Soll ' + nm + ' mit dir sprechen?',
+                                       'Should ' + nm + ' speak to you?'))}</div>
+    <div class="pwz-s">${esc(_cm(
+      'Nur wenn du im Training auf den Sprech-Knopf drückst — von selbst sagt ' + nm + ' nie etwas. Laufende Musik wird dabei leiser, nicht unterbrochen.',
+      nm + ' only speaks when you press the talk button during your workout — never on its own. Music ducks instead of stopping.'))}</div>
+    <button type="button" class="ch-preset${an ? '' : ' on'}" onclick="coachSetupVoiceOn(false)">
+      <b>${esc(_cm('Lieber lesen','Rather read'))}</b><span>${esc(_cm(
+        'Antworten stehen nur in der Leiste.','Answers appear in the bar only.'))}</span></button>
+    <button type="button" class="ch-preset${an ? ' on' : ''}" onclick="coachSetupVoiceOn(true)">
+      <b>${esc(_cm('Ja, sprich mit mir','Yes, speak to me'))}</b><span>${esc(_cm(
+        'Antworten kommen gesprochen und geschrieben.','Answers come spoken and written.'))}</span></button>
+    <div class="ch-voices" id="cst-voices"></div>`;
+}
+function coachSetupVoiceOn(on){
+  try { setAiCoachOpt('voiceOn', !!on); } catch(e) { console.warn('[Coach] Stimme schalten:', e); }
+  try { renderCoachSetup(); } catch(e) { console.warn('[Coach] Einrichtung neu zeichnen:', e); }
+}
+// Stimmenliste: höchstens acht. Vorausgewählt ist CoachVoice.pickVoice(...);
+// liefert das null, bleibt es bei der Systemstimme. Ist die Sprachausgabe aus,
+// verschwindet die Liste — ein Wahlfeld für etwas Abgeschaltetes ist Deko.
+// Die Kennungen hängen NICHT als Text im onclick: eine Stimm-Kennung ist ein
+// fremder String, und der gehört nicht in ein Attribut.
+async function _csRenderVoices(el){
+  if (!el) return;
+  const p = _persona();
+  if (p.voiceOn === false || !_cvCaps.tts) { el.innerHTML = ''; return; }
+  let list = [];
+  try { list = await _coachVoiceList(); } catch(e) { console.warn('[Coach] Stimmen laden:', e); list = []; }
+  if (!list.length) {
+    el.innerHTML = `<div class="pwz-s">${esc(_cm('Auf diesem Gerät ist keine Stimme installiert.',
+                                                 'No voice is installed on this device.'))}</div>`;
+    return;
+  }
+  const top = list.slice(0, 8);
+  const sel = window.CoachVoice.pickVoice(list, p.voice || null, GT_LANG === 'en' ? 'en' : 'de');
+  el.innerHTML = top.map((v, i) =>
+    `<button type="button" class="ch-vopt${v.id === sel ? ' on' : ''}" data-i="${i}">${esc(v.name || v.id)}</button>`).join('');
+  Array.prototype.forEach.call(el.querySelectorAll('.ch-vopt'), (b) => {
+    b.onclick = () => coachSetupPickVoice(top[parseInt(b.getAttribute('data-i'), 10)]);
+  });
+}
+// Vorhören mit genau dem Satz, den der Coach später wirklich sagt — kein "Dies
+// ist eine Testansage": man wählt die Stimme für den echten Fall.
+function coachSetupPickVoice(v){
+  if (!v || !v.id) return;
+  try { setAiCoachOpt('voice', v.id); } catch(e) { console.warn('[Coach] Stimme wählen:', e); }
+  try { _csRenderVoices(document.getElementById('cst-voices')); } catch(e) { console.warn('[Coach] Stimmen zeichnen:', e); }
+  try { const tone = _persona().tone; coachSpeak(_chToneSayText(tone) || _chToneLine(tone)); }
+  catch(e) { console.warn('[Coach] Vorhören:', e); }
+}
+// ── Schritt 3: Umfang ────────────────────────────────────────────────────
+function _csStep3HTML(){
   const p = _persona();
   // Vorbelegt ist die MITTLERE, nicht die lauteste. preset ist hier noch offen
   // (undefined) — 'balanced' trägt trotzdem schon die Markierung, damit „Fertig"
@@ -28373,7 +28436,7 @@ function _csStep2HTML(){
       `<button type="button" class="ch-preset${x.k === cur ? ' on' : ''}" onclick="setCoachPreset('${x.k}')">
         <b>${esc(tr(x.de))}</b><span>${esc(tr(x.s))}</span></button>`).join('')}`;
 }
-// ── Schritt 3: die Trainings-Erinnerung ──────────────────────────────────
+// ── Schritt 4: die Trainings-Erinnerung ──────────────────────────────────
 // Die INHALTLICHE Erinnerung („Heute Push — Bank 3 × 8 @ 62,5", Block 4) hängt
 // an S.notifEnabled. Der Schalter steht per Default AUS und liegt in den
 // Einstellungen unter „Benachrichtigungen"; die Systemberechtigung wiederum
@@ -28390,7 +28453,7 @@ function _csStep2HTML(){
 // Vorbelegt ist die ZURÜCKHALTENDE Karte. „Fertig" ohne Tipp schaltet nichts
 // ein; nichts wird ungefragt aktiviert. Die Zeile im Hub bleibt, wo sie ist —
 // sie ist der Nachhol-Weg für Bestandsnutzer.
-function _csStep3HTML(){
+function _csStep4HTML(){
   const nm = _coachName();
   const zeit = S.notifTime || '08:00';
   const an = S.notifEnabled === true;
@@ -28471,9 +28534,14 @@ function renderCoachSetup(){
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
     if (_csHold) return;
-    body.innerHTML = _csStep === 3 ? _csStep3HTML()
+    body.innerHTML = _csStep === 4 ? _csStep4HTML()
+                   : _csStep === 3 ? _csStep3HTML()
                    : _csStep === 2 ? _csStep2HTML()
                    : _csStep1HTML();
+    // Die Stimmenliste kommt asynchron aus dem Plugin und wird deshalb NACH dem
+    // Body nachgereicht — der Schritt steht sofort, die Liste tröpfelt hinein.
+    if (_csStep === 2) { try { _csRenderVoices(document.getElementById('cst-voices')); }
+                         catch(e) { console.warn('[Coach] Stimmen zeichnen:', e); } }
     // Getrennter Behälter, damit die Leiste nicht mit dem Inhalt wegscrollt.
     const nav = document.getElementById('cst-nav'); if (nav) nav.innerHTML = _csNavHTML();
   } catch(e) { console.warn('[Coach] Einrichtung zeichnen:', e); }
@@ -30626,6 +30694,7 @@ initSheetSwipe();
 initTabDrag();
 initPageSwipe();
 _aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
+_coachCapsInit();   // Stimme/Diktat: Fähigkeiten einmal klären (Berechtigung ist asynchron)
 _premWatchEntitlement();   // Abo-Status bei jedem Start/Vordergrund frisch von StoreKit holen
 _restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
 // Startreihenfolge: Login-Gate ZUERST (synchron gerendert, damit der Startbildschirm
