@@ -20,9 +20,9 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('C:/Users/Anwender/Desktop/Claude/gymtrack/node_modules/puppeteer');
+const REPO = path.resolve(__dirname, '../../..');
+const puppeteer = require(path.join(REPO, 'node_modules/puppeteer'));
 
-const REPO = 'C:/Users/Anwender/Desktop/Claude/gymtrack';
 const argRoot = (process.argv.find(a => a.startsWith('--root=')) || '').slice(7);
 const ROOT = argRoot ? path.resolve(argRoot) : REPO;
 const SRC  = path.join(ROOT, 'index.html');
@@ -726,6 +726,44 @@ const KACHELSTAND = () => {
     weg === true && (nachWeg.target || []).every(t => !t) && nachWeg.rm === false &&
     /Ziel setzen|Set a target/i.test(nachWeg.zielTxt || ''),
     JSON.stringify({ weg, target: nachWeg.target, rm: nachWeg.rm, txt: nachWeg.zielTxt }));
+
+  // ── 31b) Die Uebungsauswahl ist bedienbar (echte Zeigerfolge) ───────────
+  await boot();
+  await hubAuf('week');
+  let gewaehlt = false;
+  try {
+    await page.click('#chw-goal-cta');
+    await wait(400);
+    const chips = await page.$$('#chw-goal .chw-pick .pwz-chip');
+    if (chips.length >= 2) { await chips[1].click(); gewaehlt = true; }
+  } catch (e) { gewaehlt = String(e.message).slice(0, 140); }
+  await wait(400);
+  r = O(await ev(() => {
+    const on = [...document.querySelectorAll('#chw-goal .chw-pick .pwz-chip.on')].map(b => (b.textContent || '').trim());
+    return { on, anzahl: document.querySelectorAll('#chw-goal .chw-pick .pwz-chip').length,
+             gewaehlt: (typeof _chGoalEx === 'string') ? _chGoalEx : null,
+             vorschlag: (document.getElementById('chw-goal-in') || {}).value };
+  }));
+  check('Der Nutzer kann eine ANDERE Uebung waehlen: die Auswahl bietet alle seine Uebungen (vorgeschlagene zuerst), ein echter Tipp markiert genau eine und zieht den Vorschlagswert mit',
+    gewaehlt === true && r.anzahl >= 2 && (r.on || []).length === 1 &&
+    r.gewaehlt && r.gewaehlt !== 'ex0' && /\d/.test(String(r.vorschlag || '')),
+    JSON.stringify(r));
+
+  // ── 31c) Uebungsname mit Markup erscheint als TEXT ──────────────────────
+  r = O(await ev(() => {
+    window.__xss = 0;
+    S.exercises[0].name = '<img src=x onerror="window.__xss=1">Bankdrücken';
+    persist();
+    _chGoalEx = 'ex0';
+    coachSetGoal('ex0', 130);
+    const sec = document.getElementById('ch-card-week');
+    return { xss: window.__xss, imgs: sec ? sec.querySelectorAll('img').length : -1,
+             roh: /<img/i.test(sec ? sec.innerHTML : ''),
+             text: sec ? (sec.textContent || '') : '' };
+  }));
+  check('Uebungsname mit Markup erscheint in Zielzeile und Diagramm-Untertitel als TEXT (esc() vor innerHTML) — kein Element, kein onerror',
+    r.xss === 0 && r.imgs === 0 && r.roh === false && /<img src=x onerror/.test(r.text || ''),
+    JSON.stringify({ xss: r.xss, imgs: r.imgs, roh: r.roh, text: (r.text || '').slice(0, 160) }));
 
   // ── 32) lbs: keine kg-Zahl in der Kachel, Achsen nennen lbs ─────────────
   await boot({ unit: 'lbs' });

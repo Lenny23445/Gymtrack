@@ -9,9 +9,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('C:/Users/Anwender/Desktop/Claude/gymtrack/node_modules/puppeteer');
+const REPO = path.resolve(__dirname, '../../..');
+const puppeteer = require(path.join(REPO, 'node_modules/puppeteer'));
 
-const ROOT = 'C:/Users/Anwender/Desktop/Claude/gymtrack';
+const argRoot = (process.argv.find(a => a.startsWith('--root=')) || '').slice(7);
+const ROOT = argRoot ? path.resolve(argRoot) : REPO;
 const PORT = 8917; // eigener Port, unabhaengig von task-9-check.js (8793)
 const MIME = { '.html':'text/html', '.js':'application/javascript', '.json':'application/json',
                '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml' };

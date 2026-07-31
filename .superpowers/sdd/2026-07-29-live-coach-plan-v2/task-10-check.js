@@ -9,9 +9,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('C:/Users/Anwender/Desktop/Claude/gymtrack/node_modules/puppeteer');
+const REPO = path.resolve(__dirname, '../../..');
+const puppeteer = require(path.join(REPO, 'node_modules/puppeteer'));
 
-const ROOT = 'C:/Users/Anwender/Desktop/Claude/gymtrack';
+const argRoot = (process.argv.find(a => a.startsWith('--root=')) || '').slice(7);
+const ROOT = argRoot ? path.resolve(argRoot) : REPO;
 const SRC  = path.join(ROOT, 'index.html');
 const SHOT = path.join(ROOT, '.superpowers/sdd/2026-07-29-live-coach-plan-v2/task-10-setup.png');
 const PORT = 8794;

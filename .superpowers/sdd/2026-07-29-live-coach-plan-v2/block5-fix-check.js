@@ -24,9 +24,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const puppeteer = require('C:/Users/Anwender/Desktop/Claude/gymtrack/node_modules/puppeteer');
+const REPO = path.resolve(__dirname, '../../..');
+const puppeteer = require(path.join(REPO, 'node_modules/puppeteer'));
 
-const REPO = 'C:/Users/Anwender/Desktop/Claude/gymtrack';
 const argRoot = (process.argv.find(a => a.startsWith('--root=')) || '').slice(7);
 const ROOT = argRoot ? path.resolve(argRoot) : REPO;
 const SRC  = path.join(ROOT, 'index.html');

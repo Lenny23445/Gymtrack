@@ -4,9 +4,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('C:/Users/Anwender/Desktop/Claude/gymtrack/node_modules/puppeteer');
+const REPO = path.resolve(__dirname, '../../..');
+const puppeteer = require(path.join(REPO, 'node_modules/puppeteer'));
 
-const ROOT = 'C:/Users/Anwender/Desktop/Claude/gymtrack';
+const argRoot = (process.argv.find(a => a.startsWith('--root=')) || '').slice(7);
+const ROOT = argRoot ? path.resolve(argRoot) : REPO;
 const DIR  = path.join(ROOT, '.superpowers/sdd/2026-07-29-live-coach-plan-v2');
 const SHOT_TRAINING = path.join(DIR, 'abnahme-4-training.png');
 const SHOT_RUECKFRAGE = path.join(DIR, 'abnahme-5-rueckfrage.png');

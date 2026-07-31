@@ -26395,10 +26395,17 @@ function coachHubGoalEdit(){
     renderCoachHub();
   } catch(e) { console.warn('[Coach] Zieleingabe:', e); }
 }
-function coachHubGoalPick(exId){
+/* Gewählt wird über den INDEX in _chGoalCandidates(), nicht über die Kennung:
+   die Kennung ist Fremdtext (sie kommt aus der Cloud oder aus einem Import),
+   und Fremdtext gehört nicht in ein inline onclick — ein Apostroph darin würde
+   den Aufruf verlassen. Dieselbe Bauart wie _chJrnRow(): eigene Liste, Zahl
+   als Argument. */
+function coachHubGoalPick(index){
   try {
-    if (!exById(exId)) return;
-    _chGoalEx = exId;
+    const i = Math.floor(Number(index));
+    const ex = _chGoalCandidates()[i];
+    if (!ex) return;
+    _chGoalEx = ex.id;
     _chGoalHint = '';
     renderCoachHub();
   } catch(e) { console.warn('[Coach] Zielübung wählen:', e); }
@@ -26480,9 +26487,9 @@ function _chGoalHTML(){
     if (_chGoalOpen) {
       const kand = _chGoalCandidates();
       if (!_chGoalEx && kand[0]) _chGoalEx = kand[0].id;
-      const chips = kand.map(e =>
+      const chips = kand.map((e, i) =>
         `<button type="button" class="pwz-chip${e.id === _chGoalEx ? ' on' : ''}" ` +
-        `onclick="coachHubGoalPick('${esc(String(e.id))}')">${esc(String(e.name))}</button>`).join('');
+        `onclick="coachHubGoalPick(${Number(i)})">${esc(String(e.name))}</button>`).join('');
       const ist = _chGoalIst(_chGoalEx);
       const vor = ist > 0 ? Math.ceil(kgToDisp(ist) + 2) : '';
       out.push(`<div class="ch-row"><span>${esc(_cm('Übung', 'Exercise'))}${ist > 0 ? `<i>${esc(_cm(
