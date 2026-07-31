@@ -27,10 +27,14 @@ const server = http.createServer((req, res) => {
 
 // Jeder deutsche Oberflaechen-String, den der Hub ueber tr() rendert. Fehlt einer
 // in I18N_EN, bliebe er auf Englisch deutsch stehen — genau der blinde Fleck, den
-// eine Zehn-Phrasen-Sperrliste offen liess. 'Chat' und 'Journal' fehlen bewusst:
-// sie sind im Englischen identisch und brauchen keinen Schluessel.
+// eine Zehn-Phrasen-Sperrliste offen liess. 'Journal' fehlt bewusst: es ist im
+// Englischen identisch und braucht keinen Schluessel.
+// Seit dem Hub-Umbau (fuenf Kacheln statt vier Reitern) tragen die Kacheltitel
+// und die Unterzeile des Kopfes eigene Schluessel; 'Chat' und 'Einstellungen'
+// gehoeren nicht mehr dazu, weil der Hub sie nicht mehr rendert.
 const HUB_TR_KEYS = [
-  'Woche','Einstellungen','Letzter Wortwechsel','Einschränkungen','Vorlieben','Was funktioniert',
+  'Woche','Gespräch','Persönlichkeit','Umfang und Meldungen','dein Coach',
+  'Letzter Wortwechsel','Einschränkungen','Vorlieben','Was funktioniert',
   'Dein Ziel','Noch nichts notiert.','Eintrag entfernen','Bestätigung fällig','Wochenbericht',
   'Dein erster Wochenbericht kommt am Sonntag.','Tippen für Chat, Journal und Einstellungen.',
   'Wie soll dein Coach klingen?','Wie viel Coach willst du?','Ruhig','Sachlich','Hart','Locker',
@@ -129,10 +133,15 @@ const SETUP = () => {
     if (!card || !inner) return { err: 'Karte fehlt' };
     inner.click();                                  // Tap mitten in die Karte
     const ov = document.getElementById('ov-coach-hub');
-    return { open: !!(ov && ov.classList.contains('on')), tabs: document.querySelectorAll('#ov-coach-hub .ch-tab').length };
+    return { open: !!(ov && ov.classList.contains('on')),
+             // Aus vier Reitern sind fuenf Kacheln geworden; die Zusicherung
+             // bleibt dieselbe: die Karte oeffnet ein fertig gezeichnetes Blatt.
+             kacheln: document.querySelectorAll('#ov-coach-hub .ch-card').length,
+             offen: document.querySelectorAll('#ov-coach-hub .ch-card.on').length,
+             reiter: document.querySelectorAll('#ov-coach-hub .ch-tabs, #ov-coach-hub .ch-tab').length };
   });
-  check('Tipp auf die Coach-Karte oeffnet ov-coach-hub (Handler verdrahtet)',
-    r.open === true && r.tabs === 4, JSON.stringify(r));
+  check('Tipp auf die Coach-Karte oeffnet ov-coach-hub mit fuenf Kacheln, genau einer offenen und ohne Reiter (Handler verdrahtet)',
+    r.open === true && r.kacheln === 5 && r.offen === 1 && r.reiter === 0, JSON.stringify(r));
 
   // ── 2) Tipp auf den CTA startet das Training, oeffnet den Hub NICHT ───────
   r = await ev(() => {
@@ -147,21 +156,28 @@ const SETUP = () => {
   check('Tipp auf "Training starten" startet das Training, Hub bleibt zu (closest-Waechter)',
     r.cta === true && r.hubOpen === false, JSON.stringify(r));
 
-  // ── 3) Alle vier Reiter tragen Text, keiner ist leer ─────────────────────
+  // ── 3) Alle fuenf Kacheln tragen Titel, Kennzahl und Inhalt ──────────────
+  // Dieselbe Zusicherung wie frueher fuer die vier Reiter ("Beschriftung
+  // gesetzt, Inhalt nicht leer, aktiver markiert"), dazu die Kennzahl, die es
+  // beim Reiter noch nicht gab.
   r = await ev(() => {
     openCoachHub('chat');
     const out = {};
-    ['chat','journal','report','settings'].forEach(t => {
-      coachHubTab(t);
-      const b = document.getElementById('ch-body');
-      const tab = document.getElementById('ch-tab-' + t);
-      out[t] = { len: (b ? b.textContent.trim().length : 0), lbl: tab ? tab.textContent.trim() : '',
-                 on: !!(tab && tab.classList.contains('on')) };
+    ['chat','week','persona','scope','journal'].forEach(t => {
+      coachHubOpen(t);
+      const sec = document.getElementById('ch-card-' + t);
+      const b   = sec ? sec.querySelector('.ch-card-b') : null;
+      out[t] = { len: (b ? b.textContent.trim().length : 0),
+                 lbl: sec ? (sec.querySelector('.ch-card-t') || {}).textContent.trim() : '',
+                 kz:  sec ? (sec.querySelector('.ch-card-m') || {}).textContent.trim() : '',
+                 on:  !!(sec && sec.classList.contains('on')),
+                 nurEine: document.querySelectorAll('#ch-body .ch-card.on').length };
     });
     return out;
   });
-  check('Alle vier Reiter: Beschriftung gesetzt, Inhalt nicht leer, aktiver Reiter markiert',
-    ['chat','journal','report','settings'].every(t => r[t] && r[t].len > 20 && r[t].lbl.length > 1 && r[t].on),
+  check('Alle fuenf Kacheln: Titel und Kennzahl gesetzt, Inhalt nicht leer, immer genau EINE offen',
+    ['chat','week','persona','scope','journal'].every(t =>
+      r[t] && r[t].len > 20 && r[t].lbl.length > 1 && r[t].kz.length > 2 && r[t].on && r[t].nurEine === 1),
     JSON.stringify(r));
 
   // ── 4) Journal: Eintrag sichtbar, Loeschknopf entfernt ihn dauerhaft ─────
@@ -210,7 +226,10 @@ const SETUP = () => {
       limits: [{ t: '<b>Schulter</b> zickt', ts: now }], updatedAt: now
     }));
     openCoachHub('journal');
-    const body = document.getElementById('ch-body');
+    // Gemessen wird die Journal-KACHEL, nicht das ganze Blatt: seit dem Umbau
+    // stehen alle fuenf Kacheln gleichzeitig im DOM, und die Ton- und
+    // Profilkarten tragen ihr <b> voellig zu Recht.
+    const body = document.getElementById('ch-card-journal');
     const row = [...body.querySelectorAll('.ch-jrn')].find(x => x.textContent.indexOf('Schulter') >= 0);
     return { text: row ? row.textContent.replace(/\s+/g,' ').trim() : null,
              bold: body.querySelectorAll('b').length,
@@ -281,7 +300,7 @@ const SETUP = () => {
     return {
       padKinder: [...pad.children].map(c => c.id || c.className),
       aicKarten: document.querySelectorAll('#pg-heute .aic').length,
-      hubImHeute: !!document.querySelector('#pg-heute #ov-coach-hub, #pg-heute .ch-tabs, #pg-heute .ch-preset'),
+      hubImHeute: !!document.querySelector('#pg-heute #ov-coach-hub, #pg-heute .ch-card, #pg-heute .ch-preset'),
       hubUnterBody: document.getElementById('ov-coach-hub').parentElement === document.body,
       hostKinder: host.children.length,
       // Die Tableiste traegt unveraendert ihre fuenf Knoepfe (Heute, Training,
@@ -378,7 +397,9 @@ const SETUP = () => {
     _aicHist.push({ role:'user', content:'Wie <b>schwer</b> soll ich Bankdruecken?' });
     _aicHist.push({ role:'assistant', content:'X'.repeat(400) });
     openCoachHub('chat');
-    const body = document.getElementById('ch-body');
+    // Gemessen wird die Gespraechs-KACHEL: die anderen vier stehen seit dem
+    // Umbau gleichzeitig im DOM und tragen ihr eigenes <b>.
+    const body = document.getElementById('ch-card-chat');
     const msgs = [...body.querySelectorAll('.aic-msg')];
     const btn = [...body.querySelectorAll('button')].find(b => /coachHubOpenChat/.test(b.getAttribute('onclick') || ''));
     const lang = msgs.map(m => m.textContent.length);
@@ -441,7 +462,7 @@ const SETUP = () => {
     // steht im Markup aber HINTER dem Hub — sein Scrim faengt sonst jeden echten
     // Zeigerklick ab.
     closeOv('ov-ai-chat');
-    setAiCoachOpt('name', ''); setAiCoachOpt('tone', 'sachlich'); openCoachHub('settings');
+    setAiCoachOpt('name', ''); setAiCoachOpt('tone', 'sachlich'); openCoachHub('persona');
     // Sheet an den Anfang: fruehere Checks haben es gescrollt, und Puppeteer
     // scrollt ein Element genau an die Oberkante — dort liegt der klebende
     // .sh-handle darueber und faengt den Zeigerklick ab (Testartefakt, kein
