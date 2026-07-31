@@ -7959,7 +7959,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310023';
+const APP_VERSION = 'gymtrack-v202607310030';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -24141,14 +24141,13 @@ async function _cpgEnrichProfiles(items){
    _shfFeedJpeg). Bei 40 Posts im Feed sind das bis zu ~25 MB Zeichenketten, die
    dauerhaft im _cpgCache liegen. Eine Blob-URL zeigt auf denselben Bildinhalt,
    ohne ihn als JS-String zu halten — die Kette wird nach der Wandlung fallen
-   gelassen. (Gemessen ist das KEIN Tempogewinn beim Blättern: WebKit hält das
-   dekodierte Bild ohnehin, Decode lag bei 0,3 ms. Es geht hier um Speicher.)
+   gelassen. Beim Blättern bringt das nichts (WebKit hält das dekodierte Bild
+   ohnehin, Decode lag bei 0,2 ms) — gemessen wurde der erste Aufbau des Stapels:
+   7 ms mit Blob gegen 13 ms mit der Base64-Kette, dazu die eingesparten ~25 MB.
    Die Blob-URLs werden bei _cpgReload wieder freigegeben. */
 let _cpgBlobs = new Map();
-let _CPG_BLOB = true;   // MESSUNG: von der Bench umgeschaltet
 function _cpgImgSrc(it){
   if (!it || !it.img) return '';
-  if (!_CPG_BLOB) return it.img;
   if (it.img.slice(0, 5) !== 'data:') return it.img;      // schon Blob-/http-URL
   const key = it.uid + '/' + it.id;
   const known = _cpgBlobs.get(key);
@@ -34360,153 +34359,5 @@ document.addEventListener('touchmove', e => {
   else init();
 })();
 </script>
-<!-- ===== TEMP-BENCH-CPG-START (nur lokal, NICHT committen) ===== -->
-<script>
-(function(){
-  function out(s){ var p=document.getElementById('bench-out'); if(p) p.textContent=s; console.log('[BENCH]\n'+s); }
-  function mkImg(seed){
-    var cv=document.createElement('canvas'); cv.width=720; cv.height=960;
-    var g=cv.getContext('2d');
-    // Blockrauschen: schlecht komprimierbar -> realistische Post-Groesse wie echte Share-Cards
-    var s=seed*9301+7;
-    for(var y=0;y<960;y+=6) for(var x=0;x<720;x+=6){
-      s=(s*9301+49297)%233280; var v=Math.floor(s/233280*255);
-      g.fillStyle='rgb('+v+','+((v*3+seed*40)%255)+','+((v*7+90)%255)+')';
-      g.fillRect(x,y,6,6);
-    }
-    var url;
-    for (var qi=0, qs=[0.72,0.6,0.48,0.38]; qi<qs.length; qi++){
-      url=cv.toDataURL('image/jpeg',qs[qi]);
-      if(url.length<900000) return url;
-    }
-    return cv.toDataURL('image/jpeg',0.3);
-  }
-  function mkPost(i,img){
-    return { id:'bench'+i, uid:'benchuid'+i, kind:'post', ts:Date.now()-i*3600000,
-      img:img, rawImg:false, layout:'classic', visibility:'public',
-      dayName:'Push-Training', dur:52, gym:'Bench Gym', mgs:['Brust','Trizeps','Schultern'],
-      name:'Athlet '+i, photo:null, flames:{} };
-  }
-  // Frame-Sampler
-  function sampler(){
-    var frames=[], last=0, on=true;
-    function tick(t){ if(!on) return; if(last) frames.push(t-last); last=t; requestAnimationFrame(tick); }
-    requestAnimationFrame(tick);
-    return { stop:function(){ on=false; return frames; } };
-  }
-  // Ziehen nachbilden: wie touchmove in _cpgBindSwipe, ein Schritt pro Bild
-  function benchDrag(){
-    return new Promise(function(res){
-      var w=document.getElementById('cpg-wrap');
-      var card=w.querySelector('.cpg-card.top'), under=w.querySelector('.cpg-card.under');
-      if(!card) return res({frames:[]});
-      var W=w.clientWidth||320, n=18, i=0, frames=[], last=0;
-      card.style.transition='none'; if(under) under.style.transition='none';
-      function step(t){
-        if(last) frames.push(t-last); last=t;
-        var dx=-(W*0.26)*(i/n);
-        var p=Math.min(Math.abs(dx)/W,1);
-        card.style.transform='translateX('+dx+'px) rotate('+(dx*0.035)+'deg) scale('+(1-p*0.12)+')';
-        card.style.opacity=String(1-p*0.35);
-        if(under){ under.style.transform='scale('+(0.9+p*0.1)+')'; under.style.opacity=String(p); }
-        if(++i<=n) requestAnimationFrame(step);
-        else {
-          res({frames:frames});
-        }
-      }
-      requestAnimationFrame(step);
-    });
-  }
-  // Wischen nachbilden: identisch zum forward-Zweig in _cpgBindSwipe (touchend)
-  function benchSwipe(){
-    return new Promise(function(res){
-      var w=document.getElementById('cpg-wrap');
-      var card=w.querySelector('.cpg-card.top'), under=w.querySelector('.cpg-card.under');
-      var W=w.clientWidth||320;
-      var sm=sampler(), renderMs=0, decodeMs=0;
-      if(card){
-        card.style.transition='transform .3s cubic-bezier(.3,.7,.4,1), opacity .3s';
-        card.style.transform='translateX('+(-W*1.15)+'px) rotate(-14deg) scale(.8)';
-        card.style.opacity='0';
-      }
-      if(under){
-        under.style.transition='transform .34s cubic-bezier(.34,1.45,.55,1), opacity .25s';
-        under.style.transform='scale(1)'; under.style.opacity='1';
-      }
-      setTimeout(function(){
-        var t0=performance.now();
-        _cpgIdx+=1; _cpgRenderStack(window.__BENCH_DIR);
-        renderMs=performance.now()-t0;
-        var img=document.querySelector('#cpg-wrap .cpg-card.top img.cpg-img');
-        var d0=performance.now();
-        var done=function(){ decodeMs=performance.now()-d0; };
-        (img&&img.decode?img.decode().then(done,done):Promise.resolve().then(done))
-          .then(function(){
-            setTimeout(function(){
-              res({ renderMs:renderMs, decodeMs:decodeMs, frames:sm.stop() });
-            },350);
-          });
-      },300);
-    });
-  }
-  async function run(){
-    var host=document.createElement('div');
-    host.id='bench-host';
-    host.style.cssText='position:fixed;inset:0;z-index:99999;background:#0b0b0d;padding:40px 16px 140px;overflow:hidden';
-    host.innerHTML='<div class="cpg-wrap" id="cpg-wrap"></div>'
-      +'<pre id="bench-out" style="position:fixed;left:6px;right:6px;bottom:6px;margin:0;font:10px/1.3 ui-monospace,monospace;color:#7dff9b;background:rgba(0,0,0,.86);padding:7px;border-radius:8px;white-space:pre-wrap;z-index:100000"></pre>';
-    document.body.appendChild(host);
-    var SWIPES=10, NIMG=SWIPES+2;
-    out('Bench: generiere '+NIMG+' Bilder (720x960 JPEG)…');
-    var imgs=[], sizes=[];
-    for(var i=0;i<NIMG;i++){ var u=mkImg(i+1); imgs.push(u); sizes.push(Math.round(u.length/1024)); await new Promise(function(r){setTimeout(r,0);}); }
-    _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
-    _cpgIdx = 0; _cpgMode='public';
-    var txt='BENCH cpg — '+APP_VERSION+'  ('+SWIPES+' Wischer/Konfig)\n';
-    function stat(all){
-      if(!all.length) return {p50:0,p95:0,max:0,pct:0};
-      var s=all.slice().sort(function(a,b){return a-b;});
-      var over=0; for(var i=0;i<s.length;i++) if(s[i]>20) over++;
-      return { p50:s[Math.floor(s.length*0.5)], p95:s[Math.floor(s.length*0.95)],
-               max:s[s.length-1], pct:100*over/s.length };
-    }
-    // Alle drei im SELBEN Build: der alte Pfad ist _cpgRenderStack() ohne Richtung
-    // (baut beide Karten neu), der neue mit Richtung 1 (befoerdert die Unterkarte).
-    var blurCss='.cpg-snap-foot{backdrop-filter:blur(22px) saturate(1.5)!important;-webkit-backdrop-filter:blur(22px) saturate(1.5)!important}'
-               +'.cpg-chip{backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important}';
-    var cfgs=[{n:'ALT  neubau+blur+base64',dir:undefined,css:blurCss,blob:false},
-              {n:'NEU  befoerdern+blob   ',dir:1,        css:null,   blob:true },
-              {n:'NEU  befoerdern+base64 ',dir:1,        css:null,   blob:false}];
-    for(var c=0;c<cfgs.length;c++){
-      var st=null;
-      if(cfgs[c].css){ st=document.createElement('style'); st.textContent=cfgs[c].css; document.head.appendChild(st); }
-      window.__BENCH_DIR=cfgs[c].dir;
-      _CPG_BLOB=cfgs[c].blob;
-      try{ _cpgFreeBlobs(); }catch(_){}
-      _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
-      _cpgIdx=0; _cpgMode='public';
-      var t0=performance.now(); _cpgRenderStack(); var first=performance.now()-t0;
-      await new Promise(function(r){setTimeout(r,700);});
-      var dragF=[], swF=[], rend=[], dec=[];
-      for(var s=0;s<SWIPES;s++){
-        out(txt+'\nBench '+cfgs[c].n+' … '+(s+1)+'/'+SWIPES);
-        var d=await benchDrag(); dragF=dragF.concat(d.frames);
-        var r=await benchSwipe(); swF=swF.concat(r.frames); rend.push(r.renderMs); dec.push(r.decodeMs);
-        await new Promise(function(rr){setTimeout(rr,200);});
-      }
-      var avg=function(a){ var x=0; a.forEach(function(v){x+=v;}); return x/(a.length||1); };
-      var ds=stat(dragF), ss=stat(swF);
-      txt+=cfgs[c].n+'\n  first '+first.toFixed(1)+'ms  render '+avg(rend).toFixed(1)+'ms  decode '+avg(dec).toFixed(1)+'ms\n'
-        +'  ziehen  p50 '+ds.p50.toFixed(1)+' p95 '+ds.p95.toFixed(1)+' max '+ds.max.toFixed(1)+' >20ms '+ds.pct.toFixed(0)+'%\n'
-        +'  wechsel p50 '+ss.p50.toFixed(1)+' p95 '+ss.p95.toFixed(1)+' max '+ss.max.toFixed(1)+' >20ms '+ss.pct.toFixed(0)+'%\n';
-      if(st) st.remove();
-      await new Promise(function(r){setTimeout(r,300);});
-    }
-    out(txt);
-  }
-  setTimeout(function(){ try{ run(); }catch(e){ out('BENCH-FEHLER: '+(e&&e.message||e)); } }, 2600);
-})();
-</script>
-<!-- ===== TEMP-BENCH-CPG-END ===== -->
 </body>
 </html>
