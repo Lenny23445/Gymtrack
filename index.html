@@ -7414,7 +7414,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607300101';
+const APP_VERSION = 'gymtrack-v202607310001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7585,6 +7585,7 @@ const I18N_EN = {
   'Welchen Split trainierst du an diesem Tag?':'Which split do you train on this day?',
   'Erweitert: Gruppe oder Einzelübungen …':'Advanced: group or individual exercises …',
   'Erstelle deinen ersten Split':'Create your first split',
+  'Vorlagen':'Templates','Split starten':'Start split',
   'Noch keine Splits – erstelle zuerst einen Split.':'No splits yet – create one first.',
   '⠿ Split auf einen Wochentag ziehen · oder Tag antippen':'⠿ Drag a split onto a weekday · or tap a day',
   'Kein Training':'No workout','kein Training':'no workout',
@@ -8357,6 +8358,9 @@ const I18N_RX = [
  [/(\d+) Sätze/g,'$1 sets'], [/(\d+) Satz\b/g,'$1 set'],
  [/(\d+) Wdh\.?/g,'$1 reps'],
  [/(\d+) Einheiten/g,'$1 sessions'], [/(\d+) Einheit\b/g,'$1 session'],
+ // Kopfzeile des Trainings-Tabs: "3 Splits · 4 Trainingstage". Muss VOR den
+ // Trainings-/Tage-Regeln stehen, sonst greift keine (Wort ist zusammengesetzt).
+ [/(\d+) Trainingstage\b/g,'$1 training days'], [/(\d+) Trainingstag\b/g,'$1 training day'],
  [/(\d+) Trainings\b/g,'$1 workouts'], [/(\d+) Training\b/g,'$1 workout'],
  [/(\d+) Wochen/g,'$1 weeks'], [/(\d+) Woche\b/g,'$1 week'],
  [/(\d+) Minuten/g,'$1 minutes'], [/(\d+) Min\./g,'$1 min'],
@@ -8379,7 +8383,6 @@ const I18N_RX = [
    ' per month, renews automatically. Cancel anytime in the App Store.'],
   [/Spare (\d+) %/g, 'Save $1%'],
   [/\/Monat\b/g, '/month'],
-  [/per year·/g, 'per year · '],   // ' · '-Segmentsplit in tr() joint ohne Spaces
   [/Kauf fehlgeschlagen: /g, 'Purchase failed: '],
  [/Wiederherstellung fehlgeschlagen: /g,'Restore failed:'],
  // KI-Einblicke (Phase F) — dynamische Sätze mit Zahlen/Muskelgruppen
@@ -8413,7 +8416,9 @@ function tr(s) {
     out = out.split(' · ').map(p => {
       const t = p.trim(), h = I18N_EN[t];
  return h !== undefined ? p.replace(t, h): p;
- }).join('·');
+ // Mit ' · ' zusammensetzen, nicht mit '·': sonst fehlen die Leerzeichen in
+ // jeder zusammengesetzten Zeile UND die RX-Regeln mit ' · ' greifen nie.
+ }).join(' · ');
  }
   for (let i = 0; i < I18N_RX.length; i++) out = out.replace(I18N_RX[i][0], I18N_RX[i][1]);
   return out;
