@@ -32,6 +32,7 @@
 		AAE8E8E8E8E8E8E8E8E8E8E8 /* AppIconWhite@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AAE7E7E7E7E7E7E7E7E7E7E7 /* AppIconWhite@2x.png */; };
 		AAEAEAEAEAEAEAEAEAEAEAEA /* AppIconWhite@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = AAE9E9E9E9E9E9E9E9E9E9E9 /* AppIconWhite@3x.png */; };
 		AAF3F3F3F3F3F3F3F3F3F3F3 /* SpeechPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF4F4F4F4F4F4F4F4F4F4F4 /* SpeechPlugin.swift */; };
+		AAF5F5F5F5F5F5F5F5F5F5F5 /* TtsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF6F6F6F6F6F6F6F6F6F6F6 /* TtsPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +85,7 @@
 		AAE7E7E7E7E7E7E7E7E7E7E7 /* AppIconWhite@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIconWhite@2x.png"; sourceTree = "<group>"; };
 		AAE9E9E9E9E9E9E9E9E9E9E9 /* AppIconWhite@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIconWhite@3x.png"; sourceTree = "<group>"; };
 		AAF4F4F4F4F4F4F4F4F4F4F4 /* SpeechPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPlugin.swift; sourceTree = "<group>"; };
+		AAF6F6F6F6F6F6F6F6F6F6F6 /* TtsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TtsPlugin.swift; sourceTree = "<group>"; };
 		B2FD6A5EE4DA9C3348765344 /* GymTrackLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GymTrackLiveActivity.swift; sourceTree = "<group>"; };
 		EA209AB9382F50B6EC89C020 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EA5978E83686CCB893D70017 /* GymTrackWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GymTrackWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -171,6 +173,7 @@
 				AAD1D1D1D1D1D1D1D1D1D1D1 /* CameraPlugin.swift */,
 				AAE1E1E1E1E1E1E1E1E1E1E1 /* PremiumPlugin.swift */,
 				AAF4F4F4F4F4F4F4F4F4F4F4 /* SpeechPlugin.swift */,
+				AAF6F6F6F6F6F6F6F6F6F6F6 /* TtsPlugin.swift */,
 			);
 			path = Plugins;
 			sourceTree = "<group>";
@@ -314,6 +317,7 @@
 				AAD2D2D2D2D2D2D2D2D2D2D2 /* CameraPlugin.swift in Sources */,
 				AAE2E2E2E2E2E2E2E2E2E2E2 /* PremiumPlugin.swift in Sources */,
 				AAF3F3F3F3F3F3F3F3F3F3F3 /* SpeechPlugin.swift in Sources */,
+				AAF5F5F5F5F5F5F5F5F5F5F5 /* TtsPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
