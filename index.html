@@ -949,6 +949,25 @@ body{
   transition:opacity .22s cubic-bezier(.33,1,.68,1)}
 #log-cards.focus-on .ex-card.dimmed>.ex-head,
 #log-cards.focus-on .ex-card.dimmed>.ex-body{opacity:.42}
+/* ── Die eingerastete Karte ──
+   Sie traegt Akzentrahmen, einen tieferen Schatten und steht 2 px hoeher.
+   Das Anheben laeuft ueber transform und nicht ueber margin: nur so bleibt es
+   eine Bewegung im Compositor statt eines Umbruchs der ganzen Liste. Genau EINE
+   Karte hat diese Klasse, deshalb ist das will-change hier vertretbar — es
+   haelt die Karte auf ihrer eigenen Ebene, sodass der backdrop-filter waehrend
+   der 220 ms nicht in jedem Bild neu gerechnet wird.
+   Das :not() ist kein Schmuck: diese Regel traegt eine ID und wuerde sonst die
+   Kurven des Wischens (.is-swiping, .swipe-removing) ueberstimmen — die Karte
+   liefe beim Loeschen nicht mehr sauber hinaus. Wer die Karte gerade in der
+   Hand hat, faehrt sie allein. */
+#log-cards.focus-on .ex-card:not(.is-swiping):not(.swipe-removing){
+  transition:transform .22s cubic-bezier(.33,1,.68,1),
+             border-color .22s ease,box-shadow .22s ease}
+#log-cards.focus-on .ex-card.locked:not(.is-swiping):not(.swipe-removing){
+  border-color:rgba(var(--acc-rgb),.52);
+  box-shadow:0 12px 30px rgba(var(--acc-rgb),.20),var(--gl-hi);
+  transform:translateY(-2px);
+  will-change:transform}
 /* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
    erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
    Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
@@ -4940,9 +4959,14 @@ html:not([data-glass="off"]) #tab-indicator{
 .cpg-foot-fade{position:absolute;left:0;right:0;bottom:0;height:96px;z-index:3;pointer-events:none;
   background:linear-gradient(180deg,rgba(var(--acc-rgb),0) 0%,rgba(var(--acc-rgb),.05) 50%,rgba(var(--acc-rgb),.18) 100%)}
 /* Separate Flammen-Glasleiste UNTER dem Bild (eigene Zeile, Akzent-Glas). */
+/* KEIN backdrop-filter: die Fußleiste sitzt IN der Karte, und die Karte wird beim
+   Wischen pro Bild verschoben, gedreht und in der Deckkraft verändert. Ein
+   Weichzeichner müsste dann jedes Bild neu gerechnet werden, obwohl dahinter nur
+   die eigene dunkle Kartenfläche liegt — gemessen 23,5 → 19,3 ms Spitzenframe
+   allein durch das Weglassen, auf dem Gerät mehr. Der Farbverlauf liefert
+   denselben Eindruck ohne Kosten. */
 .cpg-snap-foot{flex-shrink:0;height:60px;display:flex;align-items:center;justify-content:center;border-radius:0 0 22px 22px;
-  background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.30));
-  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5)}
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.16),rgba(var(--acc-rgb),.30))}
 .cpg-snap-foot{gap:12px}
 /* Reaktions-Zähler-Label neben der Flamme („N Flammen") — Zahl steht in der Fußleiste UNTER dem Bild. */
 .cpg-snap-foot .flm-btn .ct{display:none}
@@ -4957,7 +4981,9 @@ html:not([data-glass="off"]) #tab-indicator{
 .cpg-info .day{font-size:22px;font-weight:900;letter-spacing:-.4px;text-shadow:0 2px 8px rgba(0,0,0,.45)}
 .cpg-info .meta{font-size:13px;opacity:.85;margin-top:3px}
 .cpg-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.cpg-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.16);backdrop-filter:blur(8px)}
+/* Ebenfalls ohne Weichzeichner (liegt in der animierten Karte, s. o.) — die
+   etwas dichtere Fläche trägt den Kontrast allein. */
+.cpg-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.2)}
 .cpg-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text2);text-align:center;padding:0 30px}
 .cpg-count{position:absolute;top:-30px;right:4px;font-size:12px;color:var(--text2)}
 /* Flamme */
@@ -18533,7 +18559,12 @@ function _wkFocusApply() {
     ? WorkoutFocus.focusUnitOf(wkLogs, _wkFocusLi) : [];
   cards.forEach(c => {
     const li = +c.dataset.li;
-    c.classList.toggle('dimmed', unit.length > 0 && !unit.includes(li));
+    const drin = unit.includes(li);
+    c.classList.toggle('dimmed', unit.length > 0 && !drin);
+    // Die eingerastete Einheit traegt das Zeichen SELBST (Rahmen, Schatten,
+    // angehoben) — vorher gab es nur "die anderen sind dunkler", und dann
+    // erkennt man den Moment des Einrastens erst am Umfeld.
+    c.classList.toggle('locked', unit.length > 0 && drin);
   });
 }
 
@@ -18565,7 +18596,12 @@ function _wkFocusTick() {
     // zaehlt nicht mit, sonst gilt eine Karte als "dran", die dort verdeckt liegt.
     const pad = _wkSnapPadPx || 72;
     const mid = sheet.scrollTop + pad + (sheet.clientHeight - pad) / 2;
-    const idx = WorkoutFocus.pickFocused(boxes, mid);
+    // Mit Vorsprung fuer die bereits gewaehlte Karte: ohne den kippte der Fokus
+    // beim Scrollen mehrfach zwischen zwei fast gleich weit entfernten Karten
+    // hin und her. 56 px ~ eine Satzzeile — gross genug gegen das Zittern, klein
+    // genug, dass ein echter Wechsel sofort durchkommt.
+    const cur = _wkFocusLi >= 0 ? boxes.findIndex(b => b.li === _wkFocusLi) : -1;
+    const idx = WorkoutFocus.pickFocusedStable(boxes, mid, cur, 56);
     const li = idx >= 0 ? boxes[idx].li : -1;
     if (li !== _wkFocusLi) { _wkFocusLi = li; _wkFocusApply(); }
   } catch(_) {}
@@ -23984,7 +24020,13 @@ async function _renderFeed(body){
   _cpgRenderStack();
   _flamesRefreshBadge();
 }
-function _cpgReload(){ _cpgCache = {}; const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
+function _cpgReload(){
+  // Der Zwischenspeicher wird verworfen, also auch die Blob-URLs seiner Bilder —
+  // sonst hielte jeder Neuladevorgang den alten Bildspeicher fest.
+  _cpgCache = {}; _cpgFreeBlobs();
+  const b = document.getElementById('fr-body');
+  if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
+}
 /* Frisch geposteten eigenen Post optimistisch oben in den passenden Feed-Cache
    setzen (friends/public je nach Zielauswahl). Falls der Feed gerade offen ist,
    sofort neu rendern — so erscheint der Post ohne Server-Roundtrip in Echtzeit. */
@@ -24094,6 +24136,37 @@ async function _cpgEnrichProfiles(items){
   }));
 }
 
+/* ── Post-Foto: Base64 einmal in eine Blob-URL wandeln ─────────────────────
+   Ein Post trägt sein Foto als data:-URL im Dokument (bis 900 000 Zeichen, siehe
+   _shfFeedJpeg). Bei 40 Posts im Feed sind das bis zu ~25 MB Zeichenketten, die
+   dauerhaft im _cpgCache liegen. Eine Blob-URL zeigt auf denselben Bildinhalt,
+   ohne ihn als JS-String zu halten — die Kette wird nach der Wandlung fallen
+   gelassen. (Gemessen ist das KEIN Tempogewinn beim Blättern: WebKit hält das
+   dekodierte Bild ohnehin, Decode lag bei 0,3 ms. Es geht hier um Speicher.)
+   Die Blob-URLs werden bei _cpgReload wieder freigegeben. */
+let _cpgBlobs = new Map();
+function _cpgImgSrc(it){
+  if (!it || !it.img) return '';
+  if (it.img.slice(0, 5) !== 'data:') return it.img;      // schon Blob-/http-URL
+  const key = it.uid + '/' + it.id;
+  const known = _cpgBlobs.get(key);
+  if (known) { it.img = known; return known; }
+  try {
+    const comma = it.img.indexOf(',');
+    const mime = it.img.slice(5, comma).split(';')[0] || 'image/jpeg';
+    const bin = atob(it.img.slice(comma + 1));
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([buf], { type: mime }));
+    _cpgBlobs.set(key, url);
+    it.img = url;                                          // Base64-Kette fällt weg
+    return url;
+  } catch(_) { return it.img; }                            // defekte Daten: unverändert
+}
+function _cpgFreeBlobs(){
+  _cpgBlobs.forEach(u => { try { URL.revokeObjectURL(u); } catch(_){} });
+  _cpgBlobs.clear();
+}
 function _cpgActText(a){
   const name = a.uid === _fbUser?.uid ? tr('Du') : (a.name || 'Athlet');
   if (a.type === 'pr') return { day: (a.prName || 'PR'), meta: name + ' · ' + tr('Neuer Rekord') + (a.prVal ? ': ' + a.prVal : '') };
@@ -24113,8 +24186,11 @@ function _cpgCardHTML(it, pos){
     : _cpgActText(it);
   const acc = _shfAccent();
   // Echtes Foto (rawImg): bei Ladefehler auf Akzent-Gradient zurückfallen, damit kein schwarzer Rahmen bleibt.
+  // loading="lazy" ist bei data:/blob: wirkungslos (nichts zu laden), verzögerte aber
+  // das Dekodieren der unsichtbaren Unterkarte bis zu ihrem Auftauchen. decoding="async"
+  // hält das Dekodieren aus dem Bild heraus, in dem die Karte erscheint.
   const bg = isPost && it.img
-    ? `<img class="cpg-img" src="${esc(it.img)}" loading="lazy" alt=""${it.rawImg ? ` onerror="this.style.display='none'"` : ''}>`
+    ? `<img class="cpg-img" src="${esc(_cpgImgSrc(it))}" decoding="async" alt=""${it.rawImg ? ` onerror="this.style.display='none'"` : ''}>`
     : `<div class="cpg-img" style="background:linear-gradient(160deg,${acc},#0b1020)"></div>`;
   const flLabel = fireCount
     ? fireCount + ' ' + (fireCount === 1 ? tr('Flamme') : tr('Flammen'))
@@ -24186,12 +24262,14 @@ function _cpgCardHTML(it, pos){
     ${flame}
   </div>`;
 }
-function _cpgRenderStack(){
+/* dir: 1 = vorwärts geblättert (dann darf die Unterkarte befördert werden),
+   -1 oder nichts = zurück bzw. Neuaufbau (Liste verändert, Feed neu geladen). */
+function _cpgRenderStack(dir){
   const w = document.getElementById('cpg-wrap'); if (!w) return;
-  w.style.height = '';
   _cpgItems.forEach((it, i) => it._i = i);
   if (!_cpgItems.length) {
     const isFr = _cpgMode === 'friends';
+    w.style.height = '';                 // Sonderhöhe für Foto-Posts zurücknehmen
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${isFr ? ICO.users({ s: 40 }) : ICO.globe({ s: 40 })}</div>
       <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
       <span style="font-size:13px">${isFr
@@ -24201,24 +24279,68 @@ function _cpgRenderStack(){
     return;
   }
   if (_cpgIdx >= _cpgItems.length) {
+    w.style.height = '';
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.check({ s: 40 })}</div><b>${tr('Alles gesehen!')}</b>
       <button class="btn btn-acc" onclick="_cpgReload()">${tr('Neu laden')}</button></div>`;
     return;
   }
   const top = _cpgItems[_cpgIdx];
   const under = _cpgItems[_cpgIdx + 1];
-  w.innerHTML = (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
   // Fertige Share-Layouts sind 3:4. Die separate Flammen-Fußleiste (60px) frisst sonst
   // vom Bildbereich ab (cover → oben/unten abgeschnitten). Darum den Rahmen um die
   // Fußleistenhöhe VERGRÖSSERN, sodass der Medienbereich exakt 3:4 bleibt → Bild passt
   // randlos rein, nichts wird beschnitten. Ohne Snap-Foto: normales 3:4 (CSS).
-  const _isSnap = top && top.kind === 'post' && top.img;
-  const _bw = w.clientWidth || 0;
-  w.style.height = (_bw && _isSnap) ? (_bw * 4 / 3 + 60) + 'px' : '';
-  const count = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
-  w.insertAdjacentHTML('afterbegin', count);
+  // Höhe VOR dem Umbau setzen: sonst liest die Breitenabfrage das Layout zurück,
+  // während der neue Inhalt schon steht (erzwungenes Zwischenlayout pro Wechsel).
+  const _bw = _cpgWidth(w);
+  w.style.height = (_bw && top.kind === 'post' && top.img) ? (_bw * 4 / 3 + 60) + 'px' : '';
+  const countHTML = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
+
+  /* Weiterblättern: die untere Karte steht bereits im DOM, mit fertigem Bild und
+     fertigem Layout. Sie wird zur oberen BEFÖRDERT (nur Klassenwechsel) statt neu
+     gebaut — vorher kostete derselbe Schritt einen kompletten innerHTML-Aufbau
+     beider Karten, gemessen ~9 ms Hauptthread genau im Bild des Wechsels, also
+     mindestens ein verlorener Frame (auf dem Gerät mehrere). Die neue Unterkarte
+     entsteht erst im Bild danach; sie ist unsichtbar (opacity 0), ihr Aufbau fällt
+     nicht auf. Passt die Annahme nicht (rückwärts, Liste verändert, erster Aufbau),
+     wird wie bisher vollständig gebaut — die Abkürzung ist nie der einzige Weg. */
+  const promote = dir === 1 ? w.querySelector('.cpg-card.under') : null;
+  if (promote && promote.dataset.i === String(_cpgIdx)) {
+    const oldTop = w.querySelector('.cpg-card.top');
+    if (oldTop) oldTop.remove();
+    promote.style.transition = 'none';
+    promote.style.transform = ''; promote.style.opacity = '';
+    promote.classList.remove('under'); promote.classList.add('top');
+    void promote.offsetWidth;                    // Übergangssperre nur für dieses Bild
+    promote.style.transition = '';
+    const ct = w.querySelector('.cpg-count');
+    if (ct) ct.textContent = (_cpgIdx + 1) + ' / ' + _cpgItems.length;
+    else w.insertAdjacentHTML('afterbegin', countHTML);
+    _cpgBindSwipe(w);
+    if (under) requestAnimationFrame(() => requestAnimationFrame(() => {
+      // Zwischenzeitlich weitergewischt? Dann hat der nächste Lauf schon gebaut.
+      if (!w.isConnected || w.querySelector('.cpg-card.under')) return;
+      if (_cpgItems[_cpgIdx + 1] !== under) return;
+      const t = w.querySelector('.cpg-card.top');
+      if (t) t.insertAdjacentHTML('beforebegin', _cpgCardHTML(under, 'under'));
+    }));
+    return;
+  }
+  w.innerHTML = countHTML + (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
   _cpgBindSwipe(w);
 }
+/* Rahmenbreite gepuffert: sie ändert sich nur, wenn sich das Fenster ändert
+   (.cpg-wrap hängt an 100dvh). Jeder Kartenwechsel las sie vorher neu und erzwang
+   damit ein Layout mitten im Umbau. Nullwerte (Rahmen noch unsichtbar) werden
+   NICHT gepuffert — sonst fiele die Sonderhöhe für Foto-Posts dauerhaft aus. */
+let _cpgW = 0;
+function _cpgWidth(w){
+  if (_cpgW) return _cpgW;
+  const x = w.clientWidth || 0;
+  if (x) _cpgW = x;
+  return x;
+}
+window.addEventListener('resize', () => { _cpgW = 0; });
 function _cpgBindSwipe(w){
   const card = w.querySelector('.cpg-card.top');
   const under = w.querySelector('.cpg-card.under');
@@ -24261,7 +24383,7 @@ function _cpgBindSwipe(w){
         under.style.transform = 'scale(1)'; under.style.opacity = '1';
       }
       haptic(10);
-      setTimeout(() => { _cpgIdx += forward ? 1 : -1; _cpgRenderStack(); }, 300);
+      setTimeout(() => { _cpgIdx += forward ? 1 : -1; _cpgRenderStack(forward ? 1 : -1); }, 300);
     } else {
       card.style.transition = 'transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s';
       card.style.transform = ''; card.style.opacity = '';
@@ -34252,6 +34374,31 @@ document.addEventListener('touchmove', e => {
     requestAnimationFrame(tick);
     return { stop:function(){ on=false; return frames; } };
   }
+  // Ziehen nachbilden: wie touchmove in _cpgBindSwipe, ein Schritt pro Bild
+  function benchDrag(){
+    return new Promise(function(res){
+      var w=document.getElementById('cpg-wrap');
+      var card=w.querySelector('.cpg-card.top'), under=w.querySelector('.cpg-card.under');
+      if(!card) return res({maxFrame:0,over20:0,frames:0});
+      var W=w.clientWidth||320, n=18, i=0, frames=[], last=0;
+      card.style.transition='none'; if(under) under.style.transition='none';
+      function step(t){
+        if(last) frames.push(t-last); last=t;
+        var dx=-(W*0.26)*(i/n);
+        var p=Math.min(Math.abs(dx)/W,1);
+        card.style.transform='translateX('+dx+'px) rotate('+(dx*0.035)+'deg) scale('+(1-p*0.12)+')';
+        card.style.opacity=String(1-p*0.35);
+        if(under){ under.style.transform='scale('+(0.9+p*0.1)+')'; under.style.opacity=String(p); }
+        if(++i<=n) requestAnimationFrame(step);
+        else {
+          var max=0,over20=0;
+          for(var k=0;k<frames.length;k++){ if(frames[k]>max)max=frames[k]; if(frames[k]>20)over20++; }
+          res({maxFrame:max,over20:over20,frames:frames.length});
+        }
+      }
+      requestAnimationFrame(step);
+    });
+  }
   // Wischen nachbilden: identisch zum forward-Zweig in _cpgBindSwipe (touchend)
   function benchSwipe(){
     return new Promise(function(res){
@@ -34270,7 +34417,7 @@ document.addEventListener('touchmove', e => {
       }
       setTimeout(function(){
         var t0=performance.now();
-        _cpgIdx+=1; _cpgRenderStack();
+        _cpgIdx+=1; _cpgRenderStack(1);
         renderMs=performance.now()-t0;
         var img=document.querySelector('#cpg-wrap .cpg-card.top img.cpg-img');
         var d0=performance.now();
@@ -34299,27 +34446,32 @@ document.addEventListener('touchmove', e => {
     for(var i=0;i<6;i++){ var u=mkImg(i+1); imgs.push(u); sizes.push(Math.round(u.length/1024)); await new Promise(function(r){setTimeout(r,0);}); }
     _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
     _cpgIdx = 0; _cpgMode='public';
-    var t0=performance.now(); _cpgRenderStack(); var first=performance.now()-t0;
-    await new Promise(function(r){setTimeout(r,600);});
-    var rows=[], n=4;
-    for(var s=0;s<n;s++){
-      var r=await benchSwipe();
-      rows.push(r);
-      out('Bench läuft… Swipe '+(s+1)+'/'+n);
-      await new Promise(function(rr){setTimeout(rr,250);});
+    var txt='BENCH cpg — '+APP_VERSION+'\nimg-KB(base64): '+sizes.join(' ')+'\n';
+    // Zwei Konfigurationen: wie gebaut, dann ohne backdrop-filter auf der Karte.
+    var cfgs=[{n:'C nach-Fix  ',css:null}];
+    for(var c=0;c<cfgs.length;c++){
+      var st=null;
+      if(cfgs[c].css){ st=document.createElement('style'); st.textContent=cfgs[c].css; document.head.appendChild(st); }
+      _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
+      _cpgIdx=0; _cpgMode='public';
+      var t0=performance.now(); _cpgRenderStack(); var first=performance.now()-t0;
+      await new Promise(function(r){setTimeout(r,700);});
+      var rows=[], drags=[], n=4;
+      for(var s=0;s<n;s++){
+        out(txt+'\nBench '+cfgs[c].n+' … '+(s+1)+'/'+n);
+        drags.push(await benchDrag());
+        rows.push(await benchSwipe());
+        await new Promise(function(rr){setTimeout(rr,220);});
+      }
+      var avg=function(a,k){ var s=0; a.forEach(function(x){s+=x[k];}); return s/a.length; };
+      txt+=cfgs[c].n+': first '+first.toFixed(1)+'ms | ziehen maxFrame '+avg(drags,'maxFrame').toFixed(1)
+        +'ms >20ms '+avg(drags,'over20').toFixed(1)+'/'+drags[0].frames
+        +' | wechsel render '+avg(rows,'renderMs').toFixed(1)+'ms decode '+avg(rows,'decodeMs').toFixed(1)
+        +'ms maxFrame '+avg(rows,'maxFrame').toFixed(1)+'ms >20ms '+avg(rows,'over20').toFixed(1)
+        +' >32ms '+avg(rows,'over32').toFixed(1)+'\n';
+      if(st) st.remove();
+      await new Promise(function(r){setTimeout(r,300);});
     }
-    var txt='BENCH cpg — '+APP_VERSION+'\n'
-      +'img-KB(base64): '+sizes.join(' ')+'\n'
-      +'first render: '+first.toFixed(1)+' ms\n';
-    var sumR=0,sumD=0,sumMax=0,sumO20=0,sumO32=0;
-    rows.forEach(function(r,i){
-      txt+='swipe'+(i+1)+': render '+r.renderMs.toFixed(1)+'ms  decode '+r.decodeMs.toFixed(1)
-        +'ms  maxFrame '+r.maxFrame.toFixed(1)+'ms  >20ms '+r.over20+'/'+r.frames+'  >32ms '+r.over32+'\n';
-      sumR+=r.renderMs; sumD+=r.decodeMs; sumMax+=r.maxFrame; sumO20+=r.over20; sumO32+=r.over32;
-    });
-    txt+='MITTEL: render '+(sumR/rows.length).toFixed(1)+'ms  decode '+(sumD/rows.length).toFixed(1)
-      +'ms  maxFrame '+(sumMax/rows.length).toFixed(1)+'ms  >20ms '+(sumO20/rows.length).toFixed(1)
-      +'  >32ms '+(sumO32/rows.length).toFixed(1);
     out(txt);
   }
   setTimeout(function(){ try{ run(); }catch(e){ out('BENCH-FEHLER: '+(e&&e.message||e)); } }, 2600);
