@@ -7588,7 +7588,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607300003';
+const APP_VERSION = 'gymtrack-v202607300004';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8322,6 +8322,13 @@ const I18N_EN = {
   'Vorschläge, die du fünfmal hintereinander wegwischst, kommen nicht mehr':'Suggestions you dismiss five times in a row stop coming back',
   'Häufige Fragen wie „Wie viele Sätze noch?" oder „Was ist mein Rekord bei Bankdrücken?" beantwortet die App sofort selbst, ohne Wartezeit':'Common questions such as "How many sets left?" or "What is my record on bench press?" are answered by the app itself, instantly',
   'Dein Gedächtnis liegt an deinem Konto: ein zweites Konto auf demselben Gerät sieht davon nichts, beim Löschen des Kontos ist es weg':'Your memory is tied to your account: a second account on the same device sees none of it, and deleting your account deletes it',
+ /* Changelog: Coach meldet sich (29.07.2026) */
+  '29.07.2026 · Dein Coach meldet sich, auch wenn die App zu ist':'29 Jul 2026 · Your coach reaches you even when the app is closed',
+  'Die Trainings-Erinnerung sagt jetzt, was ansteht: „Heute Push — Bank 3 × 8 @ 62,5" statt „Zeit fürs Gym"':'The workout reminder now tells you what is up: "Push today — bench 3 × 8 @ 62.5" instead of "Time for the gym"',
+  'Nach einem neuen Bestwert gratuliert er dir noch am selben Tag':'After a new personal best it congratulates you the same day',
+  'Bleibst du fünf Tage weg, meldet er sich einmal. Öffnest du die App, verschiebt sich das von selbst':'Stay away for five days and it reaches out once. Open the app and that resets by itself',
+  'Einmal im Jahr zeigt er dir, wo du vor zwölf Monaten standest':'Once a year it shows you where you stood twelve months ago',
+  'Du bestimmst, wie oft: gar nicht, höchstens einmal am Tag oder bis zu zweimal':'You decide how often: never, at most once a day, or up to twice',
  /* Changelog: Coach begleitet Training (29.07.2026) */
   '29.07.2026 · Der Coach begleitet dein Training':'29 Jul 2026 · Your coach guides your workout',
   'Er begrüßt dich mit dem, was du beim letzten Mal geschafft hast, ordnet zur Halbzeit ein und zieht am Ende Bilanz':'It greets you with what you achieved last time, checks in at the halfway point, and sums up at the end',
@@ -8591,6 +8598,16 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-29-coach-meldet-sich': {
+    label: '29.07.2026 · Dein Coach meldet sich, auch wenn die App zu ist',
+    items: [
+      'Die Trainings-Erinnerung sagt jetzt, was ansteht: „Heute Push — Bank 3 × 8 @ 62,5" statt „Zeit fürs Gym"',
+      'Nach einem neuen Bestwert gratuliert er dir noch am selben Tag',
+      'Bleibst du fünf Tage weg, meldet er sich einmal. Öffnest du die App, verschiebt sich das von selbst',
+      'Einmal im Jahr zeigt er dir, wo du vor zwölf Monaten standest',
+      'Du bestimmst, wie oft: gar nicht, höchstens einmal am Tag oder bis zu zweimal',
+    ]
+  },
   'cl-2026-07-29-coach-training': {
     label: '29.07.2026 · Der Coach begleitet dein Training',
     items: [
