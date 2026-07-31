@@ -135,27 +135,39 @@
         hart:     'Satz: leicht, passend, schwer?',
         locker:   'Und, wie war der? Leicht, passend oder schwer?'
       },
-      // Volumen- und Bereichsanpassung. Diese drei Schluessel begleiten eine
-      // Aenderung, die die App gerade VORGENOMMEN hat — sie muessen deshalb
-      // sagen, WAS sich geaendert hat und WORAUS. Ein blosses "gut gemacht"
-      // waere hier eine stille Planaenderung mit Beiwerk.
+      // Diese fuenf Schluessel sind ANGEBOTE, keine Vollzugsmeldungen: der Coach
+      // schlaegt vor, entschieden wird per Knopf. Sie standen frueher im
+      // Perfekt ('Ich nehme einen Satz raus') und kreuzten sich damit mit der
+      // Karte, die dieselbe Frage noch einmal stellte.
       volCut: {
-        ruhig:    'Ich nehme einen Satz raus, {pct} Prozent Ermüdung.',
-        sachlich: 'Ermüdung {pct} Prozent: ein Arbeitssatz weniger.',
-        hart:     'Ein Satz raus. {pct} Prozent Ermüdung.',
-        locker:   'Der letzte Satz kann weg — {pct} Prozent Ermüdung reichen.'
+        ruhig:    'Ich würde einen Satz rausnehmen, {pct} Prozent Ermüdung.',
+        sachlich: 'Ermüdung {pct} Prozent — ein Arbeitssatz weniger wäre sinnvoll.',
+        hart:     'Einen Satz streichen? {pct} Prozent Ermüdung.',
+        locker:   'Der letzte Satz könnte weg — {pct} Prozent Ermüdung reichen.'
       },
       volAdd: {
-        ruhig:    'Da ist noch Luft, ich hänge einen Satz an.',
-        sachlich: 'Leistung stabil bei {pct} Prozent Ermüdung: ein Satz mehr.',
-        hart:     'Noch ein Satz. Da geht mehr.',
+        ruhig:    'Da ist noch Luft. Ich würde einen Satz anhängen.',
+        sachlich: 'Leistung stabil bei {pct} Prozent Ermüdung — ein Satz mehr wäre drin.',
+        hart:     'Noch ein Satz? Da geht mehr.',
         locker:   'Du wirkst frisch — einer geht noch, oder?'
       },
       repRange: {
-        ruhig:    'Dein Wiederholungsbereich passt nicht mehr. Neu: {reps}.',
-        sachlich: 'Wiederholungsbereich angepasst auf {reps}.',
-        hart:     'Neuer Bereich: {reps}. Danach richten.',
-        locker:   'Der alte Bereich war zu eng — jetzt {reps}.'
+        ruhig:    'Dein Wiederholungsbereich passt nicht mehr. Ich schlage {reps} vor.',
+        sachlich: 'Wiederholungsbereich passt nicht mehr — Vorschlag: {reps}.',
+        hart:     'Bereich ändern auf {reps}? Passt besser.',
+        locker:   'Der alte Bereich war zu eng — wie wäre {reps}?'
+      },
+      setOfferHard: {
+        ruhig:    'Das war unter deiner Vorgabe. Ich würde auf {kg} gehen.',
+        sachlich: 'Unter der Prognose — Vorschlag für die offenen Sätze: {kg}.',
+        hart:     'Zu schwer. Runter auf {kg}?',
+        locker:   'Ganz schön zäh — sollen wir auf {kg} gehen?'
+      },
+      setOfferEasy: {
+        ruhig:    'Das war über deiner Vorgabe. Ich würde auf {kg} gehen.',
+        sachlich: 'Über der Prognose — Vorschlag für die offenen Sätze: {kg}.',
+        hart:     'Zu leicht. Rauf auf {kg}?',
+        locker:   'Das lief zu locker — legen wir auf {kg}?'
       },
       setAckEasy: {
         ruhig:    'Gut. Beim nächsten Mal gehen wir auf {kg}.',
@@ -337,22 +349,34 @@
         locker:   'So how was it? Easy, right or hard?'
       },
       volCut: {
-        ruhig:    'I am dropping one set, fatigue is at {pct} percent.',
-        sachlich: 'Fatigue {pct} percent: one working set fewer.',
-        hart:     'One set out. {pct} percent fatigue.',
-        locker:   'Last set can go — {pct} percent fatigue is enough.'
+        ruhig:    'I would drop one set, fatigue is at {pct} percent.',
+        sachlich: 'Fatigue {pct} percent — one working set fewer would help.',
+        hart:     'Drop one set? {pct} percent fatigue.',
+        locker:   'Last set could go — {pct} percent fatigue is enough.'
       },
       volAdd: {
-        ruhig:    'There is room left, so I am adding one set.',
-        sachlich: 'Output steady at {pct} percent fatigue: one set more.',
-        hart:     'One more set. There is room.',
+        ruhig:    'There is room left. I would add one set.',
+        sachlich: 'Output steady at {pct} percent fatigue — one more set would fit.',
+        hart:     'One more set? There is room.',
         locker:   'You look fresh — one more, right?'
       },
       repRange: {
-        ruhig:    'Your rep range no longer fits. New: {reps}.',
-        sachlich: 'Rep range adjusted to {reps}.',
-        hart:     'New range: {reps}. Work to it.',
-        locker:   'That old range was too tight — now {reps}.'
+        ruhig:    'Your rep range no longer fits. I suggest {reps}.',
+        sachlich: 'Rep range no longer fits — suggestion: {reps}.',
+        hart:     'Change the range to {reps}? Fits better.',
+        locker:   'That old range was too tight — how about {reps}?'
+      },
+      setOfferHard: {
+        ruhig:    'That was below your target. I would go to {kg}.',
+        sachlich: 'Below the prediction — suggestion for the open sets: {kg}.',
+        hart:     'Too heavy. Down to {kg}?',
+        locker:   'That looked rough — shall we go to {kg}?'
+      },
+      setOfferEasy: {
+        ruhig:    'That was above your target. I would go to {kg}.',
+        sachlich: 'Above the prediction — suggestion for the open sets: {kg}.',
+        hart:     'Too light. Up to {kg}?',
+        locker:   'That went too smoothly — shall we load {kg}?'
       },
       setAckEasy: {
         ruhig:    'Good. Next time we go to {kg}.',

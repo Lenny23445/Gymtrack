@@ -26514,14 +26514,17 @@ function _rpeDerive(li, si) {
     _rpeAnswers.push(bucket);
 
     let gesagt = false;
-    // Gewicht nachziehen — aber nur, wenn der Satz auch mit dem VORGESCHLAGENEN
-    // Gewicht gelaufen ist. Wer bewusst schwerer oder leichter aufgelegt hat,
-    // hat damit eine Entscheidung getroffen; die Prognose gilt dann nicht mehr,
-    // und der Coach wuerde sie ueberschreiben statt zu unterstuetzen.
+    // Das Gewicht wird ANGEBOTEN, nicht gesetzt. Vorher aenderte die App es
+    // selbst und die KI-Karte bot kurz darauf dasselbe noch einmal an — fuer
+    // den Nutzer kreuzten sich zwei Wege zur selben Sache. Jetzt gibt es genau
+    // eine Entscheidungsflaeche: die Karte.
+    // Weiterhin nur, wenn der Satz mit dem VORGESCHLAGENEN Gewicht gelaufen ist.
+    // Wer bewusst schwerer oder leichter aufgelegt hat, hat entschieden; die
+    // Prognose gilt dann nicht mehr.
     const sug = parseFloat(log.sugW) || 0;
     const eq  = _csEquip(ex);
     const eigenmaechtig = sug > 0 && Math.abs(kg - sug) > (eq.step || 2.5) + 0.01;
-    if (bucket !== 'ok' && !eigenmaechtig) {
+    if (bucket !== 'ok' && !eigenmaechtig && !_coachCardOffen()) {
       // Relativ statt eine Rasterstufe: 2,5 kg weniger auf 200 kg Kreuzheben
       // waeren ein Prozent, nachdem die Wiederholungen eingebrochen sind. Das
       // Raster des Geraets (Stange mit Scheibe je Seite, sonst Stapelstufe)
@@ -26540,21 +26543,27 @@ function _rpeDerive(li, si) {
       });
       const offen = (log.sets || []).some(s => !s.done && (s.type || 'normal') !== 'warmup');
       if (next != null && offen && Math.abs(next - kg) > 0.01) {
-        const zurueck = _coachSnapshot(li);
+        const zielW = _rpeTargetReps(ex, log);
+        let txt = '';
+        try {
+          txt = _say(bucket === 'hard' ? 'setOfferHard' : 'setOfferEasy',
+                     _csVars({ kg: next })) || '';
+        } catch(_) {}
+        // Der Grund steht VOR dem Vorschlag: eine Zahl, die der Nutzer im Satz
+        // selbst sieht. Ohne sie ist der Vorschlag eine Behauptung.
+        const grund = _cm(parseInt(set.r) + ' statt ' + zielW + ' Wiederholungen. ',
+                          parseInt(set.r) + ' reps instead of ' + zielW + '. ');
         _rpeLastDir[log.exerciseId] = dir;
-        _rpeSuggestNext(log.exerciseId, next);
-        _coachUndoOffer(zurueck);
-        // Die Quittung haengt hier NICHT mehr an CoachSession.ackTake(): die
-        // Obergrenze existierte, weil die alte Rueckfrage nach jedem Satz eine
-        // Antwort und damit eine Quittung erzeugte. Jetzt spricht der Coach nur,
-        // wenn sich wirklich etwas geaendert hat — und eine stille
-        // Gewichtsaenderung waere schlimmer als eine Zeile zu viel.
-        const ack = window.CoachRpe.ackFor(bucket, next);
-        if (ack) {
-          let txt = '';
-          try { txt = _say(ack.key, _csVars(ack.vars)) || ''; } catch(_) {}
-          if (txt) { _coachBarSet('msg', txt, CS_HOLD_MS); gesagt = true; }
-        }
+        _coachOffer(log.exerciseId, {
+          title: bucket === 'hard' ? _cm('Gewicht senken?', 'Lower the weight?')
+                                   : _cm('Gewicht erhöhen?', 'Add weight?'),
+          text: grund + txt,
+          options: [
+            { label: kgToDisp(next) + ' ' + unitLabel(), action: { kind: 'sugWeight', value: next } },
+            { label: _cm('So lassen', 'Leave it'), action: { kind: 'none' } },
+          ],
+        }, kg);
+        gesagt = true;
       }
     }
     _saveActiveWk();
@@ -26681,6 +26690,32 @@ function _coachKeepExName(c, ex) {
   return c;
 }
 
+/* ── EINE Entscheidungsflaeche ───────────────────────────────────────────────
+   Frueher gab es zwei Wege, auf denen dasselbe passieren konnte: die App senkte
+   das Gewicht selbst (Satz-Einschaetzung), und kurz darauf bot die KI-Karte an,
+   genau das noch einmal zu tun. Fuer den Nutzer kreuzte sich das — einmal war
+   es schon geschehen, einmal wurde gefragt.
+
+   Ab hier gilt: JEDE Aenderung am Plan ist ein Angebot mit Knopf. Angeboten
+   wird auf derselben Karte wie Top- und Dropsatz, und es gibt immer nur EINE
+   offene Karte (_coachCard). Solange sie offen ist, schlaegt niemand etwas
+   Neues vor — auch die KI nicht (Riegel am Kopf von _coachEvalRun).           */
+const COACH_CARD_MS = 45000;
+function _coachOffer(exId, c, baseW) {
+  _coachClearCard();
+  _coachCard = { exId, c, applied: false, baseW: baseW || 0, timer: null };
+  renderLogCards();
+  try { _coachBarSet('msg', c.title || '', 6000); } catch(_) {}
+  _coachCard.timer = setTimeout(() => {
+    if (_coachCard && _coachCard.exId === exId && !_coachCard.applied) {
+      _coachClearCard(); renderLogCards();
+    }
+  }, COACH_CARD_MS);
+  return true;
+}
+// Eine offene, unbeantwortete Karte blockiert jeden weiteren Vorschlag.
+function _coachCardOffen() { return !!(_coachCard && !_coachCard.applied); }
+
 /* Relativer Progressionssprung je Muskelgruppe. Uebliche Praxis in der
    Kraftlehre: an den grossen Ketten (Beine, Ruecken) sind 5 Prozent ein
    normaler Schritt, an der Brust rund 3, an kleinen eingelenkigen Muskeln
@@ -26751,14 +26786,16 @@ function _coachVolumeAdjust(li, si) {
        (gebremst && fatPct >= 45 && abfall >= 0.05) ||
        (wocheVoll && (abfall >= 0.05 || fatPct >= 45)))) {
     _coachState.seen.push(key);
-    const zurueck = _coachSnapshot(li);
-    delSet(li, offenIdx[offenIdx.length - 1]);   // rendert selbst neu
-    _coachUndoOffer(zurueck);
-    try { _saveActiveWk(); } catch(_) {}
     let txt = ''; try { txt = _say('volCut', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
-    if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
-    try { haptic(12); } catch(_) {}
-    return true;
+    return _coachOffer(log.exerciseId, {
+      title: _cm('Einen Satz streichen?', 'Drop a set?'),
+      text: txt || _cm('Ermüdung ' + Math.round(fatPct) + ' Prozent.',
+                       'Fatigue at ' + Math.round(fatPct) + ' percent.'),
+      options: [
+        { label: _cm('Satz raus', 'Drop it'), action: { kind: 'removeSet' } },
+        { label: _cm('Behalten', 'Keep it'),  action: { kind: 'none' } },
+      ],
+    }, 0);
   }
 
   // SATZ DAZU: erst wenn die Uebung sonst zu Ende waere, und nur bei frischer
@@ -26774,14 +26811,16 @@ function _coachVolumeAdjust(li, si) {
     // Wiederholungsende trifft, verschenkt Wochen.
     if (amLimit || wocheDuenn) {
       _coachState.seen.push(key);
-      const zurueck = _coachSnapshot(li);
-      addSet(li);                                 // rendert selbst neu
-      _coachUndoOffer(zurueck);
-      try { _saveActiveWk(); } catch(_) {}
       let txt = ''; try { txt = _say('volAdd', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
-      if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
-      try { haptic(12); } catch(_) {}
-      return true;
+      return _coachOffer(log.exerciseId, {
+        title: _cm('Noch einen Satz?', 'One more set?'),
+        text: txt || _cm('Ermüdung ' + Math.round(fatPct) + ' Prozent, Leistung stabil.',
+                         'Fatigue at ' + Math.round(fatPct) + ' percent, output steady.'),
+        options: [
+          { label: _cm('Satz dazu', 'Add a set'), action: { kind: 'extraSet' } },
+          { label: _cm('Fertig hier', 'Done here'), action: { kind: 'none' } },
+        ],
+      }, 0);
     }
   }
   return false;
@@ -26818,26 +26857,26 @@ function _coachRepRangeAdjust(li) {
   if (neuMin === min && neuMax === max) return false;
 
   _coachState.seen.push(key);
-  // Dieselben drei Felder wie applyRepRange() in der Uebungs-Bearbeitung —
-  // targetReps ist der Kompatibilitaetswert (oberes Ende) und wuerde sonst auf
-  // dem alten Bereich stehen bleiben.
-  const altMin = ex.repMin, altMax = ex.repMax, altZiel = ex.targetReps;
-  ex.repMin = neuMin; ex.repMax = neuMax; ex.targetReps = neuMax;
-  _coachUndoOffer(() => {
-    const e = exById(log.exerciseId); if (!e) return;
-    e.repMin = altMin; e.repMax = altMax; e.targetReps = altZiel;
-    try { persist(); } catch(_) {}
-  });
-  try { persist(); } catch(_) {}
-  try { renderLogCards(); } catch(_) {}
   const lbl = neuMin === neuMax ? String(neuMax) : (neuMin + '–' + neuMax);
   let txt = ''; try { txt = _say('repRange', { reps: lbl }) || ''; } catch(_) {}
-  if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
-  return true;
+  // Der Bereich gehoert zur Uebung und ueberdauert das Training — erst recht
+  // eine Sache, die der Nutzer entscheidet und nicht die App.
+  return _coachOffer(log.exerciseId, {
+    title: _cm('Wiederholungsbereich anpassen?', 'Adjust the rep range?'),
+    text: txt || _cm('Vorschlag: ' + lbl + ' Wiederholungen.', 'Suggestion: ' + lbl + ' reps.'),
+    options: [
+      { label: _cm('Auf ', 'To ') + lbl, action: { kind: 'repRange', min: neuMin, max: neuMax } },
+      { label: _cm('Lassen', 'Leave it'), action: { kind: 'none' } },
+    ],
+  }, 0);
 }
 
 function _coachEvalRun(li, si) {
   if (!isPremium() || _coachLevel() === 'off') return;
+  // Solange eine Karte offen und unbeantwortet ist, wird NICHTS Neues
+  // vorgeschlagen — weder lokal noch von der KI. Genau hier kreuzten sich
+  // frueher zwei Vorschlaege zur selben Sache.
+  if (_coachCardOffen()) return;
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
   const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
@@ -27110,6 +27149,24 @@ function _coachApplyAction(li, action, baseW) {
       if (si >= 0 && baseW > 0) log.sets[si].w = String(roundToStep(baseW * 0.9));
       break;
     }
+    case 'sugWeight': {
+      // Gegenstueck zu 'weight': nicht nur der naechste Satz, sondern ALLE noch
+      // offenen Arbeitssaetze samt Vorschlagswert. Das ist die Anpassung, die
+      // aus der Satz-Einschaetzung kommt — sie meint die restliche Uebung.
+      if (val != null) _rpeSuggestNext(log.exerciseId, val);
+      break;
+    }
+    case 'repRange': {
+      const ex2 = exById(log.exerciseId);
+      const mn = parseInt(action.min), mx = parseInt(action.max);
+      if (ex2 && mn > 0 && mx >= mn) {
+        // Dieselben drei Felder wie applyRepRange() in der Uebungs-Bearbeitung:
+        // targetReps ist der Kompatibilitaetswert (oberes Ende).
+        ex2.repMin = mn; ex2.repMax = mx; ex2.targetReps = mx;
+        try { persist(); } catch(_) {}
+      }
+      break;
+    }
     case 'extraSet':
       addSet(li); // bestehende Funktion — rendert bereits selbst neu
       break;
@@ -27143,6 +27200,21 @@ function _coachCommitAction(action) {
   } catch(e) { console.warn('[Coach] Log:', e); }
   if (_coachCard.timer) { clearTimeout(_coachCard.timer); _coachCard.timer = null; }
   const li = wkLogs.findIndex(l => l.exerciseId === _coachCard.exId);
+  // Rueckgaengig auch fuer eine BESTAETIGTE Aktion: ein Fehlgriff auf den
+  // falschen Knopf ist genauso moeglich wie ein Sinneswandel, und die Aktion
+  // aendert Saetze, Gewichte oder den Wiederholungsbereich.
+  const kind = (action || {}).kind;
+  if (li >= 0 && kind && kind !== 'none') {
+    const zurueckSets = _coachSnapshot(li);
+    const ex0 = exById(_coachCard.exId);
+    const rMin = ex0 ? ex0.repMin : null, rMax = ex0 ? ex0.repMax : null, rZiel = ex0 ? ex0.targetReps : null;
+    _coachUndoOffer(() => {
+      if (zurueckSets) zurueckSets();
+      const e = exById(_coachCard && _coachCard.exId) || ex0;
+      if (e && kind === 'repRange') { e.repMin = rMin; e.repMax = rMax; e.targetReps = rZiel; }
+      try { persist(); } catch(_) {}
+    });
+  }
   try { if (li >= 0) _coachApplyAction(li, action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
   _coachCard.applied = true;
   try { haptic(14); } catch(_) {}
