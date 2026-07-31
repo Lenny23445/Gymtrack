@@ -2222,7 +2222,7 @@ html[data-glass] .tabbar::before{display:block!important}
 /* Profilbild oben links (ersetzt die Begrüßung); margin-right:auto hält die
    Badges rechts als Gruppe zusammen (kein flex:1-Element mehr in der Reihe) */
 .hdr-ava{
-  width:52px;height:52px;border-radius:50%;flex-shrink:0;margin-right:auto;
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
   padding:0;overflow:hidden;position:relative;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   background:var(--gl-bg-t);
@@ -2247,6 +2247,11 @@ html[data-glass] .tabbar::before{display:block!important}
   background:linear-gradient(150deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.06));
 }
 .hdr-ava svg{width:25px;height:25px;color:var(--text2)}
+.hdr-name{
+  flex:1;min-width:0;cursor:pointer;
+  font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 
 /* ── SHAKE ANIMATION ── */
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -6029,6 +6034,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   <div class="hdr heute-hdr">
     <div class="hdr-greet-row">
       <button class="hdr-ava" id="hdr-ava" onclick="openProfileEdit()" aria-label="Profil"></button>
+      <div class="hdr-name" id="hdr-name" onclick="openProfileEdit()"></div>
       <div id="level-badge-host"></div>
       <div id="prem-badge-host"></div>
       <div id="streak-badge-host"></div>
@@ -12178,6 +12184,8 @@ function _renderHdrAva(){
   if (photo) el.innerHTML = `<img src="${esc(photo)}" alt="">`;
   else if (name) el.innerHTML = `<span class="hdr-ava-ini">${_socInitials(name)}</span>`;
   else el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.5"/><path d="M5.2 19.2c1.4-2.9 3.9-4.4 6.8-4.4s5.4 1.5 6.8 4.4"/></svg>';
+  const nEl = document.getElementById('hdr-name');
+  if (nEl) nEl.textContent = name || '';
 }
 
 function renderHome() {
@@ -22488,6 +22496,11 @@ function _pickProfilePhoto(input){
       ctx.drawImage(img, sx, sy, side, side, 0, 0, SZ, SZ);
       _pendingProfilePhoto = cnv.toDataURL('image/jpeg', 0.82);
       _renderFreditAva(_pendingProfilePhoto, document.getElementById('fredit-name')?.value);
+      // Sofort übernehmen, nicht erst beim Speichern: ✕ statt „Speichern" warf das
+      // gewählte Bild sonst kommentarlos weg und der Heute-Avatar blieb alt
+      try { localStorage.setItem('gt_prof_photo', _pendingProfilePhoto); } catch(e) { alert('Bild zu groß zum Speichern — bitte kleineres wählen.'); return; }
+      try { _renderHdrAva(); } catch(_){}
+      try { _pushSocialProfile(); } catch(_){}
     };
     img.onerror = () => alert('Bild konnte nicht geladen werden.');
     img.src = reader.result;
@@ -22497,6 +22510,9 @@ function _pickProfilePhoto(input){
 function removeProfilePhoto(){
   _pendingProfilePhoto = null;
   _renderFreditAva(null, document.getElementById('fredit-name')?.value);
+  try { localStorage.removeItem('gt_prof_photo'); } catch(_){}
+  try { _renderHdrAva(); } catch(_){}
+  try { _pushSocialProfile(); } catch(_){}
 }
 async function saveProfileEdit(){
   const name = (document.getElementById('fredit-name')?.value || '').trim().slice(0,30);

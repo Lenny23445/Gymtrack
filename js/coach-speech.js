@@ -80,9 +80,9 @@
   function norm(s) {
     return String(s == null ? '' : s).toLowerCase()
       .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-      .replace(/(\d)[.,](\d)/g, '$1$2')
-      .replace(/[^a-z0-9 ]/g, ' ')
-      .replace(//g, '.')
+      .replace(/(\d)[.,](\d)/g, '$1_$2')   // Unterstrich ueberlebt den Filter darunter
+      .replace(/[^a-z0-9_ ]/g, ' ')
+      .replace(/_/g, '.')
       .replace(/\s+/g, ' ').trim();
   }
 
@@ -168,7 +168,10 @@
       if (t === 'top' || t === 'schwerer' || t === 'schweren' || t === 'heavy' || t === 'heavier') {
         top = true; fillers++; continue;
       }
-      if (numOf(t) != null) { if (w != null) return null; w = numOf(t); continue; }
+      // NUR Ziffern zaehlen als Wunschgewicht. Zahlwoerter sind hier Artikel
+      // ('noch EINEN Satz', 'ONE more set') und keine Gewichtsangabe — die
+      // erste Fassung las 'one more set' als 1 kg.
+      if (isNum(t)) { if (w != null) return null; w = parseFloat(t); continue; }
       if (UNIT_KG[t] || UNIT_LBS[t]) { unit = UNIT_KG[t] ? 'kg' : 'lbs'; continue; }
       if (ADD_FILL[t]) { fillers++; continue; }
       return null;
