@@ -5993,9 +5993,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <script src="./js/coach-memory.js"></script>
 <script src="./js/coach-log.js"></script>
 <script src="./js/coach-intent.js"></script>
-<!-- Sprach-Parser: MUSS nach coach-intent.js stehen, er leiht sich dessen
-     Gesundheits-Gate (CoachIntent.medical). Fehlt es, handelt er auf nichts. -->
-<script src="./js/coach-speech.js"></script>
 <script src="./js/coach-cache.js"></script>
 <script src="./js/coach-persona.js"></script>
 <!-- coach-voice steht direkt hinter coach-persona: die Stimmwahl (pickVoice)
@@ -19294,7 +19291,7 @@ function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}
 const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 // Zusaetzliche Tester-UIDs (siehe ai-worker/worker.js, gleiche Liste) - kommen wie
 // Founder ueberall ohne Abo durch, inkl. echter KI-Antworten (Worker prueft dieselbe UID).
-const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1', 'QnDsSAFJqQPoe5QiJ5fNXuGz7ET2']);
+const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1']);
 function _founderBadge(){ return `<span class="founder-tag" title="Founder" aria-label="Founder">Founder</span>`; }
 function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
 // Moderator-Kennzeichnung: nur fürs Demo/Screenshot-Roster (kein echtes Rollen-System) —
@@ -25110,11 +25107,11 @@ function _coachQuotaExhausted() {
 // + zeitweilige Reaktionszeile (Lob/Kurz-Tipp). mode: 'idle' | 'thinking' | 'msg'.
 let _coachBarState = { mode: 'idle', msg: '' };
 let _coachBarMsgTimer = null;
-// Sprachfaehigkeiten und Aufnahmezustand stehen HIER und nicht beim uebrigen
-// Stimmen-Code weiter unten: _coachBarRender() liest beide, und eine
+// Sprachfaehigkeiten stehen HIER und nicht beim uebrigen Stimmen-Code weiter
+// unten: die Stimmen-Vorschau in der Einrichtung liest sie, und eine
 // let-Deklaration weiter unten waere bis dahin in der temporalen Totzone —
 // dieselbe Falle, die im Boot schon einmal isPremium() zerlegt hat.
-let _cvCaps = { tts: false, stt: false }, _coachAskOn = false;
+let _cvCaps = { tts: false, stt: false };
 function _coachBarSet(mode, msg, holdMs) {
   _coachBarState.mode = mode || 'idle';
   if (msg !== undefined) _coachBarState.msg = msg || '';
