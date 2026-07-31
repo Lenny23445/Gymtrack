@@ -6010,12 +6010,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="pg on" id="pg-heute">
   <div class="hdr heute-hdr">
     <div class="hdr-greet-row">
-      <h1 id="greet-h">Heute</h1>
+      <button class="hdr-ava" id="hdr-ava" onclick="openProfileEdit()" aria-label="Profil"></button>
       <div id="level-badge-host"></div>
       <div id="prem-badge-host"></div>
       <div id="streak-badge-host"></div>
     </div>
-    <div class="sub" id="greet-d"></div>
   </div>
   <div class="pad heute-pad" id="heute-pad">
     <div id="coach-today-card"></div>
@@ -7863,7 +7862,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310010';
+const APP_VERSION = 'gymtrack-v202607310011';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -7942,7 +7941,6 @@ const I18N_EN = {
   'Sätze':'Sets','Wdh':'Reps','Volumen':'Volume','Einheit':'Unit','Einheiten':'Sessions','Gewicht':'Weight',
   'Standard':'Default','Bald verfügbar':'Coming soon','Bitte halte dein Gerät im Hochformat.':'Please hold your device in portrait mode.',
   'Sprache · Language':'Language','App-Sprache':'App language','Automatisch = Gerätesprache':'Automatic = device language',
-  'Guten Morgen':'Good morning','Guten Tag':'Hello','Guten Abend':'Good evening',
   'Diese Woche':'This week','diese Woche':'this week','× diese Woche':'× this week',
   'Training starten ▶':'Start workout ▶','Training starten':'Start workout','Aktives Training':'Active workout',
   'Training läuft':'Workout in progress','Welche Übungen heute?':'Which exercises today?',
@@ -8730,6 +8728,10 @@ const I18N_EN = {
   'Die letzten acht Wochen bleiben im Coach-Menü nachlesbar':'The last eight weeks stay readable in the coach menu',
   'Die Uhrzeit kannst du selbst festlegen':'You can set the time yourself',
   /* Changelog: Coach-Hub-Umbau (31.07.2026) */
+  '31.07.2026 · Dein Profilbild auf der Startseite':'31 Jul 2026 · Your profile picture on the home screen',
+  'Die Begrüßung oben links ist Geschichte — dort sitzt jetzt dein Profilbild, klar und aufgeräumt':'The greeting in the top left is gone — your profile picture now lives there, clean and tidy',
+  'Ein Tipp aufs Bild öffnet dein Profil: Foto und Name direkt bearbeiten':'Tap the picture to open your profile: edit photo and name right there',
+  'Ohne Foto zeigt der Kreis deine Initialen in deiner Themefarbe':'Without a photo the circle shows your initials in your theme color',
   '31.07.2026 · Dein Coach-Menü, neu gebaut':'31 Jul 2026 · Your coach menu, rebuilt',
   'Ein Tipp auf die Coach-Karte öffnet ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Ein Tipp auf eine Kachel zoomt in sie hinein, der Pfeil oben links führt zurück':'Tapping the coach card opens a sheet with five tiles — chat, week, personality, scope and journal. Tapping a tile zooms into it, the arrow at the top left leads back',
   'Die Wochenkachel zeigt deinen Verlauf: acht Wochen Volumen, wohin deine Sätze gingen, und dein geschätztes Maximum über die Zeit':'The week tile shows your history: eight weeks of volume, where your sets went, and your estimated max over time',
@@ -9059,6 +9061,14 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-31-heute-avatar': {
+    label: '31.07.2026 · Dein Profilbild auf der Startseite',
+    items: [
+      'Die Begrüßung oben links ist Geschichte — dort sitzt jetzt dein Profilbild, klar und aufgeräumt',
+      'Ein Tipp aufs Bild öffnet dein Profil: Foto und Name direkt bearbeiten',
+      'Ohne Foto zeigt der Kreis deine Initialen in deiner Themefarbe',
+    ]
+  },
   'cl-2026-07-29-coach-stimme': {
     label: '31.07.2026 · Dein Coach hat jetzt eine Stimme',
     items: [
@@ -22493,6 +22503,7 @@ async function saveProfileEdit(){
   }
   persist();
   try { updateAccountUI(); } catch(_){}
+  try { _renderHdrAva(); } catch(_){}
   closeOv('ov-fredit');
   haptic(12);
   _socCache = null;                    // Cache leeren, damit die eigene Karte neu lädt
@@ -33045,6 +33056,8 @@ function updateAccountUI() {
   }
   // Admin-Sichtbarkeit aktualisieren (UID kann sich geändert haben)
   if (typeof updateAdminUI === 'function') updateAdminUI();
+  // Login/Logout kann das Google-Foto liefern/entfernen → Heute-Avatar mitziehen
+  try { _renderHdrAva(); } catch(_){}
 }
 
 // Firebase initialisieren sobald geladen
