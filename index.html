@@ -9577,11 +9577,10 @@ async function _scheduleNativeNotifications() {
     const perm = await LN.checkPermissions().catch(() => ({ display: 'prompt' }));
     if (perm.display !== 'granted') return;
 
-    // Channel (Android; auf iOS ignoriert) – hohe Wichtigkeit für Banner & Ton
-    await LN.createChannel?.({
-      id: 'gymtrack-reminders', name: 'Trainings-Erinnerungen',
-      importance: 5, visibility: 1, sound: 'default'
-    }).catch(() => {});
+    // Channel (Android; auf iOS ignoriert) – hohe Wichtigkeit für Banner & Ton.
+    // Eine Stelle für Kanal und Wichtigkeit, s. _cnChannel(): Android friert die
+    // Wichtigkeit beim ersten createChannel ein.
+    await _cnChannel(LN);
 
     // Alte GymTrack-Notifs (ID 1000–1999) entfernen
     const existing = await LN.getPending().catch(() => ({ notifications: [] }));
@@ -9688,11 +9687,9 @@ async function toggleNotif(checked) {
           updateNotifUI();
           return;
         }
-        // Channel für Android-Kompatibilität (wird auf iOS ignoriert)
-        await LN.createChannel?.({
-          id: 'gymtrack-reminders', name: 'Trainings-Erinnerungen',
-          importance: 4, visibility: 1, sound: 'default'
-        }).catch(() => {});
+        // Channel für Android-Kompatibilität (wird auf iOS ignoriert) — dieselbe
+        // Wichtigkeit wie überall sonst, s. _cnChannel().
+        await _cnChannel(LN);
       }
     } else {
       if (!('Notification' in window)) {
@@ -9763,6 +9760,21 @@ const CN_ID_MAX  = 47999;
 // Derselbe Kanal wie die bestehende Trainings-Erinnerung: zwei Kanäle für
 // dieselbe Art Meldung wären zwei Schalter in den Systemeinstellungen.
 const CN_CHANNEL = 'gymtrack-reminders';
+/* Ein Kanal, EINE Wichtigkeit. Android friert sie beim ersten createChannel für
+   die Lebensdauer der Installation ein — stand an einer Stelle 4 und an einer
+   anderen 5, entschied allein die Reihenfolge des ersten Aufrufs über Banner
+   und Ton. 5 ist der Wert, den die bestehende Trainings-Erinnerung schon immer
+   wollte („hohe Wichtigkeit für Banner & Ton"); alle vier Aufrufstellen gehen
+   jetzt durch _cnChannel(). */
+const CN_CHANNEL_IMPORTANCE = 5;
+async function _cnChannel(LN) {
+  try {
+    const P = LN || _cap('LocalNotifications');
+    if (!P || !P.createChannel) return;
+    await P.createChannel({ id: CN_CHANNEL, name: 'Trainings-Erinnerungen',
+                            importance: CN_CHANNEL_IMPORTANCE, visibility: 1, sound: 'default' });
+  } catch(e) { console.warn('[Coach] Kanal anlegen:', e); }
+}
 
 /* Stabile Zahl aus der Text-id des Moduls ('kind:YYYY-MM-DD') —
    LocalNotifications verlangt Integer. Die Art bekommt einen eigenen
@@ -9804,19 +9816,21 @@ function _cnTitle() {
   try { return _cnPlain(_coachName()) || 'Coach'; } catch(_) { return 'Coach'; }
 }
 
-/* Diese drei Sätze tragen die Einheit im KATALOG ('{kg} kg', '{vol} kg') —
-   dort geht die blanke Zahl herein, sonst stünde da „62,5 kg kg". Bei
-   'prCongrats' steht keine Einheit im Satz, also hängt sie am Wert und kommt
-   aus _csWeight() — dieselbe Stelle, an der auch der Erzählbogen im Training
-   Modulausgabe auf den Katalog treffen lässt. */
-const _CN_UNIT_IM_SATZ = { anniversary:true, reminderPlan:true, reportReady:true };
+/* Die EINHEIT hängt am WERT, nicht am Katalogsatz — dieselbe Regel, die Block 3
+   schon für den Erzählbogen im Training durchgesetzt hat.
+
+   Vorher trugen 'anniversary', 'reminderPlan' und 'reportReady' ihr „kg" fest
+   im Katalog und wurden deshalb von der Umrechnung ausgenommen. Für einen
+   lbs-Nutzer stand damit „…8 Wiederholungen, 62,5 kg." direkt neben einer
+   Gratulation mit „154,5 lbs" — zwei Einheiten in derselben Meldereihe, und die
+   falsche davon nennt eine Zahl, die so nie auf der Stange lag. Jetzt geht die
+   blanke Zahl durch _csWeight(), genau wie bei 'prCongrats'. Der Katalog ist
+   einheitenrein; ein Test in coach-persona.test.js hält das fest. */
 function _cnText(key, vars) {
   try {
     const v = Object.assign({}, vars || {});
-    if (!_CN_UNIT_IM_SATZ[key]) {
-      if (typeof v.kg  === 'number') v.kg  = _csWeight(v.kg);
-      if (typeof v.vol === 'number') v.vol = _csWeight(v.vol);
-    }
+    if (typeof v.kg  === 'number') v.kg  = _csWeight(v.kg);
+    if (typeof v.vol === 'number') v.vol = _csWeight(v.vol);
     return _cnPlain(_say(key, v) || '');
   } catch(e) { console.warn('[Coach] Meldungstext:', e); return ''; }
 }
@@ -10010,12 +10024,22 @@ function _cnAnniversary(now) {
   return null;
 }
 
-/* Berechtigung — NUR vom Hub aus, beim Wechsel der Push-Stufe weg von 'still'.
-   An dieser Stelle versteht der Nutzer, wofür; beim ersten App-Start nicht.
+/* Berechtigung — NUR vom Hub aus, an genau zwei Stellen: beim Wechsel der
+   Push-Stufe weg von 'still' und über die Zeile „Mitteilungen erlauben" in den
+   Coach-Einstellungen (s. _cnNeedsPerm). An beiden versteht der Nutzer, wofür;
+   beim App-Start nicht — und iOS fragt nur einmal pro Installation.
    Ohne Plugin (Web-PWA) gibt es nichts zu fragen und erst recht nichts
    zurückzunehmen: die Einstellung bleibt stehen, _cnSync() schweigt ohnehin. */
 async function _cnPermission() {
   try {
+    /* Ohne Premium wird NICHT gefragt. iOS zeigt den Systemdialog genau einmal
+       pro Installation: lehnt ein Gratis-Nutzer ihn für eine Funktion ab, die
+       er gar nicht hat, ist die Berechtigung nach einem späteren Kauf verbrannt
+       und wird nie wieder erfragt. Der Riegel steht hier und nicht nur an der
+       Aufrufstelle, damit ihn keine spätere Fläche versehentlich umgeht. */
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    if (!premium) return false;
     const LN = _cap('LocalNotifications');
     if (!LN) return true;
     let perm = await LN.checkPermissions().catch(() => ({ display:'prompt' }));
@@ -10023,11 +10047,35 @@ async function _cnPermission() {
       perm = await LN.requestPermissions().catch(() => ({ display:'denied' }));
     }
     const ok = !!(perm && perm.display === 'granted');
-    if (ok) {
-      try { await LN.createChannel?.({ id: CN_CHANNEL, name:'Trainings-Erinnerungen', importance:4, visibility:1, sound:'default' }); } catch(_) {}
-    }
+    if (ok) await _cnChannel(LN);
     return ok;
   } catch(e) { console.warn('[Coach] Berechtigung:', e); return false; }
+}
+
+/* Fehlt die Berechtigung an einer Stelle, an der sie etwas ändern würde?
+
+   Der Standard-pushLevel ist 'normal' (Preset 'balanced'), nicht 'still' — der
+   Wechsel „weg von still" trat für einen normalen Nutzer deshalb NIE ein, der
+   Dialog kam nie, und _cnSync() brach still an der fehlenden Berechtigung ab:
+   der ganze Block tat nichts, ohne Fehler und ohne Hinweis. Den Dialog erreichte
+   nur, wer erst auf „Still" und dann zurück stellte.
+
+   Deshalb bietet der Coach-Hub ihn aktiv an. Beim App-Start wird weiterhin NICHT
+   gefragt: iOS zeigt den Dialog einmal pro Installation, und eine Ablehnung beim
+   Start ist dauerhaft — die schlechteste Stelle, die es dafür gibt.
+
+   Gelesen wird der zuletzt gemerkte Stand (S.coachPush.permOk) statt
+   checkPermissions(): die Oberfläche rendert synchron. _cnSync() schreibt den
+   Wert bei jedem Lauf fort. */
+function _cnNeedsPerm() {
+  try {
+    if (!_isNative()) return false;
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    if (!premium) return false;
+    if (_cnLevel() === 'still') return false;
+    return !(S.coachPush && S.coachPush.permOk === true);
+  } catch(e) { console.warn('[Coach] Berechtigungsstand:', e); return false; }
 }
 
 /* Hängt an setAiCoachOpt('pushLevel', …) und setCoachPreset(): die neue Stufe
@@ -10037,7 +10085,15 @@ async function _cnPermission() {
 async function _cnLevelChanged(vorher) {
   try {
     const jetzt = _cnLevel();
-    if (jetzt !== 'still' && vorher === 'still') {
+    /* Ohne Premium wird der einmalige Systemdialog nicht verbrannt (s.
+       _cnPermission). Die gewählte Stufe bleibt trotzdem stehen: sie ist eine
+       Voreinstellung für den Tag, an dem das Abo da ist, kein Versprechen für
+       heute — und _cnSync() schweigt ohne Premium ohnehin. Ein Rücksprung auf
+       „Still" wäre hier eine Fehlermeldung für einen Fehler, den niemand
+       gemacht hat. */
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    if (premium && jetzt !== 'still' && vorher === 'still') {
       const ok = await _cnPermission();
       if (!ok) {
         S.aiCoach = S.aiCoach || {};
@@ -10065,13 +10121,54 @@ async function _cnLevelChanged(vorher) {
         App-Start das Tagesbudget ein zweites Mal und der Coach verstummte.
      2. Eigene Termine abbestellen (nur 47000–47999).
      3. Neu planen — der Deckel liegt VOR der Planung, im Modul.
-     4. Zustellen, sichern, die generische Erinnerung übergeben oder holen. */
-async function _cnSync(opts) {
+     4. Zustellen, sichern, die generische Erinnerung übergeben oder holen.
+
+   Ein Lauf nach dem anderen: drei Einstiegspunkte hängen _cnSync() ohne await
+   auf (App-Start, Ende der Einheit, Wechsel der Push-Stufe). Endet ein Training
+   weniger als 1,2 s nach dem App-Start, oder tippt der Nutzer „Normal" und
+   sofort „Eng", lesen sonst zwei Läufe S.coachPush.plan, bevor einer schreibt:
+   dieselben fälligen Termine zählen zweimal gegen das Budget (das Budget ist zu
+   früh weg, der Coach verstummt), und der zweite Lauf setzt owns:false, während
+   seine 47xxx-Termine stehen — dann holt sich die generische Erinnerung ihren
+   Platz zurück und zum selben Termin liefern ZWEI Meldungen.
+
+   Die Warteschlange ist bewusst eine Kette und kein Verwerfen: jeder Aufruf
+   trägt eigene Angaben (etwa den frischen Bestwert aus finishWk), die ein
+   übersprungener Lauf verlieren würde. */
+let _cnLauf = null;
+function _cnSync(opts) {
+  try {
+    const vorher = _cnLauf || Promise.resolve();
+    const lauf = vorher.catch(() => {}).then(() => _cnSyncRun(opts));
+    _cnLauf = lauf;
+    lauf.catch(() => {}).then(() => { if (_cnLauf === lauf) _cnLauf = null; });
+    return lauf;
+  } catch(e) { console.warn('[Coach] Meldungen einreihen:', e); return Promise.resolve(); }
+}
+
+async function _cnSyncRun(opts) {
   const o = opts || {};
   try {
-    if (!window.CoachNotify) return;
     const LN = _cap('LocalNotifications');
-    if (!LN) return;                       // Web-PWA: kein Zustellweg, kein Eingriff
+    /* Fail-closed, und zwar VOR allem anderen: fällt js/coach-notify.js einmal
+       nicht mit (Cache-Miss, Teil-Update, Parse-Fehler), dann BESITZT der Coach
+       die Trainings-Erinnerung nicht mehr. Stand owns weiter auf true, meldete
+       _cnOwnsReminder() das weiter, scheduleWorkoutNotifications() räumte über
+       _cnDropGeneric() die ids 1000–1999 ab und plante keine eigene — kein
+       Coach-Termin, keine generische Erinnerung, keine Fehlermeldung. Task 18
+       baut bewusst fail-closed; hier wäre fail-open an der teuersten Stelle.
+       Die eigenen Waisen werden dabei abbestellt: _cnCancelOwn() filtert auf
+       47000–47999 und braucht das Modul nicht. */
+    if (!window.CoachNotify || !LN) {
+      const waisen = (S.coachPush && Array.isArray(S.coachPush.plan)) ? S.coachPush.plan : [];
+      if (S.coachPush) { S.coachPush.plan = []; S.coachPush.owns = false; }
+      _cnPersist();
+      if (LN) {                            // Web-PWA: kein Zustellweg, kein Eingriff
+        await _cnCancelOwn(LN, waisen);
+        try { await scheduleWorkoutNotifications(); } catch(_) {}
+      }
+      return;
+    }
     const tz  = _cnTz();
     const now = Date.now();
 
@@ -10108,7 +10205,26 @@ async function _cnSync(opts) {
       workoutActive: busy,
       reportAt:  _cnReportAt(now),
       reportVol: _cnWeekVol(now),
-      nextWorkout:   _cnNextWorkout(now),
+      /* Die Trainings-Erinnerung hängt am sichtbaren Schalter „Benachrichtigungen
+         → Trainings-Erinnerungen". Sein Untertitel verspricht genau diese eine
+         Sache; wer sie abbestellt, darf sie nicht mit anderem Absender
+         zurückbekommen — „Trainingstag: Bankdrücken, 3 Sätze, 8 Wiederholungen,
+         72,5 kg." IST die Trainings-Erinnerung, nur inhaltlich.
+
+         Die übrigen Arten hängen bewusst NICHT daran: Rückkehr-Anstoß,
+         Jahresrückblick, Deload-Rat, PR-Gratulation und Wochenbericht sind
+         keine „Erinnerung an geplante Trainings". Sie gehören den Push-Chips im
+         Hub („Wie oft der Coach dich außerhalb der App anspricht"), und dort
+         steht mit „Still" der Schalter, der wirklich alles abstellt. Ein Schalter
+         mit dem Namen „Trainings-Erinnerungen" wäre sonst ein zweiter, falsch
+         beschrifteter Hauptschalter — und er nähme dem Nutzer den Wochenbericht,
+         das eine Versprechen, das sogar auf „Still" gilt.
+
+         Nebeneffekt und Absicht zugleich: ohne den Schalter steht kein
+         'reminderPlan' im Plan, owns bleibt false, und die generische Erinnerung
+         behält ihren Platz — den sie wegen !S.notifEnabled ebenfalls nicht
+         nutzt. Es meldet sich also niemand. */
+      nextWorkout:   S.notifEnabled ? _cnNextWorkout(now) : null,
       lastWorkoutTs: _cnLastWorkoutTs(),
       deload:        _cnDeloadDue(),
       anniversary:   _cnAnniversary(now),
@@ -10132,7 +10248,7 @@ async function _cnSync(opts) {
     });
 
     if (notifs.length) {
-      try { await LN.createChannel?.({ id: CN_CHANNEL, name:'Trainings-Erinnerungen', importance:4, visibility:1, sound:'default' }); } catch(_) {}
+      await _cnChannel(LN);
       await LN.schedule({ notifications: notifs });
     }
 
@@ -17803,14 +17919,17 @@ function finishWk() {
   // das ohnehin direkt danach aufgeht. sessionEnd() nutzt force: die Bilanz
   // faellt nie am Budget aus (nur Stufe "off" schweigt). Danach wird
   // S.coachSession genullt und persistiert (_csEnd).
+  // Bestwerte fuer den Erzaehlbogen UND fuer 'prCongrats' — EIN Scan reicht.
+  // detectPRs() ist frei von Nebenwirkungen und liest nur S.sessions; der Wert
+  // wird gleich unten weiterbenutzt, statt denselben Scan ueber
+  // S.sessions x logs x sets beim Trainingsende ein zweites Mal zu fahren.
+  // Die Kette in _finishWkContinue() bleibt unberuehrt.
+  let _csPrs = null;
   try {
     let _csSets = 0, _csVol = 0;
     valid.forEach(l => {
       try { _csSets += _workSets(l.sets || []).length; _csVol += setsVolume(l.sets || []); } catch(_) {}
     });
-    // Bestwerte fuer 'prCongrats'. detectPRs() ist frei von Nebenwirkungen und
-    // liest nur S.sessions — die Kette in _finishWkContinue() bleibt unberuehrt.
-    let _csPrs = [];
     try { _csPrs = detectPRs(_newSess) || []; } catch(_) { _csPrs = []; }
     _csEnd({ sets: _csSets, vol: Math.round(_csVol * 10) / 10, prs: _csPrs });
   } catch(e) { console.warn('[Coach] Abschluss:', e); }
@@ -17823,7 +17942,10 @@ function finishWk() {
   try {
     let _cnPr = null;
     try {
-      const _p = (detectPRs(_newSess) || []).filter(x => x && x.type === 'weight' && x.newVal > 0)[0];
+      // Das Ergebnis von oben. Nur wenn der Block darueber gestorben ist, wird
+      // neu gescannt — dann ist der zweite Lauf kein Doppel, sondern der erste.
+      const _liste = _csPrs || detectPRs(_newSess) || [];
+      const _p = _liste.filter(x => x && x.type === 'weight' && x.newVal > 0)[0];
       if (_p) _cnPr = { ex: _p.exName, kg: _p.newVal };
     } catch(_) {}
     _cnSync({ pr: _cnPr });
@@ -25917,9 +26039,39 @@ function _chToneExInner(){
                           'This is how ' + nm + ' sums up your last session:'))}
     <i>${esc(_say('debrief', v))}</i></span>`;
 }
+/* Der einzige Ort, an dem ein Premium-Nutzer die Systemberechtigung erteilt —
+   nicht beim App-Start, wo iOS sie einmal pro Installation erfragt und eine
+   Ablehnung dauerhaft wäre. Verweigert er hier, ist das KEIN Fehler: ein ruhiger
+   Hinweis, sonst bleibt alles, wie es war. Die Push-Stufe fasst diese Fläche
+   bewusst nicht an — der Nutzer hat sie nicht geändert. */
+async function coachHubAskPerm(){
+  try {
+    const ok = await _cnPermission();
+    if (ok) { await _cnSync(); }
+    else {
+      try { _dndToast(_cm('Ohne Mitteilungen meldet sich dein Coach nur in der App.',
+                          'Without notifications your coach only speaks inside the app.')); } catch(_) {}
+    }
+    try { _coachOptRender(); } catch(_) {}
+  } catch(e) { console.warn('[Coach] Berechtigung im Hub:', e); }
+}
 function _chSettingsHTML(){
   const p = _persona();
   const parts = [];
+  /* Fehlt die Berechtigung, meldet sich der Coach nie — ohne Fehler und ohne
+     Hinweis. Das steht deshalb ganz oben und nicht in der zugeklappten
+     Feinjustierung: es ist kein Feinschliff, sondern die Bedingung dafür, dass
+     die Nachrichten-Chips darunter überhaupt etwas bewirken. Die Zeile
+     verschwindet, sobald die Berechtigung steht. */
+  if (_cnNeedsPerm()) {
+    const nm = _coachName();
+    parts.push(`<div class="ch-sec">${esc(_cm('Mitteilungen','Notifications'))}</div>
+      <button type="button" class="ch-preset" onclick="coachHubAskPerm()">
+        <b>${esc(_cm('Mitteilungen erlauben','Allow notifications'))}</b>
+        <span>${esc(_cm('Ohne Erlaubnis meldet sich ' + nm + ' nur in der App — keine Trainings-Erinnerung, kein Anstoß, kein Rückblick.',
+                        'Without permission ' + nm + ' only speaks inside the app — no training reminder, no nudge, no look back.'))}</span>
+      </button>`);
+  }
   // Name: onchange (nicht oninput) — bei jedem Tastendruck zu speichern würde den
   // Fokus kosten. coachHubSetName() statt setAiCoachOpt() direkt: der Schreibweg
   // darf den Body nicht ersetzen, sonst verschluckt er den nächsten Tipp.

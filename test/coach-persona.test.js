@@ -264,8 +264,13 @@ test('Konstanten haben die vereinbarten Werte', () => {
    100 lbs auf. Der Katalog ist einheitenrein; die Verdrahtung uebergibt den
    fertig formatierten Wert samt Einheit. */
 
+/* 'anniversary', 'reminderPlan' und 'reportReady' standen bis zur Task-19-Review
+   NICHT in dieser Liste: sie trugen ihr 'kg' fest im Katalog und wurden von der
+   Umrechnung ausgenommen. Ein lbs-Nutzer las damit 'Trainingstag: ..., 62,5 kg.'
+   direkt neben einer Gratulation mit '154,5 lbs' — drei von vier Meldungsarten
+   nannten Zahlen, die so nie auf der Stange lagen. */
 const WERT_KEYS = ['greet', 'exOpen', 'mid', 'restNext', 'setAckEasy', 'setAckHard',
-                   'debrief', 'prCongrats'];
+                   'debrief', 'prCongrats', 'anniversary', 'reminderPlan', 'reportReady'];
 
 test('kein Satz des Trainingsbogens schreibt eine Einheit fest', () => {
   WERT_KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {

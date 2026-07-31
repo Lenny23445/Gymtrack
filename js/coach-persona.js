@@ -244,22 +244,22 @@
         locker:   '{days} Tage Pause — die Hanteln vermissen dich langsam.'
       },
       anniversary: {
-        ruhig:    'Vor einem Jahr waren es {kg} kg bei {ex}. Der Weg ist sichtbar.',
-        sachlich: 'Vor zwölf Monaten: {ex} mit {kg} kg.',
-        hart:     'Vor einem Jahr: {kg} Kilo. Heute mehr.',
-        locker:   'Weißt du noch? {ex} mit {kg} kg, vor genau einem Jahr.'
+        ruhig:    'Vor einem Jahr waren es {kg} bei {ex}. Der Weg ist sichtbar.',
+        sachlich: 'Vor zwölf Monaten: {ex} mit {kg}.',
+        hart:     'Vor einem Jahr: {kg}. Heute mehr.',
+        locker:   'Weißt du noch? {ex} mit {kg}, vor genau einem Jahr.'
       },
       reminderPlan: {
-        ruhig:    'Heute steht {ex} an: {sets} Sätze zu {reps} bei {kg} kg.',
-        sachlich: 'Trainingstag: {ex}, {sets} Sätze, {reps} Wiederholungen, {kg} kg.',
-        hart:     '{ex} heute. {kg} Kilo. {sets} Sätze.',
-        locker:   'Heute wartet {ex} mit {kg} kg auf dich, {sets} Sätze.'
+        ruhig:    'Heute steht {ex} an: {sets} Sätze zu {reps} bei {kg}.',
+        sachlich: 'Trainingstag: {ex}, {sets} Sätze, {reps} Wiederholungen, {kg}.',
+        hart:     '{ex} heute. {kg}. {sets} Sätze.',
+        locker:   'Heute wartet {ex} mit {kg} auf dich, {sets} Sätze.'
       },
       reportReady: {
-        ruhig:    'Dein Wochenbericht liegt bereit. {vol} kg in dieser Woche.',
-        sachlich: 'Wochenbericht verfügbar: {vol} kg Gesamtvolumen.',
-        hart:     'Wochenbericht da. {vol} Kilo.',
-        locker:   'Wochenbericht ist da — {vol} kg stehen drin.'
+        ruhig:    'Dein Wochenbericht liegt bereit. {vol} in dieser Woche.',
+        sachlich: 'Wochenbericht verfügbar: {vol} Gesamtvolumen.',
+        hart:     'Wochenbericht da. {vol}.',
+        locker:   'Wochenbericht ist da — {vol} stehen drin.'
       },
       // forecast traegt in ALLEN vier Toenen eine Bedingung und nie eine
       // Zusage. Eine Prognose ist keine Versprechung; ein Test haelt das fest.
@@ -392,22 +392,22 @@
         locker:   '{days} days off — the weights are getting lonely.'
       },
       anniversary: {
-        ruhig:    'A year ago it was {kg} kg on {ex}. The path shows.',
-        sachlich: 'Twelve months ago: {ex} at {kg} kg.',
-        hart:     'One year ago: {kg} kilos. More today.',
-        locker:   'Remember? {ex} at {kg} kg, exactly one year ago.'
+        ruhig:    'A year ago it was {kg} on {ex}. The path shows.',
+        sachlich: 'Twelve months ago: {ex} at {kg}.',
+        hart:     'One year ago: {kg}. More today.',
+        locker:   'Remember? {ex} at {kg}, exactly one year ago.'
       },
       reminderPlan: {
-        ruhig:    '{ex} is on today: {sets} sets of {reps} at {kg} kg.',
-        sachlich: 'Training day: {ex}, {sets} sets, {reps} reps, {kg} kg.',
-        hart:     '{ex} today. {kg} kilos. {sets} sets.',
-        locker:   '{ex} is waiting today, {kg} kg, {sets} sets.'
+        ruhig:    '{ex} is on today: {sets} sets of {reps} at {kg}.',
+        sachlich: 'Training day: {ex}, {sets} sets, {reps} reps, {kg}.',
+        hart:     '{ex} today. {kg}. {sets} sets.',
+        locker:   '{ex} is waiting today, {kg}, {sets} sets.'
       },
       reportReady: {
-        ruhig:    'Your weekly report is ready. {vol} kg this week.',
-        sachlich: 'Weekly report available: {vol} kg total volume.',
-        hart:     'Weekly report ready. {vol} kilos.',
-        locker:   'Weekly report is up — {vol} kg in there.'
+        ruhig:    'Your weekly report is ready. {vol} this week.',
+        sachlich: 'Weekly report available: {vol} total volume.',
+        hart:     'Weekly report ready. {vol}.',
+        locker:   'Weekly report is up — {vol} in there.'
       },
       forecast: {
         ruhig:    'If this keeps up, {kg} kg on {ex} is within reach in {weeks} weeks.',

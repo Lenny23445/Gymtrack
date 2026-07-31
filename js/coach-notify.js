@@ -75,10 +75,10 @@
 
   /* Gestaltungsregel 8: eine Meldung ohne Zahl oder konkrete Beobachtung wird
      gestrichen. CoachPersona.fill() entfernt einen Platzhalter ohne Wert samt
-     Leerzeichen, die EINHEIT daneben bleibt aber stehen — aus '{vol} kg in
-     dieser Woche' wird 'kg in dieser Woche'. Deshalb entscheidet dieses Modul
-     VOR dem Einplanen, ob alle Werte da sind, die der Satz braucht. Fehlt
-     einer, faellt der Kandidat aus.
+     Leerzeichen — aus 'Wochenbericht verfuegbar: {vol} Gesamtvolumen' wird dann
+     'Wochenbericht verfuegbar: Gesamtvolumen', ein Satz ohne Aussage. Deshalb
+     entscheidet dieses Modul VOR dem Einplanen, ob alle Werte da sind, die der
+     Satz braucht. Fehlt einer, faellt der Kandidat aus.
      'deload' steht mit leerer Liste da: der Satz traegt in allen vier Toenen
      eine Beobachtung ('Belastung hoch, Erholung niedrig') und keinen
      Platzhalter. */
