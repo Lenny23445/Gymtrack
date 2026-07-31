@@ -935,12 +935,20 @@ body{
    halten — das fuehlt sich abgehackt an und reisst mitten in der Bewegung.
    Ohne die Regel gleitet der Schwung durch und setzt sich am Ende weich auf
    den naechstgelegenen Rastpunkt. */
-#log-cards .ex-card{scroll-snap-align:start;
-  transition:opacity .22s cubic-bezier(.33,1,.68,1),transform .22s cubic-bezier(.33,1,.68,1)}
-/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten). Nur ein Hauch
-   Verkleinerung: ein staerkerer Sprung ist waehrend des Scrollens als Ruck
-   sichtbar, weil WebKit die Ebene neu zusammensetzt. */
-#log-cards.focus-on .ex-card.dimmed{opacity:.42;transform:scale(.988)}
+#log-cards .ex-card{scroll-snap-align:start}
+/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten).
+   WICHTIG — warum das Dimmen am INHALT haengt und nicht an der Karte:
+   .ex-card traegt backdrop-filter. Aendert sich die Deckkraft (oder die Groesse)
+   der Karte selbst, muss WebKit den Weichzeichner des Untergrundes fuer jeden
+   Frame der Blende neu rechnen, und zwar fuer JEDE Karte, die gerade wechselt.
+   Genau das machte den Fokuswechsel zaeh und das Geraet warm. Faden nur Kopf
+   und Koerper, bleibt die Kartenebene unveraendert und der Blur zwischen-
+   gespeichert. Aus demselben Grund gibt es keine Skalierung mehr: sie zwang die
+   Ebene bei jedem Wechsel zur Neurasterung. */
+#log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{
+  transition:opacity .22s cubic-bezier(.33,1,.68,1)}
+#log-cards.focus-on .ex-card.dimmed>.ex-head,
+#log-cards.focus-on .ex-card.dimmed>.ex-body{opacity:.42}
 /* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
    erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
    Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
@@ -948,7 +956,7 @@ body{
    bleibt frei scrollbar. */
 #log-cards .ex-card:first-child{scroll-snap-align:none}
 @media (prefers-reduced-motion:reduce){
-  #log-cards .ex-card{transition:none;transform:none}
+  #log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{transition:none}
 }
 
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
@@ -5750,7 +5758,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .ex-card.coach-aura::after{content:'';position:absolute;inset:0;height:auto;background:none;border-radius:inherit;pointer-events:none;z-index:0;
   box-shadow:inset 0 0 0 2px rgba(var(--acc-rgb),.55),0 0 26px 5px rgba(var(--acc-rgb),.34);opacity:.45}
 @media (prefers-reduced-motion:no-preference){
-  .ex-card.coach-aura::after{animation:coachAuraOp 2.2s ease-in-out infinite}
+  /* will-change haelt den weichgezeichneten Schein auf einer eigenen Ebene.
+     Ohne das mischt WebKit den 26-px-Schatten bei jedem Pulsschlag neu in die
+     Karte — und die Karte darunter traegt selbst einen backdrop-filter. Genau
+     eine Karte im Training hat diese Klasse, es entsteht also EINE Ebene. */
+  .ex-card.coach-aura::after{animation:coachAuraOp 2.2s ease-in-out infinite;will-change:opacity}
 }
 @keyframes coachAuraOp{0%,100%{opacity:.35}50%{opacity:1}}
 .coach-ki-tag{font-size:9px;font-weight:800;letter-spacing:.6px;color:#fff;background:var(--acc);
@@ -5802,7 +5814,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 }
 .coach-bar.thinking{border-color:rgba(var(--acc-rgb),.58);box-shadow:0 6px 26px rgba(var(--acc-rgb),.26)}
 @media (prefers-reduced-motion:no-preference){
-  .coach-bar::before{animation:coachAuraDrift 7.5s ease-in-out infinite}
+  /* Beide laufen ueber transform und bleiben damit im Compositor; will-change
+     verhindert, dass die Leiste (sie klebt und liegt ueber den Karten) bei
+     jedem Frame neu gemalt wird. */
+  .coach-bar::before{animation:coachAuraDrift 7.5s ease-in-out infinite;will-change:transform}
   .coach-bar.flash::after{animation:coachSweep .95s cubic-bezier(.4,0,.2,1)}
   .coach-bar-msg{animation:coachMsgIn .34s cubic-bezier(.2,.9,.3,1)}
 }
@@ -5814,14 +5829,20 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 /* Equalizer statt statischem Punkt: drei atmende Balken lesen sich als "hört zu",
    ein Blink-Punkt eher als Statuslampe. */
 .coach-bar-eq{display:flex;align-items:flex-end;gap:2.5px;height:13px;flex-shrink:0}
-.coach-bar-eq i{width:2.5px;height:4px;border-radius:2px;background:var(--acc);display:block}
+/* Die Balken stehen auf VOLLER Hoehe und werden gestaucht — nicht umgekehrt.
+   Vorher liefen die Keyframes ueber 'height': das ist eine Layout-Eigenschaft,
+   also rechnete die WebView 60-mal je Sekunde das Layout der Leiste neu, und
+   zwar durchgehend vom ersten bis zum letzten Satz des Trainings. Ueber
+   transform laeuft dieselbe Bewegung allein im Compositor. */
+.coach-bar-eq i{width:2.5px;height:13px;border-radius:2px;background:var(--acc);display:block;
+  transform-origin:50% 100%;transform:scaleY(.31);opacity:.5}
 @media (prefers-reduced-motion:no-preference){
   .coach-bar-eq i{animation:coachEq 1.7s ease-in-out infinite}
   .coach-bar-eq i:nth-child(2){animation-delay:.24s}
   .coach-bar-eq i:nth-child(3){animation-delay:.48s}
   .coach-bar.thinking .coach-bar-eq i{animation-duration:.6s}
 }
-@keyframes coachEq{0%,100%{height:4px;opacity:.5}45%{height:13px;opacity:1}}
+@keyframes coachEq{0%,100%{transform:scaleY(.31);opacity:.5}45%{transform:scaleY(1);opacity:1}}
 .coach-bar-lbl{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.3px}
 /* Rueckgaengig sitzt rechts im Kopf der Leiste: sichtbar, aber nicht vor der
    Nachricht. Zehn Sekunden lang, danach nimmt _coachBarRender es wieder raus. */
@@ -7912,7 +7933,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310021';
+const APP_VERSION = 'gymtrack-v202607310022';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18493,7 +18514,18 @@ function _restoreActiveWk() {
    angebunden. Die Auswahl selbst (Geometrie, Superset-Einheit) rechnet
    WorkoutFocus (js/workout-focus.js, unter node --test geprueft). */
 let _wkFocusLi = -1;
-let _wkFocusIO = null;
+/* Kartenlage in KOORDINATEN DES SCROLLERS (top/bottom relativ zum Inhalt, nicht
+   zum Bildschirm). Einmal je Renderlauf gemessen, danach nur noch gerechnet:
+   waehrend des Scrollens darf KEIN getBoundingClientRect mehr laufen. Genau das
+   war der Ruckler — ein IntersectionObserver mit fuenf Schwellen las bei jeder
+   Meldung alle Karten neu aus, und weil _wkFocusApply() vorher Klassen gesetzt
+   hatte, erzwang jeder dieser Lesevorgaenge ein vollstaendiges Layout. Bei
+   backdrop-filter auf jeder Karte kostet das Watt, nicht nur Millisekunden. */
+let _wkFocusBoxes = null;
+let _wkFocusDirty = true;
+let _wkFocusRaf = 0;
+let _wkFocusBound = false;
+let _wkSnapPadPx = 0;
 
 function _wkFocusApply() {
   const cards = document.querySelectorAll('#log-cards .ex-card');
@@ -18505,18 +18537,75 @@ function _wkFocusApply() {
   });
 }
 
+/* Die einzige Messstelle. Laeuft nach dem Rendern, nach Hoehenwechseln der
+   Kopfleisten und beim ersten Tick — nie waehrend einer Scrollbewegung. */
+function _wkFocusMeasure(sheet, wrap) {
+  const sr = sheet.getBoundingClientRect();
+  const base = sr.top - sheet.scrollTop;      // Bildschirm → Inhaltskoordinaten
+  const boxes = [];
+  wrap.querySelectorAll('.ex-card').forEach(c => {
+    const r = c.getBoundingClientRect();
+    boxes.push({ li: +c.dataset.li, top: r.top - base, bottom: r.bottom - base });
+  });
+  _wkFocusBoxes = boxes;
+  _wkFocusDirty = false;
+}
+
+function _wkFocusTick() {
+  _wkFocusRaf = 0;
+  try {
+    if (typeof WorkoutFocus === 'undefined') return;
+    const sheet = document.querySelector('#ov-wk .sheet');
+    const wrap  = document.getElementById('log-cards');
+    if (!sheet || !wrap) return;
+    if (_wkFocusDirty || !_wkFocusBoxes) _wkFocusMeasure(sheet, wrap);
+    const boxes = _wkFocusBoxes;
+    if (!boxes || boxes.length < 2) return;
+    // Mitte der BUEHNE, nicht des Sheets: der Bereich hinter dem klebenden Kopf
+    // zaehlt nicht mit, sonst gilt eine Karte als "dran", die dort verdeckt liegt.
+    const pad = _wkSnapPadPx || 72;
+    const mid = sheet.scrollTop + pad + (sheet.clientHeight - pad) / 2;
+    const idx = WorkoutFocus.pickFocused(boxes, mid);
+    const li = idx >= 0 ? boxes[idx].li : -1;
+    if (li !== _wkFocusLi) { _wkFocusLi = li; _wkFocusApply(); }
+  } catch(_) {}
+}
+
+// Hoechstens EINE Auswertung je Bild. Das Scroll-Ereignis selbst tut nichts.
+function _wkFocusSoon() { if (!_wkFocusRaf) _wkFocusRaf = requestAnimationFrame(_wkFocusTick); }
+
 /* Rastabstand = Klebe-Offset von #wk-sticky (58px) + dessen echte Hoehe.
    Coach-Leiste und Pausenbalken kommen und gehen; ein fester Wert waere
    entweder zu klein (Karte liegt hinter der Leiste) oder zu gross (Karte
    startet mit einer Luecke). Ein ResizeObserver haelt den Wert nach. */
 let _wkStickyRO = null;
+let _wkSnapPadRaf = 0;
 
+/* Nur schreiben, wenn sich der Wert wirklich aendert. Die Coach-Leiste faehrt
+   ihre Hoehe ueber 300 ms — ohne diese Schranke meldete der ResizeObserver
+   JEDEN Zwischenwert, jeder davon setzte eine CSS-Variable am Scroller, und
+   jede Aenderung von scroll-padding zwingt WebKit, die Rastpunkte des ganzen
+   Blattes neu zu rechnen. Das war die zweite Haelfte der Hitze. */
 function _wkSyncSnapPad() {
   const sheet = document.querySelector('#ov-wk .sheet');
   const sticky = document.getElementById('wk-sticky');
   if (!sheet || !sticky) return;
-  const h = sticky.getBoundingClientRect().height;
-  sheet.style.setProperty('--wk-snap-pad', Math.round(58 + h + 8) + 'px');
+  const v = Math.round(58 + sticky.getBoundingClientRect().height + 8);
+  if (v === _wkSnapPadPx) return;
+  _wkSnapPadPx = v;
+  sheet.style.setProperty('--wk-snap-pad', v + 'px');
+  // Die Leisten sind gewachsen/geschrumpft → die Karten liegen woanders.
+  _wkFocusDirty = true;
+  _wkFocusSoon();
+}
+/* Waehrend die Coach-Leiste ihre Hoehe faehrt, wird NICHT nachgemessen. Sonst
+   laeuft dieselbe Kette (Rastabstand schreiben → Rastpunkte neu rechnen →
+   Kartenlage neu messen) einmal je Frame der Blende mit. Ein einziger Abgleich
+   danach genuegt: die Zwischenwerte sieht ohnehin niemand. */
+let _cbBarBusy = false;
+function _wkSnapPadSoon() {
+  if (_wkSnapPadRaf || _cbBarBusy) return;
+  _wkSnapPadRaf = requestAnimationFrame(() => { _wkSnapPadRaf = 0; _wkSyncSnapPad(); });
 }
 
 function _wkFocusObserve() {
@@ -18524,35 +18613,26 @@ function _wkFocusObserve() {
     _wkSyncSnapPad();
     const sticky = document.getElementById('wk-sticky');
     if (sticky && !_wkStickyRO && typeof ResizeObserver !== 'undefined') {
-      _wkStickyRO = new ResizeObserver(() => _wkSyncSnapPad());
+      _wkStickyRO = new ResizeObserver(() => _wkSnapPadSoon());
       _wkStickyRO.observe(sticky);
     }
   } catch(_) {}
-  if (_wkFocusIO) { _wkFocusIO.disconnect(); _wkFocusIO = null; }
   const wrap = document.getElementById('log-cards');
   const sheet = document.querySelector('#ov-wk .sheet');
   if (!wrap || !sheet || typeof WorkoutFocus === 'undefined') return;
   const cards = wrap.querySelectorAll('.ex-card');
   // Bei 0–1 Karten gibt es nichts zu fokussieren — nichts dimmen.
   wrap.classList.toggle('focus-on', cards.length > 1);
-  if (cards.length < 2) { _wkFocusLi = -1; return; }
+  if (cards.length < 2) { _wkFocusLi = -1; _wkFocusBoxes = null; return; }
   if (_wkFocusLi >= wkLogs.length) _wkFocusLi = -1;   // nach Entfernen/Umsortieren
-  _wkFocusIO = new IntersectionObserver(() => {
-    const sr = sheet.getBoundingClientRect();
-    // Mitte der BUEHNE, nicht des Sheets: der Bereich hinter dem klebenden Kopf
-    // zaehlt nicht mit, sonst gilt eine Karte als "dran", die dort verdeckt liegt.
-    const pad = parseFloat(getComputedStyle(sheet).scrollPaddingTop) || 0;
-    const mid = sr.top + pad + (sr.height - pad) / 2;
-    const els = [...wrap.querySelectorAll('.ex-card')];
-    const rects = els.map(c => {
-      const r = c.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom };
-    });
-    const idx = WorkoutFocus.pickFocused(rects, mid);
-    const li = idx >= 0 ? +els[idx].dataset.li : -1;
-    if (li !== _wkFocusLi) { _wkFocusLi = li; _wkFocusApply(); }
-  }, { root: sheet, threshold: [0, .25, .5, .75, 1] });
-  cards.forEach(c => _wkFocusIO.observe(c));
+  // EIN passiver Zuhoerer fuer die Lebensdauer des Blattes — nicht ein Observer
+  // je Karte, der bei jedem Rendern neu aufgebaut wird.
+  if (!_wkFocusBound) {
+    sheet.addEventListener('scroll', _wkFocusSoon, { passive: true });
+    _wkFocusBound = true;
+  }
+  _wkFocusDirty = true;
+  _wkFocusSoon();
 }
 
 function renderLogCards() {
@@ -18920,6 +19000,7 @@ function adjustRest(delta) {
    Untersheets) oder der Finger noch auf dem Sheet ist — wer selbst nach oben
    scrollt (etwa zum "Abbrechen"), soll nicht weggezogen werden. ── */
 let _wkAdvTimer = null;
+let _wkAdvSnapT = null;
 let _wkSheetTouching = false;
 (function () {
   const sheet = document.querySelector('#ov-wk .sheet');
@@ -18944,6 +19025,17 @@ function _wkAutoAdvance(li) {
     const card = document.querySelector(`#log-cards .ex-card[data-li="${target}"]`);
     if (!card) return;
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* Snap AUS, solange die eigene Bewegung laeuft. Sonst zieht WebKit waehrend
+       des weichen Scrollens gleichzeitig am naechsten Rastpunkt — zwei Kraefte
+       auf derselben Achse, und das las sich als Zittern und Nachschlagen. Das
+       Ziel ist ohnehin genau ein Rastpunkt (block:'start' + scroll-padding),
+       beim Wiedereinschalten springt also nichts. */
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (sheet && !reduce) {
+      sheet.classList.add('snap-off');
+      clearTimeout(_wkAdvSnapT);
+      _wkAdvSnapT = setTimeout(() => sheet.classList.remove('snap-off'), 700);
+    }
     card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }, 600);
 }
@@ -20464,6 +20556,14 @@ function initSheetSwipe() {
     };
     /* Eingabeelemente behalten ihre eigene Geste (Wheel, Slider, Textfeld, ✕). */
     const ownsGesture = t => !!(t && t.closest && t.closest('input,textarea,select,.x-btn'));
+    /* Im KOPF gilt das für JEDEN Knopf, nicht nur ✕. Der Kopf-Handler ruft
+       start(e,true) und damit sofort preventDefault() — das verschluckt den
+       nachfolgenden click. Bisher stand nur .x-btn auf der Ausnahmeliste, also
+       war der Zurück-Pfeil des Coach-Hubs (.ch-back) tot: sichtbar, tippbar,
+       ohne Wirkung. Die Ausnahme gilt bewusst NUR hier — im Sheet-Inhalt darf
+       eine Abwärtsgeste weiterhin auf einem Knopf beginnen. */
+    const headOwnsGesture = t => ownsGesture(t)
+      || !!(t && t.closest && t.closest('button,a,[role="button"]'));
 
     const start = (e, immediate) => {
       sy = ly  = e.touches[0].clientY;
@@ -20484,7 +20584,7 @@ function initSheetSwipe() {
     /* Auch die Kopfzeile zieht — das ist die Stelle, die man intuitiv anfasst. */
     const head = sheet.querySelector(':scope > .sh-head');
     if (head) head.addEventListener('touchstart', e => {
-      if (ownsGesture(e.target)) return;
+      if (headOwnsGesture(e.target)) return;
       start(e, true);
     }, { passive: false });
 
@@ -25376,8 +25476,14 @@ function _coachBarAnimate(el, apply) {
   el.style.height = from + 'px';
   void el.offsetWidth;                         // Reflow: Startwert festschreiben
   el.style.height = to + 'px';
+  // Solange die Leiste faehrt, halten Fokus-Schicht und Rastabstand still
+  // (s. _wkSnapPadSoon) — danach EIN Abgleich mit dem Endzustand.
+  _cbBarBusy = true;
   if (el._cbEndTimer) clearTimeout(el._cbEndTimer);
-  el._cbEndTimer = setTimeout(() => { el.style.height = ''; el._cbEndTimer = null; }, 340);
+  el._cbEndTimer = setTimeout(() => {
+    el.style.height = ''; el._cbEndTimer = null; _cbBarBusy = false;
+    try { _wkSyncSnapPad(); _wkFocusDirty = true; _wkFocusSoon(); } catch(_) {}
+  }, 340);
 }
 function _coachBarRender() {
   const el = document.getElementById('wk-coach-bar'); if (!el) return;
@@ -25809,7 +25915,9 @@ function _csEmit(out, extra, nurExtra) {
    OEFFNEN einer Uebung an, waehrend Halbzeit und Ermuedung erst spaeter in der
    Einheit kommen. Ohne Rueckhalt war das Budget vorher weg und der Bogen brach
    in der Mitte ab (gemessen: greet, exOpen, warmupIntro, cue, plateau,
-   restNext, restNext — mid und fatigue kamen nie).
+   restNext, restNext — mid und fatigue kamen nie). Der Aufwaermsatz aus dieser
+   Messung faellt inzwischen weg (kein warmupIntro mehr von selbst); die Zahlen
+   bleiben, der Bogen hat dadurch nur mehr Luft.
    Der Rueckhalt sitzt hier, an der Aufrufstelle, und kann den Zaehler nur
    SENKEN — die Obergrenze wird davon nie gerissen, nur besser verteilt. */
 const CS_RESERVE      = 2;   // Anker (exOpen, warmupIntro): mid + fatigue bleiben frei
@@ -26164,36 +26272,22 @@ function _csExercise(ex) {
     }));
     _csPut(r.sess);
     if (r.out) { const o = r.out; _csSeq(() => _csEmit(o)); }
-    _csWarmup(ex, lastKg);
+    // KEIN Aufwaermvorschlag mehr beim Oeffnen einer Uebung: Aufwaermsaetze
+    // stehen als Satztyp im Training selbst, die Ansage sagte dieselbe Sache ein
+    // zweites Mal und ass dabei einen der wenigen Plaetze des Erzaehlbogens.
+    // Gefragt beantwortet der Coach das weiter (Router-Absicht 'warmup',
+    // gespeist aus snap.warmupText) — er faengt nur nicht mehr von selbst an.
     _csCue(ex);
     _csRecall(ex);
     _csPlateau(ex);
   } catch(e) { console.warn('[Coach] Uebung geoeffnet:', e); }
 }
 
-// Aufwaermschema — in Kilo, nicht in Prozent. Laeuft ueber emit(), damit es
-// derselben Obergrenze unterliegt; kein zweiter Ausgabeweg.
-function _csWarmup(ex, lastKg) {
-  try {
-    if (!ex || ex.targetType === 'time') return;
-    let work = null;
-    try { work = getSuggestedWeight(ex); } catch(_) {}
-    if (!(work > 0)) work = lastKg;
-    if (!(work > 0)) return;
-    const eq = _csEquip(ex);
-    const sets = window.CoachWarmup.warmupSets(work, { step: eq.step, barKg: eq.barKg });
-    if (!sets || !sets.length) return;
-    const reihe = _csWarmupText(sets);
-    if (!reihe) return;
-    _csSeq(() => {
-      const sess = _csGet(timerTs); if (!sess) return;
-      if (!_csHasRoom(sess)) return;              // Rueckhalt fuer Halbzeit/Ermuedung
-      const r = window.CoachSession.emit(sess, 'warmupIntro', 'warmupIntro', { ex: ex.name });
-      _csPut(r.sess);
-      if (r.out) _csEmit(r.out, reihe);
-    });
-  } catch(e) { console.warn('[Coach] Aufwaermsaetze:', e); }
-}
+// Das Aufwaermschema wird NICHT mehr von selbst angesagt (frueher _csWarmup,
+// aufgerufen aus _csExercise). CoachWarmup bleibt in Betrieb: es liefert die
+// Zahlenreihe fuer snap.warmupText, also fuer die Antwort auf die ausdrueckliche
+// Frage "wie soll ich mich aufwaermen?" — Rechnen auf Nachfrage, nicht Reden
+// ohne Anlass.
 // CoachWarmup.format() schreibt fest "kg" — das Modul ist bewusst einheitenrein.
 // Rechnet die App in lbs, wird HIER umgerechnet und beschriftet.
 function _csWarmupText(sets) {
