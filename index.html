@@ -5199,7 +5199,8 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    (.ch-stage): das Raster der fünf Kacheln und die Detailebene. Immer genau
    eine davon ist sichtbar — deshalb kann sich beim Öffnen nichts umbauen. */
 #ch-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  padding-bottom:calc(100px + var(--sab))}
+  padding-bottom:calc(100px + var(--sab));display:flex;flex-direction:column}
+.ch-stage{flex:1;display:flex;flex-direction:column}
 
 /* Kopf trägt denselben Orb wie die Heute-Karte: der Hub soll sichtbar dasselbe
    Objekt sein wie die Karte, die ihn öffnet, und kein fremdes Menü. Der Name
@@ -5241,8 +5242,12 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    Die Akzentfarbe trägt genau EIN Element je Kachel (das Symbol). Vorher lag
    sie gleichzeitig auf Symbolrahmen, Symbol, Kennzahl, Titel und Winkel und
    sagte damit nichts mehr. */
+/* Das Raster fuellt die Blatthoehe: bei nur drei Reihen lief die untere Haelfte
+   sonst schwarz aus und das Blatt sah unfertig aus. Die Reihen teilen sich den
+   Platz, unterschreiten aber nie die Mindesthoehe. */
 .ch-stage{position:relative}
-.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-content:start}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-content:stretch;
+  flex:1;grid-auto-rows:minmax(106px,1fr)}
 /* Gespräch steht über die volle Breite. Fünf Kacheln in zwei Spalten lassen
    eine allein — und das soll die sein, die man tatsächlich benutzt, nicht die
    letzte, die zufällig übrig bleibt. Darunter ein glattes 2×2-Feld. */
@@ -5276,6 +5281,9 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .ch-tile.hero .ch-tile-v{font-size:19px}
 .ch-tile-v.lang{font-size:13.5px;font-weight:700;letter-spacing:-.15px;color:var(--text2)}
+.ch-tile-v.eng{font-size:14px;letter-spacing:-.2px}
+.ch-tile.hero .ch-tile-v.lang{font-size:15px}
+.ch-tile.hero .ch-tile-v.eng{font-size:17px}
 
 /* ── Die Detailebene ─────────────────────────────────────────────────────
    Genau EIN Panel liegt im DOM. Vorher standen alle fünf Inhalte gleichzeitig
@@ -5309,31 +5317,14 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ch-stage.x .ch-lift{position:absolute;left:0;right:0;top:0;pointer-events:none}
 .ch-zin{opacity:0;transform:scale(.93)}
 .ch-zout{opacity:0;transform:scale(1.06)}
-@media (prefers-reduced-motion:no-preference){
-  /* Inhalt blendet ein und hebt sich 8 px, je Element 40 ms versetzt, höchstens
-     fünf Stufen. Bewusst OHNE fill-mode: der Ruhezustand ist sichtbar, damit
-     eine Engine, die die Animation gar nicht startet (Paint-Throttling,
-     Snapshot-Renderer), keine leere Fläche hinterlässt — dieselbe Begründung
-     wie bei .aic.in.
-     Die Klasse .anim setzt NUR der Zoom und nimmt sie danach wieder ab: ohne
-     sie liefe die Staffelung bei jedem Schalter im Panel erneut, weil
-     _coachOptRender() den Body neu baut. */
-  .ch-pane.anim>.ch-panel>.ch-in>*{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
-  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(2){animation-delay:.04s}
-  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(3){animation-delay:.08s}
-  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(4){animation-delay:.12s}
-  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(n+5){animation-delay:.16s}
-  .ch-grid.anim>.ch-tile{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
-  .ch-grid.anim>.ch-tile:nth-child(2){animation-delay:.03s}
-  .ch-grid.anim>.ch-tile:nth-child(3){animation-delay:.06s}
-  .ch-grid.anim>.ch-tile:nth-child(4){animation-delay:.09s}
-  .ch-grid.anim>.ch-tile:nth-child(n+5){animation-delay:.12s}
-}
-@keyframes chRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* KEINE zweite Bewegung im Inneren. Eine Staffelung der Zeilen lief hier
+   zusaetzlich zum Zoom und sah aus, als wuerde sich beim Oeffnen "alles kurz
+   aktualisieren" — zwei Bewegungen auf derselben Flaeche liest niemand als
+   eine. Der Zoom traegt den Wechsel allein. Aus demselben Grund staffeln auch
+   die Kacheln des Rasters nicht mehr. */
 /* Alle Übergänge auf 0 ms — der Zoom entfällt dann ganz (s. _chZoom). */
 @media (prefers-reduced-motion:reduce){
   .ch-grid,.ch-pane,.ch-tile{transition-duration:0s!important;transition-delay:0s!important}
-  .ch-grid>.ch-tile,.ch-pane>.ch-panel>.ch-in>*{animation:none!important}
 }
 
 /* ── Wochenkachel: Kennzahlen, Diagramme, Kraftziel ──────────────────────
@@ -26498,7 +26489,7 @@ function _chZoom(vor, urs, stage){
     // stehen.
     if (_chZoomT) { clearTimeout(_chZoomT); _chZoomT = null; }
     stage.classList.remove('x');
-    [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout', 'anim'));
+    [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout'));
     if (urs) { grid.style.transformOrigin = urs; pane.style.transformOrigin = urs; }
     const rein = vor ? pane : grid;
     const raus = vor ? grid : pane;
@@ -26507,13 +26498,12 @@ function _chZoom(vor, urs, stage){
     rein.classList.add(vor ? 'ch-zin' : 'ch-zout');
     void stage.offsetWidth;                                  // Startzustand festschreiben
     rein.classList.remove('ch-zin', 'ch-zout');
-    rein.classList.add('anim');
     raus.classList.add(vor ? 'ch-zout' : 'ch-zin');
     _chZoomT = setTimeout(() => {
       _chZoomT = null;
       try {
         stage.classList.remove('x');
-        [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout', 'anim'));
+        [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout'));
         grid.style.transformOrigin = ''; pane.style.transformOrigin = '';
       } catch(_) {}
     }, _CH_ZOOM_MS + 60);
@@ -26539,7 +26529,12 @@ function _chTileHTML(c, cur){
   // Lange Werte sind Sätze ("noch kein Gespräch", "diese Woche noch nichts")
   // und keine Zahlen. In der Schriftgröße einer Zahl gesetzt brechen sie über
   // drei Zeilen und sprengen die Kachel, deshalb die ruhigere Stufe.
-  const lang = kz.length > 20 ? ' lang' : '';
+  // Ein Wert MIT Ziffer ist eine Zahl und bleibt eine Zahl — nur sehr lange
+  // Zahlen ruecken eine Stufe runter, damit "151.639 kg ↑ 57 %" nicht mitten im
+  // Prozentzeichen umbricht. Ein Wert OHNE Ziffer ist ein Satz ("noch kein
+  // Gespraech") und wird als Satz gesetzt, nicht als Schlagzeile.
+  const zahl = /\d/.test(kz);
+  const lang = !zahl && kz.length > 12 ? ' lang' : (zahl && kz.length > 13 ? ' eng' : '');
   return `<button type="button" class="ch-tile${c.k === 'chat' ? ' hero' : ''}" id="ch-tile-${c.k}"
       onclick="coachHubOpen('${c.k}')" aria-label="${esc(lbl + (kz ? ', ' + kz : ''))}">
       <span class="ch-tile-top">
