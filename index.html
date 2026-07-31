@@ -924,12 +924,19 @@ body{
    Einrasten: proximity, nie mandatory — hohe Karten (4+ Saetze) bleiben frei
    durchscrollbar, Notizfeld und Finish-Button unten bleiben normal erreichbar.
    Snap-Areas gibt es nur an .ex-card; Step 1 (Uebungswahl) hat keine → kein Effekt. */
-#ov-wk .sheet{scroll-snap-type:y proximity}
+/* --wk-snap-pad haelt den Rastpunkt UNTER dem klebenden Kopf (#wk-sticky mit
+   Coach-Leiste und Pausenbalken). Ohne den Abstand rastet die Karte an der
+   Sheet-Oberkante ein und verschwindet hinter den Leisten. Der Wert wird in
+   _wkSyncSnapPad() aus der echten Hoehe gerechnet, weil beide Leisten je nach
+   Lage da sind oder nicht. */
+#ov-wk .sheet{scroll-snap-type:y proximity;scroll-padding-top:var(--wk-snap-pad,72px)}
 #ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
-#log-cards .ex-card{scroll-snap-align:start;scroll-margin-top:12px;
+/* scroll-snap-stop: die Karte laesst sich nicht ueberfliegen — genau das
+   spuerbare "Einklinken" beim Scrollen. */
+#log-cards .ex-card{scroll-snap-align:start;scroll-snap-stop:always;
   transition:opacity .28s ease,transform .28s ease}
 /* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten) */
-#log-cards.focus-on .ex-card.dimmed{opacity:.45;transform:scale(.97)}
+#log-cards.focus-on .ex-card.dimmed{opacity:.38;transform:scale(.965)}
 /* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
    erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
    Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
@@ -18302,7 +18309,29 @@ function _wkFocusApply() {
   });
 }
 
+/* Rastabstand = Klebe-Offset von #wk-sticky (58px) + dessen echte Hoehe.
+   Coach-Leiste und Pausenbalken kommen und gehen; ein fester Wert waere
+   entweder zu klein (Karte liegt hinter der Leiste) oder zu gross (Karte
+   startet mit einer Luecke). Ein ResizeObserver haelt den Wert nach. */
+let _wkStickyRO = null;
+
+function _wkSyncSnapPad() {
+  const sheet = document.querySelector('#ov-wk .sheet');
+  const sticky = document.getElementById('wk-sticky');
+  if (!sheet || !sticky) return;
+  const h = sticky.getBoundingClientRect().height;
+  sheet.style.setProperty('--wk-snap-pad', Math.round(58 + h + 8) + 'px');
+}
+
 function _wkFocusObserve() {
+  try {
+    _wkSyncSnapPad();
+    const sticky = document.getElementById('wk-sticky');
+    if (sticky && !_wkStickyRO && typeof ResizeObserver !== 'undefined') {
+      _wkStickyRO = new ResizeObserver(() => _wkSyncSnapPad());
+      _wkStickyRO.observe(sticky);
+    }
+  } catch(_) {}
   if (_wkFocusIO) { _wkFocusIO.disconnect(); _wkFocusIO = null; }
   const wrap = document.getElementById('log-cards');
   const sheet = document.querySelector('#ov-wk .sheet');
@@ -18314,7 +18343,10 @@ function _wkFocusObserve() {
   if (_wkFocusLi >= wkLogs.length) _wkFocusLi = -1;   // nach Entfernen/Umsortieren
   _wkFocusIO = new IntersectionObserver(() => {
     const sr = sheet.getBoundingClientRect();
-    const mid = sr.top + sr.height / 2;
+    // Mitte der BUEHNE, nicht des Sheets: der Bereich hinter dem klebenden Kopf
+    // zaehlt nicht mit, sonst gilt eine Karte als "dran", die dort verdeckt liegt.
+    const pad = parseFloat(getComputedStyle(sheet).scrollPaddingTop) || 0;
+    const mid = sr.top + pad + (sr.height - pad) / 2;
     const els = [...wrap.querySelectorAll('.ex-card')];
     const rects = els.map(c => {
       const r = c.getBoundingClientRect();
