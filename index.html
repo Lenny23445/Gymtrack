@@ -5220,7 +5220,7 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    ersatzlos. */
 .ch-card{position:relative;overflow:hidden;border-radius:15px;margin:0 0 10px;
   background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
-/* Haarlinie oben — derselbe Baustein wie .ch-jrn::before/.aic::after. */
+/* Haarlinie oben — derselbe Baustein wie .ch-jrn::after und .ch-preset::after. */
 .ch-card::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
 /* Lichtstreifen beim Öffnen: EINMAL, nicht wiederholt. Dieselben Keyframes
@@ -7504,23 +7504,18 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div id="ai-radial"></div>
 <button type="button" id="ai-bubble" aria-label="KI-Coach"></button>
 
-<!-- SHEET: COACH-HUB (Task 9) — das Zuhause des Coaches.
+<!-- SHEET: COACH-HUB — das Zuhause des Coaches, ein Blatt mit fünf Kacheln.
      Struktur bewusst identisch zum KI-Chat darunter (.ov > .sheet > .sh-handle
-     + .sh-head + .px). Die vier Reiter tragen KEINE Beschriftung im Markup:
-     renderCoachHub() setzt sie per textContent, damit tr() greift und der
-     Coach-Name nie als Markup landen kann. -->
+     + .sh-head + .px). Kopfzeile und Unterzeile tragen KEINEN Text im Markup:
+     renderCoachHub() setzt beide per textContent, damit tr() greift und der
+     Coach-Name nie als Markup landen kann. Die Kacheln selbst zeichnet
+     renderCoachHub() in #ch-body. -->
 <div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="ch-title">Coach</h2><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
+    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><span class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></span><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
-      <div class="ch-tabs" role="tablist">
-        <button type="button" class="ch-tab" id="ch-tab-chat"     role="tab" onclick="coachHubTab('chat')"></button>
-        <button type="button" class="ch-tab" id="ch-tab-journal"  role="tab" onclick="coachHubTab('journal')"></button>
-        <button type="button" class="ch-tab" id="ch-tab-report"   role="tab" onclick="coachHubTab('report')"></button>
-        <button type="button" class="ch-tab" id="ch-tab-settings" role="tab" onclick="coachHubTab('settings')"></button>
-      </div>
-      <div id="ch-body" role="tabpanel"></div>
+      <div id="ch-body"></div>
     </div>
   </div>
 </div>
@@ -8407,6 +8402,11 @@ const I18N_EN = {
      Name, Ton) stehen bewusst NICHT hier, sondern laufen am Aufrufort über
      _cm(de,en): als globaler Schlüssel würden sie jeden fremden Textknoten
      mitübersetzen, der zufällig genauso heißt. */
+  /* Die fünf Kacheln des Hubs. Lange, eindeutige Titel — sie stehen hier und
+     nicht am Aufrufort, weil kein anderer Textknoten der App genauso heißt
+     (geprüft) und der Titel dann in EINER Zeile beide Sprachen trägt. */
+  'Gespräch':'Conversation','Persönlichkeit':'Personality',
+  'Umfang und Meldungen':'Scope and notifications','dein Coach':'your coach',
   'Letzter Wortwechsel':'Last exchange','Einschränkungen':'Limits','Vorlieben':'Preferences',
   'Was funktioniert':'What works','Noch nichts notiert.':'Nothing noted yet.',
   'Eintrag entfernen':'Remove entry','Bestätigung fällig':'Confirmation due',
@@ -18491,6 +18491,10 @@ Object.assign(ICO, {
   planAdd:o=>_svg('<rect x="3.5" y="5.5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v6M9 16h6"/>',o),
   trendUp:o=>_svg('<path d="M3.5 17l6-6 4 4 7-8"/><path d="M15.5 6.5H20.5V11.5"/>',o),
   gear:o=>_svg('<circle cx="12" cy="12" r="3"/><path d="M12 4v2.4M12 17.6V20M20 12h-2.4M6.4 12H4M17.66 6.34l-1.7 1.7M8.04 15.96l-1.7 1.7M17.66 17.66l-1.7-1.7M8.04 8.04L6.34 6.34"/>',o),
+  // Aufklapp-Winkel der Coach-Kacheln. Zeigt zugeklappt nach unten und dreht
+  // sich beim Öffnen um 180° (.ch-card.on .ch-card-c) — ein Zeichen, zwei
+  // Zustände, keine zweite Form.
+  chevron:o=>_svg('<path d="M6 9.5 12 15.5 18 9.5"/>',o),
 });
 // Phase E: Check-in-Anstrengungs-Gauge (4 Balken, 1..4 davon gefüllt = Intensität)
 Object.assign(ICO, {
@@ -25978,16 +25982,33 @@ function setCoachPreset(name){
     try { _coachOptRender(); } catch(_) {}
   }
 }
-// ═══ COACH-HUB (Task 9): Chat · Journal · Woche · Einstellungen ══════════
+// ═══ COACH-HUB: ein Blatt mit fünf aufklappenden Kacheln ═════════════════
 // Das Zuhause des Coaches hinter der bestehenden .aic-Karte im Heute-Tab. Die
 // Karte ist der EINZIGE Zugang (Gestaltungsregel 1) — keine zweite Fläche auf
 // der Startseite, kein fünfter Tab.
-const _CH_TABS = ['chat','journal','report','settings'];
-let _chTab = 'chat';
-// Wird von openCoachHub()/coachHubTab() gesetzt und von renderCoachHub()
-// verbraucht: nur diese zwei Wege setzen die Scrollposition zurück und lassen
-// die Überblendung laufen. Jeder andere Rerender (Schalter über
-// _coachOptRender()) lässt beides, wo es ist.
+//
+// Vier Reiter (_CH_TABS/.ch-tabs) sind entfallen. Der Nutzer wollte wörtlich
+// "alles auf einem Beleg": genau EINE Kachel ist offen, ein Tipp klappt sie an
+// Ort und Stelle auf, die anderen rücken weich nach. Zugeklappt trägt jede
+// Kachel Titel plus GENAU EINE Kennzahl — sonst sagt das Blatt zugeklappt
+// nichts. Mit den Reitern verschwindet zugleich der seit Task 10 geparkte
+// Gestaltungsregel-7-Verstoß: das Segmented Control war ein Bedienidiom, das
+// die App sonst nirgends hat.
+const _CH_CARDS = [
+  { k:'chat',    de:'Gespräch' },
+  { k:'week',    de:'Woche' },
+  { k:'persona', de:'Persönlichkeit' },
+  { k:'scope',   de:'Umfang und Meldungen' },
+  { k:'journal', de:'Journal' }
+];
+const _CH_CARD_IDS = _CH_CARDS.map(c => c.k);
+// Welche Kachel offen ist. '' heißt: keine — ein gültiger Zustand. Wird beim
+// Kontowechsel zurückgesetzt (s. _coachWipeLocal, Schritt "Hub").
+let _chOpen = 'chat';
+// Wird von openCoachHub() gesetzt und von renderCoachHub() verbraucht: NUR das
+// Öffnen des Blattes setzt die Scrollposition zurück. Jeder andere Rerender
+// (Schalter über _coachOptRender()) lässt sie, wo sie ist — sonst nimmt ein
+// Sprung an den Anfang den gerade getippten Chip aus dem Bild.
 let _chResetScroll = true;
 // Beispielsatz der Ton-Auswahl: EIN Satz in vier Tönen. Der Nutzer hört den
 // Unterschied, statt vier Adjektive zu lesen.
@@ -26012,17 +26033,161 @@ function openCoachHub(tab){
     const frisch = !S.aiCoach || S.aiCoach.preset === undefined;
     if (frisch && isPremium() && typeof openCoachSetup === 'function') { openCoachSetup(); return; }
   } catch(e) { console.warn('[Coach] Hub-Weiche:', e); }
-  _chTab = _CH_TABS.indexOf(tab) >= 0 ? tab : 'chat';
+  _chOpen = _CH_CARD_IDS.indexOf(tab) >= 0 ? tab : 'chat';
   _chResetScroll = true;
   openOv('ov-coach-hub');
   renderCoachHub();
 }
-function coachHubTab(name){
-  if (_CH_TABS.indexOf(name) < 0) return;
-  _chTab = name;
-  _chResetScroll = true;
-  try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
-  renderCoachHub();
+/* Eine Kachel öffnen. Erneut auf die offene getippt schließt sie; dann ist
+   keine offen, und auch das ist ein gültiger Zustand.
+
+   Bewusst OHNE renderCoachHub(): ein innerHTML-Austausch legt die Kachel schon
+   im Endzustand an, und der CSS-Übergang (0fr -> 1fr) liefe nie. Umgeschaltet
+   wird deshalb nur die Klasse am bestehenden Knoten. */
+function coachHubOpen(name){
+  try {
+    if (_CH_CARD_IDS.indexOf(name) < 0) return;
+    _chOpen = (_chOpen === name) ? '' : name;
+    try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
+    _chApplyOpen();
+    if (_chOpen) _chScrollOpen(_chOpen);
+  } catch(e) { console.warn('[Coach] Kachel öffnen:', e); }
+}
+function _chApplyOpen(){
+  _CH_CARD_IDS.forEach(k => {
+    const sec = document.getElementById('ch-card-' + k); if (!sec) return;
+    const on = (k === _chOpen);
+    /* Der Lichtstreifen läuft EINMAL und nur beim Öffnen — derselbe Baustein
+       (coachSweep) wie auf der .aic-Karte. Die Klasse muss abgenommen, ein
+       Layout erzwungen und neu gesetzt werden, sonst startet die Animation beim
+       zweiten Öffnen nicht erneut. */
+    if (on && !sec.classList.contains('on')) {
+      sec.classList.remove('flash');
+      void sec.offsetWidth;
+      sec.classList.add('flash');
+    }
+    sec.classList.toggle('on', on);
+    const h = document.getElementById('ch-h-' + k);
+    if (h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
+  });
+}
+/* Die geöffnete Kachel in Sicht holen. Erst NACH dem Aufklappen messen (260 ms
+   Übergang): währenddessen ist die Kachel halb hoch und das Ergebnis wäre eine
+   halbe Bewegung. Höher als bis zur Oberkante der Kachel wird nie gescrollt —
+   sonst schöbe eine lange Kachel ihren eigenen Kopf aus dem Bild. */
+let _chScrollTimer = null;
+function _chScrollOpen(k){
+  try {
+    if (_chScrollTimer) { clearTimeout(_chScrollTimer); _chScrollTimer = null; }
+    _chScrollTimer = setTimeout(() => {
+      _chScrollTimer = null;
+      try {
+        const ov = document.getElementById('ov-coach-hub');
+        if (!ov || !ov.classList.contains('on')) return;
+        if (_chOpen !== k) return;
+        const body = document.getElementById('ch-body');
+        const sec  = document.getElementById('ch-card-' + k);
+        if (!body || !sec) return;
+        const br = body.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+        if (sr.top >= br.top && sr.bottom <= br.bottom) return;   // schon ganz im Bild
+        const oben = body.scrollTop + (sr.top - br.top);
+        let ziel = oben + sr.height - br.height;                  // Unterkante ins Bild
+        if (ziel > oben) ziel = oben;                             // Kopf bleibt sichtbar
+        body.scrollTop = Math.max(0, ziel);
+      } catch(e) { console.warn('[Coach] Kachel in Sicht:', e); }
+    }, 300);
+  } catch(e) { console.warn('[Coach] Kachel in Sicht planen:', e); }
+}
+/* Eine Kachel als Markup. k stammt aus _CH_CARDS und ist eigener Code, nie
+   Fremdtext im onclick. Titel und Kennzahl gehen durch esc(). */
+function _chCardHTML(c){
+  const on = (_chOpen === c.k);
+  let inner = '', kz = '';
+  try { inner = _chCardBody(c.k) || ''; }
+  catch(e) { console.warn('[Coach] Kachelinhalt ' + c.k + ':', e); inner = ''; }
+  try { kz = _chCardMetric(c.k) || ''; }
+  catch(e) { console.warn('[Coach] Kennzahl ' + c.k + ':', e); kz = ''; }
+  return `<section class="ch-card${on ? ' on' : ''}" id="ch-card-${c.k}">
+      <button type="button" class="ch-card-h" id="ch-h-${c.k}" aria-expanded="${on ? 'true' : 'false'}"
+        aria-controls="ch-p-${c.k}" onclick="coachHubOpen('${c.k}')">
+        <span class="ch-card-t">${esc(tr(c.de))}</span>
+        <span class="ch-card-m">${esc(kz)}</span>
+        <span class="ch-card-c" aria-hidden="true">${ICO.chevron({s:18})}</span>
+      </button>
+      <div class="ch-card-w" id="ch-p-${c.k}" role="region" aria-labelledby="ch-h-${c.k}">
+        <div class="ch-card-b"><div class="ch-in">${inner}</div></div>
+      </div>
+    </section>`;
+}
+function _chCardBody(k){
+  if (k === 'chat')    return _chChatHTML();
+  if (k === 'week')    return _chReportHTML();
+  if (k === 'persona') return _chPersonaHTML();
+  if (k === 'scope')   return _chScopeHTML();
+  if (k === 'journal') return _chJournalHTML();
+  return '';
+}
+function _chCardMetric(k){
+  if (k === 'chat')    return _chKzChat();
+  if (k === 'week')    return _chKzWeek();
+  if (k === 'persona') return _chKzPersona();
+  if (k === 'scope')   return _chKzScope();
+  if (k === 'journal') return _chKzJournal();
+  return '';
+}
+/* ── Die Kennzahlen ──────────────────────────────────────────────────────
+   Jede Kachel trägt zugeklappt genau EINE Zahl, und jede davon ist etwas, das
+   der Nutzer sonst nicht an einer Stelle sieht (Gestaltungsregel 8). Fehlt die
+   Datenlage, steht dort ein Satz und kein leeres Feld. */
+function _chKzChat(){
+  try {
+    const n = Array.isArray(_aicHist) ? _aicHist.length : 0;
+    if (!n) return _cm('noch kein Gespräch', 'no conversation yet');
+    return _cm(n + (n === 1 ? ' Nachricht' : ' Nachrichten'), n + (n === 1 ? ' message' : ' messages'));
+  } catch(e) { console.warn('[Coach] Kennzahl Gespräch:', e); return ''; }
+}
+/* Volumen der laufenden Woche mit Pfeil zur Vorwoche. Die Einheit hängt am WERT
+   (_csWeight), nie am Satz — ein lbs-Nutzer sieht lbs. Ohne Vorwoche gibt es
+   keinen Vergleich und deshalb auch keinen Pfeil: eine Steigerung gegen nichts
+   hat niemand erbracht. */
+function _chKzWeek(){
+  try {
+    const cur = _crCurrent();
+    if (!cur || !cur.rep || !cur.rep.numbers) return _cm('diese Woche noch nichts', 'nothing this week yet');
+    const n   = cur.rep.numbers;
+    const vol = Math.round(Number(n.vol) || 0);
+    const vor = Math.round(Number(n.prevVol) || 0);
+    const txt = _csWeight(vol) || '';
+    if (vor <= 0) return txt;
+    const d = vol - vor;
+    if (d === 0) return txt + ' → 0 %';
+    return txt + ' ' + (d > 0 ? '↑' : '↓') + ' ' + Math.round(Math.abs(d) / vor * 100) + ' %';
+  } catch(e) { console.warn('[Coach] Kennzahl Woche:', e); return ''; }
+}
+function _chKzPersona(){
+  try {
+    const p = _persona();
+    const t = _CH_TONES.filter(x => x.k === p.tone)[0];
+    return _coachName() + (t ? ' · ' + tr(t.de) : '');
+  } catch(e) { console.warn('[Coach] Kennzahl Persönlichkeit:', e); return ''; }
+}
+function _chKzScope(){
+  try {
+    const p = _persona();
+    const x = _CH_PRESETS.filter(y => y.k === p.preset)[0];
+    return x ? tr(x.de) : tr('Angepasst');
+  } catch(e) { console.warn('[Coach] Kennzahl Umfang:', e); return ''; }
+}
+function _chKzJournal(){
+  try {
+    let d = null;
+    try { d = _dossier(); } catch(_) {}
+    d = d || {};
+    let n = d.goal ? 1 : 0;
+    ['limits', 'prefs', 'works'].forEach(k => { if (Array.isArray(d[k])) n += d[k].length; });
+    if (!n) return _cm('noch nichts notiert', 'nothing noted yet');
+    return _cm(n + (n === 1 ? ' Eintrag' : ' Einträge'), n + (n === 1 ? ' entry' : ' entries'));
+  } catch(e) { console.warn('[Coach] Kennzahl Journal:', e); return ''; }
 }
 function renderCoachHub(){
   const ov = document.getElementById('ov-coach-hub');
@@ -26031,17 +26196,11 @@ function renderCoachHub(){
   if (!ov || !ov.classList.contains('on')) return;
   const body = document.getElementById('ch-body'); if (!body) return;
   try {
-    // Kopf und Reiter per textContent — dieselbe Begründung wie in
+    // Kopf und Unterzeile per textContent — dieselbe Begründung wie in
     // _aicApplyName(): das ist die eine Stelle, an der der entschärfte Name
     // doch noch als Markup landen könnte. tr() greift dabei trotzdem.
     const h = document.getElementById('ch-title'); if (h) h.textContent = _coachName();
-    const lbl = { chat: tr('Chat'), journal: tr('Journal'), report: tr('Woche'), settings: tr('Einstellungen') };
-    _CH_TABS.forEach(k => {
-      const b = document.getElementById('ch-tab-' + k); if (!b) return;
-      b.textContent = lbl[k];
-      b.classList.toggle('on', k === _chTab);
-      b.setAttribute('aria-selected', k === _chTab ? 'true' : 'false');
-    });
+    const sub = document.getElementById('ch-sub'); if (sub) sub.textContent = tr('dein Coach');
     // Body NICHT ersetzen, solange eine Namensänderung läuft (s. coachHubSetName):
     // onchange feuert beim Blur, also zwischen pointerdown und pointerup des
     // nächsten Tipps — ein Rerender dazwischen nimmt die getippte Karte aus dem
@@ -26051,29 +26210,16 @@ function renderCoachHub(){
     // sie bei jedem der vier Schalter zu und die Scrollposition springt. Bewusst
     // aus dem DOM gelesen statt aus einem ontoggle-Merker: das toggle-Ereignis
     // feuert erst als eigene Aufgabe, ein schneller Tipp käme ihm zuvor.
-    const detOffen = !!(body.querySelector('details') || {}).open;
+    const detOffen = !!(body.querySelector('#ch-card-scope details') || {}).open;
     // #ch-body ist der Scroller, und ein innerHTML-Austausch wirft seine Position
     // weg. Bei einem SCHALTER muss sie stehen bleiben: _coachOptRender() rendert
     // bei jeder Option neu, und ein Sprung an den Anfang nimmt den gerade
-    // getippten Chip aus dem Bild. Nur der REITERWECHSEL setzt sie zurück —
-    // sonst stünde man nach "Einstellungen" (zwei Bildschirme) auf "Woche"
-    // (drei Zeilen) unter dem Inhalt. Gleiche Absicht wie der details-Griff.
+    // getippten Chip aus dem Bild. Nur das ÖFFNEN des Blattes setzt sie zurück.
     const zurueck = _chResetScroll; _chResetScroll = false;
     const scrollVor = body.scrollTop;
-    body.innerHTML = _chTab === 'journal'  ? _chJournalHTML()
-                   : _chTab === 'report'   ? _chReportHTML()
-                   : _chTab === 'settings' ? _chSettingsHTML()
-                   :                         _chChatHTML();
-    if (detOffen) { const d = body.querySelector('details'); if (d) d.open = true; }
+    body.innerHTML = _CH_CARDS.map(_chCardHTML).join('');
+    if (detOffen) { const d = body.querySelector('#ch-card-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
-    // Überblenden gehört zum Reiterwechsel, nicht zu jedem Rerender: bei jedem
-    // Schalter erneut anzulaufen ist Flackern, kein Übergang. Die Klasse muss
-    // neu gesetzt werden, damit die Animation läuft — innerHTML startet sie nicht.
-    if (zurueck) {
-      body.classList.remove('ch-fade');
-      void body.offsetWidth;
-      body.classList.add('ch-fade');
-    }
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
 }
 // Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
@@ -26089,6 +26235,10 @@ function coachHubSetName(el){
     // Zeigt, was wirklich gespeichert wurde: safeName() kürzt und entschärft.
     if (el) el.value = _coachName();
     const ex = document.getElementById('ch-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
+    // Die Kennzahl der Kachel trägt den Namen mit — sie wird ohne Rerender des
+    // Bodys nicht nachgezogen. textContent, nie innerHTML.
+    const kz = document.querySelector('#ch-card-persona .ch-card-m');
+    if (kz) kz.textContent = _chKzPersona();
   } catch(e) { console.warn('[Coach] Name anwenden:', e); }
 }
 // ── Chat ─────────────────────────────────────────────────────────────────
@@ -26844,7 +26994,38 @@ function coachHubSetReportAt(feld, wert){
     try { _coachOptRender(); } catch(_) {}
   }
 }
-function _chSettingsHTML(){
+/* ── Persönlichkeit ──────────────────────────────────────────────────────
+   Name und Ton. Fachlich unverändert gegenüber dem alten Einstellungs-Reiter,
+   nur in die eigene Kachel einsortiert: der Nutzer fragt "wie heißt er und wie
+   klingt er?" getrennt von "wie viel meldet er sich?". */
+function _chPersonaHTML(){
+  const p = _persona();
+  const parts = [];
+  // Name: onchange (nicht oninput) — bei jedem Tastendruck zu speichern würde den
+  // Fokus kosten. coachHubSetName() statt setAiCoachOpt() direkt: der Schreibweg
+  // darf den Body nicht ersetzen, sonst verschluckt er den nächsten Tipp.
+  parts.push(`<div class="ch-sec">${esc(_cm('Name','Name'))}</div>
+    <input type="text" class="pf-inp" id="ch-name" maxlength="20" autocomplete="off" spellcheck="false"
+      value="${esc(p.name)}" placeholder="Coach" onchange="coachHubSetName(this)">`);
+  // Ton: derselbe Satz in allen vier Tönen (Beispielsatz aus dem Brief).
+  parts.push(`<div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>`);
+  // ch-voice: der Text dieser Karten ist gesprochene Rede und wird als
+  // Sprechblase gesetzt. Die Profilkarten in der Kachel darunter tragen
+  // Beschreibungen und behalten deshalb bewusst die schlichte Textform.
+  parts.push(_CH_TONES.map(t =>
+    `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
+      <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
+  // Zweites Beispiel im GEWÄHLTEN Ton, über die echte Persona: wechselt beim
+  // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
+  const exInner = _chToneExInner();
+  if (exInner) parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex">${exInner}</div>`);
+  return parts.join('');
+}
+/* ── Umfang und Meldungen ────────────────────────────────────────────────
+   Die drei Profile, die Feinjustierung, der Berichtstermin und die
+   Berechtigungszeile. Fachlich unverändert gegenüber dem alten
+   Einstellungs-Reiter — nur in die Kachel einsortiert. */
+function _chScopeHTML(){
   const p = _persona();
   const parts = [];
   /* Fehlt die Berechtigung, meldet sich der Coach nie — ohne Fehler und ohne
@@ -26861,24 +27042,6 @@ function _chSettingsHTML(){
                         'Without permission ' + nm + ' only speaks inside the app — no training reminder, no nudge, no look back.'))}</span>
       </button>`);
   }
-  // Name: onchange (nicht oninput) — bei jedem Tastendruck zu speichern würde den
-  // Fokus kosten. coachHubSetName() statt setAiCoachOpt() direkt: der Schreibweg
-  // darf den Body nicht ersetzen, sonst verschluckt er den nächsten Tipp.
-  parts.push(`<div class="ch-sec">${esc(_cm('Name','Name'))}</div>
-    <input type="text" class="pf-inp" id="ch-name" maxlength="20" autocomplete="off" spellcheck="false"
-      value="${esc(p.name)}" placeholder="Coach" onchange="coachHubSetName(this)">`);
-  // Ton: derselbe Satz in allen vier Tönen (Beispielsatz aus dem Brief).
-  parts.push(`<div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>`);
-  // ch-voice: der Text dieser Karten ist gesprochene Rede und wird als
-  // Sprechblase gesetzt. Die Profilkarten darunter tragen Beschreibungen und
-  // behalten deshalb bewusst die schlichte Textform.
-  parts.push(_CH_TONES.map(t =>
-    `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
-      <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
-  // Zweites Beispiel im GEWÄHLTEN Ton, über die echte Persona: wechselt beim
-  // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
-  const exInner = _chToneExInner();
-  if (exInner) parts.push(`<div class="ch-jrn ghost" id="ch-tone-ex">${exInner}</div>`);
   // Umfangs-Profil. Ist preset === 'custom', kommt eine vierte, deaktivierte
   // Karte dazu: der Zustand hat einen Namen, ist aber nicht anwählbar.
   parts.push(`<div class="ch-sec">${esc(tr('Wie viel Coach willst du?'))}</div>`);
@@ -26980,7 +27143,7 @@ function coachSetupDone(skipped){
       // nicht beschreibbar ist), würde openCoachHub() die Einrichtung erneut
       // starten. Dann lieber nicht übergeben als den Nutzer einsperren.
       if (!S.aiCoach || S.aiCoach.preset === undefined) { console.warn('[Coach] Einrichtung ohne Profil beendet — keine Übergabe an den Hub'); return; }
-      openCoachHub('settings');
+      openCoachHub('scope');
     } catch(e) { console.warn('[Coach] Hub nach Einrichtung:', e); }
   }, _CS_DELAY);
 }
@@ -27778,8 +27941,9 @@ function _coachWipeLocal(){
   //    /quota-Aufruf durch ist.
   schritt('Kontingent', () => { _aiQuotaTs = 0; localStorage.removeItem('gt_aiQuota'); });
 
-  // 8. Oberflaeche auf Anfang: der Hub darf nicht auf "Woche" stehen bleiben.
-  schritt('Hub', () => { _chTab = 'chat'; _chResetScroll = true; });
+  // 8. Oberflaeche auf Anfang: der Hub darf nicht auf der Kachel "Woche" stehen
+  //    bleiben — Konto B landete sonst direkt in fremden Zahlen.
+  schritt('Hub', () => { _chOpen = 'chat'; _chResetScroll = true; });
 
   // 9. Schreiben. persist(), nicht save().
   schritt('persist', () => { persist(); });
@@ -31243,7 +31407,7 @@ if (_isNative()) {
           const extra = (ev && ev.notification && ev.notification.extra) || {};
           if (extra.coachKind !== 'report') return;
           Promise.resolve(_crBuild()).catch(() => null).then(() => {
-            try { openCoachHub('report'); } catch(e) { console.warn('[Coach] Hub aus Meldung:', e); }
+            try { openCoachHub('week'); } catch(e) { console.warn('[Coach] Hub aus Meldung:', e); }
           });
         } catch(e) { console.warn('[Coach] Meldung antippen:', e); }
       });

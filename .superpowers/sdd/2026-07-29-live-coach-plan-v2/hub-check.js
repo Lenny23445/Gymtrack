@@ -468,7 +468,7 @@ const KACHELSTAND = () => {
   r = O(await ev(() => {
     const w = document.querySelector('#ch-card-chat .ch-card-w');
     const sec = document.getElementById('ch-card-chat');
-    const kind = document.querySelector('#ch-card-chat .ch-card-b > *');
+    const kind = document.querySelector('#ch-card-chat .ch-card-b > .ch-in > *');
     if (!w || !sec) return { err: 'Kachel fehlt' };
     const cs = getComputedStyle(w);
     return { dauer: cs.transitionDuration,
@@ -485,22 +485,23 @@ const KACHELSTAND = () => {
   server.close();
 
   // ── 17) Statisch: die alte Struktur ist weg, nicht nur unsichtbar ───────
+  // Gemessen wird der CODE, nicht die Erklaerung: der Kommentar, der begruendet,
+  // WARUM das Segmented Control entfaellt, darf stehen bleiben.
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const code = ohneKommentar(src);
-    check('Statisch: _CH_TABS, coachHubTab(), .ch-tabs, .ch-tab und .ch-tab.on sind aus index.html verschwunden — das Segmented Control ueberlebt nirgends',
-      !/_CH_TABS/.test(code) && !/coachHubTab\s*\(/.test(code) &&
-      !/\.ch-tabs\b/.test(src) && !/\.ch-tab\b/.test(src) && !/_chTab\b/.test(code) &&
-      !/ch-tab-/.test(src),
+    check('Statisch: _CH_TABS, coachHubTab(), _chTab, .ch-tabs, .ch-tab und die vier Reiter-Ids sind aus index.html verschwunden — das Segmented Control ueberlebt nirgends',
+      !/_CH_TABS/.test(code) && !/coachHubTab\s*\(/.test(code) && !/_chTab\b/.test(code) &&
+      !/\.ch-tabs\b/.test(code) && !/\.ch-tab\b/.test(code) && !/ch-tab-/.test(code),
       JSON.stringify({ chTabs: /_CH_TABS/.test(code), fn: /coachHubTab\s*\(/.test(code),
-                       css: /\.ch-tabs\b/.test(src), cls: /\.ch-tab\b/.test(src),
-                       varr: /_chTab\b/.test(code), ids: /ch-tab-/.test(src) }));
+                       varr: /_chTab\b/.test(code), css: /\.ch-tabs\b/.test(code),
+                       cls: /\.ch-tab\b/.test(code), ids: /ch-tab-/.test(code) }));
   } catch (e) { check('Statisch: die alte Reiterstruktur ist weg', false, String(e.message)); }
 
   // ── 18) Statisch: der Hub-Block nutzt persist(), keine Emojis, esc() ────
   try {
     const src = fs.readFileSync(SRC, 'utf8');
-    const a = src.indexOf('COACH-HUB (Task 9');
+    const a = src.indexOf('// ═══ COACH-HUB: ein Blatt mit fünf aufklappenden Kacheln');
     const b = src.indexOf('COACH-EINRICHTUNG (Task 10', a > 0 ? a : 0);
     const block = a > 0 && b > a ? src.slice(a, b) : '';
     const code = ohneKommentar(block);
