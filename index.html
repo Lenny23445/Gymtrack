@@ -931,12 +931,16 @@ body{
    Lage da sind oder nicht. */
 #ov-wk .sheet{scroll-snap-type:y proximity;scroll-padding-top:var(--wk-snap-pad,72px)}
 #ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
-/* scroll-snap-stop: die Karte laesst sich nicht ueberfliegen — genau das
-   spuerbare "Einklinken" beim Scrollen. */
-#log-cards .ex-card{scroll-snap-align:start;scroll-snap-stop:always;
-  transition:opacity .28s ease,transform .28s ease}
-/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten) */
-#log-cards.focus-on .ex-card.dimmed{opacity:.38;transform:scale(.965)}
+/* KEIN scroll-snap-stop: 'always' laesst den Sheet an JEDER Karte zwangsweise
+   halten — das fuehlt sich abgehackt an und reisst mitten in der Bewegung.
+   Ohne die Regel gleitet der Schwung durch und setzt sich am Ende weich auf
+   den naechstgelegenen Rastpunkt. */
+#log-cards .ex-card{scroll-snap-align:start;
+  transition:opacity .22s cubic-bezier(.33,1,.68,1),transform .22s cubic-bezier(.33,1,.68,1)}
+/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten). Nur ein Hauch
+   Verkleinerung: ein staerkerer Sprung ist waehrend des Scrollens als Ruck
+   sichtbar, weil WebKit die Ebene neu zusammensetzt. */
+#log-cards.focus-on .ex-card.dimmed{opacity:.42;transform:scale(.988)}
 /* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
    erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
    Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
@@ -25126,44 +25130,27 @@ function _coachBarRender() {
   if (!on) { el.style.display = 'none'; return; }
   el.style.display = '';
   const thinking = _coachBarState.mode === 'thinking';
-  // Hoer-Zustand: waehrend der Aufnahme wird die Leiste selbst zur Anzeige —
-  // rotes Equalizer-Pulsieren + Live-Transkript (_coachBarState.mode 'listen').
-  const listening = _coachAskOn;
   const msg = _coachBarState.msg || '';
-  el.className = 'coach-bar' + (thinking ? ' thinking' : '') + (listening ? ' listen' : '');
+  el.className = 'coach-bar' + (thinking ? ' thinking' : '');
   // Die Leiste nennt den Coach beim Namen. Heisst er noch 'Coach', greifen weiter
   // die Woerterbuch-Eintraege (EN: 'Coach live') statt einer zweiten Formulierung.
   const nm = _coachName(), nmE = esc(nm);
-  const lbl = listening
-    ? _cm(nmE + ' hört zu…', nmE + ' is listening…')
-    : (nm === 'Coach')
-      ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
-      : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
+  const lbl = (nm === 'Coach')
+    ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
+    : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
   // Satz-Rueckfrage: dieselbe Flaeche, direkt unter der Nachricht. Kein Overlay,
   // kein Dialog — der Rest des Trainings bleibt bedienbar (s. _rpeAsk).
   let ask = '';
   try { ask = _rpeAskHTML(); } catch(_) { ask = ''; }
-  // Sprech-Knopf nur, wenn Diktat wirklich geht (nativ SpeechPlugin inkl.
-  // Berechtigung, im Browser die Web Speech API). Fehlt die Faehigkeit,
-  // verschwindet der Knopf — ein ausgegrauter Knopf, der nichts tut, waere die
-  // schlechtere Antwort. Er ist das EINZIGE Bedienelement des Coaches im
-  // Training und haengt IN der Leiste (Gestaltungsregel 2).
-  const mic = _cvCaps.stt
-    ? `<button type="button" class="coach-bar-mic${_coachAskOn ? ' rec' : ''}" onclick="coachAsk()"` +
-      ` aria-label="${esc(_cm('Coach fragen','Ask your coach'))}">${ICO.mic({ s: 17 })}</button>`
-    : '';
-  // Waehrend der Aufnahme ersetzt das Live-Transkript die normale Nachricht:
-  // eigene Klasse ohne Einblende-Animation (jeder Zwischenstand wuerde sie neu
-  // starten), leerer Stand zeigt eine Aufforderung statt einer leeren Zeile.
-  const body = listening
-    ? `<div class="coach-bar-tx${msg ? '' : ' hint'}">${esc(msg || _cm('Sprich einfach los.', 'Just start talking.'))}</div>`
-    : (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
+  // KEIN Bedienelement in der Leiste (s. CSS-Kommentar bei .coach-bar-mic):
+  // Fragen an den Coach laufen ueber den KI-Chat, nicht ueber ein zweites
+  // Mikrofon im Training.
   el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
-    `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span>${mic}</div>` +
-    body + ask;
+    `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
+    (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '') + ask;
   // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
   // (z.B. Satz-Liste neu gebaut) die Animation erneut auslösen und flackern.
-  if (msg && !listening && msg !== _coachBarRender._last) {
+  if (msg && msg !== _coachBarRender._last) {
     el.classList.remove('flash');
     void el.offsetWidth;            // Reflow: Keyframe von vorn starten
     el.classList.add('flash');
