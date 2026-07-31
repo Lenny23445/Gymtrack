@@ -7899,7 +7899,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310013';
+const APP_VERSION = 'gymtrack-v202607310015';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -26274,9 +26274,60 @@ function _rpeFlushTrend() {
   } catch(e) { console.warn('[Coach] RPE-Trend:', e); }
 }
 
+// Dropsatz-Chance nach dem letzten Satz einer Übung. Rein lokal: keine Zahl
+// hier stammt aus einem Modell, alles kommt aus dem eigenen Log. Gibt true
+// zurück, wenn eine Karte gesetzt wurde — der Aufrufer hört dann auf.
+function _coachDropChance(li, si, set, w, r, ex) {
+  const log = wkLogs[li]; if (!log) return false;
+  const sets = log.sets || [];
+  if (si !== sets.length - 1) return false;              // nur NACH dem letzten Satz
+  if (sets.some(s => !s.done)) return false;             // Übung noch nicht durch
+  // "Es war noch Luft": oberes Ende des Wdh-Bereichs erreicht, oder der Satz
+  // war ausdrücklich bis zum Versagen. Beides sind Angaben des Nutzers, keine
+  // Schätzung.
+  const { max } = repRange(ex);
+  const bisVersagen = (set.type || 'normal') === 'fail';
+  if (!bisVersagen && !(max && r >= max)) return false;
+  const key = log.exerciseId + '|dropchance';
+  if (_coachState.seen.indexOf(key) !== -1) return false;
+  // Im Deload/Schonmodus keine Intensitätstechnik — dieselbe Regel, die auch
+  // der Worker-Prompt dem Modell gibt (_ciReadiness steuert die Progression).
+  try { const rd = _ciReadiness(); if (rd && (rd.mode === 'deload' || rd.mode === 'hold')) return false; } catch(_) {}
+  // Wer Dropsätze wiederholt weggeklickt hat, bekommt sie nicht weiter angeboten.
+  try { if (window.CoachLog.logStats(S.coachLog || []).muted.indexOf('dropSet') >= 0) return false; } catch(_) {}
+  // Völlig platte Muskulatur: dann ist Schluss die bessere Antwort.
+  let fatPct = 0;
+  try { const rec = getMuscleGroupRecovery(); const mg = ex.muscleGroup || '';
+        if (mg && rec[mg]) fatPct = rec[mg].fatPct || 0; } catch(_) {}
+  if (fatPct >= 75) return false;
+
+  const dropW = roundToStep(w * 0.75);                   // 25 % runter (SET_TYPE_DESC: 20–40 %)
+  if (!(dropW > 0) || dropW >= w) return false;
+  _coachState.seen.push(key);
+  try { _saveActiveWk(); } catch(_) {}
+  const grund = bisVersagen
+    ? _cm('Letzter Satz bis zum Versagen', 'Last set taken to failure')
+    : _cm('Letzter Satz am oberen Wiederholungsende (' + r + ')', 'Last set at the top of the rep range (' + r + ')');
+  _coachCard = { exId: log.exerciseId, c: {
+    title: _cm('Dropsatz-Chance', 'Drop-set opportunity'),
+    text: grund + _cm('. Ohne Pause weiter mit ' + kgToDisp(dropW) + ' ' + unitLabel()
+                      + ' bis es wieder nicht mehr geht — holt zusätzlichen Reiz, ohne die nächste Übung zu kosten.',
+                      '. Keep going without a break at ' + kgToDisp(dropW) + ' ' + unitLabel()
+                      + ' until you fail again — extra stimulus without costing you the next exercise.'),
+    options: [
+      { label: _cm('Dropsatz ', 'Drop set ') + kgToDisp(dropW) + ' ' + unitLabel(), action: { kind: 'dropSet', value: dropW } },
+      { label: _cm('Fertig hier', 'Done here'), action: { kind: 'none' } },
+    ],
+  }, applied: false, baseW: w, timer: null };
+  renderLogCards();
+  try { _coachBarSet('msg', _cm('Dropsatz-Chance erkannt.', 'Drop-set opportunity detected.'), 6000); } catch(_) {}
+  _coachCard.timer = setTimeout(() => {
+    if (_coachCard && _coachCard.exId === log.exerciseId && !_coachCard.applied) { _coachClearCard(); renderLogCards(); }
+  }, 45000);
+  return true;
+}
 function _coachEvalRun(li, si) {
   if (!isPremium() || _coachLevel() === 'off') return;
-  if (navigator.onLine === false) return;
   const log = wkLogs[li]; if (!log) return;
   const set = log.sets && log.sets[si]; if (!set) return;
   const ex = exById(log.exerciseId); if (!ex || ex.targetType === 'time') return;
@@ -26284,8 +26335,28 @@ function _coachEvalRun(li, si) {
   const w = parseFloat(set.w), r = parseInt(set.r);
   if (!(w > 0) || !(r > 0)) return; // erst wenn BEIDES eingetragen ist
 
-  // Client-seitige Rate-Limits — VOR jeder Auswertung prüfen (spart Rechenzeit/Calls)
   if (!_coachState) _coachState = _coachDefaultState();
+
+  // ── DROPSATZ-CHANCE: lokal entschieden, deshalb VOR den Online-, Quota- und
+  // Rate-Limits. Sie kostet keinen Call und funktioniert ohne Netz — dieselbe
+  // Begründung wie bei der Top-Satz-Chance weiter unten, nur dass die hier
+  // NACH dem letzten Satz greift statt davor.
+  //
+  // Die Lage ist eindeutig genug für eine lokale Entscheidung: der letzte Satz
+  // der Übung ist gelaufen UND es war noch Luft (oberes Ende des Wdh-Bereichs
+  // erreicht oder ausdrücklich bis zum Versagen gegangen). Genau dann ist eine
+  // Intensitätstechnik am Ende der Übung Lehrbuch — Gewicht runter, ohne Pause
+  // weiter. Prozentsatz aus der eigenen Erklärung in SET_TYPE_DESC (20–40 %),
+  // genommen wird die Mitte.
+  if (_coachDropChance(li, si, set, w, r, ex)) return;
+
+  // Ab hier ist alles Weitere ein MODELL-Aufruf. Der Netz-Check stand früher ganz
+  // oben und hat damit auch die lokalen, kostenlosen Auswertungen abgewürgt —
+  // ohne Empfang gab es gar keinen Live-Coach mehr, obwohl Top- und Dropsatz-
+  // Chance rein aus den eigenen Zahlen entschieden werden.
+  if (navigator.onLine === false) return;
+
+  // Client-seitige Rate-Limits — VOR jeder Auswertung prüfen (spart Rechenzeit/Calls)
   if (_coachState.calls >= 5) return;                                    // max. 5 Calls/Training
   if ((_coachState.perExercise[log.exerciseId] || 0) >= 2) return;       // max. 2 Calls/Übung/Training
   if (Date.now() - (_coachState.lastCallTs || 0) < 60 * 1000) return;    // 60s Cooldown
@@ -26474,6 +26545,19 @@ function _coachNextSetIdx(log) {
   const idx = log.sets.findIndex(s => !s.done);
   return idx >= 0 ? idx : log.sets.length - 1;
 }
+// Zielzeile für eine Satz-Aktion (Top-/Dropsatz). Ist KEIN Satz mehr offen —
+// der Regelfall beim Dropsatz, der ja NACH dem letzten Satz kommt —, dann
+// haengt diese Funktion einen an. Ohne sie schrieb _coachNextSetIdx() auf den
+// letzten, bereits ABGEHAKTEN Satz: der Vorschlag hat dann rueckwirkend eine
+// geloggte Leistung ueberschrieben statt einen neuen Satz anzubieten.
+function _coachTargetSetIdx(li) {
+  const log = wkLogs[li]; if (!log || !log.sets || !log.sets.length) return -1;
+  const open = log.sets.findIndex(s => !s.done);
+  if (open >= 0) return open;
+  const before = log.sets.length;
+  addSet(li);                                   // rendert selbst neu
+  return log.sets.length > before ? log.sets.length - 1 : -1;
+}
 // Wendet res.c.action auf das nächste noch nicht abgehakte Set der Übung an.
 function _coachApplyAction(li, action, baseW) {
   if (!action || !action.kind || action.kind === 'none') return;
@@ -26486,7 +26570,7 @@ function _coachApplyAction(li, action, baseW) {
       break;
     }
     case 'dropSet': {
-      const si = _coachNextSetIdx(log);
+      const si = _coachTargetSetIdx(li);         // haengt an, wenn nichts mehr offen ist
       if (si >= 0) {
         if (val != null) log.sets[si].w = String(roundToStep(val));
         log.sets[si].type = 'drop'; // visuell flaggen, auch ohne Gewichtswert
@@ -26494,7 +26578,7 @@ function _coachApplyAction(li, action, baseW) {
       break;
     }
     case 'topSet': {
-      const si = _coachNextSetIdx(log);
+      const si = _coachTargetSetIdx(li);
       if (si >= 0) {
         if (val != null) log.sets[si].w = String(roundToStep(val));
         log.sets[si].type = 'top'; // gleiche Kennzeichnung wie manueller Top-Satz (SET_TYPE_LABEL)
@@ -31513,7 +31597,15 @@ setTimeout(async () => {
   if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) return;   // Screenshot-Build: Premium-Unlock soll bleiben
   try {
     const env = await _getInstallInfo();
-    if (env && env.isSimulator) localStorage.removeItem('gt_premiumDev');
+    // gt_premiumDevKeep = ausdrueckliche Ansage "der Unlock bleibt". Ohne diese
+    // Ausnahme loescht der Simulator auch den VON HAND gesetzten Unlock wieder
+    // — dann laesst sich im Simulator kein einziges Premium-Feature ansehen,
+    // obwohl der Kommentar unten genau das offenhalten wollte. Das Flag muss
+    // jemand bewusst setzen; automatisch setzt es niemand, die Paywall bleibt
+    // also weiter testbar. Serverseitig aendert es nichts: der Worker prueft
+    // das StoreKit-JWS, kein localStorage-Wert kommt dort durch.
+    const keep = (() => { try { return localStorage.getItem('gt_premiumDevKeep') === '1'; } catch(_) { return false; } })();
+    if (env && env.isSimulator && !keep) localStorage.removeItem('gt_premiumDev');
   } catch(_){}
 }, 1200);
 
