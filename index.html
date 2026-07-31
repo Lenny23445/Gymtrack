@@ -24145,7 +24145,7 @@ async function _cpgEnrichProfiles(items){
    dekodierte Bild ohnehin, Decode lag bei 0,3 ms. Es geht hier um Speicher.)
    Die Blob-URLs werden bei _cpgReload wieder freigegeben. */
 let _cpgBlobs = new Map();
-const _CPG_BLOB = false;   // MESSUNG: Blob-Wandlung aus
+let _CPG_BLOB = true;   // MESSUNG: von der Bench umgeschaltet
 function _cpgImgSrc(it){
   if (!it || !it.img) return '';
   if (!_CPG_BLOB) return it.img;
@@ -34399,7 +34399,7 @@ document.addEventListener('touchmove', e => {
     return new Promise(function(res){
       var w=document.getElementById('cpg-wrap');
       var card=w.querySelector('.cpg-card.top'), under=w.querySelector('.cpg-card.under');
-      if(!card) return res({maxFrame:0,over20:0,frames:0});
+      if(!card) return res({frames:[]});
       var W=w.clientWidth||320, n=18, i=0, frames=[], last=0;
       card.style.transition='none'; if(under) under.style.transition='none';
       function step(t){
@@ -34411,9 +34411,7 @@ document.addEventListener('touchmove', e => {
         if(under){ under.style.transform='scale('+(0.9+p*0.1)+')'; under.style.opacity=String(p); }
         if(++i<=n) requestAnimationFrame(step);
         else {
-          var max=0,over20=0;
-          for(var k=0;k<frames.length;k++){ if(frames[k]>max)max=frames[k]; if(frames[k]>20)over20++; }
-          res({maxFrame:max,over20:over20,frames:frames.length});
+          res({frames:frames});
         }
       }
       requestAnimationFrame(step);
@@ -34437,7 +34435,7 @@ document.addEventListener('touchmove', e => {
       }
       setTimeout(function(){
         var t0=performance.now();
-        _cpgIdx+=1; _cpgRenderStack(1);
+        _cpgIdx+=1; _cpgRenderStack(window.__BENCH_DIR);
         renderMs=performance.now()-t0;
         var img=document.querySelector('#cpg-wrap .cpg-card.top img.cpg-img');
         var d0=performance.now();
@@ -34445,10 +34443,7 @@ document.addEventListener('touchmove', e => {
         (img&&img.decode?img.decode().then(done,done):Promise.resolve().then(done))
           .then(function(){
             setTimeout(function(){
-              var f=sm.stop();
-              var max=0, over20=0, over32=0;
-              for(var i=0;i<f.length;i++){ if(f[i]>max)max=f[i]; if(f[i]>20)over20++; if(f[i]>32)over32++; }
-              res({ renderMs:renderMs, decodeMs:decodeMs, maxFrame:max, over20:over20, over32:over32, frames:f.length });
+              res({ renderMs:renderMs, decodeMs:decodeMs, frames:sm.stop() });
             },350);
           });
       },300);
@@ -34461,34 +34456,49 @@ document.addEventListener('touchmove', e => {
     host.innerHTML='<div class="cpg-wrap" id="cpg-wrap"></div>'
       +'<pre id="bench-out" style="position:fixed;left:6px;right:6px;bottom:6px;margin:0;font:10px/1.3 ui-monospace,monospace;color:#7dff9b;background:rgba(0,0,0,.86);padding:7px;border-radius:8px;white-space:pre-wrap;z-index:100000"></pre>';
     document.body.appendChild(host);
-    out('Bench: generiere 6 Bilder (720x960 JPEG)…');
+    var SWIPES=10, NIMG=SWIPES+2;
+    out('Bench: generiere '+NIMG+' Bilder (720x960 JPEG)…');
     var imgs=[], sizes=[];
-    for(var i=0;i<6;i++){ var u=mkImg(i+1); imgs.push(u); sizes.push(Math.round(u.length/1024)); await new Promise(function(r){setTimeout(r,0);}); }
+    for(var i=0;i<NIMG;i++){ var u=mkImg(i+1); imgs.push(u); sizes.push(Math.round(u.length/1024)); await new Promise(function(r){setTimeout(r,0);}); }
     _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
     _cpgIdx = 0; _cpgMode='public';
-    var txt='BENCH cpg — '+APP_VERSION+'\nimg-KB(base64): '+sizes.join(' ')+'\n';
-    // Zwei Konfigurationen: wie gebaut, dann ohne backdrop-filter auf der Karte.
-    var cfgs=[{n:'C nach-Fix  ',css:null}];
+    var txt='BENCH cpg — '+APP_VERSION+'  ('+SWIPES+' Wischer/Konfig)\n';
+    function stat(all){
+      if(!all.length) return {p50:0,p95:0,max:0,pct:0};
+      var s=all.slice().sort(function(a,b){return a-b;});
+      var over=0; for(var i=0;i<s.length;i++) if(s[i]>20) over++;
+      return { p50:s[Math.floor(s.length*0.5)], p95:s[Math.floor(s.length*0.95)],
+               max:s[s.length-1], pct:100*over/s.length };
+    }
+    // Alle drei im SELBEN Build: der alte Pfad ist _cpgRenderStack() ohne Richtung
+    // (baut beide Karten neu), der neue mit Richtung 1 (befoerdert die Unterkarte).
+    var blurCss='.cpg-snap-foot{backdrop-filter:blur(22px) saturate(1.5)!important;-webkit-backdrop-filter:blur(22px) saturate(1.5)!important}'
+               +'.cpg-chip{backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important}';
+    var cfgs=[{n:'ALT  neubau+blur+base64',dir:undefined,css:blurCss,blob:false},
+              {n:'NEU  befoerdern+blob   ',dir:1,        css:null,   blob:true },
+              {n:'NEU  befoerdern+base64 ',dir:1,        css:null,   blob:false}];
     for(var c=0;c<cfgs.length;c++){
       var st=null;
       if(cfgs[c].css){ st=document.createElement('style'); st.textContent=cfgs[c].css; document.head.appendChild(st); }
+      window.__BENCH_DIR=cfgs[c].dir;
+      _CPG_BLOB=cfgs[c].blob;
+      try{ _cpgFreeBlobs(); }catch(_){}
       _cpgItems = imgs.map(function(u,i){ return mkPost(i,u); });
       _cpgIdx=0; _cpgMode='public';
       var t0=performance.now(); _cpgRenderStack(); var first=performance.now()-t0;
       await new Promise(function(r){setTimeout(r,700);});
-      var rows=[], drags=[], n=4;
-      for(var s=0;s<n;s++){
-        out(txt+'\nBench '+cfgs[c].n+' … '+(s+1)+'/'+n);
-        drags.push(await benchDrag());
-        rows.push(await benchSwipe());
-        await new Promise(function(rr){setTimeout(rr,220);});
+      var dragF=[], swF=[], rend=[], dec=[];
+      for(var s=0;s<SWIPES;s++){
+        out(txt+'\nBench '+cfgs[c].n+' … '+(s+1)+'/'+SWIPES);
+        var d=await benchDrag(); dragF=dragF.concat(d.frames);
+        var r=await benchSwipe(); swF=swF.concat(r.frames); rend.push(r.renderMs); dec.push(r.decodeMs);
+        await new Promise(function(rr){setTimeout(rr,200);});
       }
-      var avg=function(a,k){ var s=0; a.forEach(function(x){s+=x[k];}); return s/a.length; };
-      txt+=cfgs[c].n+': first '+first.toFixed(1)+'ms | ziehen maxFrame '+avg(drags,'maxFrame').toFixed(1)
-        +'ms >20ms '+avg(drags,'over20').toFixed(1)+'/'+drags[0].frames
-        +' | wechsel render '+avg(rows,'renderMs').toFixed(1)+'ms decode '+avg(rows,'decodeMs').toFixed(1)
-        +'ms maxFrame '+avg(rows,'maxFrame').toFixed(1)+'ms >20ms '+avg(rows,'over20').toFixed(1)
-        +' >32ms '+avg(rows,'over32').toFixed(1)+'\n';
+      var avg=function(a){ var x=0; a.forEach(function(v){x+=v;}); return x/(a.length||1); };
+      var ds=stat(dragF), ss=stat(swF);
+      txt+=cfgs[c].n+'\n  first '+first.toFixed(1)+'ms  render '+avg(rend).toFixed(1)+'ms  decode '+avg(dec).toFixed(1)+'ms\n'
+        +'  ziehen  p50 '+ds.p50.toFixed(1)+' p95 '+ds.p95.toFixed(1)+' max '+ds.max.toFixed(1)+' >20ms '+ds.pct.toFixed(0)+'%\n'
+        +'  wechsel p50 '+ss.p50.toFixed(1)+' p95 '+ss.p95.toFixed(1)+' max '+ss.max.toFixed(1)+' >20ms '+ss.pct.toFixed(0)+'%\n';
       if(st) st.remove();
       await new Promise(function(r){setTimeout(r,300);});
     }
