@@ -1,0 +1,150 @@
+<h2>Richtung B — im echten App-Design</h2>
+<p class="subtitle">Gleiche Soft-Clean-Sprache, aber mit deinen App-Tokens: iOS-Systemblau, deine Karten/Radien, SVG-Icons statt Emojis. Links Light, rechts Dark — das Onboarding folgt automatisch dem App-Theme.</p>
+
+<style>
+  .ph2 { width: 260px; height: 540px; border-radius: 36px; padding: 16px 14px; margin: 0 auto;
+         box-shadow: 0 16px 48px rgba(0,0,0,.28), inset 0 0 0 2px rgba(127,127,127,.12);
+         display: flex; flex-direction: column; overflow: hidden;
+         font-family: -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif; }
+  .ph2 * { box-sizing: border-box; }
+  .phrow2 { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+  .icn { width: 20px; height: 20px; }
+</style>
+
+<div class="phrow2">
+
+  <!-- LIGHT: bg #f2f2f6, card #fff, text #1d1d1f, acc #007AFF -->
+  <div>
+    <div class="ph2" style="background:#f2f2f6; color:#1d1d1f;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 2px 22px;">
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#8a8a8e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M15 18l-6-6 6-6"/></svg>
+        <div style="display:flex;gap:5px;">
+          <div style="width:24px;height:4px;border-radius:2px;background:#007AFF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:#007AFF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:#007AFF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);"></div>
+        </div>
+        <div style="font-size:12px;color:#8a8a8e;font-weight:500;">Später</div>
+      </div>
+      <div style="font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1.12;margin-bottom:6px;">Was ist dein Ziel?</div>
+      <div style="font-size:12.5px;color:rgba(60,60,67,.6);margin-bottom:20px;line-height:1.4;">Bestimmt Übungsauswahl und Satz­bereiche deines Plans.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#fff;border:1.5px solid #007AFF;border-radius:16px;padding:13px 14px;box-shadow:0 2px 10px rgba(0,122,255,.10);display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(0,122,255,.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+          </div>
+          <div style="flex:1;"><div style="font-size:15px;font-weight:700;">Muskeln aufbauen</div>
+          <div style="font-size:11.5px;color:rgba(60,60,67,.6);margin-top:1px;">Mehr Masse, bessere Form</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:#007AFF;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+        <div style="background:#fff;border:1.5px solid rgba(0,0,0,.05);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:#f2f2f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Stärker werden</div>
+          <div style="font-size:11.5px;color:rgba(60,60,67,.6);margin-top:1px;">Mehr Gewicht auf der Stange</div></div>
+        </div>
+        <div style="background:#fff;border:1.5px solid rgba(0,0,0,.05);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:#f2f2f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2.6 3.6 5 6 5 9.4A5.4 5.4 0 0 1 12 18a5.4 5.4 0 0 1-5-5.6C7 9 9.4 6.6 12 3z"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Abnehmen</div>
+          <div style="font-size:11.5px;color:rgba(60,60,67,.6);margin-top:1px;">Kalorien verbrennen, definieren</div></div>
+        </div>
+        <div style="background:#fff;border:1.5px solid rgba(0,0,0,.05);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:#f2f2f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9-8.8C1.8 8.5 3.5 5 6.7 5c2 0 3.3 1.1 4.3 2.6C12 6.1 13.3 5 15.3 5c3.2 0 4.9 3.5 3.7 6.2-2 4.3-7 8.8-7 8.8z"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Fit bleiben</div>
+          <div style="font-size:11.5px;color:rgba(60,60,67,.6);margin-top:1px;">Regelmäßig in Bewegung</div></div>
+        </div>
+      </div>
+      <div style="margin-top:auto;">
+        <div style="background:#007AFF;color:#fff;border-radius:15px;padding:14px;text-align:center;font-size:15px;font-weight:700;">Weiter</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;opacity:.65;">Light — App-Theme hell</div>
+  </div>
+
+  <!-- DARK: bg #020203, card #17171b, text #f5f5f7, acc #0A84FF -->
+  <div>
+    <div class="ph2" style="background:#020203; color:#f5f5f7;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 2px 22px;">
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#7a7a80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M15 18l-6-6 6-6"/></svg>
+        <div style="display:flex;gap:5px;">
+          <div style="width:24px;height:4px;border-radius:2px;background:#0A84FF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:#0A84FF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:#0A84FF;"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(255,255,255,.14);"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(255,255,255,.14);"></div>
+          <div style="width:24px;height:4px;border-radius:2px;background:rgba(255,255,255,.14);"></div>
+        </div>
+        <div style="font-size:12px;color:#7a7a80;font-weight:500;">Später</div>
+      </div>
+      <div style="font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1.12;margin-bottom:6px;">Was ist dein Ziel?</div>
+      <div style="font-size:12.5px;color:rgba(235,235,245,.62);margin-bottom:20px;line-height:1.4;">Bestimmt Übungsauswahl und Satz­bereiche deines Plans.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#17171b;border:1.5px solid #0A84FF;border-radius:16px;padding:13px 14px;box-shadow:0 2px 14px rgba(10,132,255,.16);display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(10,132,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+          </div>
+          <div style="flex:1;"><div style="font-size:15px;font-weight:700;">Muskeln aufbauen</div>
+          <div style="font-size:11.5px;color:rgba(235,235,245,.62);margin-top:1px;">Mehr Masse, bessere Form</div></div>
+          <div style="width:20px;height:20px;border-radius:50%;background:#0A84FF;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+        <div style="background:#17171b;border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#9a9aa0" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Stärker werden</div>
+          <div style="font-size:11.5px;color:rgba(235,235,245,.62);margin-top:1px;">Mehr Gewicht auf der Stange</div></div>
+        </div>
+        <div style="background:#17171b;border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#9a9aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2.6 3.6 5 6 5 9.4A5.4 5.4 0 0 1 12 18a5.4 5.4 0 0 1-5-5.6C7 9 9.4 6.6 12 3z"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Abnehmen</div>
+          <div style="font-size:11.5px;color:rgba(235,235,245,.62);margin-top:1px;">Kalorien verbrennen, definieren</div></div>
+        </div>
+        <div style="background:#17171b;border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#9a9aa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9-8.8C1.8 8.5 3.5 5 6.7 5c2 0 3.3 1.1 4.3 2.6C12 6.1 13.3 5 15.3 5c3.2 0 4.9 3.5 3.7 6.2-2 4.3-7 8.8-7 8.8z"/></svg>
+          </div>
+          <div><div style="font-size:15px;font-weight:700;">Fit bleiben</div>
+          <div style="font-size:11.5px;color:rgba(235,235,245,.62);margin-top:1px;">Regelmäßig in Bewegung</div></div>
+        </div>
+      </div>
+      <div style="margin-top:auto;">
+        <div style="background:#0A84FF;color:#fff;border-radius:15px;padding:14px;text-align:center;font-size:15px;font-weight:700;">Weiter</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-size:13px;opacity:.65;">Dark — App-Theme dunkel</div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:26px;">
+  <h3>Was hier App-Design ist</h3>
+  <ul style="line-height:1.7;">
+    <li>Farben exakt deine Tokens: <code>--bg</code>, <code>--card</code>, <code>--acc</code> (Systemblau), <code>--text2</code> — folgt automatisch Theme + Akzentfarbe (auch Pink/Navy/Grün-Themes).</li>
+    <li>SVG-Stroke-Icons wie in der App (<code>_OB_SVG</code>-Stil), keine Emojis.</li>
+    <li>Segment-Progress oben statt der bisherigen Punkte, „Später" statt „Überspringen".</li>
+    <li>Karten: 16px-Radius, 1.5px-Border, ausgewählt = Akzent-Border + Häkchen — wie deine bestehenden <code>.ob-opt</code>-Karten, nur straffer.</li>
+  </ul>
+</div>
+
+<div class="options" style="margin-top:18px;">
+  <div class="option" data-choice="passt" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>Passt — diese Richtung ausarbeiten</h3><p>Ich entwerfe damit den kompletten Flow (alle Schritte inkl. Push + Plan-Reveal).</p></div>
+  </div>
+  <div class="option" data-choice="aenderungen" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>Richtung ja, aber Details ändern</h3><p>Sag im Terminal, was anders soll (Progress-Stil, Icon-Größe, Karten-Look …).</p></div>
+  </div>
+</div>
