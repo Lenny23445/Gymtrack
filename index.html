@@ -7706,7 +7706,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607300004';
+const APP_VERSION = 'gymtrack-v202607310001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8471,6 +8471,20 @@ const I18N_EN = {
   '24.07.2026 · Fix: KI-Coach-Rahmen im Training':'24 Jul 2026 · Fix: AI coach border during training',
   '🧠 Der pulsierende blaue KI-Coach-Rahmen läuft jetzt sauber am ganzen Rand der aktiven Übung entlang':'🧠 The pulsing blue AI coach border now runs cleanly along the full edge of the active exercise',
   '✨ Vorher schnitt der Glow durch die Übungskarte statt außen umzulaufen':'✨ Previously the glow cut through the exercise card instead of tracing the outer edge',
+  /* Changelog: Coach-Wochenbericht (29.07.2026) */
+  '29.07.2026 · Jeden Sonntag: deine Woche':'29 Jul 2026 · Every Sunday: your week',
+  'Sonntagabend fasst dein Coach die Woche zusammen — Volumen, Sätze, Einheiten, Bestwerte und der Vergleich zur Vorwoche':'Sunday evening your coach sums up the week — volume, sets, sessions, personal bests and the comparison to last week',
+  'Auf dem Sperrbildschirm steht die echte Zusammenfassung, nicht nur ein Hinweis':'The lock screen shows the actual summary, not just a notification',
+  'Bei stabilem Fortschritt siehst du, wann du dein Ziel erreichst — mit ehrlicher Einschränkung, nie als Versprechen':'With steady progress you see when you will reach your goal — with an honest caveat, never as a promise',
+  'Die letzten acht Wochen bleiben im Coach-Menü nachlesbar':'The last eight weeks stay readable in the coach menu',
+  'Die Uhrzeit kannst du selbst festlegen':'You can set the time yourself',
+  /* Changelog: Coach-Hub-Umbau (31.07.2026) */
+  '31.07.2026 · Dein Coach-Menü, neu gebaut':'31 Jul 2026 · Your coach menu, rebuilt',
+  'Ein Tipp auf die Coach-Karte öffnet jetzt ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Jede klappt an Ort und Stelle auf':'Tapping the coach card now opens a sheet with five tiles — chat, week, personality, scope and journal. Each expands right where it is',
+  'Die Wochenkachel zeigt deinen Verlauf: acht Wochen Volumen, wohin deine Sätze gingen, und dein geschätztes Maximum über die Zeit':'The week tile shows your history: eight weeks of volume, where your sets went, and your estimated max over time',
+  'Setz dir ein Kraftziel für eine Übung, und der Coach sagt dir, wann du es bei gleichbleibendem Tempo erreichst':'Set a strength goal for an exercise, and the coach tells you when you will reach it at your current pace',
+  'Den Ton wählst du jetzt mit einem Regler — der Beispielsatz ändert sich, während du ziehst':'You now pick the tone with a slider — the example sentence changes as you drag it',
+  'Die Karte auf der Startseite zeigt die Erholung der Muskelgruppe, die als Nächstes dran ist, dazu deine Woche im Vergleich zur vorigen':'The card on the home screen shows the recovery of the muscle group up next, plus your week compared to the previous one',
   /* Coach-Hub (Task 9). Kurze, mehrdeutige Schalterwörter (Aus/Still/Eng/Normal,
      Name, Ton) stehen bewusst NICHT hier, sondern laufen am Aufrufort über
      _cm(de,en): als globaler Schlüssel würden sie jeden fremden Textknoten
@@ -8725,6 +8739,26 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-31-coach-hub': {
+    label: '31.07.2026 · Dein Coach-Menü, neu gebaut',
+    items: [
+      'Ein Tipp auf die Coach-Karte öffnet jetzt ein Blatt mit fünf Kacheln — Gespräch, Woche, Persönlichkeit, Umfang und Journal. Jede klappt an Ort und Stelle auf',
+      'Die Wochenkachel zeigt deinen Verlauf: acht Wochen Volumen, wohin deine Sätze gingen, und dein geschätztes Maximum über die Zeit',
+      'Setz dir ein Kraftziel für eine Übung, und der Coach sagt dir, wann du es bei gleichbleibendem Tempo erreichst',
+      'Den Ton wählst du jetzt mit einem Regler — der Beispielsatz ändert sich, während du ziehst',
+      'Die Karte auf der Startseite zeigt die Erholung der Muskelgruppe, die als Nächstes dran ist, dazu deine Woche im Vergleich zur vorigen',
+    ]
+  },
+  'cl-2026-07-29-coach-wochenbericht': {
+    label: '29.07.2026 · Jeden Sonntag: deine Woche',
+    items: [
+      'Sonntagabend fasst dein Coach die Woche zusammen — Volumen, Sätze, Einheiten, Bestwerte und der Vergleich zur Vorwoche',
+      'Auf dem Sperrbildschirm steht die echte Zusammenfassung, nicht nur ein Hinweis',
+      'Bei stabilem Fortschritt siehst du, wann du dein Ziel erreichst — mit ehrlicher Einschränkung, nie als Versprechen',
+      'Die letzten acht Wochen bleiben im Coach-Menü nachlesbar',
+      'Die Uhrzeit kannst du selbst festlegen',
+    ]
+  },
   'cl-2026-07-29-coach-meldet-sich': {
     label: '29.07.2026 · Dein Coach meldet sich, auch wenn die App zu ist',
     items: [
