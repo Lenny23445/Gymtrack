@@ -92,7 +92,14 @@ Vier Bereiche, von oben nach unten:
 3. **Muskelverteilung dieser Woche** als liegende Balken je Gruppe. **Pflicht:** ein Hinweis, dass Sätze ohne zugeordnete Muskelgruppe fehlen — die Summe kann unter dem Gesamtvolumen liegen, und eine unvollständige Aufteilung, die vollständig aussieht, ist eine Lüge.
 4. **Bestwert-Verlauf mit Prognose** — geschätztes Maximum einer Übung über die Wochen, dazu die Trendlinie bis zum Ziel. Erscheint **nur**, wenn ein Kraftziel gesetzt ist und `CoachReport.goalForecast` etwas liefert. Sonst steht dort eine Zeile „Ziel setzen".
 
-**Das Kraftziel.** `ex.targetWeight` existiert im Datenmodell, wird an jeder Anlagestelle mit `0` beschrieben und von keiner Oberfläche gesetzt. Die Zeile „Ziel setzen" füllt genau dieses Feld: Übung wählen, Zielgewicht eingeben, fertig. Kein neues Feld, kein neuer Schreibpfad — die schlafende Prognose wacht damit auf.
+**Das Kraftziel.** `ex.targetWeight` existiert im Datenmodell, wird an jeder Anlagestelle mit `0` beschrieben und von keiner Oberfläche gesetzt. Die Zeile „Ziel setzen" füllt genau dieses Feld. Kein neues Feld, kein neuer Schreibpfad — die schlafende Prognose wacht damit auf.
+
+Genauer, damit es nicht zwei Lesarten gibt:
+
+- **Welche Übung?** Vorgeschlagen wird die Übung mit den meisten Arbeitssätzen der letzten acht Wochen — die, an der der Nutzer erkennbar arbeitet. Er kann eine andere aus seinen Übungen wählen.
+- **Was wird eingegeben?** Ein Zielgewicht in der Anzeigeeinheit des Nutzers, umgerechnet gespeichert (`dispToKg()`), Untergrenze das aktuelle geschätzte Maximum — ein Ziel unterhalb des schon Erreichten ist kein Ziel.
+- **Wie viele?** Genau **eines** gleichzeitig ist sichtbar. `ex.targetWeight` liegt zwar je Übung vor, aber die Kachel zeigt einen Verlauf, nicht fünf. Setzt der Nutzer ein zweites, ersetzt es das angezeigte.
+- **Wo wird es wieder los?** Dieselbe Zeile trägt im gesetzten Zustand „Ziel ändern" und eine Möglichkeit, es zu entfernen (`targetWeight = 0`). Dann verschwindet der Verlauf wieder und die Zeile steht wie zuvor da.
 
 **Diagramme werden erst gezeichnet, wenn die Kachel offen ist**, und beim Schließen wieder zerstört. Vier Diagramme im Voraus zu rendern ist Rendergewicht ohne Gegenwert. Verwendet wird Chart.js, das die App bereits lädt — keine neue Abhängigkeit, keine zweite Diagrammsprache.
 
