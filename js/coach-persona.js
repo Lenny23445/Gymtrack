@@ -261,13 +261,20 @@
         hart:     'Wochenbericht da. {vol}.',
         locker:   'Wochenbericht ist da — {vol} stehen drin.'
       },
-      // forecast traegt in ALLEN vier Toenen eine Bedingung und nie eine
-      // Zusage. Eine Prognose ist keine Versprechung; ein Test haelt das fest.
+      /* forecast traegt in ALLEN vier Toenen eine Bedingung und nie eine
+         Zusage. Eine Prognose ist keine Versprechung; ein Test haelt das fest.
+
+         Die Einheit stand hier bis zur Task-21-Verdrahtung fest im Satz
+         ('{kg} kg', '{kg} Kilo') — als letzter Satz des Katalogs. Fuer einen
+         lbs-Nutzer nannte der Ausblick damit eine Zahl in lbs mit der
+         Beschriftung kg, also ein Gewicht, das es nicht gibt. Die Einheit
+         haengt jetzt am WERT (index.html: _csWeight ueber _csVars), wie bei
+         jedem anderen Satz mit Gewicht. */
       forecast: {
-        ruhig:    'Wenn es so weiterläuft, sind {kg} kg bei {ex} in {weeks} Wochen erreichbar.',
-        sachlich: 'Fortschreibung: {kg} kg bei {ex} in {weeks} Wochen, wenn das Tempo bleibt.',
-        hart:     'Wenn du dranbleibst: {kg} Kilo in {weeks} Wochen.',
-        locker:   'Wenn das so bleibt, siehst du {kg} kg bei {ex} in {weeks} Wochen.'
+        ruhig:    'Wenn es so weiterläuft, sind {kg} bei {ex} in {weeks} Wochen erreichbar.',
+        sachlich: 'Fortschreibung: {kg} bei {ex} in {weeks} Wochen, wenn das Tempo bleibt.',
+        hart:     'Wenn du dranbleibst: {kg} in {weeks} Wochen.',
+        locker:   'Wenn das so bleibt, siehst du {kg} bei {ex} in {weeks} Wochen.'
       }
     },
     en: {
@@ -410,10 +417,10 @@
         locker:   'Weekly report is up — {vol} in there.'
       },
       forecast: {
-        ruhig:    'If this keeps up, {kg} kg on {ex} is within reach in {weeks} weeks.',
-        sachlich: 'Projection: {kg} kg on {ex} in {weeks} weeks if the pace holds.',
-        hart:     'If you hold: {kg} kilos in {weeks} weeks.',
-        locker:   'If it stays like this, {kg} kg on {ex} shows up in {weeks} weeks.'
+        ruhig:    'If this keeps up, {kg} on {ex} is within reach in {weeks} weeks.',
+        sachlich: 'Projection: {kg} on {ex} in {weeks} weeks if the pace holds.',
+        hart:     'If you hold: {kg} in {weeks} weeks.',
+        locker:   'If it stays like this, {kg} on {ex} shows up in {weeks} weeks.'
       }
     }
   };

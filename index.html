@@ -5710,6 +5710,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      weekKey() null und der Deckel sperrt alles ausser dem Wochenbericht
      (fail-closed) — der Coach waere stumm, ohne dass es auffiele. -->
 <script src="./js/coach-notify.js"></script>
+<!-- coach-report MUSS ebenfalls nach coach-analyze stehen: die Prognose rechnet
+     ueber CoachAnalyze.isoWeekIndex (fortlaufende Wochennummer als x-Achse).
+     Fehlt sie, liefert weekIndex() null, jede Messwoche faellt aus der
+     Regression und goalForecast() schweigt dauerhaft — ohne Fehlermeldung. -->
+<script src="./js/coach-report.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -9143,6 +9148,19 @@ if (!S.checkins) S.checkins = [];
 // überschreiben: gemeldet wird auf dem Gerät, nicht im Konto.
 if (!S.coachPush || typeof S.coachPush !== 'object' || Array.isArray(S.coachPush)) S.coachPush = { state:null, plan:[], permOk:false, owns:false };
 if (!Array.isArray(S.coachPush.plan)) S.coachPush.plan = [];
+/* Wochenbericht (Block 5): das Archiv der letzten acht Wochen und der Termin,
+   an dem der Bericht fällig ist (day 0 = Sonntag, hour = volle Ortszeit-Stunde).
+   Ebenfalls bewusst GERÄTE-LOKAL: _pushToCloud() zählt seine Felder einzeln
+   auf, coachReports steht dort nicht — kein zweiter Firestore-Schreibpfad,
+   firestore.rules unangetastet. Die Zahlen einer Woche gehören außerdem auf das
+   Gerät, auf dem sie entstanden sind; zwei Geräte dürften sie sich nicht
+   gegenseitig überschreiben.
+   Beide Felder werden hier normalisiert, nicht erst beim Lesen: ein krummer
+   Wert aus einem älteren Stand ergäbe sonst einen Termin, der nie eintritt. */
+if (!Array.isArray(S.coachReports)) S.coachReports = [];
+if (!S.coachReportAt || typeof S.coachReportAt !== 'object' || Array.isArray(S.coachReportAt)) S.coachReportAt = { day:0, hour:18 };
+S.coachReportAt.day  = (Math.floor(Number(S.coachReportAt.day))  >= 0 && Math.floor(Number(S.coachReportAt.day))  <= 6)  ? Math.floor(Number(S.coachReportAt.day))  : 0;
+S.coachReportAt.hour = (Math.floor(Number(S.coachReportAt.hour)) >= 0 && Math.floor(Number(S.coachReportAt.hour)) <= 23) ? Math.floor(Number(S.coachReportAt.hour)) : 18;
 
 let persist = () => {
   localStorage.setItem('ft4', JSON.stringify(S));
@@ -9966,14 +9984,22 @@ function _cnNextWorkout(now) {
   return null;
 }
 
-/* Termin des Wochenberichts: Sonntagabend, 19 Uhr Ortszeit. Block 5 legt
-   später den fertigen Text hinein; der Kanal und der Deckel-Sonderweg
-   (UNCAPPED) stehen schon hier. */
+/* Termin des Wochenberichts — jetzt aus S.coachReportAt statt fest verdrahtet
+   (Block 5): {day, hour} in Ortszeit, 0 = Sonntag. Standard bleibt Sonntag,
+   nur eine Stunde früher als der bisherige feste Wert (18 statt 19 Uhr), damit
+   Termin und Anzeige DIESELBE Quelle haben — zwei Zahlen für denselben Termin
+   liefen beim ersten Verstellen auseinander.
+   Die Werte werden hier noch einmal geprüft und nicht nur beim Start: wer
+   S.coachReportAt zur Laufzeit anfasst, soll keinen Termin erzeugen können, den
+   new Date() als Invalid Date liest. */
 function _cnReportAt(now) {
   try {
+    const at = (S.coachReportAt && typeof S.coachReportAt === 'object') ? S.coachReportAt : {};
+    let tag = Math.floor(Number(at.day));  if (!(tag >= 0 && tag <= 6))  tag = 0;
+    let std = Math.floor(Number(at.hour)); if (!(std >= 0 && std <= 23)) std = 18;
     const d = new Date(now);
-    d.setHours(19, 0, 0, 0);
-    const bis = (7 - d.getDay()) % 7;          // 0 = Sonntag
+    d.setHours(std, 0, 0, 0);
+    const bis = (tag - d.getDay() + 7) % 7;
     if (bis > 0 || d.getTime() <= now) d.setDate(d.getDate() + (bis || 7));
     return d.getTime();
   } catch(e) { console.warn('[Coach] Berichtstermin:', e); return null; }
@@ -10256,7 +10282,16 @@ async function _cnSyncRun(opts) {
 
     const notifs = [], behalten = [];
     plan.forEach(e => {
-      const body = _cnText(e.key, e.vars);
+      /* Der Wochenbericht trägt auf dem Sperrbildschirm die ECHTE
+         Zusammenfassung, nicht die Einladung, sie abzurufen (Task 21). Der
+         Einladungstext aus dem Katalog bleibt der Rückfall — er greift, wenn
+         die App im 36-Stunden-Fenster nie offen war und deshalb noch kein
+         fertiger Text existiert. Genau dieser Rückfall ist die bewusst
+         akzeptierte Schwäche der Geräte-Variante; ein Server-Cron wäre die
+         Alternative und steht ausdrücklich nicht im Plan. */
+      let body = '';
+      if (e.kind === 'report') { try { body = _crNotifBody(e.at); } catch(_) { body = ''; } }
+      if (!body) body = _cnText(e.key, e.vars);
       if (!body) return;                    // ohne Satz keine Meldung
       notifs.push({
         id:        _cnIdFor(e.id),
@@ -25994,15 +26029,490 @@ function _chJournalHTML(){
   });
   return out.join('');
 }
-// ── Woche ────────────────────────────────────────────────────────────────
-// Ehrlicher Platzhalter bis Block 5. Eine leere Fläche wäre schlechter als ein
-// Satz, der sagt, wann hier etwas steht.
+/* ── Woche: der Wochenbericht (Block 5, Task 21) ══════════════════════════
+   js/coach-report.js rechnet, hier steht die Verdrahtung: die echten Zahlen
+   aus S.sessions holen, den Bericht je Kalenderwoche EINMAL erzeugen, ihn
+   höchstens acht Wochen lang aufheben und im Hub zeigen.
+
+   Drei Grenzen, die dieser Abschnitt nicht überschreitet:
+   - S.coachReports bleibt rein lokal. Kein zweiter Firestore-Schreibpfad;
+     _pushToCloud() zählt seine Felder einzeln auf und kennt das Feld nicht.
+   - Kein Änderungsvorschlag am Trainingsplan. Der Bericht beschreibt, was war,
+     und schreibt nichts vor — das ist Block 6 und hat keine Spec.
+   - Nichts wird erfunden. Fällt die Prognose aus oder der Modellaufruf, steht
+     der Abschnitt gar nicht da statt mit einer Zahl, die niemand nachrechnen
+     kann. Gespeichert wird mit persist(); ein save-Aufruf existiert in dieser
+     App nicht, würfe einen ReferenceError und stürbe im try/catch daneben
+     still — die vierte der fünf Stellen, an denen der Plan das festhält. */
+const CR_MAX        = 8;                       // höchstens acht Wochen im Archiv
+const CR_PREPARE_MS = 36 * 60 * 60 * 1000;     // so früh wird vorgezogen erzeugt
+const CR_SAETZE     = 3;                       // genau drei Sätze Einordnung
+const CR_TAGE_DE = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const CR_TAGE_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* Der Schlüssel der Woche, die bei ts liegt — ISO über CoachAnalyze, die
+   EINZIGE Wochenrechnung des Vorhabens. getWeekKey() in dieser Datei trägt das
+   Altformat '2026-W5' und bleibt unangetastet: es ist ein SPEICHERSCHLÜSSEL
+   (S.trackerCounts[id][wk], mitsamt Cloud-Spiegel und Widget-Snapshot). Eine
+   Umstellung würde jeden bestehenden Tracker-Ring auf null zurücksetzen.
+   Gerechnet wird über Donnerstag 12:00 der LOKALEN Woche und nicht über ts
+   selbst: isoWeekKey rechnet in UTC, ein Montag 00:30 in UTC+2 fiele dort noch
+   in die Vorwoche — und der Bericht der frischen Woche landete unter dem
+   Schlüssel der alten. */
+function _crWeekKey(ts) {
+  try {
+    if (!window.CoachReport || !window.CoachAnalyze) return null;
+    const start = CoachReport.weekStart(ts);
+    if (start === null) return null;
+    return CoachAnalyze.isoWeekKey(start + 3 * 864e5 + 12 * 36e5);
+  } catch(e) { console.warn('[Coach] Wochenschlüssel:', e); return null; }
+}
+
+/* Die Einheiten in der Form, die weekNumbers() erwartet: {ts, sets:[{ex,
+   muscle, kg, reps, pr}]}. Gezählt werden ALLE Sätze mit Wiederholungen, auch
+   Aufwärmsätze — genau wie sessionVolume()/setsVolume() im Rest der App. Eine
+   eigene Regel hier hieße: der Bericht nennt ein anderes Volumen als die
+   Statistik und als die Meldung, die ihn ankündigt.
+
+   pr wird in EINEM Durchlauf über die chronologisch sortierten Einheiten
+   gesetzt: ein Satz ist ein Bestwert, wenn sein Gewicht das bis dahin höchste
+   dieser Übung ist. detectPRs() wäre die zweite Lesart und pro Einheit ein
+   voller Scan über alle Sessions — beim App-Start der teuerste Weg zum selben
+   Ergebnis. */
+function _crSessions() {
+  try {
+    const alle = (S.sessions || []).map(s => {
+      const ts = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      return isFinite(ts) ? { ts: ts, logs: (s.logs || []) } : null;
+    }).filter(Boolean).sort((a, b) => a.ts - b.ts);
+    const best = Object.create(null);   // exId -> höchstes Gewicht bis hierher
+    return alle.map(s => {
+      const sets = [];
+      (s.logs || []).forEach(l => {
+        if (!l) return;
+        const ex   = exById(l.exerciseId);
+        const name = ex ? String(ex.name || '') : '';
+        const mg   = ex ? String(ex.muscleGroup || '') : '';
+        const zeit = !!(ex && ex.targetType === 'time');   // Zeit-Übungen: keine PR-Logik
+        (l.sets || []).forEach(x => {
+          const reps = parseInt(x && x.r, 10);
+          if (!isFinite(reps) || reps <= 0) return;
+          const w  = parseFloat(x && x.w);
+          const kg = (isFinite(w) && w > 0) ? w : 0;
+          let pr = false;
+          if (!zeit && kg > 0 && l.exerciseId) {
+            const vor = best[l.exerciseId];
+            if (vor === undefined || kg > vor) { pr = true; best[l.exerciseId] = kg; }
+          }
+          sets.push({ ex: name, muscle: mg, kg: kg, reps: reps, pr: pr });
+        });
+      });
+      return { ts: s.ts, sets: sets };
+    });
+  } catch(e) { console.warn('[Coach] Einheiten für den Bericht:', e); return []; }
+}
+
+// Die Streak hält calcStreak() — dieselbe Zahl, die im Heute-Tab steht. Das
+// Modul lässt streak deshalb bewusst auf 0 stehen und wartet auf diesen Wert.
+function _crStreak() {
+  try { return calcStreak().weeks || 0; } catch(e) { console.warn('[Coach] Streak:', e); return 0; }
+}
+
+/* Je Kalenderwoche der beste Satz dieser Übung als {ts, kg, reps} — nicht jeder
+   Satz. Mit jedem Satz rechnete die Regression auf dem Rauschen innerhalb einer
+   Einheit (vier Sätze mit fallender Last sehen aus wie ein Einbruch), das
+   Bestimmtheitsmaß fiele unter MIN_R2 und die Prognose schwiege immer. */
+function _crHistory(exId) {
+  try {
+    if (!window.CoachReport || !window.CoachAnalyze || !exId) return [];
+    const proWoche = Object.create(null);
+    (S.sessions || []).forEach(s => {
+      const ts = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      if (!isFinite(ts)) return;
+      const wk = CoachAnalyze.isoWeekIndex(ts);
+      if (wk === null) return;
+      (s.logs || []).forEach(l => {
+        if (!l || l.exerciseId !== exId) return;
+        (l.sets || []).forEach(x => {
+          const kg = parseFloat(x && x.w), reps = parseInt(x && x.r, 10);
+          if (!isFinite(kg) || kg <= 0 || !isFinite(reps) || reps <= 0) return;
+          const e1 = CoachReport.epley1rm(kg, reps);
+          const cur = proWoche[wk];
+          if (!cur || e1 > cur.e) proWoche[wk] = { e: e1, ts: ts, kg: kg, reps: reps };
+        });
+      });
+    });
+    return Object.keys(proWoche)
+      .map(k => ({ ts: proWoche[k].ts, kg: proWoche[k].kg, reps: proWoche[k].reps }))
+      .sort((a, b) => a.ts - b.ts);
+  } catch(e) { console.warn('[Coach] Übungsverlauf:', e); return []; }
+}
+
+/* Das Ziel, auf das die Prognose zeigt: ex.targetWeight, das EINZIGE Feld im
+   Datenmodell, das ein Gewicht als Ziel einer Übung hält. Es ist heute nur
+   programmatisch gesetzt (die Anlage schreibt 0) — eine Fläche zum Setzen wäre
+   eine eigene Spec und steht in keiner Task dieses Plans. Solange keine da ist,
+   schweigt die Prognose, und genau das verlangt der Brief für den Fall „kein
+   Ziel gesetzt": der Abschnitt fehlt vollständig statt mit einer erfundenen
+   Zahl dazustehen.
+   Bei mehreren Zielen gewinnt die Übung mit den meisten Messwochen: sie trägt
+   die Regression am besten. Ohne MIN_WEEKS Wochen Verlauf gibt es keinen
+   Kandidaten — goalForecast() würde ohnehin null liefern. */
+function _crGoal() {
+  try {
+    if (!window.CoachReport) return null;
+    let best = null;
+    (S.exercises || []).forEach(e => {
+      if (!e || e.targetType === 'time') return;
+      const kg = parseFloat(e.targetWeight);
+      if (!isFinite(kg) || kg <= 0) return;
+      const h = _crHistory(e.id);
+      if (h.length < CoachReport.MIN_WEEKS) return;
+      if (!best || h.length > best.history.length) {
+        best = { exId: e.id, ex: String(e.name || ''), kg: kg, history: h };
+      }
+    });
+    return best;
+  } catch(e) { console.warn('[Coach] Ziel lesen:', e); return null; }
+}
+
+// 'KW 31 · 28. Juli – 3. Aug.' — die Woche, über die der Bericht spricht.
+function _crLabel(ws) {
+  try {
+    if (!window.CoachReport) return '';
+    const start = CoachReport.weekStart(ws);
+    if (start === null) return '';
+    const ende = new Date(start); ende.setDate(ende.getDate() + 6);
+    const key = _crWeekKey(start);
+    const nr  = key ? parseInt(String(key).split('-W')[1], 10) : NaN;
+    const opt = { day: 'numeric', month: 'short' };
+    const spanne = new Date(start).toLocaleDateString(GT_LOCALE, opt) + ' – ' + ende.toLocaleDateString(GT_LOCALE, opt);
+    return isFinite(nr) ? (_cm('KW ' + nr, 'Week ' + nr) + ' · ' + spanne) : spanne;
+  } catch(e) { console.warn('[Coach] Wochen-Beschriftung:', e); return ''; }
+}
+
+// Wann der Bericht fällig ist, als Satzteil — EINE Quelle (S.coachReportAt) für
+// Termin und Ankündigung.
+function _crTerminText() {
+  try {
+    const at = (S.coachReportAt && typeof S.coachReportAt === 'object') ? S.coachReportAt : {};
+    let tag = Math.floor(Number(at.day));  if (!(tag >= 0 && tag <= 6))  tag = 0;
+    let std = Math.floor(Number(at.hour)); if (!(std >= 0 && std <= 23)) std = 18;
+    return _cm('am ' + CR_TAGE_DE[tag] + ' um ' + std + ' Uhr',
+               'on ' + CR_TAGE_EN[tag] + ' at ' + std + ':00');
+  } catch(_) { return _cm('am Sonntag', 'on Sunday'); }
+}
+
+/* Modelltext säubern. Der Prompt verlangt drei Sätze ohne Emojis; verlassen
+   wird sich darauf NICHT — eine Vorgabe im Prompt ist eine Bitte, keine
+   Zusicherung. Codeblöcke fliegen raus (der Chat-Endpunkt kennt ```gtplan und
+   ```gtmem, beide gehören nicht in einen Bericht), Piktogramme und
+   Steuerzeichen ebenso, und nach dem dritten Satz ist Schluss. */
+function _crClean(t) {
+  try {
+    let s = String(t == null ? '' : t)
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/[\p{Extended_Pictographic}\u{FE00}-\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{200D}]/gu, '')
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!s) return '';
+    const teile = s.match(/[^.!?]+[.!?]+(\s|$)/g);
+    if (teile && teile.length > CR_SAETZE) s = teile.slice(0, CR_SAETZE).join('').trim();
+    return s;
+  } catch(e) { console.warn('[Coach] Berichtstext säubern:', e); return ''; }
+}
+
+/* _crAskModel(n, forecast) — die Einordnung. Verschickt werden AUSSCHLIESSLICH
+   die Zahlen: kein Dossier, keine Sätze, keine Übungsliste, keine Rohdaten.
+   Der Weg ist der bestehende /chat-Endpunkt über aiCall(); ein zweiter Endpunkt
+   wäre ein zweites System für dieselbe Sache.
+   Der Cache aus Task 2 greift hier bewusst nicht: der Aufruf ist personenbezogen
+   und würde vom Klassifikator korrekt abgelehnt. Deshalb steht hier weder
+   cacheable noch cacheKey — er darf nie in den geteilten Cache.
+   Jeder Grund, aus dem kein Aufruf zustande kommt, liefert '' und keinen Fehler:
+   der Bericht steht auch ohne Einordnung. */
+/* Ist überhaupt jemand angemeldet? aiCall() braucht ein idToken und zeigt ohne
+   Anmeldung einen Hinweis-Toast — für einen Aufruf, den der Nutzer nie
+   angefordert hat, wäre das eine Fehlermeldung ohne Fehler. Anonyme Anmeldung
+   zählt mit: sie trägt ein idToken, und der Worker prüft den Kaufnachweis
+   ohnehin selbst. Bewusst eine eigene Funktion und keine Bedingung inline —
+   sie ist die Stelle, an der die Prüfung nachvollzogen werden kann. */
+function _crSignedIn() {
+  try { return !!(window.FB && window.FB.configured && _fbUser); } catch(_) { return false; }
+}
+async function _crAskModel(n, forecast) {
+  try {
+    if (!window.CoachPersona || !n) return '';
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    if (!premium) return '';
+    if (!_crSignedIn()) return '';
+    if (navigator.onLine === false) return '';
+    try { if (_coachQuotaExhausted()) return ''; } catch(_) {}
+    const en = _lang() === 'en';
+    const zahlen = {
+      workouts: n.workouts || 0, sets: n.sets || 0,
+      volumeKg: n.vol || 0, prevVolumeKg: n.prevVol || 0, volumeDeltaKg: n.volDelta || 0,
+      prs: (n.prs || []).length, streakWeeks: n.streak || 0,
+      muscleVolumeKg: n.muscles || {}
+    };
+    if (forecast) { zahlen.goalKg = forecast.goalKg; zahlen.goalInWeeks = forecast.weeks; }
+    const auftrag = en
+      ? 'Summarise this training week for the user. Exactly three sentences, no emojis, no promises about the future. Use only the numbers given and invent nothing. Do not suggest any change to the training plan.'
+      : 'Fasse diese Trainingswoche für den Nutzer zusammen. Genau drei Sätze, keine Emojis, keine Zusagen über die Zukunft. Nutze ausschließlich die genannten Zahlen und erfinde nichts. Mach keinen Vorschlag zur Änderung des Trainingsplans.';
+    const inhalt = CoachPersona.personaLine(_persona(), _lang()) + '\n\n' + auftrag + '\n\n' + JSON.stringify(zahlen);
+    const res = await aiCall('chat', { messages: [{ role: 'user', content: inhalt }] });
+    return _crClean(res && res.text);
+  } catch(e) { console.warn('[Coach] Bericht einordnen:', e); return ''; }
+}
+
+/* _crBuild() -> Promise<report|null>, idempotent je weekKey.
+
+   Ein Lauf nach dem anderen. Zwei Einstiege können gleichzeitig ziehen (die
+   vorgezogene Erzeugung beim Start und der Tipp auf die Meldung); ohne die
+   Kette lesen beide S.coachReports, bevor einer schreibt, und die Woche
+   bekäme zwei Einträge und zwei Modellaufrufe.
+   Reihenfolge: Bericht ohne Modelltext ANLEGEN und sichern, erst danach fragen.
+   Andersherum wäre der Bericht bei jedem Netzfehler ganz weg — der teure Teil
+   ist die Zahlenlage, nicht der Satz darüber. */
+let _crLauf = null;
+function _crBuild() {
+  try {
+    const vorher = _crLauf || Promise.resolve(null);
+    const lauf = vorher.catch(() => null).then(() => _crBuildRun());
+    _crLauf = lauf;
+    lauf.catch(() => {}).then(() => { if (_crLauf === lauf) _crLauf = null; });
+    return lauf;
+  } catch(e) { console.warn('[Coach] Bericht einreihen:', e); return Promise.resolve(null); }
+}
+async function _crBuildRun() {
+  try {
+    if (!window.CoachReport || !window.CoachAnalyze) return null;
+    const now = Date.now();
+    const ws  = CoachReport.weekStart(now);
+    const wk  = _crWeekKey(now);
+    if (ws === null || !wk) return null;
+    if (!Array.isArray(S.coachReports)) S.coachReports = [];
+    const da = S.coachReports.filter(r => r && r.weekKey === wk)[0];
+    if (da) return da;                              // schon erzeugt: derselbe Bericht
+    const nums = CoachReport.weekNumbers(_crSessions(), ws);
+    // Eine Woche ohne Training braucht keinen Bericht. '0 Einheiten, 0 kg' ist
+    // keine Auskunft, sondern eine Erinnerung daran, dass nichts passiert ist —
+    // dafür gibt es den Rückkehr-Anstoß aus Block 4.
+    if (!nums || nums.workouts <= 0) return null;
+    nums.streak = _crStreak();
+    let forecast = null;
+    const ziel = _crGoal();
+    if (ziel) {
+      const fc = CoachReport.goalForecast(ziel.history, ziel.kg, now);
+      // Der Übungsname MUSS mit: ohne ihn schweigt forecastSay() später, und
+      // ein Ausblick ohne Satz wäre ein leerer Abschnitt.
+      if (fc) forecast = { weeks: fc.weeks, goalKg: fc.goalKg, currentKg: fc.currentKg, ex: ziel.ex };
+    }
+    const rep = { weekKey: wk, label: _crLabel(ws), numbers: nums, text: '', forecast: forecast, ts: now };
+    S.coachReports = [rep].concat(S.coachReports.filter(r => r && r.weekKey !== wk)).slice(0, CR_MAX);
+    persist();
+    const txt = await _crAskModel(nums, forecast);
+    // rep liegt als Referenz in S.coachReports — die Zuweisung landet im Archiv.
+    if (txt) { rep.text = txt; persist(); }
+    try { renderCoachHub(); } catch(_) {}
+    return rep;
+  } catch(e) { console.warn('[Coach] Bericht erzeugen:', e); return null; }
+}
+
+/* Der erste Satz des fertigen Textes als Meldungstext. Gibt es ihn nicht,
+   liefert die Funktion '' und _cnSyncRun() fällt auf den Katalogsatz zurück.
+   Geprüft wird der Schlüssel der Woche, in der der TERMIN liegt: steht der
+   nächste Termin schon in der Folgewoche (Sonntag nach der Berichtsstunde),
+   gehört der Text dieser Woche nicht in jene Meldung. */
+function _crNotifBody(at) {
+  try {
+    const wk = _crWeekKey(typeof at === 'number' ? at : Date.now());
+    if (!wk) return '';
+    const rep = (S.coachReports || []).filter(r => r && r.weekKey === wk)[0];
+    if (!rep || !rep.text) return '';
+    const erster = (String(rep.text).match(/[^.!?]+[.!?]+/) || [String(rep.text)])[0];
+    return _cnPlain(erster);
+  } catch(e) { console.warn('[Coach] Berichtsmeldung:', e); return ''; }
+}
+
+/* Vorgezogene Erzeugung beim App-Start: liegt der Termin in den nächsten 36
+   Stunden und fehlt der Text noch, wird jetzt erzeugt und die Meldung neu
+   geplant — dann trägt sie die echte Zusammenfassung.
+   Der Netzaufruf gehört NICHT in den Startpfad; die Aufrufstelle ruft deshalb
+   mit 2,5 s Verzögerung und in try/catch. */
+function _crMaybePrepare() {
+  try {
+    let premium = false;
+    try { premium = !!isPremium(); } catch(_) { premium = false; }
+    if (!premium) return;
+    if (!window.CoachReport || !window.CoachAnalyze) return;
+    const now = Date.now();
+    const at  = _cnReportAt(now);
+    if (at === null || (at - now) > CR_PREPARE_MS) return;
+    const wk = _crWeekKey(at);
+    if (!wk || wk !== _crWeekKey(now)) return;      // der Termin gehört zur nächsten Woche
+    if ((S.coachReports || []).some(r => r && r.weekKey === wk && r.text)) return;
+    _crBuild().then(rep => {
+      // Neu planen, damit die Meldung den frischen Text bekommt. Ohne Bericht
+      // (Woche ohne Training) bleibt alles, wie es war.
+      if (rep) { try { _cnSync(); } catch(_) {} }
+    }).catch(() => {});
+  } catch(e) { console.warn('[Coach] Bericht vorbereiten:', e); }
+}
+
+/* Was der Reiter zeigt: der gespeicherte Bericht der laufenden Woche — und
+   solange es ihn nicht gibt, der ZWISCHENSTAND aus denselben Zahlen, ohne
+   Einordnung und als solcher benannt. Vor dem Termin existiert noch kein
+   Bericht; eine leere Fläche wäre hier die schlechtere Auskunft als die Zahlen,
+   die längst feststehen. Erzeugt wird dabei NICHTS — der Renderer läuft
+   synchron und darf weder speichern noch ins Netz. */
+function _crCurrent() {
+  try {
+    if (!window.CoachReport || !window.CoachAnalyze) return null;
+    const now = Date.now();
+    const wk  = _crWeekKey(now);
+    if (!wk) return null;
+    const da = (S.coachReports || []).filter(r => r && r.weekKey === wk)[0];
+    if (da) return { rep: da, fertig: true };
+    const ws = CoachReport.weekStart(now);
+    if (ws === null) return null;
+    const nums = CoachReport.weekNumbers(_crSessions(), ws);
+    if (!nums || nums.workouts <= 0) return null;
+    nums.streak = _crStreak();
+    return { rep: { weekKey: wk, label: _crLabel(ws), numbers: nums, text: '', forecast: null, ts: now },
+             fertig: false };
+  } catch(e) { console.warn('[Coach] Wochenzahlen:', e); return null; }
+}
+
+// Eine Zahlenzeile. Beschriftung und Wert sind Text, beide durch esc().
+function _crRow(titel, wert, unter) {
+  return `<div class="ch-row"><span>${esc(titel)}${unter ? `<i>${esc(unter)}</i>` : ''}</span>` +
+    `<b style="font-size:14.5px;font-weight:800;letter-spacing:-.2px;white-space:nowrap">${esc(wert)}</b></div>`;
+}
+
+/* Der Vergleich zur Vorwoche. Ohne Vorwoche gibt es keinen Vergleich und
+   deshalb auch keine Zahl: '+ 7.200 kg gegenüber nichts' wäre eine Steigerung,
+   die niemand erbracht hat. Die Einheit hängt am Wert (_csWeight), nie am Satz. */
+function _crDeltaText(n) {
+  const vor = Math.round(Number(n && n.prevVol) || 0);
+  const d   = Math.round(Number(n && n.volDelta) || 0);
+  if (vor <= 0) return _cm('keine Vorwoche zum Vergleich', 'no previous week to compare');
+  if (d === 0)  return _cm('gleich geblieben', 'unchanged');
+  return (d > 0 ? '+ ' : '- ') + (_csWeight(Math.abs(d)) || '');
+}
+
+function _crLeerHTML() {
+  return `<div class="ch-jrn ghost"><div class="ico">${ICO.chart2({s:22})}</div><span>${
+    esc(_cm('Diese Woche steht noch keine Einheit.', 'No session logged this week yet.'))}
+    <i>${esc(_cm('Sobald du trainierst, stehen hier deine Zahlen — der fertige Bericht kommt ' + _crTerminText() + '.',
+                 'As soon as you train, your numbers show up here — the finished report arrives ' + _crTerminText() + '.'))}</i></span></div>`;
+}
+
+// Frühere Wochen: eine Zeile je Bericht, damit acht Wochen nicht acht
+// Bildschirme füllen. Jede Zeile nennt Zahlen — eine reine Datumsliste wäre
+// nach Gestaltungsregel 8 zu streichen.
+function _crArchivHTML(list) {
+  const out = [`<div class="ch-sec">${esc(_cm('Frühere Wochen', 'Earlier weeks'))}</div>`];
+  list.slice(0, CR_MAX).forEach(r => {
+    const n = (r && r.numbers) || {};
+    const w = Math.max(0, Math.floor(Number(n.workouts) || 0));
+    const zeile = [
+      w + ' ' + (w === 1 ? _cm('Einheit', 'session') : _cm('Einheiten', 'sessions')),
+      Math.max(0, Math.floor(Number(n.sets) || 0)) + ' ' + _cm('Sätze', 'sets'),
+      _csWeight(Math.round(Number(n.vol) || 0)) || ''
+    ].filter(Boolean).join(' · ');
+    out.push(`<div class="ch-jrn"><span>${esc(String(r.label || r.weekKey || ''))}<i>${esc(zeile)}</i></span></div>`);
+  });
+  return out.join('');
+}
+
 function _chReportHTML(){
-  const nm = _coachName();
-  return `<div class="ch-sec">${esc(tr('Wochenbericht'))}</div>
-    <div class="ch-jrn ghost"><div class="ico">${ICO.chart2({s:22})}</div><span>${esc(tr('Dein erster Wochenbericht kommt am Sonntag.'))}
-      <i>${esc(_cm('Volumen, Streak und was ' + nm + ' aufgefallen ist — in einem Aufschlag.',
-                   'Volume, streak and what ' + nm + ' noticed — in one go.'))}</i></span></div>`;
+  const out = [];
+  try {
+    const cur    = _crCurrent();
+    const archiv = (S.coachReports || []).filter(r => r && (!cur || r.weekKey !== cur.rep.weekKey));
+    const kopf   = (unter) => `<div class="ch-sec">${esc(tr('Wochenbericht'))}${unter ? `<i>${esc(unter)}</i>` : ''}</div>`;
+
+    // Keine Einheit in dieser Woche (auch: allererste Woche) — ehrliche Fläche,
+    // keine leere Zeile und kein Bericht über nichts.
+    if (!cur) {
+      out.push(kopf(''));
+      out.push(_crLeerHTML());
+      if (archiv.length) out.push(_crArchivHTML(archiv));
+      return out.join('');
+    }
+
+    const r = cur.rep, n = r.numbers || {};
+    out.push(kopf(r.label || ''));
+
+    // Einordnung. Fehlt sie (kein Netz, kein Budget, noch nicht fällig), steht
+    // hier kein leerer Rahmen, sondern die Auskunft, was noch aussteht.
+    if (r.text) {
+      out.push(`<div class="ch-jrn"><span>${esc(r.text)}</span></div>`);
+    } else if (!cur.fertig) {
+      out.push(`<div class="ch-jrn ghost"><span>${esc(_cm(
+        'Zwischenstand. Der fertige Bericht kommt ' + _crTerminText() + '.',
+        'Interim numbers. The finished report arrives ' + _crTerminText() + '.'))}</span></div>`);
+    }
+
+    // Die fünf Zeilen des Briefs. Jede nennt eine Zahl, die der Nutzer sonst
+    // nicht an einer Stelle sieht.
+    out.push(_crRow(_cm('Einheiten', 'Sessions'),  String(Math.max(0, Math.floor(Number(n.workouts) || 0)))));
+    out.push(_crRow(_cm('Sätze', 'Sets'),          String(Math.max(0, Math.floor(Number(n.sets) || 0)))));
+    out.push(_crRow(_cm('Volumen', 'Volume'),      _csWeight(Math.round(Number(n.vol) || 0)) || '0'));
+    out.push(_crRow(_cm('Gegenüber der Vorwoche', 'Versus last week'), _crDeltaText(n)));
+    out.push(_crRow(_cm('Wochen in Folge', 'Weeks in a row'), String(Math.max(0, Math.floor(Number(n.streak) || 0)))));
+
+    // Bestwerte nur, wenn es welche gibt.
+    const prs = Array.isArray(n.prs) ? n.prs.filter(p => p && p.ex) : [];
+    if (prs.length) {
+      out.push(`<div class="ch-sec">${esc(_cm('Bestwerte', 'Personal records'))}</div>`);
+      prs.slice(0, 5).forEach(p => out.push(_crRow(String(p.ex), _csWeight(Number(p.kg) || 0) || '',
+        _cm(Math.max(0, Math.floor(Number(p.reps) || 0)) + ' Wiederholungen',
+            Math.max(0, Math.floor(Number(p.reps) || 0)) + ' reps'))));
+    }
+
+    /* Ausblick — nur mit Prognose UND Satz. Ein null aus goalForecast() ist ein
+       gültiges Ergebnis (zu wenig Wochen, kein Trend, Ziel erreicht, mehr als
+       ein Jahr Horizont) und bekommt deshalb keinen leeren Rahmen: der ganze
+       Abschnitt entfällt. Der Satz kommt aus dem Katalog und trägt in allen
+       vier Tönen eine Bedingung und nie eine Zusage. */
+    if (r.forecast) {
+      let satz = '';
+      try {
+        const say = CoachReport.forecastSay({ weeks: r.forecast.weeks, goalKg: r.forecast.goalKg }, r.forecast.ex);
+        if (say) satz = _say(say.key, _csVars(say.vars)) || '';
+      } catch(e) { console.warn('[Coach] Ausblick:', e); }
+      if (satz) {
+        out.push(`<div class="ch-sec">${esc(_cm('Ausblick', 'Outlook'))}</div>
+          <div class="ch-jrn"><span>${esc(satz)}</span></div>`);
+      }
+    }
+
+    /* Schwerpunkte, absteigend. Bewusst NICHT als vollständige Aufteilung und
+       nicht in Prozent: muscles enthält nur Sätze MIT hinterlegter
+       Muskelgruppe, die Summe kann unter dem Volumen liegen. Eine Prozentzahl
+       behauptete eine Vollständigkeit, die die Zahl nicht hat. */
+    const mus = (n.muscles && typeof n.muscles === 'object') ? n.muscles : {};
+    const liste = Object.keys(mus)
+      .map(k => ({ id: k, v: Math.round(Number(mus[k]) || 0) }))
+      .filter(x => x.v > 0)
+      .sort((a, b) => b.v - a.v);
+    if (liste.length) {
+      out.push(`<div class="ch-sec">${esc(_cm('Schwerpunkte', 'Focus'))}<i>${esc(_cm(
+        'Nur Sätze mit hinterlegter Muskelgruppe — die Summe kann unter dem Volumen liegen.',
+        'Only sets with a muscle group on file — the sum can be below the total volume.'))}</i></div>`);
+      liste.forEach(x => out.push(_crRow(muscleLabel(x.id) || x.id, _csWeight(x.v) || '')));
+    }
+
+    if (archiv.length) out.push(_crArchivHTML(archiv));
+  } catch(e) {
+    console.warn('[Coach] Wochenbericht anzeigen:', e);
+    if (!out.length) return `<div class="ch-sec">${esc(tr('Wochenbericht'))}</div>` + _crLeerHTML();
+  }
+  return out.join('');
 }
 // ── Einstellungen ────────────────────────────────────────────────────────
 const _CH_TONES = [
@@ -30179,11 +30689,39 @@ if (_isNative()) {
 // wer die App oeffnet, verschiebt ihn. Verzoegert, damit der Start nicht auf
 // das Plugin wartet; ohne LocalNotifications kehrt _cnSync() sofort zurueck.
 setTimeout(() => { try { _cnSync(); } catch(e) { console.warn('[Coach] Meldungen beim Start:', e); } }, 1200);
+/* Wochenbericht (Task 21): liegt der Termin in den naechsten 36 Stunden, wird
+   der Bericht jetzt erzeugt und die Meldung mit dem ersten Satz des fertigen
+   Textes neu geplant. 2,5 s Verzoegerung, damit der Netzaufruf nicht im
+   Startpfad haengt — und NACH _cnSync(1200), sonst plante der Sync gegen einen
+   Bericht, den es in dem Moment noch nicht gibt. */
+setTimeout(() => { try { _crMaybePrepare(); } catch(e) { console.warn('[Coach] Bericht beim Start:', e); } }, 2500);
 
 // ── APPLE NATIVE FEATURES INITIALISIEREN ──────────────
 if (_isNative()) {
   // Google OAuth Callback-Listener (appUrlOpen)
   _setupAppUrlListener();
+
+  /* Getippte Coach-Meldung: nur der Wochenbericht fuehrt irgendwohin, alles
+     andere oeffnet die App und laesst sie, wo sie war. _crBuild() holt den
+     Bericht nach, falls die App im 36-Stunden-Fenster nie offen war — dann kam
+     der Einladungstext, und der Bericht entsteht erst beim Antippen. Das ist der
+     bewusst akzeptierte Rueckfall der Geraete-Variante.
+     Der Hub oeffnet in JEDEM Fall: schlaegt die Erzeugung fehl (kein Netz,
+     Woche ohne Training), steht dort die ehrliche Flaeche statt gar nichts. */
+  try {
+    const LN = _cap('LocalNotifications');
+    if (LN && LN.addListener) {
+      LN.addListener('localNotificationActionPerformed', (ev) => {
+        try {
+          const extra = (ev && ev.notification && ev.notification.extra) || {};
+          if (extra.coachKind !== 'report') return;
+          Promise.resolve(_crBuild()).catch(() => null).then(() => {
+            try { openCoachHub('report'); } catch(e) { console.warn('[Coach] Hub aus Meldung:', e); }
+          });
+        } catch(e) { console.warn('[Coach] Meldung antippen:', e); }
+      });
+    }
+  } catch(e) { console.warn('[Coach] Meldungs-Listener:', e); }
 
   // Im Home-Widget getätigte +1-Taps beim Start übernehmen
   setTimeout(_consumeWidgetDeltas, 800);

@@ -269,8 +269,13 @@ test('Konstanten haben die vereinbarten Werte', () => {
    Umrechnung ausgenommen. Ein lbs-Nutzer las damit 'Trainingstag: ..., 62,5 kg.'
    direkt neben einer Gratulation mit '154,5 lbs' — drei von vier Meldungsarten
    nannten Zahlen, die so nie auf der Stange lagen. */
+/* 'forecast' stand bis zur Task-21-Verdrahtung ebenfalls nicht hier: der
+   Ausblick trug '{kg} kg' beziehungsweise '{kg} Kilo' fest im Satz. Ein
+   lbs-Nutzer haette im Wochenbericht eine lbs-Zahl mit kg-Beschriftung gelesen —
+   und zwar in genau dem Satz, der am weitesten in die Zukunft zeigt. */
 const WERT_KEYS = ['greet', 'exOpen', 'mid', 'restNext', 'setAckEasy', 'setAckHard',
-                   'debrief', 'prCongrats', 'anniversary', 'reminderPlan', 'reportReady'];
+                   'debrief', 'prCongrats', 'anniversary', 'reminderPlan', 'reportReady',
+                   'forecast'];
 
 test('kein Satz des Trainingsbogens schreibt eine Einheit fest', () => {
   WERT_KEYS.forEach(key => P.TONES.forEach(tone => ['de', 'en'].forEach(lang => {
