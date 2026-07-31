@@ -340,7 +340,41 @@
     return lookup(MARK, q, qp) || lookup(MOVE, q, qp) || null;
   }
 
+  /* keepName(text, name, aliases) -> String
+
+     Setzt den Uebungsnamen im fertigen Modelltext auf den Namen zurueck, unter
+     dem der Nutzer die Uebung angelegt hat. Der Worker-Prompt verlangt das
+     bereits — aber ein Prompt ist eine Bitte, keine Zusage: das Modell hat
+     "Bench Press" verlaesslich zu "Bankdruecken" gemacht, weil der Rest der
+     Anweisung Deutsch verlangte. Diese Funktion ist die Durchsetzung.
+
+     'aliases' sind die anderen Schreibweisen derselben Uebung (die deutsche zur
+     englischen und umgekehrt); die Zuordnung kennt nur die App, deshalb kommt
+     sie von aussen. Ersetzt wird auf Wortgrenzen und laengste Zeichenfolge
+     zuerst — sonst zerlegte 'Bankdruecken' das Wort 'Schraegbankdruecken'. */
+  function rxEscape(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function keepName(text, name, aliases) {
+    if (typeof text !== 'string' || !text) return text;
+    var n = (typeof name === 'string') ? name.trim() : '';
+    if (!n) return text;
+    var list = (aliases || [])
+      .filter(function (a) { return typeof a === 'string' && a.trim(); })
+      .map(function (a) { return a.trim(); })
+      .filter(function (a) { return a.toLowerCase() !== n.toLowerCase(); })
+      .sort(function (a, b) { return b.length - a.length; });
+    var out = text;
+    list.forEach(function (a) {
+      // Wortgrenzen ueber Buchstaben und Ziffern statt \b: \b kennt Umlaute
+      // nicht und schnitte 'Kniebeugen' hinter dem 'e' ab.
+      var rx = new RegExp('(^|[^\\p{L}\\p{N}])(' + rxEscape(a) + ')(?![\\p{L}\\p{N}])', 'giu');
+      out = out.replace(rx, function (_m, pre) { return pre + n; });
+    });
+    return out;
+  }
+
   var API = { cueFor: cueFor, equipFor: equipFor, normalize: normalize, CUES: CUES,
+              keepName: keepName,
               EQUIP_MARK: MARK, EQUIP_MOVE: MOVE, MIN_SUB_LEN: MIN_SUB_LEN };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

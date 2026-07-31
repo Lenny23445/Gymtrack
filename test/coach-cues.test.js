@@ -282,3 +282,65 @@ test('ohne Anhaltspunkt gibt equipFor null statt zu raten', () => {
   assert.strictEqual(C.equipFor(null), null);
   assert.strictEqual(C.equipFor(42), null);
 });
+
+// --- keepName: der Uebungsname bleibt der, unter dem sie angelegt wurde -----
+
+test('keepName holt den eingedeutschten Namen zurueck', () => {
+  const t = 'Bei Bankdrücken warst du stark. Nächster Satz Bankdrücken mit 80 kg.';
+  assert.strictEqual(C.keepName(t, 'Bench Press', ['Bankdrücken']),
+    'Bei Bench Press warst du stark. Nächster Satz Bench Press mit 80 kg.');
+});
+
+test('keepName funktioniert auch in die andere Richtung', () => {
+  assert.strictEqual(C.keepName('Bench Press sitzt.', 'Bankdrücken', ['Bench Press']),
+    'Bankdrücken sitzt.');
+});
+
+test('keepName laesst eine ANDERE Uebung in Ruhe, die das Alias enthaelt', () => {
+  // Der Klassiker: 'Bankdrücken' steckt in 'Schrägbankdrücken'. Ohne
+  // Wortgrenze entstuende 'SchrägBench Press' — eine Uebung, die es nicht gibt.
+  // 'Schrägbankdrücken' ist hier bewusst KEIN Alias: es ist eine eigene Uebung.
+  const t = 'Schrägbankdrücken lief besser als Bankdrücken.';
+  assert.strictEqual(C.keepName(t, 'Bench Press', ['Bankdrücken']),
+    'Schrägbankdrücken lief besser als Bench Press.');
+});
+
+test('keepName ersetzt jedes Alias derselben Uebung, laengstes zuerst', () => {
+  // Fuehrt das Woerterbuch mehrere Schreibweisen derselben Uebung, sollen alle
+  // auf den Namen des Nutzers fallen — das lange zuerst, sonst bliebe ein Rest.
+  assert.strictEqual(
+    C.keepName('Kurzhantel-Bankdrücken und Bankdrücken.', 'Press',
+               ['Bankdrücken', 'Kurzhantel-Bankdrücken']),
+    'Press und Press.');
+});
+
+test('keepName achtet auf Wortgrenzen mit Umlauten', () => {
+  // \b kennt Umlaute nicht — ohne eigene Grenzpruefung schnitte die Ersetzung
+  // mitten in ein Wort.
+  assert.strictEqual(C.keepName('Kniebeugenmaschine steht frei.', 'Squats', ['Kniebeugen']),
+    'Kniebeugenmaschine steht frei.');
+  assert.strictEqual(C.keepName('Kniebeugen stehen an.', 'Squats', ['Kniebeugen']),
+    'Squats stehen an.');
+});
+
+test('keepName ignoriert Gross- und Kleinschreibung des Modells', () => {
+  assert.strictEqual(C.keepName('bankdrücken war schwer.', 'Bench Press', ['Bankdrücken']),
+    'Bench Press war schwer.');
+});
+
+test('keepName laesst Sonderzeichen im Namen unversehrt', () => {
+  // Klammern und Bindestriche sind in Uebungsnamen ueblich (Bizeps-Curls (KH))
+  // und duerfen die Regex nicht sprengen.
+  assert.strictEqual(C.keepName('Dumbbell Curls sind dran.', 'Bizeps-Curls (KH)', ['Dumbbell Curls']),
+    'Bizeps-Curls (KH) sind dran.');
+  assert.strictEqual(C.keepName('Bizeps-Curls (KH) sind dran.', 'Dumbbell Curls', ['Bizeps-Curls (KH)']),
+    'Dumbbell Curls sind dran.');
+});
+
+test('keepName vertraegt fehlende Angaben, ohne zu werfen', () => {
+  assert.strictEqual(C.keepName('Text', 'Name', null), 'Text');
+  assert.strictEqual(C.keepName('Text', '', ['A']), 'Text');
+  assert.strictEqual(C.keepName('', 'Name', ['A']), '');
+  assert.strictEqual(C.keepName(null, 'Name', ['A']), null);
+  assert.strictEqual(C.keepName('Text', 'Name', [null, '', 'Name']), 'Text');
+});

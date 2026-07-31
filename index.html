@@ -7907,7 +7907,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310019';
+const APP_VERSION = 'gymtrack-v202607310020';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9123,7 +9123,7 @@ const CHANGELOG = {
       'Satzpausen richten sich zusätzlich nach der Ermüdung der Muskelgruppe und danach, wie der letzte Satz gelaufen ist',
       'Passt deinen Wiederholungsbereich an, wenn du zwei Einheiten lang durchgehend darüber oder darunter liegst',
       'Vergleicht endlich richtig mit deiner letzten Einheit: Aufwärmsätze und noch nicht abgehakte Sätze zählen nicht mehr als Leistung mit',
-      'Übungsnamen bleiben so, wie du sie angelegt hast — „Bench Press" wird nicht mehr zu „Bankdrücken"',
+      'Übungsnamen bleiben so, wie du sie angelegt hast — „Bench Press" wird nicht mehr zu „Bankdrücken". Die App setzt den Namen notfalls selbst zurück, falls die KI ihn doch übersetzt',
       'Die Coach-Leiste wächst und schrumpft jetzt weich statt zu springen',
     ]
   },
@@ -26422,6 +26422,38 @@ function _coachDropChance(li, si, set, w, r, ex) {
   }, 45000);
   return true;
 }
+/* Andere Schreibweisen derselben Uebung. Die Zuordnung steht bereits im
+   Anzeige-Woerterbuch (I18N_EN) — dort als "deutscher Eintrag -> englische
+   Anzeige". Fuer den Namensriegel wird sie in BEIDE Richtungen gelesen: heisst
+   die Uebung des Nutzers "Bench Press", ist "Bankdruecken" das Alias; heisst sie
+   "Bankdruecken", ist es "Bench Press". */
+function _exNameAliases(name) {
+  const out = [];
+  if (!name) return out;
+  try {
+    const en = I18N_EN[name];
+    if (typeof en === 'string' && en) out.push(en);
+    for (const k in I18N_EN) { if (I18N_EN[k] === name) out.push(k); }
+  } catch(_) {}
+  return out;
+}
+/* Der Riegel selbst: Titel, Text und Knopfbeschriftungen einer Coach-Karte
+   tragen den Namen, unter dem die Uebung angelegt wurde — auch wenn das Modell
+   sich nicht an den Prompt gehalten hat. Ein Prompt ist eine Bitte; das hier
+   ist die Zusage. */
+function _coachKeepExName(c, ex) {
+  if (!c || !ex || !ex.name) return c;
+  const al = _exNameAliases(ex.name);
+  if (!al.length) return c;
+  const fix = t => window.CoachCues.keepName(t, ex.name, al);
+  if (typeof c.title === 'string') c.title = fix(c.title);
+  if (typeof c.text  === 'string') c.text  = fix(c.text);
+  if (Array.isArray(c.options)) c.options.forEach(o => {
+    if (o && typeof o.label === 'string') o.label = fix(o.label);
+  });
+  return c;
+}
+
 /* Relativer Progressionssprung je Muskelgruppe. Uebliche Praxis in der
    Kraftlehre: an den grossen Ketten (Beine, Ruecken) sind 5 Prozent ein
    normaler Schritt, an der Brust rund 3, an kleinen eingelenkigen Muskeln
@@ -26709,6 +26741,8 @@ function _coachEvalRun(li, si) {
           if (!c.options.length && !(c.action || {}).kind) return;
         }
       } catch(e) { console.warn('[Coach] Filter:', e); }
+      // Uebungsname zurueckholen, falls das Modell ihn doch uebersetzt hat.
+      try { _coachKeepExName(res.c, ex); } catch(e) { console.warn('[Coach] Name:', e); }
       _coachCard = { exId: log.exerciseId, c: res.c, applied:false, baseW: w, timer:null };
       renderLogCards();
       try { _coachBarSet('msg', res.c.title || res.c.text || '', 6000); } catch(_) {}
