@@ -419,8 +419,12 @@ const BOOTSTATE = () => {
   r = await ev(() => ({
     setupZu: !document.getElementById('ov-coach-setup').classList.contains('on'),
     hubOffen: document.getElementById('ov-coach-hub').classList.contains('on'),
-    tab: _chTab, tabOn: !!(document.getElementById('ch-tab-settings') || {}).classList
-           && document.getElementById('ch-tab-settings').classList.contains('on'),
+    // Seit dem Hub-Umbau uebergibt die Einrichtung an die KACHEL "Umfang und
+    // Meldungen" statt an den Reiter "Einstellungen" — dieselbe Zusicherung:
+    // der Nutzer landet dort, wo er sein Profil nachjustiert, und die Flaeche
+    // ist offen und nicht bloss vorhanden.
+    tab: _chOpen, tabOn: !!(document.getElementById('ch-card-scope') || {}).classList
+           && document.getElementById('ch-card-scope').classList.contains('on'),
     // Durch Schritt 3 hindurch, ohne die Erinnerung zu waehlen: nichts wurde
     // ungefragt eingeschaltet, weder im Zustand noch auf der Platte.
     notif: S.notifEnabled,
@@ -433,7 +437,7 @@ const BOOTSTATE = () => {
     nachQuiet.preset === 'quiet' && nachQuiet.inTraining === 'off' && nachQuiet.live === false &&
     nachQuiet.push === 'still' && nachQuiet.feedback === false &&
     nachQuiet.on === "setCoachPreset('quiet')" &&
-    r.setupZu === true && r.hubOffen === true && r.tab === 'settings' && r.tabOn === true &&
+    r.setupZu === true && r.hubOffen === true && r.tab === 'scope' && r.tabOn === true &&
     r.gespeichert.preset === 'quiet' && r.gespeichert.inTraining === 'off' && r.gespeichert.live === false &&
     r.gespeichert.pushLevel === 'still',
     JSON.stringify({ tippQuiet, weiterAufDrei, tippFertig, nachQuiet, r }).slice(0, 1100));
@@ -443,7 +447,7 @@ const BOOTSTATE = () => {
     closeOv('ov-coach-hub');
     openCoachHub('chat');
     const out = { setup: document.getElementById('ov-coach-setup').classList.contains('on'),
-                  hub: document.getElementById('ov-coach-hub').classList.contains('on'), tab: _chTab };
+                  hub: document.getElementById('ov-coach-hub').classList.contains('on'), tab: _chOpen };
     // 'custom' ist ein gesetztes Profil und darf ebenfalls nicht erneut fragen
     closeOv('ov-coach-hub');
     S.aiCoach.preset = 'custom'; persist();
@@ -537,28 +541,46 @@ const BOOTSTATE = () => {
     r.live === true && r.push === 'normal' && r.feedback === true && r.gespeichert === 'balanced' &&
     r.setupZu === true && r.hubOffen === true, JSON.stringify(r));
 
-  // ── 12c) Hub: Scrollposition ueberlebt den Schalter, Reiterwechsel setzt zurueck ─
+  /* ── 12c) Hub: Scrollposition ueberlebt den Schalter, der Kachelwechsel holt
+     die neue Kachel in Sicht ─────────────────────────────────────────────
+     Dieselbe Zusicherung wie vor dem Umbau, uebersetzt auf das Akkordeon: ein
+     SCHALTER darf die Position nicht wegwerfen (sonst nimmt der Sprung an den
+     Anfang den gerade getippten Chip aus dem Bild), ein KACHELWECHSEL setzt
+     nicht mehr auf 0, sondern scrollt die geoeffnete Kachel in Sicht — ein
+     Inhalt, der ausserhalb des Bildes aufklappt, waere derselbe Fehler in
+     anderer Richtung. */
   r = await ev(() => {
     closeOv('ov-coach-setup');
     S.aiCoach.preset = 'balanced'; persist();
-    openCoachHub('settings');
+    openCoachHub('scope');
     const body = document.getElementById('ch-body');
-    const det = body.querySelector('details'); if (det) det.open = true;
+    const det = body.querySelector('#ch-card-scope details'); if (det) det.open = true;
     body.scrollTop = body.scrollHeight;          // ganz nach unten
     const vorher = Math.round(body.scrollTop);
-    const chip = [...body.querySelectorAll('details .pwz-chip')]
+    const chip = [...body.querySelectorAll('#ch-card-scope details .pwz-chip')]
       .find(b => b.getAttribute('onclick') === "setAiCoachOpt('inTraining','off')");
     if (!chip) return { err: 'Chip "Aus" fehlt', vorher };
     chip.click();                                 // Schalter -> Rerender
     const nachSchalter = Math.round(document.getElementById('ch-body').scrollTop);
-    coachHubTab('journal');                       // Reiterwechsel -> zurueck auf 0
-    const nachReiter = Math.round(document.getElementById('ch-body').scrollTop);
-    return { vorher, nachSchalter, nachReiter,
-             scrollbar: vorher > 50, level: S.aiCoach.inTraining };
+    coachHubOpen('journal');                      // Kachelwechsel
+    return { vorher, nachSchalter, offen: _chOpen,
+             scrollbar: vorher > 50, level: S.aiCoach.inTraining,
+             scopeZu: !document.getElementById('ch-card-scope').classList.contains('on') };
   });
-  check('Hub: Scrollposition ueberlebt einen Schalter (kein Sprung an den Anfang) und wird erst beim Reiterwechsel zurueckgesetzt',
-    !r.err && r.scrollbar === true && r.nachSchalter === r.vorher && r.nachReiter === 0 &&
-    r.level === 'off', JSON.stringify(r));
+  await wait(700);                                // 260 ms Aufklappen + Scroll-Nachlauf
+  const nachWechsel = await ev(() => {
+    const body = document.getElementById('ch-body');
+    const sec  = document.getElementById('ch-card-journal');
+    if (!body || !sec) return { err: 'Kachel fehlt' };
+    const br = body.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+    return { top: Math.round(body.scrollTop),
+             kopfImBild: sr.top >= br.top - 2 && sr.top < br.bottom };
+  });
+  check('Hub: Scrollposition ueberlebt einen Schalter (kein Sprung an den Anfang), und der Kachelwechsel holt die geoeffnete Kachel in Sicht',
+    !r.err && r.scrollbar === true && r.nachSchalter === r.vorher &&
+    r.offen === 'journal' && r.scopeZu === true && r.level === 'off' &&
+    !nachWechsel.err && nachWechsel.kopfImBild === true,
+    JSON.stringify({ r, nachWechsel }));
 
   // ── 13) Kaufpfad: Erfolgszweig ruft die Einrichtung, 420 ms NACH der Paywall ─
   await boot();
@@ -882,15 +904,17 @@ const BOOTSTATE = () => {
     const echtSess = S.sessions;
     S.sessions = [];
     persist();
-    openCoachHub('settings');
+    openCoachHub('persona');
     out.ohneVerlauf = !!document.getElementById('ch-tone-ex');
-    out.ohneText = (document.getElementById('ch-body').textContent.match(/4\.?200|104 ?(Prozent|percent|%)/) || [null])[0];
+    // Gemessen wird die Kachel "Persönlichkeit": seit dem Umbau stehen alle
+    // fuenf gleichzeitig im DOM, und die Wochen-Kachel nennt eigene Zahlen.
+    out.ohneText = (document.getElementById('ch-card-persona').textContent.match(/4\.?200|104 ?(Prozent|percent|%)/) || [null])[0];
     // b) mit echtem Verlauf: die Zeile zeigt die ECHTEN Werte der letzten Einheit
     const ex = (S.exercises || [])[0];
     S.sessions = [{ date: '2026-07-28', logs: [{ exerciseId: ex ? ex.id : 'x',
       sets: [{ w: 50, r: 10, type: 'normal' }, { w: 50, r: 10, type: 'normal' }] }] }];
     persist();
-    openCoachHub('settings');
+    openCoachHub('persona');
     const el = document.getElementById('ch-tone-ex');
     out.mitVerlauf = !!el;
     out.text = el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
@@ -910,10 +934,10 @@ const BOOTSTATE = () => {
     const echt = _fbUser;
     _fbUser = null;                              // kein Konto
     openCoachHub('journal');
-    const ohne = document.getElementById('ch-body').textContent.replace(/\s+/g, ' ').trim();
+    const ohne = document.getElementById('ch-card-journal').textContent.replace(/\s+/g, ' ').trim();
     _fbUser = { uid: 'chk-uid', isAnonymous: false };
     openCoachHub('journal');
-    const mit = document.getElementById('ch-body').textContent.replace(/\s+/g, ' ').trim();
+    const mit = document.getElementById('ch-card-journal').textContent.replace(/\s+/g, ' ').trim();
     _fbUser = echt || { uid: 'chk-uid', isAnonymous: false };
     return { ohne: ohne.slice(0, 400), mit: mit.slice(0, 300),
              hinweisOhne: /Konto|account/i.test(ohne), hinweisMit: /Konto|account/i.test(mit),
@@ -997,55 +1021,57 @@ const BOOTSTATE = () => {
     ctaTipp === true && nachCtaTipp.ctaRan === true && nachCtaTipp.hubOffen === false,
     JSON.stringify({ kbAttr, kbEnter, kbSpace, ctaTipp, nachCtaTipp }));
 
-  // ── 26) Triage 4: die Reiter tragen das Idiom der App, keinen Traeger ────
-  // Gestaltungsregel 7: dieselbe Bedienabsicht ("eins von N") muss gleich
-  // aussehen. Verglichen wird gegen die .pwz-chip-Reihe im SELBEN Sheet.
+  /* ── 26) Triage 4: kein zweites Bedienidiom im Blatt ─────────────────────
+     Gestaltungsregel 7: dieselbe Bedienabsicht ("eins von N") muss in der App
+     gleich aussehen. Der Verstoss war das Segmented Control (.ch-tabs/.ch-tab),
+     das sonst NIRGENDS vorkam und im selben Sheet gegen die .pwz-chip-Reihe der
+     Feinjustierung stand. Mit dem Hub-Umbau entfaellt es ersatzlos — die
+     Zusicherung wandert deshalb mit: es darf weder wiederkommen, noch darf die
+     Kachel, die an seine Stelle tritt, eine eigene Optik mitbringen. Verglichen
+     wird die Kachelflaeche gegen die .ch-jrn-Zeile im SELBEN Sheet (Rahmen und
+     Fuellung) und gegen die .ch-preset-Karte (Radius). */
   await ev(() => {
     S.aiCoach.preset = 'balanced'; persist();
     closeOv('ov-coach-setup');
-    openCoachHub('settings');
-    const det = document.querySelector('#ch-body details'); if (det) det.open = true;
+    openCoachHub('scope');
+    const det = document.querySelector('#ch-card-scope details'); if (det) det.open = true;
   });
-  // Die Reiter tragen transition:background-color .15s. Direkt nach dem Wechsel
-  // liefert getComputedStyle den INTERPOLIERTEN Zwischenwert - der zuvor aktive
-  // Reiter lieste noch Akzent, der neue noch Grundfarbe. Ohne dieses Warten
-  // vergleicht der Check zwei Momentaufnahmen einer laufenden Blende.
   await wait(320);
   r = await ev(() => {
-    const traeger = document.querySelector('#ov-coach-hub .ch-tabs');
-    // Per KLASSE greifen, nicht per Id: welcher Reiter aktiv ist, haengt vom
-    // Lauf ab - verglichen wird aktiv gegen aktiv und inaktiv gegen inaktiv.
-    const tabAus  = document.querySelector('#ov-coach-hub .ch-tab:not(.on)');
-    const tabAn   = document.querySelector('#ov-coach-hub .ch-tab.on');
-    const chipAus = document.querySelector('#ch-body .pwz-chip:not(.on)');
-    const chipAn  = document.querySelector('#ch-body .pwz-chip.on');
-    if (!traeger || !tabAus || !tabAn || !chipAus || !chipAn) return { err: 'Reiter oder Chip fehlt' };
+    const karte  = document.querySelector('#ch-body .ch-card');
+    const preset = document.querySelector('#ch-body .ch-preset');
+    if (!karte || !preset) return { err: 'Kachel oder Karte fehlt' };
+    /* Die Glaszeile als PROBE: ob gerade ein Dossier-Eintrag oder ein Bericht
+       im Blatt steht, haengt am Lauf — die Regel .ch-jrn haengt es nicht. Eine
+       leere Probe misst genau diese Regel, und nur sie ist der Vergleichspunkt
+       ("kein eigenes Aussehen, dieselben Bausteine wie die bestehende Zeile").
+       .ghost bleibt draussen: das ist der GEDAEMPFTE Zustand derselben Zeile. */
+    const probe = document.createElement('div');
+    probe.className = 'ch-jrn';
+    document.getElementById('ch-body').appendChild(probe);
     const cs = (el) => { const c = getComputedStyle(el);
       return { bg: c.backgroundColor, bgImg: c.backgroundImage, bw: c.borderTopWidth,
                bs: c.borderTopStyle, bc: c.borderTopColor, br: c.borderTopRightRadius }; };
-    const gleich = (a, b) => a.bg === b.bg && a.bw === b.bw && a.bs === b.bs &&
-                             a.bc === b.bc && a.br === b.br;
-    const t = { traeger: cs(traeger), tabAus: cs(tabAus), tabAn: cs(tabAn),
-                chipAus: cs(chipAus), chipAn: cs(chipAn) };
-    return Object.assign(t, {
-      alle: [...document.querySelectorAll('#ov-coach-hub .ch-tab')].map(e =>
-        ({ id: e.id, cls: e.className, sel: e.getAttribute('aria-selected'), bg: cs(e).bg })),
-      chipsAlle: [...document.querySelectorAll('#ch-body .pwz-chip')].slice(0, 3).map(e =>
-        ({ cls: e.className, bg: cs(e).bg })),
-      tabAusId: tabAus.id, tabAnId: tabAn.id, tab: _chTab,
-      ausGleich: gleich(t.tabAus, t.chipAus),
-      anGleich: gleich(t.tabAn, t.chipAn),
-      klassenDa: !!(document.querySelector('.ch-tabs') && document.querySelector('.ch-tab') &&
-                    document.querySelector('.ch-tab.on')),
-      reiterAnzahl: document.querySelectorAll('#ov-coach-hub .ch-tab').length
-    });
+    const k = cs(karte), j = cs(probe), p = cs(preset);
+    probe.remove();
+    return {
+      karte: k, jrnProbe: j, preset: p,
+      // Rahmen und Fuellung wie die bestehende Glaszeile, Radius wie die
+      // bestehende Karte — nichts Neues, nur groesser gefasst.
+      rahmenGleich: k.bw === j.bw && k.bs === j.bs && k.bc === j.bc && k.bg === j.bg,
+      radiusGleich: k.br === p.br,
+      // Und das Segmented Control ist weg: keine Klasse, kein Traeger, kein
+      // Element mit role=tab irgendwo im Blatt.
+      traeger: document.querySelectorAll('#ov-coach-hub .ch-tabs, #ov-coach-hub .ch-tab').length,
+      rollen: document.querySelectorAll('#ov-coach-hub [role=tab], #ov-coach-hub [role=tablist], #ov-coach-hub [role=tabpanel]').length,
+      kacheln: document.querySelectorAll('#ch-body .ch-card').length,
+      // Die Chip-Reihe der Feinjustierung steht unveraendert daneben.
+      chips: document.querySelectorAll('#ch-card-scope .pwz-chip').length
+    };
   });
-  const transparent = (v) => /rgba\(0, 0, 0, 0\)|transparent/.test(v || '');
-  check('Triage 4: .ch-tabs ist kein Segmented Control mehr — Reiter und .pwz-chip-Reihe sehen im selben Sheet gleich aus, Klassen bleiben',
-    !r.err && transparent((r.traeger || {}).bg) && (r.traeger || {}).bw === '0px' &&
-    transparent((r.traeger || {}).bgImg) === false && (r.traeger || {}).bgImg === 'none' &&
-    r.ausGleich === true && r.anGleich === true &&
-    r.klassenDa === true && r.reiterAnzahl === 4,
+  check('Triage 4: das Segmented Control ist ersatzlos weg (keine .ch-tabs/.ch-tab, keine tab-Rollen) und die Kachel bringt keine eigene Optik mit — Rahmen und Fuellung wie die .ch-jrn-Zeile, Radius wie die .ch-preset-Karte im selben Sheet',
+    !r.err && r.traeger === 0 && r.rollen === 0 && r.kacheln === 5 && r.chips > 0 &&
+    r.rahmenGleich === true && r.radiusGleich === true,
     JSON.stringify(r).slice(0, 1100));
 
   // ── 27) Triage 6: setAiCoachOpt/setCoachPreset ueberleben ein Wurf-persist ─

@@ -162,6 +162,8 @@ const SETUP = () => {
   // beim Reiter noch nicht gab.
   r = await ev(() => {
     openCoachHub('chat');
+    coachHubOpen('chat');            // erst zumachen: sonst schloesse der erste
+                                     // Schleifendurchlauf die schon offene Kachel
     const out = {};
     ['chat','week','persona','scope','journal'].forEach(t => {
       coachHubOpen(t);
@@ -240,7 +242,7 @@ const SETUP = () => {
 
   // ── 6) Vier Toene, vier sichtbar verschiedene Beispielsaetze ─────────────
   r = await ev(() => {
-    openCoachHub('settings');
+    openCoachHub('persona');
     const out = { cards: [], live: [], tones: [] };
     ['ruhig','sachlich','hart','locker'].forEach(t => {
       const card = [...document.querySelectorAll('#ch-body .ch-preset')]
@@ -265,7 +267,7 @@ const SETUP = () => {
 
   // ── 7) "Eng dabei" + Nachrichten "Still" ⇒ Profilanzeige "Angepasst" ─────
   r = await ev(() => {
-    openCoachHub('settings');
+    openCoachHub('scope');
     const byClick = (sel, on) => [...document.querySelectorAll('#ch-body ' + sel)]
       .find(b => b.getAttribute('onclick') === on);
     const close = byClick('.ch-preset', "setCoachPreset('close')");
@@ -473,7 +475,7 @@ const SETUP = () => {
   await page.click('#ch-name');
   await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control');
   await page.type('#ch-name', 'Nina');
-  const getippt = await tap('#ch-body .ch-preset', "setAiCoachOpt('tone','ruhig')");
+  const getippt = await tap('#ch-card-persona .ch-preset', "setAiCoachOpt('tone','ruhig')");
   r = await ev(() => ({
     tone: S.aiCoach.tone, name: S.aiCoach.name,
     titel: (document.getElementById('ch-title') || {}).textContent,
@@ -488,7 +490,7 @@ const SETUP = () => {
 
   // ── 15) Feinjustierung bleibt beim Schalten offen (Befund 4) ─────────────
   r = await ev(() => {
-    openCoachHub('settings');
+    openCoachHub('scope');
     const det = document.querySelector('#ch-body details');
     if (!det) return { err: 'details fehlt' };
     det.open = true;
@@ -524,8 +526,15 @@ const SETUP = () => {
       goal: 'Kraft', limits: [{ t: 'Shoulder acts up', ts: now }], updatedAt: now
     }));
     const txt = {};
-    ['chat','journal','report','settings'].forEach(t => { openCoachHub(t); txt[t] = document.getElementById('ch-body').textContent.replace(/\s+/g,' ').trim(); });
-    const tabs = ['chat','journal','report','settings'].map(k => document.getElementById('ch-tab-' + k).textContent);
+    openCoachHub('chat');
+    ['chat','week','persona','scope','journal'].forEach(t => {
+      const sec = document.getElementById('ch-card-' + t);
+      txt[t] = sec ? sec.textContent.replace(/\s+/g,' ').trim() : '';
+    });
+    const titel = ['chat','week','persona','scope','journal'].map(k =>
+      ((document.getElementById('ch-card-' + k) || document.createElement('div'))
+        .querySelector('.ch-card-t') || {}).textContent);
+    const unter = (document.getElementById('ch-sub') || {}).textContent;
     // Fehlender oder unuebersetzter Schluessel = Leck. Geprueft wird der konkrete
     // Bestand in I18N_EN, nicht eine Stichprobe im gerenderten Text.
     const fehlt = keys.filter(k => {
@@ -533,9 +542,9 @@ const SETUP = () => {
       return v === undefined || v === null || v === '' || v === k;
     });
     openCoachHub('journal');
-    const aria = (document.querySelector('#ch-body .ch-jrn button') || {}).ariaLabel ||
-                 (document.querySelector('#ch-body .ch-jrn button') || { getAttribute: () => null }).getAttribute('aria-label');
-    return { tabs, txt, fehlt, aria };
+    const aria = (document.querySelector('#ch-card-journal .ch-jrn button') || {}).ariaLabel ||
+                 (document.querySelector('#ch-card-journal .ch-jrn button') || { getAttribute: () => null }).getAttribute('aria-label');
+    return { titel, unter, txt, fehlt, aria };
   }, HUB_TR_KEYS);
   // Nur eigene Oberflaechentexte pruefen: 'Kraft' ist ein Dossier-WERT (Daten,
   // bewusst unuebersetzt), deshalb aus der Suche heraus.
@@ -544,11 +553,13 @@ const SETUP = () => {
   check('Zweisprachig: jeder Hub-Schluessel liegt uebersetzt in I18N_EN, aria-label inklusive',
     Array.isArray(r.fehlt) && r.fehlt.length === 0 && r.aria === 'Remove entry',
     JSON.stringify({ fehlt: r.fehlt, aria: r.aria }));
-  check('Zweisprachig: Reiter und alle vier Bereiche kommen auf Englisch, kein deutscher Oberflaechentext',
-    (r.tabs || []).join('|') === 'Chat|Journal|Week|Settings' && deutschRest.length === 0 &&
-    /Weekly report/.test((r.txt||{}).report || '') && /Limits/.test((r.txt||{}).journal || '') &&
-    /Fine tuning/.test((r.txt||{}).settings || '') && /Last exchange/.test((r.txt||{}).chat || ''),
-    JSON.stringify({ tabs: r.tabs, deutschRest, txt: r.txt }).slice(0, 1200));
+  check('Zweisprachig: die fuenf Kacheltitel, die Unterzeile und alle fuenf Inhalte kommen auf Englisch, kein deutscher Oberflaechentext',
+    (r.titel || []).join('|') === 'Conversation|Week|Personality|Scope and notifications|Journal' &&
+    r.unter === 'your coach' && deutschRest.length === 0 &&
+    /Weekly report/.test((r.txt||{}).week || '') && /Limits/.test((r.txt||{}).journal || '') &&
+    /Fine tuning/.test((r.txt||{}).scope || '') && /Last exchange/.test((r.txt||{}).chat || '') &&
+    /How should your coach sound/.test((r.txt||{}).persona || ''),
+    JSON.stringify({ titel: r.titel, unter: r.unter, deutschRest, txt: r.txt }).slice(0, 1200));
   await page.evaluate(() => localStorage.removeItem('gt_lang'));
   await boot();
 
@@ -592,13 +603,13 @@ const SETUP = () => {
   await ev(() => localStorage.removeItem('gt_lang'));
   await boot();
   r = await ev(() => {
-    openCoachHub('settings');
+    openCoachHub('persona');
     // s. lang-check.js: Beispielwerte aus derselben Quelle wie die Oberflaeche.
     const vars = _chToneVars();
     const soll = {}, ist = {};
     ['ruhig','sachlich','hart','locker'].forEach(t => {
       soll[t] = CoachPersona.say('greet', vars, CoachPersona.personaGet({ tone: t }), 'en');
-      const card = [...document.querySelectorAll('#ch-body .ch-preset')]
+      const card = [...document.querySelectorAll('#ch-card-persona .ch-preset')]
         .find(b => b.getAttribute('onclick') === `setAiCoachOpt('tone','${t}')`);
       ist[t] = card ? (card.querySelector('span') || {}).textContent : null;
     });
@@ -612,12 +623,14 @@ const SETUP = () => {
       // 'debrief' mit ECHTEN Zahlen der letzten Einheit (_chToneExVars) statt
       // ueber 'mid' mit erfundenen 4.200 kg / 104 %.
       liveSoll: CoachPersona.say('debrief', _chToneExVars(), _persona(), 'en'),
-      tabs: ['chat','journal','report','settings'].map(k => document.getElementById('ch-tab-' + k).textContent).join('|')
+      titel: ['chat','week','persona','scope','journal'].map(k =>
+        ((document.getElementById('ch-card-' + k) || document.createElement('div'))
+          .querySelector('.ch-card-t') || {}).textContent).join('|')
     };
   });
-  check("gt_lang='auto' auf englischem Geraet: Tonsaetze englisch wie Reiter und Ueberschriften (Befund 3)",
+  check("gt_lang='auto' auf englischem Geraet: Tonsaetze englisch wie Kacheltitel und Ueberschriften (Befund 3)",
     r.GT_LANG === 'en' && r.pref === 'auto' && r.gleich === true &&
-    r.liveIst === r.liveSoll && r.tabs === 'Chat|Journal|Week|Settings',
+    r.liveIst === r.liveSoll && r.titel === 'Conversation|Week|Personality|Scope and notifications|Journal',
     JSON.stringify(r).slice(0, 1400));
 
   await browser.close();

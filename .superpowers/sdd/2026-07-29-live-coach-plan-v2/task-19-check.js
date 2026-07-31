@@ -523,18 +523,18 @@ const SYNC = async (o) => {
     S.aiCoach.pushLevel = 'still'; S.aiCoach.preset = 'quiet'; persist();
     window.__cn.perm = 'prompt'; window.__cn.permOnRequest = 'denied';
     window.__cnReset(window.__cnPending);
-    openCoachHub('settings');
+    openCoachHub('scope');
   });
   await wait(500);
   const auf1 = await ev(() => {
-    const s = document.querySelector('#ch-body details > summary');
+    const s = document.querySelector('#ch-card-scope details > summary');
     if (s) { s.id = 'cn-sum'; return true; }
     return false;
   });
   if (auf1 === true) await page.click('#cn-sum');
   await wait(300);
   const markiert = await ev(l => {
-    const b = [...document.querySelectorAll('#ch-body .pwz-chip')]
+    const b = [...document.querySelectorAll('#ch-card-scope .pwz-chip')]
       .find(x => /pushLevel/.test(x.getAttribute('onclick') || '') && x.textContent.trim() === l);
     if (!b) return false;
     b.id = 'cn-chip'; return true;
@@ -557,7 +557,7 @@ const SYNC = async (o) => {
   // ── 14) Berechtigung: Annehmen plant sofort ─────────────────────────────
   await ev(() => { window.__cn.perm = 'prompt'; window.__cn.permOnRequest = 'granted'; window.__cnReset(window.__cnPending); });
   const markiert2 = await ev(l => {
-    const b = [...document.querySelectorAll('#ch-body .pwz-chip')]
+    const b = [...document.querySelectorAll('#ch-card-scope .pwz-chip')]
       .find(x => /pushLevel/.test(x.getAttribute('onclick') || '') && x.textContent.trim() === l);
     if (!b) return false;
     b.id = 'cn-chip2'; return true;
@@ -700,11 +700,11 @@ const SYNC = async (o) => {
   await ev(() => {
     S.aiCoach.pushLevel = 'normal'; S.aiCoach.preset = 'balanced'; persist();
     window.__cnReset(window.__cnPending);
-    openCoachHub('settings');
+    openCoachHub('scope');
   });
   await wait(600);
   const ctaDa = await ev(() => {
-    const b = [...document.querySelectorAll('#ch-body button')]
+    const b = [...document.querySelectorAll('#ch-card-scope button')]
       .find(x => /coachHubAskPerm/.test(x.getAttribute('onclick') || ''));
     if (!b) return false;
     b.id = 'cn-perm-cta';
@@ -716,7 +716,7 @@ const SYNC = async (o) => {
     reqs: window.__cn.reqs,
     permOk: !!((S.coachPush || {}).permOk),
     eigene: window.__cnOwn().length,
-    ctaWeg: ![...document.querySelectorAll('#ch-body button')]
+    ctaWeg: ![...document.querySelectorAll('#ch-card-scope button')]
       .some(x => /coachHubAskPerm/.test(x.getAttribute('onclick') || ''))
   }));
   check('C2 — Auslieferungszustand (Premium, pushLevel "normal", Berechtigung nie erteilt): der App-Start fragt NICHT (kein ungefragter Systemdialog, dessen Ablehnung dauerhaft waere), aber der Coach-Hub bietet den Weg an. Ein Tipp fragt, danach steht die Berechtigung und die Termine sind geplant',

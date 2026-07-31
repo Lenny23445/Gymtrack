@@ -267,13 +267,16 @@ const istVoreinstellung = (a) => !!a &&
   a.insights === true && a.voiceOn === true && a.voice === null &&
   a.preset === undefined && a.liveWas === undefined;
 
+/* Seit dem Hub-Umbau stehen alle fuenf Kacheln gleichzeitig im DOM. Gemessen
+   wird deshalb die zuletzt geoeffnete KACHEL (#ch-card-<id>) und nicht das ganze
+   Blatt — sonst faerbten die vier anderen jedes Ergebnis. */
 const HUBTEXT = () => {
-  const el = document.getElementById('ch-body');
+  const el = document.getElementById('ch-card-' + (typeof _chOpen === 'string' && _chOpen ? _chOpen : 'chat'));
   const ov = document.getElementById('ov-coach-hub');
   return {
     text: (el ? el.textContent : '').replace(/\s+/g, ' ').trim(),
     html: el ? el.innerHTML : '',
-    tab: (typeof _chTab === 'string') ? _chTab : null,
+    tab: (typeof _chOpen === 'string') ? _chOpen : null,
     offen: !!(ov && ov.classList.contains('on')),
     setupOffen: !!((document.getElementById('ov-coach-setup') || {}).classList || { contains: () => false }).contains('on')
   };
@@ -309,11 +312,11 @@ const HUBTEXT = () => {
     await ev(FBSTUB);
     return await ev(KONTO_A, uid || 'uidA');
   };
-  // Hub oeffnen und ueber eine ECHTE Zeigerfolge auf einen Reiter wechseln.
-  const hubAuf = async (tab) => {
+  // Hub oeffnen und ueber eine ECHTE Zeigerfolge eine Kachel aufklappen.
+  const hubAuf = async (kachel) => {
     await ev(() => { try { openCoachHub('chat'); } catch (_) {} });
-    await wait(250);
-    if (tab) { try { await page.click('#ch-tab-' + tab); } catch (_) {} await wait(300); }
+    await wait(450);
+    if (kachel && kachel !== 'chat') { try { await page.click('#ch-h-' + kachel); } catch (_) {} await wait(700); }
     return O(await ev(HUBTEXT));
   };
   let r;
@@ -417,7 +420,7 @@ const HUBTEXT = () => {
     setCoachPreset('balanced');
     return { preset: S.aiCoach.preset, reports: (S.coachReports || []).length };
   }));
-  const bWocheHub = await hubAuf('report');
+  const bWocheHub = await hubAuf('week');
   /* Wichtig fuer die Bewertung: der Reiter ist NICHT leer — er zeigt den frisch
      gerechneten Zwischenstand aus den Trainingsdaten, die bewusst auf dem
      Geraet bleiben (genau das verspricht die Rueckfrage beim Abmelden, und der
@@ -557,7 +560,7 @@ const HUBTEXT = () => {
   });
   const jrn = await hubAuf('journal');
   const xss = O(await ev(() => ({ xss: window.__xss,
-    imgs: (document.getElementById('ch-body') || document.createElement('div')).querySelectorAll('img').length })));
+    imgs: (document.getElementById('ch-card-journal') || document.createElement('div')).querySelectorAll('img').length })));
   check('Ein Dossier-Eintrag mit Markup erscheint im Journal als TEXT, nicht als Markup (esc() vor innerHTML) — kein onerror laeuft',
     xss.xss === 0 && xss.imgs === 0 && !/<img/i.test(jrn.html || '') &&
     /<img src=x onerror/.test(jrn.text || ''),
@@ -565,12 +568,12 @@ const HUBTEXT = () => {
                      text: (jrn.text || '').slice(0, 200) }));
 
   /* ── 12) Zusatzauftrag: der Termin des Wochenberichts ist bedienbar ──────
-     Genau EINE Flaeche, im HUB. Getippt wird echt: erst der Reiter
-     "Einstellungen", dann ein Tag-Chip, dann ein Stunden-Chip.               */
+     Genau EINE Flaeche, im HUB. Getippt wird echt: erst die Kachel
+     "Umfang und Meldungen", dann ein Tag-Chip, dann ein Stunden-Chip.        */
   await boot('uidA');
-  const setup = await hubAuf('settings');
+  const setup = await hubAuf('scope');
   const chips = O(await ev(() => {
-    const body = document.getElementById('ch-body');
+    const body = document.getElementById('ch-card-scope');
     const alle = [...(body ? body.querySelectorAll('.pwz-chip') : [])];
     const at = alle.filter(b => /coachHubSetReportAt/.test(b.getAttribute('onclick') || ''));
     return {
@@ -583,12 +586,12 @@ const HUBTEXT = () => {
                                         naechster: _cnReportAt(Date.now()) })));
   // Echte Zeigerfolge: Mittwoch (Index 3) und 7 Uhr.
   try {
-    const handles = await page.$$('#ch-body .pwz-chip');
-    const meta = await page.$$eval('#ch-body .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
+    const handles = await page.$$('#ch-card-scope .pwz-chip');
+    const meta = await page.$$eval('#ch-card-scope .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
     const iTag = meta.indexOf("coachHubSetReportAt('day',3)");
     if (iTag >= 0) { await handles[iTag].click(); await wait(300); }
-    const handles2 = await page.$$('#ch-body .pwz-chip');
-    const meta2 = await page.$$eval('#ch-body .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
+    const handles2 = await page.$$('#ch-card-scope .pwz-chip');
+    const meta2 = await page.$$eval('#ch-card-scope .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
     const iStd = meta2.indexOf("coachHubSetReportAt('hour',7)");
     if (iStd >= 0) { await handles2[iStd].click(); await wait(300); }
   } catch (_) {}
@@ -597,10 +600,10 @@ const HUBTEXT = () => {
     return { at: JSON.parse(JSON.stringify(S.coachReportAt || {})),
              platte: gespeichert.coachReportAt || null,
              naechster: _cnReportAt(Date.now()),
-             satz: (document.getElementById('ch-body') || {}).textContent || '' };
+             satz: (document.getElementById('ch-card-scope') || {}).textContent || '' };
   }));
   check('Zusatzauftrag: die Coach-Einstellungen im HUB tragen genau eine Bedienflaeche fuer den Berichtstermin (7 Tage, 24 volle Stunden); ein echter Tipp auf "Mi" und "7" verschiebt S.coachReportAt von {day:2,hour:21} auf {day:3,hour:7}, schreibt es auf die Platte und zieht den Satz darunter mit',
-    setup.tab === 'settings' &&
+    setup.tab === 'scope' &&
     (chips.tage || []).length === 7 && chips.stunden === 24 &&
     (chips.tage || []).join(',') === 'So,Mo,Di,Mi,Do,Fr,Sa' &&
     (chips.abschnitte || []).some(s => /Wochenbericht/.test(s)) &&
@@ -618,12 +621,12 @@ const HUBTEXT = () => {
      Grundzustand steht auf Mittwoch 7 Uhr; hier wird auf Sonntag 20 Uhr
      getippt, damit der Nachweis nicht auf dem Ausgangswert sitzenbleibt.     */
   try {
-    const handles = await page.$$('#ch-body .pwz-chip');
-    const meta = await page.$$eval('#ch-body .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
+    const handles = await page.$$('#ch-card-scope .pwz-chip');
+    const meta = await page.$$eval('#ch-card-scope .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
     const iTag = meta.indexOf("coachHubSetReportAt('day',0)");
     if (iTag >= 0) { await handles[iTag].click(); await wait(300); }
-    const handles2 = await page.$$('#ch-body .pwz-chip');
-    const meta2 = await page.$$eval('#ch-body .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
+    const handles2 = await page.$$('#ch-card-scope .pwz-chip');
+    const meta2 = await page.$$eval('#ch-card-scope .pwz-chip', bs => bs.map(b => b.getAttribute('onclick') || ''));
     const iStd = meta2.indexOf("coachHubSetReportAt('hour',20)");
     if (iStd >= 0) { await handles2[iStd].click(); await wait(300); }
   } catch (_) {}
@@ -632,8 +635,8 @@ const HUBTEXT = () => {
     naechster: _cnReportAt(Date.now()),
     stunde: new Date(_cnReportAt(Date.now())).getHours(),
     tag: new Date(_cnReportAt(Date.now())).getDay(),
-    satz: (document.getElementById('ch-body') || {}).textContent || '',
-    markiert: [...(document.getElementById('ch-body') || document.createElement('div')).querySelectorAll('.pwz-chip.on')]
+    satz: (document.getElementById('ch-card-scope') || {}).textContent || '',
+    markiert: [...(document.getElementById('ch-card-scope') || document.createElement('div')).querySelectorAll('.pwz-chip.on')]
       .filter(b => /coachHubSetReportAt/.test(b.getAttribute('onclick') || '')).map(b => (b.textContent || '').trim())
   })));
   check('Der Termin wird wirklich verstellt: Tipp auf "So" und "20" ergibt S.coachReportAt {day:0,hour:20}, _cnReportAt() faellt auf Sonntag 20 Uhr, und genau zwei Chips stehen markiert',
@@ -653,9 +656,9 @@ const HUBTEXT = () => {
   await wait(1500);
   await ev(FBSTUB);
   await ev(KONTO_A, 'uidA');
-  const enHub = await hubAuf('settings');
+  const enHub = await hubAuf('scope');
   const enTexte = O(await ev(() => {
-    const b = document.getElementById('ch-body');
+    const b = document.getElementById('ch-card-scope');
     const sec = [...(b ? b.querySelectorAll('.ch-sec') : [])].map(s => (s.textContent || '').replace(/\s+/g, ' ').trim());
     const ghost = [...(b ? b.querySelectorAll('.ch-jrn.ghost') : [])].map(s => (s.textContent || '').replace(/\s+/g, ' ').trim());
     return { sec, ghost, lang: (typeof GT_LANG === 'string') ? GT_LANG : '?' };
@@ -669,21 +672,27 @@ const HUBTEXT = () => {
     !PIKTO.test((enTexte.sec || []).concat(enTexte.ghost || []).join(' ')),
     JSON.stringify({ lang: enTexte.lang, sec: (enTexte.sec || []).slice(0, 8), ghost: enTexte.ghost }).slice(0, 700));
 
-  /* ── 15) Kein zweiter Einstieg, kein fuenfter Tab, kein fuenfter Reiter ── */
+  /* ── 15) Kein zweiter Einstieg, kein fuenfter Tab, keine sechste Kachel ── */
   await boot('uidA');
   const flaechen = O(await ev(() => {
+    // Einmal oeffnen, damit die Kacheln gezeichnet sind — danach wieder zu.
+    try { openCoachHub('scope'); } catch (_) {}
+    const hubKacheln = document.querySelectorAll('#ch-body .ch-card').length;
+    const hubTabs = document.querySelectorAll('.ch-tabs, .ch-tab').length;
+    try { closeOv('ov-coach-hub'); } catch (_) {}
     try { renderHome(); } catch (_) {}
-    return { pad: document.querySelectorAll('#heute-pad > div').length,
+    return { hubKacheln, hubTabs,
+             pad: document.querySelectorAll('#heute-pad > div').length,
              coach: document.querySelectorAll('#coach-today-card .aic').length,
-             tabs: document.querySelectorAll('.tabbar .tab').length,
-             hubTabs: document.querySelectorAll('.ch-tabs .ch-tab').length };
+             tabs: document.querySelectorAll('.tabbar .tab').length };
   }));
-  check('Gestaltungsregel 1 haelt: zwei Flaechen unter der Kopfzeile, EIN Coach-Einstieg im Heute-Tab, kein fuenfter Tab und kein fuenfter Hub-Reiter — der Berichtstermin hat keine eigene Flaeche bekommen',
-    flaechen.pad === 2 && flaechen.coach <= 1 && flaechen.tabs === 5 && flaechen.hubTabs === 4,
+  check('Gestaltungsregel 1 haelt: zwei Flaechen unter der Kopfzeile, EIN Coach-Einstieg im Heute-Tab, kein fuenfter Tab und keine sechste Hub-Kachel — der Berichtstermin hat keine eigene Flaeche bekommen',
+    flaechen.pad === 2 && flaechen.coach <= 1 && flaechen.tabs === 5 &&
+    flaechen.hubKacheln === 5 && flaechen.hubTabs === 0,
     JSON.stringify(flaechen));
 
   /* ── 16) Beleg: Screenshot der Coach-Einstellungen mit dem Termin ───────── */
-  const shot = await hubAuf('settings');
+  const shot = await hubAuf('scope');
   try {
     await ev(() => { const b = document.getElementById('ch-body'); if (b) b.scrollTop = b.scrollHeight; });
     await wait(250);

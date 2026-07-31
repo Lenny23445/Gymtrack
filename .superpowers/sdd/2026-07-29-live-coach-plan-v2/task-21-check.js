@@ -187,14 +187,17 @@ const BOOTSTATE = (o) => {
   return { NOW: NOW, sessions: S.sessions.length };
 };
 
-// Text des Wochen-Reiters, sichtbar wie beim Nutzer.
+/* Text der Wochen-KACHEL, sichtbar wie beim Nutzer. Seit dem Hub-Umbau stehen
+   alle fuenf Kacheln gleichzeitig im DOM — gemessen wird deshalb #ch-card-week
+   statt des ganzen Blattes, sonst faerbten Journal, Gespraech und Umfang das
+   Ergebnis. */
 const HUBTEXT = () => {
-  const el = document.getElementById('ch-body');
+  const el = document.getElementById('ch-card-week');
   return {
     text: (el ? el.textContent : '').replace(/\s+/g, ' ').trim(),
     html: el ? el.innerHTML : '',
     zeilen: el ? [...el.querySelectorAll('.ch-jrn, .ch-row')].map(x => (x.textContent || '').replace(/\s+/g, ' ').trim()) : [],
-    tab: (typeof _chTab === 'string') ? _chTab : null,
+    tab: (typeof _chOpen === 'string') ? _chOpen : null,
     offen: !!(document.getElementById('ov-coach-hub') || {}).classList &&
            document.getElementById('ov-coach-hub').classList.contains('on')
   };
@@ -221,12 +224,12 @@ const HUBTEXT = () => {
     await wait(1500);
     return await ev(BOOTSTATE, opt || {});
   };
-  // Hub oeffnen und ueber eine ECHTE Zeigerfolge auf "Woche" wechseln.
+  // Hub oeffnen und ueber eine ECHTE Zeigerfolge die Kachel "Woche" aufklappen.
   const hubWoche = async () => {
     await ev(() => { try { openCoachHub('chat'); } catch (_) {} });
-    await wait(250);
-    try { await page.click('#ch-tab-report'); } catch (_) {}
-    await wait(300);
+    await wait(450);
+    try { await page.click('#ch-h-week'); } catch (_) {}
+    await wait(700);
     return O(await ev(HUBTEXT));
   };
   let r;
@@ -482,11 +485,12 @@ const HUBTEXT = () => {
     await new Promise(res => setTimeout(res, 700));
     const ov = document.getElementById('ov-coach-hub');
     return { listener: cbs.length, vorher: vorher, nachher: (S.coachReports || []).length,
-             offen: !!(ov && ov.classList.contains('on')), tab: _chTab,
-             body: (document.getElementById('ch-body') || {}).textContent || '' };
+             offen: !!(ov && ov.classList.contains('on')), tab: _chOpen,
+             aufgeklappt: !!(document.getElementById('ch-card-week') || { classList: { contains: () => false } }).classList.contains('on'),
+             body: (document.getElementById('ch-card-week') || {}).textContent || '' };
   }));
-  check('Bericht-Meldung antippen: ein Listener auf localNotificationActionPerformed ist verdrahtet, _crBuild() wird nachgeholt und der Hub oeffnet auf "Woche"',
-    r.listener >= 1 && r.offen === true && r.tab === 'report' &&
+  check('Bericht-Meldung antippen: ein Listener auf localNotificationActionPerformed ist verdrahtet, _crBuild() wird nachgeholt und der Hub oeffnet mit AUFGEKLAPPTER Kachel "Woche"',
+    r.listener >= 1 && r.offen === true && r.tab === 'week' && r.aufgeklappt === true &&
     r.vorher === 0 && r.nachher === 1 && /Einheiten/.test(r.body || ''),
     JSON.stringify({ listener: r.listener, offen: r.offen, tab: r.tab,
                      vorher: r.vorher, nachher: r.nachher }).slice(0, 400));
@@ -544,7 +548,7 @@ const HUBTEXT = () => {
   }));
   const hubXss = await hubWoche();
   const xss = O(await ev(() => ({ xss: window.__xss,
-    imgs: (document.getElementById('ch-body') || document.createElement('div')).querySelectorAll('img').length })));
+    imgs: (document.getElementById('ch-card-week') || document.createElement('div')).querySelectorAll('img').length })));
   check('Uebungsname mit Markup erscheint als TEXT, nicht als Markup (esc() vor innerHTML) — kein onerror laeuft, weder im Ausblick noch bei den Bestwerten',
     xss.xss === 0 && xss.imgs === 0 && !/<img/i.test(hubXss.html || '') &&
     /<img src=x onerror/.test(hubXss.text || ''),
@@ -564,20 +568,25 @@ const HUBTEXT = () => {
   }));
   const nachFlaechen = O(await ev(async () => {
     await _crBuild();
+    // Einmal oeffnen, damit die Kacheln gezeichnet sind und gezaehlt werden
+    // koennen — danach wieder zu, gemessen wird der Heute-Tab.
+    try { openCoachHub('week'); } catch (_) {}
+    const hubKacheln = document.querySelectorAll('#ch-body .ch-card').length;
+    const hubTabs = document.querySelectorAll('.ch-tabs, .ch-tab').length;
     try { closeOv('ov-coach-hub'); } catch (_) {}
     try { renderHome(); } catch (_) {}
-    return { pad: document.querySelectorAll('#heute-pad > div').length,
+    return { hubKacheln, hubTabs,
+             pad: document.querySelectorAll('#heute-pad > div').length,
              grid: document.querySelectorAll('#heute-grid > *').length,
              coach: document.querySelectorAll('#coach-today-card .aic').length,
              cr: document.querySelectorAll('#pg-heute [id^="cr-"], #pg-heute [class*="cr-"]').length,
-             tabs: document.querySelectorAll('.tabbar .tab').length,
-             hubTabs: document.querySelectorAll('.ch-tabs .ch-tab').length };
+             tabs: document.querySelectorAll('.tabbar .tab').length };
   }));
-  check('Heute-Tab hat nach dem Bericht genauso viele Flaechen wie vorher: zwei Flaechen unter der Kopfzeile, EIN Coach-Einstieg, kein fuenfter Tab, kein fuenfter Hub-Reiter',
+  check('Heute-Tab hat nach dem Bericht genauso viele Flaechen wie vorher: zwei Flaechen unter der Kopfzeile, EIN Coach-Einstieg, kein fuenfter Tab, keine sechste Hub-Kachel',
     vorFlaechen.pad === 2 && nachFlaechen.pad === 2 &&
     vorFlaechen.grid === nachFlaechen.grid && vorFlaechen.coach === nachFlaechen.coach &&
     vorFlaechen.coach <= 1 && nachFlaechen.cr === 0 && vorFlaechen.cr === 0 &&
-    nachFlaechen.tabs === 5 && nachFlaechen.hubTabs === 4,
+    nachFlaechen.tabs === 5 && nachFlaechen.hubTabs === 0 && nachFlaechen.hubKacheln === 5,
     JSON.stringify({ vorFlaechen, nachFlaechen }));
 
   // ── 19) Beleg: Screenshot des Wochen-Reiters ─────────────────────────────
@@ -599,7 +608,7 @@ const HUBTEXT = () => {
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const a = src.indexOf('/* ── Woche: der Wochenbericht (Block 5, Task 21)');
-    const b = src.indexOf('// ── Einstellungen ─', a > 0 ? a : 0);
+    const b = src.indexOf('// ── Bausteine der Kacheln', a > 0 ? a : 0);
     const block = a > 0 && b > a ? src.slice(a, b) : '';
     const code = ohneKommentar(block);
     check('Statisch: der Task-21-Block nutzt persist() und nirgends save(); die Woche laeuft nur ueber CoachAnalyze.isoWeekKey — getWeekKey() (Altformat) wird nicht gemischt',
@@ -625,7 +634,7 @@ const HUBTEXT = () => {
     const rulesJetzt = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8');
     const rulesHead  = gitZeigen('firestore.rules');
     const a = src.indexOf('/* ── Woche: der Wochenbericht (Block 5, Task 21)');
-    const b = src.indexOf('// ── Einstellungen ─', a > 0 ? a : 0);
+    const b = src.indexOf('// ── Bausteine der Kacheln', a > 0 ? a : 0);
     const code = ohneKommentar(a > 0 && b > a ? src.slice(a, b) : '');
     check('Statisch: S.coachReports steht NICHT im Cloud-Payload, firestore.rules unveraendert, kein fetch und kein zweiter Endpunkt im Block, kein Netzaufruf im Modul',
       payload.length > 500 && !/coachReports|coachReportAt/.test(payload) &&

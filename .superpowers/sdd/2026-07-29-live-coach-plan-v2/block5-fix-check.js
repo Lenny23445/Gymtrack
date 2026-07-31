@@ -225,7 +225,7 @@ const KONTO_A = (uid) => {
   S.coachReportAt = { day: 2, hour: 21 };
   S.coachLog = [{ ts: NOW, kind:'deload', exId:'ex0', accepted:false }];
   try { _coachMicroLast = 'brust'; } catch (_) {}
-  try { _chTab = 'report'; } catch (_) {}
+  try { _chOpen = 'week'; } catch (_) {}
 
   _aicHist = [{ role:'user', content:'Ich habe Knieprobleme' }, { role:'assistant', content:'Verstanden, Konto-A-Antwort.' }];
   localStorage.setItem('gt_aiChat', JSON.stringify(_aicHist));
@@ -260,7 +260,7 @@ const ZUSTAND = () => {
     eigene: (window.__cnPending || []).filter(n => Number(n.id) >= 47000 && Number(n.id) <= 47999).length,
     name: (function () { try { return _coachName(); } catch (_) { return 'ERR'; } })(),
     aiCoach: S.aiCoach ? JSON.parse(JSON.stringify(S.aiCoach)) : null,
-    tab: (typeof _chTab === 'string') ? _chTab : null,
+    tab: (typeof _chOpen === 'string') ? _chOpen : null,
     micro: (typeof _coachMicroLast === 'undefined') ? 'undefined' : _coachMicroLast,
     planPending: (typeof _aicPlanPending === 'undefined') ? 'undefined' : _aicPlanPending,
     aiaActions: (typeof _aiaActions === 'undefined') ? 'undefined' : (_aiaActions || []).length,
@@ -483,7 +483,7 @@ const ZUSTAND = () => {
     JSON.stringify({ actions: w3.aiaActions, scope: w3.aiaScope, body: (w3.aiaBody || '').slice(0, 160) }));
 
   /* ══ M3 / M4 — die zwei ungedeckten Zeilen der Raeumung ════════════════ */
-  check('M3 — Konto A stand im Hub auf "Woche": nach dem Wechsel steht _chTab wieder auf "chat". Ohne diese Zeile landet Konto B direkt in fremden Zahlen statt im Chat',
+  check('M3 — Konto A stand im Hub auf der Kachel "Woche": nach dem Wechsel steht _chOpen wieder auf "chat". Ohne diese Zeile landet Konto B direkt in fremden Zahlen statt im Gespraech',
     w3.tab === 'chat',
     JSON.stringify({ tab: w3.tab }));
   check('M4 — _coachMicroLast ist nach dem Wechsel null (Konto A hatte "brust" gesetzt): die Laufzeitspur des Erzaehlbogens ueberlebt die Trennung nicht',
@@ -499,13 +499,13 @@ const ZUSTAND = () => {
       numbers: { workouts:2, sets:9, vol:5000, prevVol:4000, volDelta:1000, prs:[], streak:1, muscles:{} },
       text: '<img src=x onerror="window.__xss=1">Guter Lauf.' }];
     persist();
-    openCoachHub('report');
+    openCoachHub('week');
     await new Promise(r => setTimeout(r, 250));
-    const body = document.getElementById('ch-body');
+    const body = document.getElementById('ch-card-week');
     return { html: body ? body.innerHTML : '', text: body ? body.textContent : '',
              bilder: body ? body.querySelectorAll('img').length : -1, xss: window.__xss };
   }));
-  check('M1 — der Modelltext im Reiter "Woche" geht durch esc(): ein <img src=x onerror=...> aus dem Bericht landet als TEXT im Blatt, erzeugt kein Element und fuehrt nichts aus (der Text kommt vom Modell und traegt den Trainingskontext — eine Prompt-Injection darf hier nicht landen)',
+  check('M1 — der Modelltext in der Kachel "Woche" geht durch esc(): ein <img src=x onerror=...> aus dem Bericht landet als TEXT im Blatt, erzeugt kein Element und fuehrt nichts aus (der Text kommt vom Modell und traegt den Trainingskontext — eine Prompt-Injection darf hier nicht landen)',
     m1.xss === 0 && m1.bilder === 0 &&
     /&lt;img/.test(m1.html || '') && /<img src=x onerror/.test(m1.text || ''),
     JSON.stringify({ xss: m1.xss, bilder: m1.bilder, html: (m1.html || '').slice(0, 200) }));
