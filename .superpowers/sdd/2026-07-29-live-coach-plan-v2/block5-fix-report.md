@@ -8,7 +8,7 @@ in der `hasOnly`-Liste.
 
 ## Der neue Prüflauf
 
-`block5-fix-check.js` (Port 8802), 27 Prüfungen, gebaut wie die übrigen Suiten:
+`block5-fix-check.js` (Port 8802), 28 Prüfungen, gebaut wie die übrigen Suiten:
 statischer Node-Server, Chromium über Puppeteer, LocalNotifications- und
 Firebase-Doppel. Neu gegenüber `task-22-check.js`:
 
@@ -28,11 +28,12 @@ Läufe:
 
 | Lauf | Ergebnis |
 | --- | --- |
-| **Rot** (`--root=` auf den Stand vor der Änderung) | **8/27** |
-| **Grün** (Arbeitsstand) | **27/27** |
+| **Rot** (`--root=` auf den Stand vor der Änderung) | **9/28** |
+| **Grün** (Arbeitsstand) | **28/28** |
 
-Die acht roten Treffer sind die vier Mutations-Checks (M1–M4, sie halten
-bestehendes, korrektes Verhalten fest — sie *müssen* vorher grün sein), die
+Die neun roten Treffer sind die vier Mutations-Checks (M1–M4, sie halten
+bestehendes, korrektes Verhalten fest — sie *müssen* vorher grün sein), das
+zweite C1-Zeitfenster (2200 ms, ebenfalls schon vorher unauffällig), die
 C1-Gegenprobe, die Reihenfolge-Gegenprobe der Persona, „kein zweiter
 Schreibpfad" und „APP_VERSION unangetastet".
 
@@ -64,10 +65,19 @@ Umgesetzt:
 2. **`_coachGen`** — ein Zähler, den `_coachWipeLocal()` als allererstes und
    außerhalb von `schritt()` hochzählt (er muss auch dann steigen, wenn gleich
    ein Schritt wirft). `_cnSyncRun()` merkt sich seinen Stand beim Start und
-   prüft ihn an **drei** Stellen: vor `S.coachPush = {…}`, vor `LN.schedule()`
-   und nach `LN.schedule()`. Bei den beiden letzten wird der bereits
-   geschriebene Zustand wieder auf `null` gesetzt und gesichert; die eben
-   geplanten Termine räumt der Drop ab, der über die Kette dahinter steht.
+   prüft ihn **unmittelbar vor jedem Schreibzugriff**, ohne `await` dazwischen:
+   vor `S.coachPush = {…}`, vor `LN.schedule()` und vor dem Fortschreiben des
+   Plans. Die eben geplanten Termine räumt der Drop ab, der über die Kette
+   dahinter steht.
+   Dazu ein `finally`, das den Ausgang zur Zusicherung macht: *kehrt dieser Lauf
+   zurück und hat sich das Konto unterwegs geändert, ist `S.coachPush` leer.*
+   Ehrlich gesagt ist das heute **Gürtel und Hosenträger** — hinter dem letzten
+   Riegel schreibt der Lauf nichts mehr, und die synchrone Null der Räumung
+   gewinnt. Es steht trotzdem da, weil die Zusicherung sonst an der Abwesenheit
+   einer Zeile hängt: eine später eingefügte Zeile hinter dem letzten `await`
+   wäre das Leck sofort wieder. Nachgewiesen wird der Block **statisch**; eine
+   Mutation, die ihn wirkungslos macht, tötet die statische Prüfung
+   (27/28), die dynamische erwartungsgemäß nicht.
 
 Der Zähler ist bewusst **konto-weit** benannt und nicht meldungs-eigen: derselbe
 Zähler kappt `_crBuildRun()` (siehe Minor 1), dessen Modellaufruf ein genauso

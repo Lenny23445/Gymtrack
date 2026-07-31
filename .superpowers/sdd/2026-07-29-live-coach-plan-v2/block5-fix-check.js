@@ -323,12 +323,15 @@ const ZUSTAND = () => {
     c1.eigene === 0 && Array.isArray(c1.pending) && c1.pending.indexOf(2500) >= 0,
     JSON.stringify({ pending: c1.pending, eigene: c1.eigene }));
 
-  /* Dasselbe, aber der Wechsel faellt SPAETER: 2200 ms nach dem Anstoss haengt
-     der Lauf nicht mehr im Abbestellen, sondern im abschliessenden
-     scheduleWorkoutNotifications() — hinter seinem letzten Schreibzugriff. Die
-     drei Riegel im Ablauf greifen dort nicht mehr; nur der finally-Block tut
-     es. Ohne ihn stuende S.coachPush danach wieder mit den Zaehlern von Konto A
-     da, ohne dass irgendeine Zeile es gemerkt haette.                        */
+  /* Zweites Fenster, damit nicht nur EIN Zeitpunkt gemessen ist: 2200 ms nach
+     dem Anstoss haengt der Lauf nicht mehr im Abbestellen, sondern hinter
+     seinem letzten Schreibzugriff im abschliessenden
+     scheduleWorkoutNotifications(). Diese Lage war auch vor der Aenderung
+     unauffaellig (der Lauf schreibt danach nichts mehr, die synchrone Null der
+     Raeumung gewinnt) — die Pruefung haelt das fest, damit eine spaetere
+     Zeile hinter dem letzten Riegel nicht unbemerkt wieder eine wird. Der
+     finally-Block in _cnSyncRun deckt genau diesen Fall ab; nachgewiesen wird
+     er statisch, weil er sich hier bewusst NICHT beobachten laesst.          */
   await boot('uidA');
   await ev(() => {
     window.__lat = 400;
@@ -337,7 +340,7 @@ const ZUSTAND = () => {
   });
   await wait(6000);
   const c1b = O(await ev(ZUSTAND));
-  check('C1 — Kontowechsel 2200 ms nach _cnSync(), also NACH dem letzten Schreibzugriff des Laufs und mitten im abschliessenden scheduleWorkoutNotifications(): auch dieser Ausgang laesst S.coachPush geraeumt zurueck (und keinen 47xxx-Termin stehen)',
+  check('C1 — zweites Fenster: Kontowechsel 2200 ms nach _cnSync(), also hinter dem letzten Schreibzugriff des Laufs und mitten im abschliessenden scheduleWorkoutNotifications() — auch dieser Ausgang laesst S.coachPush geraeumt zurueck und keinen 47xxx-Termin stehen',
     c1b.zaehlerA === false && c1b.zaehlerAImSpeicher === false &&
     (c1b.push === null || !c1b.push.state) && c1b.eigene === 0,
     JSON.stringify({ push: c1b.push, gespeichert: c1b.gespeicherterPush, pending: c1b.pending }).slice(0, 700));
