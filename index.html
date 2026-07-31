@@ -7968,7 +7968,7 @@ const I18N_EN = {
   'Wenn du die App löschst, kannst du dich einfach wieder anmelden und alles ist da.':'If you delete the app, just sign in again and everything is back.',
   'Abmelden':'Sign out','Konto löschen':'Delete account',
   'Löscht dein Konto und alle Cloud-Daten unwiderruflich.':'Deletes your account and all cloud data irreversibly.',
-  'Wirklich abmelden? Deine lokalen Daten bleiben erhalten.':'Really sign out? Your local data will be kept.',
+  'Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und die Wochenberichte werden zurückgesetzt.':'Really sign out?\n\nYour workouts and exercises stay on this device. Your coach starts over for the next account: name, tone, session arc and the weekly reports are reset.',
   'Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.':'Permanently delete your account and all cloud data?\n\nYour workouts, exercises and settings in the cloud will be removed irreversibly. This can NOT be undone.',
   'Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?':'Final warning — your account will be deleted now. Continue?',
   'Zur Sicherheit musst du dich noch einmal anmelden. Danach wird dein Konto automatisch gelöscht.':'For security you need to sign in once more. Your account will then be deleted automatically.',
@@ -9113,11 +9113,22 @@ S.privacy = Object.assign({ gym:true, live:true, lastWk:true, stats:true, prs:fa
 // KI-Coach-Feature-Toggles (Premium) — bewusst geräte-lokal wie S.privacy, kein Cloud-Sync-Feld.
 // preset fehlt hier absichtlich: solange es undefined ist, holt der Hub die
 // Einrichtung nach. 'custom' und 'quiet' sind gültige Werte und lösen sie nicht aus.
-S.aiCoach = Object.assign({
+/* EINE Quelle für die Voreinstellung (Task 22): der Start hier UND die
+   Datentrennung beim Kontowechsel (_coachWipeLocal) setzen dieselben Werte.
+   Zwei getrennte Listen liefen beim ersten neuen Feld auseinander — und ein
+   Feld, das die Trennung vergisst, trägt den Coach des vorigen Kontos weiter.
+   Die Fabrik gibt jedes Mal ein FRISCHES Objekt: eine geteilte Referenz würde
+   beim ersten setAiCoachOpt() die Voreinstellung selbst umschreiben. */
+const COACH_PERSONA_DEFAULTS = Object.freeze({
   live:true, insights:true,
   name:'', tone:'sachlich', voice:null, voiceOn:true,
   inTraining:'key', setFeedback:true, pushLevel:'normal'
-}, S.aiCoach || {});
+});
+function _coachPersonaDefaults(){ return Object.assign({}, COACH_PERSONA_DEFAULTS); }
+// Termin des Wochenberichts, ebenfalls als Fabrik: die Zeilen unten schreiben
+// day/hour direkt auf das Objekt.
+function _coachReportAtDefault(){ return { day:0, hour:18 }; }
+S.aiCoach = Object.assign(_coachPersonaDefaults(), S.aiCoach || {});
 // Ungültige Werte aus älteren oder fremden Ständen normalisieren. _persona() tut
 // das beim LESEN, die Felder selbst blieben bisher krumm — wer S.aiCoach direkt
 // anfasst (die Invariante darunter, der live-Schalter, _coachPresetMatches),
@@ -9158,7 +9169,7 @@ if (!Array.isArray(S.coachPush.plan)) S.coachPush.plan = [];
    Beide Felder werden hier normalisiert, nicht erst beim Lesen: ein krummer
    Wert aus einem älteren Stand ergäbe sonst einen Termin, der nie eintritt. */
 if (!Array.isArray(S.coachReports)) S.coachReports = [];
-if (!S.coachReportAt || typeof S.coachReportAt !== 'object' || Array.isArray(S.coachReportAt)) S.coachReportAt = { day:0, hour:18 };
+if (!S.coachReportAt || typeof S.coachReportAt !== 'object' || Array.isArray(S.coachReportAt)) S.coachReportAt = _coachReportAtDefault();
 S.coachReportAt.day  = (Math.floor(Number(S.coachReportAt.day))  >= 0 && Math.floor(Number(S.coachReportAt.day))  <= 6)  ? Math.floor(Number(S.coachReportAt.day))  : 0;
 S.coachReportAt.hour = (Math.floor(Number(S.coachReportAt.hour)) >= 0 && Math.floor(Number(S.coachReportAt.hour)) <= 23) ? Math.floor(Number(S.coachReportAt.hour)) : 18;
 
@@ -26588,6 +26599,64 @@ async function coachHubAskPerm(){
     try { _coachOptRender(); } catch(_) {}
   } catch(e) { console.warn('[Coach] Berechtigung im Hub:', e); }
 }
+/* Termin des Wochenberichts — die EINZIGE Bedienflaeche fuer S.coachReportAt.
+   Sie steht im Hub und nicht im Heute-Tab: dort gibt es genau EINEN Einstieg
+   zum Coach (Gestaltungsregel 1), und ein zweiter waere ein zweiter Ort fuer
+   dieselbe Sache. Zwei Chip-Reihen statt eines Zeitfeldes, weil diese App
+   nirgends ein <select> oder <input type="time"> kennt (kein neues Bedienmuster
+   fuer eine Zeile) und der Wert ohnehin nur volle Stunden zulaesst — ein
+   Zeitfeld verspraeche Minuten, die stillschweigend abgeschnitten wuerden.
+   Die Zeile darunter zeigt den fertigen Satz aus DERSELBEN Quelle, die auch
+   den Termin plant (_crTerminText -> S.coachReportAt). */
+const _CH_STUNDEN = (() => { const a = []; for (let h = 0; h < 24; h++) a.push(h); return a; })();
+function _chReportAtHTML(){
+  try {
+    const at  = (S.coachReportAt && typeof S.coachReportAt === 'object') ? S.coachReportAt : {};
+    let tag = Math.floor(Number(at.day));  if (!(tag >= 0 && tag <= 6))  tag = 0;
+    let std = Math.floor(Number(at.hour)); if (!(std >= 0 && std <= 23)) std = 18;
+    const tage = (_lang() === 'en' ? CR_TAGE_EN : CR_TAGE_DE);
+    const tagChips = tage.map((n, i) =>
+      `<button type="button" class="pwz-chip${i === tag ? ' on' : ''}" aria-label="${esc(n)}"
+        onclick="coachHubSetReportAt('day',${i})">${esc(String(n).slice(0, 2))}</button>`).join('');
+    const stdChips = _CH_STUNDEN.map(h =>
+      `<button type="button" class="pwz-chip${h === std ? ' on' : ''}"
+        onclick="coachHubSetReportAt('hour',${h})">${h}</button>`).join('');
+    return `<div class="ch-sec">${esc(_cm('Wochenbericht', 'Weekly report'))}<i>${esc(_cm(
+        'Wann dein Coach die Woche zusammenfasst. Volle Stunde, Ortszeit.',
+        'When your coach sums up the week. Full hour, local time.'))}</i></div>
+      <div class="ch-row"><span>${esc(_cm('Tag', 'Day'))}</span></div>
+      <div class="ch-row">${tagChips}</div>
+      <div class="ch-row"><span>${esc(_cm('Uhrzeit', 'Time'))}</span></div>
+      <div class="ch-row">${stdChips}</div>
+      <div class="ch-jrn ghost"><span>${esc(_cm('Der Bericht kommt ' + _crTerminText() + '.',
+                                                'The report arrives ' + _crTerminText() + '.'))}</span></div>`;
+  } catch(e) { console.warn('[Coach] Berichtstermin zeichnen:', e); return ''; }
+}
+/* Der einzige Schreibweg fuer S.coachReportAt. Bewusst NICHT ueber
+   setAiCoachOpt(): das Feld liegt nicht in S.aiCoach, und der Umweg dorthin
+   kippte das Umfangs-Profil auf 'custom'. Nach der Aenderung wird sofort neu
+   geplant — sonst laege der Termin bis zum naechsten App-Start noch auf der
+   alten Stunde. _cnSync() bewusst nicht awaited: ein Chip ist ein Tipp, kein
+   Dialog. Geschrieben wird mit persist(). */
+function coachHubSetReportAt(feld, wert){
+  try {
+    const n = Math.floor(Number(wert));
+    if (feld === 'day') { if (!(n >= 0 && n <= 6)) return; }
+    else if (feld === 'hour') { if (!(n >= 0 && n <= 23)) return; }
+    else return;
+    if (!S.coachReportAt || typeof S.coachReportAt !== 'object' || Array.isArray(S.coachReportAt)) {
+      S.coachReportAt = _coachReportAtDefault();
+    }
+    S.coachReportAt[feld] = n;
+    persist();
+    try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
+    _coachOptRender();
+    try { _cnSync(); } catch(e2) { console.warn('[Coach] Berichtstermin planen:', e2); }
+  } catch(e) {
+    console.warn('[Coach] Berichtstermin:', e);
+    try { _coachOptRender(); } catch(_) {}
+  }
+}
 function _chSettingsHTML(){
   const p = _persona();
   const parts = [];
@@ -26632,6 +26701,10 @@ function _chSettingsHTML(){
   if (p.preset === 'custom') parts.push(
     `<button type="button" class="ch-preset on" disabled>
       <b>${esc(tr('Angepasst'))}</b><span>${esc(tr('Deine eigene Mischung aus der Feinjustierung.'))}</span></button>`);
+  // Termin des Wochenberichts. Steht NICHT in der Feinjustierung: der
+  // Blockabschluss verspricht "Die Uhrzeit kannst du selbst festlegen", und ein
+  // Versprechen gehoert nicht hinter eine zugeklappte Klappe.
+  parts.push(_chReportAtHTML());
   // Feinjustierung: zugeklappt, weil die vier Einzelschalter die Ausnahme sind.
   parts.push(`<details><summary>${esc(tr('Feinjustierung'))}</summary>
     <div class="ch-sec">${esc(tr('Live-Coach im Training'))}</div>
@@ -27393,6 +27466,155 @@ async function _dossierPull(uid){
     }
   } catch(e) { console.warn('[Coach] Dossier-Pull fehlgeschlagen:', (e && e.code) || ''); }
 }
+/* ══ DATENTRENNUNG (Task 22): was der Kontowechsel mitnimmt ════════════════
+   Der Coach sammelt inzwischen Persoenliches: den Namen, den er traegt, den
+   Erzaehlbogen der laufenden Einheit, die Meldungs-Zaehler und die Zahlen der
+   letzten acht Wochen. Nichts davon darf in die naechste Sitzung durchsickern
+   — ein Coach, der das neue Konto mit dem Namen des vorigen begruesst oder
+   dessen Einschraenkung zitiert, ist ein Vertrauensbruch, der sich nicht
+   reparieren laesst.
+
+   Was hier NICHT steht und warum:
+   - Das DOSSIER. Es liegt uid-gekoppelt in localStorage und wird vom Aufrufer
+     (_coachHandleAuthUser) gezielt fuer die ALTE uid geraeumt, sobald der
+     letzte Push bestaetigt war. Pauschal loeschen wuerde eine gerade
+     eingetragene, nie gepushte Einschraenkung verlieren — und beim Rueckweg
+     auf Konto A holt _dossierPull() den Stand ohnehin aus der Cloud.
+   - S.sessions/S.exercises. Die Trainingsdaten bleiben auf dem Geraet; genau
+     das verspricht die Rueckfrage beim Abmelden.
+
+   Reihenfolge und Bauart:
+   - JEDER Schritt einzeln in try/catch. Ein Fehler darf weder den
+     Kontowechsel noch den App-Start abbrechen — aber eine Trennung, die still
+     fehlschlaegt, ist schlimmer als ein sichtbarer Fehler. Darum sammelt
+     schritt() jeden Fehlschlag, die Funktion gibt die Liste zurueck, und der
+     Aufrufer meldet sie laut (console.error + Hinweis auf dem Bildschirm).
+   - Geschrieben wird mit persist(). Die Kurzform ohne Praefix existiert in
+     dieser Datei NICHT, wuerde einen ReferenceError werfen und im try/catch
+     STILL sterben — der Zustand des vorigen Kontos ueberlebte dann den
+     naechsten Start.
+   - Die geplanten Meldungen (47000-47999) raeumt _coachDropOwnNotifs() ab.
+     Das ist der einzige asynchrone Teil und laeuft bewusst NEBEN dem
+     Kontowechsel: der Abmelde-Pfad ist synchron und wartet auf nichts.       */
+function _coachWipeLocal(){
+  const fehler = [];
+  const schritt = (name, fn) => { try { fn(); } catch(e) { fehler.push(name + ': ' + ((e && e.message) || e)); } };
+
+  // 1. Persona zurueck auf die Voreinstellung. preset fehlt in der Fabrik und
+  //    bleibt damit undefined: das naechste Konto durchlaeuft die Einrichtung
+  //    neu und entscheidet selbst ueber den Umfang.
+  schritt('Persona', () => { S.aiCoach = _coachPersonaDefaults(); });
+
+  // 2. Erzaehlbogen der laufenden Einheit — das Feld UND jede Laufzeitspur.
+  //    Ohne die Laufzeitvariablen zaehlte der Bogen des vorigen Kontos im
+  //    naechsten Training weiter (Obergrenze, angesagte Uebungen, Bilanzzeile).
+  schritt('Erzaehlbogen', () => {
+    S.coachSession = null;
+    if (_csSaveTmr) { clearTimeout(_csSaveTmr); _csSaveTmr = null; }
+    _csLastExId = null; _csSeenEx = null; _csSeenSets = null;
+    _csSeqAt = 0; _csRestPlan = 0; _csSaveTs = 0; _csFinalLine = ''; _csLastSetTs = 0;
+    // _rpeClear(false) nimmt die Rueckfrage-Chips vom Bildschirm; die
+    // gesammelten Antworten gehen NICHT mehr ins Dossier (_rpeFlushTrend
+    // bleibt bewusst aus): der Schreibweg zeigte auf die uid des vorigen
+    // Kontos und wuerde das gerade geraeumte Dossier neu anlegen.
+    try { _rpeClear(false); } catch(_) {}
+    _rpeAnswers = [];
+    _coachState = _coachDefaultState();
+    try { _coachClearCard(); } catch(_) { _coachCard = null; }
+    try { Object.keys(_coachEvalTimers || {}).forEach(k => clearTimeout(_coachEvalTimers[k])); } catch(_) {}
+    _coachEvalTimers = {};
+    if (_coachBarMsgTimer) { clearTimeout(_coachBarMsgTimer); _coachBarMsgTimer = null; }
+    _coachBarState  = { mode:'idle', msg:'' };
+    _coachMicroLast = null;
+  });
+
+  // 3. Meldungs-Zustand. Der Plan wird VOR dem Nullen gerettet: er ist die
+  //    zweite Quelle fuer _cnCancelOwn(), falls getPending() nichts liefert.
+  let altPlan = [];
+  schritt('Meldungen', () => {
+    altPlan = (S.coachPush && Array.isArray(S.coachPush.plan)) ? S.coachPush.plan.slice() : [];
+    S.coachPush = null;
+  });
+
+  // 4. Wochenberichte und Termin. Die Berichte tragen die Zahlen des vorigen
+  //    Kontos — Volumen, Saetze, Bestwerte.
+  schritt('Wochenberichte', () => {
+    S.coachReports  = [];
+    S.coachReportAt = _coachReportAtDefault();
+  });
+
+  // 5. Aktions-Log. Stand bis Task 22 direkt in _coachHandleAuthUser; es
+  //    gehoert an dieselbe Stelle wie der uebrige Zustand. Enthaelt nur
+  //    {ts,kind,exId,accepted} — keine Gesundheitsdaten, aber Konto A's
+  //    Dismiss-Historie throttelte sonst den Live-Coach von Konto B, und
+  //    Konto A's muted-Liste ginge unter Konto B an den /coach-Payload raus.
+  schritt('Aktions-Log', () => { S.coachLog = []; });
+
+  // 6. Chatverlauf. Liegt nicht in S, sondern unter gt_aiChat.
+  schritt('Chatverlauf', () => { _aicHist = []; localStorage.removeItem('gt_aiChat'); });
+
+  // 7. Kontingent-Anzeige. Der gemerkte Stand gehoert dem vorigen Konto; ohne
+  //    das Raeumen zeigte das Radialmenue dessen Restanfragen, bis der naechste
+  //    /quota-Aufruf durch ist.
+  schritt('Kontingent', () => { _aiQuotaTs = 0; localStorage.removeItem('gt_aiQuota'); });
+
+  // 8. Oberflaeche auf Anfang: der Hub darf nicht auf "Woche" stehen bleiben.
+  schritt('Hub', () => { _chTab = 'chat'; _chResetScroll = true; });
+
+  // 9. Schreiben. persist(), nicht save().
+  schritt('persist', () => { persist(); });
+
+  // 10. Bild nachziehen — die Heute-Karte traegt den Coach-Namen.
+  schritt('Rendern', () => { _coachOptRender(); });
+
+  // 11. Geplante Meldungen. Asynchron, blockiert nichts.
+  try { _coachDropOwnNotifs(altPlan); }
+  catch(e) { fehler.push('Meldungen abbestellen: ' + ((e && e.message) || e)); }
+
+  if (fehler.length) _coachWipeFailed(fehler);
+  return fehler;
+}
+
+/* Geplante Meldungen des vorigen Kontos verwerfen. Gefiltert wird strikt auf
+   47000-47999 ueber _cnCancelOwn() — ein pauschales cancel() raeumte den
+   Pausen-Timer (2500) mit ab. Danach EINMAL scheduleWorkoutNotifications():
+   S.coachPush steht auf null, der Coach besitzt die Trainings-Erinnerung also
+   nicht mehr, und die generische Planung (1000-1999) holt sich ihren Platz
+   zurueck — sofern der Schalter dafuer ueberhaupt an ist.
+
+   Nachgesehen statt geglaubt: _cnCancelOwn() schluckt jeden Fehler selbst.
+   Bleibt danach auch nur EIN 47xxx-Termin stehen, meldet sich der Coach des
+   Vorbesitzers auf dem Sperrbildschirm des neuen Kontos — das muss laut sein. */
+function _coachDropOwnNotifs(altPlan){
+  return (async () => {
+    const LN = _cap('LocalNotifications');
+    if (!LN) return { ok:true, rest:0 };            // Web-PWA: kein Zustellweg
+    await _cnCancelOwn(LN, altPlan || []);
+    try { await scheduleWorkoutNotifications(); } catch(_) {}
+    const pend = await LN.getPending().catch(() => null);
+    if (!pend) return { ok:false, rest:-1 };
+    const rest = (((pend && pend.notifications) || []))
+      .filter(n => Number(n && n.id) >= CN_ID_BASE && Number(n && n.id) <= CN_ID_MAX).length;
+    if (rest > 0) _coachWipeFailed(['Meldungen: ' + rest + ' Termin(e) im Bereich 47000-47999 stehen noch']);
+    return { ok: rest === 0, rest: rest };
+  })().catch(e => {
+    _coachWipeFailed(['Meldungen abbestellen: ' + ((e && e.message) || e)]);
+    return { ok:false, rest:-1 };
+  });
+}
+
+/* Ein Scheitern der Trennung bleibt nicht unbemerkt: in die Konsole als
+   FEHLER (nicht als Warnung — der Rest der Datei nutzt console.warn fuer
+   Erwartbares) und einmal sichtbar auf den Bildschirm. Der Hinweis nennt die
+   einzige Handlung, die hilft, und keine Einzelheit des vorigen Kontos.       */
+function _coachWipeFailed(fehler){
+  try { console.error('[Coach] Datentrennung unvollstaendig:', (fehler || []).join(' | ')); } catch(_) {}
+  try {
+    _dndToast(_cm('Der Coach konnte nicht vollständig zurückgesetzt werden — bitte die App neu starten.',
+                  'The coach could not be reset completely — please restart the app.'));
+  } catch(_) {}
+}
+
 // Kontowechsel-Erkennung fuer den Coach: NICHT nur an onAuthStateChanged
 // haengen (Review Fix 4) — Apple/Google natives Sign-In ruft _onLogin(user)
 // direkt auf, WEIL onAuthStateChanged in der WKWebView nicht zuverlaessig
@@ -27404,15 +27626,10 @@ function _coachHandleAuthUser(user){
   try {
     const neu = (user && !user.isAnonymous) ? user.uid : null;
     if (_coachLastUid !== undefined && _coachLastUid !== neu) {
-      _aicHist = []; localStorage.removeItem('gt_aiChat');
-      // S.coachLog ueberlebt Abmelden bewusst (liegt in S, nicht im uid-
-      // gebundenen Dossier-Speicher) — bei einem echten Kontowechsel auf dem
-      // gleichen Geraet muss es trotzdem geleert werden: sonst throttelt
-      // Konto A's Dismiss-Historie den Live-Coach von Konto B, und Konto A's
-      // muted-Liste (welche Vorschlagstypen unterdrueckt werden) geht unter
-      // Konto B's Session an den /coach-Payload raus. Enthaelt nur
-      // {ts,kind,exId,accepted} — keine Gesundheitsdaten, reine Korrektheit.
-      S.coachLog = [];
+      // Der gesamte NICHT uid-gebundene Coach-Zustand an EINER Stelle
+      // (Task 22): Persona, Erzaehlbogen, Meldungen, Wochenberichte,
+      // Aktions-Log, Chatverlauf. Das uid-gebundene Dossier bleibt unten.
+      _coachWipeLocal();
       // Ausstehenden Debounce-Timer kappen: er darf nie unter einem fremden
       // Konto feuern (Review Kritisch 1). _dossierPush prueft die uid beim
       // Feuern zwar zusaetzlich, aber der Timer soll erst gar nicht mehr
@@ -30398,7 +30615,12 @@ async function doAppleSignIn() {
 
 async function doSignOut() {
   if (!window.FB || !window.FB.configured || !_fbUser) return;
-  if (!confirm('Wirklich abmelden? Deine lokalen Daten bleiben erhalten.')) return;
+  /* Der Satz nennt seit Task 22 BEIDES: was bleibt und was geht. Die alte
+     Fassung ("Deine lokalen Daten bleiben erhalten") war nach der
+     Datentrennung nur noch halb wahr — und die fehlende Haelfte ist die
+     ueberraschende. tr() greift jetzt ebenfalls; vorher stand der Satz auch
+     fuer englische Nutzer auf Deutsch da. */
+  if (!confirm(tr('Wirklich abmelden?\n\nDeine Trainings und Übungen bleiben auf diesem Gerät. Dein Coach beginnt für das nächste Konto von vorn: Name, Ton, Erzählbogen und die Wochenberichte werden zurückgesetzt.'))) return;
   // Push-Token dieses Geräts aus dem Profil löschen — sonst bleibt er im Konto
   // stehen und der nächste Account, der sich auf DIESEM Gerät anmeldet, bekommt
   // fälschlich Flammen-Push-Benachrichtigungen für Posts des alten Kontos.
