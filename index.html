@@ -5195,16 +5195,11 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ov-coach-hub .sheet{height:min(78vh,var(--sheet-cap));display:flex;flex-direction:column;
   overflow:hidden;padding-bottom:0}
 #ov-coach-hub .sheet>.px{flex:1;min-height:0;display:flex;flex-direction:column}
-/* ZWEI SPALTEN statt einer Liste. Fünf Kacheln untereinander waren fünf
-   Absätze für fünf Fragen; als Raster sieht der Nutzer alle auf einen Blick.
-   align-content:start, sonst zöge der Scroller die Reihen auseinander, sobald
-   der Inhalt kürzer ist als die Fläche. */
+/* #ch-body ist NUR der Scroller. Darin liegen zwei Ebenen übereinander
+   (.ch-stage): das Raster der fünf Kacheln und die Detailebene. Immer genau
+   eine davon ist sichtbar — deshalb kann sich beim Öffnen nichts umbauen. */
 #ch-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  padding-bottom:calc(100px + var(--sab));
-  /* align-items bleibt auf stretch: so sind die Kacheln einer Reihe gleich
-     hoch, auch wenn eine Kennzahl umbricht und die andere nicht. Die Höhe der
-     Reihe kommt trotzdem aus dem Inhalt. */
-  display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px}
+  padding-bottom:calc(100px + var(--sab))}
 
 /* Kopf trägt denselben Orb wie die Heute-Karte: der Hub soll sichtbar dasselbe
    Objekt sein wie die Karte, die ihn öffnet, und kein fremdes Menü. Der Name
@@ -5216,107 +5211,129 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .ch-head-t{flex:1;min-width:0}
 .ch-head-t i{display:block;font-style:normal;font-size:11.5px;font-weight:650;color:var(--text2);
   margin-top:1px;letter-spacing:-.1px}
+/* Zurück-Pfeil. Er steht auf dem Platz des Orbs, nicht daneben: der Kopf darf
+   beim Wechsel zwischen Raster und Detail nicht seine Breite ändern, sonst
+   rutscht der Coach-Name bei jedem Tipp um 30 px. Das [hidden] braucht die
+   eigene Regel, weil display:grid das Attribut sonst überstimmt. */
+.ch-back{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;
+  padding:0;border:none;background:none;color:var(--acc);cursor:pointer;line-height:0;
+  transform:rotate(90deg)}
+.ch-back[hidden]{display:none}
+.ch-back:active{opacity:.55}
 
-/* ── Die fünf Kacheln ────────────────────────────────────────────────────
-   Ein Tipp klappt an Ort und Stelle auf, kein Ebenenwechsel: der Nutzer wollte
-   wörtlich "alles auf einem Beleg".
-   Bausteine sind die der .ch-jrn-Zeile (getöntes Glas + 1px --gl-bdr) mit dem
-   Radius der .ch-preset-Karte — nichts Neues, nur größer gefasst. Damit ist auch
-   der seit Task 10 geparkte Gestaltungsregel-7-Verstoß erledigt: das Segmented
-   Control (.ch-tabs/.ch-tab) war ein Bedienidiom, das die App sonst nirgends
-   hat, und stand im selben Blatt gegen die .pwz-chip-Reihen. Es entfällt
-   ersatzlos. */
-.ch-card{position:relative;overflow:hidden;border-radius:15px;margin:0;
-  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
-/* Zwei Spalten über flex-wrap und NICHT über CSS-Grid: als Rasterzelle müsste
-   der Browser die Höhe der Kachel vorab bestimmen, und dabei fällt der
-   Aufklapp-Übergang (grid-template-rows: 0fr → 1fr) im Inneren auf null
-   zusammen — die offene Kachel bliebe so hoch wie die zugeklappte und
-   schnitte ihren Inhalt ab. Nachgemessen, nicht vermutet. */
-.ch-card{flex:0 0 calc(50% - 5px);max-width:calc(50% - 5px)}
-/* Die offene Kachel spannt über beide Spalten; die anderen rücken nach und
-   BLEIBEN sichtbar — "alles auf einem Beleg". */
-.ch-card.on{flex-basis:100%;max-width:100%}
-/* Fünf Kacheln in zwei Spalten lassen eine allein in der letzten Reihe. Sie
-   bekommt die volle Breite: eine halbe Kachel neben einer leeren Zelle wäre
-   das einzige Loch im sonst dichten Raster, und ein Loch liest sich als
-   "hier fehlt etwas". Die Regel greift allgemein bei ungerader Anzahl. */
-.ch-card:last-child:nth-child(odd){flex-basis:100%;max-width:100%}
-/* Träger für die FLIP-Gegenskalierung: die Kachel selbst wird beim Wechsel
-   zwischen einer und zwei Spalten verzerrt animiert, dieser Knoten hebt die
-   Verzerrung für den Inhalt exakt wieder auf. */
-.ch-card-i{transform-origin:top left}
+/* ── Das Raster der fünf Kacheln ─────────────────────────────────────────
+   VORHER: die getippte Kachel spannte über beide Spalten auf, alle anderen
+   rutschten dadurch in andere Spalten, und ein FLIP-Griff musste den Sprung
+   nachträglich weichzeichnen. Dazu sprang der Kachelkopf von Spalten- auf
+   Zeilenlayout (flex-direction ist nicht übergangsfähig) und 300 ms später
+   scrollte das Blatt nach. Drei Bewegungen übereinander — das war das
+   "Verdrängen".
+   JETZT: das Raster steht still. Es ist ein Menü, kein Akkordeon. Ein Tipp
+   zoomt aus der Kachel in ihre Detailebene (eine Kurve, 300 ms), der
+   Zurück-Pfeil im Kopf zoomt zurück. Nichts rückt nach, weil nie zwei Zustände
+   im selben Fluss liegen.
+
+   Aufbau der Kachel — bewusst die Bauform der Zahlenblöcke der App
+   (.wk-mini-l/.mus-stat-l): kleines Großbuchstaben-Label oben, darunter auf
+   FESTER Höhe eine Trennlinie, darunter der Wert. Weil die Kopfzeile in jeder
+   Kachel gleich hoch ist, liegen die fünf Trennlinien auf einer Linie — das
+   Raster liest sich als Raster und nicht als fünf Einzelkarten.
+   Die Akzentfarbe trägt genau EIN Element je Kachel (das Symbol). Vorher lag
+   sie gleichzeitig auf Symbolrahmen, Symbol, Kennzahl, Titel und Winkel und
+   sagte damit nichts mehr. */
+.ch-stage{position:relative}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-content:start}
+/* Gespräch steht über die volle Breite. Fünf Kacheln in zwei Spalten lassen
+   eine allein — und das soll die sein, die man tatsächlich benutzt, nicht die
+   letzte, die zufällig übrig bleibt. Darunter ein glattes 2×2-Feld. */
+.ch-tile.hero{grid-column:1 / -1}
+.ch-tile{position:relative;display:flex;flex-direction:column;align-items:stretch;
+  min-height:106px;box-sizing:border-box;margin:0;padding:12px 13px;
+  border-radius:15px;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
+  color:var(--text);font-family:inherit;text-align:left;cursor:pointer;overflow:hidden;
+  transition:transform .16s cubic-bezier(.22,.61,.36,1),background .16s linear}
+.ch-tile.hero{min-height:88px}
+.ch-tile:active{transform:scale(.975);background:rgba(127,127,127,.07)}
 /* Haarlinie oben — derselbe Baustein wie .ch-jrn::after und .ch-preset::after. */
-.ch-card::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
+.ch-tile::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
-/* Lichtstreifen beim Öffnen: EINMAL, nicht wiederholt. Dieselben Keyframes
-   (coachSweep) wie die Coach-Leiste und die .aic-Karte. */
-.ch-card::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;pointer-events:none;opacity:0;
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent);
-  transform:translateX(-170%)}
-/* Zugeklappt ein annähernd quadratisches Feld: Symbol, Titel, Kennzahl
-   untereinander. Die Zeilenform von früher passt in eine halbe Spalte nicht
-   mehr — und eine abgeschnittene Zahl ist schlimmer als keine. */
-.ch-card-h{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;
-  width:100%;min-height:112px;box-sizing:border-box;
-  padding:12px 12px 11px;background:none;border:none;color:var(--text);font-family:inherit;
-  text-align:left;cursor:pointer}
-.ch-card-h:active{background:rgba(127,127,127,.06)}
-.ch-card-ico{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;flex-shrink:0;
-  color:var(--acc);background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.20);
-  margin-bottom:2px}
-.ch-card-t{font-size:13.5px;font-weight:800;letter-spacing:-.2px;line-height:1.25;
-  overflow-wrap:anywhere}
-/* Die Kennzahl ist das Einzige, was die zugeklappte Kachel sagt. Sie BRICHT UM
-   statt abzuschneiden: "Alexandragabriel · Sachlich" oder ein Wochenvolumen
-   mit Pfeil und Prozent passen in eine halbe Spalte nicht in eine Zeile. */
-.ch-card-m{margin-top:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;
-  font-size:12px;font-weight:700;color:var(--acc);letter-spacing:-.1px;line-height:1.3}
-/* Der Winkel sitzt oben rechts in der Ecke — in der Spaltenform gibt es keine
-   Zeile mehr, an deren Ende er stehen könnte. */
-.ch-card-c{position:absolute;top:11px;right:10px;display:block;color:var(--text2);
-  transition:transform .26s cubic-bezier(.22,.61,.36,1)}
-.ch-card.on .ch-card-c{transform:rotate(180deg);color:var(--acc)}
-.ch-card.on .ch-card-t{color:var(--acc)}
-/* Offen ist die Kachel voll breit — dann steht der Kopf wieder als Zeile, sonst
-   klebte der Inhalt unter einem hohen, halb leeren Kasten. */
-.ch-card.on .ch-card-h{flex-direction:row;align-items:center;gap:10px;min-height:0;padding:12px 14px 10px}
-.ch-card.on .ch-card-ico{margin-bottom:0}
-.ch-card.on .ch-card-t{flex:1;min-width:0}
-.ch-card.on .ch-card-m{margin-top:0;max-width:46%;text-align:right}
-.ch-card.on .ch-card-c{position:static;margin-left:2px}
-/* Aufklappen über grid-template-rows 0fr -> 1fr. NICHT über max-height: das
-   rastet bei unbekannter Inhaltshöhe (ein zu kleiner Wert schneidet ab, ein zu
-   großer macht die Kurve unbrauchbar). */
-.ch-card-w{display:grid;grid-template-rows:0fr;
-  transition:grid-template-rows .26s cubic-bezier(.22,.61,.36,1)}
-.ch-card.on .ch-card-w{grid-template-rows:1fr}
-/* visibility statt display: der Übergang braucht den Inhalt im Layout, der
-   zugeklappte Zustand darf ihn aber weder in die Tab-Reihenfolge noch in die
-   Vorlesehilfe lassen. Die Sichtbarkeit springt erst NACH dem Zulaufen. */
-.ch-card-b{min-height:0;overflow:hidden;visibility:hidden;
-  transition:visibility 0s linear .26s}
-.ch-card.on .ch-card-b{visibility:visible;transition-delay:0s}
-.ch-card-b>.ch-in{padding:0 14px 13px}
-.ch-card-b .ch-sec:first-child{margin-top:2px}
+/* Feste Höhe: sie ist es, die die Trennlinien aller Kacheln auf eine Linie legt. */
+.ch-tile-top{display:flex;align-items:flex-start;gap:8px;height:19px}
+.ch-tile-l{flex:1;min-width:0;font-size:10px;font-weight:800;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--text2);line-height:1.4;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-tile-i{flex:0 0 auto;display:block;color:var(--acc);opacity:.9;line-height:0}
+/* Die Linie läuft bis an beide Kachelränder (negative Ränder heben die
+   Polsterung auf) — eine Linie, die vor dem Rand aufhört, wirkt wie ein
+   Versehen. */
+.ch-tile-r{display:block;height:1px;margin:8px -13px 0;background:var(--sep);opacity:.75}
+/* Der Wert ist die eigentliche Aussage der Kachel, also trägt er das Gewicht.
+   tabular-nums, damit Volumen und Prozente in beiden Spalten auf derselben
+   Ziffernbreite stehen. Lange Werte ("noch kein Gespräch") sind Sätze und
+   bekommen die kleinere Stufe — s. _chTileHTML. */
+.ch-tile-v{margin-top:auto;padding-top:9px;font-size:16.5px;font-weight:800;
+  letter-spacing:-.35px;line-height:1.2;color:var(--text);
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ch-tile.hero .ch-tile-v{font-size:19px}
+.ch-tile-v.lang{font-size:13.5px;font-weight:700;letter-spacing:-.15px;color:var(--text2)}
+
+/* ── Die Detailebene ─────────────────────────────────────────────────────
+   Genau EIN Panel liegt im DOM. Vorher standen alle fünf Inhalte gleichzeitig
+   da (nur einer sichtbar), weil das Akkordeon sie im Layout brauchte; mit der
+   Zoom-Ebene ist das unnötig — und die Wochendiagramme entstehen ohnehin nur
+   für die offene Kachel. Der Titel der Kachel steht im Blattkopf, deshalb hat
+   das Panel keine eigene Kopfzeile mehr. */
+.ch-panel{position:relative;border-radius:15px;overflow:hidden;
+  background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}
+.ch-panel::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
+.ch-panel>.ch-in{padding:13px 14px 14px}
+.ch-panel .ch-sec:first-child{margin-top:2px}
+
+/* ── Der Wechsel: eine Bewegung, zwei Ebenen ─────────────────────────────
+   Die abgehende Ebene liegt währenddessen ABSOLUT über der Bühne (.ch-lift),
+   sonst schöbe sie die ankommende nach unten und der Sprung wäre zurück.
+   Der Ursprung beider Skalierungen ist die Mitte der GETIPPTEN Kachel (JS setzt
+   transform-origin) — dadurch wächst das Detail sichtbar aus ihr heraus,
+   statt aus dem Bildmittelpunkt.
+   Beim Hinein fliegt das Raster nach vorn an der Kamera vorbei (.ch-zout) und
+   das Detail kommt von hinten (.ch-zin); beim Zurück genau umgekehrt. */
+.ch-grid,.ch-pane{transform-origin:50% 32%;
+  transition:opacity .18s linear,transform .3s cubic-bezier(.22,.61,.36,1)}
+.ch-stage[data-v="grid"] .ch-pane{display:none}
+.ch-stage[data-v="det"] .ch-grid{display:none}
+/* Während des Wechsels sind BEIDE Ebenen da. Gleiche Spezifität wie die beiden
+   Regeln darüber, steht deshalb bewusst danach. */
+.ch-stage.x .ch-grid{display:grid}
+.ch-stage.x .ch-pane{display:block}
+.ch-stage.x .ch-lift{position:absolute;left:0;right:0;top:0;pointer-events:none}
+.ch-zin{opacity:0;transform:scale(.93)}
+.ch-zout{opacity:0;transform:scale(1.06)}
 @media (prefers-reduced-motion:no-preference){
-  .ch-card.flash::after{animation:coachSweep .95s cubic-bezier(.4,0,.2,1)}
   /* Inhalt blendet ein und hebt sich 8 px, je Element 40 ms versetzt, höchstens
      fünf Stufen. Bewusst OHNE fill-mode: der Ruhezustand ist sichtbar, damit
      eine Engine, die die Animation gar nicht startet (Paint-Throttling,
      Snapshot-Renderer), keine leere Fläche hinterlässt — dieselbe Begründung
-     wie bei .aic.in. */
-  .ch-card.on .ch-card-b>.ch-in>*{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
-  .ch-card.on .ch-card-b>.ch-in>:nth-child(2){animation-delay:.04s}
-  .ch-card.on .ch-card-b>.ch-in>:nth-child(3){animation-delay:.08s}
-  .ch-card.on .ch-card-b>.ch-in>:nth-child(4){animation-delay:.12s}
-  .ch-card.on .ch-card-b>.ch-in>:nth-child(n+5){animation-delay:.16s}
+     wie bei .aic.in.
+     Die Klasse .anim setzt NUR der Zoom und nimmt sie danach wieder ab: ohne
+     sie liefe die Staffelung bei jedem Schalter im Panel erneut, weil
+     _coachOptRender() den Body neu baut. */
+  .ch-pane.anim>.ch-panel>.ch-in>*{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
+  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(2){animation-delay:.04s}
+  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(3){animation-delay:.08s}
+  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(4){animation-delay:.12s}
+  .ch-pane.anim>.ch-panel>.ch-in>:nth-child(n+5){animation-delay:.16s}
+  .ch-grid.anim>.ch-tile{animation:chRow .26s cubic-bezier(.22,.61,.36,1)}
+  .ch-grid.anim>.ch-tile:nth-child(2){animation-delay:.03s}
+  .ch-grid.anim>.ch-tile:nth-child(3){animation-delay:.06s}
+  .ch-grid.anim>.ch-tile:nth-child(4){animation-delay:.09s}
+  .ch-grid.anim>.ch-tile:nth-child(n+5){animation-delay:.12s}
 }
 @keyframes chRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-/* Alle Übergänge auf 0 ms — nicht nur der Aufklapp-Übergang. */
+/* Alle Übergänge auf 0 ms — der Zoom entfällt dann ganz (s. _chZoom). */
 @media (prefers-reduced-motion:reduce){
-  .ch-card,.ch-card-w,.ch-card-b,.ch-card-c{transition-duration:0s!important;transition-delay:0s!important}
-  .ch-card::after,.ch-card.flash::after,.ch-card .ch-card-b>.ch-in>*{animation:none!important}
+  .ch-grid,.ch-pane,.ch-tile{transition-duration:0s!important;transition-delay:0s!important}
+  .ch-grid>.ch-tile,.ch-pane>.ch-panel>.ch-in>*{animation:none!important}
 }
 
 /* ── Wochenkachel: Kennzahlen, Diagramme, Kraftziel ──────────────────────
@@ -7666,7 +7683,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
+    <div class="sh-head ch-head"><button type="button" class="ch-back" id="ch-back" onclick="coachHubBack()" aria-label="Zurück" hidden></button><span class="aic-orb" id="ch-orb" aria-hidden="true"></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
       <div id="ch-body"></div>
     </div>
@@ -26339,17 +26356,22 @@ function setCoachPreset(name){
 // nichts. Mit den Reitern verschwindet zugleich der seit Task 10 geparkte
 // Gestaltungsregel-7-Verstoß: das Segmented Control war ein Bedienidiom, das
 // die App sonst nirgends hat.
+// kurz ist das Label IM RASTER, de der Titel im Blattkopf der Detailebene.
+// "Umfang und Meldungen" passt als Großbuchstaben-Label in keine halbe Spalte
+// und stünde dort abgeschnitten — der volle Titel steht dafür im Kopf, sobald
+// die Kachel offen ist. Nur diese eine Kachel braucht die Kurzform.
 const _CH_CARDS = [
   { k:'chat',    de:'Gespräch',             ico:'chatBubble' },
   { k:'week',    de:'Woche',                ico:'chart2' },
   { k:'persona', de:'Persönlichkeit',       ico:'sparkle' },
-  { k:'scope',   de:'Umfang und Meldungen', ico:'gear' },
+  { k:'scope',   de:'Umfang und Meldungen', ico:'gear', kurz:'Umfang' },
   { k:'journal', de:'Journal',              ico:'book' }
 ];
 const _CH_CARD_IDS = _CH_CARDS.map(c => c.k);
-// Welche Kachel offen ist. '' heißt: keine — ein gültiger Zustand. Wird beim
-// Kontowechsel zurückgesetzt (s. _coachWipeLocal, Schritt "Hub").
-let _chOpen = 'chat';
+// Welche Kachel offen ist. '' heißt: keine, also das Raster — der Normalfall
+// beim Öffnen des Blattes. Wird beim Kontowechsel zurückgesetzt
+// (s. _coachWipeLocal, Schritt "Hub").
+let _chOpen = '';
 // Wird von openCoachHub() gesetzt und von renderCoachHub() verbraucht: NUR das
 // Öffnen des Blattes setzt die Scrollposition zurück. Jeder andere Rerender
 // (Schalter über _coachOptRender()) lässt sie, wo sie ist — sonst nimmt ein
@@ -26378,7 +26400,11 @@ function openCoachHub(tab){
     const frisch = !S.aiCoach || S.aiCoach.preset === undefined;
     if (frisch && isPremium() && typeof openCoachSetup === 'function') { openCoachSetup(); return; }
   } catch(e) { console.warn('[Coach] Hub-Weiche:', e); }
-  _chOpen = _CH_CARD_IDS.indexOf(tab) >= 0 ? tab : 'chat';
+  // Ohne Argument öffnet das RASTER, nicht eine Kachel: die Coach-Karte auf der
+  // Startseite führt in den Hub, nicht direkt in den Chat. Ein ausdrücklich
+  // übergebener Schlüssel (Meldung → 'week', Einrichtung → 'scope') springt
+  // dagegen weiterhin sofort in die Detailebene.
+  _chOpen = _CH_CARD_IDS.indexOf(tab) >= 0 ? tab : '';
   _chResetScroll = true;
   // Die Zieleingabe ist ein Zwischenschritt, kein Zustand: sie steht beim
   // Öffnen des Blattes nie halb offen da.
