@@ -5808,32 +5808,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes coachEq{0%,100%{height:4px;opacity:.5}45%{height:13px;opacity:1}}
 .coach-bar-lbl{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.3px}
 .coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
-/* Sprech-Knopf: das EINZIGE Bedienelement des Coaches im Training, und er haengt
-   IN der Leiste (Gestaltungsregel 2). Rot pulsierend waehrend der Aufnahme —
-   dieselbe Sprache wie .aic-mic.rec im Chat, damit "hoert zu" ueberall gleich
-   aussieht. */
-.coach-bar-mic{margin-left:6px;flex-shrink:0;width:30px;height:30px;border-radius:10px;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-  background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.34);color:var(--acc);
-  transition:background-color .15s,border-color .15s,color .15s}
-.coach-bar-mic.rec{background:rgba(255,69,58,.10);border-color:#ff453a;color:#ff453a}
-@media (prefers-reduced-motion:no-preference){ .coach-bar-mic.rec{animation:micPulse 1.1s ease-in-out infinite} }
-/* Hör-Zustand: waehrend der Aufnahme zeigt die GANZE Leiste "nimmt auf" —
-   Equalizer schneller und rot wie der Aufnahme-Knopf, darunter das Live-
-   Transkript mit tippendem Cursor. Dieselbe Farbsprache wie .aic-mic.rec. */
-.coach-bar.listen{border-color:rgba(255,69,58,.55);box-shadow:0 6px 26px rgba(255,69,58,.20)}
-.coach-bar.listen .coach-bar-eq i{background:#ff453a}
-@media (prefers-reduced-motion:no-preference){
-  .coach-bar.listen .coach-bar-eq i{animation-duration:.45s}
-}
-/* Live-Transkript: bewusst NICHT .coach-bar-msg — deren Einblende-Animation
-   (coachMsgIn) wuerde bei jedem Zwischenstand neu anlaufen und flackern. */
-.coach-bar-tx{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
-.coach-bar-tx.hint{color:var(--text2)}
-.coach-bar-tx::after{content:'';display:inline-block;width:2px;height:1em;margin-left:3px;
-  vertical-align:-2px;background:#ff453a;border-radius:1px}
-@media (prefers-reduced-motion:no-preference){ .coach-bar-tx::after{animation:coachCaret 1s steps(1) infinite} }
-@keyframes coachCaret{50%{opacity:0}}
+/* Kein Sprech-Knopf in der Leiste: Fragen an den Coach laufen ueber den
+   KI-Chat (Knopf unten rechts), nicht ueber ein zweites Mikrofon im Training.
+   Die Leiste ist reine ANZEIGE — Reaktion auf den Satz, Pausenhinweis,
+   Satz-Rueckfrage. Sie hat bewusst kein Bedienelement. */
 /* Stimmenliste der Einrichtung: hoechstens acht Eintraege, deshalb Umbruch statt
    Scrollbahn — eine waagerechte Bahn versteckt die Haelfte der Wahl. */
 .ch-voices{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
