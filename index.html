@@ -24145,8 +24145,10 @@ async function _cpgEnrichProfiles(items){
    dekodierte Bild ohnehin, Decode lag bei 0,3 ms. Es geht hier um Speicher.)
    Die Blob-URLs werden bei _cpgReload wieder freigegeben. */
 let _cpgBlobs = new Map();
+const _CPG_BLOB = false;   // MESSUNG: Blob-Wandlung aus
 function _cpgImgSrc(it){
   if (!it || !it.img) return '';
+  if (!_CPG_BLOB) return it.img;
   if (it.img.slice(0, 5) !== 'data:') return it.img;      // schon Blob-/http-URL
   const key = it.uid + '/' + it.id;
   const known = _cpgBlobs.get(key);
