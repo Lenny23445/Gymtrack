@@ -5751,7 +5751,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .coach-bar{
   position:relative;overflow:hidden;isolation:isolate;
   margin:0 0 10px;padding:10px 13px;border-radius:16px;
-  background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--gl-bg-h);
+  /* Deckender Grund GANZ unten: die Leiste klebt in #wk-sticky beim Scrollen
+     ueber der Uebungskarte. Mit rein glasigem Hintergrund las man den
+     Uebungsnamen durch die Leiste hindurch — das sah nach Fehler aus. */
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--gl-bg-h),
+             linear-gradient(var(--card),var(--card));
   border:1px solid rgba(var(--acc-rgb),.32);
   box-shadow:0 4px 18px rgba(var(--acc-rgb),.13);
   transition:border-color .35s,box-shadow .35s;
@@ -5776,7 +5780,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes coachAuraDrift{0%,100%{transform:translateX(-12%)}50%{transform:translateX(30%)}}
 @keyframes coachSweep{0%{transform:translateX(-170%);opacity:1}100%{transform:translateX(330%);opacity:0}}
 @keyframes coachMsgIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
-[data-glass="off"] .coach-bar{background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--inp-bg)}
+[data-glass="off"] .coach-bar{background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.07) 62%),var(--inp-bg),linear-gradient(var(--card),var(--card))}
 .coach-bar-head{position:relative;display:flex;align-items:center;gap:8px}
 /* Equalizer statt statischem Punkt: drei atmende Balken lesen sich als "hört zu",
    ein Blink-Punkt eher als Statuslampe. */
@@ -19218,7 +19222,7 @@ function _flameFillSVG(s){ s=s||20; return `<svg viewBox="0 0 24 24" width="${s}
 const FOUNDER_UID = 'GMm3AlNn1pVRL6cc76opBgnM9sr1';
 // Zusaetzliche Tester-UIDs (siehe ai-worker/worker.js, gleiche Liste) - kommen wie
 // Founder ueberall ohne Abo durch, inkl. echter KI-Antworten (Worker prueft dieselbe UID).
-const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1']);
+const TEST_UIDS = new Set([FOUNDER_UID, 'wbOGsL3zsyb1ylzEXPhgpqWdeOg1', 'QnDsSAFJqQPoe5QiJ5fNXuGz7ET2']);
 function _founderBadge(){ return `<span class="founder-tag" title="Founder" aria-label="Founder">Founder</span>`; }
 function _founderTag(uid, s){ return uid === FOUNDER_UID ? _founderBadge(s) : ''; }
 // Moderator-Kennzeichnung: nur fürs Demo/Screenshot-Roster (kein echtes Rollen-System) —
