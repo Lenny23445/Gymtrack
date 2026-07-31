@@ -920,6 +920,20 @@ body{
    die Beta-Tester gemeldet haben. Das Sheet hat ohnehin einen echten Rahmen. */
 .sheet::before{display:none!important}
 
+/* ── FOKUS-MODUS IM TRAINING ──
+   Einrasten: proximity, nie mandatory — hohe Karten (4+ Saetze) bleiben frei
+   durchscrollbar, Notizfeld und Finish-Button unten bleiben normal erreichbar.
+   Snap-Areas gibt es nur an .ex-card; Step 1 (Uebungswahl) hat keine → kein Effekt. */
+#ov-wk .sheet{scroll-snap-type:y proximity}
+#ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
+#log-cards .ex-card{scroll-snap-align:start;scroll-margin-top:12px;
+  transition:opacity .28s ease,transform .28s ease}
+/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten) */
+#log-cards.focus-on .ex-card.dimmed{opacity:.45;transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){
+  #log-cards .ex-card{transition:none;transform:none}
+}
+
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
 .tabbar{
   position:fixed;bottom:calc(6px + var(--sab));
@@ -14651,6 +14665,8 @@ function wkDragStart(e, li) {
   if (!log) return;
   const ex = exById(log.exerciseId);
   if (!ex) return;
+  const _sheetEl = document.querySelector('#ov-wk .sheet');
+  if (_sheetEl) _sheetEl.classList.add('snap-off');
   _wkDndLi = li;
 
   _wkDndGhost = document.createElement('div');
@@ -14697,6 +14713,8 @@ function _wkDndOnEnd(e) {
   document.removeEventListener('touchend',  _wkDndOnEnd);
   document.removeEventListener('mousemove', _wkDndOnMove);
   document.removeEventListener('mouseup',   _wkDndOnEnd);
+  const _sheetEl = document.querySelector('#ov-wk .sheet');
+  if (_sheetEl) _sheetEl.classList.remove('snap-off');
   _dndAutoScrollStop();
   if (_wkDndGhost) { _wkDndGhost.remove(); _wkDndGhost = null; }
   document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
@@ -18240,6 +18258,50 @@ function _restoreActiveWk() {
   try { _csResume(); } catch(e) { console.warn('[Coach] Wiederaufnahme:', e); }
 }
 
+/* ── Fokus-Modus: welche Uebung ist "dran"? ──
+   _wkFocusLi lebt hier im Modul, weil renderLogCards() #log-cards bei jedem
+   Satz-Haken komplett per innerHTML ersetzt — die Klassen muessen beim Rendern
+   mitkommen (kein Nachpatchen → kein Flackern), der Observer wird danach neu
+   angebunden. Die Auswahl selbst (Geometrie, Superset-Einheit) rechnet
+   WorkoutFocus (js/workout-focus.js, unter node --test geprueft). */
+let _wkFocusLi = -1;
+let _wkFocusIO = null;
+
+function _wkFocusApply() {
+  const cards = document.querySelectorAll('#log-cards .ex-card');
+  const unit = (_wkFocusLi >= 0 && typeof WorkoutFocus !== 'undefined')
+    ? WorkoutFocus.focusUnitOf(wkLogs, _wkFocusLi) : [];
+  cards.forEach(c => {
+    const li = +c.dataset.li;
+    c.classList.toggle('dimmed', unit.length > 0 && !unit.includes(li));
+  });
+}
+
+function _wkFocusObserve() {
+  if (_wkFocusIO) { _wkFocusIO.disconnect(); _wkFocusIO = null; }
+  const wrap = document.getElementById('log-cards');
+  const sheet = document.querySelector('#ov-wk .sheet');
+  if (!wrap || !sheet || typeof WorkoutFocus === 'undefined') return;
+  const cards = wrap.querySelectorAll('.ex-card');
+  // Bei 0–1 Karten gibt es nichts zu fokussieren — nichts dimmen.
+  wrap.classList.toggle('focus-on', cards.length > 1);
+  if (cards.length < 2) { _wkFocusLi = -1; return; }
+  if (_wkFocusLi >= wkLogs.length) _wkFocusLi = -1;   // nach Entfernen/Umsortieren
+  _wkFocusIO = new IntersectionObserver(() => {
+    const sr = sheet.getBoundingClientRect();
+    const mid = sr.top + sr.height / 2;
+    const els = [...wrap.querySelectorAll('.ex-card')];
+    const rects = els.map(c => {
+      const r = c.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    });
+    const idx = WorkoutFocus.pickFocused(rects, mid);
+    const li = idx >= 0 ? +els[idx].dataset.li : -1;
+    if (li !== _wkFocusLi) { _wkFocusLi = li; _wkFocusApply(); }
+  }, { root: sheet, threshold: [0, .25, .5, .75, 1] });
+  cards.forEach(c => _wkFocusIO.observe(c));
+}
+
 function renderLogCards() {
   // Vorschlagskarte des Live-Coaches gehört zu einer bestimmten Übung — wenn die
   // (z. B. per Swipe) aus dem Training entfernt wurde, ist die Karte hinfällig.
@@ -18251,6 +18313,8 @@ function renderLogCards() {
     if (typeof isPremium === 'function' && isPremium() && _coachLevel() !== 'off')
       _auraLi = wkLogs.findIndex(l => (l.sets || []).some(s => !s.done));
   } catch(_) {}
+  const _fUnit = (_wkFocusLi >= 0 && _wkFocusLi < wkLogs.length && typeof WorkoutFocus !== 'undefined')
+    ? WorkoutFocus.focusUnitOf(wkLogs, _wkFocusLi) : [];
   document.getElementById('log-cards').innerHTML = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
@@ -18260,7 +18324,7 @@ function renderLogCards() {
     const ssLinked = !!log.ssGroup;
     const ssConnector = ssLinked && li > 0 && wkLogs[li-1].ssGroup === log.ssGroup
       ? '<div class="ss-connector"><span></span></div>' : '';
-    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}" data-li="${li}">
+    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}${_fUnit.length && !_fUnit.includes(li) ? ' dimmed' : ''}" data-li="${li}">
       <div class="ex-card-swipe-bg"><span>🗑 Entfernen</span></div>
       <div class="ex-head">
         <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
@@ -18314,6 +18378,7 @@ function renderLogCards() {
     </div>`;
   }).join('');
   _attachSwipeToDelete();
+  try { _wkFocusObserve(); } catch(_) {}
   _saveActiveWkSoon();
   try { _coachBarRender(); } catch(_) {}
   // "Uebung geoeffnet": die erste Uebung mit offenen Saetzen — dieselbe Uebung
@@ -18344,11 +18409,15 @@ function _attachSwipeToDelete() {
       startX = t.clientX; startY = t.clientY;
       dx = 0; active = true; decided = false; dir = null;
       card.classList.add('is-swiping');
+      const sheetEl = document.querySelector('#ov-wk .sheet');
+      if (sheetEl) sheetEl.classList.add('snap-off');
     };
     const _resetCard = () => {
       card.style.transform = '';
       if (bg) bg.classList.remove('on');
       card.classList.remove('is-swiping');
+      const sheetEl = document.querySelector('#ov-wk .sheet');
+      if (sheetEl) sheetEl.classList.remove('snap-off');
     };
     const onMove = (e) => {
       if (!active) return;
@@ -18377,12 +18446,19 @@ function _attachSwipeToDelete() {
       card.classList.remove('is-swiping');
       // Tab-Wechsel hat Vorrang → nicht löschen
       if (window._tabSwipeActive) { _resetCard(); return; }
-      if (dir !== 'h') { card.style.transform = ''; if (bg) bg.classList.remove('on'); return; }
+      if (dir !== 'h') {
+        card.style.transform = ''; if (bg) bg.classList.remove('on');
+        const sheetElV = document.querySelector('#ov-wk .sheet');
+        if (sheetElV) sheetElV.classList.remove('snap-off');
+        return;
+      }
       const cw = card.offsetWidth || 1;
       const li = parseInt(card.dataset.li);
       if (Math.abs(dx) > cw * 0.35 && !Number.isNaN(li)) {
         card.classList.add('swipe-removing');
         try { haptic([15, 30, 15]); } catch(_) {}
+        const sheetEl = document.querySelector('#ov-wk .sheet');
+        if (sheetEl) sheetEl.classList.remove('snap-off');
         setTimeout(() => {
           wkLogs.splice(li, 1);
           renderLogCards();
@@ -18390,6 +18466,8 @@ function _attachSwipeToDelete() {
       } else {
         card.style.transform = '';
         if (bg) bg.classList.remove('on');
+        const sheetElR = document.querySelector('#ov-wk .sheet');
+        if (sheetElR) sheetElR.classList.remove('snap-off');
       }
     };
 
