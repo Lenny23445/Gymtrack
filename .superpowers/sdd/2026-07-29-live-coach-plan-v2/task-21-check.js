@@ -302,8 +302,8 @@ const HUBTEXT = () => {
 
   // ── 4) Hub -> "Woche": Zahlen, Einordnung, Verteilung ────────────────────
   const hub = await hubWoche();
-  check('Hub -> "Woche" (echter Tipp auf den Reiter): Einordnung, die fuenf Zahlenzeilen und die Verteilung nach Muskelgruppen stehen da',
-    hub.tab === 'report' && hub.offen === true &&
+  check('Hub -> Kachel "Woche" (echter Tipp auf den Kachelkopf): Einordnung, die fuenf Zahlenzeilen und die Verteilung nach Muskelgruppen stehen da',
+    hub.tab === 'week' && hub.offen === true &&
     /Das Volumen liegt über der Vorwoche/.test(hub.text || '') &&
     /Einheiten/.test(hub.text || '') && /Sätze/.test(hub.text || '') &&
     /Volumen/.test(hub.text || '') && /Vorwoche/.test(hub.text || '') &&

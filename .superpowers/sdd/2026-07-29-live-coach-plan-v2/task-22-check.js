@@ -428,7 +428,7 @@ const HUBTEXT = () => {
      GESPEICHERTE Bericht von Konto A: seine Zahlen (4 Einheiten, 18 Saetze,
      12345 kg) und der Satz, den das Modell fuer Konto A geschrieben hat.     */
   check('Konto B, Hub -> "Woche": kein gespeicherter Bericht von Konto A mehr — weder die Zahlen (4 Einheiten, 18 Saetze, 12345 kg) noch der fuer Konto A geschriebene Satz; was dasteht, ist der frisch gerechnete Zwischenstand aus den lokalen Trainingsdaten',
-    bWoche.reports === 0 && bWocheHub.tab === 'report' &&
+    bWoche.reports === 0 && bWocheHub.tab === 'week' &&
     !/12345|12\.345/.test(bWocheHub.text || '') &&
     !/Vier Einheiten und 18 Sätze/.test(bWocheHub.text || '') &&
     /Einheiten1/.test((bWocheHub.text || '').replace(/\s+/g, '')) &&
