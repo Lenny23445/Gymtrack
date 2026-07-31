@@ -1,0 +1,196 @@
+% vom Arbeitsgewicht — gut dosiert.
+% über letzter Einheit.
+Alle Arbeitssätze am oberen Wiederholungsende,
+Alles im grünen Bereich
+Alles rausgeholt. Jetzt vollständig pausieren.
+Anmelden mit Apple\n\n
+Anstrengend bei niedriger Energie — ich habe die Vorschläge leicht gesenkt und die Pausen verlängert.
+App will restart shortly…
+App will restart shortly…
+Apple Sign In nicht verfügbar.\n_isNative:
+Apple: ⚠️ kein User — onAuthState-Fallback?
+Applying will replace your current weekly plan. Missing exercises are added to your library automatically.
+Applying will replace your current weekly plan. Missing exercises are added to your library automatically.
+Aufgewärmt. Jetzt sauber ins Arbeitsgewicht.
+Aufwärmsatz bei
+Aufwärmsatz notiert — Technik sitzt schon.
+Automatische Auswertung deiner Statistik — du siehst sofort, was wirkt.
+Beine schwer
+Bis zum Versagen — den Reiz hast du gesetzt.
+Block this user? Their posts will disappear from your feed.
+Block this user? Their posts will disappear from your feed.
+Block this user? They can no longer send you requests and will disappear from your list.
+Block this user? They can no longer send you requests and will disappear from your list.
+Bottom-Sheets lassen sich jetzt überall nach unten wegziehen — an der Kopfzeile und am Inhalt, nicht mehr nur am schmalen Griff
+Brust & Rücken
+Cancel workout? Entered data will be discarded.
+Cancel workout? Entered data will be discarded.
+Check-in war stark: größere Steigerung freigegeben.
+Choose which plates your gym has. The calculator will then only suggest plates you actually have.
+Choose which plates your gym has. The calculator will then only suggest plates you actually have.
+Das ist fast schon Arbeitsgewicht — nächster Satz zählt richtig.
+Datei konnte nicht gelesen werden!
+Daten wiederhergestellt! App wird neu geladen.
+Dein Coach kennt dein Training — Pläne, Technik und Fortschritt, jederzeit im Chat.
+Dein Plan
+Dein letzter Check-in passt zum Plan — normale Progression, normale Pausen.
+Dein letztes Training war sehr schwer. Gleiche Gewichte, etwas mehr Pause — sauber wiederholen schlägt heute jeden Sprung.
+Deine Muskulatur erholt sich noch. Ein ruhiger Tag zahlt sich morgen aus.
+Deine letzten sessions waren schwer bei wenig Energie. Ich nehme rund 8 % Gewicht raus und gebe dir längere Pausen.
+Deload aktiv: ~8 % weniger Gewicht, längere Pausen.
+Deload: ich habe die Vorschläge um ~8 % gesenkt und die Pausen verlängert.
+Die Beschriftungen in der Tab-Leiste kleben nicht mehr aneinander und werden nicht mehr abgeschnitten
+Du hast Luft nach oben
+Du hast die Übungen in diesem Training geändert.\n\nSoll
+Einheit im Kasten
+Einträge,
+Energie war niedrig: Vorschläge leicht gesenkt, Pausen länger.
+Energy was low: suggestions eased, rest extended.
+Englische App: Split-Erklärung, Erholungsliste, Gewichtsvorschläge und Community-Hinweise waren teilweise noch deutsch — durchgängig übersetzt
+Erholung geht heute vor
+Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, sobald wieder was bereit ist.
+Etwas zurückgenommen
+Feedback nach jedem Satz und passende Empfehlungen in Echtzeit.
+Final warning — your account will be deleted now. Continue?
+Final warning — your account will be deleted now. Continue?
+For security you need to sign in once more. Your account will then be deleted automatically.
+For security you need to sign in once more. Your account will then be deleted automatically.
+Gerät fotografieren — Übungen und Ausführung sofort erklärt.
+Gewicht halten
+Google-Login-Plugin nicht verfügbar.\nBitte die App neu starten.
+Google: ⚠️ kein User nach Login!
+Größere Steigerung ist freigegeben.
+Heute halten, nicht steigern
+Im Freundesprofil standen „Entfernen" und „Blockieren" beim Runterscrollen unter dem Rand — jetzt sind sie vollständig erreichbar
+KI bewertet Volumen, Balance und Technik-Trends mit klarem Score.
+Leicht gesenkt, Pausen etwas länger.
+Letzte Einheit als „Sehr schwer" bewertet — App setzt Progression aus und verlängert Pausen um 20 %.
+Letzte Einheit anstrengend bei niedriger Energie — App hat Gewichte um 4 % gesenkt.
+Letzte Einheit leicht bei hoher Energie — App gibt größere Steigerung frei und kürzt Pausen um 8 %.
+Letzte sessions mehrfach schwer bei niedriger Energie — App hat Gewichte um 8 % gesenkt und Pausen um 25 % verlängert.
+Letzter Check-in unauffällig — normale Progression.
+Letzter Satz steht — weiter zur nächsten Übung.
+Letztes Training locker bei voller Energie — ich gebe die größere Steigerung frei und kürze die Pausen leicht.
+Löschen fehlgeschlagen:\n
+Monats-Ranking — zählt workouts im
+März
+Nach deinem Check-in: Gewichte halten, Pausen etwas länger.
+Neue Reps-Bestleistung bei
+Permanently delete your account and all cloud data?\n\nYour workouts, exercises and settings in the cloud will be removed irreversibly. This can NOT be undone.
+Plan a training group or individual exercises per weekday. Repeats every week.
+Plan a training group or individual exercises per weekday. Repeats every week.
+Plan contains no existing exercises
+Plan contains no existing exercises
+Plan imported
+Plan imported
+Plan imported & exercise list cleaned up.
+Plan imported & exercise list cleaned up.
+Plan imported — you’ll find it in the Today tab.
+Plan imported — you’ll find it in the Today tab.
+Plan läuft
+Plan name
+Plan name
+Plan too large for a QR code – share single splits.
+Plan too large for a QR code – share single splits.
+Punkte → Level
+Really sign out? Your local data will be kept.
+Really sign out? Your local data will be kept.
+Recovery is running. I am watching your muscle groups and will speak up when something is ready.
+Reps-Bestleistung bei
+Simulator: mit deinem Founder-Konto anmelden, um KI-Funktionen zu testen.
+Tap the days you want to train this exercise — it will appear in your weekly plan.
+Tap the days you want to train this exercise — it will appear in your weekly plan.
+Training calendar
+Training day
+Training days
+Training days per week:
+Training days per week:
+Training experience
+Training frequency
+Training group
+Training plan templates
+Training plans
+Training plans
+Training suggestion based on your muscle group recovery
+Training suggestion based on your muscle group recovery
+Training time
+Training volume
+Training week · 7 days
+Training week·7 days
+Ungültige Backup-Datei!
+Warm genug. Ab jetzt Arbeitssätze.
+Weder ID- noch Access-Token erhalten
+Weiter mit
+Where am I unbalanced?
+Where am I unbalanced?
+Your current weekly plan will be replaced.
+Your current weekly plan will be replaced.
+Your current weekly plan will be replaced. Continue?
+Your current weekly plan will be replaced. Continue?
+Your last session was very hard. Same weights, a little more rest — a clean repeat beats any jump today.
+Your recent sessions were hard on low energy. I am taking about 8% off the weights and giving you longer rest.
+Ziel erreicht!
+\n\nPrüfe in der Firebase Console:\n• Firestore Database wurde angelegt\n• Firestore-Regeln erlauben dem User Schreibzugriff
+alle gleich ·
+alte Posts gelöscht
+b, -1 wenn a
+btn btn-acc heute-train-btn
+deine Muskulatur
+denkt nach…
+die Heute-Seite lädt gleich nach dem Start noch mal neu
+direkt im Split übernommen
+dran ist
+einer Übung, „Bestwert" dein bisher bester Satz. Die 1RM aller Übungen der Gruppe werden summiert.
+fertig — Volumen
+gesäß
+grün
+hoch und wieder runter ·
+holzfäll
+id_token abgelehnt + kein access_token
+in your browser and sign in there first with the same Google account — your data will then sync here automatically.
+in your browser and sign in there first with the same Google account — your data will then sync here automatically.
+ist dieselbe Bewegung wie
+kein code
+kein id_token
+klappt nicht
+liegestütz
+militär
+mittlerer-rücken
+nach zweimal Schließen
+nicht im users-Doc
+nicht immer da
+nicht settled
+oder „Push
+rückenstreck
+schräg
+schulterdrücken
+starte jetzt
+stehen bleiben — nach spätestens 8s den Zustand als „fest
+steigere jetzt
+steigere weiter
+und war ein PARSER-BLOCKER: der Browser kam erst nach dem Netz-Download des CDN-Skripts zum
+unterarmstütz
+wird global als „Muscle groups
+· heute
+· läuft ab am
+× pro Woche
+Über mich
+Übung abgeschlossen. Sauber durchgezogen.
+Übung „
+Übungen ·
+— Diagnose fertig —
+— bitte gelenkschonende Alternativen wählen
+— noch
+„vor 2 Stunden", „gestern" …
+✅ Data restored! The app will reload.
+✅ Data restored! The app will reload.
+✓ Plan applied:
+✓ Plan übernommen:
+📉 Check-in „Sehr schwer" bremst die Gewichtssteigerung beim nächsten Training automatisch
+🔄 Statistik-Modus-Switcher: Muskeln·PPL·Ober-Unter
+🔔 Beim Abmelden wird der Geräte-Push-Token jetzt aus dem Profil entfernt
+🔴 Roter Zähler am App-Icon verschwindet jetzt beim Öffnen der App zuverlässig
+🗂️ Training plan templates now include concrete exercises per day
+🗂️ Training plan templates now include concrete exercises per day
+🚫 Verhindert, dass ein neu angemeldeter Account auf demselben Gerät Push-Benachrichtigungen für Reaktionen auf Posts des alten Kontos bekommt
+＋ Plan
