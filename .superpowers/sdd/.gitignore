@@ -1,5 +1,1 @@
-# Pruefskripte, Ledger, Briefs und Berichte gehoeren ins Repo — ohne sie kann der
-# zweite Rechner nichts von dem verifizieren, was hier gebaut wurde.
-# Ignoriert bleiben nur die schweren Zwischenprodukte.
-review-*.diff
-*.png
+*
