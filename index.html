@@ -5293,6 +5293,43 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .chw-pick::-webkit-scrollbar{display:none}
 .chw-pick .pwz-chip{flex-shrink:0}
 
+/* ── Ton-Regler mit vier Rastpunkten ─────────────────────────────────────
+   Der Ton hat im Modul genau vier Werte. Zwei Achsen als Kreuz würden eine
+   Zwischenstufe suggerieren, die es nicht gibt; vier Karten untereinander
+   waren vier Absätze für eine einzige Entscheidung.
+   Bausteine: --acc für die gefüllte Strecke und den Griff, --inp-bg und
+   --gl-bdr für die Bahn — dieselben Token wie bei .pwz-chip und .ch-preset. */
+.cts{position:relative;height:44px;margin:4px 0 2px;cursor:pointer;touch-action:none;
+  -webkit-tap-highlight-color:transparent}
+.cts:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:12px}
+.cts-track{position:absolute;left:11px;right:11px;top:50%;height:4px;margin-top:-2px;border-radius:2px;
+  background:var(--inp-bg);border:1px solid var(--gl-bdr);box-sizing:border-box}
+.cts-fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--acc)}
+.cts-dots{position:absolute;left:11px;right:11px;top:50%;height:0}
+.cts-dot{position:absolute;top:-3px;width:6px;height:6px;margin-left:-3px;border-radius:50%;
+  background:var(--gl-bdr)}
+.cts-dot.on{background:var(--acc)}
+.cts-knob{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  background:var(--acc);box-shadow:0 3px 10px rgba(var(--acc-rgb),.45);
+  transition:left .18s cubic-bezier(.22,.61,.36,1)}
+.cts.drag .cts-knob{transition:none}
+.cts.drag .cts-fill{transition:none}
+.cts-fill{transition:width .18s cubic-bezier(.22,.61,.36,1)}
+/* Die vier Namen stehen unter ihren Rastpunkten — ohne sie wäre der Regler
+   eine Skala ohne Einheit. */
+.cts-lbls{display:flex;justify-content:space-between;margin:0 2px 8px}
+.cts-lbls span{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:-.1px}
+.cts-lbls span.on{color:var(--acc);font-weight:800}
+/* Der Beispielsatz: dieselbe Sprechblase wie die frühere Tonkarte
+   (.ch-preset.ch-voice span) — der Text IST gesprochene Rede. */
+#ch-tone-say{display:block;margin:0 0 4px;padding:9px 12px;border-radius:12px;border-bottom-left-radius:5px;
+  background:var(--inp-bg);border:1px solid var(--gl-bdr);color:var(--text);
+  font-size:12.5px;font-weight:650;line-height:1.45}
+#ch-tone-say.ghost{background:rgba(127,127,127,.06);color:var(--text2);font-weight:600}
+@media (prefers-reduced-motion:reduce){
+  .cts-knob,.cts-fill{transition-duration:0s!important}
+}
+
 /* Abschnittstitel in der Skala der App (.row-title) statt als graues
    Uppercase-Label. Acht graue Kapitälchen-Zeilen hintereinander waren der
    Grund, warum der Hub wie eine generische Einstellungsliste aussah. */
@@ -5712,6 +5749,17 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-x{background:none;border:none;color:var(--text2);font-size:13px;line-height:1;padding:4px;margin:-4px -5px -4px 0;
   cursor:pointer;opacity:.55;flex-shrink:0}
 .aic-main{display:flex;align-items:center;gap:13px;margin-top:11px}
+/* Linke Zone: der Ring und darunter der Name der Muskelgruppe, deren Erholung
+   er zeigt. Ohne den Namen wäre die Zahl ein Wert ohne Bezug. */
+.aic-left{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
+.aic-r-lbl{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+  font-size:10.5px;font-weight:800;color:var(--text2);letter-spacing:-.1px}
+/* Der Satz vom Coach: dieselbe Sprechblase wie im Hub (abgeknickte untere
+   linke Ecke), getönt statt neutral, weil er auf der Akzentfläche der Karte
+   liegt. Keine neue Farbe — --acc-rgb wie die Karte selbst. */
+.aic-say{font-size:12.8px;line-height:1.45;color:var(--text);font-weight:650;margin-top:11px;
+  padding:9px 12px;border-radius:12px;border-bottom-left-radius:5px;
+  background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20)}
 .aic-ringbox{position:relative;width:62px;height:62px;flex-shrink:0}
 .aic-r-bg{fill:none;stroke:rgba(var(--acc-rgb),.16);stroke-width:5}
 .aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
@@ -11813,6 +11861,72 @@ function _coachTodaySuggestion() {
       chip: _cm('Empfehlung für heute','Recommendation for today'), chip2, cta:null };
   } catch(e) { console.warn('[Coach] today suggestion:', e); return null; }
 }
+/* ── Die drei Zonen der Heute-Karte ──────────────────────────────────────
+   Links der Ring der nächsten fälligen Muskelgruppe, rechts Wochenvolumen und
+   was heute ansteht, darunter ein Satz vom Coach. Alle drei in EINEM Rahmen:
+   es bleibt bei genau einer Karte im Heute-Tab (Gestaltungsregel 1). */
+
+/* Die nächste fällige Gruppe ist die am weitesten erholte — die, die als
+   nächste wieder dran ist. Gruppen ohne Trainingsspur zählen nicht mit: 100 %
+   Erholung ohne je trainiert zu haben ist keine Auskunft. */
+function _aicNextMuscle(){
+  try {
+    const rec = getMuscleGroupRecovery();
+    const cand = MUSCLE_GROUPS.map(mg => ({ mg: mg, r: rec[mg.id] })).filter(c => c.r && c.r.lastTs);
+    if (!cand.length) return null;
+    cand.sort((a, b) => b.r.recPct - a.r.recPct);
+    const top = cand[0];
+    return { id: top.mg.id, label: muscleLabel(top.mg.id) || top.mg.id,
+             pct: Math.max(0, Math.min(100, Math.round(top.r.recPct))) };
+  } catch(e) { console.warn('[Coach] Nächste Muskelgruppe:', e); return null; }
+}
+// Volumen der laufenden Woche und der Vorwoche, in kg. Dieselbe Rechnung wie
+// in der Wochenkachel — eine zweite Lesart hiesse: zwei Zahlen für dieselbe
+// Woche auf zwei Flächen derselben App.
+function _aicWeek(){
+  try {
+    if (!window.CoachReport) return null;
+    const ws = CoachReport.weekStart(Date.now());
+    if (ws === null) return null;
+    const ses = _crSessions();
+    const n = CoachReport.weekNumbers(ses, ws);
+    const v = CoachReport.weekNumbers(ses, ws - 7 * 864e5);
+    return { vol: Math.round(Number(n && n.vol) || 0), prev: Math.round(Number(v && v.vol) || 0) };
+  } catch(e) { console.warn('[Coach] Wochenvolumen der Karte:', e); return null; }
+}
+// Die Einheit hängt am WERT (_csWeight). Ohne Vorwoche kein Pfeil und kein
+// Prozent: eine Steigerung gegenüber nichts hat niemand erbracht.
+function _aicWeekText(w){
+  try {
+    if (!w) return '';
+    const t = _csWeight(w.vol) || '';
+    if (!(w.prev > 0)) return t;
+    const d = w.vol - w.prev;
+    const pf = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+    return t + ' ' + pf + ' ' + Math.round(Math.abs(d) / w.prev * 100) + ' %';
+  } catch(e) { console.warn('[Coach] Wochenzeile:', e); return ''; }
+}
+/* Ein Satz vom Coach im gewählten Ton, aus der Sprachfabrik — mit ECHTEN
+   Zahlen. Zwei Lagen, beide belegbar: liegt die letzte Einheit zwei Tage oder
+   länger zurück, zählt der Satz die Tage; sonst spricht er über die letzte
+   Einheit. Gibt es weder das eine noch das andere, steht dort kein Satz —
+   erfundene Zahlen auf der Vertrauensfläche waren schon ein Befund. */
+function _aicSay(){
+  try {
+    const ses = (S.sessions || []).filter(x => x && x.date && Array.isArray(x.logs));
+    if (!ses.length) return '';
+    const last = ses.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    const ts = new Date(last.date).getTime();
+    if (!isFinite(ts)) return '';
+    const tage = Math.floor((Date.now() - ts) / 864e5);
+    if (tage >= 2) return _say('returnNudge', { days: tage }) || '';
+    let sets = 0;
+    (last.logs || []).forEach(l => (l.sets || []).forEach(x => { if (parseInt(x && x.r, 10) > 0) sets++; }));
+    const vol = Math.round(sessionVolume(last));
+    if (!(sets > 0) || !(vol > 0)) return '';
+    return _say('debrief', _csVars({ sets: sets, vol: vol })) || '';
+  } catch(e) { console.warn('[Coach] Kartensatz:', e); return ''; }
+}
 // Signatur der zuletzt gerenderten Karte: verhindert, dass jeder renderHome()
 // (Tab-Wechsel, Sync, Timer) die Einblend-Animation erneut abfeuert.
 let _aicSig = null;
@@ -11880,10 +11994,23 @@ function renderCoachTodayCard() {
       _aicCardTap(host.firstElementChild);
       return;
     }
-    const pct = Math.max(0, Math.min(100, Math.round(s.pct || 0)));
-    // Der Name gehoert in die Signatur: sonst haelt der Cache die Karte beim
-    // Umbenennen fest und der alte Name bleibt bis zur naechsten Inhaltsaenderung stehen.
-    const sig = [s.kind, s.head, s.text, s.chip2, pct, _coachName()].join('|');
+    /* Die drei Zonen. Der Ring zeigt die nächste fällige Muskelgruppe statt
+       eines Durchschnitts über alle — ein allgemeiner Wert sagt niemandem,
+       was er heute tun soll. Fehlt jede Trainingsspur (ganz frisches Konto
+       mit Plan), bleibt der bisherige Gesamtwert stehen. */
+    const mg   = _aicNextMuscle();
+    const week = _aicWeek();
+    const satz = _aicSay();
+    const pct  = mg ? mg.pct : Math.max(0, Math.min(100, Math.round(s.pct || 0)));
+    const ringLbl = mg ? mg.label : (s.ringLbl || '');
+    const wochenZeile = _aicWeekText(week);
+    /* JEDER Wert, der auf der Karte steht, gehört in die Signatur — sonst
+       hält der Cache die Karte fest und der geänderte Wert erscheint erst bei
+       der nächsten Inhaltsänderung. Genau dieser Fehler ist in Task 8 mit dem
+       Coach-Namen passiert; Ton, Einheit, Gruppe und Wochenzahl hängen jetzt
+       mit drin. */
+    const sig = [s.kind, s.head, s.chip2, ringLbl, pct, wochenZeile, satz,
+                 _coachName(), unitLabel()].join('|');
     if (sig === _aicSig && host.firstElementChild) return;
     _aicSig = sig;
 
@@ -11900,20 +12027,23 @@ function renderCoachTodayCard() {
           <span class="aic-live"><i></i>${esc(s.chip)}</span>
         </div>
         <div class="aic-main">
-          <div class="aic-ringbox">
-            <svg viewBox="0 0 64 64" width="62" height="62" aria-hidden="true" focusable="false">
-              <circle class="aic-r-bg" cx="32" cy="32" r="26"/>
-              <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:${col};stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
-            </svg>
-            <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
+          <div class="aic-left">
+            <div class="aic-ringbox">
+              <svg viewBox="0 0 64 64" width="62" height="62" aria-hidden="true" focusable="false">
+                <circle class="aic-r-bg" cx="32" cy="32" r="26"/>
+                <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:${col};stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
+              </svg>
+              <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
+            </div>
+            ${ringLbl ? `<div class="aic-r-lbl">${esc(ringLbl)}</div>` : ''}
           </div>
           <div class="aic-txt">
-            <div class="aic-head">${esc(s.head)}</div>
-            <div class="aic-sub">${esc(s.text)}</div>
+            ${wochenZeile ? `<div class="aic-head">${esc(wochenZeile)}</div>` : ''}
+            <div class="aic-sub">${esc(s.head)}</div>
           </div>
         </div>
-        ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span>
-          ${s.kind === 'focus' ? '' : `<span class="aic-chip ghost">${esc(s.ringLbl)} ${pct} %</span>`}</div>` : ''}
+        ${satz ? `<div class="aic-say">${esc(satz)}</div>` : ''}
+        ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span></div>` : ''}
         ${s.cta ? `<div class="aic-btns">
           <button type="button" class="aic-go" onclick="${s.cta.on}">${esc(s.cta.label)}</button>
         </div>` : ''}
@@ -26206,25 +26336,61 @@ function _chNum(v, digits){
       { maximumFractionDigits: digits || 0 });
   } catch(_) { return String(v); }
 }
-/* Die Balken der letzten Wochen kommen aus dem BERICHTSARCHIV, nicht aus den
-   Einheiten: dieselbe Quelle, aus der auch die Liste "Frühere Wochen" darunter
-   liest. Zwei Quellen für dieselben acht Zahlen liefen bei einer nachträglich
-   geänderten Einheit auseinander, und der Nutzer sähe im Diagramm etwas
-   anderes als in der Liste. Die laufende Woche kommt dazu, solange sie noch
-   keinen Bericht hat. Werte gehen in der ANZEIGEEINHEIT hinein — das Modul
-   rechnet bewusst nicht um. */
+/* Die Balken der letzten Wochen — ZWEI Quellen, und die Rangfolge zwischen
+   ihnen ist die ganze Regel:
+
+   1. Liegt für eine Woche ein BERICHT im Archiv, gilt sein Wert. Immer.
+      Aus derselben Quelle liest die Liste "Frühere Wochen" darunter; zwei
+      Zahlen für dieselbe Woche im selben Blatt liefen auseinander, sobald
+      jemand eine Einheit nachträglich ändert, und der Nutzer sähe im
+      Diagramm etwas anderes als in der Liste.
+   2. Für Wochen OHNE Bericht wird aus den Einheiten gerechnet
+      (CoachReport.weekNumbers über CoachReport.weekStart) statt die Woche
+      wegzulassen. Das Archiv füllt sich wöchentlich: wer die App heute
+      installiert und acht Wochen trainiert, sähe sonst genau in diesen acht
+      Wochen kein Volumendiagramm — also in der Zeit, in der er entscheidet,
+      ob das Abo etwas taugt.
+
+   In der Oberfläche wird das NICHT gekennzeichnet: für den Nutzer ist beides
+   dasselbe, nämlich das Volumen dieser Woche. Der Unterschied gehört in den
+   Code, nicht auf den Bildschirm.
+
+   Wochen vor der allerersten Einheit entfallen (ein Balken auf 0, bevor es
+   den Nutzer gab, wäre eine erfundene Pause); eine trainingsfreie Woche
+   MITTENDRIN bleibt als 0 stehen — eine Pause ist eine Aussage.
+   Werte gehen in der ANZEIGEEINHEIT hinein, das Modul rechnet nicht um. */
 function _chWeekBarData(cur){
-  const out = [], gesehen = Object.create(null);
+  const out = [];
   try {
+    if (!window.CoachReport) return out;
+    const arch = Object.create(null);
     (S.coachReports || []).forEach(r => {
-      if (!r || !r.weekKey || gesehen[r.weekKey]) return;
-      gesehen[r.weekKey] = 1;
-      out.push({ weekKey: r.weekKey, vol: kgToDisp(Math.round(Number((r.numbers || {}).vol) || 0)) });
+      if (r && r.weekKey && !arch[r.weekKey]) arch[r.weekKey] = r;
     });
-    out.reverse();                       // das Archiv steht neueste zuerst
-    if (cur && cur.rep && cur.rep.weekKey && !gesehen[cur.rep.weekKey]) {
-      out.push({ weekKey: cur.rep.weekKey,
-                 vol: kgToDisp(Math.round(Number((cur.rep.numbers || {}).vol) || 0)) });
+    // Der Zwischenstand der laufenden Woche zählt wie ein Bericht: er ist aus
+    // denselben Zahlen gerechnet und steht schon oben in der Kachel.
+    if (cur && cur.rep && cur.rep.weekKey && !arch[cur.rep.weekKey]) arch[cur.rep.weekKey] = cur.rep;
+    const ses = _crSessions();
+    let erste = 0;
+    ses.forEach(s => { if (s && isFinite(s.ts) && (!erste || s.ts < erste)) erste = s.ts; });
+    const max = (window.CoachCharts && CoachCharts.MAX_BARS) || 8;
+    const now = Date.now();
+    for (let i = max - 1; i >= 0; i--) {
+      const ws = CoachReport.weekStart(now - i * 7 * 864e5);
+      if (ws === null) continue;
+      const key = _crWeekKey(ws);
+      if (!key) continue;
+      const rep = arch[key];
+      let vol;
+      if (rep) {
+        vol = Math.round(Number((rep.numbers || {}).vol) || 0);
+      } else {
+        if (erste && ws + 7 * 864e5 <= erste) continue;   // ganz vor der ersten Einheit
+        const n = CoachReport.weekNumbers(ses, ws);
+        vol = Math.round(Number(n && n.vol) || 0);
+      }
+      if (!isFinite(vol) || vol < 0) vol = 0;
+      out.push({ weekKey: key, vol: kgToDisp(vol) });
     }
   } catch(e) { console.warn('[Coach] Wochenbalken:', e); }
   return out;
@@ -27466,6 +27632,209 @@ function coachHubSetReportAt(feld, wert){
     try { _coachOptRender(); } catch(_) {}
   }
 }
+/* ── Der Ton-Regler ──────────────────────────────────────────────────────
+   Vier Rastpunkte in der Reihenfolge aus CoachPersona.TONES. Zwischen den
+   Punkten existiert KEIN Zustand: geschrieben wird immer einer der vier, und
+   zwar über das bestehende setAiCoachOpt('tone', …) — kein zweiter
+   Schreibweg für dieselbe Sache.
+
+   Der Griff folgt dem Finger sofort (Klasse .drag schaltet den Übergang ab)
+   und rastet beim Loslassen in 180 ms ein. Der Beispielsatz wechselt WÄHREND
+   des Ziehens: das ist der Kern der Sache.
+
+   Während der Geste hält _chHoldBody den Rerender auf — derselbe Wächter,
+   der seit Task 9 den ersten Tipp nach dem Namensfeld rettet, und aus
+   demselben Grund: ein Rerender mitten in der Geste nähme den Regler aus dem
+   DOM und die Zeigererfassung liefe ins Leere. */
+function _chToneIndex(tone){
+  const i = _CH_TONES.findIndex(t => t.k === tone);
+  return i >= 0 ? i : 1;                       // 'sachlich' ist die Vorgabe
+}
+/* Die Zahlen des Beispielsatzes sind ECHT: bestes Gewicht der letzten Einheit,
+   dessen Wiederholungen und die Satzzahl dieser Einheit. Erfundene
+   Beispielwerte auf einer Vertrauensfläche waren in diesem Projekt schon ein
+   Befund (Block 3). Liegt keine Einheit vor, gibt es KEINEN Satz — dann steht
+   dort der Hinweis, dass er nach dem ersten Training kommt. */
+function _chToneSayVars(){
+  try {
+    const ses = (S.sessions || []).filter(x => x && Array.isArray(x.logs) && x.date);
+    if (!ses.length) return null;
+    const last = ses.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    let best = null, sets = 0;
+    (last.logs || []).forEach(l => {
+      const ex = exById(l && l.exerciseId);
+      const nm = ex ? String(ex.name || '') : '';
+      (l.sets || []).forEach(x => {
+        const w = parseFloat(x && x.w), rp = parseInt(x && x.r, 10);
+        if (!(rp > 0)) return;
+        sets++;
+        if (w > 0 && nm && (!best || w > best.w)) best = { w: w, r: rp, nm: nm };
+      });
+    });
+    if (!best || !sets) return null;
+    // Die Einheit hängt am WERT (_csWeight), nie im Satz.
+    return { ex: best.nm, kg: _csWeight(best.w), reps: best.r, sets: sets };
+  } catch(e) { console.warn('[Coach] Beispielzahlen des Reglers:', e); return null; }
+}
+function _chToneSayText(tone){
+  try {
+    const v = _chToneSayVars();
+    if (!v) return '';
+    return CoachPersona.say('greet', v, CoachPersona.personaGet({ tone: tone }), _lang()) || '';
+  } catch(e) { console.warn('[Coach] Beispielsatz:', e); return ''; }
+}
+function _chToneSayHTML(tone){
+  const s = _chToneSayText(tone);
+  if (s) return `<div id="ch-tone-say">${esc(s)}</div>`;
+  return `<div id="ch-tone-say" class="ghost">${esc(_cm(
+    'Nach deiner ersten Einheit hörst du hier, wie jeder Ton mit deinen eigenen Zahlen klingt.',
+    'After your first session you will hear here how each tone sounds with your own numbers.'))}</div>`;
+}
+function _chToneSliderHTML(tone){
+  try {
+    const i = _chToneIndex(tone);
+    const pos = (n) => (n / (_CH_TONES.length - 1) * 100).toFixed(2) + '%';
+    const dots = _CH_TONES.map((t, n) =>
+      `<i class="cts-dot${n <= i ? ' on' : ''}" style="left:${pos(n)}"></i>`).join('');
+    const lbls = _CH_TONES.map((t, n) =>
+      `<span class="${n === i ? 'on' : ''}">${esc(tr(t.de))}</span>`).join('');
+    return `<div class="cts" id="ch-tone-slider" role="slider" tabindex="0"
+        aria-label="${esc(tr('Wie soll dein Coach klingen?'))}"
+        aria-valuemin="0" aria-valuemax="${_CH_TONES.length - 1}" aria-valuenow="${i}"
+        aria-valuetext="${esc(tr(_CH_TONES[i].de))}"
+        onpointerdown="_chToneDown(event)" onkeydown="_chToneKey(event)">
+        <div class="cts-track"><div class="cts-fill" style="width:${pos(i)}"></div></div>
+        <div class="cts-dots">${dots}</div>
+        <div class="cts-knob" style="left:calc(11px + (100% - 22px) * ${(i / (_CH_TONES.length - 1)).toFixed(4)})"></div>
+      </div>
+      <div class="cts-lbls">${lbls}</div>
+      ${_chToneSayHTML(tone)}`;
+  } catch(e) { console.warn('[Coach] Ton-Regler zeichnen:', e); return ''; }
+}
+/* Das Bild des Reglers ohne Rerender nachziehen: Griff, gefüllte Strecke,
+   Rastpunkte, Beschriftungen, ARIA und der Beispielsatz. frei = die
+   ungerundete Position des Fingers; ohne sie ruckelte der Griff von Rastpunkt
+   zu Rastpunkt, statt zu folgen. */
+function _chToneVisual(idx, frei){
+  try {
+    const el = document.getElementById('ch-tone-slider'); if (!el) return;
+    const n = _CH_TONES.length - 1;
+    const p = (frei == null ? idx : frei);
+    const knob = el.querySelector('.cts-knob');
+    const fill = el.querySelector('.cts-fill');
+    if (knob) knob.style.left = 'calc(11px + (100% - 22px) * ' + (p / n).toFixed(4) + ')';
+    if (fill) fill.style.width = (p / n * 100).toFixed(2) + '%';
+    [...el.querySelectorAll('.cts-dot')].forEach((d, i) => d.classList.toggle('on', i <= idx));
+    const lbls = el.parentElement ? el.parentElement.querySelectorAll('.cts-lbls span') : [];
+    [...lbls].forEach((s, i) => s.classList.toggle('on', i === idx));
+    el.setAttribute('aria-valuenow', String(idx));
+    el.setAttribute('aria-valuetext', tr(_CH_TONES[idx].de));
+    const say = document.getElementById('ch-tone-say');
+    if (say) {
+      const txt = _chToneSayText(_CH_TONES[idx].k);
+      if (txt) { say.textContent = txt; say.classList.remove('ghost'); }
+    }
+  } catch(e) { console.warn('[Coach] Regler zeichnen:', e); }
+}
+function _chToneAt(el, clientX){
+  try {
+    const r = el.getBoundingClientRect();
+    const n = _CH_TONES.length - 1;
+    const roh = (clientX - r.left - 11) / Math.max(1, r.width - 22);
+    const frei = Math.max(0, Math.min(n, roh * n));
+    return { frei: frei, idx: Math.round(frei) };
+  } catch(_) { return { frei: 1, idx: 1 }; }
+}
+let _chToneDrag = null;
+function _chToneDown(ev){
+  try {
+    const el = ev.currentTarget || document.getElementById('ch-tone-slider');
+    if (!el) return;
+    ev.preventDefault();
+    el.focus();
+    el.classList.add('drag');
+    _chHoldBody = true;                       // Rerender aussperren, s. oben
+    _chToneDrag = { el: el, id: ev.pointerId, idx: _chToneIndex(_persona().tone) };
+    try { el.setPointerCapture(ev.pointerId); } catch(_) {}
+    el.onpointermove   = _chToneMove;
+    el.onpointerup     = _chToneUp;
+    el.onpointercancel = _chToneUp;
+    /* Netz gegen einen haengenden Waechter: scheitert die Zeigererfassung
+       (aeltere WebView-Fassungen), bekommt das Element kein pointerup, wenn
+       der Finger daneben loslaesst — _chHoldBody bliebe true und der ganze
+       Hub zeichnete bis zum naechsten Oeffnen nicht mehr neu. */
+    window.addEventListener('pointerup', _chToneUp, true);
+    window.addEventListener('pointercancel', _chToneUp, true);
+    _chToneMove(ev);
+  } catch(e) { console.warn('[Coach] Regler greifen:', e); _chToneRelease(); }
+}
+function _chToneMove(ev){
+  try {
+    if (!_chToneDrag) return;
+    const { idx, frei } = _chToneAt(_chToneDrag.el, ev.clientX);
+    _chToneVisual(idx, frei);
+    // Geschrieben wird nur beim WECHSEL des Rastpunkts — und immer einer der
+    // vier Werte, nie eine Zwischenstellung.
+    if (idx !== _chToneDrag.idx) {
+      _chToneDrag.idx = idx;
+      try { if (typeof haptic === 'function') haptic(5); } catch(_) {}
+      setAiCoachOpt('tone', _CH_TONES[idx].k);
+    }
+  } catch(e) { console.warn('[Coach] Regler ziehen:', e); }
+}
+function _chToneUp(){
+  try {
+    if (!_chToneDrag) return;
+    const idx = _chToneDrag.idx;
+    _chToneRelease();
+    _chToneVisual(idx, null);                 // einrasten (180 ms per CSS)
+    /* Der Zustand steht bereits: _chToneMove() schreibt bei JEDEM Wechsel des
+       Rastpunkts, auch bei dem, der aus dem Zeigerdruck selbst folgt. Hier
+       bleibt nur der Rerender — und der wartet, bis der Griff eingerastet ist.
+       Sofort gerendert ersetzte er den Knoten, und die 180 ms waeren nie zu
+       sehen. */
+    setTimeout(() => { try { renderCoachHub(); } catch(_) {} }, 190);
+  } catch(e) { console.warn('[Coach] Regler loslassen:', e); _chToneRelease(); }
+}
+/* Der Wächter muss auch dann fallen, wenn die Geste unsauber endet — sonst
+   bliebe der ganze Hub bis zum nächsten Öffnen ungerendert. */
+function _chToneRelease(){
+  try {
+    const d = _chToneDrag;
+    _chToneDrag = null;
+    _chHoldBody = false;
+    try {
+      window.removeEventListener('pointerup', _chToneUp, true);
+      window.removeEventListener('pointercancel', _chToneUp, true);
+    } catch(_) {}
+    if (!d || !d.el) return;
+    d.el.classList.remove('drag');
+    d.el.onpointermove = null; d.el.onpointerup = null; d.el.onpointercancel = null;
+    try { d.el.releasePointerCapture(d.id); } catch(_) {}
+  } catch(_) { _chHoldBody = false; }
+}
+/* Tastatur: der Regler ist die EINZIGE Stelle, an der der Ton wählbar ist —
+   ohne Pfeiltasten wäre er für einen Teil der Nutzer unerreichbar. Nach dem
+   Schreiben rendert der Hub neu und ersetzt den Knoten; der Fokus muss
+   deshalb ausdrücklich zurückgeholt werden. */
+function _chToneKey(ev){
+  try {
+    const k = ev.key;
+    let d = 0;
+    if (k === 'ArrowRight' || k === 'ArrowUp') d = 1;
+    else if (k === 'ArrowLeft' || k === 'ArrowDown') d = -1;
+    else if (k === 'Home') d = -99;
+    else if (k === 'End') d = 99;
+    else return;
+    ev.preventDefault();
+    const n = _CH_TONES.length - 1;
+    const idx = Math.max(0, Math.min(n, _chToneIndex(_persona().tone) + d));
+    try { if (typeof haptic === 'function') haptic(5); } catch(_) {}
+    setAiCoachOpt('tone', _CH_TONES[idx].k);
+    const el = document.getElementById('ch-tone-slider'); if (el) el.focus();
+  } catch(e) { console.warn('[Coach] Regler per Tastatur:', e); }
+}
+
 /* ── Persönlichkeit ──────────────────────────────────────────────────────
    Name und Ton. Fachlich unverändert gegenüber dem alten Einstellungs-Reiter,
    nur in die eigene Kachel einsortiert: der Nutzer fragt "wie heißt er und wie
@@ -27479,14 +27848,11 @@ function _chPersonaHTML(){
   parts.push(`<div class="ch-sec">${esc(_cm('Name','Name'))}</div>
     <input type="text" class="pf-inp" id="ch-name" maxlength="20" autocomplete="off" spellcheck="false"
       value="${esc(p.name)}" placeholder="Coach" onchange="coachHubSetName(this)">`);
-  // Ton: derselbe Satz in allen vier Tönen (Beispielsatz aus dem Brief).
+  // Ton: EIN Regler mit vier Rastpunkten statt vier Karten. Der Beispielsatz
+  // wechselt beim Ziehen mit — der Nutzer hört den Unterschied, statt vier
+  // Adjektive zu lesen.
   parts.push(`<div class="ch-sec">${esc(tr('Wie soll dein Coach klingen?'))}</div>`);
-  // ch-voice: der Text dieser Karten ist gesprochene Rede und wird als
-  // Sprechblase gesetzt. Die Profilkarten in der Kachel darunter tragen
-  // Beschreibungen und behalten deshalb bewusst die schlichte Textform.
-  parts.push(_CH_TONES.map(t =>
-    `<button type="button" class="ch-preset ch-voice${t.k === p.tone ? ' on' : ''}" onclick="setAiCoachOpt('tone','${t.k}')">
-      <b>${esc(tr(t.de))}</b><span>${esc(_chToneLine(t.k))}</span></button>`).join(''));
+  parts.push(_chToneSliderHTML(p.tone));
   // Zweites Beispiel im GEWÄHLTEN Ton, über die echte Persona: wechselt beim
   // Antippen sichtbar und trägt den Namen, den die Demokarten oben nicht haben.
   const exInner = _chToneExInner();

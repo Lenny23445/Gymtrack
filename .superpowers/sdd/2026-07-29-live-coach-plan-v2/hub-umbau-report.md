@@ -288,3 +288,143 @@ dieser Bericht ist der benannte Commit der Task.
   Beständen unauffällig, aber der teuerste Posten dieser Kachel.
 - Die Zieleingabe ist bewusst kein eigenes Blatt („alles auf einem Beleg"). Bei
   sehr vielen Übungen wird die Chip-Reihe lang; sie rollt waagerecht.
+
+---
+
+## Task 4 — Ton-Regler, Heute-Karte, Volumenbalken ohne Archiv
+
+**Stand: fertig. Der Bau ist durch.** Node 574/574, alle zehn Browser-Suiten
+grün (270 Checks).
+
+### 4a — Der Ton-Regler
+
+Ersetzt die vier `.ch-preset.ch-voice`-Karten in der Kachel `persona`
+(die Coach-Einrichtung behält ihre Karten — sie ist nicht Teil dieses Umbaus).
+
+- Vier Rastpunkte in der Reihenfolge aus `_CH_TONES` (deckungsgleich mit
+  `CoachPersona.TONES`). Geschrieben wird ausschließlich über das bestehende
+  `setAiCoachOpt('tone', …)` — kein zweiter Schreibweg.
+- **Der Griff folgt dem Finger ungerundet** (`.cts.drag` schaltet den Übergang
+  ab) und rastet beim Loslassen in 180 ms ein.
+- **Der Beispielsatz wechselt während des Ziehens.** `_chToneVisual()` zieht
+  Griff, Füllung, Rastpunkte, Beschriftungen, `aria-valuenow`,
+  `aria-valuetext` und den Satz ohne Rerender nach.
+- **Echte Zahlen:** `_chToneSayVars()` nimmt das schwerste Gewicht der letzten
+  Einheit, dessen Wiederholungen und die Satzzahl dieser Einheit. Liegt keine
+  Einheit vor, steht dort **kein** Satz, sondern der Hinweis, dass er nach dem
+  ersten Training kommt — erfundene Demowerte auf der Vertrauensfläche waren in
+  diesem Projekt schon ein Befund. Die Einheit hängt über `_csWeight()` am Wert.
+- **Tastatur:** `role="slider"`, `tabindex="0"`, Pfeile links/rechts/oben/unten
+  plus Home/End. Nach dem Schreiben rendert der Hub neu und ersetzt den Knoten
+  — der Fokus wird deshalb ausdrücklich zurückgeholt, sonst wäre er nach dem
+  ersten Tastendruck weg.
+
+**Zwei Fallstricke, die im Bau aufgefallen sind:**
+
+1. **`_chHoldBody` hält während der Geste.** Derselbe Wächter, der seit Task 9
+   den ersten Tipp nach dem Namensfeld rettet — hier aus demselben Grund: ein
+   Rerender mitten in der Geste nähme den Regler aus dem DOM und die
+   Zeigererfassung liefe ins Leere. Gegen einen hängenden Wächter (wenn
+   `setPointerCapture` scheitert und der Finger daneben loslässt) hängt
+   zusätzlich ein `pointerup`/`pointercancel`-Netz am `window`.
+2. **Der Rerender wartet 190 ms.** Der Zustand steht schon (jeder Wechsel des
+   Rastpunkts schreibt sofort); würde direkt beim Loslassen gerendert, ersetzte
+   das den Knoten und die 180 ms Einrasten wären nie zu sehen.
+
+### 4b — Die Heute-Karte
+
+Drei Zonen in **einem** Rahmen, `.aic` bleibt die einzige Karte im Heute-Tab.
+
+| Zone | Inhalt | Quelle |
+| --- | --- | --- |
+| links | Ring der **nächsten fälligen Muskelgruppe** + ihr Name darunter | `_aicNextMuscle()` über `getMuscleGroupRecovery()`, Beschriftung `muscleLabel()` |
+| rechts, Zeile 1 | Volumen der laufenden Woche mit Pfeil und Prozent | `_aicWeek()` über `CoachReport.weekNumbers` |
+| rechts, Zeile 2 | was heute ansteht | `s.head` aus `_coachTodaySuggestion()` |
+| darunter | ein Satz vom Coach im gewählten Ton | `_aicSay()` über `_say('debrief'/'returnNudge', …)` |
+| unten | CTA „Training starten" | unverändert |
+
+- „Nächste fällige" heißt: die am weitesten erholte Gruppe **mit**
+  Trainingsspur. 100 % ohne je trainiert zu haben ist keine Auskunft.
+- Der Coach-Satz hat zwei belegbare Lagen: liegt die letzte Einheit zwei Tage
+  oder länger zurück, zählt er die Tage (`returnNudge`); sonst spricht er über
+  die letzte Einheit (`debrief`). Gibt es weder das eine noch das andere, steht
+  dort kein Satz.
+- **`_aicSig` trägt jetzt alle neuen Werte**: `kind`, `head`, `chip2`,
+  Gruppenname, Erholung, Wochenzeile, Coach-Satz, Coach-Name **und**
+  `unitLabel()`. Genau hier ist in Task 8 ein Fehler entstanden; ein Ton- oder
+  Einheitenwechsel hätte die Karte sonst eingefroren.
+- Der `closest('button, a')`-Wächter, `role`/`tabindex`/`aria-label` auf
+  `.aic-top` und der Enter-Zugang bleiben unverändert.
+- **Weggefallen:** der zweite, graue Chip (`ringLbl` + Prozent) — die Zahl steht
+  jetzt im Ring, und die Beschriftung darunter. Der Readiness-Chip
+  („Deload aktiv") bleibt. `s.text` weicht dem Coach-Satz.
+
+### 4c — Volumenbalken ohne Berichtsarchiv
+
+`_chWeekBarData()` läuft die letzten acht Kalenderwochen ab und entscheidet je
+Woche:
+
+1. **Bericht im Archiv → sein Wert. Immer.** Dieselbe Quelle wie die Liste
+   „Frühere Wochen" darunter; zwei Zahlen für dieselbe Woche im selben Blatt
+   liefen auseinander, sobald jemand eine Einheit nachträglich ändert.
+2. **Kein Bericht → aus den Einheiten gerechnet** (`CoachReport.weekNumbers`
+   über `CoachReport.weekStart`).
+
+In der Oberfläche steht davon nichts — für den Nutzer ist beides dasselbe,
+nämlich das Volumen dieser Woche. Die Rangfolge und ihr Grund stehen im Code.
+
+Wochen **vor** der allerersten Einheit entfallen (ein Balken auf 0, bevor es den
+Nutzer gab, wäre eine erfundene Pause); eine trainingsfreie Woche **mittendrin**
+bleibt als 0 stehen — eine Pause ist eine Aussage. Der Zwischenstand der
+laufenden Woche zählt wie ein Bericht.
+
+Damit ist das Bedenken aus Task 3 aufgelöst: die Kachel ist ab der zweiten
+Trainingswoche gefüllt, nicht erst nach zwei Monaten.
+
+### Testzahlen
+
+| | vorher (rot) | nachher |
+| --- | --- | --- |
+| `node --test test/*.js` | 574 | **574** |
+| `hub-check` (Task 2–4) | 41/55 | **55/55** |
+| `task-9` | 17/20 | **20/20** |
+| `task-10` / `task-17` / `task-19` / `task-21` / `task-22` | 46 / 23 / 27 / 22 / 24 | **46 / 23 / 27 / 22 / 24** |
+| `block3-fix` / `block5-fix` / `lang-check` | 21 / 28 / 4 | **21 / 28 / 4** |
+
+Neu in `hub-check.js`: 17 Prüfungen (Regler steht und ersetzt die Karten;
+Ziehen über alle vier Rastpunkte schreibt den Ton **als String** mit
+mitziehendem `aria-valuenow`/`aria-valuetext`; vier verschiedene Sätze, auch
+schon während des Ziehens; Pfeiltasten bewegen, schreiben und behalten den
+Fokus; reduzierte Bewegung rastet ohne Übergang; Ring zeigt Gruppenname und
+Erholung; Wochenzeile gegen `weekNumbers` gerechnet; Coach-Satz vorhanden,
+platzhalterfrei und tonabhängig; CTA startet das Training ohne den Hub zu
+öffnen; Tipp daneben und Enter öffnen ihn; Umbenennen und Tonwechsel zeichnen
+neu; lbs ohne kg-Zahl; Regel 1; leeres Archiv liefert trotzdem Balken;
+Archivwert schlägt Rechnung; leere Woche steht als 0).
+
+Migriert in `task-9-check.js`: die drei Prüfungen, die an den Tonkarten hingen
+(vier verschiedene Sätze, erster Tipp nach dem Namensfeld, englische Tonsätze) —
+sie treffen jetzt dieselben Zusicherungen am Regler, und die englische Prüfung
+vergleicht gegen `_chToneSayVars()` statt gegen feste Demowerte.
+
+### Nicht angefasst
+
+`APP_VERSION`, `CACHE` in `sw.js`, `CHANGELOG`, `firestore.rules`, der Chat, die
+Blase, die Coach-Einrichtung (behält ihre Tonkarten).
+
+### Offene Punkte für die Review
+
+- Der Regler schreibt bei jedem Wechsel des Rastpunkts, also bis zu dreimal
+  während einer Geste über alle vier — jedes Mal mit `persist()`. Bewusst so:
+  der Zustand darf nie zwischen zwei Punkten hängen. Der Rerender ist während
+  der Geste ausgesperrt, der Schreibweg selbst nicht.
+- `_aicWeek()` rechnet zwei `weekNumbers()`-Läufe je `renderHome()`. Zusammen
+  mit dem Hub sind das die teuersten Stellen des Umbaus; bei den geprüften
+  Beständen unauffällig.
+- Die Heute-Karte zeigt das Wochenvolumen — dieselbe Zahl steht in der
+  Wochenkachel. Das ist gewollt (die Karte ist der Anreiß, die Kachel die
+  Auskunft) und war die ausdrückliche Wahl in der Spec, verletzt aber dem
+  Buchstaben nach Regel 8 „jede Zahl muss etwas sein, das der Nutzer sonst
+  nicht sieht". Wenn die Review das anders sieht, ist die Zeile der Kandidat.
+- `.aic-head` trägt jetzt die Wochenzeile statt der Überschrift; wer den
+  Selektor anderswo als „Überschrift" liest, liest jetzt eine Zahl.

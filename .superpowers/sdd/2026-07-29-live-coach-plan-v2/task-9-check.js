@@ -242,29 +242,31 @@ const SETUP = () => {
   check('Dossier-Eintrag mit <b> erscheint als Text, nicht als Markup',
     r.text && r.text.indexOf('<b>Schulter</b>') >= 0 && r.bold === 0 && r.html === false, JSON.stringify(r));
 
-  // ── 6) Vier Toene, vier sichtbar verschiedene Beispielsaetze ─────────────
+  /* ── 6) Vier Toene, vier sichtbar verschiedene Beispielsaetze ────────────
+     Seit Task 4 traegt die Kachel einen REGLER statt vier Karten. Dieselbe
+     Zusicherung, uebersetzt: jeder der vier Rastpunkte klingt anders, der
+     Regler markiert den gewaehlten, und die zweite Beispielzeile (im
+     gewaehlten Ton, mit Namen) zieht mit.                                   */
   r = await ev(() => {
     openCoachHub('persona');
-    const out = { cards: [], live: [], tones: [] };
+    const out = { cards: [], live: [], tones: [], aria: [] };
     ['ruhig','sachlich','hart','locker'].forEach(t => {
-      const card = [...document.querySelectorAll('#ch-body .ch-preset')]
-        .find(b => b.getAttribute('onclick') === `setAiCoachOpt('tone','${t}')`);
-      if (!card) { out.cards.push(null); return; }
-      card.click();
-      const on = [...document.querySelectorAll('#ch-body .ch-preset')]
-        .find(b => b.getAttribute('onclick') === `setAiCoachOpt('tone','${t}')`);
-      out.cards.push(on ? (on.querySelector('span') || {}).textContent : null);
-      out.tones.push(S.aiCoach.tone + (on && on.classList.contains('on') ? '+on' : '-off'));
+      setAiCoachOpt('tone', t);
+      const sl = document.getElementById('ch-tone-slider');
+      out.cards.push(((document.getElementById('ch-tone-say') || {}).textContent || '').replace(/\s+/g,' ').trim());
+      out.tones.push(S.aiCoach.tone + ':' + (sl ? sl.getAttribute('aria-valuenow') : '?'));
+      out.aria.push(sl ? sl.getAttribute('aria-valuetext') : null);
       const ex = document.getElementById('ch-tone-ex');
       out.live.push(ex ? ex.textContent.replace(/\s+/g,' ').trim() : null);
     });
     return out;
   });
   const uniq = a => new Set(a).size;
-  check('Ton-Auswahl: vier Karten mit vier verschiedenen Saetzen, Beispielsatz darunter wechselt sichtbar',
+  check('Ton-Regler: vier Rastpunkte mit vier verschiedenen Beispielsaetzen, der Regler markiert den gewaehlten Ton (aria-valuenow/valuetext) und die zweite Beispielzeile wechselt sichtbar mit',
     (r.cards||[]).length === 4 && (r.cards||[]).every(x => x && x.length > 12) && uniq(r.cards||[]) === 4 &&
     (r.live||[]).length === 4 && (r.live||[]).every(x => x && x.length > 12) && uniq(r.live||[]) === 4 &&
-    (r.tones||[]).join(',') === 'ruhig+on,sachlich+on,hart+on,locker+on',
+    (r.tones||[]).join(',') === 'ruhig:0,sachlich:1,hart:2,locker:3' &&
+    (r.aria||[]).every(a => a && a.length > 2) && uniq(r.aria||[]) === 4,
     JSON.stringify(r));
 
   // ── 7) "Eng dabei" + Nachrichten "Still" ⇒ Profilanzeige "Angepasst" ─────
@@ -477,7 +479,24 @@ const SETUP = () => {
   await page.click('#ch-name');
   await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control');
   await page.type('#ch-name', 'Nina');
-  const getippt = await tap('#ch-card-persona .ch-preset', "setAiCoachOpt('tone','ruhig')");
+  /* Die erste GESTE nach dem Namensfeld ist seit Task 4 der Ton-Regler. Die
+     Zusicherung ist unveraendert: das onchange des Namensfeldes feuert beim
+     Blur, also mitten in der Geste — ohne den Haltewaechter naehme der
+     Rerender den Regler aus dem DOM und die Geste waere verloren. */
+  let getippt = false;
+  try {
+    const h = await page.$('#ch-tone-slider');
+    const box = h ? await h.boundingBox() : null;
+    if (box) {
+      const y = box.y + box.height / 2;
+      await page.mouse.move(box.x + box.width / 2, y);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 3, y, { steps: 6 });
+      await page.mouse.up();
+      getippt = true;
+    }
+  } catch (e) { getippt = String(e.message).slice(0, 140); }
+  await new Promise(r2 => setTimeout(r2, 400));
   r = await ev(() => ({
     tone: S.aiCoach.tone, name: S.aiCoach.name,
     titel: (document.getElementById('ch-title') || {}).textContent,
@@ -606,14 +625,16 @@ const SETUP = () => {
   await boot();
   r = await ev(() => {
     openCoachHub('persona');
-    // s. lang-check.js: Beispielwerte aus derselben Quelle wie die Oberflaeche.
-    const vars = _chToneVars();
+    /* s. lang-check.js: Beispielwerte aus derselben Quelle wie die
+       Oberflaeche. Seit Task 4 sind das die ECHTEN Zahlen der letzten Einheit
+       (_chToneSayVars) statt fester Demowerte — ein Literal hier pruefte den
+       Satz gegen andere Werte als die App. */
+    const vars = _chToneSayVars();
     const soll = {}, ist = {};
     ['ruhig','sachlich','hart','locker'].forEach(t => {
       soll[t] = CoachPersona.say('greet', vars, CoachPersona.personaGet({ tone: t }), 'en');
-      const card = [...document.querySelectorAll('#ch-card-persona .ch-preset')]
-        .find(b => b.getAttribute('onclick') === `setAiCoachOpt('tone','${t}')`);
-      ist[t] = card ? (card.querySelector('span') || {}).textContent : null;
+      setAiCoachOpt('tone', t);
+      ist[t] = ((document.getElementById('ch-tone-say') || {}).textContent || '').trim();
     });
     const exEl = document.getElementById('ch-tone-ex');
     return {

@@ -395,14 +395,24 @@ const KACHELSTAND = () => {
     await page.type('#ch-name', 'Nina');
     nameOk = true;
   } catch (e) { nameOk = String(e.message).slice(0, 140); }
+  /* Die erste GESTE direkt nach dem Namensfeld: seit Task 4 ist das der
+     Ton-Regler und nicht mehr eine Tonkarte. Die Zusicherung ist dieselbe —
+     das onchange des Namensfeldes feuert beim Blur, also mitten in der Geste,
+     und ohne den Waechter naehme der Rerender den Regler aus dem DOM. */
   let getippt = false;
   try {
-    for (const h of await page.$$('#ch-card-persona .ch-preset')) {
-      const oc = await h.evaluate(e => e.getAttribute('onclick'));
-      if (oc === "setAiCoachOpt('tone','ruhig')") { await h.click(); getippt = true; break; }
+    const h = await page.$('#ch-tone-slider');
+    const box = h ? await h.boundingBox() : null;
+    if (box) {
+      const y = box.y + box.height / 2;
+      await page.mouse.move(box.x + box.width / 2, y);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 3, y, { steps: 6 });
+      await page.mouse.up();
+      getippt = true;
     }
   } catch (e) { getippt = String(e.message).slice(0, 140); }
-  await wait(300);
+  await wait(400);
   r = O(await ev(() => ({
     tone: S.aiCoach.tone, name: S.aiCoach.name,
     titel: (document.getElementById('ch-title') || {}).textContent,
@@ -786,10 +796,319 @@ const KACHELSTAND = () => {
     JSON.stringify({ vol: redW.vol, animation: redW.animation }));
   await page.emulateMediaFeatures([]);
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TASK 4 — Ton-Regler, Heute-Karte, Volumenbalken ohne Archiv
+     ══════════════════════════════════════════════════════════════════════ */
+
+  const REGLER = () => {
+    const el = document.getElementById('ch-tone-slider');
+    return {
+      da: !!el,
+      rolle: el ? el.getAttribute('role') : null,
+      tab: el ? el.getAttribute('tabindex') : null,
+      min: el ? el.getAttribute('aria-valuemin') : null,
+      max: el ? el.getAttribute('aria-valuemax') : null,
+      now: el ? el.getAttribute('aria-valuenow') : null,
+      txt: el ? el.getAttribute('aria-valuetext') : null,
+      rasten: document.querySelectorAll('#ch-tone-slider .cts-dot').length,
+      // Die vier Tonkarten sind ersetzt, nicht ergaenzt.
+      karten: [...document.querySelectorAll('#ch-card-persona .ch-preset')]
+        .filter(b => /setAiCoachOpt\('tone'/.test(b.getAttribute('onclick') || '')).length,
+      satz: ((document.getElementById('ch-tone-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      tone: (S.aiCoach || {}).tone,
+      typ: typeof (S.aiCoach || {}).tone,
+      fokus: document.activeElement ? document.activeElement.id : null,
+      dauer: el ? getComputedStyle(el.querySelector('.cts-knob') || el).transitionDuration : null
+    };
+  };
+  // Echte Zeigergeste auf den Regler: an die Position des i-ten Rastpunkts
+  // ziehen und loslassen.
+  const ziehe = async (i) => {
+    const h = await page.$('#ch-tone-slider');
+    if (!h) return null;
+    const box = await h.boundingBox();
+    if (!box) return null;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + 4, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * (i / 3), y, { steps: 8 });
+    await wait(120);
+    const waehrend = await ev(() => ({
+      satz: ((document.getElementById('ch-tone-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      tone: (S.aiCoach || {}).tone
+    }));
+    await page.mouse.up();
+    await wait(350);
+    return waehrend;
+  };
+
+  await boot();
+  await hubAuf('persona');
+
+  // ── 39) Der Regler steht da, die vier Tonkarten sind ersetzt ────────────
+  r = O(await ev(REGLER));
+  check('Ton-Regler: vier Rastpunkte, role="slider", tabindex="0", aria-valuemin/max/now/valuetext — und die vier Tonkarten sind ERSETZT, nicht ergaenzt',
+    r.da === true && r.rolle === 'slider' && r.tab === '0' && r.rasten === 4 &&
+    r.min === '0' && r.max === '3' && r.now === '1' && /Sachlich/i.test(r.txt || '') &&
+    r.karten === 0 && (r.satz || '').length > 10,
+    JSON.stringify(r).slice(0, 500));
+
+  // ── 40) Ziehen auf jeden Rastpunkt schreibt den Ton als STRING ──────────
+  const TOENE = ['ruhig', 'sachlich', 'hart', 'locker'];
+  const gezogen = [], saetze = [], waehrendDrag = [];
+  for (let i = 0; i < 4; i++) {
+    const w = await ziehe(i);
+    waehrendDrag.push(w && w.satz);
+    const nach = O(await ev(REGLER));
+    gezogen.push(nach.tone + ':' + nach.typ + ':' + nach.now + ':' + (nach.txt || ''));
+    saetze.push(nach.satz);
+  }
+  check('Ziehen ueber alle vier Rastpunkte: S.aiCoach.tone traegt jedes Mal den TON ALS STRING (nie true), aria-valuenow und aria-valuetext ziehen mit — zwischen den Punkten landet nie ein Zustand',
+    gezogen.length === 4 &&
+    TOENE.every((t, i) => gezogen[i].indexOf(t + ':string:' + i + ':') === 0) &&
+    gezogen.every(g => !/:boolean:|:number:/.test(g)),
+    JSON.stringify(gezogen));
+
+  // ── 41) Der Beispielsatz unterscheidet sich zwischen allen vier ─────────
+  check('Der Beispielsatz klingt in allen vier Toenen verschieden — und er wechselt schon WAEHREND des Ziehens, nicht erst beim Loslassen',
+    saetze.length === 4 && saetze.every(s => s && s.length > 10) &&
+    new Set(saetze).size === 4 &&
+    waehrendDrag.filter(Boolean).length === 4 && new Set(waehrendDrag.filter(Boolean)).size === 4,
+    JSON.stringify({ saetze, waehrendDrag }).slice(0, 800));
+
+  // ── 42) Pfeiltasten bewegen den Regler und schreiben ────────────────────
+  await ev(() => { try { setAiCoachOpt('tone', 'sachlich'); } catch (_) {} });
+  await wait(250);
+  let tasten = false;
+  try {
+    await page.focus('#ch-tone-slider');
+    await page.keyboard.press('ArrowRight');
+    await wait(250);
+    tasten = true;
+  } catch (e) { tasten = String(e.message).slice(0, 140); }
+  const nachRechts = O(await ev(REGLER));
+  await page.keyboard.press('ArrowLeft');
+  await wait(250);
+  await page.keyboard.press('ArrowLeft');
+  await wait(250);
+  const nachLinks = O(await ev(REGLER));
+  check('Der Regler ist per Tastatur bedienbar: Pfeil rechts/links bewegt ihn um genau einen Rastpunkt, schreibt den Ton und der Fokus bleibt auf dem Regler',
+    tasten === true && nachRechts.tone === 'hart' && nachRechts.now === '2' &&
+    /Hart/i.test(nachRechts.txt || '') && nachRechts.fokus === 'ch-tone-slider' &&
+    nachLinks.tone === 'ruhig' && nachLinks.now === '0' && nachLinks.fokus === 'ch-tone-slider',
+    JSON.stringify({ tasten, rechts: nachRechts.tone, links: nachLinks.tone,
+                     fokus: nachLinks.fokus, now: nachLinks.now }));
+
+  // ── 43) Heute-Karte: Ring der naechsten faelligen Gruppe + Wochenzahl ───
+  const KARTE = () => {
+    const host = document.getElementById('coach-today-card');
+    const q = (s) => host ? host.querySelector(s) : null;
+    return {
+      karten: document.querySelectorAll('#pg-heute .aic').length,
+      pad: document.querySelectorAll('#heute-pad > div').length,
+      tabs: document.querySelectorAll('.tabbar .tab').length,
+      ring: ((q('.aic-r-val') || {}).textContent || '').trim(),
+      gruppe: ((q('.aic-r-lbl') || {}).textContent || '').trim(),
+      woche: ((q('.aic-head') || {}).textContent || '').trim(),
+      heute: ((q('.aic-sub') || {}).textContent || '').trim(),
+      satz: ((q('.aic-say') || {}).textContent || '').trim(),
+      cta: !!q('.aic-go'),
+      rolle: (q('.aic-top') || { getAttribute: () => null }).getAttribute('role'),
+      text: host ? (host.textContent || '').replace(/\s+/g, ' ').trim() : ''
+    };
+  };
+  await boot();
+  r = O(await ev(() => {
+    // Ein Plan fuer heute: damit die Karte ihren CTA traegt und "was heute
+    // ansteht" etwas zu sagen hat.
+    S.weekPlan = S.weekPlan || {};
+    S.weekPlan[todayKey()] = { type: 'exercises', exIds: ['ex0', 'ex1'] };
+    persist();
+    closeOv('ov-coach-hub');
+    renderHome();
+    const mgRec = getMuscleGroupRecovery();
+    const kand = MUSCLE_GROUPS.map(mg => ({ mg, r: mgRec[mg.id] })).filter(c => c.r && c.r.lastTs)
+      .sort((a, b) => b.r.recPct - a.r.recPct);
+    const ws = CoachReport.weekStart(Date.now());
+    const n  = CoachReport.weekNumbers(_crSessions(), ws);
+    const v  = CoachReport.weekNumbers(_crSessions(), ws - 7 * 864e5);
+    return { soll: kand[0] ? { lbl: muscleLabel(kand[0].mg.id), pct: kand[0].r.recPct } : null,
+             vol: Math.round(kgToDisp(n.vol)), vorVol: Math.round(kgToDisp(v.vol)),
+             karte: null };
+  }));
+  const karte = O(await ev(KARTE));
+  check('Heute-Karte, Zone links: der Ring zeigt die Erholung der naechsten faelligen Muskelgruppe und ihren NAMEN darunter — kein allgemeiner Durchschnittswert mehr',
+    !!r.soll && karte.gruppe === r.soll.lbl && karte.ring.indexOf(String(r.soll.pct)) === 0,
+    JSON.stringify({ soll: r.soll, ring: karte.ring, gruppe: karte.gruppe }));
+
+  check('Heute-Karte, Zone rechts: erste Zeile ist das Volumen der laufenden Woche mit Pfeil und Prozent zur Vorwoche (gegen CoachReport.weekNumbers gerechnet), zweite Zeile sagt, was heute ansteht',
+    /[↑↓→]/.test(karte.woche || '') && /%/.test(karte.woche || '') &&
+    (karte.woche || '').indexOf(String(r.vol).replace(/\B(?=(\d{3})+(?!\d))/g, '.')) >= 0 &&
+    (karte.heute || '').length > 3 && !/NaN|undefined/.test(karte.woche + karte.heute),
+    JSON.stringify({ vol: r.vol, vorVol: r.vorVol, woche: karte.woche, heute: karte.heute }));
+
+  check('Heute-Karte: darunter EIN Satz vom Coach aus der Sprachfabrik, der CTA "Training starten" steht weiter da, und der Kopfbereich behaelt Rolle und Tastaturzugang',
+    (karte.satz || '').length > 10 && karte.cta === true && karte.rolle === 'button' &&
+    !/\{[a-z]+\}/i.test(karte.satz || ''),
+    JSON.stringify({ satz: karte.satz, cta: karte.cta, rolle: karte.rolle }));
+
+  // ── 44) Der Coach-Satz wechselt mit dem Ton ────────────────────────────
+  r = O(await ev(() => {
+    const lies = () => ((document.querySelector('#coach-today-card .aic-say') || {}).textContent || '').trim();
+    const out = {};
+    ['ruhig', 'sachlich', 'hart', 'locker'].forEach(t => { setAiCoachOpt('tone', t); out[t] = lies(); });
+    return out;
+  }));
+  check('Der Satz auf der Karte steht im GEWAEHLTEN Ton: alle vier Toene ergeben vier verschiedene Saetze',
+    Object.keys(r || {}).length === 4 && Object.values(r).every(v => v && v.length > 10) &&
+    new Set(Object.values(r)).size === 4,
+    JSON.stringify(r).slice(0, 600));
+
+  // ── 45) CTA startet das Training und oeffnet NICHT den Hub ─────────────
+  await ev(() => { try { closeOv('ov-coach-hub'); } catch (_) {} goTabId('heute'); renderHome(); });
+  await wait(300);
+  let ctaTipp = false;
+  try { await page.click('#coach-today-card .aic-go'); ctaTipp = true; } catch (e) { ctaTipp = String(e.message).slice(0, 140); }
+  await wait(400);
+  const nachCta = O(await ev(() => ({
+    hub: document.getElementById('ov-coach-hub').classList.contains('on'),
+    tab: (document.querySelector('.page.on') || {}).id || null })));
+  check('Tipp auf "Training starten" startet das Training und oeffnet den Hub NICHT (der closest("button, a")-Waechter haelt)',
+    ctaTipp === true && nachCta.hub === false && nachCta.tab !== 'pg-heute',
+    JSON.stringify({ ctaTipp, nachCta }));
+
+  // ── 46) Tipp daneben und Enter oeffnen den Hub ─────────────────────────
+  await ev(() => { goTabId('heute'); renderHome(); });
+  await wait(300);
+  let daneben = false;
+  try { await page.click('#coach-today-card .aic-top'); daneben = true; } catch (e) { daneben = String(e.message).slice(0, 140); }
+  await wait(400);
+  const nachDaneben = O(await ev(() => {
+    const auf = document.getElementById('ov-coach-hub').classList.contains('on');
+    closeOv('ov-coach-hub');
+    return { auf };
+  }));
+  await wait(200);
+  let enter = false;
+  try { await page.focus('#coach-today-card .aic-top'); await page.keyboard.press('Enter'); enter = true; }
+  catch (e) { enter = String(e.message).slice(0, 140); }
+  await wait(400);
+  const nachEnter = O(await ev(() => ({ auf: document.getElementById('ov-coach-hub').classList.contains('on') })));
+  check('Tipp neben den CTA oeffnet den Hub, und Enter auf dem Kopfbereich tut dasselbe — die Karte bleibt der einzige Zugang',
+    daneben === true && nachDaneben.auf === true && enter === true && nachEnter.auf === true,
+    JSON.stringify({ daneben, nachDaneben, enter, nachEnter }));
+
+  // ── 47) Umbenennen zeichnet die Karte neu (Signatur) ───────────────────
+  r = O(await ev(() => {
+    closeOv('ov-coach-hub');
+    renderHome();
+    const vor = (document.querySelector('#coach-today-card .aic-lbl') || {}).textContent;
+    setAiCoachOpt('name', 'Nina');
+    const nach = (document.querySelector('#coach-today-card .aic-lbl') || {}).textContent;
+    // Und ein reiner Tonwechsel darf die Karte ebenfalls nicht einfrieren.
+    setAiCoachOpt('tone', 'hart');
+    const satz1 = (document.querySelector('#coach-today-card .aic-say') || {}).textContent;
+    setAiCoachOpt('tone', 'locker');
+    const satz2 = (document.querySelector('#coach-today-card .aic-say') || {}).textContent;
+    return { vor, nach, satz1, satz2 };
+  }));
+  check('Die Karten-Signatur (_aicSig) traegt alle neuen Werte: nach setAiCoachOpt("name") steht der neue Name da, und ein Tonwechsel zeichnet den Satz neu — genau hier ist in Task 8 ein Fehler entstanden',
+    r.vor !== 'Nina' && r.nach === 'Nina' && r.satz1 && r.satz2 && r.satz1 !== r.satz2,
+    JSON.stringify(r).slice(0, 500));
+
+  // ── 48) lbs: keine kg-Zahl auf der Karte ───────────────────────────────
+  await boot({ unit: 'lbs' });
+  r = O(await ev(() => {
+    S.weekPlan = S.weekPlan || {};
+    S.weekPlan[todayKey()] = { type: 'exercises', exIds: ['ex0', 'ex1'] };
+    persist();
+    closeOv('ov-coach-hub');
+    renderHome();
+    const host = document.getElementById('coach-today-card');
+    return { text: host ? (host.textContent || '').replace(/\s+/g, ' ').trim() : '' };
+  }));
+  check('S.unitMode = "lbs": auf der Heute-Karte steht keine kg-Zahl — die Einheit haengt am Wert, nicht im Satz',
+    /lbs/.test(r.text || '') && !/\bkg\b/.test(r.text || '') && !/NaN|undefined/.test(r.text || ''),
+    JSON.stringify(r).slice(0, 400));
+
+  // ── 49) Gestaltungsregel 1 haelt auch nach dem Umbau der Karte ─────────
+  const flaechen = O(await ev(KARTE));
+  check('Gestaltungsregel 1: der Heute-Tab traegt weiterhin zwei Flaechen unter der Kopfzeile, genau EINE .aic-Karte und fuenf Tab-Knoepfe — die drei Zonen liegen in EINEM Rahmen',
+    flaechen.karten === 1 && flaechen.pad === 2 && flaechen.tabs === 5,
+    JSON.stringify({ karten: flaechen.karten, pad: flaechen.pad, tabs: flaechen.tabs }));
+
+  // ── 50) Volumenbalken ohne Berichtsarchiv ──────────────────────────────
+  await boot({ berichte: false });
+  await hubAuf('week');
+  const ohneArchiv = O(await ev(WOCHE));
+  check('Leeres Berichtsarchiv, aber acht Wochen Einheiten: die Volumenbalken erscheinen trotzdem — sonst bliebe die Kachel genau in den ersten acht Wochen leer, in denen der Nutzer ueber das Abo entscheidet',
+    ohneArchiv.vol === true && (ohneArchiv.volLabels || []).length >= 5 &&
+    (ohneArchiv.volLabels || []).every(l => /^(KW|Week) \d+$/.test(l)),
+    JSON.stringify({ vol: ohneArchiv.vol, labels: ohneArchiv.volLabels }));
+
+  // ── 51) Archivwert schlaegt Rechnung ───────────────────────────────────
+  r = O(await ev(() => {
+    // Drei Wochen bekommen einen Bericht mit einem Wert, den die Rechnung aus
+    // den Einheiten NIE ergaebe. Steht er im Bild, hat das Archiv gewonnen.
+    const now = Date.now();
+    const reps = [];
+    for (let w = 3; w >= 1; w--) {
+      const ts = now - w * 7 * 864e5;
+      const ws = CoachReport.weekStart(ts);
+      const key = _crWeekKey(ts);
+      if (ws === null || !key) continue;
+      reps.unshift({ weekKey: key, label: _crLabel(ws),
+                     numbers: { workouts: 1, sets: 1, vol: 4321, prevVol: 0, volDelta: 0, prs: [], muscles: {}, streak: 0 },
+                     text: '', forecast: null, ts: ts });
+    }
+    S.coachReports = reps;
+    persist();
+    renderCoachHub();
+    const c = Chart.getChart(document.getElementById('chw-vol-cv'));
+    return { labels: c ? c.data.labels.slice() : null, werte: c ? c.data.datasets[0].data.slice() : null,
+             archiv: reps.map(x => x.weekKey), soll: Math.round(kgToDisp(4321)) };
+  }));
+  const treffer = (r.werte || []).filter(v => Math.round(v) === r.soll).length;
+  check('Archiv mit drei Wochen, Einheiten ueber acht: alle Balken stehen, und die drei archivierten Wochen tragen den ARCHIVWERT — Bericht schlaegt Rechnung, immer',
+    (r.labels || []).length >= 5 && treffer === 3 &&
+    (r.werte || []).every(v => typeof v === 'number' && isFinite(v)),
+    JSON.stringify({ labels: r.labels, werte: r.werte, soll: r.soll, treffer }).slice(0, 500));
+
+  // ── 52) Trainingsfreie Woche: 0 statt NaN ──────────────────────────────
+  r = O(await ev(() => {
+    // Die Woche vor der laufenden komplett leeren — weder Einheit noch Bericht.
+    const ws = CoachReport.weekStart(Date.now()) - 7 * 864e5;
+    S.coachReports = [];
+    S.sessions = (S.sessions || []).filter(s => {
+      const ts = new Date(s.date).getTime();
+      return !(ts >= ws && ts < ws + 7 * 864e5);
+    });
+    persist();
+    renderCoachHub();
+    const c = Chart.getChart(document.getElementById('chw-vol-cv'));
+    return { werte: c ? c.data.datasets[0].data.slice() : null,
+             labels: c ? c.data.labels.slice() : null };
+  }));
+  check('Eine Woche ohne Einheit und ohne Bericht steht als 0 im Bild, nicht als NaN und nicht als Luecke ohne Beschriftung — eine Pause ist eine Aussage',
+    (r.werte || []).length >= 3 && (r.werte || []).every(v => typeof v === 'number' && isFinite(v)) &&
+    (r.werte || []).some(v => v === 0) &&
+    (r.labels || []).every(l => /^(KW|Week) \d+$/.test(l)),
+    JSON.stringify(r).slice(0, 400));
+
+  // ── 53) prefers-reduced-motion: der Regler rastet ohne Uebergang ───────
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await boot();
+  await hubAuf('persona');
+  r = O(await ev(REGLER));
+  check('prefers-reduced-motion: reduce — der Griff des Ton-Reglers rastet ohne Uebergang ein (0 s)',
+    r.da === true && r.dauer === '0s',
+    JSON.stringify({ da: r.da, dauer: r.dauer }));
+  await page.emulateMediaFeatures([]);
+
   await browser.close();
   server.close();
 
-  // ── 34) Statisch: die alte Struktur ist weg, nicht nur unsichtbar ───────
+  // ── 54) Statisch: die alte Struktur ist weg, nicht nur unsichtbar ───────
   // Gemessen wird der CODE, nicht die Erklaerung: der Kommentar, der begruendet,
   // WARUM das Segmented Control entfaellt, darf stehen bleiben.
   try {
@@ -803,7 +1122,7 @@ const KACHELSTAND = () => {
                        cls: /\.ch-tab\b/.test(code), ids: /ch-tab-/.test(code) }));
   } catch (e) { check('Statisch: die alte Reiterstruktur ist weg', false, String(e.message)); }
 
-  // ── 35) Statisch: der Hub-Block nutzt persist(), keine Emojis, esc() ────
+  // ── 55) Statisch: der Hub-Block nutzt persist(), keine Emojis, esc() ────
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const a = src.indexOf('// ═══ COACH-HUB: ein Blatt mit fünf aufklappenden Kacheln');
@@ -820,7 +1139,7 @@ const KACHELSTAND = () => {
                        catches: (code.match(/catch\s*\(/g) || []).length }).slice(0, 500));
   } catch (e) { check('Statisch: persist(), keine Emojis, try/catch im Hub-Block', false, String(e.message)); }
 
-  // ── 36) Statisch: _chOpen wird beim Kontowechsel zurueckgesetzt ─────────
+  // ── 56) Statisch: _chOpen wird beim Kontowechsel zurueckgesetzt ─────────
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const a = src.indexOf("schritt('Hub'");
