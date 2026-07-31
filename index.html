@@ -8703,7 +8703,11 @@ const I18N_RX = [
   [/Ziel ändern \(aktuell /g, 'Change goal (currently '],
   [/−1 rückgängig \(/g, '−1 undo ('],
   [/Anfrage an /g, 'Request sent to '],
-  [/Trainiert gerade · seit /g, 'Working out · since '],
+  // „Trainiert gerade" ist eine exakte I18N_EN-Phrase und wird schon im
+  // ·-Segmentschritt ersetzt — eine Regel auf den ganzen deutschen Satz greift
+  // hier nie. Deshalb nur der Rest-Teil, gegen die bereits halb englische Form.
+  [/· seit (\d+) Std\. (\d+) Min\./g, '· for $1 h $2 min'],
+  [/· seit (\d+) Min\./g, '· for $1 min'],
   [/Diese Woche · Du vs\. /g, 'This week · You vs. '],
   [/ einen neuen Rekord aufgestellt:/g, ' set a new record:'],
  [/-Wochen-Streak/g,'-week streak'],
@@ -26412,24 +26416,106 @@ function openCoachHub(tab){
   openOv('ov-coach-hub');
   renderCoachHub();
 }
-/* Eine Kachel öffnen. Erneut auf die offene getippt schließt sie; dann ist
-   keine offen, und auch das ist ein gültiger Zustand.
+/* Eine Kachel öffnen und wieder zurück. Zwei Ebenen, eine Bewegung.
 
-   Bewusst OHNE renderCoachHub(): ein innerHTML-Austausch legt die Kachel schon
-   im Endzustand an, und der CSS-Übergang (0fr -> 1fr) liefe nie. Umgeschaltet
-   wird deshalb nur die Klasse am bestehenden Knoten. */
+   Anders als beim früheren Akkordeon wird hier NEU GERENDERT: Raster und Detail
+   sind getrennte Ebenen, die Detailebene trägt immer nur ein Panel. Der
+   Übergang hängt deshalb nicht mehr an einem CSS-Zustandswechsel am selben
+   Knoten, sondern am Zoom zwischen den beiden Ebenen (_chZoom).
+
+   Ein zweiter Tipp auf dieselbe Kachel tut nichts — geschlossen wird über den
+   Zurück-Pfeil im Kopf. Ein Umschalter, der dieselbe Fläche öffnet und
+   schließt, ist im Raster nicht mehr sichtbar: die Kachel liegt beim zweiten
+   Tipp gar nicht mehr vor dem Nutzer. */
 function coachHubOpen(name){
   try {
-    if (_CH_CARD_IDS.indexOf(name) < 0) return;
-    _chOpen = (_chOpen === name) ? '' : name;
+    if (_CH_CARD_IDS.indexOf(name) < 0 || _chOpen === name) return;
     try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
-    _chApplyOpen();
-    // Diagramme entstehen beim ÖFFNEN und werden beim Schließen zerstört —
-    // Chart.js hält seine Instanzen an der Zeichenfläche fest, und ohne
-    // destroy() wächst der Speicher bei jedem Öffnen.
-    if (_chOpen === 'week') _chWeekDraw(); else _chWeekDestroy();
-    if (_chOpen) _chScrollOpen(_chOpen);
+    _chGo(name);
   } catch(e) { console.warn('[Coach] Kachel öffnen:', e); }
+}
+function coachHubBack(){
+  try {
+    if (!_chOpen) return;
+    try { if (typeof haptic === 'function') haptic(4); } catch(_) {}
+    _chGo('');
+  } catch(e) { console.warn('[Coach] Zurück ins Raster:', e); }
+}
+/* Der Ursprung des Zooms ist die Mitte der betroffenen Kachel, in Prozent der
+   Bühne. Gemessen wird am RASTER, das je nach Richtung vor oder nach dem
+   Rendern existiert — deshalb steht der Aufruf in _chGo zweimal.
+   Ohne messbare Bühne gibt es keinen Ursprung; _chZoom fällt dann auf die
+   Vorgabe aus dem Stylesheet zurück. */
+function _chOriginOf(k, stage){
+  try {
+    const el = stage && stage.querySelector('#ch-tile-' + k);
+    if (!el) return null;
+    const a = el.getBoundingClientRect(), b = stage.getBoundingClientRect();
+    if (!b.width || !b.height) return null;
+    return ((a.left + a.width / 2 - b.left) / b.width * 100).toFixed(1) + '% ' +
+           ((a.top + a.height / 2 - b.top) / b.height * 100).toFixed(1) + '%';
+  } catch(_) { return null; }
+}
+function _chGo(ziel){
+  const von = _chOpen;
+  // Vorwärts ist die Zielkachel JETZT sichtbar, nach dem Rendern nicht mehr.
+  let urs = ziel ? _chOriginOf(ziel, document.getElementById('ch-stage')) : null;
+  _chOpen = ziel;
+  // Die Detailebene fängt oben an. Das ist kein Scrollsprung, sondern ein
+  // Ebenenwechsel — eine mitgeschleppte Scrollposition der anderen Ebene wäre
+  // hier sinnlos.
+  _chResetScroll = true;
+  // Diagramme leben nur, solange ihre Kachel offen ist: Chart.js hält seine
+  // Instanzen an der Zeichenfläche fest, und ohne destroy() wächst der Speicher
+  // bei jedem Öffnen. renderCoachHub() zeichnet sie bei Bedarf neu.
+  if (ziel !== 'week') _chWeekDestroy();
+  renderCoachHub();
+  const stage = document.getElementById('ch-stage');
+  // Zurück ist das Raster erst nach dem Rendern wieder messbar.
+  if (!ziel) urs = _chOriginOf(von, stage);
+  _chZoom(!!ziel, urs, stage);
+}
+/* Der Zoom selbst. vor = true heißt Raster → Detail.
+
+   Die ankommende Ebene startet im Gegenzustand und läuft auf ihren Ruhezustand
+   zu; die abgehende läuft in den Gegenzustand hinein und liegt dabei absolut
+   über der Bühne (.ch-lift), damit sie die ankommende nicht nach unten schiebt.
+
+   Bei reduzierter Bewegung passiert gar nichts: der Zustandswechsel hat dann
+   schon im Rendern stattgefunden, und genau das ist die gewünschte Sofortigkeit. */
+const _CH_ZOOM_MS = 300;
+let _chZoomT = null;
+function _chZoom(vor, urs, stage){
+  try {
+    if (!stage || _chReduceMotion()) return;
+    const grid = stage.querySelector('.ch-grid');
+    const pane = stage.querySelector('.ch-pane');
+    if (!grid || !pane) return;
+    // Ein noch laufender Wechsel wird zuerst sauber abgeräumt, sonst bleibt bei
+    // schnellem Tippen eine Ebene absolut positioniert oder halb durchsichtig
+    // stehen.
+    if (_chZoomT) { clearTimeout(_chZoomT); _chZoomT = null; }
+    stage.classList.remove('x');
+    [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout', 'anim'));
+    if (urs) { grid.style.transformOrigin = urs; pane.style.transformOrigin = urs; }
+    const rein = vor ? pane : grid;
+    const raus = vor ? grid : pane;
+    stage.classList.add('x');
+    raus.classList.add('ch-lift');
+    rein.classList.add(vor ? 'ch-zin' : 'ch-zout');
+    void stage.offsetWidth;                                  // Startzustand festschreiben
+    rein.classList.remove('ch-zin', 'ch-zout');
+    rein.classList.add('anim');
+    raus.classList.add(vor ? 'ch-zout' : 'ch-zin');
+    _chZoomT = setTimeout(() => {
+      _chZoomT = null;
+      try {
+        stage.classList.remove('x');
+        [grid, pane].forEach(el => el.classList.remove('ch-lift', 'ch-zin', 'ch-zout', 'anim'));
+        grid.style.transformOrigin = ''; pane.style.transformOrigin = '';
+      } catch(_) {}
+    }, _CH_ZOOM_MS + 60);
+  } catch(e) { console.warn('[Coach] Ebenenwechsel:', e); }
 }
 /* Der Wechsel zwischen einer und zwei Spalten animiert nicht von selbst:
    grid-column ist keine übergangsfähige Eigenschaft, die Kachel spränge auf
@@ -26532,37 +26618,44 @@ function _chScrollOpen(k){
     }, 300);
   } catch(e) { console.warn('[Coach] Kachel in Sicht planen:', e); }
 }
-/* Eine Kachel als Markup. k stammt aus _CH_CARDS und ist eigener Code, nie
-   Fremdtext im onclick. Titel und Kennzahl gehen durch esc().
+/* Eine Kachel des Rasters. k stammt aus _CH_CARDS und ist eigener Code, nie
+   Fremdtext im onclick. Label und Wert gehen durch esc().
    cur ist der Wochen-Zwischenstand aus _crCurrent(): er wird EINMAL je
    Renderlauf gerechnet und durchgereicht, weil ihn sonst die Kennzahl und der
-   Inhalt der Wochen-Kachel je zweimal über alle Einheiten rechnen würden — und
-   gerendert wird bei jedem Schalter. */
-function _chCardHTML(c, cur){
-  const on = (_chOpen === c.k);
-  let inner = '', kz = '';
-  try { inner = _chCardBody(c.k, cur) || ''; }
-  catch(e) { console.warn('[Coach] Kachelinhalt ' + c.k + ':', e); inner = ''; }
+   Inhalt der Wochenkachel je zweimal über alle Einheiten rechnen würden — und
+   gerendert wird bei jedem Schalter.
+
+   Die Vorlesehilfe bekommt Label und Wert als EINE Beschriftung: "Woche,
+   8.240 kg ↑ 12 %" ist die Aussage der Kachel, zwei getrennte Fetzen wären es
+   nicht. Das Symbol ist rein dekorativ. */
+function _chTileHTML(c, cur){
+  let kz = '';
   try { kz = _chCardMetric(c.k, cur) || ''; }
   catch(e) { console.warn('[Coach] Kennzahl ' + c.k + ':', e); kz = ''; }
-  // Das Symbol kommt aus ICO und ist rein dekorativ — Titel und Kennzahl
-  // stehen als Text daneben, die Vorlesehilfe braucht es nicht.
   let ico = '';
-  try { ico = (ICO[c.ico] || ICO.sparkle)({ s: 17 }); } catch(_) { ico = ''; }
-  return `<section class="ch-card${on ? ' on' : ''}" id="ch-card-${c.k}">
-      <div class="ch-card-i">
-        <button type="button" class="ch-card-h" id="ch-h-${c.k}" aria-expanded="${on ? 'true' : 'false'}"
-          aria-controls="ch-p-${c.k}" onclick="coachHubOpen('${c.k}')">
-          <span class="ch-card-ico" aria-hidden="true">${ico}</span>
-          <span class="ch-card-t">${esc(tr(c.de))}</span>
-          <span class="ch-card-m">${esc(kz)}</span>
-          <span class="ch-card-c" aria-hidden="true">${ICO.chevron({s:18})}</span>
-        </button>
-        <div class="ch-card-w" id="ch-p-${c.k}" role="region" aria-labelledby="ch-h-${c.k}">
-          <div class="ch-card-b"><div class="ch-in">${inner}</div></div>
-        </div>
-      </div>
-    </section>`;
+  try { ico = (ICO[c.ico] || ICO.sparkle)({ s: 16 }); } catch(_) { ico = ''; }
+  const lbl = tr(c.kurz || c.de);
+  // Lange Werte sind Sätze ("noch kein Gespräch", "diese Woche noch nichts")
+  // und keine Zahlen. In der Schriftgröße einer Zahl gesetzt brechen sie über
+  // drei Zeilen und sprengen die Kachel, deshalb die ruhigere Stufe.
+  const lang = kz.length > 20 ? ' lang' : '';
+  return `<button type="button" class="ch-tile${c.k === 'chat' ? ' hero' : ''}" id="ch-tile-${c.k}"
+      onclick="coachHubOpen('${c.k}')" aria-label="${esc(lbl + (kz ? ', ' + kz : ''))}">
+      <span class="ch-tile-top">
+        <span class="ch-tile-l">${esc(lbl)}</span>
+        <span class="ch-tile-i" aria-hidden="true">${ico}</span>
+      </span>
+      <span class="ch-tile-r" aria-hidden="true"></span>
+      <span class="ch-tile-v${lang}">${esc(kz)}</span>
+    </button>`;
+}
+/* Das Panel der Detailebene. Immer nur eines, und nur wenn eine Kachel offen
+   ist — der Titel steht im Blattkopf, deshalb trägt das Panel keinen. */
+function _chPanelHTML(c, cur){
+  let inner = '';
+  try { inner = _chCardBody(c.k, cur) || ''; }
+  catch(e) { console.warn('[Coach] Kachelinhalt ' + c.k + ':', e); inner = ''; }
+  return `<section class="ch-panel" id="ch-panel-${c.k}"><div class="ch-in">${inner}</div></section>`;
 }
 /* ── Die Diagramme der Wochenkachel ──────────────────────────────────────
    Gerechnet wird in js/coach-charts.js (reine Funktionen, 57 eigene Tests),
@@ -27098,8 +27191,24 @@ function renderCoachHub(){
     // Kopf und Unterzeile per textContent — dieselbe Begründung wie in
     // _aicApplyName(): das ist die eine Stelle, an der der entschärfte Name
     // doch noch als Markup landen könnte. tr() greift dabei trotzdem.
-    const h = document.getElementById('ch-title'); if (h) h.textContent = _coachName();
-    const sub = document.getElementById('ch-sub'); if (sub) sub.textContent = tr('dein Coach');
+    // Der Kopf trägt den Zustand: im Raster den Coach-Namen über "dein Coach",
+    // in der Detailebene den Kachel-Titel über dem Coach-Namen. So bleibt
+    // sichtbar, wessen Journal man liest, und der Zurück-Pfeil hat eine
+    // Beschriftung, die zu ihm passt. Der Pfeil steht auf dem Platz des Orbs,
+    // damit die Kopfbreite gleich bleibt.
+    const karte = _CH_CARDS.filter(c => c.k === _chOpen)[0] || null;
+    const h = document.getElementById('ch-title');
+    if (h) h.textContent = karte ? tr(karte.de) : _coachName();
+    const sub = document.getElementById('ch-sub');
+    if (sub) sub.textContent = karte ? _coachName() : tr('dein Coach');
+    const orb = document.getElementById('ch-orb'); if (orb) orb.hidden = !!karte;
+    const bk = document.getElementById('ch-back');
+    if (bk) {
+      bk.hidden = !karte;
+      // Das Symbol kommt aus ICO und muss deshalb aus JS ins Markup — der
+      // Winkel zeigt per CSS-Drehung nach links.
+      if (karte && !bk.firstChild) { try { bk.innerHTML = ICO.chevron({ s: 19 }); } catch(_) {} }
+    }
     // Body NICHT ersetzen, solange eine Namensänderung läuft (s. coachHubSetName):
     // onchange feuert beim Blur, also zwischen pointerdown und pointerup des
     // nächsten Tipps — ein Rerender dazwischen nimmt die getippte Karte aus dem
@@ -27109,7 +27218,7 @@ function renderCoachHub(){
     // sie bei jedem der vier Schalter zu und die Scrollposition springt. Bewusst
     // aus dem DOM gelesen statt aus einem ontoggle-Merker: das toggle-Ereignis
     // feuert erst als eigene Aufgabe, ein schneller Tipp käme ihm zuvor.
-    const detOffen = !!(body.querySelector('#ch-card-scope details') || {}).open;
+    const detOffen = !!(body.querySelector('#ch-panel-scope details') || {}).open;
     // #ch-body ist der Scroller, und ein innerHTML-Austausch wirft seine Position
     // weg. Bei einem SCHALTER muss sie stehen bleiben: _coachOptRender() rendert
     // bei jeder Option neu, und ein Sprung an den Anfang nimmt den gerade
@@ -27121,8 +27230,14 @@ function renderCoachHub(){
     // Die alten Zeichenflächen fliegen mit dem innerHTML raus; ihre Chart-
     // Instanzen bleiben sonst als Karteileichen im Register stehen.
     _chWeekDestroy();
-    body.innerHTML = _CH_CARDS.map(c => _chCardHTML(c, cur)).join('');
-    if (detOffen) { const d = body.querySelector('#ch-card-scope details'); if (d) d.open = true; }
+    /* Beide Ebenen entstehen bei jedem Lauf, auch die unsichtbare: der Zoom
+       zurück ins Raster braucht das Raster als messbaren Knoten, bevor es
+       sichtbar wird. Teuer ist daran nichts — die Kacheln tragen nur fünf
+       Kennzahlen, der Inhalt steckt im einen Panel. */
+    body.innerHTML = `<div class="ch-stage" id="ch-stage" data-v="${karte ? 'det' : 'grid'}">`
+      + `<div class="ch-grid">${_CH_CARDS.map(c => _chTileHTML(c, cur)).join('')}</div>`
+      + `<div class="ch-pane">${karte ? _chPanelHTML(karte, cur) : ''}</div></div>`;
+    if (detOffen) { const d = body.querySelector('#ch-panel-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
     // Nur die OFFENE Wochenkachel bekommt ihre Diagramme.
     if (_chOpen === 'week') _chWeekDraw();
