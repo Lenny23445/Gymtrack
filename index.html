@@ -24954,14 +24954,19 @@ function _coachBarRender() {
   if (!on) { el.style.display = 'none'; return; }
   el.style.display = '';
   const thinking = _coachBarState.mode === 'thinking';
+  // Hoer-Zustand: waehrend der Aufnahme wird die Leiste selbst zur Anzeige —
+  // rotes Equalizer-Pulsieren + Live-Transkript (_coachBarState.mode 'listen').
+  const listening = _coachAskOn;
   const msg = _coachBarState.msg || '';
-  el.className = 'coach-bar' + (thinking ? ' thinking' : '');
+  el.className = 'coach-bar' + (thinking ? ' thinking' : '') + (listening ? ' listen' : '');
   // Die Leiste nennt den Coach beim Namen. Heisst er noch 'Coach', greifen weiter
   // die Woerterbuch-Eintraege (EN: 'Coach live') statt einer zweiten Formulierung.
   const nm = _coachName(), nmE = esc(nm);
-  const lbl = (nm === 'Coach')
-    ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
-    : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
+  const lbl = listening
+    ? _cm(nmE + ' hört zu…', nmE + ' is listening…')
+    : (nm === 'Coach')
+      ? (thinking ? tr('Coach denkt nach…') : tr('Coach aktiv'))
+      : (thinking ? _cm(nmE + ' denkt nach…', nmE + ' is thinking…') : _cm(nmE + ' aktiv', nmE + ' active'));
   // Satz-Rueckfrage: dieselbe Flaeche, direkt unter der Nachricht. Kein Overlay,
   // kein Dialog — der Rest des Trainings bleibt bedienbar (s. _rpeAsk).
   let ask = '';
@@ -24975,12 +24980,18 @@ function _coachBarRender() {
     ? `<button type="button" class="coach-bar-mic${_coachAskOn ? ' rec' : ''}" onclick="coachAsk()"` +
       ` aria-label="${esc(_cm('Coach fragen','Ask your coach'))}">${ICO.mic({ s: 17 })}</button>`
     : '';
+  // Waehrend der Aufnahme ersetzt das Live-Transkript die normale Nachricht:
+  // eigene Klasse ohne Einblende-Animation (jeder Zwischenstand wuerde sie neu
+  // starten), leerer Stand zeigt eine Aufforderung statt einer leeren Zeile.
+  const body = listening
+    ? `<div class="coach-bar-tx${msg ? '' : ' hint'}">${esc(msg || _cm('Sprich einfach los.', 'Just start talking.'))}</div>`
+    : (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
   el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
     `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span>${mic}</div>` +
-    (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '') + ask;
+    body + ask;
   // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
   // (z.B. Satz-Liste neu gebaut) die Animation erneut auslösen und flackern.
-  if (msg && msg !== _coachBarRender._last) {
+  if (msg && !listening && msg !== _coachBarRender._last) {
     el.classList.remove('flash');
     void el.offsetWidth;            // Reflow: Keyframe von vorn starten
     el.classList.add('flash');

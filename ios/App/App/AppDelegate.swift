@@ -140,6 +140,11 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(CameraPlugin())
         bridge?.registerPluginInstance(PremiumPlugin())
         bridge?.registerPluginInstance(SplashOverlayPlugin())
+        // Stimme des Coaches (Block 2): ohne diese zwei Zeilen existieren die
+        // Plugins fuer JS nicht — der Sprech-Knopf in der Coach-Leiste wird dann
+        // nie gerendert (_cvCaps.stt bleibt false). Genau so war er "tot".
+        bridge?.registerPluginInstance(SpeechPlugin())
+        bridge?.registerPluginInstance(TtsPlugin())
     }
 
     // MARK: - Splash-Overlay (nahtloser Start)
