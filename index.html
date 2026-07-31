@@ -5274,6 +5274,25 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   .ch-card::after,.ch-card.flash::after,.ch-card .ch-card-b>.ch-in>*{animation:none!important}
 }
 
+/* ── Wochenkachel: Kennzahlen, Diagramme, Kraftziel ──────────────────────
+   Die Zahlenkacheln nehmen bewusst die bestehenden .aia-stat-Regeln der
+   KI-Analyse: dieselbe Bedienabsicht ("drei Zahlen nebeneinander") muss in der
+   App gleich aussehen (Gestaltungsregel 7). Neu ist hier nur die Zeile mit
+   Pfeil und Prozent — die gab es an der Stelle noch nicht.
+   Kein backdrop-filter am Diagrammkasten: die Kachel trägt ihr Glas schon, ein
+   zweites darüber ergäbe eine trübe Fläche (und WKWebView rendert
+   overflow:hidden + backdrop-filter als dunklen Block). */
+.chw-d{font-size:10.5px;font-weight:800;letter-spacing:-.1px;margin-top:3px;color:var(--text2)}
+.chw-d.up{color:var(--acc)}
+.chw-box{position:relative;height:150px;margin:2px 0 6px}
+#chw-1rm .chw-box{height:172px}
+.chw-unit{flex-shrink:0;font-size:12.5px;font-weight:800;color:var(--text2)}
+/* Die Übungsauswahl des Kraftziels kann lang werden — sie rollt waagerecht,
+   statt fünf Zeilen Chips aufzubauen. Gleiche Rollmechanik wie .aic-sugg. */
+.chw-pick{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chw-pick::-webkit-scrollbar{display:none}
+.chw-pick .pwz-chip{flex-shrink:0}
+
 /* Abschnittstitel in der Skala der App (.row-title) statt als graues
    Uppercase-Label. Acht graue Kapitälchen-Zeilen hintereinander waren der
    Grund, warum der Hub wie eine generische Einstellungsliste aussah. */
@@ -26128,6 +26147,343 @@ function _chCardHTML(c, cur){
         <div class="ch-card-b"><div class="ch-in">${inner}</div></div>
       </div>
     </section>`;
+}
+/* ── Die Diagramme der Wochenkachel ──────────────────────────────────────
+   Gerechnet wird in js/coach-charts.js (reine Funktionen, 57 eigene Tests),
+   hier steht die Verdrahtung. Zwei Regeln, die diese Trennung tragen:
+
+   - MARKUP IMMER, ZEICHNEN NUR BEI OFFENER KACHEL. Alle fünf Kachelinhalte
+     stehen gleichzeitig im DOM, und renderCoachHub() baut sie bei jedem
+     Schalter neu. Ohne die Trennung entstünden drei Chart-Instanzen pro
+     Rerender, und Chart.js hält sie an der Zeichenfläche fest.
+   - Die Konfigurationen entstehen BEIM RENDERN (dort liegt der Wochenstand
+     ohnehin vor) und werden hier zwischengelagert; coachHubOpen() zeichnet
+     nur noch. Das ist der Grund, warum coachHubOpen() weiterhin nicht
+     rendert — täte es das, stürbe der CSS-Übergang der Kachel.
+
+   Farben, Sprache, Einheit und die Bewegungsvorgabe kommen als opts herein:
+   das Modul liest nichts davon selbst. */
+let _chWeekCfg  = null;   // die drei Konfigurationen des letzten Renderlaufs
+let _chWeekInst = [];     // die lebenden Chart-Instanzen der Kachel
+// Der gedämpfte Balken ist das Neutralgrau der Diagrammraster (rgba(120,120,128,…))
+// in kräftigerer Deckung — kein neuer Farbton, nur eine zweite Stufe davon.
+const _CH_MUTED = 'rgba(120,120,128,.34)';
+function _chReduceMotion(){
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch(_) { return false; }
+}
+function _chChartOpts(){
+  let acc = '#007AFF';
+  try { acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; } catch(_) {}
+  return { accent: acc, muted: _CH_MUTED, lang: _lang(), unit: unitLabel(),
+           reduceMotion: _chReduceMotion() };
+}
+// Zahl in der Schreibweise der Anzeigesprache, ohne Einheit.
+function _chNum(v, digits){
+  try {
+    const n = Number(v);
+    if (!isFinite(n)) return '0';
+    return n.toLocaleString(_lang() === 'en' ? 'en-US' : 'de-DE',
+      { maximumFractionDigits: digits || 0 });
+  } catch(_) { return String(v); }
+}
+/* Die Balken der letzten Wochen kommen aus dem BERICHTSARCHIV, nicht aus den
+   Einheiten: dieselbe Quelle, aus der auch die Liste "Frühere Wochen" darunter
+   liest. Zwei Quellen für dieselben acht Zahlen liefen bei einer nachträglich
+   geänderten Einheit auseinander, und der Nutzer sähe im Diagramm etwas
+   anderes als in der Liste. Die laufende Woche kommt dazu, solange sie noch
+   keinen Bericht hat. Werte gehen in der ANZEIGEEINHEIT hinein — das Modul
+   rechnet bewusst nicht um. */
+function _chWeekBarData(cur){
+  const out = [], gesehen = Object.create(null);
+  try {
+    (S.coachReports || []).forEach(r => {
+      if (!r || !r.weekKey || gesehen[r.weekKey]) return;
+      gesehen[r.weekKey] = 1;
+      out.push({ weekKey: r.weekKey, vol: kgToDisp(Math.round(Number((r.numbers || {}).vol) || 0)) });
+    });
+    out.reverse();                       // das Archiv steht neueste zuerst
+    if (cur && cur.rep && cur.rep.weekKey && !gesehen[cur.rep.weekKey]) {
+      out.push({ weekKey: cur.rep.weekKey,
+                 vol: kgToDisp(Math.round(Number((cur.rep.numbers || {}).vol) || 0)) });
+    }
+  } catch(e) { console.warn('[Coach] Wochenbalken:', e); }
+  return out;
+}
+function _chWeekBuildCfg(cur){
+  const out = { vol: null, mus: null, rm: null };
+  try {
+    if (!window.CoachCharts) return out;
+    const o = _chChartOpts();
+    try { out.vol = CoachCharts.volumeBars(_chWeekBarData(cur), o); }
+    catch(e) { console.warn('[Coach] Volumenbalken:', e); }
+    try {
+      const mus = (cur && cur.rep && cur.rep.numbers && cur.rep.numbers.muscles) || {};
+      const liste = Object.keys(mus).map(k => ({
+        id: k, label: muscleLabel(k) || '', vol: kgToDisp(Math.round(Number(mus[k]) || 0)) }));
+      out.mus = CoachCharts.muscleBars(liste, o);
+    } catch(e) { console.warn('[Coach] Muskelverteilung:', e); }
+    try {
+      const ziel = _crGoal();
+      if (ziel) {
+        const fc = CoachReport.goalForecast(ziel.history, ziel.kg, Date.now());
+        if (fc) {
+          const pts = ziel.history.map(h => ({
+            weekIndex: CoachAnalyze.isoWeekIndex(h.ts),
+            kg: kgToDisp(CoachReport.epley1rm(h.kg, h.reps))
+          })).filter(p => p.weekIndex !== null);
+          // goalForecast() liefert {weeks, goalKg, currentKg} — genau die Form,
+          // die das Modul erwartet. Eine blanke Zahl ergäbe stillschweigend
+          // eine Linie OHNE Prognose.
+          out.rm = CoachCharts.oneRmLine(pts, { goalKg: kgToDisp(fc.goalKg), weeks: fc.weeks }, o);
+        }
+      }
+    } catch(e) { console.warn('[Coach] Bestwert-Verlauf:', e); }
+  } catch(e) { console.warn('[Coach] Diagramme bauen:', e); }
+  return out;
+}
+/* Textfassung eines Diagramms für die Vorlesehilfe. Eine Zeichenfläche ist für
+   sie stumm; ohne diese Zeile wäre die Verteilung für Screenreader-Nutzer
+   nicht vorhanden. */
+function _chChartAlt(titel, cfg, opts){
+  try {
+    if (!cfg) return titel;
+    const labels = (cfg.data && cfg.data.labels) || [];
+    const werte  = ((cfg.data && cfg.data.datasets && cfg.data.datasets[0]) || {}).data || [];
+    const teile = [];
+    for (let i = 0; i < labels.length; i++) {
+      if (!labels[i] || werte[i] == null) continue;
+      teile.push(labels[i] + ': ' + _chNum(werte[i], (opts && opts.digits) || 0) + ' ' + unitLabel());
+    }
+    return teile.length ? (titel + ' — ' + teile.join(', ')) : titel;
+  } catch(_) { return titel; }
+}
+function _chWeekDestroy(){
+  try { _chWeekInst.forEach(c => { try { c.destroy(); } catch(_) {} }); }
+  catch(e) { console.warn('[Coach] Diagramme zerstören:', e); }
+  _chWeekInst = [];
+}
+function _chWeekDraw(){
+  try {
+    _chWeekDestroy();
+    if (typeof Chart !== 'function' || !_chWeekCfg) return;
+    const mk = (id, cfg) => {
+      if (!cfg) return;
+      const cv = document.getElementById(id);
+      if (!cv) return;
+      try { _chWeekInst.push(new Chart(cv.getContext('2d'), cfg)); }
+      catch(e) { console.warn('[Coach] Diagramm ' + id + ':', e); }
+    };
+    mk('chw-vol-cv', _chWeekCfg.vol);
+    mk('chw-mus-cv', _chWeekCfg.mus);
+    mk('chw-1rm-cv', _chWeekCfg.rm);
+    _chWeekCountUp();
+  } catch(e) { console.warn('[Coach] Wochendiagramme:', e); }
+}
+/* Die Kennzahlen zählen beim Öffnen in 400 ms hoch. Der RUHEZUSTAND ist der
+   Endwert (er steht im Markup) — die Animation überschreibt ihn nur
+   vorübergehend. Startet sie nicht (Paint-Throttling, reduzierte Bewegung),
+   steht trotzdem die richtige Zahl da; dieselbe Begründung wie beim Verzicht
+   auf fill-mode in den Kachel-Keyframes. */
+function _chWeekCountUp(){
+  try {
+    if (_chReduceMotion()) return;
+    const els = [...document.querySelectorAll('#ch-card-week .chw-n[data-n]')];
+    els.forEach(el => {
+      const ziel = parseFloat(el.getAttribute('data-n'));
+      const ende = el.getAttribute('data-txt') || el.textContent;
+      if (!isFinite(ziel) || ziel <= 0) return;
+      const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+      const schritt = (t) => {
+        const p = Math.min(1, ((t || Date.now()) - t0) / 400);
+        if (p >= 1) { el.textContent = ende; return; }
+        el.textContent = _chNum(Math.round(ziel * (1 - Math.pow(1 - p, 3))), 0);
+        requestAnimationFrame(schritt);
+      };
+      requestAnimationFrame(schritt);
+    });
+  } catch(e) { console.warn('[Coach] Zahlen hochzählen:', e); }
+}
+
+/* ── Das Kraftziel ───────────────────────────────────────────────────────
+   ex.targetWeight existiert im Datenmodell, wird an jeder Anlagestelle mit 0
+   beschrieben und war von keiner Oberfläche zu setzen — deshalb schwieg die
+   fertig gebaute Prognose. Diese Zeile füllt genau dieses Feld: kein neues
+   Feld, kein neuer Schreibpfad, kein Firestore. */
+let _chGoalOpen = false;   // ist die Eingabe aufgeklappt?
+let _chGoalEx   = '';      // welche Übung sie gerade meint
+let _chGoalHint = '';      // Ablehnungshinweis, überlebt den Rerender
+// Die Übung mit gesetztem Ziel — bewusst OHNE die Verlaufsbedingung aus
+// _crGoal(): ein frisch gesetztes Ziel muss die Zeile auch dann tragen, wenn
+// für eine Prognose noch Wochen fehlen.
+function _chGoalCurrent(){
+  try {
+    const alle = (S.exercises || []).filter(e => e && e.targetType !== 'time' &&
+      isFinite(parseFloat(e.targetWeight)) && parseFloat(e.targetWeight) > 0);
+    return alle[0] || null;
+  } catch(e) { console.warn('[Coach] Ziel lesen:', e); return null; }
+}
+// Das aktuell geschätzte Maximum dieser Übung, in kg.
+function _chGoalIst(exId){
+  try {
+    if (!window.CoachReport || !exId) return 0;
+    let best = 0;
+    (S.sessions || []).forEach(s => (s.logs || []).forEach(l => {
+      if (!l || l.exerciseId !== exId) return;
+      (l.sets || []).forEach(x => {
+        const v = CoachReport.epley1rm(parseFloat(x && x.w), parseInt(x && x.r, 10));
+        if (isFinite(v) && v > best) best = v;
+      });
+    }));
+    return best;
+  } catch(e) { console.warn('[Coach] Ist-Maximum:', e); return 0; }
+}
+/* Die Übungen, aus denen gewählt werden kann: die mit den meisten
+   Arbeitssätzen der letzten acht Wochen zuerst — daran arbeitet der Nutzer
+   erkennbar. Aufwärmsätze zählen nicht mit; sie sagen nichts über den
+   Schwerpunkt. Danach der Rest seiner Übungen, damit "eine andere wählen"
+   nicht an einer Vorauswahl endet. */
+function _chGoalCandidates(){
+  try {
+    const seit = Date.now() - 8 * 7 * 864e5;
+    const zahl = Object.create(null);
+    (S.sessions || []).forEach(s => {
+      const ts = (s && s.date) ? new Date(s.date).getTime() : NaN;
+      if (!isFinite(ts) || ts < seit) return;
+      (s.logs || []).forEach(l => {
+        if (!l || !l.exerciseId) return;
+        (l.sets || []).forEach(x => {
+          if (!x || (x.type || 'normal') === 'warmup') return;
+          if (!(parseFloat(x.w) > 0) || !(parseInt(x.r, 10) > 0)) return;
+          zahl[l.exerciseId] = (zahl[l.exerciseId] || 0) + 1;
+        });
+      });
+    });
+    const frei = (S.exercises || []).filter(e => e && e.id && e.targetType !== 'time' && e.name);
+    return frei.slice().sort((a, b) => (zahl[b.id] || 0) - (zahl[a.id] || 0));
+  } catch(e) { console.warn('[Coach] Zielkandidaten:', e); return []; }
+}
+function coachHubGoalEdit(){
+  try {
+    _chGoalOpen = !_chGoalOpen;
+    _chGoalHint = '';
+    if (_chGoalOpen && !_chGoalEx) {
+      const k = _chGoalCandidates();
+      const da = _chGoalCurrent();
+      _chGoalEx = da ? da.id : (k[0] ? k[0].id : '');
+    }
+    try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
+    renderCoachHub();
+  } catch(e) { console.warn('[Coach] Zieleingabe:', e); }
+}
+function coachHubGoalPick(exId){
+  try {
+    if (!exById(exId)) return;
+    _chGoalEx = exId;
+    _chGoalHint = '';
+    renderCoachHub();
+  } catch(e) { console.warn('[Coach] Zielübung wählen:', e); }
+}
+function coachHubGoalSave(){
+  try {
+    const el = document.getElementById('chw-goal-in');
+    coachSetGoal(_chGoalEx, el ? el.value : '');
+  } catch(e) { console.warn('[Coach] Ziel speichern:', e); }
+}
+/* coachSetGoal(exId, kgDisp) — der einzige Schreibweg für ex.targetWeight.
+   Der Wert kommt in der ANZEIGEEINHEIT herein und wird über dispToKg()
+   gespeichert; ein lbs-Nutzer trägt lbs ein und liest lbs zurück.
+   Untergrenze ist das erreichte geschätzte Maximum: ein Ziel darunter ist
+   kein Ziel, und die Prognose schwiege dazu ohnehin. Abgelehnt wird mit einem
+   Hinweis, der die Zahl NENNT — "zu klein" allein wäre keine Auskunft. */
+function coachSetGoal(exId, kgDisp){
+  try {
+    const ex = exById(exId);
+    if (!ex) { _chGoalHint = _cm('Wähl zuerst eine Übung.', 'Pick an exercise first.'); renderCoachHub(); return; }
+    const n = parseFloat(String(kgDisp == null ? '' : kgDisp).replace(',', '.'));
+    if (!isFinite(n) || n <= 0) {
+      _chGoalHint = _cm('Trag ein Zielgewicht ein.', 'Enter a target weight.');
+      renderCoachHub(); return;
+    }
+    const kg  = dispToKg(n);
+    const ist = _chGoalIst(exId);
+    if (ist > 0 && kg <= ist + 0.05) {
+      const istTxt = _csWeight(ist) || '';
+      _chGoalHint = _cm('Du hebst rechnerisch schon ' + istTxt + '. Setz dein Ziel darüber.',
+                        'You are already at an estimated ' + istTxt + '. Set your target above that.');
+      renderCoachHub(); return;
+    }
+    // Genau EINES gleichzeitig: die Kachel zeigt einen Verlauf, nicht fünf.
+    // Die anderen Felder standen ohnehin auf 0 — es geht nichts verloren.
+    (S.exercises || []).forEach(e => { if (e) e.targetWeight = 0; });
+    ex.targetWeight = kg;
+    _chGoalOpen = false;
+    _chGoalHint = '';
+    _chGoalEx = exId;
+    persist();
+    _coachOptRender();
+  } catch(e) {
+    console.warn('[Coach] Ziel setzen:', e);
+    try { _coachOptRender(); } catch(_) {}
+  }
+}
+function coachClearGoal(){
+  try {
+    (S.exercises || []).forEach(e => { if (e) e.targetWeight = 0; });
+    _chGoalOpen = false;
+    _chGoalHint = '';
+    persist();
+    _coachOptRender();
+  } catch(e) {
+    console.warn('[Coach] Ziel entfernen:', e);
+    try { _coachOptRender(); } catch(_) {}
+  }
+}
+function _chGoalHTML(){
+  const out = [];
+  try {
+    const da = _chGoalCurrent();
+    out.push(`<div class="ch-sec">${esc(tr('Kraftziel'))}<i>${esc(_cm(
+      'Ein Zielgewicht macht aus dem Verlauf eine Prognose.',
+      'A target weight turns the progress line into a forecast.'))}</i></div>`);
+    if (da) {
+      const zielTxt = _csWeight(parseFloat(da.targetWeight)) || '';
+      out.push(`<button type="button" class="ch-preset on" id="chw-goal-cta" onclick="coachHubGoalEdit()">
+        <b>${esc(tr('Ziel ändern'))}</b><span>${esc(String(da.name || '') + ' · ' + zielTxt)}</span></button>
+        <div class="ch-row"><button type="button" class="pwz-chip" id="chw-goal-clear"
+          onclick="coachClearGoal()">${esc(tr('Ziel entfernen'))}</button></div>`);
+    } else {
+      out.push(`<button type="button" class="ch-preset" id="chw-goal-cta" onclick="coachHubGoalEdit()">
+        <b>${esc(tr('Ziel setzen'))}</b><span>${esc(_cm(
+          'Sag, wohin du willst — dann rechnet dein Coach, wie lange es dauert.',
+          'Say where you want to get to — your coach works out how long it takes.'))}</span></button>`);
+    }
+    if (_chGoalOpen) {
+      const kand = _chGoalCandidates();
+      if (!_chGoalEx && kand[0]) _chGoalEx = kand[0].id;
+      const chips = kand.map(e =>
+        `<button type="button" class="pwz-chip${e.id === _chGoalEx ? ' on' : ''}" ` +
+        `onclick="coachHubGoalPick('${esc(String(e.id))}')">${esc(String(e.name))}</button>`).join('');
+      const ist = _chGoalIst(_chGoalEx);
+      const vor = ist > 0 ? Math.ceil(kgToDisp(ist) + 2) : '';
+      out.push(`<div class="ch-row"><span>${esc(_cm('Übung', 'Exercise'))}${ist > 0 ? `<i>${esc(_cm(
+          'Aktuell geschätztes Maximum: ' + (_csWeight(ist) || ''),
+          'Current estimated max: ' + (_csWeight(ist) || '')))}</i>` : ''}</span></div>
+        <div class="chw-pick">${chips}</div>
+        <div class="ch-row">
+          <input type="text" class="pf-inp" id="chw-goal-in" inputmode="decimal" autocomplete="off"
+            style="flex:1;min-width:96px" value="${esc(String(vor))}"
+            aria-label="${esc(_cm('Zielgewicht in ' + unitLabel(), 'Target weight in ' + unitLabel()))}">
+          <span class="chw-unit">${esc(unitLabel())}</span>
+          <button type="button" class="pwz-chip on" id="chw-goal-save"
+            onclick="coachHubGoalSave()">${esc(tr('Ziel setzen'))}</button>
+        </div>`);
+    }
+    if (_chGoalHint) {
+      out.push(`<div class="ch-jrn ghost" id="chw-goal-hint"><span>${esc(_chGoalHint)}</span></div>`);
+    }
+  } catch(e) { console.warn('[Coach] Kraftziel zeichnen:', e); }
+  return `<div id="chw-goal">${out.join('')}</div>`;
 }
 function _chCardBody(k, cur){
   if (k === 'chat')    return _chChatHTML();
