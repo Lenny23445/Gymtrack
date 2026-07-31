@@ -8432,6 +8432,10 @@ const I18N_EN = {
      (geprüft) und der Titel dann in EINER Zeile beide Sprachen trägt. */
   'Gespräch':'Conversation','Persönlichkeit':'Personality',
   'Umfang und Meldungen':'Scope and notifications','dein Coach':'your coach',
+  /* Das Kraftziel der Wochenkachel. Eigene, eindeutige Wörter — kein anderer
+     Textknoten der App heisst so (geprüft). */
+  'Kraftziel':'Strength target','Ziel setzen':'Set a target',
+  'Ziel ändern':'Change target','Ziel entfernen':'Remove target',
   'Letzter Wortwechsel':'Last exchange','Einschränkungen':'Limits','Vorlieben':'Preferences',
   'Was funktioniert':'What works','Noch nichts notiert.':'Nothing noted yet.',
   'Eintrag entfernen':'Remove entry','Bestätigung fällig':'Confirmation due',
@@ -10920,6 +10924,14 @@ function openOv(id)  {
 function closeOv(id) {
   document.getElementById(id).classList.remove('on');
   if (id === 'ov-widget-add') document.body.classList.remove('wpick-open');
+  /* Coach-Hub: die Diagramme der Wochenkachel abräumen. EINZIGER Anlaufpunkt
+     für ALLE Schließwege (✕, Hintergrund-Tipp, Swipe-Dismiss, Sprung in den
+     Chat). Chart.js hält seine Instanzen an der Zeichenfläche; ohne destroy()
+     wächst der Speicher bei jedem Öffnen des Blattes. */
+  if (id === 'ov-coach-hub') {
+    try { if (typeof _chWeekDestroy === 'function') _chWeekDestroy(); }
+    catch(e) { console.warn('[Coach] Hub schließen:', e); }
+  }
   // Coach-Einrichtung (Task 10): JEDER Schließweg legt ein Profil fest. Das ✕
   // geht über coachSetupDone(true), das Swipe-Dismiss (initSheetSwipe) ruft
   // closeOv direkt — ohne dieses Netz bliebe preset offen und der Hub fragte
@@ -26060,6 +26072,9 @@ function openCoachHub(tab){
   } catch(e) { console.warn('[Coach] Hub-Weiche:', e); }
   _chOpen = _CH_CARD_IDS.indexOf(tab) >= 0 ? tab : 'chat';
   _chResetScroll = true;
+  // Die Zieleingabe ist ein Zwischenschritt, kein Zustand: sie steht beim
+  // Öffnen des Blattes nie halb offen da.
+  _chGoalOpen = false; _chGoalHint = '';
   openOv('ov-coach-hub');
   renderCoachHub();
 }
@@ -26075,6 +26090,10 @@ function coachHubOpen(name){
     _chOpen = (_chOpen === name) ? '' : name;
     try { if (typeof haptic === 'function') haptic(6); } catch(_) {}
     _chApplyOpen();
+    // Diagramme entstehen beim ÖFFNEN und werden beim Schließen zerstört —
+    // Chart.js hält seine Instanzen an der Zeichenfläche fest, und ohne
+    // destroy() wächst der Speicher bei jedem Öffnen.
+    if (_chOpen === 'week') _chWeekDraw(); else _chWeekDestroy();
     if (_chOpen) _chScrollOpen(_chOpen);
   } catch(e) { console.warn('[Coach] Kachel öffnen:', e); }
 }
@@ -26585,9 +26604,14 @@ function renderCoachHub(){
     const scrollVor = body.scrollTop;
     // Der Wochen-Zwischenstand EINMAL je Renderlauf — s. _chCardHTML.
     let cur = null; try { cur = _crCurrent(); } catch(e2) { console.warn('[Coach] Wochenstand:', e2); }
+    // Die alten Zeichenflächen fliegen mit dem innerHTML raus; ihre Chart-
+    // Instanzen bleiben sonst als Karteileichen im Register stehen.
+    _chWeekDestroy();
     body.innerHTML = _CH_CARDS.map(c => _chCardHTML(c, cur)).join('');
     if (detOffen) { const d = body.querySelector('#ch-card-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
+    // Nur die OFFENE Wochenkachel bekommt ihre Diagramme.
+    if (_chOpen === 'week') _chWeekDraw();
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
 }
 // Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
@@ -27108,15 +27132,52 @@ function _crRow(titel, wert, unter) {
     `<b style="font-size:14.5px;font-weight:800;letter-spacing:-.2px;white-space:nowrap">${esc(wert)}</b></div>`;
 }
 
-/* Der Vergleich zur Vorwoche. Ohne Vorwoche gibt es keinen Vergleich und
-   deshalb auch keine Zahl: '+ 7.200 kg gegenüber nichts' wäre eine Steigerung,
-   die niemand erbracht hat. Die Einheit hängt am Wert (_csWeight), nie am Satz. */
-function _crDeltaText(n) {
-  const vor = Math.round(Number(n && n.prevVol) || 0);
-  const d   = Math.round(Number(n && n.volDelta) || 0);
-  if (vor <= 0) return _cm('keine Vorwoche zum Vergleich', 'no previous week to compare');
-  if (d === 0)  return _cm('gleich geblieben', 'unchanged');
-  return (d > 0 ? '+ ' : '- ') + (_csWeight(Math.abs(d)) || '');
+/* Pfeil und Prozent zur Vorwoche. Ohne Vorwoche gibt es keinen Vergleich und
+   deshalb auch keinen Pfeil: eine Steigerung gegenüber nichts hat niemand
+   erbracht. Der Pfeil ist ein Zeichen, kein Piktogramm (U+2191/U+2193/U+2192)
+   — dieselben Zeichen wie in der Gewichtskarte. */
+function _chDeltaHTML(jetzt, vor) {
+  try {
+    const a = Number(jetzt) || 0, b = Number(vor) || 0;
+    if (!(b > 0)) return '';
+    const d = a - b;
+    const pf  = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+    const cls = d > 0 ? ' up' : '';
+    return `<div class="chw-d${cls}">${pf} ${esc(_chNum(Math.round(Math.abs(d) / b * 100), 0))} %</div>`;
+  } catch(e) { console.warn('[Coach] Vergleich zur Vorwoche:', e); return ''; }
+}
+/* Die Kennzahlenzeile: Einheiten, Sätze, Volumen als große Ziffern, jede mit
+   Pfeil und Prozent zur Vorwoche. Diese Zeile steht IMMER, auch ohne Verlauf —
+   sie trägt die Kachel in den ersten Wochen, in denen für Diagramme nichts da
+   ist. "Wochen in Folge" steht bewusst NICHT mehr hier: die Zahl steht schon
+   im Heute-Tab und in der Streak-Kachel (Gestaltungsregel 8).
+   Die Zahlen liegen in kg vor; angezeigt wird über kgToDisp(), die Einheit
+   hängt als <small> am Wert und nie im Satz. */
+function _chWeekNumsHTML(cur) {
+  try {
+    const n = (cur && cur.rep && cur.rep.numbers) || null;
+    if (!n) return '';
+    let vor = null;
+    try {
+      const ws = CoachReport.weekStart(Date.now());
+      if (ws !== null) vor = CoachReport.weekNumbers(_crSessions(), ws - 7 * 864e5);
+    } catch(e) { console.warn('[Coach] Vorwoche:', e); }
+    const kachel = (roh, txt, einheit, label, vorWert) =>
+      `<div class="aia-stat"><div class="aia-stat-v"><span class="chw-n" data-n="${esc(String(roh))}" ` +
+      `data-txt="${esc(txt)}">${esc(txt)}</span>${einheit ? `<small> ${esc(einheit)}</small>` : ''}</div>` +
+      `<div class="aia-stat-l">${esc(label)}</div>${_chDeltaHTML(roh, vorWert)}</div>`;
+    const w  = Math.max(0, Math.floor(Number(n.workouts) || 0));
+    const s  = Math.max(0, Math.floor(Number(n.sets) || 0));
+    const v  = kgToDisp(Math.round(Number(n.vol) || 0));
+    const vv = vor ? kgToDisp(Math.round(Number(vor.vol) || 0)) : 0;
+    return `<div class="ch-sec">${esc(_cm('Diese Woche', 'This week'))}<i>${esc(_cm(
+        'Pfeil und Prozent gegenüber der Vorwoche.', 'Arrow and percentage versus last week.'))}</i></div>
+      <div class="aia-stats" id="chw-nums">
+        ${kachel(w, _chNum(w, 0), '', _cm('Einheiten', 'Sessions'), vor ? vor.workouts : 0)}
+        ${kachel(s, _chNum(s, 0), '', _cm('Sätze', 'Sets'), vor ? vor.sets : 0)}
+        ${kachel(v, _chNum(v, 0), unitLabel(), _cm('Volumen', 'Volume'), vv)}
+      </div>`;
+  } catch(e) { console.warn('[Coach] Kennzahlen:', e); return ''; }
 }
 
 function _crLeerHTML() {
@@ -27155,11 +27216,17 @@ function _chReportHTML(cur){
     const archiv = (S.coachReports || []).filter(r => r && (!cur || r.weekKey !== cur.rep.weekKey));
     const kopf   = (unter) => `<div class="ch-sec">${esc(tr('Wochenbericht'))}${unter ? `<i>${esc(unter)}</i>` : ''}</div>`;
 
+    // Die Diagramm-Konfigurationen entstehen HIER, wo der Wochenstand ohnehin
+    // vorliegt. Gezeichnet wird erst, wenn die Kachel offen ist (_chWeekDraw).
+    _chWeekCfg = _chWeekBuildCfg(cur);
+
     // Keine Einheit in dieser Woche (auch: allererste Woche) — ehrliche Fläche,
-    // keine leere Zeile und kein Bericht über nichts.
+    // keine leere Zeile und kein Bericht über nichts. Das Kraftziel steht
+    // trotzdem: es ist kein Wochenwert, sondern eine Einstellung.
     if (!cur) {
       out.push(kopf(''));
       out.push(_crLeerHTML());
+      out.push(_chGoalHTML());
       if (archiv.length) out.push(_crArchivHTML(archiv));
       return out.join('');
     }
@@ -27177,13 +27244,18 @@ function _chReportHTML(cur){
         'Interim numbers. The finished report arrives ' + _crTerminText() + '.'))}</span></div>`);
     }
 
-    // Die fünf Zeilen des Briefs. Jede nennt eine Zahl, die der Nutzer sonst
-    // nicht an einer Stelle sieht.
-    out.push(_crRow(_cm('Einheiten', 'Sessions'),  String(Math.max(0, Math.floor(Number(n.workouts) || 0)))));
-    out.push(_crRow(_cm('Sätze', 'Sets'),          String(Math.max(0, Math.floor(Number(n.sets) || 0)))));
-    out.push(_crRow(_cm('Volumen', 'Volume'),      _csWeight(Math.round(Number(n.vol) || 0)) || '0'));
-    out.push(_crRow(_cm('Gegenüber der Vorwoche', 'Versus last week'), _crDeltaText(n)));
-    out.push(_crRow(_cm('Wochen in Folge', 'Weeks in a row'), String(Math.max(0, Math.floor(Number(n.streak) || 0)))));
+    // Bereich 1: die Kennzahlen. Steht immer.
+    out.push(_chWeekNumsHTML(cur));
+
+    // Bereich 2: acht Wochen Volumen. Reicht die Datenlage nicht, liefert
+    // CoachCharts null und der Bereich entfällt GANZ — kein leerer Rahmen,
+    // keine Achse ohne Daten.
+    if (_chWeekCfg.vol) {
+      const titel = _cm('Volumen der letzten Wochen', 'Volume over recent weeks');
+      out.push(`<div id="chw-vol"><div class="ch-sec">${esc(titel)}</div>
+        <div class="chw-box"><canvas id="chw-vol-cv" role="img"
+          aria-label="${esc(_chChartAlt(titel, _chWeekCfg.vol))}"></canvas></div></div>`);
+    }
 
     // Bestwerte nur, wenn es welche gibt.
     const prs = Array.isArray(n.prs) ? n.prs.filter(p => p && p.ex) : [];
@@ -27211,21 +27283,39 @@ function _chReportHTML(cur){
       }
     }
 
-    /* Schwerpunkte, absteigend. Bewusst NICHT als vollständige Aufteilung und
-       nicht in Prozent: muscles enthält nur Sätze MIT hinterlegter
-       Muskelgruppe, die Summe kann unter dem Volumen liegen. Eine Prozentzahl
-       behauptete eine Vollständigkeit, die die Zahl nicht hat. */
-    const mus = (n.muscles && typeof n.muscles === 'object') ? n.muscles : {};
-    const liste = Object.keys(mus)
-      .map(k => ({ id: k, v: Math.round(Number(mus[k]) || 0) }))
-      .filter(x => x.v > 0)
-      .sort((a, b) => b.v - a.v);
-    if (liste.length) {
-      out.push(`<div class="ch-sec">${esc(_cm('Schwerpunkte', 'Focus'))}<i>${esc(_cm(
-        'Nur Sätze mit hinterlegter Muskelgruppe — die Summe kann unter dem Volumen liegen.',
-        'Only sets with a muscle group on file — the sum can be below the total volume.'))}</i></div>`);
-      liste.forEach(x => out.push(_crRow(muscleLabel(x.id) || x.id, _csWeight(x.v) || '')));
+    /* Bereich 3: die Muskelverteilung als liegende Balken. Bewusst NICHT als
+       vollständige Aufteilung und nicht in Prozent: muscles enthält nur Sätze
+       MIT hinterlegter Muskelgruppe, die Summe kann unter dem Volumen liegen.
+       Der Hinweis darauf ist PFLICHT — eine unvollständige Aufteilung, die
+       vollständig aussieht, ist eine Lüge. Er steht INNERHALB des Bereichs,
+       damit er mit ihm zusammen verschwindet. */
+    if (_chWeekCfg.mus) {
+      const titel = _cm('Schwerpunkte', 'Focus');
+      out.push(`<div id="chw-mus"><div class="ch-sec">${esc(titel)}<i>${esc(_cm(
+          'Nur Sätze mit hinterlegter Muskelgruppe — die Summe kann unter dem Volumen liegen.',
+          'Only sets with a muscle group on file — the sum can be below the total volume.'))}</i></div>
+        <div class="chw-box"><canvas id="chw-mus-cv" role="img"
+          aria-label="${esc(_chChartAlt(titel, _chWeekCfg.mus))}"></canvas></div></div>`);
     }
+
+    /* Bereich 4: der Bestwert-Verlauf mit Prognose. Er erscheint NUR mit
+       gesetztem Kraftziel und gelieferter Prognose; sonst steht darunter die
+       Zeile "Ziel setzen" und sonst nichts. */
+    if (_chWeekCfg.rm) {
+      const titel = _cm('Bestwert-Verlauf', 'Best-lift progress');
+      const ziel = _chGoalCurrent();
+      out.push(`<div id="chw-1rm"><div class="ch-sec">${esc(titel)}<i>${esc(_cm(
+          'Geschätztes Maximum je Woche' + (ziel ? ' — ' + String(ziel.name || '') : '') +
+            ', gestrichelt die Prognose bis zum Ziel.',
+          'Estimated max per week' + (ziel ? ' — ' + String(ziel.name || '') : '') +
+            ', dashed line is the forecast to your target.'))}</i></div>
+        <div class="chw-box"><canvas id="chw-1rm-cv" role="img"
+          aria-label="${esc(_chChartAlt(titel, _chWeekCfg.rm, { digits: 1 }))}"></canvas></div></div>`);
+    }
+
+    // Das Kraftziel: die Zeile, die ex.targetWeight füllt und damit die
+    // schlafende Prognose weckt.
+    out.push(_chGoalHTML());
 
     if (archiv.length) out.push(_crArchivHTML(archiv));
   } catch(e) {
@@ -28318,7 +28408,13 @@ function _coachWipeLocal(){
 
   // 8. Oberflaeche auf Anfang: der Hub darf nicht auf der Kachel "Woche" stehen
   //    bleiben — Konto B landete sonst direkt in fremden Zahlen.
-  schritt('Hub', () => { _chOpen = 'chat'; _chResetScroll = true; });
+  schritt('Hub', () => {
+    _chOpen = 'chat'; _chResetScroll = true;
+    // Auch die Zieleingabe und ihr Hinweis gehoerten dem vorigen Konto.
+    _chGoalOpen = false; _chGoalEx = ''; _chGoalHint = '';
+    try { _chWeekDestroy(); } catch(_) {}
+    _chWeekCfg = null;
+  });
 
   // 9. Schreiben. persist(), nicht save().
   schritt('persist', () => { persist(); });

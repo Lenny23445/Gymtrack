@@ -577,6 +577,7 @@ const KACHELSTAND = () => {
     JSON.stringify({ reg, r }));
 
   // ── 18) Kachel zu: keine einzige Chart-Instanz ──────────────────────────
+  await hubAuf('chat');            // Blatt offen, Wochenkachel aber ZU
   const zuVorher = O(await ev(WOCHE));
   check('Kachel "Woche" geschlossen: null Chart-Instanzen — die vier Diagramme werden NICHT im Voraus gezeichnet',
     zuVorher.offen === 'chat' && zuVorher.inst === 0 && zuVorher.lebend === 0,
