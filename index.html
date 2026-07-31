@@ -5781,6 +5781,22 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   transition:background-color .15s,border-color .15s,color .15s}
 .coach-bar-mic.rec{background:rgba(255,69,58,.10);border-color:#ff453a;color:#ff453a}
 @media (prefers-reduced-motion:no-preference){ .coach-bar-mic.rec{animation:micPulse 1.1s ease-in-out infinite} }
+/* Hör-Zustand: waehrend der Aufnahme zeigt die GANZE Leiste "nimmt auf" —
+   Equalizer schneller und rot wie der Aufnahme-Knopf, darunter das Live-
+   Transkript mit tippendem Cursor. Dieselbe Farbsprache wie .aic-mic.rec. */
+.coach-bar.listen{border-color:rgba(255,69,58,.55);box-shadow:0 6px 26px rgba(255,69,58,.20)}
+.coach-bar.listen .coach-bar-eq i{background:#ff453a}
+@media (prefers-reduced-motion:no-preference){
+  .coach-bar.listen .coach-bar-eq i{animation-duration:.45s}
+}
+/* Live-Transkript: bewusst NICHT .coach-bar-msg — deren Einblende-Animation
+   (coachMsgIn) wuerde bei jedem Zwischenstand neu anlaufen und flackern. */
+.coach-bar-tx{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
+.coach-bar-tx.hint{color:var(--text2)}
+.coach-bar-tx::after{content:'';display:inline-block;width:2px;height:1em;margin-left:3px;
+  vertical-align:-2px;background:#ff453a;border-radius:1px}
+@media (prefers-reduced-motion:no-preference){ .coach-bar-tx::after{animation:coachCaret 1s steps(1) infinite} }
+@keyframes coachCaret{50%{opacity:0}}
 /* Stimmenliste der Einrichtung: hoechstens acht Eintraege, deshalb Umbruch statt
    Scrollbahn — eine waagerechte Bahn versteckt die Haelfte der Wahl. */
 .ch-voices{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
@@ -5986,6 +6002,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      frei. Es liest weder Farben noch Sprache noch Einheit selbst: alles kommt
      als opts herein (s. _chChartOpts). -->
 <script src="./js/coach-charts.js"></script>
+<script src="./js/workout-focus.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
