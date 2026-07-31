@@ -2229,7 +2229,8 @@ html[data-glass] .tabbar::before{display:block!important}
   backdrop-filter:blur(20px) saturate(180%);
   -webkit-backdrop-filter:blur(20px) saturate(180%);
   border:1px solid var(--gl-bdr);
-  box-shadow:var(--gl-shad);
+  /* KEIN --gl-shad hier: der weiche schwarze Wurf zeichnet auf dem dunklen
+     Wallpaper einen sichtbaren Fleck mit „Strich"-Kante unter dem Bild */
   transition:transform .15s,opacity .12s;
   -webkit-appearance:none;appearance:none;
 }
@@ -30406,12 +30407,30 @@ function coachStopSpeak(){
 function coachAsk(){
   if (_sttBusy()) { _sttStop(); return; }
   coachStopSpeak();                     // eine laufende Antwort weicht der neuen Frage
-  _coachAskOn = true; try { _coachBarRender(); } catch(_) {}
-  _sttStart(null, (t) => {
-    _coachAskOn = false; try { _coachBarRender(); } catch(_) {}
+  _coachAskOn = true;
+  // Aufnahme uebernimmt die Leiste: Zustand 'listen', jeder Zwischenstand des
+  // Diktats landet als Live-Transkript direkt in der Flaeche (onText unten).
+  if (_coachBarMsgTimer) { clearTimeout(_coachBarMsgTimer); _coachBarMsgTimer = null; }
+  _coachBarState = { mode: 'listen', msg: '' };
+  try { _coachBarRender(); } catch(_) {}
+  const done = (t) => {
+    _coachAskOn = false;
+    _coachBarState = { mode: 'idle', msg: '' };
+    try { _coachBarRender(); } catch(_) {}
     const q = String(t || '').trim();
     if (q) _coachAnswer(q);
-  }).then(ok => { if (!ok) { _coachAskOn = false; try { _coachBarRender(); } catch(_) {} } });
+  };
+  _sttStart(
+    (t) => { if (_coachAskOn) { _coachBarState = { mode: 'listen', msg: t }; try { _coachBarRender(); } catch(_) {} } },
+    done
+  ).then(ok => { if (!ok) {
+    _coachAskOn = false;
+    try { _coachBarRender(); } catch(_) {}
+    // Start gescheitert (Berechtigung fehlt/entzogen): einmal SICHTBAR sagen,
+    // woran es liegt — ein Knopf, der stumm nichts tut, war genau der Fehler.
+    _coachBarSet('msg', _cm('Ich kann dich nicht hören — erlaube Mikrofon und Diktat in den Einstellungen.',
+                            'I can\'t hear you — allow microphone and dictation in Settings.'), 6000);
+  } });
 }
 // Erst der lokale Router (kostenlos, offline), dann das Modell — dieselbe
 // Reihenfolge wie im Chat (aicSend), nur ohne Chat-Fläche.
