@@ -68,7 +68,7 @@ const KACHELN = ['chat', 'week', 'persona', 'scope', 'journal'];
    Die Uhr steht auf Mittwoch 10:00 dieser Woche — dieselbe Bauart wie in
    task-21-check.js, damit "laufende Woche" und "Vorwoche" definiert sind. */
 const BOOTSTATE = (o) => {
-  const opt = Object.assign({ wochen: 8, dieseWoche: 2, unit: 'kg' }, o || {});
+  const opt = Object.assign({ wochen: 8, dieseWoche: 2, unit: 'kg', berichte: true, einzel: false }, o || {});
   window.isPremium = () => true;
   const gate = document.getElementById('auth-gate'); if (gate) gate.style.display = 'none';
 
@@ -92,9 +92,12 @@ const BOOTSTATE = (o) => {
     id: 'ex' + i, name: n, muscleGroup: MG[i],
     targetSets: 3, targetReps: 8, repMin: 6, repMax: 10, targetType: 'reps', targetWeight: 0
   }));
+  // einzel: nur EINE Uebung je Einheit -> genau eine Muskelgruppe, also keine
+  // Verteilung. So heisst "ohne Verlauf" auch wirklich ohne Verlauf.
+  const IDS = opt.einzel ? ['ex0'] : ['ex0', 'ex1', 'ex2'];
   const mk = (ts, w) => ({
     id: 's' + ts, date: new Date(ts).toISOString(), duration: 3300,
-    logs: ['ex0', 'ex1', 'ex2'].map(id => ({ exerciseId: id, sets: [
+    logs: IDS.map(id => ({ exerciseId: id, sets: [
       { w: w, r: 8, type: 'normal' }, { w: w, r: 8, type: 'normal' }, { w: w, r: 8, type: 'normal' }] }))
   });
   S.sessions = [];
@@ -111,6 +114,25 @@ const BOOTSTATE = (o) => {
     pushLevel: 'normal', inTraining: 'key', setFeedback: true, live: true, insights: true
   });
   persist();
+
+  /* Das Berichtsarchiv, so wie es nach opt.wochen Wochen Nutzung dastuende:
+     _crBuild() legt je Kalenderwoche EINEN Eintrag an, neueste zuerst,
+     hoechstens acht. Genau daraus baut die Kachel ihre Volumenbalken — ein
+     leeres Archiv heisst zu Recht "noch kein Verlauf". */
+  if (opt.berichte && opt.wochen > 0) {
+    const reps = [];
+    for (let w = opt.wochen; w >= 1; w--) {
+      const ts = NOW - w * 7 * 864e5;
+      const ws = CoachReport.weekStart(ts);
+      const key = _crWeekKey(ts);
+      if (ws === null || !key) continue;
+      reps.unshift({ weekKey: key, label: _crLabel(ws),
+                     numbers: CoachReport.weekNumbers(_crSessions(), ws),
+                     text: '', forecast: null, ts: ts });
+    }
+    S.coachReports = reps.slice(0, 8);   // neueste zuerst, wie CR_MAX es haelt
+    persist();
+  }
 
   // Dossier: drei Eintraege plus Ziel -> die Journal-Kennzahl hat einen Wert.
   try {
@@ -481,10 +503,249 @@ const KACHELSTAND = () => {
     JSON.stringify(r));
   await page.emulateMediaFeatures([]);
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TASK 3 — Diagramme und Kraftziel in der Wochenkachel
+     ══════════════════════════════════════════════════════════════════════ */
+
+  // Zustand der Wochenkachel, so wie ihn der Nutzer sieht.
+  const WOCHE = () => {
+    const sec = document.getElementById('ch-card-week');
+    const cv = (id) => document.getElementById(id);
+    const chartOf = (id) => { const c = cv(id); return c ? Chart.getChart(c) : null; };
+    const c1 = chartOf('chw-1rm-cv');
+    return {
+      offen: (typeof _chOpen === 'string') ? _chOpen : null,
+      // Zwei unabhaengige Zaehlungen: die eigene Liste und das, was Chart.js
+      // wirklich an den Zeichenfeldern haelt. Nur wenn beide null sind, ist
+      // nichts liegen geblieben.
+      inst: (typeof _chWeekInst !== 'undefined' && Array.isArray(_chWeekInst)) ? _chWeekInst.length : -1,
+      lebend: sec ? [...sec.querySelectorAll('canvas')].filter(c => !!Chart.getChart(c)).length : -1,
+      nums: !!document.getElementById('chw-nums'),
+      numTexte: sec ? [...sec.querySelectorAll('#chw-nums .aia-stat')].map(x => (x.textContent || '').replace(/\s+/g, ' ').trim()) : [],
+      pfeile: sec ? (sec.querySelector('#chw-nums') || { textContent: '' }).textContent.replace(/[^↑↓]/g, '') : '',
+      vol: !!document.getElementById('chw-vol'),
+      mus: !!document.getElementById('chw-mus'),
+      rm:  !!document.getElementById('chw-1rm'),
+      ziel: !!document.getElementById('chw-goal-cta'),
+      zielTxt: ((document.getElementById('chw-goal-cta') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      hinweis: ((document.getElementById('chw-goal-hint') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      musHinweis: ((document.getElementById('chw-mus') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      text: sec ? (sec.textContent || '').replace(/\s+/g, ' ').trim() : '',
+      target: (S.exercises || []).map(e => e && e.targetWeight),
+      // Die Konfiguration, wie sie wirklich am Zeichenfeld haengt.
+      volLabels: (() => { const c = chartOf('chw-vol-cv'); return c ? c.data.labels.slice() : null; })(),
+      volFarben: (() => { const c = chartOf('chw-vol-cv'); return c ? c.data.datasets[0].backgroundColor.slice() : null; })(),
+      musLabels: (() => { const c = chartOf('chw-mus-cv'); return c ? c.data.labels.slice() : null; })(),
+      musAchse:  (() => { const c = chartOf('chw-mus-cv'); return c ? c.options.indexAxis : null; })(),
+      rmTrend: (c1 && c1.data.datasets[1]) ? c1.data.datasets[1].data.slice(-1)[0] : null,
+      rmDs: c1 ? c1.data.datasets.length : 0,
+      achseY: (() => { const c = chartOf('chw-vol-cv');
+        try { return c ? String(c.options.scales.y.ticks.callback(1000)) : null; } catch (_) { return 'fehler'; } })(),
+      animation: (() => { const c = chartOf('chw-vol-cv');
+        try { return c ? c.options.animation.duration : null; } catch (_) { return 'fehler'; } })()
+    };
+  };
+
+  // ── 17) Registrierung: script-Tag, build.js, sw.js — CACHE unangetastet ──
+  const swVorher = (() => {
+    try { return (fs.readFileSync(path.join(REPO, 'sw.js'), 'utf8')
+      .match(/const CACHE\s*=\s*['"]([^'"]+)['"]/) || [])[1] || null; } catch (_) { return null; }
+  })();
+  await boot();
+  const reg = (() => {
+    try {
+      const html = fs.readFileSync(SRC, 'utf8');
+      const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+      const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+      const shell = (sw.match(/const SHELL\s*=\s*\[([\s\S]*?)\]/) || [])[1] || '';
+      return {
+        tag: html.includes('<script src="./js/coach-charts.js">'),
+        build: build.includes('js/coach-charts.js'),
+        shell: shell.includes('./js/coach-charts.js'),
+        cache: (sw.match(/const CACHE\s*=\s*['"]([^'"]+)['"]/) || [])[1] || null
+      };
+    } catch (e) { return { err: String(e.message) }; }
+  })();
+  r = O(await ev(() => ({ mod: typeof window.CoachCharts,
+    fns: window.CoachCharts ? ['volumeBars', 'muscleBars', 'oneRmLine'].filter(k => typeof CoachCharts[k] === 'function').length : 0,
+    bars: window.CoachCharts ? CoachCharts.MIN_BARS : null,
+    points: window.CoachCharts ? CoachCharts.MIN_POINTS : null,
+    chart: typeof window.Chart })));
+  check('Registrierung: coach-charts.js haengt als script-Tag, in der Kopierliste von build.js und im SHELL-Precache — CACHE unangetastet, das Modul ist zur Laufzeit da',
+    reg.tag === true && reg.build === true && reg.shell === true && reg.cache === swVorher &&
+    r.mod === 'object' && r.fns === 3 && r.bars === 2 && r.points === 4 && r.chart === 'function',
+    JSON.stringify({ reg, r }));
+
+  // ── 18) Kachel zu: keine einzige Chart-Instanz ──────────────────────────
+  const zuVorher = O(await ev(WOCHE));
+  check('Kachel "Woche" geschlossen: null Chart-Instanzen — die vier Diagramme werden NICHT im Voraus gezeichnet',
+    zuVorher.offen === 'chat' && zuVorher.inst === 0 && zuVorher.lebend === 0,
+    JSON.stringify({ offen: zuVorher.offen, inst: zuVorher.inst, lebend: zuVorher.lebend }));
+
+  // ── 19) Kachel auf: die Instanzen entstehen ─────────────────────────────
+  const auf19 = await tippKachel('week');
+  const offen19 = O(await ev(WOCHE));
+  check('Kachel "Woche" oeffnen: die Diagramme entstehen erst jetzt — Volumen, Muskelverteilung und die Kennzahlenzeile stehen da',
+    auf19 === true && offen19.offen === 'week' && offen19.inst >= 2 &&
+    offen19.inst === offen19.lebend && offen19.nums === true &&
+    offen19.vol === true && offen19.mus === true,
+    JSON.stringify({ auf19, inst: offen19.inst, lebend: offen19.lebend,
+                     nums: offen19.nums, vol: offen19.vol, mus: offen19.mus }));
+
+  // ── 20) Kachel zu: die Instanzen sind wieder weg (kein Speicherleck) ────
+  const zu20 = await tippKachel('week');
+  const nach20 = O(await ev(WOCHE));
+  check('Kachel "Woche" schliessen: alle Chart-Instanzen sind zerstoert — ohne destroy() waechst der Speicher bei jedem Oeffnen',
+    zu20 === true && nach20.offen === '' && nach20.inst === 0 && nach20.lebend === 0,
+    JSON.stringify({ zu20, offen: nach20.offen, inst: nach20.inst, lebend: nach20.lebend }));
+
+  // ── 21) Auch das Schliessen des BLATTES raeumt auf ──────────────────────
+  await hubAuf('week');
+  const vorZu = O(await ev(WOCHE));
+  r = O(await ev(() => { closeOv('ov-coach-hub');
+    return { inst: (typeof _chWeekInst !== 'undefined') ? _chWeekInst.length : -1,
+             lebend: [...document.querySelectorAll('#ch-card-week canvas')].filter(c => !!Chart.getChart(c)).length }; }));
+  check('Das Blatt zu machen raeumt die Diagramme ebenfalls ab — nicht nur der Tipp auf die Kachel',
+    vorZu.inst >= 2 && r.inst === 0 && r.lebend === 0,
+    JSON.stringify({ vorher: vorZu.inst, nachher: r }));
+
+  // ── 22) Acht Wochen Volumen: die laufende Woche hebt sich ab ────────────
+  await hubAuf('week');
+  const acht = O(await ev(WOCHE));
+  const farben = acht.volFarben || [];
+  check('Acht Wochen Volumen: die Balken stehen in zeitlicher Reihenfolge, die laufende Woche traegt den Akzent und alle anderen die gedaempfte Farbe',
+    acht.vol === true && (acht.volLabels || []).length >= 2 && (acht.volLabels || []).length <= 8 &&
+    (acht.volLabels || []).every(l => /^(KW|Week) \d+$/.test(l)) &&
+    farben.length === (acht.volLabels || []).length &&
+    farben[farben.length - 1] !== farben[0] &&
+    farben.slice(0, -1).every(f => f === farben[0]),
+    JSON.stringify({ labels: acht.volLabels, farben }).slice(0, 500));
+
+  // ── 23) Kennzahlen: drei Ziffern, jede mit Pfeil und Prozent ────────────
+  check('Kennzahlen: Einheiten, Saetze und Volumen als grosse Ziffern, jede mit Pfeil und Prozent zur Vorwoche — "Wochen in Folge" steht NICHT mehr da (die Zahl steht schon im Heute-Tab)',
+    acht.nums === true && (acht.numTexte || []).length === 3 &&
+    (acht.numTexte || []).every(t => /\d/.test(t)) &&
+    /Einheiten/.test(acht.text || '') && /Sätze/.test(acht.text || '') && /Volumen/.test(acht.text || '') &&
+    /Vorwoche/.test(acht.text || '') && (acht.pfeile || '').length === 3 &&
+    !/Wochen in Folge/.test(acht.text || ''),
+    JSON.stringify({ numTexte: acht.numTexte, pfeile: acht.pfeile,
+                     streak: /Wochen in Folge/.test(acht.text || '') }));
+
+  // ── 24) Muskelverteilung: liegende Balken PLUS Pflichthinweis ───────────
+  check('Muskelverteilung: liegende Balken je Gruppe, absteigend — mit dem Pflichthinweis, dass Saetze ohne zugeordnete Muskelgruppe fehlen',
+    acht.mus === true && acht.musAchse === 'y' &&
+    (acht.musLabels || []).length >= 2 &&
+    (acht.musLabels || []).indexOf('Brust') >= 0 && (acht.musLabels || []).indexOf('Rücken') >= 0 &&
+    /Muskelgruppe/.test(acht.musHinweis || '') && /Summe/.test(acht.musHinweis || ''),
+    JSON.stringify({ labels: acht.musLabels, achse: acht.musAchse,
+                     hinweis: (acht.musHinweis || '').slice(0, 200) }));
+
+  // ── 25) Ohne Verlauf: die Kennzahlen stehen, die Diagramme fehlen GANZ ──
+  await boot({ wochen: 0, dieseWoche: 1, berichte: false, einzel: true });
+  const duenn = await (async () => { await hubAuf('week'); return O(await ev(WOCHE)); })();
+  check('Profil ohne Verlauf: die Kennzahlenzeile steht, aber KEIN leerer Rahmen — Volumen, Muskelverteilung und Bestwert-Verlauf entfallen vollstaendig',
+    duenn.nums === true && duenn.vol === false && duenn.mus === false && duenn.rm === false &&
+    duenn.inst === 0 && duenn.lebend === 0 && /\d/.test(duenn.text || ''),
+    JSON.stringify({ nums: duenn.nums, vol: duenn.vol, mus: duenn.mus, rm: duenn.rm, inst: duenn.inst }));
+
+  // ── 26) Ohne Vorwoche kein Pfeil: keine erfundene Steigerung ────────────
+  check('Ohne Vorwoche steht kein Pfeil und kein Prozent — eine Steigerung gegenueber nichts hat niemand erbracht',
+    (duenn.pfeile || '') === '' && !/NaN|undefined|Infinity/.test(duenn.text || ''),
+    JSON.stringify({ pfeile: duenn.pfeile, text: (duenn.text || '').slice(0, 200) }));
+
+  // ── 27) Kein Kraftziel: die Zeile "Ziel setzen", kein Verlaufsdiagramm ──
+  await boot();
+  await hubAuf('week');
+  const ohneZiel = O(await ev(WOCHE));
+  check('Kein Kraftziel gesetzt: die Zeile "Ziel setzen" steht da und es gibt KEIN Bestwert-Diagramm — eine Prognose ohne Ziel waere erfunden',
+    ohneZiel.ziel === true && /Ziel setzen|Set a target/i.test(ohneZiel.zielTxt || '') &&
+    ohneZiel.rm === false && (ohneZiel.target || []).every(t => !t),
+    JSON.stringify({ ziel: ohneZiel.ziel, txt: ohneZiel.zielTxt, rm: ohneZiel.rm, target: ohneZiel.target }));
+
+  // ── 28) Ziel UNTER dem Erreichten wird abgelehnt ────────────────────────
+  const setzeZiel = async (wert) => {
+    try {
+      await page.click('#chw-goal-cta');           // Eingabe aufklappen (idempotent)
+      await wait(350);
+    } catch (_) {}
+    try {
+      await page.click('#chw-goal-in', { clickCount: 3 });
+      await page.type('#chw-goal-in', String(wert));
+      await page.click('#chw-goal-save');
+      await wait(600);
+      return true;
+    } catch (e) { return String(e.message).slice(0, 140); }
+  };
+  const ist1rm = O(await ev(() => {
+    // Das aktuelle geschaetzte Maximum von ex0: 77,5 kg x 8 Wdh (Epley).
+    let best = 0;
+    (S.sessions || []).forEach(s => (s.logs || []).forEach(l => {
+      if (l.exerciseId !== 'ex0') return;
+      (l.sets || []).forEach(x => { const v = CoachReport.epley1rm(x.w, x.r); if (v > best) best = v; });
+    }));
+    return { best: Math.round(best * 10) / 10 };
+  }));
+  const zuNiedrig = await setzeZiel(Math.floor((ist1rm.best || 98) - 8));
+  const nachNiedrig = O(await ev(WOCHE));
+  check('Ziel UNTERHALB des geschaetzten Maximums wird abgelehnt: ein Hinweis nennt das erreichte Maximum, ex.targetWeight bleibt 0 und kein Diagramm entsteht',
+    zuNiedrig === true && (nachNiedrig.target || []).every(t => !t) &&
+    (nachNiedrig.hinweis || '').length > 10 && /\d/.test(nachNiedrig.hinweis || '') &&
+    nachNiedrig.rm === false,
+    JSON.stringify({ zuNiedrig, ist: ist1rm.best, hinweis: nachNiedrig.hinweis, target: nachNiedrig.target }));
+
+  // ── 29) Ziel DARUEBER: der Verlauf erscheint, die Trendlinie endet am Ziel ─
+  const hoch = await setzeZiel(120);
+  const nachHoch = O(await ev(WOCHE));
+  check('Ziel oberhalb des Erreichten: der Bestwert-Verlauf erscheint, traegt eine zweite (gestrichelte) Reihe und die Trendlinie endet EXAKT auf dem gesetzten Wert — kein 116.79999999999998',
+    hoch === true && nachHoch.rm === true && nachHoch.rmDs === 2 &&
+    nachHoch.rmTrend === 120 && (nachHoch.target || [])[0] === 120 &&
+    /Ziel ändern|Change target/i.test(nachHoch.zielTxt || '') && nachHoch.inst >= 3,
+    JSON.stringify({ hoch, rm: nachHoch.rm, ds: nachHoch.rmDs, trend: nachHoch.rmTrend,
+                     target: nachHoch.target, txt: nachHoch.zielTxt, inst: nachHoch.inst }));
+
+  // ── 30) Genau EIN Ziel gleichzeitig ────────────────────────────────────
+  r = O(await ev(() => { try { coachSetGoal('ex1', 200); } catch (_) {} return { target: (S.exercises || []).map(e => e.targetWeight) }; }));
+  check('Ein neues Ziel ersetzt das angezeigte: hoechstens EIN ex.targetWeight ist ungleich 0',
+    (r.target || []).filter(t => t > 0).length === 1 && (r.target || [])[1] > 0 && !(r.target || [])[0],
+    JSON.stringify(r));
+
+  // ── 31) Ziel entfernen: der Verlauf verschwindet, die Zeile steht wieder ─
+  await ev(() => { try { coachSetGoal('ex0', 120); } catch (_) {} });
+  await wait(400);
+  let weg = false;
+  try { await page.click('#chw-goal-clear'); weg = true; } catch (e) { weg = String(e.message).slice(0, 140); }
+  await wait(500);
+  const nachWeg = O(await ev(WOCHE));
+  check('Ziel entfernen: targetWeight faellt auf 0, der Bestwert-Verlauf verschwindet und die Zeile "Ziel setzen" steht wieder da',
+    weg === true && (nachWeg.target || []).every(t => !t) && nachWeg.rm === false &&
+    /Ziel setzen|Set a target/i.test(nachWeg.zielTxt || ''),
+    JSON.stringify({ weg, target: nachWeg.target, rm: nachWeg.rm, txt: nachWeg.zielTxt }));
+
+  // ── 32) lbs: keine kg-Zahl in der Kachel, Achsen nennen lbs ─────────────
+  await boot({ unit: 'lbs' });
+  await ev(() => { try { coachSetGoal('ex0', 300); } catch (_) {} });
+  await wait(300);
+  await hubAuf('week');
+  const lbsW = O(await ev(WOCHE));
+  check('S.unitMode = "lbs": in der ganzen Wochenkachel steht keine kg-Zahl, und die Achsen der Diagramme nennen lbs',
+    /lbs/.test(lbsW.text || '') && !/\bkg\b/.test(lbsW.text || '') &&
+    / lbs$/.test(lbsW.achseY || '') && lbsW.rm === true,
+    JSON.stringify({ achse: lbsW.achseY, rm: lbsW.rm, text: (lbsW.text || '').slice(0, 300) }));
+
+  // ── 33) prefers-reduced-motion: die Chart-Animation steht auf 0 ─────────
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await boot();
+  await hubAuf('week');
+  const redW = O(await ev(WOCHE));
+  check('prefers-reduced-motion: reduce — auch die Chart.js-Animation steht auf 0 (opts.reduceMotion wird gesetzt; eine Medienabfrage kann das Modul nicht lesen)',
+    redW.vol === true && redW.animation === 0,
+    JSON.stringify({ vol: redW.vol, animation: redW.animation }));
+  await page.emulateMediaFeatures([]);
+
   await browser.close();
   server.close();
 
-  // ── 17) Statisch: die alte Struktur ist weg, nicht nur unsichtbar ───────
+  // ── 34) Statisch: die alte Struktur ist weg, nicht nur unsichtbar ───────
   // Gemessen wird der CODE, nicht die Erklaerung: der Kommentar, der begruendet,
   // WARUM das Segmented Control entfaellt, darf stehen bleiben.
   try {
@@ -498,7 +759,7 @@ const KACHELSTAND = () => {
                        cls: /\.ch-tab\b/.test(code), ids: /ch-tab-/.test(code) }));
   } catch (e) { check('Statisch: die alte Reiterstruktur ist weg', false, String(e.message)); }
 
-  // ── 18) Statisch: der Hub-Block nutzt persist(), keine Emojis, esc() ────
+  // ── 35) Statisch: der Hub-Block nutzt persist(), keine Emojis, esc() ────
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const a = src.indexOf('// ═══ COACH-HUB: ein Blatt mit fünf aufklappenden Kacheln');
@@ -515,7 +776,7 @@ const KACHELSTAND = () => {
                        catches: (code.match(/catch\s*\(/g) || []).length }).slice(0, 500));
   } catch (e) { check('Statisch: persist(), keine Emojis, try/catch im Hub-Block', false, String(e.message)); }
 
-  // ── 19) Statisch: _chOpen wird beim Kontowechsel zurueckgesetzt ─────────
+  // ── 36) Statisch: _chOpen wird beim Kontowechsel zurueckgesetzt ─────────
   try {
     const src = fs.readFileSync(SRC, 'utf8');
     const a = src.indexOf("schritt('Hub'");

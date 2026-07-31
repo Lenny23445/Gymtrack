@@ -5760,6 +5760,12 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      Fehlt sie, liefert weekIndex() null, jede Messwoche faellt aus der
      Regression und goalForecast() schweigt dauerhaft — ohne Fehlermeldung. -->
 <script src="./js/coach-report.js"></script>
+<!-- coach-charts baut die Diagramm-Konfigurationen der Wochenkachel als reine
+     Funktionen (Zahlen herein, Chart.js-Konfiguration heraus). Es zeichnet
+     nichts und braucht Chart.js deshalb NICHT — die Reihenfolge zu Chart.js ist
+     frei. Es liest weder Farben noch Sprache noch Einheit selbst: alles kommt
+     als opts herein (s. _chChartOpts). -->
+<script src="./js/coach-charts.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
