@@ -380,3 +380,124 @@ test('adjustByReps: Unsinn ergibt null statt einer erfundenen Last', () => {
   assert.strictEqual(R.adjustByReps(100, {}), null);
   assert.strictEqual(R.adjustByReps(100, null), null);
 });
+
+// --- Plausibilitaets-Sweep: gilt die Lastanpassung fuer JEDE Uebung? -------
+// Einzelbeispiele beweisen Einzelbeispiele. Diese Durchmusterung prueft die
+// Eigenschaften, die ueber den ganzen Bereich gelten muessen — vom 5-kg-Kabelzug
+// bis zum 300-kg-Kreuzheben, an Stange, Stapel und Kurzhantel.
+
+const GERAETE = [
+  { name: 'Langhantel (1,25er)', step: 1.25, barKg: 20 },
+  { name: 'Langhantel (2,5er)',  step: 2.5,  barKg: 20 },
+  { name: 'Kurzhantel/Stapel',   step: 2.5,  barKg: 0  },
+  { name: 'Kabel (feines Raster)', step: 1.25, barKg: 0 },
+];
+const LASTEN = [5, 10, 12.5, 20, 27.5, 40, 60, 80, 100, 140, 200, 260, 300];
+const ZIELE  = [3, 5, 6, 8, 10, 12, 15, 20];
+
+function sweep(fn) {
+  GERAETE.forEach(function (g) {
+    LASTEN.forEach(function (w) {
+      if (g.barKg > 0 && w < g.barKg) return;      // unter der Stange gibt es nichts
+      ZIELE.forEach(function (t) {
+        for (var r = 1; r <= t + 8; r++) fn(g, w, t, r);
+      });
+    });
+  });
+}
+
+test('Sweep: das Ergebnis liegt immer auf dem Raster des Geraets', () => {
+  sweep(function (g, w, t, r) {
+    const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+    assert.ok(typeof out === 'number' && isFinite(out), g.name + ' ' + w + '/' + r + '/' + t);
+    if (out === w) return;   // nichts angepasst: ein gehobenes Gewicht wird
+                             // NICHT nachtraeglich auf ein Raster gezwungen,
+                             // auch wenn es (wie 27,5 kg an einer Stange mit
+                             // 2,5er-Scheiben) gar nicht auflegbar waere.
+    const inc = g.barKg > 0 ? g.step * 2 : g.step;
+    const einheiten = (out - g.barKg) / inc;
+    assert.ok(Math.abs(einheiten - Math.round(einheiten)) < 1e-6,
+      'nicht auflegbar: ' + g.name + ' ' + w + ' kg, ' + r + '/' + t + ' -> ' + out);
+  });
+});
+
+test('Sweep: nie unter die leere Stange, nie unter eine Stufe, nie negativ', () => {
+  sweep(function (g, w, t, r) {
+    const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+    assert.ok(out >= (g.barKg > 0 ? g.barKg : g.step) - 1e-9,
+      'unauflegbar niedrig: ' + g.name + ' ' + w + ' -> ' + out);
+  });
+});
+
+test('Sweep: Richtung stimmt — weniger Wiederholungen senken, mehr heben', () => {
+  sweep(function (g, w, t, r) {
+    if (r === t) return;
+    const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+    const amBoden = g.barKg > 0 ? (w <= g.barKg + 1e-9) : (w <= g.step + 1e-9);
+    if (r < t) assert.ok(out < w || amBoden, 'nicht gesenkt: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
+    else       assert.ok(out > w, 'nicht gehoben: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
+  });
+});
+
+test('Sweep: die Deckel halten, bis auf die unvermeidbare Rasterbreite', () => {
+  // Eine Rasterstufe Toleranz ist keine Nachlaessigkeit: bei 12 kg Seitheben
+  // und 2,5-kg-Stufe gibt es zwischen -15 Prozent und dem naechsten
+  // auflegbaren Gewicht schlicht nichts.
+  sweep(function (g, w, t, r) {
+    const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+    const inc = g.barKg > 0 ? g.step * 2 : g.step;
+    assert.ok(out >= w * (1 - R.CAP_DOWN) - inc - 1e-9,
+      'zu tief: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
+    assert.ok(out <= w * (1 + R.CAP_UP) + inc + 1e-9,
+      'zu hoch: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
+  });
+});
+
+test('Sweep: groesserer Einbruch fuehrt nie zu mehr Gewicht (Monotonie)', () => {
+  GERAETE.forEach(function (g) {
+    LASTEN.forEach(function (w) {
+      if (g.barKg > 0 && w < g.barKg) return;
+      ZIELE.forEach(function (t) {
+        let vorher = -Infinity;   // r waechst, das Gewicht darf nur steigen
+        for (let r = 1; r <= t + 8; r++) {
+          const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+          assert.ok(out >= vorher - 1e-9,
+            'nicht monoton: ' + g.name + ' ' + w + ' Ziel ' + t + ', ' + r + ' Wdh -> ' + out);
+          vorher = out;
+        }
+      });
+    });
+  });
+});
+
+test('Sweep: die neue Last trifft die Zielwiederholungen (Epley-Treue)', () => {
+  // Der eigentliche sportwissenschaftliche Anspruch: die vorgeschlagene Last
+  // soll bei den ZIELwiederholungen dieselbe geschaetzte Maximalkraft ergeben
+  // wie der tatsaechlich gehobene Satz. Geprueft wird nur, wo die Deckel nicht
+  // greifen — dort ist die Abweichung gewollt.
+  const e1 = (w, r) => w * (1 + r / 30);
+  sweep(function (g, w, t, r) {
+    const ziel = w * (1 + r / 30) / (1 + t / 30);
+    if (ziel < w * (1 - R.CAP_DOWN) || ziel > w * (1 + R.CAP_UP)) return;
+    // Auf der leeren Stange gibt es kein Darunter — dort ist die Abweichung
+    // nicht die Rechnung, sondern die Hantel.
+    if (g.barKg > 0 && w <= g.barKg + 1e-9) return;
+    const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
+    const inc = g.barKg > 0 ? g.step * 2 : g.step;
+    const abw = Math.abs(e1(out, t) - e1(w, r)) / e1(w, r);
+    // Ein halbes Raster Rundung, gemessen an der ZIELlast (nicht an der
+    // gehobenen), ist die Untergrenze des Moeglichen. Dazu eine volle Stufe
+    // fuer den Fall, dass die Rundung auf dem Ausgangsgewicht landete und
+    // deshalb eine Stufe erzwungen wurde.
+    assert.ok(abw <= (inc * 1.5) / ziel + 1e-6,
+      'Epley verfehlt: ' + g.name + ' ' + w + ' kg, ' + r + '/' + t + ' -> ' + out +
+      ' (' + Math.round(abw * 1000) / 10 + ' % daneben)');
+  });
+});
+
+test('Koerpergewichtsuebung ohne Last wird nicht angefasst', () => {
+  // Klimmzuege, Dips, Liegestuetze: kein Gewicht eingetragen. Eine Anpassung
+  // waere eine erfundene Zahl.
+  assert.strictEqual(R.adjustByReps(0,   { reps: 5, target: 10, step: 2.5 }), null);
+  assert.strictEqual(R.adjustByReps(null,{ reps: 5, target: 10, step: 2.5 }), null);
+});
