@@ -930,6 +930,12 @@ body{
   transition:opacity .28s ease,transform .28s ease}
 /* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten) */
 #log-cards.focus-on .ex-card.dimmed{opacity:.45;transform:scale(.97)}
+/* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
+   erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
+   Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
+   wegziehen. Darum rastet ab der ZWEITEN Karte — der Weg nach ganz oben
+   bleibt frei scrollbar. */
+#log-cards .ex-card:first-child{scroll-snap-align:none}
 @media (prefers-reduced-motion:reduce){
   #log-cards .ex-card{transition:none;transform:none}
 }
@@ -8722,6 +8728,12 @@ const I18N_EN = {
   'Letztes Workout':'Last workout','Gesamter Fortschritt':'Overall progress','Einzelne Übung':'Single exercise',
   'Welche Übung?':'Which exercise?','Split':'Split','Sessions':'Sessions','Aktive Zeit':'Active time',
   'Optional…':'Optional…','Diktieren':'Dictate',
+  /* Changelog: Fokus-Modus im Training (31.07.2026) */
+  'Training: Fokus auf deine aktuelle Übung':'Workout: focus on your current exercise',
+  'Beim Scrollen rastet die Übung, an der du gerade dran bist, sanft ein — alles andere tritt in den Hintergrund':'While scrolling, the exercise you are on gently snaps into place — everything else fades back',
+  'Letzter Satz abgehakt? Die nächste offene Übung gleitet von selbst ins Bild':'Last set checked off? The next open exercise glides into view on its own',
+  'Supersätze bleiben dabei als Paar im Fokus':'Supersets stay in focus as a pair',
+  'Der Kopf mit Trainingszeit, Abbrechen und Fertig bleibt jederzeit erreichbar':'The header with training time, cancel and done stays reachable at all times',
   /* Changelog: Live-Coach Ausbau (23.07.2026) */
   '23.07.2026 · KI-Coach: sichtbarer, reagiert auf Anstrengung, schlägt Trainingstag vor':'23 Jul 2026 · AI coach: more visible, reacts to effort, suggests a training day',
 'Live-Coach im Training feuert jetzt häufiger (mehr Trigger, kürzerer Cooldown) — bleibt aber sparsam dosiert':'Live coach during workouts now fires more often (more triggers, shorter cooldown) — still kept sparing',
@@ -9107,6 +9119,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-31-fokus-modus': {
+    label: '31.07.2026 · Training: Fokus auf deine aktuelle Übung',
+    items: [
+      'Beim Scrollen rastet die Übung, an der du gerade dran bist, sanft ein — alles andere tritt in den Hintergrund',
+      'Letzter Satz abgehakt? Die nächste offene Übung gleitet von selbst ins Bild',
+      'Supersätze bleiben dabei als Paar im Fokus',
+      'Der Kopf mit Trainingszeit, Abbrechen und Fertig bleibt jederzeit erreichbar',
+    ]
+  },
   'cl-2026-07-31-heute-avatar': {
     label: '31.07.2026 · Dein Profilbild auf der Startseite',
     items: [
@@ -18647,6 +18668,40 @@ function adjustRest(delta) {
   _syncLiveActivity();
   _saveActiveWk(); // verschobenes Pausen-Ende sichern
 }
+/* ── Auto-Weiter: letzter offener Satz der Einheit abgehakt → naechste offene
+   Uebung ins Bild. 600 ms Verzoegerung, damit der Haken-Moment sichtbar bleibt.
+   Unterdrueckt, wenn ueber dem Training ein Overlay liegt (Wheel, Satz-Typ,
+   Untersheets) oder der Finger noch auf dem Sheet ist — wer selbst nach oben
+   scrollt (etwa zum "Abbrechen"), soll nicht weggezogen werden. ── */
+let _wkAdvTimer = null;
+let _wkSheetTouching = false;
+(function () {
+  const sheet = document.querySelector('#ov-wk .sheet');
+  if (!sheet) return;
+  sheet.addEventListener('touchstart',  () => { _wkSheetTouching = true;  }, { passive: true });
+  sheet.addEventListener('touchend',    () => { _wkSheetTouching = false; }, { passive: true });
+  sheet.addEventListener('touchcancel', () => { _wkSheetTouching = false; }, { passive: true });
+})();
+
+function _wkAutoAdvance(li) {
+  if (typeof WorkoutFocus === 'undefined') return;
+  const unit = WorkoutFocus.focusUnitOf(wkLogs, li);
+  if (!unit.length) return;
+  const stillOpen = unit.some(i => (wkLogs[i].sets || []).some(s => !s.done));
+  if (stillOpen) return;                                  // Einheit noch nicht fertig
+  const target = WorkoutFocus.nextOpenUnit(wkLogs, li);
+  if (target == null) return;                             // alles fertig → kein Scroll
+  clearTimeout(_wkAdvTimer);
+  _wkAdvTimer = setTimeout(() => {
+    if (document.querySelector('.ov.on:not(#ov-wk)')) return;  // Wheel/Satz-Typ/Untersheet offen
+    if (_wkSheetTouching) return;                              // Nutzer scrollt/beruehrt gerade
+    const card = document.querySelector(`#log-cards .ex-card[data-li="${target}"]`);
+    if (!card) return;
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }, 600);
+}
+
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
@@ -18661,6 +18716,9 @@ function toggleSetDone(li,si) {
     // Der Coach meldet sich im Moment des Abhakens — das ist der Punkt, an dem
     // der Nutzer den Satz als erledigt erlebt (Aufwärmsätze eingeschlossen).
     try { _coachMicroReact(li, si); } catch(_) {}
+    // Fokus-Modus: war das der letzte offene Satz dieser Einheit, holt der
+    // naechste offene Block sich gleich die Buehne.
+    try { _wkAutoAdvance(li); } catch(_) {}
     // Erzaehlbogen (Task 17): Halbzeit-Einordnung und Ermuedung. Aufwaermsaetze
     // zaehlen nicht in den Bogen — sie sind kein Arbeitssatz.
     try {
