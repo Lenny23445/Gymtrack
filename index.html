@@ -2323,11 +2323,7 @@ html[data-glass] .tabbar::before{display:block!important}
   flex-wrap:nowrap!important;
   padding:2px 0 4px;
 }
-/* Der Schnellstart ist ein KNOPF, keine Flaeche: er sass vorher als hoher Block
-   im Raster und zog optisch mehr Gewicht als die Tageskarte darueber. Breite
-   bleibt voll (sonst reisst die Rasterzelle auf), die Hoehe faellt. */
-.heute-train-btn{width:100%;padding:10px 14px;font-size:14px;border-radius:14px;
-  min-height:0;line-height:1.2;align-self:center}
+.heute-train-btn{width:100%}
 
 /* ── HEUTE WIDGET-RASTER: 2-Spalten-Grid mit dichter Packung ──
    Quadrat (sm) = 1 Spalte × 2 Einheiten · Rechteck (md) = 1 Spalte × 1 Einheit
@@ -2352,12 +2348,6 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-content>.card,
 .hw-content>.tracker-row,
 .hw-content>.btn{height:100%;min-height:0}
-/* Ausnahme vom Strecken — MUSS nach der Regel darueber stehen: gleiche
-   Spezifitaet, also entscheidet die Reihenfolge (davor gesetzt blieb sie
-   wirkungslos, der Knopf fuellte weiter die ganze Zelle). Der Schnellstart ist
-   ein flacher Knopf, kein blauer Block: volle Breite, feste kleine Hoehe,
-   margin:auto setzt ihn mittig in die Zelle. */
-.hw-content>.heute-train-btn{height:46px;min-height:0;margin:auto 0;align-self:stretch}
 .hw-card,.hw-quick{display:flex;flex-direction:column;overflow:hidden}
 /* sm/md: Inhalt zentriert */
 .hw-sm .hw-card,.hw-md .hw-card{align-items:center;justify-content:center;text-align:center}
@@ -6034,7 +6024,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:rgba(var(--acc-rgb),.13);border:1px solid rgba(var(--acc-rgb),.26)}
 .aic-chip.ghost{color:var(--text2);background:rgba(127,127,127,.10);border-color:var(--gl-bdr)}
 .aic-btns{display:flex;gap:8px;margin-top:10px}
-.aic-go{flex:1;border:none;border-radius:13px;padding:9px 12px;font-family:inherit;font-size:13px;font-weight:800;
+/* Kein Balken ueber die halbe Karte mehr: der Knopf nimmt nur die Breite seines
+   Wortes. Die Karte selbst ist das Tap-Ziel fuer den Hub — ein breiter
+   Zweitknopf darunter zog die Aufmerksamkeit vom Inhalt weg. */
+.aic-go{flex:0 0 auto;border:none;border-radius:11px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:800;
   color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--acc),rgba(var(--acc-rgb),.74));
   box-shadow:0 7px 20px rgba(var(--acc-rgb),.34);transition:transform .12s ease,box-shadow .12s ease}
 .aic-go:active{transform:scale(.975);box-shadow:0 4px 12px rgba(var(--acc-rgb),.28)}
@@ -7975,7 +7968,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310033';
+const APP_VERSION = 'gymtrack-v202607310034';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -11626,9 +11619,7 @@ const WIDGET_DEFS = {
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
-  // Schnellstart heisst Schnellstart: kurzes Wort, flacher Knopf, und er startet
-  // das Training direkt statt in die Auswahl zu fuehren (s. startWorkoutDirect).
-  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:()=>`<button class="btn btn-acc heute-train-btn" onclick="startWorkoutDirect()">▶&nbsp; Start</button>`},
+  train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
   streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},
   volume:  {title:'Volumen',         icon:'📊', label:'Volumen',           desc:'Gesamt-Volumen & Trend',      sizes:['sm','md','lg'], lgRows:2, build:hwVolume},
   recovery:{title:'Erholung',        icon:'🔋', label:'Erholung',          desc:'Muskel-Erholung',             sizes:['sm','md','lg'], lgRows:3, build:hwRecovery},
@@ -12384,13 +12375,17 @@ function _coachTodaySuggestion() {
       const lbl = _planLabelFor(todayKey()) || _cm('Trainingstag','Training day');
       const on  = plan.type === 'preset' && plan.id
         ? `startPresetDirect('${String(plan.id).replace(/'/g, "\\'")}')`
-        : `goTabId('uebungen')`;
+        // Ohne Preset fuehrte der Knopf frueher nur in den Uebungen-Reiter. Ein
+        // Knopf, der "Start" sagt, muss starten: startWorkoutDirect() nimmt die
+        // Uebungen des Tagesplans und legt los; ohne Plan bleibt die Auswahl
+        // offen (der einzige Fall, in dem es ohne Entscheidung nicht geht).
+        : `startWorkoutDirect()`;
       const base = _cm(`${lbl} steht heute an.`, `${lbl} is on the plan today.`);
       return { kind:'plan', pct: overall, ringLbl: _cm('Bereit','Ready'),
         head: lbl,
         text: rd && rd.short ? `${base} ${rd.short}`
                              : `${base} ${_cm(`Im Schnitt bist du zu ${overall} % erholt.`, `You are ${overall}% recovered on average.`)}`,
-        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Training starten','Start workout'), on } };
+        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Start','Start'), on } };
     }
 
     // 3) Kein Plan, aber etwas ist erholt → konkreter Fokus
