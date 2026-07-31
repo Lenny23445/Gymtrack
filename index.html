@@ -6024,10 +6024,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:rgba(var(--acc-rgb),.13);border:1px solid rgba(var(--acc-rgb),.26)}
 .aic-chip.ghost{color:var(--text2);background:rgba(127,127,127,.10);border-color:var(--gl-bdr)}
 .aic-btns{display:flex;gap:8px;margin-top:10px}
-/* Kein Balken ueber die halbe Karte mehr: der Knopf nimmt nur die Breite seines
-   Wortes. Die Karte selbst ist das Tap-Ziel fuer den Hub — ein breiter
-   Zweitknopf darunter zog die Aufmerksamkeit vom Inhalt weg. */
-.aic-go{flex:0 0 auto;border:none;border-radius:11px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:800;
+.aic-go{flex:1;border:none;border-radius:13px;padding:11px 12px;font-family:inherit;font-size:13.5px;font-weight:800;
   color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--acc),rgba(var(--acc-rgb),.74));
   box-shadow:0 7px 20px rgba(var(--acc-rgb),.34);transition:transform .12s ease,box-shadow .12s ease}
 .aic-go:active{transform:scale(.975);box-shadow:0 4px 12px rgba(var(--acc-rgb),.28)}
@@ -7968,7 +7965,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310034';
+const APP_VERSION = 'gymtrack-v202607310035';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12375,17 +12372,13 @@ function _coachTodaySuggestion() {
       const lbl = _planLabelFor(todayKey()) || _cm('Trainingstag','Training day');
       const on  = plan.type === 'preset' && plan.id
         ? `startPresetDirect('${String(plan.id).replace(/'/g, "\\'")}')`
-        // Ohne Preset fuehrte der Knopf frueher nur in den Uebungen-Reiter. Ein
-        // Knopf, der "Start" sagt, muss starten: startWorkoutDirect() nimmt die
-        // Uebungen des Tagesplans und legt los; ohne Plan bleibt die Auswahl
-        // offen (der einzige Fall, in dem es ohne Entscheidung nicht geht).
-        : `startWorkoutDirect()`;
+        : `goTabId('uebungen')`;
       const base = _cm(`${lbl} steht heute an.`, `${lbl} is on the plan today.`);
       return { kind:'plan', pct: overall, ringLbl: _cm('Bereit','Ready'),
         head: lbl,
         text: rd && rd.short ? `${base} ${rd.short}`
                              : `${base} ${_cm(`Im Schnitt bist du zu ${overall} % erholt.`, `You are ${overall}% recovered on average.`)}`,
-        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Start','Start'), on } };
+        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Training starten','Start workout'), on } };
     }
 
     // 3) Kein Plan, aber etwas ist erholt → konkreter Fokus
@@ -17858,27 +17851,6 @@ function renderMgStatChart(sessions) {
 }
 
 // ── WORKOUT ───────────────────────────────────────────
-/* Schnellstart vom Heute-Tab: ein Tipp, und das Training LAEUFT.
-
-   Bis hierher fuehrte der Knopf in die Uebungsauswahl, wo man den zweiten
-   Knopf ("Training starten") noch einmal druecken musste — obwohl der
-   Wochenplan die Uebungen ohnehin vorausgewaehlt hatte. Das kehrt eine
-   frühere Entscheidung um (Changelog: "Erst der finale Training-starten-Knopf
-   führt ins aktive Training"), und zwar bewusst.
-
-   Die Auswahl selbst bleibt der Rueckfallweg: hat der heutige Tag keinen Plan
-   (oder keine der geplanten Uebungen existiert noch), steht das Blatt offen auf
-   Schritt 1 statt mit einer Fehlermeldung dazustehen. openWorkout() baut die
-   Vorauswahl in wkExIds — deshalb erst oeffnen, dann pruefen. */
-function startWorkoutDirect() {
-  if (isWorkoutActive()) { resumeWorkout(); return; }
-  openWorkout();
-  if (Array.isArray(wkExIds) && wkExIds.length) {
-    try { if (typeof haptic === 'function') haptic(12); } catch(_) {}
-    startActive();
-  }
-}
-
 function openWorkout() {
   // Wenn ein Training bereits läuft → nur wieder anzeigen, NICHT zurücksetzen
   if (isWorkoutActive()) {
