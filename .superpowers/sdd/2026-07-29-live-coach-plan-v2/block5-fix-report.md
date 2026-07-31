@@ -103,9 +103,11 @@ der Review nach: `_cnSync()` ohne `await`, 120 ms später `__authTo('uidB')`.
 * **Grün:** `S.coachPush === null`, `ft4` ebenso, `pending` ohne 47xxx, der
   Pausen-Timer (2500) unberührt.
 
-Dazu `C1 Gegenprobe` (ohne Wechsel plant derselbe Lauf unverändert durch — der
-Riegel darf kein Denial-of-Service gegen die eigene Planung sein) und ein
-statischer Check, der **beide** Riegel im Code nachweist.
+Dazu ein zweites Zeitfenster (Wechsel bei 2200 ms, hinter dem letzten
+Schreibzugriff), `C1 Gegenprobe` (ohne Wechsel plant derselbe Lauf unverändert
+durch — der Riegel darf kein Denial-of-Service gegen die eigene Planung sein)
+und ein statischer Check, der **beide** Riegel und das `finally` im Code
+nachweist.
 
 ---
 
@@ -276,10 +278,11 @@ fremden:
 
 | Mutation | Prüfung | Baum ohne Mutation | Baum mit Mutation |
 | --- | --- | --- | --- |
-| `esc(r.text)` → `r.text` (`_chReportHTML`) | M1 | PASS | **FAIL** (26/27) |
-| Donnerstag-12:00 aus `_crWeekKey` entfernt | M2 | PASS | **FAIL** (26/27) |
-| `_chTab = 'chat'` aus der Räumung entfernt | M3 | PASS | **FAIL** (26/27) |
-| `_coachMicroLast = null` entfernt | M4 | PASS | **FAIL** (26/27) |
+| `esc(r.text)` → `r.text` (`_chReportHTML`) | M1 | PASS | **FAIL** (27/28) |
+| Donnerstag-12:00 aus `_crWeekKey` entfernt | M2 | PASS | **FAIL** (27/28) |
+| `_chTab = 'chat'` aus der Räumung entfernt | M3 | PASS | **FAIL** (27/28) |
+| `_coachMicroLast = null` entfernt | M4 | PASS | **FAIL** (27/28) |
+| *(zusätzlich)* `finally`-Riegel in `_cnSyncRun` wirkungslos | C1 statisch | PASS | **FAIL** (27/28) |
 
 * **M1** legt einen Bericht mit `<img src=x onerror="window.__xss=1">` an, öffnet
   den Reiter „Woche" und prüft dreierlei: `window.__xss === 0`, kein `<img>` im
@@ -339,7 +342,7 @@ Anpassung steht mit Begründung im Skript.
 | Suite | vorher | nachher |
 | --- | --- | --- |
 | `node --test` über die 13 etablierten Dateien | 517/517 | 517/517 |
-| `block5-fix-check.js` (neu) | **8/27** | **27/27** |
+| `block5-fix-check.js` (neu) | **9/28** | **28/28** |
 | `task-22-check.js` | 24/24 | 24/24 |
 | `task-21-check.js` | 22/22 | 22/22 |
 | `task-19-check.js` | 27/27 | 27/27 |
