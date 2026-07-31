@@ -136,8 +136,34 @@
      Gerundet wird auf das Raster des GERAETS (an der Stange Scheibe je Seite
      mal zwei, sonst die Stufe des Stapels) — und immer um mindestens eine
      Stufe, sonst haette eine erkannte Abweichung folgenlos bleiben koennen. */
-  var CAP_DOWN = 0.15;
+  /* Deckel. Feste 15 und 10 Prozent waren fuer jeden Bereich dieselbe Zahl —
+     und damit fuer keinen richtig. Was eine Wiederholung an Last WERT ist,
+     haengt am Bereich: nach Epley traegt sie bei drei Zielwiederholungen rund
+     3 Prozent der Last, bei zwanzig nur noch 2. Im Kraftbereich bremste ein
+     starrer Deckel also zu frueh, im Ausdauerbereich liess er zu viel zu.
+
+     Der Deckel ist deshalb ein Vielfaches dieses Werts: vier Wiederholungen
+     nach unten, zweieinhalb nach oben. Nach unten mehr, weil ein Einbruch
+     schnell korrigiert gehoert, nach oben weniger, weil Progression sich
+     bewaehren muss. Die aeusseren Grenzen bleiben, damit kein Bereich absurde
+     Werte erzeugt. */
+  var CAP_DOWN_MIN = 0.05, CAP_DOWN_MAX = 0.20;
+  var CAP_UP_MIN   = 0.03, CAP_UP_MAX   = 0.12;
+  var CAP_DOWN = 0.15;   // Rueckfallwerte ohne brauchbaren Zielbereich
   var CAP_UP   = 0.10;
+
+  function klemme(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+  // capsFor(target) -> {down, up}
+  function capsFor(target) {
+    var t = numOf(target);
+    if (!isFinite(t) || t <= 0) return { down: CAP_DOWN, up: CAP_UP };
+    var proRep = (1 / 30) / (1 + t / 30);      // Lastanteil einer Wiederholung
+    return {
+      down: klemme(4   * proRep, CAP_DOWN_MIN, CAP_DOWN_MAX),
+      up:   klemme(2.5 * proRep, CAP_UP_MIN,   CAP_UP_MAX)
+    };
+  }
 
   function usableCap(v, fallback) {
     var c = numOf(v);
@@ -177,8 +203,18 @@
     var inc = bar > 0 ? s * 2 : s;
 
     var ziel = w * (1 + r / 30) / (1 + t / 30);
-    var unten = w * (1 - usableCap(o.maxDownPct, CAP_DOWN));
-    var oben  = w * (1 + usableCap(o.maxUpPct, CAP_UP));
+
+    /* Daempfung gegen Pendeln. Hat die App eben erst gesenkt und muesste jetzt
+       wieder heben, war die erste Korrektur zu gross — dann nur den halben Weg
+       gehen, statt zwischen zwei Werten hin und her zu springen. 'dampen' ist
+       der Anteil der Abweichung, der noch gegangen wird; die Aufrufstelle kennt
+       die Richtung der letzten Korrektur, dieses Modul nicht. */
+    var d = numOf(o.dampen);
+    if (isFinite(d) && d > 0 && d < 1) ziel = w + (ziel - w) * d;
+
+    var caps = capsFor(t);
+    var unten = w * (1 - usableCap(o.maxDownPct, caps.down));
+    var oben  = w * (1 + usableCap(o.maxUpPct, caps.up));
     if (ziel < unten) ziel = unten;
     if (ziel > oben)  ziel = oben;
 
@@ -249,8 +285,10 @@
   var API = { toRpe: toRpe, adjustNext: adjustNext, adjustByReps: adjustByReps,
               ackFor: ackFor, summarize: summarize, derive: derive,
               RPE: RPE, DEFAULT_STEP: DEFAULT_STEP, DEFAULT_BAR: DEFAULT_BAR,
-              TREND_MIN: TREND_MIN, TOL: TOL,
-              CAP_DOWN: CAP_DOWN, CAP_UP: CAP_UP };
+              TREND_MIN: TREND_MIN, TOL: TOL, capsFor: capsFor,
+              CAP_DOWN: CAP_DOWN, CAP_UP: CAP_UP,
+              CAP_DOWN_MIN: CAP_DOWN_MIN, CAP_DOWN_MAX: CAP_DOWN_MAX,
+              CAP_UP_MIN: CAP_UP_MIN, CAP_UP_MAX: CAP_UP_MAX };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.CoachRpe = API;

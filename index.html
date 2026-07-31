@@ -5823,6 +5823,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 }
 @keyframes coachEq{0%,100%{height:4px;opacity:.5}45%{height:13px;opacity:1}}
 .coach-bar-lbl{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.3px}
+/* Rueckgaengig sitzt rechts im Kopf der Leiste: sichtbar, aber nicht vor der
+   Nachricht. Zehn Sekunden lang, danach nimmt _coachBarRender es wieder raus. */
+.cb-undo{margin-left:auto;padding:4px 10px;border-radius:9px;font-family:inherit;font-size:11.5px;font-weight:800;
+  color:var(--acc);background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.34);cursor:pointer}
+.cb-undo:active{background:rgba(var(--acc-rgb),.22)}
 .coach-bar-msg{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.42;font-weight:600}
 /* Kein Sprech-Knopf in der Leiste: Fragen an den Coach laufen ueber den
    KI-Chat (Knopf unten rechts), nicht ueber ein zweites Mikrofon im Training.
@@ -7907,7 +7912,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310020';
+const APP_VERSION = 'gymtrack-v202607310021';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9113,6 +9118,18 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-07-31-coach-regelkreis': {
+    label: '31.07.2026 · Live-Coach: regelt statt nur zu reagieren',
+    items: [
+      'Korrigiert sich selbst: senkt er zu viel und der nächste Satz läuft plötzlich leicht, geht er nur den halben Weg zurück statt zwischen zwei Gewichten zu pendeln',
+      'Neu „Rückgängig" in der Coach-Leiste — zehn Sekunden lang lässt sich jede automatische Änderung mit einem Tipp zurücknehmen',
+      'Vergleicht gegen den Median deiner letzten drei Einheiten statt gegen genau die letzte: ein schlechter Tag verfälscht die Rückmeldung nicht mehr',
+      'Denkt in Wochenvolumen: hat eine Muskelgruppe die Woche schon 20 harte Sätze, streicht er eher einen — liegt sie unter 10, gibt er eher einen dazu',
+      'Was er im Training gemessen hat, gilt beim nächsten Mal als Startwert: überwiegend schwere Sätze starten 3 % tiefer, überwiegend leichte 3 % höher',
+      'Grenzen der Gewichtsanpassung richten sich jetzt nach deinem Wiederholungsbereich — im Kraftbereich mehr Spielraum, im Ausdauerbereich weniger',
+      'Geplante Entlastungswoche: nach sechs harten Wochen am Stück läuft eine Einheit automatisch mit rund 10 % weniger Gewicht, angesagt beim Start',
+    ]
+  },
   'cl-2026-07-31-coach-autoregulation': {
     label: '31.07.2026 · Live-Coach: rechnet mit, statt zu fragen',
     items: [
@@ -13117,6 +13134,61 @@ function _workSets(sets) {
 function _loggedWorkSets(sets) {
   return (sets || []).filter(s => s.done && s.w && s.r && (s.type || 'normal') !== 'warmup');
 }
+/* ── Vergleichsbasis: Median der letzten bis zu drei Einheiten ───────────────
+   Der Coach verglich gegen GENAU die letzte Einheit. Ein schlechter Tag dort
+   liess ihn heute falschen Fortschritt melden, ein guter falschen Rueckschritt.
+   Der Median ueber drei Einheiten haelt genau diesen einen Ausreisser aus —
+   der Mittelwert taete es nicht, der zieht mit. Ist nur eine Einheit da, ist
+   der Median diese Einheit; die Funktion braucht also keinen Sonderfall. */
+const COACH_REF_N = 3;
+function _median(werte) {
+  const a = werte.filter(v => typeof v === 'number' && isFinite(v)).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
+function _coachRefSets(exId) {
+  const hist = exHistory(exId);
+  if (!hist.length) return [];
+  const einheiten = hist.slice(-COACH_REF_N).map(h => _workSets(h.sets || []));
+  const laenge = einheiten.reduce((m, s) => Math.max(m, s.length), 0);
+  const out = [];
+  for (let i = 0; i < laenge; i++) {
+    const w = _median(einheiten.map(s => s[i] ? (parseFloat(s[i].w) || NaN) : NaN));
+    const r = _median(einheiten.map(s => s[i] ? (parseInt(s[i].r) || NaN) : NaN));
+    if (w > 0 && r > 0) out.push({ w: String(w), r: String(r) });
+  }
+  return out;
+}
+
+/* ── Wochenvolumen je Muskelgruppe ──────────────────────────────────────────
+   Der Coach entschied ueber Saetze nur INNERHALB der laufenden Uebung. Die
+   Trainingslehre steuert Volumen aber pro Muskelgruppe und Woche: unter etwa
+   zehn harten Saetzen passiert zu wenig, ueber etwa zwanzig kippt das
+   Verhaeltnis von Reiz zu Erholung. Beide Zahlen liegen in der App — sie
+   wurden nur nie gefragt. Das laufende Training zaehlt mit, aber nur mit den
+   tatsaechlich abgehakten Saetzen. */
+const MG_WEEK_MIN = 10, MG_WEEK_MAX = 20;
+function _weekSetsForMg(mg) {
+  if (!mg) return 0;
+  let n = 0;
+  try {
+    const seit = Date.now() - 7 * 864e5;
+    const zuMg = Object.create(null);
+    (S.exercises || []).forEach(e => { if (e && e.id) zuMg[e.id] = e.muscleGroup; });
+    (S.sessions || []).forEach(s => {
+      if (!s || new Date(s.date).getTime() < seit) return;
+      (s.logs || []).forEach(l => {
+        if (l && zuMg[l.exerciseId] === mg) n += _workSets(l.sets || []).length;
+      });
+    });
+    (typeof wkLogs !== 'undefined' ? wkLogs || [] : []).forEach(l => {
+      if (l && zuMg[l.exerciseId] === mg) n += _loggedWorkSets(l.sets).length;
+    });
+  } catch(e) { console.warn('[Coach] Wochenvolumen:', e); return 0; }
+  return n;
+}
+
 /* Position des Satzes si unter den ARBEITSSAETZEN (Aufwaermsaetze zaehlen nicht).
    Ohne diese Umrechnung verglich der Coach Satz-Index gegen Satz-Index — und
    traf damit im Verlauf regelmaessig einen Aufwaermsatz der letzten Einheit als
@@ -13271,13 +13343,89 @@ let _weightReasons = {};
 // (1.0 = unveraendert), Division durch 0 abgefangen ueber die isFinite/n>0-
 // Pruefung unten. Ohne exId wird nichts abgelegt — eine Begruendung ohne
 // Uebungsbezug waere nicht zuordenbar und damit wertlos.
+/* Gedaechtnis ueber Einheiten hinweg. Der Coach mass die Satz-Schwierigkeit
+   waehrend des Trainings, warf sie danach aber weg: die naechste Einheit begann
+   wieder beim rohen Progressionsvorschlag, und dieselbe Korrektur passierte
+   jede Woche neu. Waren die Arbeitssaetze der letzten Einheit ueberwiegend
+   schwer, startet die naechste drei Prozent tiefer; waren sie ueberwiegend
+   leicht, drei Prozent hoeher. Zwei gleiche Messungen sind die Untergrenze —
+   eine einzelne ist Tagesform (dieselbe Schwelle wie CoachRpe.TREND_MIN). */
+function _rpeMemFactor(exId) {
+  try {
+    if (!exId) return 1;
+    const hist = exHistory(exId);
+    if (!hist.length) return 1;
+    const sets = _workSets(hist[hist.length - 1].sets || []);
+    const schwer = sets.filter(s => s.rpeAnswer === 'hard').length;
+    const leicht = sets.filter(s => s.rpeAnswer === 'easy').length;
+    if (schwer >= 2 && schwer > leicht) return 0.97;
+    if (leicht >= 2 && leicht > schwer) return 1.03;
+    return 1;
+  } catch(_) { return 1; }
+}
+
+/* Geplante Entlastungswoche. Der Coach REAGIERTE auf Erschoepfung (Check-in),
+   plante sie aber nie. Jede Periodisierung sieht nach vier bis sechs harten
+   Wochen eine leichtere vor — nicht weil es dann schon zu spaet ist, sondern
+   damit es nicht so weit kommt.
+   Gezaehlt werden zusammenhaengende Wochen mit mindestens zwei Einheiten. Eine
+   Woche mit hoechstens einer Einheit ist bereits eine Entlastung und setzt den
+   Zaehler zurueck; ebenso eine Entlastung, die die App selbst angesetzt hat
+   (S.deloadAt). Der Zustand liegt nur lokal — kein neues Cloud-Feld, keine
+   Rules-Aenderung. */
+const DELOAD_NACH_WOCHEN = 6;
+function _deloadDue() {
+  try {
+    if (!isPremium()) return false;
+    const zuletzt = Number(S.deloadAt) || 0;
+    if (zuletzt && Date.now() - zuletzt < DELOAD_NACH_WOCHEN * 7 * 864e5) return false;
+    const proWoche = Object.create(null);
+    (S.sessions || []).forEach(s => {
+      if (!s || !s.date) return;
+      const t = new Date(s.date).getTime();
+      if (!isFinite(t)) return;
+      const wo = Math.floor(t / (7 * 864e5));
+      proWoche[wo] = (proWoche[wo] || 0) + 1;
+    });
+    const jetzt = Math.floor(Date.now() / (7 * 864e5));
+    let hart = 0;
+    // Die laufende Woche zaehlt nicht mit: sie ist noch nicht vorbei und
+    // stuende sonst je nach Wochentag mal als hart, mal als leicht da.
+    for (let wo = jetzt - 1; wo >= jetzt - 20; wo--) {
+      if ((proWoche[wo] || 0) >= 2) hart++; else break;
+    }
+    return hart >= DELOAD_NACH_WOCHEN;
+  } catch(e) { console.warn('[Coach] Entlastungswoche:', e); return false; }
+}
+/* Der Faktor liest NICHT direkt _deloadDue(): sobald die Entlastung angesetzt
+   und S.deloadAt geschrieben ist, waere _deloadDue() false — und die Gewichte
+   spraengen mitten in der Einheit wieder hoch. Die Entscheidung faellt einmal
+   beim Start und gilt fuer die ganze Einheit. */
+let _deloadActive = false;
+function _deloadFactor() { return _deloadActive ? 0.90 : 1; }
+function _deloadStart() {
+  _deloadActive = false;
+  if (!_deloadDue()) return false;
+  _deloadActive = true;
+  S.deloadAt = Date.now();
+  try { persist(); } catch(_) {}
+  return true;
+}
+
 function _ciAdjustW(w, meta) {
   const r = _ciReadiness();
   const n = Number(w);
-  const out = (!r || r.wFactor === 1 || !isFinite(n) || n <= 0) ? w : (() => {
+  // Drei Faktoren, ein Nadeloehr: Check-in (Tagesform), Gedaechtnis der letzten
+  // Einheit dieser Uebung und die geplante Entlastungswoche. Sie multiplizieren
+  // sich, statt einander zu ueberschreiben — sonst gewaenne willkuerlich der
+  // zuletzt geschriebene.
+  const f = (r ? r.wFactor : 1) * _rpeMemFactor(meta && meta.exId) * _deloadFactor();
+  const out = (Math.abs(f - 1) < 1e-9 || !isFinite(n) || n <= 0) ? w : (() => {
     const step = n >= 40 ? 2.5 : 1;
-    const raw  = Math.round((n * r.wFactor) / step) * step;
-    return Math.min(n, Math.max(step, raw));
+    const raw  = Math.max(step, Math.round((n * f) / step) * step);
+    // Frueher stand hier immer Math.min(n, ...): die Faktoren konnten nur
+    // senken. Das Gedaechtnis darf auch heben — dann ist n die UNTERgrenze.
+    return f < 1 ? Math.min(n, raw) : Math.max(n, raw);
   })();
   if (meta && meta.exId) {
     const outN = Number(out);
@@ -18195,9 +18343,23 @@ function startActive() {
   _coachClearCard();
   _coachEvalTimers = {};
   _coachBarState = { mode: 'idle', msg: '' };
+  _rpeLastDir = {};        // Daempfung gilt je Einheit, nicht ueber Wochen
+  _coachUndoState = null;  // ein Rueckgaengig der letzten Einheit gilt nicht mehr
   // Der Coach eröffnet mit dem, was er aus dem letzten Check-in gemacht hat —
   // so ist die Anpassung nicht nur in den Zahlen, sondern auch ausgesprochen.
-  try { const _rd = _ciReadiness(); if (_rd && _rd.bar) setTimeout(() => _coachBarSet('msg', _rd.bar, 9000), 400); } catch(_) {}
+  // Geplante Entlastungswoche VOR dem Bauen der Saetze entscheiden: die
+  // Gewichtsvorschlaege entstehen gleich darunter und muessen den Faktor schon
+  // kennen (getSuggestedWeight -> _ciAdjustW -> _deloadFactor).
+  let _dl = false;
+  try { _dl = _deloadStart(); } catch(e) { console.warn('[Coach] Entlastung:', e); }
+  try {
+    const _rd = _ciReadiness();
+    const _txt = _dl
+      ? _cm('Sechs harte Wochen am Stück — diese Einheit läuft als geplante Entlastung, rund 10 % weniger Gewicht.',
+            'Six hard weeks in a row — this session runs as a planned deload, about 10% less weight.')
+      : (_rd && _rd.bar) ? _rd.bar : '';
+    if (_txt) setTimeout(() => _coachBarSet('msg', _txt, 9000), 400);
+  } catch(_) {}
   wkLogs = wkExIds.map(exId => {
     const ex = exById(exId);
     const sw = getSuggestedWeight(ex);
@@ -25243,8 +25405,14 @@ function _coachBarRender() {
   _coachBarAnimate(el, () => {
     el.style.display = '';
     el.className = 'coach-bar' + (thinking ? ' thinking' : '');
+    // Rueckgaengig: das EINZIGE Bedienelement der Leiste, und nur solange die
+    // Aenderung frisch ist. Es steht hier und nicht in einem Dialog, weil es
+    // zur Aenderung gehoert, die eine Zeile darueber angesagt wurde.
+    const undo = _coachUndoFrisch()
+      ? `<button type="button" class="cb-undo" onclick="_coachUndoDo()">${esc(_cm('Rückgängig', 'Undo'))}</button>`
+      : '';
     el.innerHTML = `<div class="coach-bar-head"><span class="coach-bar-eq"><i></i><i></i><i></i></span>` +
-      `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span></div>` +
+      `<span class="coach-bar-lbl">${lbl}</span><span class="coach-ki-tag">KI</span>${undo}</div>` +
       (msg ? `<div class="coach-bar-msg">${esc(msg)}</div>` : '');
   });
   // Lichtstreifen nur bei einer NEUEN Nachricht — sonst würde jeder Re-Render
@@ -25317,7 +25485,7 @@ function _coachVolDelta(exId, li) {
     // letzten Einheit (Aufwaermsaetze eingerechnet) und rechts nur die
     // Arbeitssaetze — die gemeldete Prozentzahl war damit systematisch zu
     // negativ, bei zwei Aufwaermsaetzen um gut 15 Prozentpunkte.
-    const lastVol = setsVolume(_workSets(hist[hist.length-1].sets || []));
+    const lastVol = setsVolume(_coachRefSets(exId));
     if (!(lastVol > 0)) return null;
     const curVol = setsVolume(_loggedWorkSets((wkLogs[li] && wkLogs[li].sets) || []));
     if (!(curVol > 0)) return null;
@@ -25391,7 +25559,9 @@ function _coachMicroReact(li, si) {
       // Arbeitssatz gegen Arbeitssatz. Vorher wurde der Satz-Index direkt in die
       // letzte Einheit gehalten: bei zwei Aufwaermsaetzen landete der Vergleich
       // auf einem AUFWAERMSATZ und meldete "+40 % ueber letzter Einheit".
-      const base = _lastWorkBase(hist[hist.length - 1].sets || [], _workPosOf(log.sets, si));
+      // Verglichen wird gegen den Median der letzten drei Einheiten, nicht
+      // gegen die letzte allein (s. _coachRefSets).
+      const base = _lastWorkBase(_coachRefSets(log.exerciseId), _workPosOf(log.sets, si));
       if (base && parseFloat(base.w) > 0 && parseInt(base.r) > 0) {
         const lastE1RM = epley1RM(parseFloat(base.w), parseInt(base.r));
         const curE1RM  = epley1RM(w, r);
@@ -26261,6 +26431,53 @@ function _csDiscard() {
    Die Skala bleibt dieselbe (CoachRpe: easy/ok/hard) und damit auch alles, was
    daran haengt: Gewichtsanpassung, Pausenlaenge, Dossier-Trend.                */
 let _rpeAnswers = [];      // Einschaetzungen dieser Einheit (Trend fuers Dossier)
+// Richtung der letzten Gewichtskorrektur JE UEBUNG. Grundlage der Daempfung:
+// senkt der Coach und muss gleich darauf wieder heben, war die erste Korrektur
+// zu gross — dann nur noch der halbe Weg, statt zwischen zwei Werten zu pendeln.
+let _rpeLastDir = {};
+
+/* ── Rueckgaengig ────────────────────────────────────────────────────────────
+   Der Coach aendert jetzt selbst: Gewicht der offenen Saetze, Satzzahl,
+   Wiederholungsbereich. Wer selbst handelt, muss auch zurueckkoennen — sonst
+   bleibt dem Nutzer nur, die Aenderung von Hand zu suchen und rueckzubauen.
+   Zehn Sekunden, ein Knopf in derselben Leiste, kein Dialog.                  */
+const COACH_UNDO_MS = 10000;
+let _coachUndoState = null;    // {ts, restore}
+function _coachUndoOffer(restore) {
+  if (typeof restore !== 'function') return;
+  _coachUndoState = { ts: Date.now(), restore };
+  setTimeout(() => {
+    if (_coachUndoState && Date.now() - _coachUndoState.ts >= COACH_UNDO_MS - 100) {
+      _coachUndoState = null;
+      try { _coachBarRender(); } catch(_) {}
+    }
+  }, COACH_UNDO_MS);
+}
+function _coachUndoFrisch() {
+  return !!(_coachUndoState && Date.now() - _coachUndoState.ts < COACH_UNDO_MS);
+}
+function _coachUndoDo() {
+  const u = _coachUndoState;
+  _coachUndoState = null;
+  if (!u) { try { _coachBarRender(); } catch(_) {} return; }
+  try { u.restore(); } catch(e) { console.warn('[Coach] Rueckgaengig:', e); }
+  try { haptic(10); } catch(_) {}
+  try { renderLogCards(); } catch(_) {}
+  try { _saveActiveWk(); } catch(_) {}
+  _coachBarSet('msg', _cm('Änderung zurückgenommen.', 'Change undone.'), 3500);
+}
+// Zustandskopie einer Uebung samt Vorschlagsgewicht. JSON-Kopie genuegt: Saetze
+// sind reine Datenobjekte (Zahlen und Zeichenketten), keine Verweise.
+function _coachSnapshot(li) {
+  const log = wkLogs[li]; if (!log) return null;
+  const sets = JSON.parse(JSON.stringify(log.sets || []));
+  const sugW = log.sugW, sugR = log.sugR;
+  return () => {
+    const l = wkLogs[li]; if (!l) return;
+    l.sets = JSON.parse(JSON.stringify(sets));
+    l.sugW = sugW; l.sugR = sugR;
+  };
+}
 
 /* Nur die Uebersetzung App-Daten -> Modul-Vertrag. Die Regel selbst steht in
    CoachRpe.derive(): dort ist sie ohne DOM pruefbar, und dieselbe Datei haelt
@@ -26309,14 +26526,24 @@ function _rpeDerive(li, si) {
       // waeren ein Prozent, nachdem die Wiederholungen eingebrochen sind. Das
       // Raster des Geraets (Stange mit Scheibe je Seite, sonst Stapelstufe)
       // bestimmt nur, wo das Ergebnis einrastet — nicht, wie weit es geht.
+      // Daempfung bei Richtungswechsel: hat der Coach bei dieser Uebung eben
+      // gesenkt und muesste jetzt heben (oder umgekehrt), war die erste
+      // Korrektur zu gross. Dann nur den halben Weg — sonst pendelt das
+      // Gewicht von Satz zu Satz zwischen zwei Werten hin und her.
+      const dir = bucket === 'hard' ? -1 : 1;
+      const vorher = _rpeLastDir[log.exerciseId] || 0;
       const next = window.CoachRpe.adjustByReps(kg, {
         reps: parseInt(set.r) || 0,
         target: _rpeTargetReps(ex, log),
         step: eq.step, barKg: eq.barKg,
+        dampen: (vorher && vorher !== dir) ? 0.5 : undefined,
       });
       const offen = (log.sets || []).some(s => !s.done && (s.type || 'normal') !== 'warmup');
       if (next != null && offen && Math.abs(next - kg) > 0.01) {
+        const zurueck = _coachSnapshot(li);
+        _rpeLastDir[log.exerciseId] = dir;
         _rpeSuggestNext(log.exerciseId, next);
+        _coachUndoOffer(zurueck);
         // Die Quittung haengt hier NICHT mehr an CoachSession.ackTake(): die
         // Obergrenze existierte, weil die alte Rueckfrage nach jedem Satz eine
         // Antwort und damit eine Quittung erzeugte. Jetzt spricht der Coach nur,
@@ -26505,13 +26732,28 @@ function _coachVolumeAdjust(li, si) {
   const abfall = best > 0 ? (best - letzt) / best : 0;
   const schwer = done.filter(s => s.rpeAnswer === 'hard').length;
 
+  // Wochenvolumen der Muskelgruppe: der zweite Massstab neben dem Verlauf
+  // innerhalb der Uebung. Eine Gruppe knapp ueber der Wirksamkeitsschwelle
+  // verliert durch einen gestrichenen Satz mehr, als der Ermuedungsschutz
+  // bringt — umgekehrt ist ein Satz mehr sinnlos, wenn die Woche ohnehin am
+  // oberen Ende liegt.
+  const woche = _weekSetsForMg(ex.muscleGroup || '');
+  const wocheVoll  = woche >= MG_WEEK_MAX;
+  const wocheDuenn = woche > 0 && woche < MG_WEEK_MIN;
+
   // SATZ RAUS: es muss noch mehr als ein Arbeitssatz offen sein — den letzten
   // offenen zu streichen waere kein Volumenschnitt, sondern ein Abbruch.
+  // Unter der Wochen-Untergrenze nur bei deutlichem Einbruch: dort kostet ein
+  // gestrichener Satz mehr Reiz, als er Erholung spart.
   if (offenIdx.length >= 2 &&
+      (!wocheDuenn || abfall >= 0.15) &&
       (abfall >= 0.10 || schwer >= 2 || (fatPct >= 60 && abfall >= 0.05) ||
-       (gebremst && fatPct >= 45 && abfall >= 0.05))) {
+       (gebremst && fatPct >= 45 && abfall >= 0.05) ||
+       (wocheVoll && (abfall >= 0.05 || fatPct >= 45)))) {
     _coachState.seen.push(key);
+    const zurueck = _coachSnapshot(li);
     delSet(li, offenIdx[offenIdx.length - 1]);   // rendert selbst neu
+    _coachUndoOffer(zurueck);
     try { _saveActiveWk(); } catch(_) {}
     let txt = ''; try { txt = _say('volCut', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
     if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
@@ -26522,12 +26764,19 @@ function _coachVolumeAdjust(li, si) {
   // SATZ DAZU: erst wenn die Uebung sonst zu Ende waere, und nur bei frischer
   // Muskulatur ohne Leistungsabfall. Im Deload/Hold gar nicht — dort hat der
   // Check-in bereits entschieden, dass heute weniger richtig ist.
-  if (offenIdx.length === 0 && !gebremst && fatPct < 30 && abfall <= 0.02) {
+  // Ueber der Wochen-Obergrenze gar nicht: dort ist mehr Volumen kein
+  // zusaetzlicher Reiz mehr, sondern nur zusaetzliche Erholungslast.
+  if (offenIdx.length === 0 && !gebremst && !wocheVoll && fatPct < 30 && abfall <= 0.02) {
     const { max } = repRange(ex);
     const amLimit = done.every(s => s.type === 'fail' || parseInt(s.r) >= max);
-    if (amLimit) {
+    // Unter der Wirksamkeitsschwelle genuegt ein sauberer Verlauf: dort fehlt
+    // schlicht Volumen, und darauf zu warten, dass jeder Satz das obere
+    // Wiederholungsende trifft, verschenkt Wochen.
+    if (amLimit || wocheDuenn) {
       _coachState.seen.push(key);
+      const zurueck = _coachSnapshot(li);
       addSet(li);                                 // rendert selbst neu
+      _coachUndoOffer(zurueck);
       try { _saveActiveWk(); } catch(_) {}
       let txt = ''; try { txt = _say('volAdd', { pct: Math.round(fatPct) }) || ''; } catch(_) {}
       if (txt) _coachBarSet('msg', txt, CS_HOLD_MS);
@@ -26572,7 +26821,13 @@ function _coachRepRangeAdjust(li) {
   // Dieselben drei Felder wie applyRepRange() in der Uebungs-Bearbeitung —
   // targetReps ist der Kompatibilitaetswert (oberes Ende) und wuerde sonst auf
   // dem alten Bereich stehen bleiben.
+  const altMin = ex.repMin, altMax = ex.repMax, altZiel = ex.targetReps;
   ex.repMin = neuMin; ex.repMax = neuMax; ex.targetReps = neuMax;
+  _coachUndoOffer(() => {
+    const e = exById(log.exerciseId); if (!e) return;
+    e.repMin = altMin; e.repMax = altMax; e.targetReps = altZiel;
+    try { persist(); } catch(_) {}
+  });
   try { persist(); } catch(_) {}
   try { renderLogCards(); } catch(_) {}
   const lbl = neuMin === neuMax ? String(neuMax) : (neuMin + '–' + neuMax);
@@ -26629,8 +26884,9 @@ function _coachEvalRun(li, si) {
   const hist = exHistory(log.exerciseId);
   if (!hist.length) return;
   // Arbeitssatz gegen Arbeitssatz (siehe _lastWorkBase) — der rohe Satz-Index
-  // traf sonst Aufwaermsaetze der letzten Einheit.
-  const base = _lastWorkBase(hist[hist.length - 1].sets || [], _workPosOf(log.sets, si));
+  // traf sonst Aufwaermsaetze der letzten Einheit. Basis ist der Median der
+  // letzten drei Einheiten (_coachRefSets), nicht die letzte allein.
+  const base = _lastWorkBase(_coachRefSets(log.exerciseId), _workPosOf(log.sets, si));
   if (!base) return;
   const lastW = parseFloat(base.w) || 0, lastR = parseInt(base.r) || 0;
   if (!(lastW > 0) || !(lastR > 0)) return;

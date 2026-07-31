@@ -325,7 +325,7 @@ test('adjustByReps: schwere Langhantel bewegt sich sinnvoll, nicht um eine Schei
   // Also 15 kg statt 2,5 kg, und dabei innerhalb des 15-Prozent-Deckels (170).
   const neu = R.adjustByReps(200, { reps: 5, target: 8, step: 1.25, barKg: 20 });
   assert.strictEqual(neu, 185);
-  assert.ok(neu >= 170, 'ueber den 15-Prozent-Deckel hinaus: ' + neu);
+  assert.ok(neu >= 200 * (1 - R.capsFor(8).down) - 2.5, 'ueber den Deckel hinaus: ' + neu);
   assert.strictEqual((neu - 20) % 2.5, 0, 'nicht auf dem Scheibenraster: ' + neu);
 });
 
@@ -345,10 +345,11 @@ test('adjustByReps: mehr Wiederholungen als Ziel heben die Last', () => {
 test('adjustByReps: Deckel begrenzen die Schaetzung in beide Richtungen', () => {
   // Ein Totaleinbruch (1 statt 12) wuerde rechnerisch weit unter die Haelfte
   // gehen — das ist kein Anpassen mehr, sondern ein anderes Training.
+  const cd = R.capsFor(12), cu = R.capsFor(8);
   const runter = R.adjustByReps(100, { reps: 1, target: 12, step: 2.5 });
-  assert.ok(runter >= 85, 'unter den 15-Prozent-Deckel gefallen: ' + runter);
+  assert.ok(runter >= 100 * (1 - cd.down) - 2.5, 'unter den Deckel gefallen: ' + runter);
   const rauf = R.adjustByReps(100, { reps: 30, target: 8, step: 2.5 });
-  assert.ok(rauf <= 110, 'ueber den 10-Prozent-Deckel gestiegen: ' + rauf);
+  assert.ok(rauf <= 100 * (1 + cu.up) + 2.5, 'ueber den Deckel gestiegen: ' + rauf);
 });
 
 test('adjustByReps: eigene Deckel schlagen die Vorgabe', () => {
@@ -446,9 +447,10 @@ test('Sweep: die Deckel halten, bis auf die unvermeidbare Rasterbreite', () => {
   sweep(function (g, w, t, r) {
     const out = R.adjustByReps(w, { reps: r, target: t, step: g.step, barKg: g.barKg });
     const inc = g.barKg > 0 ? g.step * 2 : g.step;
-    assert.ok(out >= w * (1 - R.CAP_DOWN) - inc - 1e-9,
+    const caps = R.capsFor(t);
+    assert.ok(out >= w * (1 - caps.down) - inc - 1e-9,
       'zu tief: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
-    assert.ok(out <= w * (1 + R.CAP_UP) + inc + 1e-9,
+    assert.ok(out <= w * (1 + caps.up) + inc + 1e-9,
       'zu hoch: ' + g.name + ' ' + w + ' ' + r + '/' + t + ' -> ' + out);
   });
 });
@@ -478,7 +480,8 @@ test('Sweep: die neue Last trifft die Zielwiederholungen (Epley-Treue)', () => {
   const e1 = (w, r) => w * (1 + r / 30);
   sweep(function (g, w, t, r) {
     const ziel = w * (1 + r / 30) / (1 + t / 30);
-    if (ziel < w * (1 - R.CAP_DOWN) || ziel > w * (1 + R.CAP_UP)) return;
+    const caps = R.capsFor(t);
+    if (ziel < w * (1 - caps.down) || ziel > w * (1 + caps.up)) return;
     // Auf der leeren Stange gibt es kein Darunter — dort ist die Abweichung
     // nicht die Rechnung, sondern die Hantel.
     if (g.barKg > 0 && w <= g.barKg + 1e-9) return;
@@ -500,4 +503,41 @@ test('Koerpergewichtsuebung ohne Last wird nicht angefasst', () => {
   // waere eine erfundene Zahl.
   assert.strictEqual(R.adjustByReps(0,   { reps: 5, target: 10, step: 2.5 }), null);
   assert.strictEqual(R.adjustByReps(null,{ reps: 5, target: 10, step: 2.5 }), null);
+});
+
+// --- capsFor + dampen ------------------------------------------------------
+
+test('capsFor: der Deckel folgt dem Wiederholungsbereich', () => {
+  const kraft = R.capsFor(3), ausdauer = R.capsFor(20);
+  assert.ok(kraft.down > ausdauer.down, 'Kraftbereich nicht grosszuegiger: ' +
+    JSON.stringify(kraft) + ' vs ' + JSON.stringify(ausdauer));
+  assert.ok(kraft.up > ausdauer.up);
+  // Nach unten immer mehr Spielraum als nach oben: ein Einbruch gehoert
+  // schnell korrigiert, Progression muss sich bewaehren.
+  [3, 8, 12, 20].forEach(t => assert.ok(R.capsFor(t).down > R.capsFor(t).up, 'Ziel ' + t));
+});
+
+test('capsFor: die aeusseren Grenzen halten', () => {
+  [1, 3, 8, 12, 20, 50, 200].forEach(t => {
+    const c = R.capsFor(t);
+    assert.ok(c.down >= R.CAP_DOWN_MIN && c.down <= R.CAP_DOWN_MAX, 'down bei ' + t + ': ' + c.down);
+    assert.ok(c.up   >= R.CAP_UP_MIN   && c.up   <= R.CAP_UP_MAX,   'up bei ' + t + ': ' + c.up);
+  });
+  assert.deepStrictEqual(R.capsFor(0),    { down: R.CAP_DOWN, up: R.CAP_UP });
+  assert.deepStrictEqual(R.capsFor(null), { down: R.CAP_DOWN, up: R.CAP_UP });
+});
+
+test('dampen: die halbe Korrektur pendelt nicht zurueck', () => {
+  const voll = R.adjustByReps(100, { reps: 9, target: 12, step: 2.5 });
+  const halb = R.adjustByReps(100, { reps: 9, target: 12, step: 2.5, dampen: 0.5 });
+  assert.ok(halb > voll, 'gedaempft nicht naeher am Ausgangsgewicht: ' + halb + ' vs ' + voll);
+  assert.ok(halb < 100, 'Richtung verloren: ' + halb);
+});
+
+test('dampen: unbrauchbare Werte werden ignoriert', () => {
+  const voll = R.adjustByReps(100, { reps: 9, target: 12, step: 2.5 });
+  [0, 1, -1, 2, '0.5', null].forEach(d => {
+    assert.strictEqual(R.adjustByReps(100, { reps: 9, target: 12, step: 2.5, dampen: d }), voll,
+      'dampen ' + JSON.stringify(d) + ' haette wirken duerfen');
+  });
 });
