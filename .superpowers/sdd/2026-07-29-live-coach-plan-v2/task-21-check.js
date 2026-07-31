@@ -199,7 +199,21 @@ const HUBTEXT = () => {
     zeilen: el ? [...el.querySelectorAll('.ch-jrn, .ch-row')].map(x => (x.textContent || '').replace(/\s+/g, ' ').trim()) : [],
     tab: (typeof _chOpen === 'string') ? _chOpen : null,
     offen: !!(document.getElementById('ov-coach-hub') || {}).classList &&
-           document.getElementById('ov-coach-hub').classList.contains('on')
+           document.getElementById('ov-coach-hub').classList.contains('on'),
+    /* Seit Task 3 steht die Muskelverteilung als liegendes Balkendiagramm da.
+       Ihre Beschriftungen liegen damit nicht mehr im Text, sondern in der
+       Diagramm-Konfiguration — gelesen wird deshalb genau dort, und zusaetzlich
+       die Textfassung fuer die Vorlesehilfe (aria-label). Das prueft mehr als
+       der frühere Textscan: die Zahlen, die wirklich gezeichnet werden. */
+    musLabels: (() => { try { const c = document.getElementById('chw-mus-cv');
+      const ch = c && Chart.getChart(c); return ch ? ch.data.labels.slice() : null; } catch (_) { return null; } })(),
+    volLabels: (() => { try { const c = document.getElementById('chw-vol-cv');
+      const ch = c && Chart.getChart(c); return ch ? ch.data.labels.slice() : null; } catch (_) { return null; } })(),
+    alt: (() => { try { return [...document.querySelectorAll('#ch-card-week canvas[aria-label]')]
+      .map(c => c.getAttribute('aria-label')); } catch (_) { return []; } })(),
+    // Pfeile der Kennzahlenzeile: ohne Vorwoche darf hier keiner stehen.
+    pfeile: (() => { const n = document.getElementById('chw-nums');
+      return n ? (n.textContent || '').replace(/[^↑↓]/g, '') : ''; })()
   };
 };
 
@@ -302,16 +316,21 @@ const HUBTEXT = () => {
 
   // ── 4) Hub -> "Woche": Zahlen, Einordnung, Verteilung ────────────────────
   const hub = await hubWoche();
-  check('Hub -> Kachel "Woche" (echter Tipp auf den Kachelkopf): Einordnung, die fuenf Zahlenzeilen und die Verteilung nach Muskelgruppen stehen da',
+  check('Hub -> Kachel "Woche" (echter Tipp auf den Kachelkopf): Einordnung, die drei Kennzahlen mit Vergleich zur Vorwoche und die Verteilung nach Muskelgruppen stehen da — "Wochen in Folge" NICHT mehr, die Zahl steht schon im Heute-Tab (Gestaltungsregel 8)',
     hub.tab === 'week' && hub.offen === true &&
     /Das Volumen liegt über der Vorwoche/.test(hub.text || '') &&
     /Einheiten/.test(hub.text || '') && /Sätze/.test(hub.text || '') &&
     /Volumen/.test(hub.text || '') && /Vorwoche/.test(hub.text || '') &&
-    /Wochen in Folge/.test(hub.text || '') &&
-    /Schwerpunkte/.test(hub.text || '') && /Brust/.test(hub.text || '') && /Rücken/.test(hub.text || '') &&
+    (hub.pfeile || '').length === 3 &&
+    !/Wochen in Folge/.test(hub.text || '') &&
+    /Schwerpunkte/.test(hub.text || '') &&
+    (hub.musLabels || []).indexOf('Brust') >= 0 && (hub.musLabels || []).indexOf('Rücken') >= 0 &&
+    (hub.alt || []).some(a => /Brust/.test(a) && /Rücken/.test(a)) &&
     !/NaN|undefined|\[object/.test(hub.text || '') &&
+    !(hub.alt || []).some(a => /NaN|undefined/.test(a)) &&
     (hub.zeilen || []).every(z => z && z.length > 1),
-    JSON.stringify({ tab: hub.tab, text: (hub.text || '').slice(0, 420) }));
+    JSON.stringify({ tab: hub.tab, pfeile: hub.pfeile, mus: hub.musLabels, alt: hub.alt,
+                     text: (hub.text || '').slice(0, 420) }).slice(0, 900));
 
   // ── 5) Ziel gesetzt + stabiler Trend: Ausblick MIT Bedingung ─────────────
   await boot({ antwort: DREI, kurve: 'steigend', ziel: 120 });
@@ -411,11 +430,11 @@ const HUBTEXT = () => {
              prev: rep && rep.numbers.prevVol, delta: rep && rep.numbers.volDelta };
   }));
   const hubEine = await hubWoche();
-  check('Allererste Woche und eine einzige Einheit: keine leere Zeile, kein NaN, kein undefined — ohne Vorwoche steht "keine Vorwoche zum Vergleich" statt einer erfundenen Steigerung',
+  check('Allererste Woche und eine einzige Einheit: keine leere Zeile, kein NaN, kein undefined — und ohne Vorwoche steht KEIN Pfeil und kein Prozent statt einer erfundenen Steigerung',
     ersteBau.rep === null && ersteBau.laenge === 0 &&
     /noch keine Einheit/.test(ersteWoche.text || '') && !/NaN|undefined/.test(ersteWoche.text || '') &&
     !!eineEinheit.rep && eineEinheit.w === 1 && eineEinheit.s === 9 && eineEinheit.prev === 0 &&
-    /keine Vorwoche zum Vergleich/.test(hubEine.text || '') &&
+    (hubEine.pfeile || '') === '' && !/%/.test(hubEine.text || '') &&
     !/NaN|undefined|\[object/.test(hubEine.text || '') &&
     (hubEine.zeilen || []).every(z => z && z.length > 1),
     JSON.stringify({ erste: (ersteWoche.text || '').slice(0, 160), eine: eineEinheit.w,

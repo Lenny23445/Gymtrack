@@ -665,9 +665,10 @@ const KACHELSTAND = () => {
 
   // ── 28) Ziel UNTER dem Erreichten wird abgelehnt ────────────────────────
   const setzeZiel = async (wert) => {
+    // Die Eingabe nur aufklappen, wenn sie ZU ist: der Kopf ist ein Umschalter,
+    // ein zweiter Tipp klappte sie wieder zu.
     try {
-      await page.click('#chw-goal-cta');           // Eingabe aufklappen (idempotent)
-      await wait(350);
+      if (!(await page.$('#chw-goal-in'))) { await page.click('#chw-goal-cta'); await wait(350); }
     } catch (_) {}
     try {
       // Feld leeren wie in task-9/task-10: ein Dreifachklick markiert in
