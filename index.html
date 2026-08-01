@@ -8844,7 +8844,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030410';
+const APP_VERSION = 'gymtrack-v202608030435';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18970,9 +18970,32 @@ function _glowDs(cv, acc, n, voll){
     pointBorderWidth: voll ? 2.8 : 2.2
   };
 }
+/* Laesst die Linie wirklich leuchten statt nur hell zu sein: der Canvas-Schatten
+   liegt ohne Versatz unter dem Strich, also rundherum. Der Radius kommt aus
+   derselben Ueberlegung wie die --gw-Staffel im CSS; Canvas kennt keine
+   CSS-Variablen, deshalb steht die Zahl hier.
+   Der Schatten wird vor der Datenreihe gesetzt und danach wieder abgeraeumt —
+   sonst erben Achsen und Tooltip ihn mit. */
+function _neonLinePlugin(acc, voll){
+  return {
+    id:'neonline',
+    beforeDatasetDraw(chart){
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.shadowColor = _hexA(acc, .85);
+      ctx.shadowBlur  = voll ? 12 : 16;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    },
+    afterDatasetDraw(chart){ chart.ctx.restore(); }
+  };
+}
 /* Die gemeinsame Konfiguration beider Volumen-Diagramme (Kachel und Vollbild).
-   voll=true zeigt zusaetzlich die Datumsachse — im Vollbild hat man den Platz,
-   und dort will man auch wissen, WANN. */
+   In der KACHEL steht keine Achse mehr: sie ist eine Vorschau, und dort zaehlt
+   die Form des Verlaufs — geht es rauf oder runter. Zahlen an den Raendern
+   fressen dort nicht nur die halbe Flaeche, sie versprechen auch eine
+   Genauigkeit, die man auf 160 Pixel Hoehe ohnehin nicht ablesen kann. Wer sie
+   braucht, tippt die Kachel an; im Vollbild sind Datums- und Mengenachse da,
+   und dort ist auch der Platz dafuer. */
 function _volChartCfg(cv, pts, acc, voll){
   return {
     type:'line',
@@ -18980,18 +19003,19 @@ function _volChartCfg(cv, pts, acc, voll){
       labels: pts.map(p=>p.x),
       datasets:[Object.assign({ data: pts.map(p=>p.y) }, _glowDs(cv, acc, pts.length, voll))]
     },
+    plugins:[_neonLinePlugin(acc, voll)],
     options:{
       responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:14,bottom:voll?0:6,left:6,right:10}},
+      // Ohne Achsen braucht die Kachel nur noch Luft fuer den Schein selbst,
+      // sonst wird er am Rand des Zeichenbereichs abgeschnitten.
+      layout:{padding: voll ? {top:14,bottom:0,left:6,right:10}
+                            : {top:12,bottom:8,left:4,right:8}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
-      // Achsen bleiben. In der Kachel eine Spur kleiner gesetzt, sonst frisst
-      // die Beschriftung die halbe Flaeche.
-      scales:{
-        x:{grid:{display:false},ticks: voll ? _cXT(pts.length) : {..._cXT(pts.length),font:{size:9}}},
-        y: voll ? _cYT(v=>fmtKg(v))
-                : {grid:{color:'rgba(128,128,128,.08)'},grace:'12%',
-                   ticks:{font:{size:9},maxTicksLimit:4,callback:v=>fmtKg(v)}}
-      }
+      scales: voll
+        ? { x:{grid:{display:false},ticks:_cXT(pts.length)},
+            y:_cYT(v=>fmtKg(v)) }
+        : { x:{display:false,grid:{display:false}},
+            y:{display:false,grid:{display:false},grace:'14%'} }
     }
   };
 }
