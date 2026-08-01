@@ -8869,7 +8869,20 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030436';
+const APP_VERSION = 'gymtrack-v202608030437';
+
+/* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
+   Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
+   temporalen Toten Zone, und ein Zugriff davor wirft — er ergibt nicht etwa
+   undefined. Genau das passierte beim allerersten Rendern der Startseite:
+   _renderHdrAva() liest ueber _profileName() den Anzeigenamen, lange bevor der
+   Konto-Block ausgefuehrt ist. Die Folge war ein ReferenceError mitten in
+   renderHome() — die Heute-Seite blieb leer und der Rest des Starts (bis hin zum
+   Onboarding neuer Nutzer) lief nie an. Ein try/catch an der Lesestelle wuerde
+   den Fehler nur verstecken; die Variable muss vor dem ersten Render existieren.
+   typeof hilft hier uebrigens nicht: auf eine let-Variable in der TDZ angewendet
+   wirft es genauso. */
+let _fbUser = null;
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -34701,7 +34714,7 @@ async function _doForceUpdate() {
 // ── KONTO / GOOGLE LOGIN + CLOUD SYNC ──────────────────
 // ═══════════════════════════════════════════════════════
 
-let _fbUser     = null;     // aktuell eingeloggter User (oder null)
+/* _fbUser steht bewusst WEITER OBEN (bei APP_VERSION) — Begruendung dort. */
 let _authSettled = false;   // true, sobald Auth-Zustand einmal feststeht (Restore/Anon/Logout) — vorher „Verbinde…" statt Login-Gate zeigen
 let _fbUnsub    = null;     // Unsubscribe-Fn für Firestore-Snapshot
 let _syncing    = false;    // Lock, damit Cloud-Update keinen erneuten Push triggert
