@@ -3815,9 +3815,41 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 @media (prefers-reduced-motion:reduce){.segbar > i{transition:none}}
 
 /* ── Bereitschaft im Coach-Hub ── */
+/* Die Leiste ist ein Knopf — sie fuehrt in die Aufschluesselung. Deshalb
+   traegt sie den Winkel rechts und gibt beim Druecken nach. */
 .ch-rdy{
+  display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;
   margin:14px 0 4px;padding:12px 13px 13px;border-radius:16px;
   background:var(--gl-bg-h);border:1px solid var(--gl-bdr);
+  transition:transform .14s ease,border-color .18s ease;
+}
+.ch-rdy:active{transform:scale(.985);border-color:rgba(var(--acc-rgb),.4)}
+.ch-rdy-chev{display:inline-flex;flex-shrink:0;color:var(--text2);opacity:.7}
+
+/* ── Aufschluesselung der Leistung ── */
+.ch-perf-top{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.ch-perf-val{font-size:38px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.ch-perf-val i{font-size:18px;font-style:normal;margin-left:2px;opacity:.75}
+.ch-perf-lbl{font-size:15px;font-weight:700;color:var(--text2)}
+.segbar.segbar-gross{height:38px;gap:4px}
+.segbar.segbar-gross > i{border-radius:5px}
+.ch-perf-rows{margin-top:20px;display:flex;flex-direction:column;gap:16px}
+.ch-perf-row-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.ch-perf-row-lbl{flex:1;min-width:0;font-size:13.5px;font-weight:800;color:var(--text)}
+/* Das Gewicht steht dabei, weil es die Zahl erklaert: ein schwacher Wert bei
+   20 % Gewicht zieht anders als einer bei 35 %. */
+.ch-perf-row-g{font-size:10.5px;font-weight:700;color:var(--text2);opacity:.75}
+.ch-perf-row-v{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:24px;text-align:right}
+.ch-perf-row-txt{margin-top:6px;font-size:12.5px;line-height:1.45;color:var(--text2)}
+.ch-perf-tips{margin-top:22px;padding-top:14px;border-top:1px solid var(--sep)}
+.ch-perf-tips-h{font-size:13px;font-weight:800;color:var(--acc);margin-bottom:9px}
+.ch-perf-tip{display:flex;flex-direction:column;gap:3px;margin-bottom:11px}
+.ch-perf-tip b{font-size:12px;font-weight:800;color:var(--text)}
+.ch-perf-tip span{font-size:12.5px;line-height:1.45;color:var(--text2)}
+.ch-perf-ok{margin-top:20px;font-size:12.5px;color:var(--text2)}
+.ch-perf-foot{
+  margin-top:18px;padding-top:12px;border-top:1px solid var(--sep);
+  font-size:11px;line-height:1.5;color:var(--text2);opacity:.8;
 }
 .ch-rdy-head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
 .ch-rdy-ico{display:inline-flex;flex-shrink:0}
@@ -8463,7 +8495,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021535';
+const APP_VERSION = 'gymtrack-v202608021600';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17671,100 +17703,161 @@ function getMuscleGroupRecovery() {
   return out;
 }
 
-/* ══ BEREITSCHAFT ════════════════════════════════════════════════════════
-   Wie belastbar ist der Koerper gerade — aus dem, was die App wirklich weiss.
+/* ══ TRAININGSLEISTUNG ═══════════════════════════════════════════════════
+   Wie gut laeuft das Training gerade — ausdruecklich NICHT die Erholung.
+   Die steht schon als Akku-Liste in der Statistik, und zweimal dasselbe an
+   zwei Orten ist keine zweite Aussage, sondern eine Verdopplung, die
+   irgendwann auseinanderlaeuft.
 
-   Ausdruecklich KEIN Erholungswert im Sinne von Whoop oder Oura: dafuer
-   fehlen Schlaf, Herzfrequenzvariabilitaet und Ruhepuls. Die App misst
-   Herzfrequenz nur WAEHREND einer Einheit. Was sie stattdessen hat, ist die
-   Trainingsseite derselben Frage, und die ist nicht wenig — vier
-   voneinander unabhaengige Signale:
+   Vier Signale, alle aus geloggten Saetzen — nichts davon ist eine
+   Selbsteinschaetzung:
 
-     1. Muskuloese Ermuedung   (getMuscleGroupRecovery, 45 %)
-        Der Kern. Mittel ueber die Gruppen, die ueberhaupt trainiert werden.
-     2. Tagesform aus dem Check-in (feel/en der letzten Einheiten, 30 %)
-        Selbst eingeschaetzt, dafuer die einzige Stimme des Nutzers darin.
-     3. Satz-Schwierigkeit      (rpeAnswer der letzten Einheit, 15 %)
-        Gemessen aus Soll und Ist, nicht erfragt.
-     4. Angesammelte Wochen     (harte Wochen am Stueck, 10 %)
-        Die lange Linie: sechs harte Wochen sind auch ohne schlechten Tag ein
-        Grund, kuerzer zu treten.
+     1. Kraftentwicklung (35 %)  e1RM der zuletzt trainierten Uebungen gegen
+        die vorherige Einheit. Das ist der Kern von "wird es besser?".
+     2. Zielerreichung  (25 %)   Anteil der Arbeitssaetze, die im Ziel-Wdh-
+        Bereich lagen. Miss den Plan an dem, was wirklich passiert ist.
+     3. Volumen-Trend   (20 %)   Diese Woche gegen den Schnitt der drei
+        Vorwochen.
+     4. Konstanz        (20 %)   Einheiten der letzten zwei Wochen gegen die
+        eigene Zielfrequenz (obFreq).
 
-   Fehlt ein Signal (neuer Nutzer, keine Check-ins), faellt sein Gewicht weg
-   und die uebrigen werden neu normiert — statt es mit einem erfundenen
-   Mittelwert zu fuellen. Gibt es GAR nichts, liefert die Funktion null, und
-   die Anzeige bleibt weg. Lieber keine Zahl als eine geratene. */
-function _rdyScore() {
+   Jedes Signal liefert Wert, Begruendung und — wenn es schwaechelt — einen
+   konkreten Vorschlag. Fehlt eins (zu wenig Historie), faellt sein Gewicht
+   weg und der Rest wird neu normiert; erfundene Mittelwerte gibt es nicht.
+   Ohne jedes Signal liefert die Funktion null und die Leiste bleibt weg. */
+function _perfScore() {
   try {
-    const teile = [];   // { wert 0..100, gewicht }
-    // 1 · Ermuedung der Muskelgruppen
+    const ses = (S.sessions || []).filter(s => s && s.date);
+    if (!ses.length) return null;
+    const teile = [];
+    const jetzt = Date.now();
+
+    /* 1 · Kraftentwicklung: je Uebung der letzten drei Einheiten das beste
+       e1RM gegen das beste e1RM der Einheit davor. Gemittelt ueber die
+       Uebungen, nicht ueber die Saetze — sonst zaehlt eine Uebung mit acht
+       Saetzen doppelt so viel wie eine mit vier. */
     try {
-      const rec = getMuscleGroupRecovery();
-      const werte = Object.keys(rec || {})
-        .map(k => rec[k])
-        .filter(r => r && r.lastTs)          // nie trainierte Gruppen sagen nichts
-        .map(r => Math.max(0, Math.min(100, r.recPct)));
-      if (werte.length) teile.push({ w: werte.reduce((a, b) => a + b, 0) / werte.length, g: 45 });
-    } catch(_) {}
-    // 2 · Check-in: Gefuehl (1 leicht … 4 sehr schwer) und Energie (1 … 3)
-    try {
-      const all = (S.checkins || []).filter(c => c && c.feel).slice(-3);
-      if (all.length) {
-        const feel = all.reduce((s, c) => s + c.feel, 0) / all.length;      // 1..4
-        const en   = all.reduce((s, c) => s + (c.en || 2), 0) / all.length; // 1..3
-        // Der juengste Check-in zaehlt doppelt: Tagesform ist tagesaktuell.
-        const letzte = all[all.length - 1];
-        const feelG = (feel + letzte.feel) / 2;
-        const enG   = (en + (letzte.en || 2)) / 2;
-        const vFeel = (4 - feelG) / 3 * 100;    // feel 1 → 100, feel 4 → 0
-        const vEn   = (enG - 1) / 2 * 100;      // en 1 → 0, en 3 → 100
-        teile.push({ w: vFeel * 0.6 + vEn * 0.4, g: 30 });
+      const letzte = ses.slice(-3);
+      const deltas = [];
+      const gesehen = {};
+      letzte.forEach(sn => (sn.logs || []).forEach(l => {
+        if (!l || !l.exerciseId || gesehen[l.exerciseId]) return;
+        gesehen[l.exerciseId] = 1;
+        const hist = exHistory(l.exerciseId);
+        if (hist.length < 2) return;
+        const best = (sets) => {
+          let m = 0;
+          _workSets(sets || []).forEach(x => {
+            const w = parseFloat(x.w) || 0, r = parseInt(x.r) || 0;
+            if (w > 0 && r > 0) { const e = epley1RM(w, r); if (e > m) m = e; }
+          });
+          return m;
+        };
+        const neu = best(hist[hist.length - 1].sets), alt = best(hist[hist.length - 2].sets);
+        if (neu > 0 && alt > 0) deltas.push((neu - alt) / alt);
+      }));
+      if (deltas.length) {
+        const d = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+        // 50 ist "gehalten". +4 % im Schnitt ist stark (100), -4 % schwach (0).
+        const wert = Math.max(0, Math.min(100, 50 + (d / 0.04) * 50));
+        const pz = (d * 100).toFixed(1).replace('.0', '');
+        teile.push({ id:'kraft', g:35, w:wert,
+          lbl: _cm('Kraftentwicklung', 'Strength trend'),
+          txt: d >= 0.005 ? _cm('Dein geschätztes Maximalgewicht liegt im Schnitt ' + pz + ' % über der Einheit davor.',
+                                'Your estimated one-rep max is ' + pz + '% above the session before, on average.')
+             : d <= -0.005 ? _cm('Dein geschätztes Maximalgewicht liegt im Schnitt ' + pz + ' % unter der Einheit davor.',
+                                'Your estimated one-rep max is ' + pz + '% below the session before, on average.')
+             : _cm('Dein geschätztes Maximalgewicht ist stabil geblieben.',
+                   'Your estimated one-rep max held steady.'),
+          tipp: wert < 45 ? _cm('Bleib zwei Einheiten beim selben Gewicht und hol erst die Wiederholungen zurück — Steigern von einer eingebrochenen Basis aus hält selten.',
+                                'Stay at the same weight for two sessions and win the reps back first — adding load from a dip rarely holds.') : null });
       }
-    } catch(_) {}
-    // 3 · Satz-Schwierigkeit der letzten Einheit
+    } catch(e) { console.warn('[Perf] Kraft:', e); }
+
+    /* 2 · Zielerreichung: Arbeitssaetze der letzten drei Einheiten im
+       Ziel-Wdh-Bereich. Aufwaermsaetze zaehlen nicht — sie sollen den Bereich
+       gar nicht treffen. */
     try {
-      const ses = (S.sessions || []).slice(-1)[0];
-      const sets = [];
-      (ses && ses.logs || []).forEach(l => (l.sets || []).forEach(s => { if (s && s.rpeAnswer) sets.push(s.rpeAnswer); }));
-      if (sets.length >= 3) {
-        const hart = sets.filter(x => x === 'hard').length;
-        const leicht = sets.filter(x => x === 'easy').length;
-        // Von 50 aus in beide Richtungen: mehr schwere Saetze druecken, mehr
-        // leichte heben. Der Anteil, nicht die Anzahl — sonst zaehlte eine
-        // lange Einheit automatisch als schwerer.
-        teile.push({ w: Math.max(0, Math.min(100, 50 + (leicht - hart) / sets.length * 100)), g: 15 });
+      let treffer = 0, gesamt = 0;
+      ses.slice(-3).forEach(sn => (sn.logs || []).forEach(l => {
+        const ex = exById(l.exerciseId); if (!ex) return;
+        _workSets(l.sets || []).forEach(x => {
+          if (!(parseInt(x.r) > 0)) return;
+          gesamt++;
+          if (_repsOk(x, ex.targetReps)) treffer++;
+        });
+      }));
+      if (gesamt >= 6) {
+        const q = treffer / gesamt;
+        teile.push({ id:'ziel', g:25, w: Math.round(q * 100),
+          lbl: _cm('Zielerreichung', 'Target hit rate'),
+          txt: _cm(treffer + ' von ' + gesamt + ' Arbeitssätzen lagen im Ziel-Wiederholungsbereich.',
+                   treffer + ' of ' + gesamt + ' working sets landed in the target rep range.'),
+          tipp: q < 0.6 ? _cm('Die Gewichte sind für deinen Wiederholungsbereich zu hoch angesetzt. Nimm 5 % raus — im Bereich zu arbeiten bringt mehr als knapp darunter zu scheitern.',
+                              'The loads are set too high for your rep range. Take 5% off — working inside the range beats just missing it.') : null });
       }
-    } catch(_) {}
-    // 4 · Harte Wochen am Stueck (dieselbe Zaehlung wie die Entlastungswoche)
+    } catch(e) { console.warn('[Perf] Ziel:', e); }
+
+    /* 3 · Volumen-Trend: laufende Woche gegen den Schnitt der drei davor. Die
+       laufende Woche wird hochgerechnet, sonst stuende am Montag jede Woche
+       ein Einbruch da, der keiner ist. */
     try {
-      const proWoche = Object.create(null);
-      (S.sessions || []).forEach(s => {
-        if (!s || !s.date) return;
-        const t = new Date(s.date).getTime();
-        if (!isFinite(t)) return;
-        proWoche[Math.floor(t / (7 * 864e5))] = (proWoche[Math.floor(t / (7 * 864e5))] || 0) + 1;
+      const woche = (t) => Math.floor(t / (7 * 864e5));
+      const jetztW = woche(jetzt);
+      const vol = {};
+      ses.forEach(sn => {
+        const t = new Date(sn.date).getTime(); if (!isFinite(t)) return;
+        vol[woche(t)] = (vol[woche(t)] || 0) + (sessionVolume(sn) || 0);
       });
-      const jetzt = Math.floor(Date.now() / (7 * 864e5));
-      let hart = 0;
-      for (let wo = jetzt - 1; wo >= jetzt - 20; wo--) { if ((proWoche[wo] || 0) >= 2) hart++; else break; }
-      // Erst ab der dritten harten Woche zieht es nach unten; bei DELOAD_NACH_WOCHEN
-      // ist der Boden erreicht. Zwei harte Wochen sind normales Training.
-      const spanne = Math.max(1, DELOAD_NACH_WOCHEN - 2);
-      teile.push({ w: Math.max(0, 100 - Math.max(0, hart - 2) / spanne * 100), g: 10 });
-    } catch(_) {}
+      const vor = [1, 2, 3].map(k => vol[jetztW - k] || 0).filter(v => v > 0);
+      if (vor.length >= 2) {
+        const mittel = vor.reduce((a, b) => a + b, 0) / vor.length;
+        // Anteil der laufenden Woche, der schon vorbei ist (Montag = 1/7).
+        const tag = ((new Date().getDay() + 6) % 7) + 1;
+        const hoch = (vol[jetztW] || 0) / (tag / 7);
+        const d = mittel > 0 ? (hoch - mittel) / mittel : 0;
+        const wert = Math.max(0, Math.min(100, 50 + (d / 0.25) * 50));
+        teile.push({ id:'vol', g:20, w: wert,
+          lbl: _cm('Volumen-Trend', 'Volume trend'),
+          txt: _cm('Hochgerechnet liegt diese Woche bei ' + Math.round(hoch).toLocaleString(GT_LOCALE) + ' ' + unitLabel() + ' gegenüber ' + Math.round(mittel).toLocaleString(GT_LOCALE) + ' ' + unitLabel() + ' im Schnitt der Vorwochen.',
+                   'Projected, this week sits at ' + Math.round(hoch).toLocaleString(GT_LOCALE) + ' ' + unitLabel() + ' versus ' + Math.round(mittel).toLocaleString(GT_LOCALE) + ' ' + unitLabel() + ' averaged over the weeks before.'),
+          tipp: wert < 40 ? _cm('Ein Arbeitssatz mehr bei deinen zwei Hauptübungen holt den Rückstand auf, ohne die Einheit spürbar zu verlängern.',
+                                'One extra working set on your two main lifts closes the gap without making the session noticeably longer.') : null });
+      }
+    } catch(e) { console.warn('[Perf] Volumen:', e); }
+
+    /* 4 · Konstanz: Einheiten der letzten 14 Tage gegen die Zielfrequenz aus
+       dem Onboarding. Ohne gesetztes Ziel gilt 3× pro Woche als Bezug — das
+       ist die Frequenz, auf die die Plaene der App ausgelegt sind. */
+    try {
+      const ziel = Math.max(1, Math.min(7, parseInt(S.obFreq) || 3)) * 2;
+      const anz = ses.filter(sn => {
+        const t = new Date(sn.date).getTime();
+        return isFinite(t) && jetzt - t <= 14 * 864e5;
+      }).length;
+      teile.push({ id:'konst', g:20, w: Math.max(0, Math.min(100, Math.round(anz / ziel * 100))),
+        lbl: _cm('Konstanz', 'Consistency'),
+        txt: _cm(anz + ' von ' + ziel + ' geplanten Einheiten in den letzten 14 Tagen.',
+                 anz + ' of ' + ziel + ' planned sessions over the last 14 days.'),
+        tipp: anz < ziel * 0.7 ? _cm('Setz dir für die nächste Woche eine Einheit weniger als Ziel und halte die. Ein erreichter Plan trägt weiter als ein verfehlter.',
+                                     'Plan one session fewer next week and keep it. A plan you hit carries further than one you miss.') : null });
+    } catch(e) { console.warn('[Perf] Konstanz:', e); }
 
     if (!teile.length) return null;
-    const gSum = teile.reduce((s, t) => s + t.g, 0);
-    const pct = Math.round(teile.reduce((s, t) => s + t.w * t.g, 0) / gSum);
-    return { pct: Math.max(0, Math.min(100, pct)), signale: teile.length };
-  } catch(e) { console.warn('[Coach] Bereitschaft:', e); return null; }
+    const gSum = teile.reduce((s2, t) => s2 + t.g, 0);
+    const pct = Math.round(teile.reduce((s2, t) => s2 + t.w * t.g, 0) / gSum);
+    // Schwaechstes Signal zuerst — danach richtet sich, was die Detailebene
+    // als Erstes vorschlaegt.
+    teile.sort((x, y) => x.w - y.w);
+    return { pct: Math.max(0, Math.min(100, pct)), teile: teile };
+  } catch(e) { console.warn('[Coach] Leistung:', e); return null; }
 }
-function _rdyLabel(pct) {
-  if (pct >= 80) return _cm('Voll belastbar', 'Fully ready');
-  if (pct >= 62) return _cm('Bereit', 'Ready');
+function _perfLabel(pct) {
+  if (pct >= 80) return _cm('Top-Form', 'Peak form');
+  if (pct >= 62) return _cm('Starke Phase', 'Strong phase');
   if (pct >= 44) return _cm('Solide', 'Steady');
-  if (pct >= 26) return _cm('Angeschlagen', 'Worn down');
-  return _cm('Erholung nötig', 'Needs recovery');
+  if (pct >= 26) return _cm('Schwächelt', 'Slipping');
+  return _cm('Eingebrochen', 'Stalled');
 }
 
 /* ══ SEGMENT-BALKEN ("die Striche") ══════════════════════════════════════
@@ -29015,7 +29108,12 @@ const _CH_CARDS = [
   { k:'week',    de:'Woche',                ico:'chart2',     sub:['Volumen, Trend und Kraftziel','Volume, trend and strength goal'] },
   { k:'persona', de:'Persönlichkeit',       ico:'mic',        sub:['Name, Ton und Ansprache','Name, tone and wording'] },
   { k:'scope',   de:'Umfang und Meldungen', ico:'gear', kurz:'Umfang', sub:['Wann er sich meldet','When it speaks up'] },
-  { k:'journal', de:'Journal',              ico:'book',       sub:['Was er über dich weiß','What it knows about you'] }
+  { k:'journal', de:'Journal',              ico:'book',       sub:['Was er über dich weiß','What it knows about you'] },
+  /* Kein Feld im Raster: die Leistung hat unter dem Raster ihre eigene Leiste,
+     und dort steht sie besser — sie fasst zusammen, was die Kacheln einzeln
+     zeigen. In _CH_CARDS gehoert sie trotzdem, damit Oeffnen, Zurueck-Pfeil,
+     Kopfzeile und der Zoom-Uebergang ohne Sonderweg funktionieren. */
+  { k:'perf',    de:'Trainingsleistung',    ico:'chart2', versteckt:true, sub:['Woran es gerade liegt','What is driving it'] }
 ];
 const _CH_CARD_IDS = _CH_CARDS.map(c => c.k);
 // Welche Kachel offen ist. '' heißt: keine, also das Raster — der Normalfall
@@ -29685,6 +29783,7 @@ function _chCardBody(k, cur){
   if (k === 'persona') return _chPersonaHTML();
   if (k === 'scope')   return _chScopeHTML();
   if (k === 'journal') return _chJournalHTML();
+  if (k === 'perf')    return _chPerfHTML();
   return '';
 }
 function _chCardMetric(k, cur){
@@ -29806,8 +29905,8 @@ function renderCoachHub(){
        was die Kacheln im Einzelnen zeigen — in der Detailebene waere sie eine
        Wiederholung neben dem Gegenstand, um den es gerade geht. */
     body.innerHTML = `<div class="ch-stage" id="ch-stage" data-v="${karte ? 'det' : 'grid'}">`
-      + `<div class="ch-grid">${_CH_CARDS.map((c, i) => _chTileHTML(c, cur, i)).join('')}</div>`
-      + (karte ? '' : _chRdyHTML())
+      + `<div class="ch-grid">${_CH_CARDS.filter(c => !c.versteckt).map((c, i) => _chTileHTML(c, cur, i)).join('')}</div>`
+      + (karte ? '' : _chPerfBarHTML())
       + `<div class="ch-pane">${karte ? _chPanelHTML(karte, cur) : ''}</div></div>`;
     if (detOffen) { const d = body.querySelector('#ch-panel-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
@@ -29815,23 +29914,59 @@ function renderCoachHub(){
     if (_chOpen === 'week') _chWeekDraw();
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
 }
-/* Die Bereitschafts-Leiste im Coach-Hub. Sie nennt die Zahl NICHT gross:
-   die Striche tragen den Wert, die Prozentzahl steht klein daneben fuer alle,
-   die es genau wissen wollen. Wie viele Signale eingeflossen sind, steht
-   dabei — ein Wert aus zwei Quellen ist etwas anderes als einer aus vier,
-   und das zu verschweigen waere eine falsche Sicherheit. */
-function _chRdyHTML() {
-  const r = _rdyScore();
+/* Die Leistungs-Leiste unter dem Raster. Sie nennt die Zahl klein: die
+   Striche tragen den Wert, die Prozentzahl steht daneben fuer alle, die es
+   genau wissen wollen. Ein Tipp oeffnet die Aufschluesselung — die Leiste
+   allein sagt WIE es laeuft, die Ebene dahinter WORAN es liegt. */
+function _chPerfBarHTML() {
+  const r = _perfScore();
   if (!r) return '';
   const f = _segFarbe(r.pct);
-  return `<div class="ch-rdy">
+  return `<button type="button" class="ch-rdy" onclick="coachHubOpen('perf')">
     <div class="ch-rdy-head">
-      <span class="ch-rdy-ico" style="color:${f.css}">${ICO.bolt ? ICO.bolt({s:14}) : ''}</span>
-      <span class="ch-rdy-lbl">${esc(_rdyLabel(r.pct))}</span>
-      <span class="ch-rdy-sub">${r.signale} ${r.signale === 1 ? _cm('Signal','signal') : _cm('Signale','signals')}</span>
+      <span class="ch-rdy-ico" style="color:${f.css}">${ICO.bolt({s:14})}</span>
+      <span class="ch-rdy-lbl">${esc(_perfLabel(r.pct))}</span>
+      <span class="ch-rdy-sub">${esc(_cm('Trainingsleistung','Training performance'))}</span>
       <span class="ch-rdy-pct" style="color:${f.css}">${r.pct}%</span>
+      <span class="ch-rdy-chev">${ICO.chevron({s:15})}</span>
     </div>
-    ${_segBarsHTML(r.pct, 16, { label: _cm('Bereitschaft ','Readiness ') + r.pct + ' %' })}
+    ${_segBarsHTML(r.pct, 16, { label: _cm('Trainingsleistung ','Training performance ') + r.pct + ' %' })}
+  </button>`;
+}
+/* Die Aufschluesselung. Jedes Signal bekommt seine eigene Strichreihe, seinen
+   Wert und einen Satz, der die Zahl BEGRUENDET statt sie zu wiederholen.
+   Sortiert ist nach dem schwaechsten zuerst (siehe _perfScore): was am
+   meisten kostet, steht oben, und die Vorschlaege dazu ebenfalls. */
+function _chPerfHTML() {
+  const r = _perfScore();
+  if (!r) return `<div class="ch-empty">${esc(_cm('Noch zu wenig Training für eine Einschätzung.','Not enough training yet for an assessment.'))}</div>`;
+  const f = _segFarbe(r.pct);
+  const tipps = r.teile.filter(t => t.tipp);
+  return `<div class="ch-perf">
+    <div class="ch-perf-top">
+      <div class="ch-perf-val" style="color:${f.css}">${r.pct}<i>%</i></div>
+      <div class="ch-perf-lbl">${esc(_perfLabel(r.pct))}</div>
+    </div>
+    ${_segBarsHTML(r.pct, 16, { cls:'segbar-gross' })}
+    <div class="ch-perf-rows">
+      ${r.teile.map(t => {
+        const tf = _segFarbe(t.w);
+        return `<div class="ch-perf-row">
+          <div class="ch-perf-row-head">
+            <span class="ch-perf-row-lbl">${esc(t.lbl)}</span>
+            <span class="ch-perf-row-g">${t.g} %</span>
+            <span class="ch-perf-row-v" style="color:${tf.css}">${Math.round(t.w)}</span>
+          </div>
+          ${_segBarsHTML(t.w, 12, { flach:true, cls:'segbar-mini' })}
+          <div class="ch-perf-row-txt">${esc(t.txt)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${tipps.length ? `<div class="ch-perf-tips">
+      <div class="ch-perf-tips-h">${esc(_cm('Was jetzt am meisten bringt','What helps most right now'))}</div>
+      ${tipps.map(t => `<div class="ch-perf-tip"><b>${esc(t.lbl)}</b><span>${esc(t.tipp)}</span></div>`).join('')}
+    </div>` : `<div class="ch-perf-ok">${esc(_cm('Alle vier Signale liegen im grünen Bereich — weiter so.','All four signals are in good shape — keep going.'))}</div>`}
+    <div class="ch-perf-foot">${esc(_cm('Gerechnet aus geloggten Sätzen: Kraftentwicklung, Zielerreichung, Volumen und Konstanz. Erholung steckt bewusst nicht darin — die steht als Akku-Liste in der Statistik.','Calculated from logged sets: strength trend, target hit rate, volume and consistency. Recovery is deliberately not part of it — that lives in the stats tab.'))}</div>
   </div>`;
 }
 // Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
