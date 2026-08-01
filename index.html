@@ -8224,7 +8224,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020020';
+const APP_VERSION = 'gymtrack-v202608020021';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19356,21 +19356,30 @@ function _wkStep(dir) {
    den Text bewegen) und nicht waehrend Umsortieren/Loesch-Wisch. */
 function _wkSwipeErlaubt(t) {
   const sheet = document.querySelector('#ov-wk .sheet');
-  if (!sheet || sheet.classList.contains('snap-off')) return false;
+  if (!sheet) return false;
   const s2 = document.getElementById('wk-step2');
   if (!s2 || s2.style.display === 'none') return false;   // Uebungswahl scrollt normal
   if (document.querySelector('.ov.on:not(#ov-wk)')) return false;
+  /* NICHT auf .snap-off pruefen! Der Loesch-Wisch setzt diese Klasse bereits im
+     touchstart JEDER Karte — also bevor ueberhaupt feststeht, ob waagerecht
+     oder senkrecht gewischt wird. Wer sie hier als "nicht zustaendig" liest,
+     schaltet sich bei jeder Beruehrung einer Uebungskarte selbst ab. Genau das
+     legte das Blaettern lahm. Umsortieren erkennt man an _wkDndLi, und das
+     steht erst, wenn wirklich gezogen wird. */
+  if (typeof _wkDndLi !== 'undefined' && _wkDndLi != null) return false;
   return !(t && t.closest && t.closest('textarea, input, .icon-cat-scroll'));
 }
 
 function _wkBindSwipe(sheet) {
+  /* Erfassungsphase (capture): so laeuft dieser Zuhoerer VOR denen auf den
+     Karten. Die Reihenfolge der Bindung spielt damit keine Rolle mehr. */
   sheet.addEventListener('touchstart', e => {
     _wkSwAktiv = _wkSwipeErlaubt(e.target);
     if (!_wkSwAktiv) return;
     _wkSwX = e.touches[0].clientX;
     _wkSwY = e.touches[0].clientY;
     _wkSwAchse = null;
-  }, { passive: true });
+  }, { passive: true, capture: true });
 
   // NICHT passiv: nur so laesst sich das native Scrollen abbestellen. Genau das
   // ist der Unterschied zum blossen Einrasten — ohne preventDefault folgt das
@@ -19385,7 +19394,7 @@ function _wkBindSwipe(sheet) {
       _wkSwAchse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     }
     if (_wkSwAchse === 'y' && e.cancelable) e.preventDefault();
-  }, { passive: false });
+  }, { passive: false, capture: true });
 
   const ende = e => {
     if (!_wkSwAktiv || _wkSwAchse !== 'y') { _wkSwAktiv = false; return; }
@@ -19396,7 +19405,7 @@ function _wkBindSwipe(sheet) {
     if (Math.abs(dy) < WK_SW_MIN) return;    // Wackler, kein Wisch
     _wkStep(dy < 0 ? 1 : -1);                // nach oben gewischt = weiter
   };
-  sheet.addEventListener('touchend', ende, { passive: true });
+  sheet.addEventListener('touchend', ende, { passive: true, capture: true });
   sheet.addEventListener('touchcancel', () => { _wkSwAktiv = false; }, { passive: true });
 }
 
