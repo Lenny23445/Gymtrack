@@ -1978,7 +1978,10 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
    den Verlauf beim erreichten Ziel wieder plattgemacht — genau bei dem Ring,
    der am besten aussehen soll. */
 @keyframes tracker-tap{0%{transform:scale(1) rotate(-90deg)}40%{transform:scale(.86) rotate(-90deg)}70%{transform:scale(1.07) rotate(-90deg)}100%{transform:scale(1) rotate(-90deg)}}
-.tracker-ring-progress.tapped{animation:tracker-tap .35s cubic-bezier(0.34,1.56,0.64,1)}
+/* Der Zupfer laeuft auf allen drei Ebenen — zuckt nur der Kern, loest sich das
+   Licht beim Antippen kurz von ihm ab. */
+.tracker-ring-progress.tapped,.tracker-ring-halo.tapped,.tracker-ring-glow.tapped{
+  animation:tracker-tap .35s cubic-bezier(0.34,1.56,0.64,1)}
 .tracker-ring-count{font-size:15px;font-weight:700;fill:var(--text);text-anchor:middle;dominant-baseline:middle;font-family:inherit}
 .tracker-ring-goal{font-size:9px;font-weight:500;fill:var(--text2);text-anchor:middle;dominant-baseline:middle;font-family:inherit}
 .tracker-circle-label{font-size:11px;font-weight:600;color:var(--text2);text-align:center;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -8796,7 +8799,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030210';
+const APP_VERSION = 'gymtrack-v202608030230';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -13744,12 +13747,12 @@ function renderCoachTodayCard() {
                        Unschaerfen uebereinander, Region gross genug gesetzt. -->
                   <filter id="aicg${pct}-f" x="-120%" y="-120%" width="340%" height="340%"
                           color-interpolation-filters="sRGB">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="n"/>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="4"   result="m"/>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="9"   result="w"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="n"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="m"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="7.5" result="w"/>
                     <feMerge>
-                      <feMergeNode in="w"/><feMergeNode in="w"/>
-                      <feMergeNode in="m"/><feMergeNode in="m"/>
+                      <feMergeNode in="w"/>
+                      <feMergeNode in="m"/>
                       <feMergeNode in="n"/><feMergeNode in="n"/>
                     </feMerge>
                   </filter>
@@ -15055,12 +15058,12 @@ function renderTrackers(row) {
                  wird daran abgeschnitten (siehe .tracker-ring-glow). -->
             <filter id="${gid}-f" x="-120%" y="-120%" width="340%" height="340%"
                     color-interpolation-filters="sRGB">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="n"/>
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4"   result="m"/>
-              <feGaussianBlur in="SourceGraphic" stdDeviation="9"   result="w"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="n"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="m"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="7.5" result="w"/>
               <feMerge>
-                <feMergeNode in="w"/><feMergeNode in="w"/>
-                <feMergeNode in="m"/><feMergeNode in="m"/>
+                <feMergeNode in="w"/>
+                <feMergeNode in="m"/>
                 <feMergeNode in="n"/><feMergeNode in="n"/>
               </feMerge>
             </filter>
@@ -15216,14 +15219,23 @@ function _updateTrackerRing(id) {
   const btn   = row?.querySelector(`.tracker-ring-btn[data-id="${id}"]`);
   if (!btn) { renderTrackers(); return; }
   const ring  = btn.querySelector('.tracker-ring-progress');
+  /* Beim Erreichen des Ziels wechselt die Farbe — und die steckt in den Stopps
+     des Verlaufs, nicht in einer Klasse. Also einmal komplett neu bauen; ein
+     Klassenwechsel allein liesse den Ring in der alten Farbe stehen. */
+  if (ring && done !== ring.classList.contains('done')) { renderTrackers(); return; }
   const countEl = btn.querySelector('.tracker-ring-count');
   if (ring) {
-    ring.style.strokeDashoffset = dashoffset;
-    if (done) ring.classList.add('done'); else ring.classList.remove('done');
-    ring.classList.remove('tapped');
-    void ring.offsetWidth;
-    ring.classList.add('tapped');
-    ring.addEventListener('animationend', () => ring.classList.remove('tapped'), { once: true });
+    /* ALLE drei Ebenen mitziehen. Vorher wanderte nur der scharfe Bogen: beim
+       Antippen wuchs die Linie, ihr Licht blieb auf dem alten Stand stehen und
+       das Stueck dazwischen sah aus wie eine nackte Linie ohne Schein. */
+    btn.querySelectorAll('.tracker-ring-progress, .tracker-ring-halo, .tracker-ring-glow')
+      .forEach(el => {
+        el.style.strokeDashoffset = dashoffset;
+        el.classList.remove('tapped');
+        void el.offsetWidth;
+        el.classList.add('tapped');
+        el.addEventListener('animationend', () => el.classList.remove('tapped'), { once: true });
+      });
   }
   if (countEl) countEl.textContent = Math.min(count, goal);
 }
