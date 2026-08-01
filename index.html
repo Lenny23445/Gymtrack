@@ -2022,8 +2022,14 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 /* Farbreihe im Tracker-Menue. Die Punkte leuchten selbst — man soll sehen,
    wie der Ring danach aussieht, nicht nur welche Farbe gemeint ist. */
 .tracker-popover-hue{
-  display:flex;align-items:center;gap:9px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:11px 14px;border-top:1px solid var(--sep);
+}
+/* Eine Beschriftung ueber der Punktreihe. Ohne sie standen dort acht bunte
+   Kreise ohne Erklaerung — man musste raten, dass sie den Ring einfaerben. */
+.tracker-popover-hue > i{
+  flex:0 0 100%;font-style:normal;font-size:11px;font-weight:700;
+  color:var(--text2);letter-spacing:.3px;margin-bottom:1px;
 }
 .trh-dot{
   width:22px;height:22px;border-radius:50%;flex-shrink:0;
@@ -8838,7 +8844,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030320';
+const APP_VERSION = 'gymtrack-v202608030345';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15069,7 +15075,11 @@ function renderTrackers(row) {
     /* Ohne eigenen Farbton kommt die Rampe aus der Akzentfarbe. Frueher stand
        hier schlicht var(--acc-rgb) fuer alle vier Stopps — also gar kein
        Verlauf und kein heller Kern, und genau daran erkennt man Neon. */
-    const r = done ? _neonRamp('#2bd94b') : (H != null
+    /* Das Gruen fuer ein erreichtes Ziel gilt nur, solange der Ring KEINE
+       eigene Farbe hat. Vorher gewann es immer — wer seinem Ring Magenta gab,
+       sah ihn beim Erreichen des Ziels gruen werden und hielt die Farbwahl
+       fuer kaputt. Dass das Ziel erreicht ist, sagt schon der volle Ring. */
+    const r = (done && H == null) ? _neonRamp('#2bd94b') : (H != null
       ? { c1:`hsl(${H},100%,60%)`, c2:`hsl(${H},100%,72%)`,
           g1:`hsl(${H},100%,55%)`, g2:`hsl(${H},100%,65%)` }
       : accRamp);
@@ -15079,7 +15089,7 @@ function renderTrackers(row) {
         onclick="_trackerClick('${item.id}')"
         ontouchstart="_trackerTouchStart(event,this,'${item.id}')"
         ontouchend="_trackerTouchEnd('${item.id}')"
-        ontouchmove="_trackerTouchCancel()"
+        ontouchmove="_trackerTouchCancel(event)"
         oncontextmenu="trackerLongPress(this,'${item.id}');return false">
         <svg class="tracker-ring-svg" width="64" height="64" viewBox="0 0 64 64">
           <defs>
@@ -15293,14 +15303,20 @@ function removeTrackerPrompt(btn, id) {
 let _trackerLPTimer = null;
 let _trackerLPFired = false;
 
+/* Startpunkt des Tipps. Er entscheidet, ob eine Fingerbewegung ein Wischen ist
+   oder nur das Zittern, das jeder beim Halten hat — siehe _trackerTouchCancel. */
+let _trackerLPX = 0, _trackerLPY = 0;
 function _trackerTouchStart(event, btn, id) {
   event.preventDefault(); // verhindert Textmarkierung & iOS-Callout
   _trackerLPFired = false;
+  const t = event.touches && event.touches[0];
+  _trackerLPX = t ? t.clientX : 0;
+  _trackerLPY = t ? t.clientY : 0;
   _trackerLPTimer = setTimeout(() => {
     _trackerLPFired = true;
     haptic(30);
     trackerLongPress(btn, id);
-  }, 500);
+  }, 420);
 }
 
 function _trackerTouchEnd(id) {
@@ -15309,10 +15325,22 @@ function _trackerTouchEnd(id) {
   if (!_trackerLPFired && id) incrementTracker(id); // kurzer Tap → hochzählen
 }
 
-function _trackerTouchCancel() {
+/* Hier lag der Grund, warum das Farbmenue praktisch nie aufging: JEDE
+   Fingerbewegung brach das Halten ab. Beim Halten wandert der Finger aber
+   immer ein paar Pixel — der Timer wurde also fast jedes Mal geloescht, bevor
+   die 420 ms um waren, und uebrig blieb ein Zaehl-Tipp.
+   Erst ab zehn Pixeln ist es ein Wischen (die Ringe stehen in einer scrollbaren
+   Seite, deshalb muss ein echtes Wischen weiter abbrechen). */
+function _trackerTouchCancel(event) {
+  const t = event && event.touches && event.touches[0];
+  if (t) {
+    const dx = Math.abs(t.clientX - _trackerLPX);
+    const dy = Math.abs(t.clientY - _trackerLPY);
+    if (dx < 10 && dy < 10) return;
+  }
   clearTimeout(_trackerLPTimer);
   _trackerLPTimer = null;
-  _trackerLPFired = true; // Bewegung = kein Tap mehr
+  _trackerLPFired = true; // echtes Wischen = kein Tap mehr
 }
 
 function _trackerClick(id) {
@@ -15423,7 +15451,7 @@ function trackerLongPress(btn, id) {
   // Farbwahl direkt im Menue statt in einem eigenen Blatt: es sind sieben
   // Punkte, dafuer lohnt kein zweiter Weg. Der erste Punkt ist "wie die App"
   // (kein eigener Farbton) — sonst kaeme man nie wieder zurueck.
-  rows.push(`<div class="tracker-popover-hue">`
+  rows.push(`<div class="tracker-popover-hue"><i>${esc(_cm('Farbe','Colour'))}</i>`
     + `<button class="trh-dot trh-std${item.hue == null ? ' on' : ''}" title="${esc(_cm('Farbe der App','App colour'))}"
          onclick="_setTrackerHue('${id}', null)"></button>`
     + TRACKER_HUES.map(h => `<button class="trh-dot${item.hue === h ? ' on' : ''}"
