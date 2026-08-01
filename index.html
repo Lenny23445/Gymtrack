@@ -5370,56 +5370,90 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    Zurück-Pfeil im Kopf zoomt zurück. Nichts rückt nach, weil nie zwei Zustände
    im selben Fluss liegen.
 
-   Aufbau der Kachel — bewusst die Bauform der Zahlenblöcke der App
-   (.wk-mini-l/.mus-stat-l): kleines Großbuchstaben-Label oben, darunter auf
-   FESTER Höhe eine Trennlinie, darunter der Wert. Weil die Kopfzeile in jeder
-   Kachel gleich hoch ist, liegen die fünf Trennlinien auf einer Linie — das
-   Raster liest sich als Raster und nicht als fünf Einzelkarten.
-   Die Akzentfarbe trägt genau EIN Element je Kachel (das Symbol). Vorher lag
-   sie gleichzeitig auf Symbolrahmen, Symbol, Kennzahl, Titel und Winkel und
-   sagte damit nichts mehr. */
+   Aufbau der Kachel — VIER Zeilen, von oben nach unten immer leiser:
+   Symbol im getönten Feld, Titel im Klartext, Sinnzeile ("Frag alles zu deinem
+   Training"), unten die Kennzahl als Chip. Der Winkel oben rechts sagt, dass es
+   weitergeht.
+   Der Zahlenblock davor (Großbuchstaben-Label, Trennlinie, großer Wert) war
+   sauber, aber stumm: "GESPRÄCH / noch kein Gespräch" ist Kategorie plus
+   Wiederholung und verrät nicht, was ein Tipp bewirkt. Genau das war der
+   Befund — "viel zu schlicht, gar nicht intuitiv".
+   Die Akzentfarbe trägt das Symbolfeld und den Chip; der Titel bleibt in der
+   Textfarbe, sonst leuchtet die Kachel überall und betont nichts. */
 /* Das Raster fuellt die Blatthoehe: bei nur drei Reihen lief die untere Haelfte
    sonst schwarz aus und das Blatt sah unfertig aus. Die Reihen teilen sich den
    Platz, unterschreiten aber nie die Mindesthoehe. */
 .ch-stage{position:relative}
-.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-content:stretch;
-  flex:1;grid-auto-rows:minmax(106px,1fr)}
-/* Gespräch steht über die volle Breite. Fünf Kacheln in zwei Spalten lassen
-   eine allein — und das soll die sein, die man tatsächlich benutzt, nicht die
-   letzte, die zufällig übrig bleibt. Darunter ein glattes 2×2-Feld. */
+/* Drei Zeilen, und die erste zaehlt NICHT mit: das Gespraech ist eine liegende
+   Kachel und so hoch wie sein Inhalt (auto). Mit "1fr" fuer alle Zeilen bekam es
+   ein Drittel der Blatthoehe und stand als 330 px hoher Block ueber vier flachen
+   Kacheln. Die beiden Rasterzeilen darunter teilen sich den Rest. */
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:stretch;
+  flex:1;grid-template-rows:auto minmax(124px,1fr) minmax(124px,1fr)}
+/* Gespräch steht über die volle Breite und liegend: großes Symbol, Titel,
+   Sinnzeile, Chip. Fünf Kacheln in zwei Spalten lassen eine allein — und das
+   soll die sein, die man tatsächlich benutzt, nicht die letzte, die zufällig
+   übrig bleibt. Es ist zugleich die einzige Fläche mit getöntem Grund: sie ist
+   die Hauptaktion des Blattes und darf das zeigen. */
 .ch-tile.hero{grid-column:1 / -1}
-.ch-tile{position:relative;display:flex;flex-direction:column;align-items:stretch;
-  min-height:106px;box-sizing:border-box;margin:0;padding:12px 13px;
-  border-radius:15px;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
+.ch-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;
+  min-height:124px;box-sizing:border-box;margin:0;padding:13px 13px 12px;
+  border-radius:18px;background:var(--gl-bg-t);border:1px solid var(--gl-bdr);
   color:var(--text);font-family:inherit;text-align:left;cursor:pointer;overflow:hidden;
-  transition:transform .16s cubic-bezier(.22,.61,.36,1),background .16s linear}
-.ch-tile.hero{min-height:88px}
-.ch-tile:active{transform:scale(.975);background:rgba(127,127,127,.07)}
+  transition:transform .16s cubic-bezier(.22,.61,.36,1),background .16s linear,border-color .16s linear;
+  /* Gestaffelte Einblendung, 55 ms je Kachel: das Raster baut sich sichtbar auf
+     und liest sich dadurch als Menü mit fünf Wahlmöglichkeiten statt als Fläche.
+     Fill-mode BACKWARDS, nicht both — bei "both" bliebe der Endzustand
+     (transform:none) als Animationswert stehen und schluckte den Druckzustand
+     (:active scale) für immer. */
+  animation:chTileIn .42s cubic-bezier(.22,.9,.3,1) backwards;
+  animation-delay:calc(var(--i,0) * 55ms)}
+@keyframes chTileIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+.ch-tile.hero{min-height:0;display:grid;grid-template-columns:auto 1fr auto;
+  align-items:center;column-gap:12px;padding:14px 13px;
+  background:linear-gradient(135deg,rgba(var(--acc-rgb),.15),rgba(var(--acc-rgb),.05));
+  border-color:rgba(var(--acc-rgb),.30)}
+.ch-tile.hero .ch-tile-ic{grid-column:1;grid-row:1 / 4;width:44px;height:44px;border-radius:15px}
+.ch-tile.hero .ch-tile-go{position:static;grid-column:3;grid-row:1 / 4}
+.ch-tile.hero .ch-tile-h{grid-column:2;grid-row:1;margin-top:0;font-size:16px}
+.ch-tile.hero .ch-tile-s{grid-column:2;grid-row:2}
+.ch-tile.hero .ch-tile-m{grid-column:2;grid-row:3;margin-top:7px;justify-self:start}
+.ch-tile:active{transform:scale(.972);background:rgba(127,127,127,.07)}
+.ch-tile.hero:active{background:linear-gradient(135deg,rgba(var(--acc-rgb),.22),rgba(var(--acc-rgb),.09))}
 /* Haarlinie oben — derselbe Baustein wie .ch-jrn::after und .ch-preset::after. */
 .ch-tile::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)}
-/* Feste Höhe: sie ist es, die die Trennlinien aller Kacheln auf eine Linie legt. */
-.ch-tile-top{display:flex;align-items:flex-start;gap:8px;height:19px}
-.ch-tile-l{flex:1;min-width:0;font-size:10px;font-weight:800;letter-spacing:.5px;
-  text-transform:uppercase;color:var(--text2);line-height:1.4;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ch-tile-i{flex:0 0 auto;display:block;color:var(--acc);opacity:.9;line-height:0}
-/* Die Linie läuft bis an beide Kachelränder (negative Ränder heben die
-   Polsterung auf) — eine Linie, die vor dem Rand aufhört, wirkt wie ein
-   Versehen. */
-.ch-tile-r{display:block;height:1px;margin:8px -13px 0;background:var(--sep);opacity:.75}
-/* Der Wert ist die eigentliche Aussage der Kachel, also trägt er das Gewicht.
-   tabular-nums, damit Volumen und Prozente in beiden Spalten auf derselben
-   Ziffernbreite stehen. Lange Werte ("noch kein Gespräch") sind Sätze und
-   bekommen die kleinere Stufe — s. _chTileHTML. */
-.ch-tile-v{padding-top:10px;font-size:16.5px;font-weight:800;
-  letter-spacing:-.35px;line-height:1.2;color:var(--text);
-  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.ch-tile.hero .ch-tile-v{font-size:19px}
-.ch-tile-v.lang{font-size:13.5px;font-weight:700;letter-spacing:-.15px;color:var(--text2)}
-.ch-tile-v.eng{font-size:14px;letter-spacing:-.2px}
-.ch-tile.hero .ch-tile-v.lang{font-size:15px}
-.ch-tile.hero .ch-tile-v.eng{font-size:17px}
+/* Das Symbolfeld ist der Anker der Kachel: gleiche Größe, gleiche Position in
+   allen vier kleinen Kacheln, damit das Raster eine Achse hat. Beim Druck geht
+   es kurz zusammen — die Kachel antwortet dann sichtbar am Symbol, nicht nur
+   als Ganzes. */
+.ch-tile-ic{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;flex-shrink:0;
+  color:var(--acc);background:rgba(var(--acc-rgb),.13);border:1px solid rgba(var(--acc-rgb),.22);
+  line-height:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.ch-tile:active .ch-tile-ic{transform:scale(.88)}
+/* Der Winkel ist die Zusage "hier geht es weiter". Ohne ihn sah die Kachel aus
+   wie eine Anzeige und nicht wie ein Weg. */
+.ch-tile-go{position:absolute;top:16px;right:12px;display:grid;place-items:center;line-height:0;
+  color:var(--text2);opacity:.45;transition:transform .2s ease,opacity .2s ease}
+.ch-tile:active .ch-tile-go{transform:translateX(3px);opacity:.85}
+.ch-tile-h{margin-top:11px;font-size:14.5px;font-weight:850;letter-spacing:-.3px;
+  line-height:1.2;color:var(--text)}
+/* Zwei Zeilen, dann Schluss: "Frag alles zu deinem Training" passt, alles
+   Längere würde die Kennzahl aus der Kachel drücken. */
+.ch-tile-s{margin-top:3px;font-size:11.4px;font-weight:600;line-height:1.32;color:var(--text2);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Die Kennzahl sitzt unten und trägt die Akzentfarbe — sie ist der einzige
+   Wert, den man sonst nirgends an einer Stelle sieht. margin-top:auto klebt sie
+   an die Unterkante, damit die Chips aller Kacheln auf einer Linie liegen.
+   Sätze statt Zahlen ("noch kein Gespräch") sind kein Wert, sondern ein
+   Zustand: sie stehen grau, nicht im Akzent. */
+.ch-tile-m{margin-top:auto;max-width:100%;box-sizing:border-box;
+  display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;
+  font-size:11px;font-weight:800;letter-spacing:-.1px;line-height:1.35;
+  color:var(--acc);background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.22);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-tile-m.lang{color:var(--text2);background:rgba(127,127,127,.10);
+  border-color:var(--gl-bdr);font-weight:700}
 
 /* ── Die Detailebene ─────────────────────────────────────────────────────
    Genau EIN Panel liegt im DOM. Vorher standen alle fünf Inhalte gleichzeitig
@@ -5461,6 +5495,9 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 /* Alle Übergänge auf 0 ms — der Zoom entfällt dann ganz (s. _chZoom). */
 @media (prefers-reduced-motion:reduce){
   .ch-grid,.ch-pane,.ch-tile{transition-duration:0s!important;transition-delay:0s!important}
+  /* Auch die gestaffelte Einblendung faellt weg — sonst blieben die Kacheln
+     waehrend ihrer Verzoegerung unsichtbar (fill-mode backwards). */
+  .ch-tile{animation:none!important}
 }
 
 /* ── Wochenkachel: Kennzahlen, Diagramme, Kraftziel ──────────────────────
@@ -5955,7 +5992,15 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   .aic.in .aic-chips{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .12s}
   .aic.in .aic-btns{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .18s}
   .aic.in .aic-r-fg{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s}
-  .aic-orb::before{animation:aicOrb 3.4s ease-in-out infinite}
+  /* Der Orb ATMET, statt nur einen Reifen abzuwerfen: der Kern geht mit dem
+     Licht mit (aicOrbKern), darüber laufen ZWEI Ringe versetzt nach aussen
+     (aicOrbWelle, zweiter mit 1,15 s Versatz). Ein einzelner Ring mit
+     ease-in-out sah aus, als würde er ruckeln — er war am Umkehrpunkt am
+     langsamsten und genau dort am sichtbarsten. Die Welle laeuft jetzt schnell
+     los und verliert sich weich (cubic-bezier), so wie ein Puls. */
+  .aic-orb{animation:aicOrbKern 3.6s cubic-bezier(.45,0,.35,1) infinite}
+  .aic-orb::before{animation:aicOrbWelle 3.6s cubic-bezier(.2,.62,.3,1) infinite}
+  .aic-orb::after{animation:aicOrbWelle 3.6s cubic-bezier(.2,.62,.3,1) 1.15s infinite}
   .aic-live i{animation:aicDot 2.1s ease-in-out infinite}
 }
 @keyframes aicIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
@@ -5964,7 +6009,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
 @keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
-@keyframes aicOrb{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.55);opacity:0}}
+@keyframes aicOrbKern{0%,100%{transform:scale(1);box-shadow:0 3px 12px rgba(var(--acc-rgb),.45)}
+  46%{transform:scale(1.06);box-shadow:0 5px 18px rgba(var(--acc-rgb),.66)}}
+@keyframes aicOrbWelle{0%{transform:scale(1);opacity:.62}
+  60%{opacity:.12}
+  100%{transform:scale(2.1);opacity:0}}
 @keyframes aicDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
 /* Kompakter als zuvor (13/15/14 → 11/13/12): die Karte ist der Einstieg in
    den Coach, nicht der halbe Heute-Tab. */
@@ -5973,9 +6022,20 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-orb{position:relative;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;flex-shrink:0;
   color:#fff;background:linear-gradient(140deg,var(--acc),rgba(var(--acc-rgb),.62));
   box-shadow:0 3px 12px rgba(var(--acc-rgb),.45)}
-.aic-orb::before{content:'';position:absolute;inset:0;border-radius:50%;
-  border:1px solid rgba(var(--acc-rgb),.85);opacity:.55}
-.aic-lbl{font-size:11.5px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:var(--acc)}
+/* Zwei Reifen um den Kern. Ohne Animation (reduzierte Bewegung) steht nur der
+   erste sichtbar da — der zweite ist reine Bewegung und bleibt dann unsichtbar,
+   statt als doppelter Rand zu erscheinen. */
+.aic-orb::before,.aic-orb::after{content:'';position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(var(--acc-rgb),.85);pointer-events:none}
+.aic-orb::before{opacity:.55}
+.aic-orb::after{opacity:0}
+/* Der Name MUSS schrumpfen duerfen. Ohne min-width:0 steht ein Flex-Kind auf
+   seiner Inhaltsbreite (min-width:auto) — ein langer Coach-Name plus Chip plus
+   Winkel war breiter als die Karte, und weil .aic overflow:hidden traegt, war
+   der Name rechts einfach abgeschnitten statt mit Auslassungspunkten gekuerzt.
+   Grossbuchstaben und 0,9 px Sperrung machen jeden Namen zusaetzlich breit. */
+.aic-lbl{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:11.5px;font-weight:900;letter-spacing:.9px;text-transform:uppercase;color:var(--acc)}
 /* Der Karte ansehen, dass sie eine TÜR ist: ohne Signal las sie sich als
    Anzeige, und der einzige Zugang zum Coach blieb unentdeckt. Der Pfeil sitzt
    am rechten Ende der Namenszeile und ist rein dekorativ — die Vorlesehilfe
@@ -5987,7 +6047,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    über :active — sonst schrumpfte die Karte auch beim Tipp auf "Training
    starten", den derselbe closest("button, a")-Wächter ausnimmt. */
 .aic.press{transform:scale(.985)}
-.aic-live{display:flex;align-items:center;gap:5px;margin-left:auto;font-size:10.5px;font-weight:800;
+/* Der Chip darf ebenfalls schrumpfen (min-width:0) und bleibt bei 46 % der
+   Zeile gedeckelt — er ist die Beifuegung, der Name die Ueberschrift. Die
+   Auslassungspunkte greifen hier NICHT (Flex-Container, der Text ist ein
+   anonymes Flex-Kind); die Deckelung haelt ihn kurz genug, dass es nicht
+   auffaellt. */
+.aic-live{display:flex;align-items:center;gap:5px;margin-left:auto;flex:0 1 auto;min-width:0;
+  font-size:10.5px;font-weight:800;
   color:var(--text2);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
 .aic-live i{width:5px;height:5px;border-radius:50%;background:var(--acc);flex-shrink:0;
   box-shadow:0 0 8px rgba(var(--acc-rgb),.9)}
@@ -7965,7 +8031,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202607310036';
+const APP_VERSION = 'gymtrack-v202608010004';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9171,6 +9237,17 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-01-coach-menue-klarer': {
+    label: '01.08.2026 · Coach-Menü: sagt jetzt, wohin es geht',
+    items: [
+      'Jede Kachel im Coach-Menü trägt ihren Namen im Klartext und eine Zeile darunter, was dahinter passiert — „Frag alles zu deinem Training", „Wann er sich meldet"',
+      '„Gespräch" liegt oben quer und farbig: die Fläche, die du am häufigsten brauchst, sieht man jetzt auch',
+      'Die Kacheln bauen sich beim Öffnen nacheinander auf, und beim Antippen antwortet das Symbol',
+      'Der Punkt neben dem Coach-Namen pulsiert weicher — zwei Ringe statt eines Rucks',
+      'Der Coach-Name auf der Startseite wird gekürzt statt abgeschnitten',
+      'Die Coach-Karte trägt keinen zweiten Start-Knopf mehr: Training startest du über den Schnellstart, die Karte führt zum Coach',
+    ]
+  },
   'cl-2026-07-31-coach-regelkreis': {
     label: '31.07.2026 · Live-Coach: regelt statt nur zu reagieren',
     items: [
@@ -12364,21 +12441,18 @@ function _coachTodaySuggestion() {
           ? _cm(`Check-in eingerechnet. ${rd.short}`, `Check-in factored in. ${rd.short}`)
           : _cm('Erholung läuft. Ich beobachte deine Muskelgruppen und melde mich, sobald wieder was bereit ist.',
                 'Recovery is running. I am watching your muscle groups and will speak up when something is ready.')),
-        chip: _cm('Heute trainiert','Trained today'), chip2, cta:null };
+        chip: _cm('Heute trainiert','Trained today'), chip2 };
     }
 
     // 2) Plan für heute → Coach kommentiert den eigenen Plan (statt zu schweigen)
     if (hasPlan) {
       const lbl = _planLabelFor(todayKey()) || _cm('Trainingstag','Training day');
-      const on  = plan.type === 'preset' && plan.id
-        ? `startPresetDirect('${String(plan.id).replace(/'/g, "\\'")}')`
-        : `goTabId('uebungen')`;
       const base = _cm(`${lbl} steht heute an.`, `${lbl} is on the plan today.`);
       return { kind:'plan', pct: overall, ringLbl: _cm('Bereit','Ready'),
         head: lbl,
         text: rd && rd.short ? `${base} ${rd.short}`
                              : `${base} ${_cm(`Im Schnitt bist du zu ${overall} % erholt.`, `You are ${overall}% recovered on average.`)}`,
-        chip: _cm('Dein Plan','Your plan'), chip2, cta: { label: _cm('Training starten','Start workout'), on } };
+        chip: _cm('Dein Plan','Your plan'), chip2 };
     }
 
     // 3) Kein Plan, aber etwas ist erholt → konkreter Fokus
@@ -12394,8 +12468,7 @@ function _coachTodaySuggestion() {
       }
       return { kind:'focus', pct: best.r.recPct, ringLbl: muscleLabel(best.mg.id), mgId: best.mg.id,
         head: _cm(`${muscleLabel(best.mg.id)} ist bereit`, `${muscleLabel(best.mg.id)} is ready`),
-        text, chip: _cm('Empfehlung für heute','Recommendation for today'), chip2,
-        cta: { label: _cm('Training starten','Start workout'), on: `_coachTodayGoTrain('${best.mg.id}')` } };
+        text, chip: _cm('Empfehlung für heute','Recommendation for today'), chip2 };
     }
 
     // 4) Nichts ausreichend erholt → Erholungstag ist die Empfehlung
@@ -12406,7 +12479,7 @@ function _coachTodaySuggestion() {
               `Nothing is fully back — ${muscleLabel(best.mg.id)} is at ${best.r.recPct}%. A calm day pays off tomorrow.`)
         : _cm('Deine Muskulatur erholt sich noch. Ein ruhiger Tag zahlt sich morgen aus.',
               'Your muscles are still recovering. A calm day pays off tomorrow.')),
-      chip: _cm('Empfehlung für heute','Recommendation for today'), chip2, cta:null };
+      chip: _cm('Empfehlung für heute','Recommendation for today'), chip2 };
   } catch(e) { console.warn('[Coach] today suggestion:', e); return null; }
 }
 /* ── Die drei Zonen der Heute-Karte ──────────────────────────────────────
@@ -12480,18 +12553,19 @@ function _aicSay(){
 // (Tab-Wechsel, Sync, Timer) die Einblend-Animation erneut abfeuert.
 let _aicSig = null;
 // Beide Karten-Varianten hängen am selben Tap-Ziel: die Karte ist der EINZIGE
-// Zugang zum Coach-Hub (Gestaltungsregel 1). Der closest()-Wächter ist Pflicht —
-// die Karte trägt einen "Training starten"-Button, und ohne ihn würde der Hub den
-// Trainingsstart schlucken, den der Nutzer bisher an dieser Stelle hatte.
+// Zugang zum Coach-Hub (Gestaltungsregel 1). Die Karte trägt seit dem Rückbau
+// KEINEN Startknopf mehr — der Trainingsstart wohnt im Schnellstart-Widget und
+// im Wochenplan, die Karte führt ausschliesslich in den Hub. Der
+// closest("button, a")-Wächter bleibt trotzdem stehen: Kartentexte tragen
+// gelegentlich Links, und ein Tipp darauf darf nicht im Hub landen.
 function _aicCardTap(card) {
   if (!card) return;
   requestAnimationFrame(() => card.classList.add('in'));
   card.style.cursor = 'pointer';
   // Die Karte ist der EINZIGE Zugang zum Hub — als reines Tap-Ziel war er für
   // Tastatur und VoiceOver unerreichbar. role/tabindex/aria-label sitzen auf dem
-  // KOPFBEREICH (.aic-top), nicht auf der ganzen Karte: die Karte enthält den
-  // echten "Training starten"-Knopf, role="button" auf der ganzen Karte wäre
-  // also Button-in-Button (ungültige ARIA-Verschachtelung). aria-label benennt
+  // KOPFBEREICH (.aic-top), nicht auf der ganzen Karte: der Kopf ist die Zeile
+  // mit dem Winkel nach rechts, also die Stelle, die den Hub ankündigt. aria-label benennt
   // die AKTION statt des ganzen Kartentextes, damit die Vorlesestimme
   // "Coach-Menü öffnen" sagt und nicht den kompletten Empfehlungsblock.
   const top = card.querySelector('.aic-top') || card;
@@ -12500,8 +12574,8 @@ function _aicCardTap(card) {
   top.setAttribute('aria-label', _cm('Coach-Menü öffnen', 'Open coach menu'));
   /* Druckzustand unter dem Finger. Bewusst in JS und nicht als :active im
      Stylesheet: :active greift auch auf Vorfahren des gedrückten Elements, die
-     Karte schrumpfte also mit, wenn der Nutzer "Training starten" drückt —
-     genau die Fläche, die derselbe closest("button, a")-Wächter ausnimmt.
+     Karte schrumpfte also mit, sobald ein Kind-Element gedrückt wurde —
+     genau die Flächen, die derselbe closest("button, a")-Wächter ausnimmt.
      Losgelassen wird auf jedem Weg (up, cancel, leave), sonst bliebe die Karte
      eingedrückt stehen. */
   const los = () => { try { card.classList.remove('press'); } catch(_) {} };
@@ -12520,7 +12594,7 @@ function _aicCardTap(card) {
   };
   card.onkeydown = (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-    // Der "Training starten"-Knopf in der Karte behält seine eigene Taste.
+    // Buttons und Links in der Karte behalten ihre eigene Taste.
     if (ev.target !== top && ev.target.closest('button, a')) return;
     ev.preventDefault();
     try { if (typeof haptic === 'function') haptic(8); } catch(_) {}
@@ -12615,9 +12689,6 @@ function renderCoachTodayCard() {
         </div>
         ${satz ? `<div class="aic-say">${esc(satz)}</div>` : ''}
         ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span></div>` : ''}
-        ${s.cta ? `<div class="aic-btns">
-          <button type="button" class="aic-go" onclick="${s.cta.on}">${esc(s.cta.label)}</button>
-        </div>` : ''}
       </div>
     </div>`;
     _aicCardTap(host.firstElementChild);
@@ -12626,11 +12697,6 @@ function renderCoachTodayCard() {
 // Altlast: wer die Karte früher weggeklickt hat, trägt den Ausblend-Schlüssel noch
 // im localStorage. Einmal entfernen, sonst bliebe die Karte beim Update weiterhin weg.
 try { localStorage.removeItem('gt_coachTodayDismiss'); } catch(_) {}
-function _coachTodayGoTrain(mgId) {
-  try { setExCat(mgId); } catch(_) {}
-  goTabId('uebungen');
-}
-
 // Kompakte History für Heute-Tab (erweiterbar)
 let _compactHistOpen = false;
 
@@ -27837,12 +27903,19 @@ function setCoachPreset(name){
 // "Umfang und Meldungen" passt als Großbuchstaben-Label in keine halbe Spalte
 // und stünde dort abgeschnitten — der volle Titel steht dafür im Kopf, sobald
 // die Kachel offen ist. Nur diese eine Kachel braucht die Kurzform.
+// sub sagt, was hinter der Kachel PASSIERT. Ohne diese Zeile stand dort nur ein
+// Großbuchstaben-Wort über einer Zahl — wer den Hub zum ersten Mal öffnet, konnte
+// daraus nicht ablesen, was ein Tipp bewirkt ("gar nicht intuitiv"). Der Satz ist
+// ein Versprechen in Verben, keine Kategorie.
+// Das Sparkle-Symbol ist bewusst raus: es ist DAS Zeichen für "hier hat eine KI
+// mitgeschrieben" und stand ausgerechnet auf der Kachel, die den Trainer
+// menschlich machen soll. Persönlichkeit trägt jetzt das Mikrofon (Stimme, Ton).
 const _CH_CARDS = [
-  { k:'chat',    de:'Gespräch',             ico:'chatBubble' },
-  { k:'week',    de:'Woche',                ico:'chart2' },
-  { k:'persona', de:'Persönlichkeit',       ico:'sparkle' },
-  { k:'scope',   de:'Umfang und Meldungen', ico:'gear', kurz:'Umfang' },
-  { k:'journal', de:'Journal',              ico:'book' }
+  { k:'chat',    de:'Gespräch',             ico:'chatBubble', sub:['Frag alles zu deinem Training','Ask anything about your training'] },
+  { k:'week',    de:'Woche',                ico:'chart2',     sub:['Volumen, Trend und Kraftziel','Volume, trend and strength goal'] },
+  { k:'persona', de:'Persönlichkeit',       ico:'mic',        sub:['Name, Ton und Ansprache','Name, tone and wording'] },
+  { k:'scope',   de:'Umfang und Meldungen', ico:'gear', kurz:'Umfang', sub:['Wann er sich meldet','When it speaks up'] },
+  { k:'journal', de:'Journal',              ico:'book',       sub:['Was er über dich weiß','What it knows about you'] }
 ];
 const _CH_CARD_IDS = _CH_CARDS.map(c => c.k);
 // Welche Kachel offen ist. '' heißt: keine, also das Raster — der Normalfall
@@ -27996,33 +28069,38 @@ function _chZoom(vor, urs, stage){
    Inhalt der Wochenkachel je zweimal über alle Einheiten rechnen würden — und
    gerendert wird bei jedem Schalter.
 
-   Die Vorlesehilfe bekommt Label und Wert als EINE Beschriftung: "Woche,
-   8.240 kg ↑ 12 %" ist die Aussage der Kachel, zwei getrennte Fetzen wären es
-   nicht. Das Symbol ist rein dekorativ. */
-function _chTileHTML(c, cur){
+   Die Vorlesehilfe bekommt Titel, Sinnzeile und Wert als EINE Beschriftung:
+   "Woche, Volumen, Trend und Kraftziel, 8.240 kg ↑ 12 %" ist die Aussage der
+   Kachel, drei getrennte Fetzen wären es nicht. Symbol und Winkel sind rein
+   dekorativ.
+
+   Aufbau (Rückbau des Zahlenblocks): Symbol im getönten Feld, darunter der
+   Titel im Klartext, darunter die Sinnzeile, unten die Kennzahl als Chip. Der
+   Zahlenblock davor sagte nur "GESPRÄCH / noch kein Gespräch" — Kategorie plus
+   Wiederholung, ohne einen Hinweis darauf, dass und wohin die Kachel führt.
+   i ist die Position im Raster und steuert die gestaffelte Einblendung. */
+function _chTileHTML(c, cur, i){
   let kz = '';
   try { kz = _chCardMetric(c.k, cur) || ''; }
   catch(e) { console.warn('[Coach] Kennzahl ' + c.k + ':', e); kz = ''; }
+  const hero = c.k === 'chat';
   let ico = '';
-  try { ico = (ICO[c.ico] || ICO.sparkle)({ s: 16 }); } catch(_) { ico = ''; }
+  try { ico = (ICO[c.ico] || ICO.chatBubble)({ s: hero ? 20 : 18 }); } catch(_) { ico = ''; }
+  let win = '';
+  try { win = ICO.chevronRight({ s: 15 }); } catch(_) { win = ''; }
   const lbl = tr(c.kurz || c.de);
-  // Lange Werte sind Sätze ("noch kein Gespräch", "diese Woche noch nichts")
-  // und keine Zahlen. In der Schriftgröße einer Zahl gesetzt brechen sie über
-  // drei Zeilen und sprengen die Kachel, deshalb die ruhigere Stufe.
-  // Ein Wert MIT Ziffer ist eine Zahl und bleibt eine Zahl — nur sehr lange
-  // Zahlen ruecken eine Stufe runter, damit "151.639 kg ↑ 57 %" nicht mitten im
-  // Prozentzeichen umbricht. Ein Wert OHNE Ziffer ist ein Satz ("noch kein
-  // Gespraech") und wird als Satz gesetzt, nicht als Schlagzeile.
-  const zahl = /\d/.test(kz);
-  const lang = !zahl && kz.length > 12 ? ' lang' : (zahl && kz.length > 13 ? ' eng' : '');
-  return `<button type="button" class="ch-tile${c.k === 'chat' ? ' hero' : ''}" id="ch-tile-${c.k}"
-      onclick="coachHubOpen('${c.k}')" aria-label="${esc(lbl + (kz ? ', ' + kz : ''))}">
-      <span class="ch-tile-top">
-        <span class="ch-tile-l">${esc(lbl)}</span>
-        <span class="ch-tile-i" aria-hidden="true">${ico}</span>
-      </span>
-      <span class="ch-tile-r" aria-hidden="true"></span>
-      <span class="ch-tile-v${lang}">${esc(kz)}</span>
+  const sub = Array.isArray(c.sub) ? _cm(c.sub[0], c.sub[1]) : '';
+  // Die Kennzahl steht im Chip auf EINER Zeile. Lange Sätze ("diese Woche noch
+  // nichts") bekommen die ruhigere Stufe, sonst drückt ein Satz in Zahlengröße
+  // den Chip über die halbe Kachel.
+  const lang = /\d/.test(kz) ? '' : ' lang';
+  return `<button type="button" class="ch-tile${hero ? ' hero' : ''}" id="ch-tile-${c.k}" style="--i:${i || 0}"
+      onclick="coachHubOpen('${c.k}')" aria-label="${esc(lbl + (sub ? ', ' + sub : '') + (kz ? ', ' + kz : ''))}">
+      <span class="ch-tile-ic" aria-hidden="true">${ico}</span>
+      <span class="ch-tile-go" aria-hidden="true">${win}</span>
+      <span class="ch-tile-h">${esc(lbl)}</span>
+      ${sub ? `<span class="ch-tile-s">${esc(sub)}</span>` : ''}
+      ${kz ? `<span class="ch-tile-m${lang}">${esc(kz)}</span>` : ''}
     </button>`;
 }
 /* Das Panel der Detailebene. Immer nur eines, und nur wenn eine Kachel offen
@@ -28611,7 +28689,7 @@ function renderCoachHub(){
        sichtbar wird. Teuer ist daran nichts — die Kacheln tragen nur fünf
        Kennzahlen, der Inhalt steckt im einen Panel. */
     body.innerHTML = `<div class="ch-stage" id="ch-stage" data-v="${karte ? 'det' : 'grid'}">`
-      + `<div class="ch-grid">${_CH_CARDS.map(c => _chTileHTML(c, cur)).join('')}</div>`
+      + `<div class="ch-grid">${_CH_CARDS.map((c, i) => _chTileHTML(c, cur, i)).join('')}</div>`
       + `<div class="ch-pane">${karte ? _chPanelHTML(karte, cur) : ''}</div></div>`;
     if (detOffen) { const d = body.querySelector('#ch-panel-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
@@ -28637,7 +28715,7 @@ function coachHubSetName(el){
     const ex = document.getElementById('ch-tone-ex'); if (ex) ex.innerHTML = _chToneExInner();
     // Die Kennzahl der Kachel trägt den Namen mit — sie wird ohne Rerender des
     // Bodys nicht nachgezogen. textContent, nie innerHTML.
-    const kz = document.querySelector('#ch-tile-persona .ch-tile-v');
+    const kz = document.querySelector('#ch-tile-persona .ch-tile-m');
     if (kz) kz.textContent = _chKzPersona();
   } catch(e) { console.warn('[Coach] Name anwenden:', e); }
 }
