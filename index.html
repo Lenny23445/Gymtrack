@@ -1885,19 +1885,50 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .tracker-ring-btn{background:none;border:none;padding:0;cursor:pointer;display:block;-webkit-tap-highlight-color:transparent;transition:transform .13s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 .tracker-ring-btn:active{transform:scale(.90)}
 .tracker-ring-svg{display:block;overflow:visible}
-.tracker-ring-bg{fill:none;stroke:rgba(255,255,255,.05);stroke-width:6.5;stroke-linecap:round}
-/* Der glimmende Zwilling. Breiter, unscharf, halbdurchsichtig — er liegt im
-   Markup VOR dem scharfen Bogen und damit darunter. Zusammen ergibt das eine
-   Leuchtroehre statt einer Linie mit Schatten. */
-/* Der Hof: derselbe Bogen mit demselben Verlauf, breiter und stark
-   weichgezeichnet. Er faerbt die Flaeche hinter dem Ring mit ein — in der
-   Vorlage endet der Schein nicht an der Linie, er liegt als diffuser Fleck
-   dahinter. Er ATMET NICHT: die Vorlage steht still, und ein Wert, der
-   pulsiert, sieht aus, als aendere er sich dauernd. */
-.tracker-ring-halo{
-  fill:none;stroke-width:11;stroke-linecap:round;
+.tracker-ring-bg{fill:none;stroke:rgba(255,255,255,.045);stroke-width:4.5;stroke-linecap:round}
+/* NEON IN DREI EBENEN. Die wichtigste Regel dabei: die Lichtebenen sind NICHT
+   breiter als der Bogen. Ein breiterer Zwilling schiebt seine eigene Kante
+   neben die Linie — das Ergebnis ist ein dicker Ring mit Rand, kein Leuchten.
+   Breite macht hier ausschliesslich die Unschaerfe.
+     1. .tracker-ring-glow  = die weite Wolke: gleiche Breite, stark verwischt.
+        Sie faerbt die Flaeche innen wie aussen — in der Vorlage endet das
+        Licht nicht an der Linie.
+     2. .tracker-ring-halo  = das enge Glimmen unmittelbar an der Linie.
+     3. .tracker-ring-progress = der scharfe, duenne Kern. Er ist das hellste
+        im Bild; die Farbe kommt aus dem Licht drumherum.
+   Alle drei tragen denselben dashoffset, sonst laufen sie auseinander. Keine
+   Animation: die Vorlage steht still, und ein Wert, der pulsiert, sieht aus,
+   als aendere er sich dauernd. */
+/* Zur Blur-Weite: die Unschaerfe verteilt die Farbe einer nur 5 Einheiten
+   breiten Linie. Bei blur(9) bleibt an keiner Stelle genug Deckkraft uebrig —
+   das Licht wird flaechig und blass statt hell. 5–6 Einheiten sind das Maximum,
+   bei dem die Linie noch als Quelle leuchtet.
+   Die WEITE des Scheins kommt deshalb nicht aus dem Blur, sondern aus einem
+   Stapel drop-shadows auf derselben Ebene: drei Schatten ohne Versatz, mit
+   wachsendem Radius und fallender Deckkraft, ergeben den Abfall, den ein
+   einzelner Blur nicht hinbekommt. --gc traegt die Leuchtfarbe (aus
+   renderTrackers bzw. _neonRamp); ohne sie faellt der Schein auf die
+   Akzentfarbe zurueck. */
+/* HIER STEHT ABSICHTLICH KEIN filter — der Schein kommt aus einem SVG-Filter
+   im Markup (filter="url(#…-f)", siehe renderTrackers).
+   Der Grund: ein CSS-filter auf einem SVG-KIND laeuft ueber den SVG-Filterpfad,
+   und dessen Region ist per Vorgabe nur zehn Prozent groesser als das Objekt.
+   Alles darueber hinaus wird abgeschnitten — ein drop-shadow mit 14 px Radius
+   auf einem 52 px grossen Ring ist damit weg, und genau deshalb war vorher kein
+   Leuchten zu sehen, obwohl der Filter gesetzt war. Im SVG-Filter laesst sich
+   die Region selbst festlegen. Ein CSS-filter hier wuerde das Attribut aus dem
+   Markup ueberschreiben und den Fehler zurueckholen.
+   Der Bogen ist schmaler als der sichtbare Kern (4 statt 5): so verschwindet
+   die scharfe Linie dieser Ebene unter ihm, und nach aussen tritt nur Licht. */
+.tracker-ring-glow{
+  fill:none;stroke-width:4;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
-  filter:blur(8px);opacity:.75;
+  transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);
+}
+.tracker-ring-halo{
+  fill:none;stroke-width:5;stroke-linecap:round;
+  transform:rotate(-90deg);transform-origin:50% 50%;
+  filter:blur(2px);opacity:1;
   transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);
 }
 
@@ -1915,12 +1946,16 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
    erlaubt, ein zusaetzliches Feld dort haette den kompletten Push blockiert. */
 /* Der scharfe Bogen. Farbe kommt aus dem Verlauf (stroke=url(#…) im Markup),
    nicht aus dem CSS — deshalb steht hier kein stroke. */
-.tracker-ring-progress{fill:none;stroke-width:6.5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);transform:rotate(-90deg);transform-origin:50% 50%;
+.tracker-ring-progress{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);transform:rotate(-90deg);transform-origin:50% 50%;
 }
 
 /* Die Hintergrundspur dunkler, damit der leuchtende Bogen sich abhebt. Bei
    heller Spur verschwimmt der Schein mit ihr und der Ring wirkt matt. */
-.tracker-ring-bg{stroke:rgba(255,255,255,.07)}
+/* Die Spur bleibt fast unsichtbar: in der Vorlage gibt es sie gar nicht, dort
+   steht der Bogen frei auf der dunklen Flaeche. Ganz weg kann sie hier nicht —
+   ohne sie fehlt bei niedrigem Stand die Skala —, aber alles ueber diesem Wert
+   legt sich als graue Linie neben den Schein und macht ihn matt. */
+.tracker-ring-bg{stroke:rgba(255,255,255,.045);stroke-width:4.5}
 /* KEIN stroke bei .done: das Gruen steckt schon in den beiden Stopps des
    Verlaufs (siehe renderTrackers). Eine einfarbige Ueberschreibung hier haette
    den Verlauf beim erreichten Ziel wieder plattgemacht — genau bei dem Ring,
@@ -4384,8 +4419,10 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-batt-v-fill{transform-origin:50% 100%;animation:batt-charge-v .9s cubic-bezier(.22,1,.36,1) both}
 @keyframes batt-charge-v{from{transform:scaleY(.05)}}
 
-/* ── WOCHENZIEL-RINGE: weiches Aufziehen ── */
-.tracker-ring-progress{transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)}
+/* ── WOCHENZIEL-RINGE: weiches Aufziehen ──
+   Alle drei Ebenen mit derselben Kurve, sonst laeuft das Licht dem Bogen
+   hinterher (s. renderTrackers). */
+.tracker-ring-progress,.tracker-ring-halo,.tracker-ring-glow{transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)}
 
 /* ── ZAHLEN: tabellarische Ziffern für ruhiges Layout ── */
 .hw-big,.erf-hero-val,.erf-tile-val,.strd-weeks,.rec-batt-val,.rec-batt-v-pct,
@@ -4394,7 +4431,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 @media (prefers-reduced-motion:reduce){
   .fl .fl-outer,.fl .fl-inner,.fl .fl-core,.fl-ember,
   .rec-batt-fill,.rec-batt-v-fill{animation:none!important}
-  .tracker-ring-progress{transition:none}
+  .tracker-ring-progress,.tracker-ring-halo,.tracker-ring-glow{transition:none}
 }
 
 /* ── ONBOARDING (Ersteinrichtung) ────────────────────── */
@@ -6599,7 +6636,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   .aic.in .aic-main{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .06s}
   .aic.in .aic-chips{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .12s}
   .aic.in .aic-btns{animation:aicRow .5s cubic-bezier(.2,.9,.3,1) .18s}
-  .aic.in .aic-r-fg{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s}
+  /* Alle drei Ring-Ebenen ziehen gemeinsam auf. Nur den scharfen Bogen zu
+     animieren hiesse: das Licht steht schon fertig da, waehrend die Linie erst
+     hinterherkommt. */
+  .aic.in .aic-r-fg,.aic.in .aic-r-halo,.aic.in .aic-r-glow{animation:aicRing 1.05s cubic-bezier(.3,.9,.3,1) .12s}
   /* Der Orb ATMET, statt nur einen Reifen abzuwerfen: der Kern geht mit dem
      Licht mit (aicOrbKern), darüber laufen ZWEI Ringe versetzt nach aussen
      (aicOrbWelle, zweiter mit 1,15 s Versatz). Ein einzelner Ring mit
@@ -6718,15 +6758,26 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    ueber Abstaende und Schriftgrade kleiner, nicht ueber diese Zahl. */
 .aic-ringbox{position:relative;width:62px;height:62px;flex-shrink:0;overflow:visible}
 .aic-ringbox svg{overflow:visible}
-/* Hof des Coach-Rings — gleiche Bauweise wie bei den Wochenziel-Ringen: ein
-   breiter, weichgezeichneter Zwilling unter dem scharfen Bogen. Ohne
-   Bewegung, wie die Vorlage. */
-.aic-r-halo{
-  fill:none;stroke-width:10;stroke-linecap:round;
+/* Coach-Ring — exakt dieselbe Dreiteilung wie bei den Wochenziel-Ringen
+   (siehe .tracker-ring-glow): weite Wolke, sattes Glimmen an der Linie,
+   scharfer Bogen mit hellem Verlauf. Ohne Bewegung, wie die Vorlage. */
+/* Weite des Scheins ueber gestapelte drop-shadows statt ueber einen breiten
+   Blur — Begruendung bei .tracker-ring-glow. */
+/* Kein CSS-filter: der Schein kommt aus dem SVG-Filter im Markup, weil die
+   Filterregion sonst bei zehn Prozent abschneidet — ausfuehrlich begruendet
+   bei .tracker-ring-glow. */
+.aic-r-glow{
+  fill:none;stroke-width:4;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
-  filter:blur(8px);opacity:.75;
 }
-.aic-r-bg{fill:none;stroke:rgba(var(--acc-rgb),.16);stroke-width:5}
+.aic-r-halo{
+  fill:none;stroke-width:5;stroke-linecap:round;
+  transform:rotate(-90deg);transform-origin:50% 50%;
+  filter:blur(2px);opacity:1;
+}
+/* Die Spur fast unsichtbar — in der Vorlage steht der Bogen frei auf der
+   dunklen Flaeche; eine getoente Spur legt sich als matte Linie daneben. */
+.aic-r-bg{fill:none;stroke:rgba(255,255,255,.045);stroke-width:4.5}
 .aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
 .aic-r-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   white-space:nowrap;font-size:15px;font-weight:900;letter-spacing:-.3px}
@@ -8695,7 +8746,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608022210';
+const APP_VERSION = 'gymtrack-v202608030035';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -13600,6 +13651,7 @@ function renderCoachTodayCard() {
     const C   = 163.4;                       // Umfang r=26
     const off = C * (1 - pct / 100);
     const col = recoveryColor(pct);
+    const ramp = _neonRamp(col);
     host.innerHTML = `<div class="aic aic-${groesse}">
       <span class="aic-aur" aria-hidden="true"></span>
       <canvas class="aic-wv" aria-hidden="true"></canvas>
@@ -13615,12 +13667,39 @@ function renderCoachTodayCard() {
           <div class="aic-left">
             <div class="aic-ringbox">
               <svg viewBox="0 0 64 64" width="62" height="62" aria-hidden="true" focusable="false">
+                <defs>
+                  <!-- Zwei Verlaeufe wie bei den Wochenziel-Ringen: der scharfe
+                       Bogen glueht zum Ende hin aus, Hof und Wolke bleiben voll
+                       gesaettigt. Die IDs tragen den Prozentwert, weil dieselbe
+                       Karte in mehreren Groessen im Dokument stehen kann und
+                       zwei gleiche IDs beide auf den ersten Verlauf zeigen. -->
+                  <linearGradient id="aicg${pct}" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stop-color="${ramp.c1}"/><stop offset="1" stop-color="${ramp.c2}"/>
+                  </linearGradient>
+                  <linearGradient id="aicg${pct}-g" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stop-color="${ramp.g1}"/><stop offset="1" stop-color="${ramp.g2}"/>
+                  </linearGradient>
+                  <!-- Neon-Schein, identisch zu den Wochenziel-Ringen: drei
+                       Unschaerfen uebereinander, Region gross genug gesetzt. -->
+                  <filter id="aicg${pct}-f" x="-120%" y="-120%" width="340%" height="340%"
+                          color-interpolation-filters="sRGB">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="n"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4"   result="m"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="9"   result="w"/>
+                    <feMerge>
+                      <feMergeNode in="w"/><feMergeNode in="w"/>
+                      <feMergeNode in="m"/><feMergeNode in="m"/>
+                      <feMergeNode in="n"/><feMergeNode in="n"/>
+                    </feMerge>
+                  </filter>
+                </defs>
                 <circle class="aic-r-bg" cx="32" cy="32" r="26"/>
-                <!-- Derselbe Bogen breiter und unscharf DARUNTER: das ist der
-                     Hof, der die Flaeche mitfaerbt. Der scharfe Bogen darueber
-                     traegt die volle Farbe, nicht Weiss. -->
-                <circle class="aic-r-halo" cx="32" cy="32" r="26" style="stroke:${col};stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
-                <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:${col};stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
+                <!-- Derselbe Bogen zweimal DARUNTER: weit und diffus als Wolke,
+                     eng und satt als Hof. Der scharfe Bogen darueber traegt den
+                     hellen Verlauf. -->
+                <circle class="aic-r-glow" cx="32" cy="32" r="26" filter="url(#aicg${pct}-f)" style="stroke:url(#aicg${pct}-g);stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
+                <circle class="aic-r-halo" cx="32" cy="32" r="26" style="stroke:url(#aicg${pct}-g);stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
+                <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:url(#aicg${pct});stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
               </svg>
               <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
             </div>
@@ -14844,6 +14923,19 @@ function renderTrackers(row) {
   const circ = +(2 * Math.PI * R).toFixed(1);
   const targets = [];
   const MAX_TRACKER = 4;
+  /* Die Akzent-Rampe EINMAL je Renderlauf: getComputedStyle zwingt das Layout
+     zur Neuberechnung, und viermal hintereinander waere das in einer Reihe von
+     Ringen spuerbar. Der Wert wandert ins Markup und nicht als var(--acc) in
+     den Verlauf, weil daraus die vier Stopps erst abgeleitet werden. */
+  let accRamp;
+  try {
+    accRamp = _neonRamp((getComputedStyle(document.documentElement)
+      .getPropertyValue('--acc') || '').trim());
+  } catch(_) { accRamp = null; }
+  if (!accRamp || !accRamp.c1 || accRamp.c1 === accRamp.c2) {
+    accRamp = { c1:'rgba(var(--acc-rgb),.95)', c2:'rgba(var(--acc-rgb),1)',
+                g1:'rgba(var(--acc-rgb),1)',   g2:'rgba(var(--acc-rgb),1)' };
+  }
   const visibleItems = (S.trackerItems || []).slice(0, MAX_TRACKER);
   let html = visibleItems.map(item => {
     const count = (S.trackerCounts[item.id] || {})[wk] || 0;
@@ -14859,8 +14951,19 @@ function renderTrackers(row) {
        greifen beide auf die erste zu, und alle Ringe waeren gleich gefaerbt. */
     const gid = 'trg-' + String(item.id).replace(/[^a-zA-Z0-9_-]/g, '');
     const H = item.hue != null ? item.hue : null;
-    const c1 = done ? '#2ea043' : (H != null ? `hsl(${H},85%,45%)` : 'rgba(var(--acc-rgb),.85)');
-    const c2 = done ? '#6dff8a' : (H != null ? `hsl(${H},100%,70%)` : 'rgba(var(--acc-rgb),1)');
+    /* Der Verlauf laeuft von SATT nach HELL, nicht von dunkel nach bunt: in der
+       Vorlage ist der Bogen an seinem Ende fast weiss ausgeglueht, waehrend der
+       Anfang die volle Farbe traegt. Der Startton bleibt deshalb kraeftig
+       (55 % Helligkeit statt 45 %) — zu dunkel gestartet, sieht die untere
+       Haelfte des Rings aus wie Schatten und nicht wie Licht. */
+    /* Ohne eigenen Farbton kommt die Rampe aus der Akzentfarbe. Frueher stand
+       hier schlicht var(--acc-rgb) fuer alle vier Stopps — also gar kein
+       Verlauf und kein heller Kern, und genau daran erkennt man Neon. */
+    const r = done ? _neonRamp('#2bd94b') : (H != null
+      ? { c1:`hsl(${H},100%,60%)`, c2:`hsl(${H},100%,72%)`,
+          g1:`hsl(${H},100%,55%)`, g2:`hsl(${H},100%,65%)` }
+      : accRamp);
+    const c1 = r.c1, c2 = r.c2, g1 = r.g1, g2 = r.g2;
     return `<div class="tracker-circle-wrap">
       <button class="tracker-ring-btn" data-id="${item.id}"
         onclick="_trackerClick('${item.id}')"
@@ -14874,10 +14977,39 @@ function renderTrackers(row) {
               <stop offset="0" stop-color="${c1}"/>
               <stop offset="1" stop-color="${c2}"/>
             </linearGradient>
+            <!-- Eigener Verlauf fuer Hof und Wolke: VOLLE Farbe, kein
+                 ausgeglühtes Ende. Der helle Ton des scharfen Bogens wuerde
+                 weichgezeichnet nur grau-weiss verwaschen; das Licht drumherum
+                 muss gesaettigt bleiben, sonst wirkt der Ring milchig. -->
+            <linearGradient id="${gid}-g" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="${g1}"/>
+              <stop offset="1" stop-color="${g2}"/>
+            </linearGradient>
+            <!-- Der Neon-Schein. Drei Unschaerfen derselben Linie, von eng nach
+                 weit, uebereinandergelegt: die enge traegt die Helligkeit, die
+                 weite den Abfall in die Flaeche. Die engste liegt doppelt drin,
+                 sonst ist der Kern des Scheins zu schwach.
+                 Die Region MUSS gross gesetzt werden — die Vorgabe ist nur zehn
+                 Prozent ueber dem Objekt, und ein Schein, der weiter reicht,
+                 wird daran abgeschnitten (siehe .tracker-ring-glow). -->
+            <filter id="${gid}-f" x="-120%" y="-120%" width="340%" height="340%"
+                    color-interpolation-filters="sRGB">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="n"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4"   result="m"/>
+              <feGaussianBlur in="SourceGraphic" stdDeviation="9"   result="w"/>
+              <feMerge>
+                <feMergeNode in="w"/><feMergeNode in="w"/>
+                <feMergeNode in="m"/><feMergeNode in="m"/>
+                <feMergeNode in="n"/><feMergeNode in="n"/>
+              </feMerge>
+            </filter>
           </defs>
           <circle class="tracker-ring-bg" cx="${CX}" cy="${CY}" r="${R}"/>
+          <circle class="tracker-ring-glow" cx="${CX}" cy="${CY}" r="${R}"
+            filter="url(#${gid}-f)"
+            stroke="url(#${gid}-g)" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
           <circle class="tracker-ring-halo" cx="${CX}" cy="${CY}" r="${R}"
-            stroke="url(#${gid})" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
+            stroke="url(#${gid}-g)" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
           <circle class="tracker-ring-progress${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
             stroke="url(#${gid})" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
           <text class="tracker-ring-count" x="${CX}" y="${CY - 5}">${Math.min(count, goal)}</text>
@@ -14894,8 +15026,9 @@ function renderTrackers(row) {
   // Ringe von leer auf ihren Wert ziehen
   requestAnimationFrame(() => {
     targets.forEach(({ id, dashoffset }) => {
-      // Beide Boegen ziehen gemeinsam auf — der Halo darf nicht hinterherhinken.
-      row.querySelectorAll(`.tracker-ring-btn[data-id="${id}"] .tracker-ring-progress, .tracker-ring-btn[data-id="${id}"] .tracker-ring-halo`)
+      // Alle drei Boegen ziehen gemeinsam auf — Hof und Wolke duerfen nicht
+      // hinterherhinken, sonst sieht man das Licht dem Wert nachlaufen.
+      row.querySelectorAll(`.tracker-ring-btn[data-id="${id}"] .tracker-ring-progress, .tracker-ring-btn[data-id="${id}"] .tracker-ring-halo, .tracker-ring-btn[data-id="${id}"] .tracker-ring-glow`)
         .forEach(el => { el.style.strokeDashoffset = dashoffset; });
     });
   });
@@ -17896,6 +18029,35 @@ function recoveryColor(pct) {
   if (pct < 55) return '#ff9500';
   if (pct < 75) return '#ffcc00';
   return '#34c759';
+}
+/* Aus EINER Farbe die vier Toene des Neonrings ableiten — dieselbe Rampe, die
+   die Wochenziel-Ringe aus item.hue bauen (siehe renderTrackers):
+   c1/c2 = der scharfe Bogen (satt → fast ausgeglueht), g1/g2 = Hof und Wolke
+   (volle Saettigung, sonst verwaschen sie beim Weichzeichnen zu Grau).
+   Der Weg ueber den Farbton statt ueber Aufhellen des Hex ist Absicht: #ffcc00
+   heller gemacht wird cremeweiss, im Farbton gedreht bleibt es Gelb.
+   Rueckfall auf die Eingangsfarbe, falls kein #rrggbb kommt. */
+function _neonRamp(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return { c1: hex, c2: hex, g1: hex, g2: hex };
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) {
+    if (mx === r)      h = ((g - b) / d + (g < b ? 6 : 0));
+    else if (mx === g) h = (b - r) / d + 2;
+    else               h = (r - g) / d + 4;
+    h *= 60;
+  }
+  h = Math.round(h);
+  /* Kein ausgeglühtes, fast weisses Ende: in der Vorlage bleibt der Bogen ueber
+     seine ganze Laenge GESAETTIGT und wird nur etwas heller. Ein weisser Kern
+     sieht nach Leuchtstoffroehre aus, die Vorlage zeigt aber farbiges Licht. */
+  return {
+    c1: `hsl(${h},100%,60%)`, c2: `hsl(${h},100%,72%)`,
+    g1: `hsl(${h},100%,55%)`, g2: `hsl(${h},100%,65%)`
+  };
 }
 function recoveryState(pct) {
   if (pct >= 100) return 'Vollständig erholt';
