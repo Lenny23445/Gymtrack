@@ -1096,6 +1096,8 @@ body{
    ein gestrecktes Netz liest sich als Verzerrung der Werte. */
 .erf-radar-card{padding:12px 10px 6px}
 .erf-radar-wrap{position:relative;height:min(78vw,330px)}
+/* Beruehrungen gehen durch: die Flaeche nimmt keine Eingabe entgegen. */
+#erf-radar{pointer-events:none}
 .erf-radar-legend{display:flex;align-items:center;gap:14px;padding:2px 6px 6px;
   font-size:11px;font-weight:700;color:var(--text2)}
 .erf-radar-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
@@ -8173,7 +8175,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020011';
+const APP_VERSION = 'gymtrack-v202608020012';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17917,10 +17919,11 @@ function _erfRadarDraw(kraft){
         layout:{padding:{top:8,bottom:8,left:30,right:30}},
         plugins:{
           legend:{display:false},
-          tooltip:{callbacks:{label:c => {
-            const k = kraft[c.dataIndex];
-            return ' ' + c.dataset.label + ': ' + fmt1RM(c.datasetIndex === 0 ? k.now : k.start);
-          }}}
+          // Auch KEIN Tooltip: das Netz reagiert auf gar nichts mehr. Die Werte
+          // stehen an den Ecken, die Einzelheiten als Balken darunter — eine
+          // Flaeche, die auf Beruehrung etwas einblendet, ist ein Bedienelement,
+          // und genau das soll sie nicht sein.
+          tooltip:{enabled:false}
         },
         scales:{ r:{
           min:0, max:100, beginAtZero:true,
@@ -17934,10 +17937,9 @@ function _erfRadarDraw(kraft){
             callback:(l) => Array.isArray(l)
               ? [String(l[0]).length > 12 ? String(l[0]).slice(0,11) + '…' : l[0], l[1]] : l}
         }},
-        // KEIN onClick: das Netz ist eine Uebersicht, kein Menue. Die Details je
-        // Gruppe stehen als Balken direkt darunter — zwei Wege zur selben Flaeche,
-        // von denen einer unsichtbar ist, findet niemand absichtlich.
-        events:['mousemove','mouseout','touchstart','touchmove']
+        // Das Netz ist eine Anzeige, kein Bedienelement: keine Ereignisse, kein
+        // Klick, kein Tooltip. Die Details je Gruppe stehen als Balken darunter.
+        events:[]
       }
     });
   } catch(e) { console.warn('[Erfolge] Netzdiagramm:', e); }
