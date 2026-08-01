@@ -6001,23 +6001,23 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    fester Ton wirkte wie ein Standbild, ein voller Regenbogen wie ein fremdes
    Produkt. */
 .aic-aur{position:absolute;inset:-60% -25%;z-index:-2;pointer-events:none;
-  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.62),transparent 70%),
-             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.40),transparent 72%),
+  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.50),transparent 70%),
+             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.32),transparent 72%),
              radial-gradient(26% 40% at 52% 88%,rgba(var(--acc-rgb),.30),transparent 74%)}
 /* Zweite Lage Licht, die GEGEN die erste laeuft. Zwei gleichlaufende Felder
    sehen aus wie ein verschobenes Bild; erst der Gegenlauf ergibt Wellen, die
    sich treffen und wieder auseinandergehen. */
 .aic-aur::after{content:'';position:absolute;inset:0;
-  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.40),transparent 72%),
+  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.30),transparent 72%),
              radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.42),transparent 70%),
-             radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.24),transparent 74%),
+             radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.18),transparent 74%),
              radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.30),transparent 72%)}
 /* Der Puls: ein Lichtring, der aus der Mitte nach aussen laeuft und dabei
    verblasst. Unter dem Sieb liest er sich als Welle, die durch das Punktfeld
    zieht. */
 .aic-aur::before{content:'';position:absolute;left:50%;top:50%;width:120%;aspect-ratio:1;
   transform:translate(-50%,-50%) scale(.2);border-radius:50%;opacity:0;
-  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.55) 66%,transparent 78%)}
+  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.40) 66%,transparent 78%)}
 /* Das Sieb. Loch 1,1 px in einer 5,5-px-Kachel — kleiner und das Raster
    verschwimmt auf 3x-Displays zu Grau, groesser und es wird zum Gitter. */
 .aic{--aic-sieb:rgba(250,250,252,.52)}
@@ -8123,7 +8123,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010010';
+const APP_VERSION = 'gymtrack-v202608010011';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
