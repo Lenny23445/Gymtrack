@@ -84,6 +84,23 @@ Kern-Regeln:
 `overscroll-behavior: contain` auf `.wp-sets` ist Pflicht: sonst reicht der Wisch am Ende der
 Satzliste an den Pager durch und blättert ungewollt weiter.
 
+### Der interne Scroll ist Rückfallebene, nicht Normalfall
+
+Leitsatz: **ein Wisch bringt die nächste Übung — sonst nichts.** `.wp-sets` scrollt nur, wenn
+der Inhalt wirklich nicht auf die Seite passt. Im Regelfall (bis fünf Sätze, mit oder ohne
+Coach-Vorschlagskarte) darf es gar nicht erst dazu kommen; dann ist jeder Wisch auf der Seite
+ein Seitenwechsel.
+
+Dafür bekommt die Satzliste die volle Resthöhe der Seite (`flex: 1`) und die Satzzeilen einen
+Abstand, der mit der Zahl der Sätze mitgeht: `.wp-sets` trägt `--row-gap`, das ab sechs Sätzen
+von 10 px auf 6 px fällt. Die Zeilenhöhe selbst und damit die Tap-Ziele bleiben unverändert —
+gekürzt werden nur die Zwischenräume. Reicht auch das nicht (sehr viele Sätze plus offene
+Vorschlagskarte auf einem kleinen Gerät), scrollt `.wp-sets`; ein Verlaufsschatten an der
+Unterkante zeigt, dass noch etwas kommt.
+
+Nach der Umsetzung wird am Gerät nachgemessen, ab wie vielen Sätzen der interne Scroll
+tatsächlich einsetzt — die Zahl gehört in den Prüfbericht, nicht in diese Spec.
+
 ### Seitenhöhe und Tabbar
 
 `--wk-tabbar-h` wird aus der echten Höhe der `.tabbar` plus `var(--sab)` gemessen (ein
@@ -196,9 +213,14 @@ Rändern, bei halber Seite (rundet zur näheren), bei `pageH = 0`; `scrollTopFor
 
 **Am Gerät (Simulator, `~/.claude/sim-native.sh gymtrack`):** Training mit 4 Übungen inkl. einer
 Supersatz-Gruppe starten. Prüfen per Screenshot: ein Wisch = eine Seite; kräftiger Wisch
-überspringt nichts; Übungskopf steht bei Satz 5 noch; Coach-Leiste und Pausenbalken sichtbar,
-während die Satzliste intern scrollt; „+ Satz" und letzter Satz liegen nicht unter der Tabbar;
-Auto-Weiter nach dem letzten Haken landet sauber auf der nächsten Seite.
+überspringt nichts; Übungskopf steht bei Satz 5 noch; Coach-Leiste und Pausenbalken sichtbar;
+„+ Satz" und letzter Satz liegen nicht unter der Tabbar; Auto-Weiter nach dem letzten Haken
+landet sauber auf der nächsten Seite.
+
+Zusätzlich messen und im Bericht festhalten: **ab wie vielen Sätzen** die Seite überläuft und
+`.wp-sets` zu scrollen beginnt — einmal mit und einmal ohne offene Coach-Vorschlagskarte, auf
+iPhone 17. Setzt der interne Scroll schon bei vier oder fünf Sätzen ein, sind die Abstände noch
+zu groß und müssen nach.
 
 ## Release-Notiz (Was ist neu)
 
