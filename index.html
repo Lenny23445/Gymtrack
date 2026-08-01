@@ -8519,7 +8519,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021700';
+const APP_VERSION = 'gymtrack-v202608021720';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12386,7 +12386,7 @@ function hwRecovery(size){
         <div class="rec-row-sub">${sub}</div>
       </div>
       <div class="rec-seg-wrap">
-        ${_segBarsHTML(r.recPct, 10, { flach: true, cls: 'segbar-mini',
+        ${_segBarsHTML(r.recPct, 10, { flach: true, cls: 'segbar-mini', stufen: SEG_STUFEN_ERHOLUNG,
           label: mg.label + ' ' + r.recPct + ' %' })}
         <span class="rec-seg-val" style="color:${col}">${r.recPct}%</span>
       </div>
@@ -17899,12 +17899,39 @@ function _perfLabel(pct) {
    ersten 20 % einer Erholung seien "schlecht" und die letzten "gut". Der Wert
    als Ganzes ist gut oder schlecht, also faerbt er alle gefuellten Striche.
    Innerhalb bleibt ein leichter Helligkeitsverlauf, damit die Reihe lebt. */
-function _segFarbe(pct) {
-  // Rot (4°) bis Gruen (140°), hoch gesaettigt: die Striche sollen leuchten
-  // und nicht getoent wirken. Die leichte Senke zur Mitte ist Absicht — reines
-  // Gelb bei 50 % brennt sonst deutlich staerker als seine Nachbarn und der
-  // Verlauf bekaeme dort eine Beule.
+/* Die Stufen der Erholung, wie recoveryColor/recoveryState sie seit jeher
+   zieht — nur als Farbton statt als Hex, damit die Striche denselben Leucht-
+   Aufbau nutzen koennen. Die Grenzen sind BEWUSST dieselben Zahlen: stuende
+   in der Zeile "Fast bereit" und die Striche waeren schon gruen, waere eine
+   der beiden Angaben falsch, und man wuesste nicht welche.
+     < 30  Nicht erholt   rot     (#ff3b30)
+     < 55  Wenig erholt   orange  (#ff9500)
+     < 75  Fast bereit    gelb    (#ffcc00)
+     >=75  Bereit         gruen   (#34c759)  */
+const SEG_STUFEN_ERHOLUNG = [
+  { ab: 75, h: 135, s: 62 },
+  { ab: 55, h: 48,  s: 100 },
+  { ab: 30, h: 35,  s: 100 },
+  { ab: 0,  h: 4,   s: 100 }
+];
+/* Die Trainingsleistung hat eigene Stufen (siehe _perfLabel) — dieselbe Idee,
+   andere Grenzen: dort geht es nicht um Erholung, und ein Wert von 50 % ist
+   beim Training "solide", bei der Erholung dagegen "wenig erholt". */
+const SEG_STUFEN_LEISTUNG = [
+  { ab: 80, h: 135, s: 62 },
+  { ab: 62, h: 90,  s: 70 },
+  { ab: 44, h: 48,  s: 100 },
+  { ab: 26, h: 35,  s: 100 },
+  { ab: 0,  h: 4,   s: 100 }
+];
+/* Ohne Stufen ein stufenloser Verlauf von Rot nach Gruen — den nutzt, wer
+   keine benannten Zustaende danebenstehen hat. */
+function _segFarbe(pct, stufen) {
   const p = Math.max(0, Math.min(100, Number(pct) || 0));
+  if (Array.isArray(stufen)) {
+    const st = stufen.filter(x => p >= x.ab)[0] || stufen[stufen.length - 1];
+    return { h: st.h, s: st.s, css: `hsl(${st.h},${st.s}%,54%)` };
+  }
   const h = 4 + (p / 100) * 136;
   const s = 94 - Math.abs(p - 50) * 0.10;
   return { h, s, css: `hsl(${h.toFixed(0)},${s.toFixed(0)}%,58%)` };
@@ -17919,7 +17946,7 @@ function _segBarsHTML(pct, n, opts) {
   let voll = Math.round((p / 100) * anz);
   if (p > 0 && voll === 0) voll = 1;
   if (p >= 100) voll = anz;
-  const f = _segFarbe(p);
+  const f = _segFarbe(p, o.stufen);
   let out = `<div class="segbar${o.cls ? ' ' + o.cls : ''}"${o.label ? ` role="img" aria-label="${esc(o.label)}"` : ''}>`;
   for (let i = 0; i < anz; i++) {
     const an = i < voll;
@@ -18055,7 +18082,7 @@ function renderRecoveryList() {
       // der Fuellung und zwang den Schein klein zu halten, damit sie lesbar
       // blieb — jetzt darf er leuchten. Der Zustand steht ohnehin als Text in
       // der Zeile ("Wenig erholt · gerade trainiert").
-      + _segBarsHTML(r.recPct, 5, { flach: true, eng: true, cls: 'segbar-batt' })
+      + _segBarsHTML(r.recPct, 5, { flach: true, eng: true, cls: 'segbar-batt', stufen: SEG_STUFEN_ERHOLUNG })
       + '</div>'
       + '</div>';
   }).join('');
@@ -29967,7 +29994,7 @@ function renderCoachHub(){
 function _chPerfBarHTML() {
   const r = _perfScore();
   if (!r) return '';
-  const f = _segFarbe(r.pct);
+  const f = _segFarbe(r.pct, SEG_STUFEN_LEISTUNG);
   return `<button type="button" class="ch-rdy" onclick="coachHubOpen('perf')">
     <div class="ch-rdy-head">
       <span class="ch-rdy-ico" style="color:${f.css}">${ICO.bolt({s:14})}</span>
@@ -29976,7 +30003,7 @@ function _chPerfBarHTML() {
       <span class="ch-rdy-pct" style="color:${f.css}">${r.pct}%</span>
       <span class="ch-rdy-chev">${ICO.chevron({s:15})}</span>
     </div>
-    ${_segBarsHTML(r.pct, 16, { label: _cm('Trainingsleistung ','Training performance ') + r.pct + ' %' })}
+    ${_segBarsHTML(r.pct, 16, { stufen: SEG_STUFEN_LEISTUNG, label: _cm('Trainingsleistung ','Training performance ') + r.pct + ' %' })}
   </button>`;
 }
 /* Die Aufschluesselung. Jedes Signal bekommt seine eigene Strichreihe, seinen
@@ -29986,24 +30013,24 @@ function _chPerfBarHTML() {
 function _chPerfHTML() {
   const r = _perfScore();
   if (!r) return `<div class="ch-empty">${esc(_cm('Noch zu wenig Training für eine Einschätzung.','Not enough training yet for an assessment.'))}</div>`;
-  const f = _segFarbe(r.pct);
+  const f = _segFarbe(r.pct, SEG_STUFEN_LEISTUNG);
   const tipps = r.teile.filter(t => t.tipp);
   return `<div class="ch-perf">
     <div class="ch-perf-top">
       <div class="ch-perf-val" style="color:${f.css}">${r.pct}<i>%</i></div>
       <div class="ch-perf-lbl">${esc(_perfLabel(r.pct))}</div>
     </div>
-    ${_segBarsHTML(r.pct, 16, { cls:'segbar-gross' })}
+    ${_segBarsHTML(r.pct, 16, { cls:'segbar-gross', stufen: SEG_STUFEN_LEISTUNG })}
     <div class="ch-perf-rows">
       ${r.teile.map(t => {
-        const tf = _segFarbe(t.w);
+        const tf = _segFarbe(t.w, SEG_STUFEN_LEISTUNG);
         return `<div class="ch-perf-row">
           <div class="ch-perf-row-head">
             <span class="ch-perf-row-lbl">${esc(t.lbl)}</span>
             <span class="ch-perf-row-g">${t.g} %</span>
             <span class="ch-perf-row-v" style="color:${tf.css}">${Math.round(t.w)}</span>
           </div>
-          ${_segBarsHTML(t.w, 12, { flach:true, cls:'segbar-mini' })}
+          ${_segBarsHTML(t.w, 12, { flach:true, cls:'segbar-mini', stufen: SEG_STUFEN_LEISTUNG })}
           <div class="ch-perf-row-txt">${esc(t.txt)}</div>
         </div>`;
       }).join('')}
