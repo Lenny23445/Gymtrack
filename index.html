@@ -4461,9 +4461,13 @@ let wkCatFilter = 'alle';  // Filter im Workout-Picker
 let wkExIds = [];
 let wkLogs  = [];
 // Live-Coach im Training (Phase D): Rate-Limit-Zustand + aktive Vorschlagskarte.
-// _coachDefaultState()/_coachNormalizeState() sind weiter unten definiert — Function-
-// Declarations sind gehoisted, der Aufruf hier funktioniert trotzdem.
-let _coachState = _coachDefaultState();
+// _coachDefaultState() steht in js/app-community.js, also in einer SPAETEREN Datei.
+// Frueher stand hier `= _coachDefaultState()` — das ging, solange alles ein einziger
+// <script>-Block war (Function-Declarations sind ueber den ganzen Block gehoisted).
+// Seit dem Modul-Split hoistet nur noch innerhalb einer Datei: der Aufruf waere hier
+// ein ReferenceError. Belegt wird der Zustand deshalb in js/app-boot.js, das als
+// letztes laedt. Bis dahin null — gelesen wird er ohnehin erst im Training.
+let _coachState = null;
 let _coachCard  = null;    // { exId, c, applied, baseW, timer } – aktuell angezeigte Vorschlagskarte
 let _coachEvalTimers = {}; // Debounce-Timer je "li_si", s. _coachEval()
 // Plan, aus dem das aktuelle Training gestartet wurde: {type:'preset',id} | {type:'week',dayKey} | null.
@@ -5877,8 +5881,8 @@ const WIDGET_DEFS = {
      es aber wieder: wer die Woche auf dem Heute-Tab sehen will, holt es sich im
      Bearbeiten-Modus dazu. */
   weekcal: {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochenübersicht Mo–So',       sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
-  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:()=>((S.trackerItems||[]).length>2?2:1), build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
-  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
+  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:()=>((S.trackerItems||[]).length>2?2:1), build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:(...a)=>renderTrackers(...a)},
+  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:(...a)=>renderWeightCard(...a)},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
   train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
   streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},
@@ -5890,7 +5894,7 @@ const WIDGET_DEFS = {
   qadd:    {title:'',                icon:'➕', label:'Übung hinzufügen',  desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Übung','openNewEx(null)',size)},
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
   plans:   {title:'Deine Trainingspläne', icon:'', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
-  social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
+  social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:(...a)=>hwSocial(...a)},
   // Der Coach steht im Raster wie jedes andere Widget — kein Sonderplatz mehr
   // ueber dem Raster. Sein Inhalt richtet sich nach der Groesse (s. _aicSize).
   coach:   {title:'',                icon:'', label:'KI-Coach',         desc:'Tagesempfehlung & Coach-Menü', sizes:['sm','md','lg'], lgRows:2, build:()=>`<div id="coach-today-card"></div>`, fill:renderCoachTodayCard},
@@ -27538,98 +27542,6 @@ async function openAiAnalyze(mode, scope){
   _aiaShow(res.a, local);
 }
 
-// ── INIT ──────────────────────────────────────────────
-setTheme(S.theme);
-setGlass(S.glass);
-applyCompanion();
-try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
-try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
-migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
-renderHome();
-renderExList();
-initTabIndicator();
-initSheetSwipe();
-initTabDrag();
-initPageSwipe();
-_aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
-_coachCapsInit();   // Stimme/Diktat: Fähigkeiten einmal klären (Berechtigung ist asynchron)
-_premWatchEntitlement();   // Abo-Status bei jedem Start/Vordergrund frisch von StoreKit holen
-_restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
-// Startreihenfolge: Login-Gate ZUERST (synchron gerendert, damit der Startbildschirm
-// nicht kurz aufblitzt), Onboarding erst NACH dem Login, danach die Soft-Paywall.
-// Bewusst nur _hadRealLogin() statt _authGateNeeded(): _fbUser/_authSettled sind
-// spätere top-level `let`s — ein Zugriff hier wäre ein TDZ-Fehler und würde den
-// kompletten Boot abbrechen (gleiche Falle wie früher in isPremium()).
-if (!_hadRealLogin()) _showAuthGate();
-else setTimeout(maybeStartOnboarding, 0);   // eingeloggtes Gerät: normaler Start
-// Sicherheitsnetz: Wenn Firebase gar nicht lädt (offline/Blocker), darf das Gate
-// niemanden dauerhaft aussperren — nach 10 s öffnen und normal weitermachen.
-setTimeout(() => {
-  if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
-}, 10000);
-// Simulator-Dev-Bypass: Apple Sign-In braucht ein im Simulator angemeldetes
-// iCloud-Konto (fast nie vorhanden), Google Sign-In hängt dort im OAuth-Browser-
-// Flow — das Pflicht-Login würde JEDEN Test im Simulator blockieren. Flag statt
-// Einmal-hide, weil der spätere anonyme Auth-Listener (_maybeAuthGate) das Gate
-// sonst wieder aufmacht (Anonymous zählt nicht als echter Login). Auf einem
-// echten Gerät bleibt der Login-Zwang unverändert bestehen.
-let _simDevBypass = false;
-setTimeout(async () => { const env = await _getInstallInfo(); if (env && env.isSimulator) { _simDevBypass = true; _hideAuthGate(); _postLoginFlow(); } }, 0);
-// Aufbau ist durch (Home/Übungen gerendert, Gate bzw. Onboarding entschieden) —
-// der Boot-Splash bleibt aber liegen, bis auch der ERSTE Cloud-Merge durch ist
-// (Deckel: 1200 ms). Grund: _onLogin() rendert nach dem Merge Heute/Übungen/
-// Einstellungen neu und setzt Theme + Begleiter — genau dieses Nachrendern war
-// das kurze "die Heute-Seite lädt gleich nach dem Start noch mal neu". Unter der
-// Abdeckung passiert es unsichtbar. Ohne echten Login (oder wenn Firebase nicht
-// lädt) kommt gar kein Merge → dann sofort raus, kein künstliches Warten.
-// _initialMergeDone ist ein späterer top-level `let` (TDZ!) — Zugriff deshalb
-// nur in try/catch, sonst bricht der komplette Boot ab.
-(function _bootReveal(){
-  const t0 = Date.now();
-  const merged = () => { try { return !!_initialMergeDone; } catch(_) { return false; } };
-  const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-    try { window._bootSplashDone && window._bootSplashDone(); } catch(_){}
-  }));
-  if (!_hadRealLogin()) { reveal(); return; }
-  (function wait(){
-    if (merged() || Date.now() - t0 > 1200) { reveal(); return; }
-    setTimeout(wait, 60);
-  })();
-})();
-try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
-if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
-// QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
-try {
-  const _addCode = new URLSearchParams(location.search).get('add');
-  if (_addCode) {
-    sessionStorage.setItem('gt_addCode', _addCode.toUpperCase().slice(0,6));
-    history.replaceState(null, '', location.pathname);
-  }
-} catch(_){}
-// Plan/Split-Import-Link (?import=…): der https-Link ist nur der klickbare TRÄGER.
-// NATIVE APP ZUERST: Im Browser sofort per Deep-Link in die installierte App
-// springen (iOS fragt „In ‚MyGymTrack' öffnen?" → App zeigt die Import-Vorschau
-// über appUrlOpen). Die Web-Vorschau dahinter ist nur Fallback für Empfänger
-// ohne App (inkl. „In der MyGymTrack-App öffnen"-Button).
-try {
-  const _impD = new URLSearchParams(location.search).get('import');
-  if (_impD) {
-    history.replaceState(null, '', location.pathname);
-    if (!window.Capacitor?.isNativePlatform?.()) {
-      setTimeout(() => { try { location.href = 'gymtrack://import?d=' + _impD; } catch(_){} }, 80);
-    }
-    setTimeout(() => { try { _handlePlanImportUrl('?import=' + _impD); } catch(_){} }, 700);
-  }
-} catch(_){}
-
-
-// Migration: bei alten Usern (lastSeenVersion gesetzt, aber seenChangelog leer)
-// → alle aktuellen Keys als gesehen markieren, damit das Popup nicht nochmal kommt
-// nach diesem Update.
-if (!Array.isArray(S.seenChangelog)) {
-  S.seenChangelog = S.lastSeenVersion ? Object.keys(CHANGELOG) : [];
-  persist();
-}
 
 // Changelog-Popup deaktiviert
 
@@ -29724,6 +29636,107 @@ document.addEventListener('gestureend',    e => e.preventDefault(), {passive:fal
 document.addEventListener('touchmove', e => {
   if (e.scale && e.scale !== 1) e.preventDefault();
 }, {passive:false});
+/* ── BOOT ───────────────────────────────────────────────
+   Startsequenz der App. Stand frueher mitten im Skript, direkt nach dem KI-Block.
+   Sie muss aber ganz zum Schluss laufen: sie ruft _hadRealLogin() und _showAuthGate()
+   auf, die in js/app-update.js stehen — also in einer spaeteren Datei. Solange alles
+   ein einziger <script>-Block war, hat Function-Hoisting das ueberdeckt; ueber
+   Dateigrenzen hinweg hoistet nichts mehr. Deshalb steht der Block hier unten und
+   wandert beim Split unveraendert nach js/app-boot.js. */
+_coachState = _coachDefaultState();   // deklariert in js/app-native.js, Fabrik in js/app-community.js
+// ── INIT ──────────────────────────────────────────────
+setTheme(S.theme);
+setGlass(S.glass);
+applyCompanion();
+try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
+try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
+migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
+renderHome();
+renderExList();
+initTabIndicator();
+initSheetSwipe();
+initTabDrag();
+initPageSwipe();
+_aibInit();   // KI-Coach-Bubble: Icons rendern, Position wiederherstellen, Drag/Tap verdrahten
+_coachCapsInit();   // Stimme/Diktat: Fähigkeiten einmal klären (Berechtigung ist asynchron)
+_premWatchEntitlement();   // Abo-Status bei jedem Start/Vordergrund frisch von StoreKit holen
+_restoreActiveWk();   // abgebrochenes/unterbrochenes Training wiederherstellen
+// Startreihenfolge: Login-Gate ZUERST (synchron gerendert, damit der Startbildschirm
+// nicht kurz aufblitzt), Onboarding erst NACH dem Login, danach die Soft-Paywall.
+// Bewusst nur _hadRealLogin() statt _authGateNeeded(): _fbUser/_authSettled sind
+// spätere top-level `let`s — ein Zugriff hier wäre ein TDZ-Fehler und würde den
+// kompletten Boot abbrechen (gleiche Falle wie früher in isPremium()).
+if (!_hadRealLogin()) _showAuthGate();
+else setTimeout(maybeStartOnboarding, 0);   // eingeloggtes Gerät: normaler Start
+// Sicherheitsnetz: Wenn Firebase gar nicht lädt (offline/Blocker), darf das Gate
+// niemanden dauerhaft aussperren — nach 10 s öffnen und normal weitermachen.
+setTimeout(() => {
+  if (!window.FB || !window.FB.configured) { _hideAuthGate(); _postLoginFlow(); }
+}, 10000);
+// Simulator-Dev-Bypass: Apple Sign-In braucht ein im Simulator angemeldetes
+// iCloud-Konto (fast nie vorhanden), Google Sign-In hängt dort im OAuth-Browser-
+// Flow — das Pflicht-Login würde JEDEN Test im Simulator blockieren. Flag statt
+// Einmal-hide, weil der spätere anonyme Auth-Listener (_maybeAuthGate) das Gate
+// sonst wieder aufmacht (Anonymous zählt nicht als echter Login). Auf einem
+// echten Gerät bleibt der Login-Zwang unverändert bestehen.
+let _simDevBypass = false;
+setTimeout(async () => { const env = await _getInstallInfo(); if (env && env.isSimulator) { _simDevBypass = true; _hideAuthGate(); _postLoginFlow(); } }, 0);
+// Aufbau ist durch (Home/Übungen gerendert, Gate bzw. Onboarding entschieden) —
+// der Boot-Splash bleibt aber liegen, bis auch der ERSTE Cloud-Merge durch ist
+// (Deckel: 1200 ms). Grund: _onLogin() rendert nach dem Merge Heute/Übungen/
+// Einstellungen neu und setzt Theme + Begleiter — genau dieses Nachrendern war
+// das kurze "die Heute-Seite lädt gleich nach dem Start noch mal neu". Unter der
+// Abdeckung passiert es unsichtbar. Ohne echten Login (oder wenn Firebase nicht
+// lädt) kommt gar kein Merge → dann sofort raus, kein künstliches Warten.
+// _initialMergeDone ist ein späterer top-level `let` (TDZ!) — Zugriff deshalb
+// nur in try/catch, sonst bricht der komplette Boot ab.
+(function _bootReveal(){
+  const t0 = Date.now();
+  const merged = () => { try { return !!_initialMergeDone; } catch(_) { return false; } };
+  const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { window._bootSplashDone && window._bootSplashDone(); } catch(_){}
+  }));
+  if (!_hadRealLogin()) { reveal(); return; }
+  (function wait(){
+    if (merged() || Date.now() - t0 > 1200) { reveal(); return; }
+    setTimeout(wait, 60);
+  })();
+})();
+try { _checkLevelUp(true); } catch(_){}   // Rang-Index einmalig seeden (kein Fake-Level-Up für Bestandsnutzer)
+if (S.socialOn) setTimeout(() => { try { _pushSocialProfile(); _loadRequests(); } catch(_){} }, 5000);   // Community-Profil + Anfragen nach Auth-Settle
+// QR-Deep-Link (?add=CODE) merken — wird beim Öffnen des Freunde-Tabs eingelöst
+try {
+  const _addCode = new URLSearchParams(location.search).get('add');
+  if (_addCode) {
+    sessionStorage.setItem('gt_addCode', _addCode.toUpperCase().slice(0,6));
+    history.replaceState(null, '', location.pathname);
+  }
+} catch(_){}
+// Plan/Split-Import-Link (?import=…): der https-Link ist nur der klickbare TRÄGER.
+// NATIVE APP ZUERST: Im Browser sofort per Deep-Link in die installierte App
+// springen (iOS fragt „In ‚MyGymTrack' öffnen?" → App zeigt die Import-Vorschau
+// über appUrlOpen). Die Web-Vorschau dahinter ist nur Fallback für Empfänger
+// ohne App (inkl. „In der MyGymTrack-App öffnen"-Button).
+try {
+  const _impD = new URLSearchParams(location.search).get('import');
+  if (_impD) {
+    history.replaceState(null, '', location.pathname);
+    if (!window.Capacitor?.isNativePlatform?.()) {
+      setTimeout(() => { try { location.href = 'gymtrack://import?d=' + _impD; } catch(_){} }, 80);
+    }
+    setTimeout(() => { try { _handlePlanImportUrl('?import=' + _impD); } catch(_){} }, 700);
+  }
+} catch(_){}
+
+
+// Migration: bei alten Usern (lastSeenVersion gesetzt, aber seenChangelog leer)
+// → alle aktuellen Keys als gesehen markieren, damit das Popup nicht nochmal kommt
+// nach diesem Update.
+if (!Array.isArray(S.seenChangelog)) {
+  S.seenChangelog = S.lastSeenVersion ? Object.keys(CHANGELOG) : [];
+  persist();
+}
+
 </script>
 <script>
 /* LIQUID GLASS — Tab-Bar beim Runterscrollen zu Kapsel minimieren (reversibel).
