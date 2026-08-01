@@ -4032,8 +4032,13 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Absolute Kinder beziehen sich auf die PADDING-Box, liegen also ohnehin
    innerhalb des 2-px-Rahmens. Ein Pixel Luft genuegt, damit die Striche die
    Rundung der Huelle nicht beruehren. */
+/* width:auto ist hier PFLICHT: .segbar bringt width:100% mit, und bei einem
+   absolut positionierten Element gewinnen dann left+width — right wird still
+   ignoriert. Die Reihe war dadurch so breit wie die ganze Padding-Box, begann
+   aber eingerueckt und lag rechts genau auf dem Rahmen. Genau der Ueberstand,
+   den alle bisherigen inset-Korrekturen nicht beheben konnten. */
 .rec-batt .segbar.segbar-batt{
-  position:absolute;inset:1px;height:auto;gap:2px;z-index:0;
+  position:absolute;inset:1px;width:auto;height:auto;gap:2px;z-index:0;
 }
 /* Die Aussenkanten folgen der Huelle: der erste Strich ist links so rund wie
    das Gehaeuse, der letzte rechts. Gleichfoermige Rechtecke stossen sonst mit
@@ -4043,9 +4048,11 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-batt .segbar.segbar-batt > i{border-radius:1.5px}
 .rec-batt .segbar.segbar-batt > i:first-child{border-radius:4.5px 1.5px 1.5px 4.5px}
 .rec-batt .segbar.segbar-batt > i:last-child{border-radius:1.5px 4.5px 4.5px 1.5px}
-/* Rechts mehr Inset als links: in der Mini-Groesse lief der letzte Strich sonst in
-   die Rundung der Huelle und sah aus, als staende er ueber den Rahmen hinaus. */
-.rec-list-mini .rec-batt .segbar.segbar-batt{inset:1.5px 3px 1.5px 1.5px;gap:1.5px}
+/* Rundum gleicher Abstand — die frueher hier stehende Extra-Luft rechts war der
+   Versuch, den width:100%-Ueberstand auszugleichen; das ging nicht auf, weil
+   right bei left+width gar nicht wirkt. Mit width:auto oben ist der Rand
+   symmetrisch, so wie die Huelle es zeigt. */
+.rec-list-mini .rec-batt .segbar.segbar-batt{inset:1.5px;gap:1.5px;border-radius:4.5px}
 /* .rec-batt-val (die Prozentzahl IN der Batterie) wird nicht mehr gerendert:
    sie lag mittig auf der Fuellung und zwang den Schein klein zu halten, damit
    sie lesbar blieb. Die Grundregeln dazu bleiben unangetastet stehen — die
@@ -6859,13 +6866,10 @@ html[data-neon="1"] .split-card{
 }
 html[data-neon="1"] .split-card::before{ box-shadow:0 0 6px 0 var(--sc,var(--acc)) }
 
-/* Batterie-Fuellung sicher INNERHALB der Huelle (galt vorher nur unter
-   .rec-list-mini — die Erholungs-Kachel rendert die Zeilen aber ohne diese
-   Klasse, deshalb blieb der letzte Strich rechts auf dem Rahmen liegen).
-   Zusaetzlich Luft fuer den Pluspol, der per right:-3.5px ausserhalb sitzt. */
-.rec-batt .segbar.segbar-batt{ inset:2px 4px 2px 2px }
+/* Luft fuer den Pluspol, der per right:-5px ausserhalb der Huelle sitzt. */
 .rec-row .rec-batt{ margin-right:7px }
-/* Der letzte Strich lag mit seinem Schein auf dem Rahmenbogen. Die Strichreihe
-   bekommt deshalb eine eigene abgerundete Maske: was darueber hinausgeht (auch
-   der Glow), wird beschnitten, der Rahmen bleibt frei. */
-.rec-batt .segbar.segbar-batt{ overflow:hidden;border-radius:5px;inset:2px 5px 2px 2px }
+/* Die Strichreihe bekommt eine eigene abgerundete Maske: was darueber
+   hinausgeht (auch der Glow), wird beschnitten, der Rahmen bleibt frei.
+   Radius = Innenrundung der Huelle (7px aussen minus 2px Rahmen) minus dem
+   2px-Inset, sonst stossen die Ecken der Randstriche in den Bogen. */
+.rec-batt .segbar.segbar-batt{ overflow:hidden;border-radius:3px;inset:2px }
