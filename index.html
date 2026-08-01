@@ -5953,13 +5953,14 @@ textarea.pf-inp{height:auto;padding:12px 13px}
              linear-gradient(var(--card),var(--card));
   border:1px solid rgba(var(--acc-rgb),.32);
   box-shadow:0 4px 18px rgba(var(--acc-rgb),.13);
-  /* height MUSS animierbar sein: die Leiste waechst und schrumpft bei jeder
-     Nachricht (eine Zeile mehr oder weniger). Ohne Uebergang springt die
-     darunter liegende Uebungskarte — genau der Ruckler, der als "keine
-     Animation" auffiel. Den konkreten Von/Bis-Wert setzt _coachBarRender()
-     per JS, weil height:auto nicht interpolierbar ist; hier steht nur die Kurve. */
-  transition:height .3s cubic-bezier(.2,.9,.3,1),margin-bottom .3s cubic-bezier(.2,.9,.3,1),
-             padding .3s cubic-bezier(.2,.9,.3,1),opacity .22s ease,border-color .35s,box-shadow .35s;
+  /* KEINE Hoehen-Animation. height, padding und margin sind Layout-Groessen:
+     jedes Bild einer solchen Blende bricht die Seite neu um — und diese Leiste
+     sitzt im Klebe-Stapel direkt ueber der Uebungsliste, also wurde 300 ms lang
+     in jedem Bild die GANZE Liste neu vermessen, genau waehrend der Tipp
+     erscheint. Die Bewegung tragen jetzt Text und Lichtstreifen (coachMsgIn,
+     coachSweep) — beide laufen ueber transform/opacity im Compositor, und die
+     Leiste nimmt ihre neue Hoehe in EINEM Umbruch ein. */
+  transition:opacity .22s ease,border-color .35s,box-shadow .35s;
 }
 /* Aus-Zustand (Coach abgeschaltet / kein Premium): eingeklappt statt display:none,
    damit Ein- und Ausblenden dieselbe Kurve nehmen wie jede Hoehenaenderung.
@@ -8238,7 +8239,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020025';
+const APP_VERSION = 'gymtrack-v202608020026';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19225,13 +19226,11 @@ function _wkSyncSnapPad() {
   _wkFocusDirty = true;
   _wkFocusSoon();
 }
-/* Waehrend die Coach-Leiste ihre Hoehe faehrt, wird NICHT nachgemessen. Sonst
-   laeuft dieselbe Kette (Rastabstand schreiben → Rastpunkte neu rechnen →
-   Kartenlage neu messen) einmal je Frame der Blende mit. Ein einziger Abgleich
-   danach genuegt: die Zwischenwerte sieht ohnehin niemand. */
-let _cbBarBusy = false;
+/* Hoechstens EIN Abgleich je Bild. Die Kette dahinter ist teuer: Rastabstand
+   schreiben → WebKit rechnet die Rastpunkte des ganzen Blattes neu → Kartenlage
+   neu messen. Der ResizeObserver an #wk-sticky meldet dagegen jede Regung. */
 function _wkSnapPadSoon() {
-  if (_wkSnapPadRaf || _cbBarBusy) return;
+  if (_wkSnapPadRaf) return;
   _wkSnapPadRaf = requestAnimationFrame(() => { _wkSnapPadRaf = 0; _wkSyncSnapPad(); });
 }
 
@@ -26479,26 +26478,22 @@ function _coachBarSet(mode, msg, holdMs) {
    Differenz von der CSS-Kurve fahren. Danach wieder height:'' — sonst bliebe die
    Leiste auf einem eingefrorenen Pixelwert stehen und ein spaeterer Zeilenumbruch
    (Drehung, groessere Schrift) wuerde abgeschnitten. */
+/* Wechselt den Inhalt der Coach-Leiste. Die Hoehe wird NICHT mehr angefahren:
+   eine Hoehen-Blende ist Layout-Arbeit und brach 300 ms lang in jedem Bild die
+   darunter liegende Uebungsliste neu um. Die Leiste nimmt ihre neue Hoehe in
+   einem Umbruch ein; die sichtbare Bewegung tragen coachMsgIn (Text faehrt ein)
+   und coachSweep (Lichtstreifen) — beides Compositor-Arbeit.
+   Danach EIN Abgleich von Rastabstand und Fokus-Lage, weil die Karten jetzt
+   woanders liegen. */
 function _coachBarAnimate(el, apply) {
-  const reduce = (() => { try { return matchMedia('(prefers-reduced-motion:reduce)').matches; } catch(_) { return false; } })();
-  const wasHidden = el.style.display === 'none';
-  const from = wasHidden ? 0 : el.getBoundingClientRect().height;
   apply();
-  if (reduce) { el.style.height = ''; return; }
-  el.style.height = '';                        // fuer die Messung frei laufen lassen
-  const to = el.classList.contains('is-off') ? 0 : el.getBoundingClientRect().height;
-  if (Math.abs(to - from) < 0.5) return;       // kein Sprung, keine Animation
-  el.style.height = from + 'px';
-  void el.offsetWidth;                         // Reflow: Startwert festschreiben
-  el.style.height = to + 'px';
-  // Solange die Leiste faehrt, halten Fokus-Schicht und Rastabstand still
-  // (s. _wkSnapPadSoon) — danach EIN Abgleich mit dem Endzustand.
-  _cbBarBusy = true;
+  el.style.height = '';
   if (el._cbEndTimer) clearTimeout(el._cbEndTimer);
+  // Ein Bild spaeter: die neue Hoehe steht erst nach dem Layout fest.
   el._cbEndTimer = setTimeout(() => {
-    el.style.height = ''; el._cbEndTimer = null; _cbBarBusy = false;
+    el._cbEndTimer = null;
     try { _wkSyncSnapPad(); _wkFocusDirty = true; _wkFocusSoon(); } catch(_) {}
-  }, 340);
+  }, 0);
 }
 function _coachBarRender() {
   const el = document.getElementById('wk-coach-bar'); if (!el) return;
