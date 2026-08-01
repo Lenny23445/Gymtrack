@@ -3812,6 +3812,21 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   flex-shrink:0;font-size:10.5px;font-weight:800;
   font-variant-numeric:tabular-nums;letter-spacing:.2px;min-width:30px;text-align:right;
 }
+/* In der Batterie-Huelle: die Reihe fuellt sie ganz aus, die Prozentzahl
+   liegt darueber. Die Striche stossen dabei nicht an den Rand — der schmale
+   Abstand ist es, der die Huelle weiter als Huelle lesbar haelt statt als
+   Rahmen um einen Block. */
+.rec-batt .segbar.segbar-batt{
+  position:absolute;inset:1.5px;height:auto;gap:2px;z-index:0;
+}
+.rec-batt .segbar.segbar-batt > i{border-radius:1.5px}
+.rec-list-mini .rec-batt .segbar.segbar-batt{inset:1px;gap:1.5px}
+/* Die Zahl liegt schon absolut ueber der Fuellung (z-index 2) — nur ihr
+   Schatten wird kraeftiger, damit sie auf den leuchtenden Strichen nicht
+   verschwimmt. Position und Stapel NICHT anfassen: beides steht bei
+   .rec-batt-val und wuerde hier zerbrechen. */
+.rec-batt .rec-batt-val{text-shadow:0 1px 3px rgba(0,0,0,.8)}
+
 @media (prefers-reduced-motion:reduce){.segbar > i{transition:none}}
 
 /* ── Bereitschaft im Coach-Hub ── */
@@ -8495,7 +8510,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021600';
+const APP_VERSION = 'gymtrack-v202608021620';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18007,8 +18022,13 @@ function renderRecoveryList() {
       + '<div class="rec-row-title">' + mg.label + '</div>'
       + '<div class="rec-row-sub">' + sub + '</div>'
       + '</div>'
+      // Huelle und Nippel bleiben — es soll weiter wie eine Batterie aussehen.
+      // Nur die Fuellung ist jetzt eine Strichreihe: fuenf Zellen sind das,
+      // was in die schmale Huelle passt, ohne dass die Striche zu Faeden
+      // werden, und es ist dieselbe Sprache wie die Leistungs-Leiste im
+      // Coach-Hub. Die Prozentzahl liegt weiterhin darueber.
       + '<div class="rec-batt' + emptyCls + '">'
-      + '<div class="rec-batt-fill" style="width:' + Math.max(4, r.recPct) + '%;background:' + col + ';color:' + col + '"></div>'
+      + _segBarsHTML(r.recPct, 5, { flach: true, cls: 'segbar-batt' })
       + '<div class="rec-batt-val">' + r.recPct + '%</div>'
       + '</div>'
       + '</div>';
