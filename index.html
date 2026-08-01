@@ -8183,7 +8183,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020005';
+const APP_VERSION = 'gymtrack-v202608020006';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17888,7 +17888,10 @@ function _erfRadarDraw(kraft){
       options:{
         responsive:true, maintainAspectRatio:false,
         _gtGlow:_hexA(acc,.7),
-        layout:{padding:4},
+        // Die Ecken-Beschriftung steht AUSSERHALB der Netzflaeche und wurde links
+        // und rechts abgeschnitten: Chart.js rechnet den Platz dafuer nicht in
+        // die Flaeche ein. Seitlich deshalb deutlich mehr Luft als oben.
+        layout:{padding:{top:8,bottom:8,left:30,right:30}},
         plugins:{
           legend:{display:false},
           tooltip:{callbacks:{label:c => {
@@ -17901,16 +17904,17 @@ function _erfRadarDraw(kraft){
           angleLines:{color:'rgba(128,128,128,.16)'},
           grid:{color:'rgba(128,128,128,.13)'},
           ticks:{display:false, stepSize:25},
-          pointLabels:{color:txt2, font:{size:10, weight:'700'}, padding:6}
+          pointLabels:{color:txt2, font:{size:9.5, weight:'700'}, padding:4,
+            // Zweizeilig bleibt es, aber lange Gruppennamen werden gekuerzt —
+            // sonst schiebt eine Zeile wie "Oberschenkel-Rueckseite" das Netz
+            // aus dem Bild.
+            callback:(l) => Array.isArray(l)
+              ? [String(l[0]).length > 12 ? String(l[0]).slice(0,11) + '…' : l[0], l[1]] : l}
         }},
-        // Tipp auf eine Ecke fuehrt in die Gruppe — dieselbe Detailflaeche wie
-        // der Balken darunter.
-        onClick:(ev, els) => {
-          try {
-            const i = els && els.length ? els[0].index : -1;
-            if (i >= 0 && kraft[i]) openKraftDetail(kraft[i].mg.id);
-          } catch(_) {}
-        }
+        // KEIN onClick: das Netz ist eine Uebersicht, kein Menue. Die Details je
+        // Gruppe stehen als Balken direkt darunter — zwei Wege zur selben Flaeche,
+        // von denen einer unsichtbar ist, findet niemand absichtlich.
+        events:['mousemove','mouseout','touchstart','touchmove']
       }
     });
   } catch(e) { console.warn('[Erfolge] Netzdiagramm:', e); }
@@ -17996,7 +18000,6 @@ function renderErfolge() {
         <div class="erf-radar-legend">
           <span><i class="jetzt"></i>${tr('Jetzt')}</span>
           <span><i class="start"></i>${tr('Start')}</span>
-          <span class="hint">${tr('Ecke antippen für Details')}</span>
         </div>
         <div class="erf-radar-wrap"><canvas id="erf-radar"></canvas></div>
       </div>
