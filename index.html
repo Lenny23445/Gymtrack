@@ -216,10 +216,10 @@
      bei jeder Anzeige ihre eigene; vereinheitlicht ist die Geometrie. */
   --gw-1:4px;  --gw-2:10px; --gw-3:20px;
   --gwa-1:.95; --gwa-2:.7;  --gwa-3:.42;
-  /* Gedaempfte Fassung fuer viele kleine Punkte nebeneinander (Wochenraster,
-     Sparkline): dieselbe Geometrie, weniger Deckkraft — sonst verschmelzen
-     benachbarte Punkte zu einem Band. */
-  --gwa-1s:.6;  --gwa-2s:.34; --gwa-3s:.16;
+  /* Die Abstufung fuer schwaechere Zustaende (etwa die vier Stufen der
+     Wochenpunkte) laeuft ueber WENIGER LAGEN derselben Staffel, nicht ueber
+     eigene Werte: Stufe 1 nur der enge Saum, Stufe 4 alle drei. So bleibt die
+     Geometrie ueberall dieselbe und trotzdem ist die Menge ablesbar. */
 }
 
 /* ── THEMES ── */
@@ -4322,10 +4322,17 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-dot{width:5px;height:5px;border-radius:50%;background:var(--text2);opacity:.35;transition:opacity .2s,background .2s;flex-shrink:0}
 .rec-dot.on{background:var(--acc);opacity:1}
 /* Großer senkrechter Akku */
-.rec-batt-v-wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:2px 0;overflow:hidden}
+/* Ebenfalls sichtbar — sonst kappt dieser Rahmen den Schein gleich wieder,
+   den die Huelle darunter durchlaesst. */
+.rec-batt-v-wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:2px 0;overflow:visible}
 .rec-batt-v-outer{display:flex;flex-direction:column;align-items:center}
 .rec-batt-v-cap{width:14px;height:6px;background:var(--text);border-radius:3px 3px 0 0;opacity:.3}
-.rec-batt-v{width:44px;height:82px;border:2px solid var(--text);border-radius:10px;position:relative;overflow:hidden;opacity:.9}
+/* overflow SICHTBAR: die Huelle schnitt den Schein der Striche exakt an ihrem
+   Rand ab, und uebrig blieb nur der Teil, der nach innen faellt — deshalb war
+   ausgerechnet die grosse Batterie die schwaechste Anzeige der App. Die Striche
+   selbst bleiben innen (segbar-v liegt auf inset:2px), es tritt nur ihr Licht
+   heraus, und das soll es auch: eine Roehre leuchtet durch ihr Gehaeuse. */
+.rec-batt-v{width:44px;height:82px;border:2px solid var(--text);border-radius:10px;position:relative;overflow:visible;opacity:.9}
 /* Senkrechte Strichreihe im stehenden Akku. Die Aussenzellen folgen der
    Rundung der Huelle — oben die obere, unten die untere, damit ihre Ecken
    nicht in den Radius stossen (derselbe Grund wie bei der liegenden Reihe). */
@@ -8789,7 +8796,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030105';
+const APP_VERSION = 'gymtrack-v202608030210';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18430,10 +18437,16 @@ function _segBarsVertHTML(pct, n, opts) {
   // Von oben nach unten gebaut, gefuellt sind die UNTERSTEN.
   for (let i = 0; i < anz; i++) {
     const an = (anz - i) <= voll;
+    /* Volle Neon-Staffel wie ueberall (--gw und --gwa im :root). Hier standen
+       vorher 5/9 px ohne dritte Lage — neben Ringen und Segmentreihen sah die
+       Batterie dadurch aus, als leuchte sie schwaecher, obwohl sie dieselbe Art
+       Wert zeigt. Die Innenlichter bleiben: sie machen aus der Flaeche eine
+       Roehre, das ist unabhaengig vom Schein nach aussen. */
     const st = an
       ? `background:hsl(${H},100%,${L}%);`
-        + `box-shadow:0 0 5px hsla(${H},100%,58%,.95),`
-        + `0 0 9px hsla(${H},100%,50%,.5),`
+        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,58%,var(--gwa-1)),`
+        + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2)),`
+        + `0 0 var(--gw-3) hsla(${H},100%,48%,var(--gwa-3)),`
         + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
         + `inset 0 1px 2px hsla(${H},100%,80%,.5)`
       : '';
@@ -18465,17 +18478,20 @@ function _segBarsHTML(pct, n, opts) {
        ins Blasse. Eine Reihe, ein Wert, eine Farbe. */
     const l = f.l;
     const H = f.h.toFixed(0), S = f.s.toFixed(0);
-    /* Enge Fassung fuer Gehaeuse (die Erholungs-Batterien). Sie leuchtet
-       kraeftig, aber nach INNEN: der aeussere Schein bleibt eng (4 px statt
-       22 px), weil er sonst ueber die Huelle hinausstrahlt und die Striche
-       aussehen laesst, als laegen sie darueber. Abschneiden geht nicht — der
-       Nippel der Batterie sitzt ausserhalb und wuerde mit weggeschnitten.
-       Das Innenlicht ist dafuer staerker: es macht aus der Flaeche eine
-       leuchtende Roehre, ohne einen Millimeter nach aussen zu brauchen. */
+    /* Fassung fuer Gehaeuse (die Erholungs-Batterien): volle Neon-Staffel wie
+       jede andere Anzeige, dazu die beiden Innenlichter, die aus der Flaeche
+       eine Roehre machen.
+       Frueher war der aeussere Schein hier bewusst gestutzt, damit er nicht
+       ueber die Huelle hinausstrahlt. Das Ergebnis war aber, dass die Batterie
+       neben Ringen und Segmentreihen schwaecher leuchtete als alles andere —
+       und der Unterschied faellt staerker auf als der Ueberstand. Der Schein
+       darf ueber die Huelle laufen; abschneiden geht ohnehin nicht, weil der
+       Nippel der Batterie ausserhalb sitzt und mit weggeschnitten wuerde. */
     if (an && o.eng) {
       out += `<i class="on" style="background:hsl(${H},100%,${l.toFixed(0)}%);`
            + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,58%,var(--gwa-1)),`
-           + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2s)),`
+           + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2)),`
+           + `0 0 var(--gw-3) hsla(${H},100%,48%,var(--gwa-3)),`
            + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
            + `inset 0 1px 2px hsla(${H},100%,80%,.5)"></i>`;
       continue;
