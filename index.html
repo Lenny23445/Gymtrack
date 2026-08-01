@@ -8519,7 +8519,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021740';
+const APP_VERSION = 'gymtrack-v202608021800';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17914,9 +17914,15 @@ function _perfLabel(pct) {
    bekaeme in der Mitte eine Beule. */
 function _segFarbe(pct) {
   const p = Math.max(0, Math.min(100, Number(pct) || 0));
-  const h = p <= 50 ? (p / 50) * 50 : 50 + ((p - 50) / 50) * 85;
-  const l = 56 - (1 - Math.abs(p - 50) / 50) * 6;
-  return { h, s: 95, l, css: `hsl(${h.toFixed(0)},95%,${l.toFixed(0)}%)` };
+  const h = p <= 50 ? (p / 50) * 50 : 50 + ((p - 50) / 50) * 90;
+  /* Volle Saettigung und Helligkeit 50 — genau dort ist eine HSL-Farbe am
+     kraeftigsten. Jeder Wert darueber mischt Weiss dazu und macht aus dem
+     Rot ein Lachs und aus dem Gruen ein Mint. Nur Gelb wird eine Spur
+     dunkler gehalten: es ist von Natur aus das hellste der drei und stuende
+     sonst als greller Fleck zwischen seinen Nachbarn. */
+  const gelbNaehe = 1 - Math.min(1, Math.abs(h - 50) / 30);
+  const l = 50 - gelbNaehe * 4;
+  return { h, s: 100, l, css: `hsl(${h.toFixed(0)},100%,${l.toFixed(0)}%)` };
 }
 /* pct 0–100, n = Anzahl der Striche. Der Anteil wird kaufmaennisch gerundet,
    aber ein Wert ueber 0 bekommt IMMER mindestens einen Strich: "0 von 12"
@@ -17934,7 +17940,12 @@ function _segBarsHTML(pct, n, opts) {
     const an = i < voll;
     // Helligkeit steigt leicht ueber die gefuellten Striche — die Reihe wirkt
     // dadurch gerichtet statt wie ein Block.
-    const l = an ? (f.l - 3 + (i / Math.max(1, anz - 1)) * 8) : 0;
+    /* Alle gefuellten Striche tragen DIESELBE Farbe. Der frueher hier
+       liegende Helligkeitsverlauf ueber die Reihe sollte sie gerichtet wirken
+       lassen, nahm ihr aber die Deutlichkeit: der erste Strich war merklich
+       dunkler als der letzte, und aus einem klaren Gruen wurde ein Verlauf
+       ins Blasse. Eine Reihe, ein Wert, eine Farbe. */
+    const l = f.l;
     const H = f.h.toFixed(0), S = f.s.toFixed(0);
     /* Enge Fassung fuer Gehaeuse (die Erholungs-Batterien). Sie leuchtet
        kraeftig, aber nach INNEN: der aeussere Schein bleibt eng (4 px statt
@@ -17944,10 +17955,11 @@ function _segBarsHTML(pct, n, opts) {
        Das Innenlicht ist dafuer staerker: es macht aus der Flaeche eine
        leuchtende Roehre, ohne einen Millimeter nach aussen zu brauchen. */
     if (an && o.eng) {
-      out += `<i class="on" style="background:hsl(${H},100%,${(l + 6).toFixed(0)}%);`
-           + `box-shadow:0 0 4px hsla(${H},100%,70%,.9),`
-           + `inset 0 0 6px hsla(${H},100%,92%,.85),`
-           + `inset 0 0 2px hsla(0,0%,100%,.7)"></i>`;
+      out += `<i class="on" style="background:hsl(${H},100%,${l.toFixed(0)}%);`
+           + `box-shadow:0 0 5px hsla(${H},100%,58%,.95),`
+           + `0 0 9px hsla(${H},100%,50%,.55),`
+           + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
+           + `inset 0 1px 2px hsla(${H},100%,80%,.5)"></i>`;
       continue;
     }
     /* Der Schein in drei Lagen: ein enger heller Saum direkt am Strich, ein
@@ -17957,10 +17969,10 @@ function _segBarsHTML(pct, n, opts) {
        Roehre wirken laesst statt wie eine gefuellte Flaeche. */
     const st = an
       ? `background:hsl(${H},${S}%,${l.toFixed(0)}%);`
-        + `box-shadow:0 0 4px hsla(${H},100%,72%,.95),`
-        + `0 0 11px hsla(${H},${S}%,58%,.72),`
-        + `0 0 22px hsla(${H},${S}%,52%,.45),`
-        + `inset 0 0 5px hsla(${H},100%,88%,.55)`
+        + `box-shadow:0 0 5px hsla(${H},100%,60%,.95),`
+        + `0 0 13px hsla(${H},${S}%,50%,.75),`
+        + `0 0 26px hsla(${H},${S}%,48%,.45),`
+        + `inset 0 1px 3px hsla(${H},100%,78%,.45)`
       : '';
     // Der letzte gefuellte Strich ist der "aktuelle" — er traegt die Marke.
     const akt = an && i === voll - 1 && !o.flach ? ' is-now' : '';
