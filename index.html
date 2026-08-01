@@ -939,37 +939,16 @@ body{
    Einrasten: proximity, nie mandatory — hohe Karten (4+ Saetze) bleiben frei
    durchscrollbar, Notizfeld und Finish-Button unten bleiben normal erreichbar.
    Snap-Areas gibt es nur an .ex-card; Step 1 (Uebungswahl) hat keine → kein Effekt. */
-/* --wk-snap-pad haelt den Rastpunkt UNTER dem klebenden Kopf (#wk-sticky mit
-   Coach-Leiste und Pausenbalken). Ohne den Abstand rastet die Karte an der
-   Sheet-Oberkante ein und verschwindet hinter den Leisten. Der Wert wird in
-   _wkSyncSnapPad() aus der echten Hoehe gerechnet, weil beide Leisten je nach
-   Lage da sind oder nicht. */
-#ov-wk .sheet{scroll-snap-type:y mandatory;scroll-padding-top:var(--wk-snap-pad,72px)}
-/* DER entscheidende Teil fuer "ein Wisch = eine Uebung".
-   preventDefault im touchmove reicht nicht: WebKit beginnt das Scrollen schon
-   beim ERSTEN touchmove, und wer diesen durchlaesst (etwa um erst die Richtung
-   zu bestimmen), bekommt es danach nicht mehr abbestellt. touch-action:none
-   sagt der Engine vorher, dass sie diese Geste gar nicht selbst behandeln
-   soll — bewegt wird das Blatt nur noch von _wkStep().
-   Gilt nur fuer Schritt 2: die Uebungswahl scrollt weiter ganz normal. */
-#wk-step2{touch-action:none}
-/* Ausnahmen: im Textfeld will man den Text bewegen, nicht das Training. */
-#wk-step2 textarea,#wk-step2 input{touch-action:auto}
-#ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
-/* scroll-snap-stop:'always' ist der Kern des harten Einrastens: es verbietet
-   dem Schwung, einen Rastpunkt zu ueberspringen. Ein Wisch bringt genau eine
-   Uebung weiter — egal wie kraeftig er war. Ohne die Regel liefe ein kraeftiger
-   Wisch ueber drei Uebungen hinweg.
-   'mandatory' dazu heisst: die Ansicht bleibt NIE zwischen zwei Uebungen
-   stehen. Beides zusammen ist das Verfahren nativer Pager. */
-/* MITTE statt Oberkante: die eingerastete Uebung soll im Bild stehen, nicht an
-   der Kante kleben. Der Rastbereich reicht von der Unterkante der Leisten
-   (scroll-padding-top) bis zur Unterkante des Blattes — 'center' meint dessen
-   Mitte, nicht die des ganzen Bildschirms. Ist eine Karte hoeher als dieser
-   Bereich (viele Saetze, offene Vorschlagskarte), haelt WebKit den Sichtbereich
-   INNERHALB der Karte, statt sie mit Gewalt zu zentrieren — man kann sie also
-   trotz 'mandatory' von oben nach unten lesen. */
-#log-cards .ex-card{scroll-snap-align:center;scroll-snap-stop:always}
+/* Das Training scrollt FREI — kein Einrasten, kein seitenweises Blaettern.
+   Der Versuch, daraus einen Pager zu machen (touch-action:none plus ein
+   Wisch-Schrittwerk in JS), nahm dem Blatt das native Scrollen und damit jede
+   Robustheit: eine einzige Luecke in der Gestenkette legte die ganze Ansicht
+   lahm. Zurueck auf das, was die Engine von sich aus gut kann.
+   --wk-snap-pad bleibt: die Zahl beschreibt, wie viel der klebende Kopf
+   (#wk-sticky) verdeckt, und danach richten sich weiterhin die Fokus-Schicht
+   und das Einblenden der Coach-Vorschlagskarte. */
+#ov-wk .sheet{scroll-padding-top:var(--wk-snap-pad,72px)}
+
 /* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten).
    WICHTIG — warum das Dimmen am INHALT haengt und nicht an der Karte:
    .ex-card traegt backdrop-filter. Aendert sich die Deckkraft (oder die Groesse)
@@ -1002,18 +981,6 @@ body{
 #log-cards.focus-on .ex-card.locked:not(.is-swiping):not(.swipe-removing){
   border-color:rgba(var(--acc-rgb),.52);
   transform:translateY(-2px)}
-/* Bei 'mandatory' ruht die Ansicht IMMER auf einem Rastpunkt. Alles, was
-   erreichbar bleiben soll, braucht darum selbst einen — sonst zieht es das
-   Blatt wieder weg.
-
-   Frueher war die erste Karte bewusst ausgenommen, damit der Trainingskopf
-   ("Abbrechen", "Fertig") nicht weggezogen wird. Mit dem harten Einrasten
-   kehrt sich das um: ohne eigenen Rastpunkt waere der Kopf gar nicht mehr zu
-   halten, weil das Blatt zur naechsten Karte zoege. Deshalb rasten jetzt AUCH
-   der Kopf und der Abschluss (Notiz, "Training beenden") — je ein Halt an
-   ihrer Oberkante. Der Weg ist damit: Uebung 1 → Uebung 2 → … →
-   Abschluss, ein Wisch je Schritt. */
-#wk-note{scroll-snap-align:start;scroll-snap-stop:always}
 @media (prefers-reduced-motion:reduce){
   #log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{transition:none}
 }
@@ -7393,7 +7360,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       <div class="wk-head-title-row">
         <h2 id="wk-title">Training</h2>
       </div>
-      <button class="btn btn-acc btn-sm" id="wk-done-top" style="display:none;width:auto;padding:8px 16px;margin-right:8px" onclick="finishWk()">Fertig ✓</button>
       <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
     <!-- step 1: select -->
@@ -8239,7 +8205,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020026';
+const APP_VERSION = 'gymtrack-v202608020027';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15433,8 +15399,6 @@ function wkDragStart(e, li) {
   if (!log) return;
   const ex = exById(log.exerciseId);
   if (!ex) return;
-  const _sheetEl = document.querySelector('#ov-wk .sheet');
-  if (_sheetEl) _sheetEl.classList.add('snap-off');
   _wkDndLi = li;
 
   _wkDndGhost = document.createElement('div');
@@ -15481,8 +15445,6 @@ function _wkDndOnEnd(e) {
   document.removeEventListener('touchend',  _wkDndOnEnd);
   document.removeEventListener('mousemove', _wkDndOnMove);
   document.removeEventListener('mouseup',   _wkDndOnEnd);
-  const _sheetEl = document.querySelector('#ov-wk .sheet');
-  if (_sheetEl) _sheetEl.classList.remove('snap-off');
   _dndAutoScrollStop();
   if (_wkDndGhost) { _wkDndGhost.remove(); _wkDndGhost = null; }
   document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
@@ -19013,7 +18975,6 @@ function startActive() {
   _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
-  const _dt = document.getElementById('wk-done-top'); if (_dt) _dt.style.display = '';
   document.getElementById('wk-title').textContent = 'Aktives Training';
   renderLogCards();
   // Erzaehlbogen (Task 17): Begruessung, erste Uebung, Aufwaermschema. Laeuft
@@ -19234,178 +19195,6 @@ function _wkSnapPadSoon() {
   _wkSnapPadRaf = requestAnimationFrame(() => { _wkSnapPadRaf = 0; _wkSyncSnapPad(); });
 }
 
-/* ── Schrittweises Blaettern: EIN Wisch = EINE Uebung ─────────────────────
-   CSS-Snap allein reicht dafuer nicht. Es rastet erst ein, wenn der Finger
-   LOSLAESST — solange er liegt, folgt das Blatt ihm frei, und wer langsam
-   zieht, landet wo er will. "Ein Wisch, eine Uebung" ist deshalb keine
-   Einrast-Frage, sondern eine Gesten-Frage: das native Scrollen wird im
-   Training unterbunden, und der Wisch selbst zaehlt nur seine Richtung, nicht
-   seine Laenge.
-
-   Die Halte sind: Trainingskopf → Uebung 1 → Uebung 2 → … → Abschluss.
-   Waagerechte Wische bleiben unangetastet (Loeschen), ebenso Gesten in
-   Textfeldern und waehrend Umsortieren/Wischen (.snap-off). */
-let _wkSwX = 0, _wkSwY = 0, _wkSwAchse = null, _wkSwAktiv = false, _wkSwipeBound = false;
-/* Diese beiden Schwellen sind nicht schmueckendes Beiwerk: ohne sie wirft JEDER
-   touchmove einen ReferenceError, bevor die Wischachse feststeht — der Wisch
-   wird nie erkannt, _wkStep() laeuft nie, und weil touch-action:none das native
-   Scrollen abschaltet, bewegt sich im Training ueberhaupt nichts mehr.
-   Genau so gingen sie am 01.08. mit der temporaeren Diagnose verloren. */
-const WK_SW_MIN = 34;      // ab hier gilt es als Wisch, nicht als Wackler
-const WK_SW_ACHSE = 8;     // ab hier steht die Richtung fest
-/* Alle Halte in Dokumentreihenfolge: Uebung 1 → Uebung 2 → … → Abschluss.
-   Die Zeitleiste ist KEIN Halt mehr — sie klebt oben und ist immer im Bild.
-   Der Abschluss zaehlt weiter mit, sonst waere die Notiz nicht erreichbar. */
-function _wkStops() {
-  const sheet = document.querySelector('#ov-wk .sheet');
-  if (!sheet) return [];
-  const stops = [];
-  sheet.querySelectorAll('#log-cards .ex-card').forEach(c => stops.push(c));
-  const note = sheet.querySelector('#wk-note');
-  if (note) stops.push(note);
-  return stops;
-}
-
-/* Wohin muss das Blatt, damit dieser Halt sauber im Bild steht? Passt er in
-   die Buehne (Bereich unter den klebenden Leisten), wird er zentriert; ist er
-   hoeher, steht sein Anfang oben — sonst laege sein Kopf ausserhalb. */
-function _wkStopTop(el) {
-  const sheet = document.querySelector('#ov-wk .sheet');
-  if (!sheet || !el) return 0;
-  const pad = _wkSnapPadPx || 72;
-  const buehne = sheet.clientHeight - pad;
-  const sr = sheet.getBoundingClientRect();
-  const r = el.getBoundingClientRect();
-  const top = r.top - sr.top + sheet.scrollTop;       // Inhaltskoordinate
-  const ziel = r.height > buehne - 8
-    ? top - pad
-    : top - pad - (buehne - r.height) / 2;
-  const max = Math.max(0, sheet.scrollHeight - sheet.clientHeight);
-  return Math.min(max, Math.max(0, Math.round(ziel)));
-}
-
-function _wkStopIndex(stops) {
-  const sheet = document.querySelector('#ov-wk .sheet');
-  if (!sheet || !stops.length) return 0;
-  const jetzt = sheet.scrollTop;
-  let best = 0, bestD = Infinity;
-  stops.forEach((el, i) => {
-    const d = Math.abs(_wkStopTop(el) - jetzt);
-    if (d < bestD) { bestD = d; best = i; }
-  });
-  return best;
-}
-
-/* Ein Schritt. Ist der aktuelle Halt hoeher als die Buehne (viele Saetze,
-   offene Vorschlagskarte), wird ZUERST innerhalb von ihm weitergeblaettert —
-   sonst waere sein unterer Teil nie zu sehen. Erst wenn sein Ende im Bild
-   steht, geht es zum naechsten Halt. */
-function _wkStep(dir) {
-  const sheet = document.querySelector('#ov-wk .sheet');
-  const stops = _wkStops();
-  if (!sheet || !stops.length) return;
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const pad = _wkSnapPadPx || 72;
-  const buehne = sheet.clientHeight - pad;
-  const i = _wkStopIndex(stops);
-  const el = stops[i];
-  const r = el.getBoundingClientRect();
-  const sr = sheet.getBoundingClientRect();
-  const top = r.top - sr.top + sheet.scrollTop;
-  let ziel = null;
-
-  if (r.height > buehne - 8) {
-    // Hoher Halt: in Buehnenschritten durch ihn hindurch.
-    const schritt = Math.round(buehne * 0.85);
-    const inhaltUnten = top + r.height;
-    if (dir > 0 && sheet.scrollTop + sheet.clientHeight < inhaltUnten - 4) {
-      ziel = sheet.scrollTop + schritt;
-    } else if (dir < 0 && sheet.scrollTop > top - pad + 4) {
-      ziel = sheet.scrollTop - schritt;
-    }
-  }
-  if (ziel == null) {
-    /* Mehrere Halte koennen auf DERSELBEN Stelle liegen. Am Anfang etwa fallen
-       Trainingskopf und erste Uebung zusammen: die Karte steht bei Scrollstand 0
-       schon zentriert, ihr rechnerisches Ziel ist sogar negativ und wird auf 0
-       geklemmt. Ein simples i+1 landet dann wieder dort, wo man schon ist — und
-       es sieht aus, als wuerde das Blaettern gar nicht reagieren.
-       Darum wird in Wischrichtung weitergesucht, bis ein Halt kommt, der das
-       Blatt wirklich bewegt. Dasselbe schuetzt am Ende der Liste. */
-    let j = i;
-    while (true) {
-      const nj = j + dir;
-      if (nj < 0 || nj >= stops.length) { j = null; break; }
-      j = nj;
-      const z = _wkStopTop(stops[j]);
-      if (Math.abs(z - sheet.scrollTop) > 8) { ziel = z; break; }
-    }
-    if (j == null || ziel == null) return;   // schon am Anfang bzw. Ende
-  }
-  const max = Math.max(0, sheet.scrollHeight - sheet.clientHeight);
-  ziel = Math.min(max, Math.max(0, ziel));
-  haptic(8);
-  try { sheet.scrollTo({ top: ziel, behavior: reduce ? 'auto' : 'smooth' }); }
-  catch(_) { sheet.scrollTop = ziel; }
-}
-
-/* Darf diese Beruehrung das Blatt bewegen? Nein in Textfeldern (dort will man
-   den Text bewegen) und nicht waehrend Umsortieren/Loesch-Wisch. */
-function _wkSwipeErlaubt(t) {
-  const sheet = document.querySelector('#ov-wk .sheet');
-  if (!sheet) return false;
-  const s2 = document.getElementById('wk-step2');
-  if (!s2 || s2.style.display === 'none') return false;   // Uebungswahl scrollt normal
-  if (document.querySelector('.ov.on:not(#ov-wk)')) return false;
-  /* NICHT auf .snap-off pruefen! Der Loesch-Wisch setzt diese Klasse bereits im
-     touchstart JEDER Karte — also bevor ueberhaupt feststeht, ob waagerecht
-     oder senkrecht gewischt wird. Wer sie hier als "nicht zustaendig" liest,
-     schaltet sich bei jeder Beruehrung einer Uebungskarte selbst ab. Genau das
-     legte das Blaettern lahm. Umsortieren erkennt man an _wkDndLi, und das
-     steht erst, wenn wirklich gezogen wird. */
-  if (typeof _wkDndLi !== 'undefined' && _wkDndLi != null) return false;
-  return !(t && t.closest && t.closest('textarea, input, .icon-cat-scroll'));
-}
-
-function _wkBindSwipe(sheet) {
-  /* Erfassungsphase (capture): so laeuft dieser Zuhoerer VOR denen auf den
-     Karten. Die Reihenfolge der Bindung spielt damit keine Rolle mehr. */
-  sheet.addEventListener('touchstart', e => {
-    _wkSwAktiv = _wkSwipeErlaubt(e.target);
-    if (!_wkSwAktiv) return;
-    _wkSwX = e.touches[0].clientX;
-    _wkSwY = e.touches[0].clientY;
-    _wkSwAchse = null;
-  }, { passive: true, capture: true });
-
-  // NICHT passiv: nur so laesst sich das native Scrollen abbestellen. Genau das
-  // ist der Unterschied zum blossen Einrasten — ohne preventDefault folgt das
-  // Blatt weiter dem Finger, egal wie hart die Snap-Regeln sind.
-  sheet.addEventListener('touchmove', e => {
-    if (!_wkSwAktiv || !e.touches.length) return;
-    const dx = e.touches[0].clientX - _wkSwX;
-    const dy = e.touches[0].clientY - _wkSwY;
-    if (_wkSwAchse === null) {
-      if (Math.abs(dx) < WK_SW_ACHSE && Math.abs(dy) < WK_SW_ACHSE) return;
-      // Waagerecht gehoert dem Loesch-Wisch — der bleibt unangetastet.
-      _wkSwAchse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-    }
-    if (_wkSwAchse === 'y' && e.cancelable) e.preventDefault();
-  }, { passive: false, capture: true });
-
-  const ende = e => {
-    if (!_wkSwAktiv || _wkSwAchse !== 'y') { _wkSwAktiv = false; return; }
-    _wkSwAktiv = false;
-    const t = e.changedTouches && e.changedTouches[0];
-    if (!t) return;
-    const dy = t.clientY - _wkSwY;
-    if (Math.abs(dy) < WK_SW_MIN) return;    // Wackler, kein Wisch
-    _wkStep(dy < 0 ? 1 : -1);                // nach oben gewischt = weiter
-  };
-  sheet.addEventListener('touchend', ende, { passive: true, capture: true });
-  sheet.addEventListener('touchcancel', () => { _wkSwAktiv = false; }, { passive: true });
-}
-
 function _wkFocusObserve() {
   try {
     _wkSyncSnapPad();
@@ -19418,10 +19207,6 @@ function _wkFocusObserve() {
   const wrap = document.getElementById('log-cards');
   const sheet = document.querySelector('#ov-wk .sheet');
   if (!wrap || !sheet || typeof WorkoutFocus === 'undefined') return;
-  /* VOR jeder anderen Bedingung: mit touch-action:none bewegt nur noch der
-     Wisch-Zuhoerer das Blatt. Haenge er erst ab zwei Uebungen, waere ein
-     Training mit einer einzigen Uebung unbedienbar. */
-  if (!_wkSwipeBound) { _wkBindSwipe(sheet); _wkSwipeBound = true; }
   const cards = wrap.querySelectorAll('.ex-card');
   // Bei 0–1 Karten gibt es nichts zu fokussieren — nichts dimmen.
   wrap.classList.toggle('focus-on', cards.length > 1);
@@ -19628,15 +19413,11 @@ function _attachSwipeToDelete() {
       startX = t.clientX; startY = t.clientY;
       dx = 0; active = true; decided = false; dir = null;
       card.classList.add('is-swiping');
-      const sheetEl = document.querySelector('#ov-wk .sheet');
-      if (sheetEl) sheetEl.classList.add('snap-off');
     };
     const _resetCard = () => {
       card.style.transform = '';
       if (bg) bg.classList.remove('on');
       card.classList.remove('is-swiping');
-      const sheetEl = document.querySelector('#ov-wk .sheet');
-      if (sheetEl) sheetEl.classList.remove('snap-off');
     };
     const onMove = (e) => {
       if (!active) return;
@@ -19667,8 +19448,6 @@ function _attachSwipeToDelete() {
       if (window._tabSwipeActive) { _resetCard(); return; }
       if (dir !== 'h') {
         card.style.transform = ''; if (bg) bg.classList.remove('on');
-        const sheetElV = document.querySelector('#ov-wk .sheet');
-        if (sheetElV) sheetElV.classList.remove('snap-off');
         return;
       }
       const cw = card.offsetWidth || 1;
@@ -19676,8 +19455,6 @@ function _attachSwipeToDelete() {
       if (Math.abs(dx) > cw * 0.35 && !Number.isNaN(li)) {
         card.classList.add('swipe-removing');
         try { haptic([15, 30, 15]); } catch(_) {}
-        const sheetEl = document.querySelector('#ov-wk .sheet');
-        if (sheetEl) sheetEl.classList.remove('snap-off');
         setTimeout(() => {
           wkLogs.splice(li, 1);
           renderLogCards();
@@ -19685,8 +19462,6 @@ function _attachSwipeToDelete() {
       } else {
         card.style.transform = '';
         if (bg) bg.classList.remove('on');
-        const sheetElR = document.querySelector('#ov-wk .sheet');
-        if (sheetElR) sheetElR.classList.remove('snap-off');
       }
     };
 
@@ -19907,7 +19682,6 @@ function adjustRest(delta) {
    Untersheets) oder der Finger noch auf dem Sheet ist — wer selbst nach oben
    scrollt (etwa zum "Abbrechen"), soll nicht weggezogen werden. ── */
 let _wkAdvTimer = null;
-let _wkAdvSnapT = null;
 let _wkSheetTouching = false;
 (function () {
   const sheet = document.querySelector('#ov-wk .sheet');
@@ -19932,17 +19706,6 @@ function _wkAutoAdvance(li) {
     const card = document.querySelector(`#log-cards .ex-card[data-li="${target}"]`);
     if (!card) return;
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    /* Snap AUS, solange die eigene Bewegung laeuft. Sonst zieht WebKit waehrend
-       des weichen Scrollens gleichzeitig am naechsten Rastpunkt — zwei Kraefte
-       auf derselben Achse, und das las sich als Zittern und Nachschlagen. Das
-       Ziel ist ohnehin genau ein Rastpunkt (block:'start' + scroll-padding),
-       beim Wiedereinschalten springt also nichts. */
-    const sheet = document.querySelector('#ov-wk .sheet');
-    if (sheet && !reduce) {
-      sheet.classList.add('snap-off');
-      clearTimeout(_wkAdvSnapT);
-      _wkAdvSnapT = setTimeout(() => sheet.classList.remove('snap-off'), 700);
-    }
     card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }, 600);
 }
@@ -20096,7 +19859,6 @@ function _maybeUpdatePlanFromSession(valid) {
 function finishWk() {
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
-  { const d = document.getElementById('wk-done-top'); if (d) d.style.display = 'none'; }
   try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   // Zeit-Übungen: elapsed als r sichern
   wkLogs.forEach(l => {
@@ -20308,7 +20070,6 @@ function cancelWk() {
   // (isStale faengt ihn zwar, aber der Abbruch ist der ehrlichere Ort).
   try { _csDiscard(); } catch(_) {}
   _activePlanSrc = null;
-  { const d = document.getElementById('wk-done-top'); if (d) d.style.display = 'none'; }
   try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   _endLiveActivity();
   clearInterval(timerInt); timerInt = null;

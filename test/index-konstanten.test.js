@@ -2,9 +2,10 @@
 
    Anlass (01.08.2026): Beim Entfernen einer temporaeren Bildschirm-Diagnose
    fielen WK_SW_MIN und WK_SW_ACHSE mit heraus — benutzt wurden sie weiter.
-   Folge: jeder touchmove im Training warf ReferenceError, die Wischachse stand
-   nie fest, _wkStep() lief nie, und weil touch-action:none das native Scrollen
-   abschaltet, bewegte sich im Training gar nichts mehr.
+   Folge: jeder touchmove im Training warf ReferenceError und das Blatt bewegte
+   sich nicht mehr. Das Wisch-Schrittwerk selbst gibt es inzwischen nicht mehr
+   (das Training scrollt wieder frei), der Waechter bleibt: dieselbe Falle steht
+   jeder anderen Konstante in dieser Datei genauso offen.
 
    Geprueft werden nur GROSS_GESCHRIEBENE Namen mit Unterstrich — genau die Form,
    die im Code als Schwellwert/Tabelle vorkommt. Zugriffe auf Fremdobjekte
@@ -40,11 +41,4 @@ function deklariert(name) {
 test('jede GROSS_KONSTANTE in index.html ist auch deklariert', () => {
   const fehlend = benutzte().filter(n => !deklariert(n));
   assert.deepStrictEqual(fehlend, [], 'Nicht deklariert: ' + fehlend.join(', '));
-});
-
-test('die Wisch-Schwellen des Trainings stehen im Code', () => {
-  // Namentlich festgenagelt, weil genau diese beiden schon einmal verschwanden.
-  for (const n of ['WK_SW_MIN', 'WK_SW_ACHSE']) {
-    assert.ok(new RegExp('const\\s+' + n + '\\s*=\\s*\\d+').test(HTML), n + ' fehlt');
-  }
 });
