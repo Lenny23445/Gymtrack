@@ -6067,12 +6067,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
              radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.42),transparent 70%),
              radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.10),transparent 74%),
              radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.30),transparent 72%)}
-/* Der Puls: ein Lichtring, der aus der Mitte nach aussen laeuft und dabei
-   verblasst. Unter dem Sieb liest er sich als Welle, die durch das Punktfeld
-   zieht. */
-.aic-aur::before{content:'';position:absolute;left:50%;top:50%;width:120%;aspect-ratio:1;
-  transform:translate(-50%,-50%) scale(.2);border-radius:50%;opacity:0;
-  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.26) 66%,transparent 78%)}
+/* Der Lichtring, der alle 14 s aus der Mitte nach aussen lief, ist ENTFERNT.
+   Er war als Welle unter dem Punktsieb gedacht; seit das Feld aus dem Canvas
+   kommt, lag er offen auf der Karte und war genau der Puls, der auffiel. */
 /* inset:-14px, weil die Flaeche sich BEWEGT: sie zieht in einer weichen Schleife
    ueber die Karte, und ohne Ueberstand liefe an den Raendern kurz die nackte
    Kartenflaeche durch. Bewegt wird per transform (Compositor), nicht ueber
@@ -6097,7 +6094,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      Schleife. So trifft sich das Bild praktisch nie zweimal gleich. */
   .aic-aur{animation:aicAur 13s ease-in-out infinite,aicHue 29s ease-in-out infinite}
   .aic-aur::after{animation:aicAur2 19s ease-in-out infinite}
-  .aic-aur::before{animation:aicWelle 14s cubic-bezier(.3,.5,.4,1) infinite}
   .aic.in .aic-sheen{animation:aicSheen 9s cubic-bezier(.4,0,.2,1) .35s infinite}
   .aic::after{animation:aicLine 7s linear infinite}
   .aic.in{animation:aicIn .5s cubic-bezier(.2,.9,.3,1)}
@@ -6121,10 +6117,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicAur{0%,100%{transform:translate3d(-6%,0,0) scale(1)}50%{transform:translate3d(10%,3%,0) scale(1.08)}}
 /* Gegenlauf: andere Richtung, andere Weite, andere Dauer. */
 @keyframes aicAur2{0%,100%{transform:translate3d(8%,2%,0) scale(1.06)}50%{transform:translate3d(-9%,-4%,0) scale(.94)}}
-/* Die Welle: schnell los, weit raus, unterwegs verblassen. */
-@keyframes aicWelle{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
-  12%{opacity:.85}
-  100%{transform:translate(-50%,-50%) scale(1.9);opacity:0}}
+
 /* Farbwanderung um den Akzent herum — nie weiter als 36°, sonst ist es nicht
    mehr die Farbe der App. */
 /* Die Farbe wandert langsam um den Akzent (+-14 Grad) und bekommt EINMAL je
@@ -8180,7 +8173,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020010';
+const APP_VERSION = 'gymtrack-v202608020011';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
