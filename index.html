@@ -504,11 +504,10 @@
   color:var(--acc);background:rgba(var(--acc-rgb),.13);
   border:1px solid rgba(var(--acc-rgb),.25);
   padding:2px 7px;border-radius:8px;flex-shrink:0}
-/* Supersatz-Partner stehen im Seiten-Pager auf DERSELBEN Seite untereinander.
-   Der frueher noetige Verbindungsstrich (.ss-connector) ist damit gegenstandslos:
-   was auf einer Seite steht, gehoert sichtbar zusammen. Das SS-Zeichen im Kopf
-   bleibt. */
-#log-cards .ex-card.ss-linked + .ex-card.ss-linked{margin-top:6px}
+.ex-card.ss-linked + .ex-card.ss-linked{margin-top:-6px}
+.ss-connector{display:flex;justify-content:center;margin:-4px 0}
+.ss-connector span{width:2.5px;height:14px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(var(--acc-rgb),.55),rgba(var(--acc-rgb),.25))}
 
 /* ── RESET ── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -940,83 +939,68 @@ body{
    die Beta-Tester gemeldet haben. Das Sheet hat ohnehin einen echten Rahmen. */
 .sheet::before{display:none!important}
 
-/* ── SEITEN-PAGER IM TRAINING ──
-   Eine Uebung (bzw. eine Supersatz-Gruppe) fuellt genau eine bildschirmhohe
-   Seite. Ein Wisch bringt die naechste — nie zwei, nie eine halbe.
-
-   'mandatory' allein reicht dafuer NICHT: es rastet zwar immer ein, laesst den
-   Schwung aber ueber beliebig viele Rastpunkte laufen. Erst
-   scroll-snap-stop:always verbietet das Ueberspringen. Beides zusammen ist das
-   Verfahren nativer Pager.
-
-   Gescrollt wird ausschliesslich in #wk-pager. Das Sheet selbst scrollt in
-   Schritt 2 nicht mehr (overflow:hidden) — dadurch gibt es keine zweite Achse,
-   die gegen das Einrasten arbeitet, und Kopfzone wie Coach-Leiste koennen nicht
-   mehr weggezogen werden. */
-#ov-wk .sheet{scroll-snap-type:none}
-#ov-wk.wk-logging .sheet{
-  display:flex;flex-direction:column;overflow:hidden;
-  /* Die Tabbar (z 1000) schwebt UEBER dem Sheet. Ohne diesen Abstand liegen
-     letzter Satz und "+ Satz" darunter. Der Wert kommt gemessen aus
-     _wkSyncTabbarPad(); der Vorgabewert traegt nur bis zur ersten Messung. */
-  padding-bottom:var(--wk-tabbar-h,84px)}
-#ov-wk.wk-logging #wk-step2{display:flex!important;flex-direction:column;flex:1;min-height:0}
-#ov-wk.wk-logging .wk-head-zone{flex:0 0 auto}
-#wk-pager{
-  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
-  scroll-snap-type:y mandatory;overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;padding:0 20px}
-/* Waehrend Drag-Reorder und Loesch-Wisch: sonst zieht das Einrasten gegen die
-   Hand, die die Karte gerade fuehrt. */
-#wk-pager.snap-off{scroll-snap-type:none}
-/* #log-cards darf im Layout nicht mitzaehlen: eine Prozenthoehe braucht eine
-   definierte Elternhoehe, und der Wrapper hat keine. Mit display:contents
-   rechnen die Seiten direkt gegen den Pager — und der hat seine Hoehe aus dem
-   Flex-Aufbau. */
-#log-cards{display:contents}
-.wk-page{
-  height:100%;scroll-snap-align:start;scroll-snap-stop:always;
-  display:flex;flex-direction:column;min-height:0;
-  padding:8px 0 4px;box-sizing:border-box}
-/* Die Satzliste ist die EINZIGE Flaeche, die innerhalb einer Seite scrollt —
-   und auch das nur, wenn der Inhalt wirklich nicht passt. overscroll-behavior
-   ist Pflicht: sonst reicht der Wisch am Listenende an den Pager durch und
-   blaettert ungewollt weiter. */
-.wp-sets{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch}
-/* Zeilenabstand geht mit der Satzzahl zurueck, damit der Regelfall ohne
-   internes Scrollen auskommt. Gekuerzt werden NUR die Zwischenraeume — die
-   Zeilenhoehe und damit die Tap-Ziele bleiben unveraendert. */
-.wp-sets{--row-gap:10px}
-.wp-sets.dense{--row-gap:6px}
-.wp-sets .set-row{margin-bottom:var(--row-gap)}
-/* Laeuft es doch ueber, zeigt ein Verlauf an der Unterkante, dass da noch etwas
-   ist. Nur dann — sonst laege dauerhaft ein Schatten ueber dem letzten Satz. */
-.wp-sets.ovf{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);
-  mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
-/* Der Kopf der Seite steht fest: Uebungsname und Ziel bleiben sichtbar, auch
-   wenn die Satzliste darunter laeuft. Genau das fehlte vorher. */
-.wp-head{flex:0 0 auto}
-.wp-coach{flex:0 0 auto}
-/* Die Karte fuellt die Seite. Kein transform/kein Anheben mehr: es ist ohnehin
-   nur eine Karte sichtbar, und jede Bewegung auf einer Flaeche mit
-   backdrop-filter kostet in der WKWebView eine neue Weichzeichner-Ebene. */
-/* Die Karte fuellt die Seite. flex statt height:100%, weil eine Supersatz-Seite
-   ZWEI Karten traegt — die teilen sich die Hoehe, statt jede die volle zu
-   verlangen und die Seite zu sprengen. */
-#log-cards .ex-card{display:flex;flex-direction:column;min-height:0;flex:1 1 0;margin:0}
-#log-cards .ex-card>.ex-body{display:flex;flex-direction:column;min-height:0;flex:1}
-/* Punktleiste: zeigt, wo man im Training steht. Reine CSS-Punkte, keine Icons. */
-.wk-dots{display:flex;align-items:center;justify-content:center;gap:6px;
-  padding:8px 0 2px;min-height:22px}
-.wk-dots i{width:6px;height:6px;border-radius:50%;background:var(--text2);
-  opacity:.28;transition:opacity .2s,transform .2s,background .2s;flex:0 0 auto}
-.wk-dots i.on{opacity:1;background:var(--acc);transform:scale(1.5)}
-.wk-dots i.edge{transform:scale(.6)}
-.wk-dots i.edge.on{transform:scale(1.1)}
-.wk-dots .wk-dots-ct{font-size:12px;color:var(--text2);margin-left:6px;font-variant-numeric:tabular-nums}
+/* ── FOKUS-MODUS IM TRAINING ──
+   Einrasten: proximity, nie mandatory — hohe Karten (4+ Saetze) bleiben frei
+   durchscrollbar, Notizfeld und Finish-Button unten bleiben normal erreichbar.
+   Snap-Areas gibt es nur an .ex-card; Step 1 (Uebungswahl) hat keine → kein Effekt. */
+/* --wk-snap-pad haelt den Rastpunkt UNTER dem klebenden Kopf (#wk-sticky mit
+   Coach-Leiste und Pausenbalken). Ohne den Abstand rastet die Karte an der
+   Sheet-Oberkante ein und verschwindet hinter den Leisten. Der Wert wird in
+   _wkSyncSnapPad() aus der echten Hoehe gerechnet, weil beide Leisten je nach
+   Lage da sind oder nicht. */
+#ov-wk .sheet{scroll-snap-type:y proximity;scroll-padding-top:var(--wk-snap-pad,72px)}
+#ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
+/* KEIN scroll-snap-stop: 'always' laesst den Sheet an JEDER Karte zwangsweise
+   halten — das fuehlt sich abgehackt an und reisst mitten in der Bewegung.
+   Ohne die Regel gleitet der Schwung durch und setzt sich am Ende weich auf
+   den naechstgelegenen Rastpunkt. */
+/* MITTE statt Oberkante: die eingerastete Uebung soll im Bild stehen, nicht an
+   der Kante kleben. Der Rastbereich reicht von der Unterkante der Leisten
+   (scroll-padding-top) bis zur Unterkante des Blattes — 'center' meint dessen
+   Mitte, nicht die des ganzen Bildschirms. Karten, die hoeher sind als dieser
+   Bereich, behandelt _wkSettle() gesondert: sie rasten oben ein, sonst laege
+   ihr Anfang ausserhalb des Bildes. */
+#log-cards .ex-card{scroll-snap-align:center}
+/* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten).
+   WICHTIG — warum das Dimmen am INHALT haengt und nicht an der Karte:
+   .ex-card traegt backdrop-filter. Aendert sich die Deckkraft (oder die Groesse)
+   der Karte selbst, muss WebKit den Weichzeichner des Untergrundes fuer jeden
+   Frame der Blende neu rechnen, und zwar fuer JEDE Karte, die gerade wechselt.
+   Genau das machte den Fokuswechsel zaeh und das Geraet warm. Faden nur Kopf
+   und Koerper, bleibt die Kartenebene unveraendert und der Blur zwischen-
+   gespeichert. Aus demselben Grund gibt es keine Skalierung mehr: sie zwang die
+   Ebene bei jedem Wechsel zur Neurasterung. */
+#log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{
+  transition:opacity .22s cubic-bezier(.33,1,.68,1)}
+#log-cards.focus-on .ex-card.dimmed>.ex-head,
+#log-cards.focus-on .ex-card.dimmed>.ex-body{opacity:.42}
+/* ── Die eingerastete Karte ──
+   Sie traegt Akzentrahmen, einen tieferen Schatten und steht 2 px hoeher.
+   Das Anheben laeuft ueber transform und nicht ueber margin: nur so bleibt es
+   eine Bewegung im Compositor statt eines Umbruchs der ganzen Liste. Genau EINE
+   Karte hat diese Klasse, deshalb ist das will-change hier vertretbar — es
+   haelt die Karte auf ihrer eigenen Ebene, sodass der backdrop-filter waehrend
+   der 220 ms nicht in jedem Bild neu gerechnet wird.
+   Das :not() ist kein Schmuck: diese Regel traegt eine ID und wuerde sonst die
+   Kurven des Wischens (.is-swiping, .swipe-removing) ueberstimmen — die Karte
+   liefe beim Loeschen nicht mehr sauber hinaus. Wer die Karte gerade in der
+   Hand hat, faehrt sie allein. */
+#log-cards.focus-on .ex-card:not(.is-swiping):not(.swipe-removing){
+  transition:transform .22s cubic-bezier(.33,1,.68,1),
+             border-color .22s ease,box-shadow .22s ease}
+#log-cards.focus-on .ex-card.locked:not(.is-swiping):not(.swipe-removing){
+  border-color:rgba(var(--acc-rgb),.52);
+  box-shadow:0 12px 30px rgba(var(--acc-rgb),.20),var(--gl-hi);
+  transform:translateY(-2px);
+  will-change:transform}
+/* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
+   erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
+   Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
+   wegziehen. Darum rastet ab der ZWEITEN Karte — der Weg nach ganz oben
+   bleibt frei scrollbar. */
+#log-cards .ex-card:first-child{scroll-snap-align:none}
 @media (prefers-reduced-motion:reduce){
-  .wk-dots i{transition:none}
+  #log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{transition:none}
 }
 
 /* ── TABBAR — iOS 26 LIQUID GLASS ── */
@@ -1555,20 +1539,6 @@ body.sheet-modal #ai-bubble{pointer-events:none}
   opacity:.55;flex-shrink:0;
 }
 .wk-drag-handle:active{opacity:1;cursor:grabbing}
-/* Reihenfolge-Sheet: kompakte Liste, damit man beim Ziehen die Nachbarn sieht. */
-.wko-row{display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:8px;
-  background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px}
-.wko-row.done{opacity:.5}
-.wko-grip{display:inline-flex;align-items:center;justify-content:center;
-  width:26px;height:30px;color:var(--text2);font-size:18px;letter-spacing:-3px;
-  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
-  -webkit-tap-highlight-color:transparent;opacity:.6;flex-shrink:0}
-.wko-grip:active{opacity:1;cursor:grabbing}
-.wko-name{flex:1;min-width:0;font-size:15px;font-weight:600;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wko-n{font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;flex-shrink:0}
-.wko-row.dnd-wk-over{border-color:var(--acc);
-  box-shadow:0 0 0 2px rgba(var(--acc-rgb),.35)}
 .ex-card.dnd-wk-over{
   box-shadow:0 0 0 2px var(--acc),0 8px 24px rgba(var(--acc-rgb),.18);
   transform:scale(1.01);
@@ -6036,8 +6006,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    und Nachricht. */
 /* Die Karte faehrt AUF: Hoehe, Deckkraft und ein kurzer Weg von oben in einem
    Zug. Vorher stand sie schlagartig da und schob den ganzen Satzblock nach
-   unten. Im Seiten-Pager sitzt sie ausserhalb der scrollenden Satzliste
-   (.wp-coach), schiebt also nichts mehr weg — die Blende ist reine Zier.
+   unten — zusammen mit dem Scroll-Anker (s. _lcAnker) ist der Sprung damit weg.
    KEIN fill-mode: nach dem Lauf gilt wieder die natuerliche Hoehe, sonst
    schnitte die max-height eine laengere Karte ab. 420 px ist nur die Obergrenze
    der Blende, keine Begrenzung des Inhalts. */
@@ -6347,7 +6316,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      als opts herein (s. _chChartOpts). -->
 <script src="./js/coach-charts.js"></script>
 <script src="./js/workout-focus.js"></script>
-<script src="./js/workout-pager.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -7418,11 +7386,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
         <div class="gap"></div>
       </div>
     </div>
-    <!-- step 2: log — Seiten-Pager: eine Uebung = eine bildschirmhohe Seite.
-         Kopfzone (Trainingszeit, Coach-Leiste, Pausenbalken, Punktleiste) steht
-         fest; gescrollt wird ausschliesslich in #wk-pager. -->
+    <!-- step 2: log -->
     <div id="wk-step2" style="display:none">
-      <div class="px wk-head-zone">
+      <div class="px">
         <div class="timer-bar">
           <div>
             <div class="timer-l">Trainingszeit</div>
@@ -7447,21 +7413,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
           <button class="rest-bar-skip" onclick="skipRest()">✕</button>
         </div>
         </div>
-        <div id="wk-dots" class="wk-dots"></div>
-      </div>
-      <!-- Der einzige Scroller. #log-cards liefert die Uebungsseiten (gerendert),
-           die Abschluss-Seite steht fest im Markup: waere sie gerendert, verloere
-           das Notizfeld bei jedem vollstaendigen Neuaufbau den Text. -->
-      <div id="wk-pager">
         <div id="log-cards"></div>
-        <div class="wk-page wp-end" data-unit="end">
-          <div class="wp-sets">
-            <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
-            <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
-            <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
-            <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
-          </div>
-        </div>
+        <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
+        <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
+        <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
+        <button class="wk-cancel-btn" style="width:100%;margin-top:8px;margin-bottom:6px" onclick="cancelWk()">Training abbrechen</button>
       </div>
     </div>
   </div>
@@ -7775,23 +7731,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 </div>
 
 <!-- SHEET: EXERCISE EDIT MENU (im aktiven Training) -->
-<!-- Reihenfolge aendern. Im Seiten-Pager sieht man immer nur EINE Uebung —
-     Ziehen braucht aber den Blick auf die Nachbarn. Darum eine kompakte Liste
-     in einem eigenen Sheet statt eines Griffs an der Uebungskarte. -->
-<div class="ov" id="ov-wkorder" onclick="if(event.target===this)closeOv('ov-wkorder')">
-  <div class="sheet" style="max-height:80vh">
-    <div class="sh-handle"></div>
-    <div class="sh-head">
-      <h2>Reihenfolge</h2>
-      <button class="x-btn" onclick="closeOv('ov-wkorder')">✕</button>
-    </div>
-    <div class="px" style="padding-bottom:18px">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.4">Zum Sortieren am Griff ziehen. Supersätze bleiben zusammen.</div>
-      <div id="wkorder-list"></div>
-    </div>
-  </div>
-</div>
-
 <div class="ov" id="ov-ex-edit" onclick="if(event.target===this)closeOv('ov-ex-edit')">
   <div class="sheet" style="max-height:80vh">
     <div class="sh-handle"></div>
@@ -7805,7 +7744,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
         <input id="ex-edit-name" class="f-in" type="text" maxlength="40">
       </div>
       <button class="btn btn-acc" onclick="applyExRename()" style="margin-bottom:14px">Namen speichern</button>
-      <button class="btn btn-gray" onclick="openWkOrder()" style="margin-bottom:14px">Reihenfolge ändern</button>
 
       <div id="ss-section" style="margin-bottom:14px">
         <button class="btn btn-gray" id="ss-btn" onclick="toggleSuperset()">Superset mit nächster Übung</button>
@@ -8266,7 +8204,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020017';
+const APP_VERSION = 'gymtrack-v202608020016';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8485,9 +8423,6 @@ const I18N_EN = {
   'Training abbrechen':'Cancel workout','Pause':'Rest','Pause vorbei':'Rest over',
   'Weiter geht’s – nächster Satz!':'Keep going – next set!','Partner-Übung':'partner exercise',
   'Superset gelöst':'Superset removed','Superset erstellt':'🔗 Superset created','Superset lösen':'🔗 Remove superset',
-  // Seiten-Pager im Training: Reihenfolge-Sheet
-  'Reihenfolge':'Order','Reihenfolge ändern':'Change order',
-  'Zum Sortieren am Griff ziehen. Supersätze bleiben zusammen.':'Drag the handle to reorder. Supersets stay together.',
   'Beide Übungen im Wechsel — die Pause startet erst, wenn beide ihren Satz beendet haben.':'Both exercises alternate — the rest timer starts only when both have finished their set.',
   'Superset mit nächster Übung':'Superset with next exercise','Name (für dieses Training)':'Name (for this workout)',
   'Namen speichern':'Save name','Ziel: Sätze & Wiederholungen':'Goal: sets & reps','Wdh von':'Reps from','Wdh bis':'Reps to',
@@ -11864,7 +11799,7 @@ function initTabIndicator() {
 }
 // Sheets, die im aktiven Training das Workout-Sheet ERSETZEN statt darüber zu
 // stapeln (kein "Fenster in Fenster"). Beim Schließen kommt das Workout zurück.
-const WK_SUB_SHEETS = ['ov-ex-swap','ov-ex-edit','ov-mid-add','ov-det','ov-mg-stat','ov-prog-info','ov-ex','ov-sess-detail','ov-wkorder'];
+const WK_SUB_SHEETS = ['ov-ex-swap','ov-ex-edit','ov-mid-add','ov-det','ov-mg-stat','ov-prog-info','ov-ex','ov-sess-detail'];
 let _wkHiddenBySub   = false; // ov-wk wurde von einem Untersheet verdrängt
 let _suppressWkRestore = false; // z. B. beim Tab-Wechsel: alles zu, nichts wiederherstellen
 // Statistik-Drilldown (Gruppe → Übung → Einheit): X/Swipe geht einen Schritt
@@ -12325,7 +12260,6 @@ function startPresetDirect(id){
   // Step 1 (Auswahl/Prüfen) zeigen — identisch zum normalen openWorkout()
   document.getElementById('wk-step1').style.display = '';
   document.getElementById('wk-step2').style.display = 'none';
-  _wkLoggingMode(false);
   document.getElementById('wk-title').textContent = 'Training';
   renderWkPresets();
   renderWkFilterBar();
@@ -15484,36 +15418,9 @@ function _dndReorder(draggedId, targetId) {
 }
 
 // ── DRAG-AND-DROP: AKTIVES TRAINING (wkLogs umsortieren) ──
-/* Gezogen wird in der Liste des Reihenfolge-Sheets (#ov-wkorder), nicht mehr an
-   der Uebungskarte: im Seiten-Pager ist immer nur eine Uebung sichtbar, und wer
-   nicht sieht, wo er landet, kann nicht sortieren. */
 let _wkDndLi    = null;
 let _wkDndGhost = null;
 let _wkDndOver  = null;
-
-/* Reihenfolge-Sheet. Kompakte Liste aller Uebungen; Supersatz-Partner tragen
-   das SS-Zeichen und bleiben beim Verschieben ihrer Gruppe treu, weil die
-   Gruppenzugehoerigkeit am Log haengt und nicht an der Position. */
-function openWkOrder() {
-  if (!wkLogs || !wkLogs.length) return;
-  _renderWkOrder();
-  openOv('ov-wkorder');
-}
-function _renderWkOrder() {
-  const el = document.getElementById('wkorder-list');
-  if (!el) return;
-  el.innerHTML = wkLogs.map((log, li) => {
-    const ex = exById(log.exerciseId);
-    const name = log._overrideName || (ex && ex.name) || 'Übung';
-    const offen = (log.sets || []).some(s => !s.done);
-    return `<div class="wko-row${offen ? '' : ' done'}" data-li="${li}">
-      <span class="wko-grip" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
-      <span class="wko-name">${esc(name)}</span>
-      ${log.ssGroup ? '<span class="ss-badge">SS</span>' : ''}
-      <span class="wko-n">${li + 1}</span>
-    </div>`;
-  }).join('');
-}
 
 function wkDragStart(e, li) {
   e.preventDefault();
@@ -15522,7 +15429,7 @@ function wkDragStart(e, li) {
   if (!log) return;
   const ex = exById(log.exerciseId);
   if (!ex) return;
-  const _sheetEl = document.getElementById('wk-pager');
+  const _sheetEl = document.querySelector('#ov-wk .sheet');
   if (_sheetEl) _sheetEl.classList.add('snap-off');
   _wkDndLi = li;
 
@@ -15545,16 +15452,16 @@ function _wkDndMove(x, y) {
   _wkDndGhost.style.left = (x - 110) + 'px';
   _wkDndGhost.style.top  = (y - 38)  + 'px';
   let over = null;
-  document.querySelectorAll('#wkorder-list .wko-row[data-li]').forEach(el => {
+  document.querySelectorAll('#log-cards .ex-card[data-li]').forEach(el => {
     if (parseInt(el.dataset.li) === _wkDndLi) return;
     const r = el.getBoundingClientRect();
     if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) over = parseInt(el.dataset.li);
   });
   if (over !== _wkDndOver) {
-    document.querySelectorAll('.wko-row.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
+    document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
     _wkDndOver = over;
     if (_wkDndOver != null) {
-      const el = document.querySelector(`#wkorder-list .wko-row[data-li="${_wkDndOver}"]`);
+      const el = document.querySelector(`#log-cards .ex-card[data-li="${_wkDndOver}"]`);
       if (el) el.classList.add('dnd-wk-over');
     }
   }
@@ -15570,16 +15477,15 @@ function _wkDndOnEnd(e) {
   document.removeEventListener('touchend',  _wkDndOnEnd);
   document.removeEventListener('mousemove', _wkDndOnMove);
   document.removeEventListener('mouseup',   _wkDndOnEnd);
-  const _sheetEl = document.getElementById('wk-pager');
+  const _sheetEl = document.querySelector('#ov-wk .sheet');
   if (_sheetEl) _sheetEl.classList.remove('snap-off');
   _dndAutoScrollStop();
   if (_wkDndGhost) { _wkDndGhost.remove(); _wkDndGhost = null; }
-  document.querySelectorAll('.wko-row.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
+  document.querySelectorAll('.ex-card.dnd-wk-over').forEach(n => n.classList.remove('dnd-wk-over'));
   if (_wkDndLi != null && _wkDndOver != null && _wkDndLi !== _wkDndOver) {
     const [item] = wkLogs.splice(_wkDndLi, 1);
     wkLogs.splice(_wkDndOver, 0, item);
-    _renderWkOrder();     // Liste im Sheet sofort nachziehen
-    renderLogCards();     // Seiten neu einteilen (Supersaetze koennen sich aendern)
+    renderLogCards();
     haptic(8);
   }
   _wkDndLi = null; _wkDndOver = null;
@@ -18568,7 +18474,6 @@ function openWorkout() {
 
   document.getElementById('wk-step1').style.display = '';
   document.getElementById('wk-step2').style.display = 'none';
-  _wkLoggingMode(false);
   document.getElementById('wk-title').textContent = 'Training';
   renderWkPresets();
   renderWkFilterBar();
@@ -19105,7 +19010,6 @@ function startActive() {
   _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
-  _wkLoggingMode(true);
   document.getElementById('wk-title').textContent = 'Aktives Training';
   renderLogCards();
   // Erzaehlbogen (Task 17): Begruessung, erste Uebung, Aufwaermschema. Laeuft
@@ -19182,7 +19086,6 @@ function _restoreActiveWk() {
   const s1 = document.getElementById('wk-step1'), s2 = document.getElementById('wk-step2');
   if (s1) s1.style.display = 'none';
   if (s2) s2.style.display = '';
-  _wkLoggingMode(true);
   const t = document.getElementById('wk-title'); if (t) t.textContent = 'Aktives Training';
   const note = document.getElementById('wk-note'); if (note) note.value = saved.note || '';
   _activePlanSrc = saved.planSrc || null;
@@ -19210,198 +19113,194 @@ function _restoreActiveWk() {
   try { _csResume(); } catch(e) { console.warn('[Coach] Wiederaufnahme:', e); }
 }
 
-/* ── Seiten-Pager: welche Uebung ist "dran"? ──
-   Das Trainingsblatt blaettert seitenweise. Damit ist die Frage, die frueher
-   Geometrie war, nur noch eine Division: aktive Seite = scrollTop / Seitenhoehe.
-   Die alte Schicht mass bei jeder Bewegung alle Kartenboxen nach, hielt einen
-   Vorsprung gegen das Kippen des Fokus und raeumte 180 ms nach dem Stillstand
-   nach. Das alles faellt weg — 'mandatory' rastet selbst, und es gibt keinen
-   Zwischenzustand mehr, den man nachtraeglich geradeziehen muesste.
-
-   _wkFocusLi bleibt die Uebungsnummer (nicht der Seitenindex): daran haengen
-   Coach-Karte, Auto-Weiter und der Erzaehlbogen. Umgerechnet wird ueber
-   WorkoutPager (js/workout-pager.js, unter node --test geprueft). */
+/* ── Fokus-Modus: welche Uebung ist "dran"? ──
+   _wkFocusLi lebt hier im Modul, weil es den Zustand ueber Renderlaeufe hinweg
+   traegt. Gesetzt werden die Klassen ausschliesslich von _wkFocusApply() — auch
+   direkt nach jedem Rendern, also noch vor dem naechsten Bild und damit ohne
+   Flackern. Die Auswahl selbst (Geometrie, Superset-Einheit) rechnet
+   WorkoutFocus (js/workout-focus.js, unter node --test geprueft). */
 let _wkFocusLi = -1;
+/* Kartenlage in KOORDINATEN DES SCROLLERS (top/bottom relativ zum Inhalt, nicht
+   zum Bildschirm). Einmal je Renderlauf gemessen, danach nur noch gerechnet:
+   waehrend des Scrollens darf KEIN getBoundingClientRect mehr laufen. Genau das
+   war der Ruckler — ein IntersectionObserver mit fuenf Schwellen las bei jeder
+   Meldung alle Karten neu aus, und weil _wkFocusApply() vorher Klassen gesetzt
+   hatte, erzwang jeder dieser Lesevorgaenge ein vollstaendiges Layout. Bei
+   backdrop-filter auf jeder Karte kostet das Watt, nicht nur Millisekunden. */
+let _wkFocusBoxes = null;
+let _wkFocusDirty = true;
 let _wkFocusRaf = 0;
 let _wkFocusBound = false;
-let _wkPages = [];
+let _wkSnapPadPx = 0;
 
-function _wkPagerEl() { return document.getElementById('wk-pager'); }
-
-/* Seitenhoehe. clientHeight des Pagers, nicht die des Sheets: die Kopfzone
-   (Trainingszeit, Coach-Leiste, Pausenbalken, Punktleiste) zaehlt nicht mit,
-   und genau das war frueher der Grund fuer den gerechneten Rastabstand. */
-function _wkPageH() {
-  const pg = _wkPagerEl();
-  return pg ? pg.clientHeight : 0;
-}
-
-function _wkActivePage() {
-  const pg = _wkPagerEl();
-  if (!pg || typeof WorkoutPager === 'undefined') return 0;
-  return WorkoutPager.pageIndexFor(pg.scrollTop, _wkPageH(), _wkPages.length);
-}
-
-/* Die aktive Seite auf einen Rastpunkt setzen. 'smooth' nur, wenn es der Nutzer
-   nicht abgeschaltet hat — und nie waehrend sein Finger auf dem Blatt liegt. */
-function _wkGoPage(idx, weich) {
-  const pg = _wkPagerEl();
-  if (!pg || typeof WorkoutPager === 'undefined') return;
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const top = WorkoutPager.scrollTopFor(
-    Math.min(Math.max(0, idx), Math.max(0, _wkPages.length - 1)), _wkPageH());
-  if (Math.abs(pg.scrollTop - top) < 1) return;
-  try { pg.scrollTo({ top: top, behavior: (weich && !reduce) ? 'smooth' : 'auto' }); }
-  catch(_) { pg.scrollTop = top; }
-}
-
-/* Fokus + Punktleiste nachziehen. Setzt KEINE Klassen an den Karten mehr: es
-   ist ohnehin nur eine Seite sichtbar, und jede Klassenaenderung auf einer
-   Flaeche mit backdrop-filter kostet in der WKWebView eine neue Ebene. */
 function _wkFocusApply() {
-  const idx = _wkActivePage();
-  const seite = _wkPages[idx];
-  const li = (seite && seite.unit.length) ? seite.unit[0] : -1;
-  _wkFocusLi = li;
-  _wkDotsApply(idx);
+  const cards = document.querySelectorAll('#log-cards .ex-card');
+  const unit = (_wkFocusLi >= 0 && typeof WorkoutFocus !== 'undefined')
+    ? WorkoutFocus.focusUnitOf(wkLogs, _wkFocusLi) : [];
+  cards.forEach(c => {
+    const li = +c.dataset.li;
+    const drin = unit.includes(li);
+    c.classList.toggle('dimmed', unit.length > 0 && !drin);
+    // Die eingerastete Einheit traegt das Zeichen SELBST (Rahmen, Schatten,
+    // angehoben) — vorher gab es nur "die anderen sind dunkler", und dann
+    // erkennt man den Moment des Einrastens erst am Umfeld.
+    c.classList.toggle('locked', unit.length > 0 && drin);
+  });
+}
+
+/* Die einzige Messstelle. Laeuft nach dem Rendern, nach Hoehenwechseln der
+   Kopfleisten und beim ersten Tick — nie waehrend einer Scrollbewegung. */
+function _wkFocusMeasure(sheet, wrap) {
+  const sr = sheet.getBoundingClientRect();
+  const base = sr.top - sheet.scrollTop;      // Bildschirm → Inhaltskoordinaten
+  const boxes = [];
+  wrap.querySelectorAll('.ex-card').forEach(c => {
+    const r = c.getBoundingClientRect();
+    boxes.push({ li: +c.dataset.li, top: r.top - base, bottom: r.bottom - base });
+  });
+  _wkFocusBoxes = boxes;
+  _wkFocusDirty = false;
 }
 
 function _wkFocusTick() {
   _wkFocusRaf = 0;
   try {
-    const idx = _wkActivePage();
-    const seite = _wkPages[idx];
-    const li = (seite && seite.unit.length) ? seite.unit[0] : -1;
-    _wkDotsApply(idx);
-    if (li !== _wkFocusLi) _wkFocusLi = li;
+    if (typeof WorkoutFocus === 'undefined') return;
+    const sheet = document.querySelector('#ov-wk .sheet');
+    const wrap  = document.getElementById('log-cards');
+    if (!sheet || !wrap) return;
+    if (_wkFocusDirty || !_wkFocusBoxes) _wkFocusMeasure(sheet, wrap);
+    const boxes = _wkFocusBoxes;
+    if (!boxes || boxes.length < 2) return;
+    // Mitte der BUEHNE, nicht des Sheets: der Bereich hinter dem klebenden Kopf
+    // zaehlt nicht mit, sonst gilt eine Karte als "dran", die dort verdeckt liegt.
+    const pad = _wkSnapPadPx || 72;
+    const mid = sheet.scrollTop + pad + (sheet.clientHeight - pad) / 2;
+    // Mit Vorsprung fuer die bereits gewaehlte Karte: ohne den kippte der Fokus
+    // beim Scrollen mehrfach zwischen zwei fast gleich weit entfernten Karten
+    // hin und her. 56 px ~ eine Satzzeile — gross genug gegen das Zittern, klein
+    // genug, dass ein echter Wechsel sofort durchkommt.
+    const cur = _wkFocusLi >= 0 ? boxes.findIndex(b => b.li === _wkFocusLi) : -1;
+    const idx = WorkoutFocus.pickFocusedStable(boxes, mid, cur, 56);
+    const li = idx >= 0 ? boxes[idx].li : -1;
+    if (li !== _wkFocusLi) { _wkFocusLi = li; _wkFocusApply(); }
   } catch(_) {}
 }
 
 // Hoechstens EINE Auswertung je Bild. Das Scroll-Ereignis selbst tut nichts.
 function _wkFocusSoon() { if (!_wkFocusRaf) _wkFocusRaf = requestAnimationFrame(_wkFocusTick); }
 
-/* ── Punktleiste ──────────────────────────────────────────────────────────
-   Zeigt, wo man im Training steht, und springt auf Tippen. Ab zehn Seiten
-   werden die aeusseren Punkte klein statt die Leiste breiter — dieselbe
-   Loesung, die iOS bei langen Pagern benutzt. Die Abschluss-Seite bekommt
-   keinen Punkt: sie ist kein Trainingsschritt, und ein Punkt mehr als Uebungen
-   verwirrt beim Zaehlen. */
-const WK_DOTS_MAX = 9;
-function _wkDotsRender() {
-  const el = document.getElementById('wk-dots');
-  if (!el) return;
-  const n = Math.max(0, _wkPages.length - 1);          // ohne Abschluss-Seite
-  if (n < 2) { el.innerHTML = ''; return; }
-  let h = '';
-  for (let i = 0; i < n; i++) h += '<i data-p="' + i + '"></i>';
-  h += '<span class="wk-dots-ct"></span>';
-  el.innerHTML = h;
-  if (!el.dataset.bound) {
-    el.dataset.bound = '1';
-    el.addEventListener('click', e => {
-      const d = e.target.closest('i[data-p]');
-      if (!d) return;
-      haptic(8);
-      _wkGoPage(+d.dataset.p, true);
-    });
-  }
-  _wkDotsApply(_wkActivePage());
+/* ── Nachrasten ───────────────────────────────────────────────────────────
+   scroll-snap-type:proximity rastet nur, wenn der Finger nahe genug an einem
+   Rastpunkt loslaesst. Zwischen zwei Karten liess es die Ansicht deshalb
+   einfach stehen — man sah zwei Haelften und keine ganze Uebung. "Mandatory"
+   waere die naheliegende Antwort und die falsche: es reisst die Ansicht auch
+   dann an die naechste Karte, wenn man nur ein Stueck weiterlesen will.
+
+   Stattdessen raeumt DIESE Funktion nach: 180 ms nachdem die Bewegung steht
+   (und der Finger weg ist), faehrt das Blatt die eingerastete Uebung sauber an
+   den Rastpunkt. Nicht die naechstliegende Karte, sondern die, die der
+   Fokus-Modus ohnehin als "dran" fuehrt — sonst raeumt es gegen die eigene
+   Hervorhebung.
+
+   Nichts passiert, wenn: der Finger noch liegt, gerade umsortiert/gewischt
+   wird (.snap-off), oder die Karte schon nah genug (14 px) steht. */
+let _wkSettleT = 0, _wkTouching = false;
+function _wkSettleSoon(){
+  clearTimeout(_wkSettleT);
+  _wkSettleT = setTimeout(_wkSettle, 180);
+}
+function _wkSettle(){
+  try {
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (!sheet || _wkTouching || sheet.classList.contains('snap-off')) return;
+    if (_wkFocusLi < 0 || !_wkFocusBoxes) return;
+    const box = _wkFocusBoxes.filter(b => b.li === _wkFocusLi)[0];
+    if (!box) return;
+    const pad  = _wkSnapPadPx || 72;
+    const buehne = sheet.clientHeight - pad;        // sichtbarer Bereich unter den Leisten
+    const hoehe  = box.bottom - box.top;
+    // Passt die Karte in die Buehne, wird ihre MITTE auf die Mitte der Buehne
+    // gelegt. Ist sie hoeher (viele Saetze, offene Vorschlagskarte), waere die
+    // Mitte die falsche Zusage: dann steht ihr Anfang oben, damit man von oben
+    // lesen kann.
+    const ziel = Math.max(0, Math.round(
+      hoehe > buehne - 8 ? box.top - pad
+                         : box.top - pad - (buehne - hoehe) / 2));
+    if (Math.abs(sheet.scrollTop - ziel) < 14) return;
+    // Ueber die Blattkante hinaus wird nicht gefahren: am Ende der Liste stuende
+    // die letzte Karte sonst dauerhaft "daneben" und das Nachrasten liefe in
+    // jeder Ruhepause erneut.
+    const max = sheet.scrollHeight - sheet.clientHeight;
+    if (ziel > max - 4) return;
+    try { sheet.scrollTo({ top: ziel, behavior: 'smooth' }); }
+    catch(_) { sheet.scrollTop = ziel; }
+  } catch(_) {}
 }
 
-function _wkDotsApply(idx) {
-  const el = document.getElementById('wk-dots');
-  if (!el) return;
-  const punkte = el.querySelectorAll('i[data-p]');
-  if (!punkte.length) return;
-  const n = punkte.length;
-  // Fenster um die aktive Seite: bei wenigen Seiten sind alle gross, sonst
-  // schrumpfen die, die ausserhalb liegen.
-  const halb = Math.floor(WK_DOTS_MAX / 2);
-  const von = Math.max(0, Math.min(idx - halb, n - WK_DOTS_MAX));
-  const bis = von + WK_DOTS_MAX - 1;
-  punkte.forEach((d, i) => {
-    d.classList.toggle('on', i === idx);
-    d.classList.toggle('edge', n > WK_DOTS_MAX && (i < von || i > bis));
-  });
-  const ct = el.querySelector('.wk-dots-ct');
-  // Auf der Abschluss-Seite (idx === n) steht kein Zaehler — dort ist nichts zu zaehlen.
-  if (ct) ct.textContent = idx < n ? (idx + 1) + '/' + n : '';
-}
+/* Rastabstand = Klebe-Offset von #wk-sticky (58px) + dessen echte Hoehe.
+   Coach-Leiste und Pausenbalken kommen und gehen; ein fester Wert waere
+   entweder zu klein (Karte liegt hinter der Leiste) oder zu gross (Karte
+   startet mit einer Luecke). Ein ResizeObserver haelt den Wert nach. */
+let _wkStickyRO = null;
+let _wkSnapPadRaf = 0;
 
-/* ── Abstand zur Tabbar ───────────────────────────────────────────────────
-   Die Tabbar schwebt bei z-index 1000 UEBER dem Sheet und ist im Training
-   bewusst bedienbar. Ohne gemessenen Abstand liegen der letzte Satz und der
-   "+ Satz"-Knopf darunter — genau die Beschwerde, mit der dieser Umbau begann.
-   Geschrieben wird nur bei echter Aenderung: jede Aenderung des padding-bottom
-   laesst WebKit die Rastpunkte des ganzen Pagers neu rechnen. */
-let _wkTabbarPx = 0, _wkTabbarRO = null;
-function _wkSyncTabbarPad() {
+/* Nur schreiben, wenn sich der Wert wirklich aendert. Die Coach-Leiste faehrt
+   ihre Hoehe ueber 300 ms — ohne diese Schranke meldete der ResizeObserver
+   JEDEN Zwischenwert, jeder davon setzte eine CSS-Variable am Scroller, und
+   jede Aenderung von scroll-padding zwingt WebKit, die Rastpunkte des ganzen
+   Blattes neu zu rechnen. Das war die zweite Haelfte der Hitze. */
+function _wkSyncSnapPad() {
   const sheet = document.querySelector('#ov-wk .sheet');
-  const bar = document.querySelector('.tabbar');
-  if (!sheet) return;
-  const h = bar ? bar.getBoundingClientRect().height : 0;
-  // 6px Bodenabstand der Leiste + Safe-Area stecken in ihrer Lage, nicht in der
-  // Hoehe — deshalb der Aufschlag. 12px Luft, damit nichts die Kante beruehrt.
-  const sab = parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--sab')) || 0;
-  const v = Math.round(h + sab + 18);
-  if (v === _wkTabbarPx || !(v > 0)) return;
-  _wkTabbarPx = v;
-  sheet.style.setProperty('--wk-tabbar-h', v + 'px');
-  _wkKeepPage();
+  const sticky = document.getElementById('wk-sticky');
+  if (!sheet || !sticky) return;
+  const v = Math.round(58 + sticky.getBoundingClientRect().height + 8);
+  if (v === _wkSnapPadPx) return;
+  _wkSnapPadPx = v;
+  sheet.style.setProperty('--wk-snap-pad', v + 'px');
+  // Die Leisten sind gewachsen/geschrumpft → die Karten liegen woanders.
+  _wkFocusDirty = true;
+  _wkFocusSoon();
 }
-
-/* ── Seitenhoehe hat sich geaendert ───────────────────────────────────────
-   Coach-Leiste und Pausenbalken kommen und gehen und fahren ihre Hoehe ueber
-   300 ms. Danach ist clientHeight ein anderer und scrollTop zeigt zwischen zwei
-   Seiten. Einmal ohne Animation zurechtruecken — die Zwischenwerte sieht
-   ohnehin niemand, und ein weiches Scrollen mitten in einer Blende liest sich
-   als Ruckeln. */
-function _wkKeepPage() {
-  const pg = _wkPagerEl();
-  if (!pg || typeof WorkoutPager === 'undefined') return;
-  const idx = WorkoutPager.pageOfLi(_wkPages, _wkFocusLi);
-  const ziel = idx >= 0 ? idx : _wkActivePage();
-  const top = WorkoutPager.scrollTopFor(ziel, _wkPageH());
-  if (Math.abs(pg.scrollTop - top) > 1) pg.scrollTop = top;
-  _wkDotsApply(ziel);
-}
-
-/* Laeuft die Satzliste einer Seite ueber, bekommt sie den Verlauf an der
-   Unterkante; bei vielen Saetzen gehen vorher die Zwischenraeume zurueck.
-   Gemessen wird nur nach dem Rendern und nach Hoehenwechseln, nie waehrend des
-   Scrollens. */
-function _wkSetsFit() {
-  document.querySelectorAll('#log-cards .wp-sets').forEach(el => {
-    const saetze = el.querySelectorAll('.set-row').length;
-    el.classList.toggle('dense', saetze >= 6);
-    el.classList.toggle('ovf', el.scrollHeight - el.clientHeight > 4);
-  });
+/* Waehrend die Coach-Leiste ihre Hoehe faehrt, wird NICHT nachgemessen. Sonst
+   laeuft dieselbe Kette (Rastabstand schreiben → Rastpunkte neu rechnen →
+   Kartenlage neu messen) einmal je Frame der Blende mit. Ein einziger Abgleich
+   danach genuegt: die Zwischenwerte sieht ohnehin niemand. */
+let _cbBarBusy = false;
+function _wkSnapPadSoon() {
+  if (_wkSnapPadRaf || _cbBarBusy) return;
+  _wkSnapPadRaf = requestAnimationFrame(() => { _wkSnapPadRaf = 0; _wkSyncSnapPad(); });
 }
 
 function _wkFocusObserve() {
+  try {
+    _wkSyncSnapPad();
+    const sticky = document.getElementById('wk-sticky');
+    if (sticky && !_wkStickyRO && typeof ResizeObserver !== 'undefined') {
+      _wkStickyRO = new ResizeObserver(() => _wkSnapPadSoon());
+      _wkStickyRO.observe(sticky);
+    }
+  } catch(_) {}
   const wrap = document.getElementById('log-cards');
-  const pg = _wkPagerEl();
-  if (!wrap || !pg || typeof WorkoutPager === 'undefined') return;
-  _wkPages = WorkoutPager.pagesOf(wkLogs);
+  const sheet = document.querySelector('#ov-wk .sheet');
+  if (!wrap || !sheet || typeof WorkoutFocus === 'undefined') return;
+  const cards = wrap.querySelectorAll('.ex-card');
+  // Bei 0–1 Karten gibt es nichts zu fokussieren — nichts dimmen.
+  wrap.classList.toggle('focus-on', cards.length > 1);
+  if (cards.length < 2) { _wkFocusLi = -1; _wkFocusBoxes = null; return; }
   if (_wkFocusLi >= wkLogs.length) _wkFocusLi = -1;   // nach Entfernen/Umsortieren
   // EIN passiver Zuhoerer fuer die Lebensdauer des Blattes — nicht ein Observer
   // je Karte, der bei jedem Rendern neu aufgebaut wird.
   if (!_wkFocusBound) {
-    pg.addEventListener('scroll', _wkFocusSoon, { passive: true });
-    try {
-      if (typeof ResizeObserver !== 'undefined') {
-        // Die Kopfzone aendert die Seitenhoehe; der Pager meldet das als eigene
-        // Groessenaenderung. Ein Beobachter genuegt fuer beide Ursachen.
-        new ResizeObserver(() => { _wkKeepPage(); _wkSetsFit(); }).observe(pg);
-        const bar = document.querySelector('.tabbar');
-        if (bar) { _wkTabbarRO = new ResizeObserver(() => _wkSyncTabbarPad()); _wkTabbarRO.observe(bar); }
-      }
-    } catch(_) {}
+    sheet.addEventListener('scroll', () => { _wkFocusSoon(); _wkSettleSoon(); }, { passive: true });
+    // Solange der Finger liegt, wird nicht nachgeraeumt — ein Blatt, das unter
+    // dem Finger wegfaehrt, ist schlimmer als eine schiefe Karte.
+    sheet.addEventListener('touchstart', () => { _wkTouching = true; clearTimeout(_wkSettleT); }, { passive: true });
+    sheet.addEventListener('touchend',   () => { _wkTouching = false; _wkSettleSoon(); }, { passive: true });
+    sheet.addEventListener('touchcancel',() => { _wkTouching = false; }, { passive: true });
     _wkFocusBound = true;
   }
-  _wkSyncTabbarPad();
-  _wkDotsRender();
+  _wkFocusDirty = true;
   _wkFocusSoon();
 }
 
@@ -19430,42 +19329,51 @@ let _lcChunks = null;
    Austausch; die Differenz wird auf den Scrollstand addiert. Die Karte steht
    danach exakt dort, wo sie vorher stand — der neue Inhalt waechst um sie
    herum, statt sie wegzuschieben. */
-/* Anker gegen das Wegrutschen. Frueher wurde die Bildschirmlage der Karte vor
-   und nach dem Austausch gemessen und die Differenz auf den Scrollstand
-   addiert. Im Pager ist das einfacher UND genauer: die aktive Seite hat einen
-   Index, und der Rastpunkt dazu ist eine Multiplikation. Wird eine Uebung
-   mitten im Training entfernt oder ergaenzt, aendert sich die Seitenzahl — der
-   Pager setzt danach auf die Seite der aktiven Uebung zurueck. */
+function _lcAnker(){
+  try {
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (!sheet || _wkFocusLi < 0) return null;
+    const el = sheet.querySelector('#log-cards .ex-card[data-li="' + _wkFocusLi + '"]');
+    if (!el) return null;
+    return { sheet: sheet, li: _wkFocusLi, top: el.getBoundingClientRect().top };
+  } catch(_) { return null; }
+}
+function _lcAnkerHalten(a){
+  if (!a) return;
+  try {
+    const el = a.sheet.querySelector('#log-cards .ex-card[data-li="' + a.li + '"]');
+    if (!el) return;
+    const d = el.getBoundingClientRect().top - a.top;
+    if (Math.abs(d) > 0.5) a.sheet.scrollTop += d;
+  } catch(_) {}
+}
 function _lcApply(chunks) {
   const wrap = document.getElementById('log-cards');
   if (!wrap) return;
+  const anker = _lcAnker();
   const voll = () => {
-    wrap.innerHTML = chunks.map(c => c.html).join('');
+    wrap.innerHTML = chunks.join('');
     _lcChunks = chunks.slice();
   };
-  const fertig = () => {
-    _lcChunks = chunks.slice();
-    // Erst die Seiten neu einteilen (sie bestimmen die Rastpunkte), dann die
-    // Lage halten — beides noch vor dem naechsten Bild.
-    try { _wkFocusObserve(); } catch(_) {}
-    try { _wkKeepPage(); } catch(_) {}
-    try { _wkSetsFit(); } catch(_) {}
-    _wkFocusSoon();
-  };
-  if (!_lcChunks || _lcChunks.length !== chunks.length || !wrap.firstElementChild) {
-    voll(); fertig(); return;
-  }
+  if (!_lcChunks || _lcChunks.length !== chunks.length || !wrap.firstElementChild) { voll(); _lcAnkerHalten(anker); return; }
   for (let i = 0; i < chunks.length; i++) {
-    if (chunks[i].html === _lcChunks[i].html && chunks[i].key === _lcChunks[i].key) continue;
-    const seite = wrap.querySelector('.wk-page[data-unit="' + _lcChunks[i].key + '"]');
-    if (!seite) { voll(); fertig(); return; }   // Annahme gebrochen → alles neu
+    if (chunks[i] === _lcChunks[i]) continue;
+    const card = wrap.querySelector('.ex-card[data-li="' + i + '"]');
+    if (!card) { voll(); _lcAnkerHalten(anker); return; }   // Annahme gebrochen → alles neu
+    // Der Supersatz-Verbinder gehoert zum Stueck und steht VOR der Karte.
+    const vor = card.previousElementSibling;
+    const alt = (vor && vor.classList.contains('ss-connector')) ? [vor, card] : [card];
     const tmp = document.createElement('div');
-    tmp.innerHTML = chunks[i].html;
-    const neuKnoten = [...tmp.childNodes];
-    seite.before(...neuKnoten);
-    seite.remove();
+    tmp.innerHTML = chunks[i];
+    const neu = [...tmp.childNodes];
+    alt[0].before(...neu);
+    alt.forEach(n => n.remove());
   }
-  fertig();
+  _lcChunks = chunks.slice();
+  _lcAnkerHalten(anker);
+  // Die Karten liegen jetzt anders — die Messwerte des Fokus sind veraltet.
+  _wkFocusDirty = true;
+  _wkFocusSoon();
 }
 
 function renderLogCards() {
@@ -19479,25 +19387,24 @@ function renderLogCards() {
     if (typeof isPremium === 'function' && isPremium() && _coachLevel() !== 'off')
       _auraLi = wkLogs.findIndex(l => (l.sets || []).some(s => !s.done));
   } catch(_) {}
-  /* Eine Uebung — bzw. eine ganze Supersatz-Gruppe — ergibt EINE Seite. Die
-     Einteilung kommt aus WorkoutPager.pagesOf(), also aus derselben Quelle, die
-     auch die Rastpunkte und das Auto-Weiter benutzen. Der Verbindungsstrich der
-     Supersaetze entfaellt: Partner stehen jetzt ohnehin auf einer Seite. */
-  const _seiten = (typeof WorkoutPager !== 'undefined')
-    ? WorkoutPager.pagesOf(wkLogs).filter(p => p.unit.length)   // Abschluss-Seite steht im Markup
-    : wkLogs.map((_, li) => ({ unit: [li], key: String(li) }));
-
-  const _exHtml = (li) => {
-    const log = wkLogs[li];
+  // Das Dimmen steht bewusst NICHT mehr im Markup: es haengt allein an
+  // _wkFocusApply(). Sonst haetten Vorlage und DOM zwei Quellen fuer denselben
+  // Zustand — und beim Karten-Diff unten wuerde eine Karte mit unveraendertem
+  // Markup eine zwischenzeitlich gesetzte Klasse behalten. _wkFocusApply()
+  // laeuft am Ende dieser Funktion, also noch vor dem naechsten Bild.
+  const _chunks = wkLogs.map((log,li)=>{
     const ex = exById(log.exerciseId);
     const isTime = ex.targetType === 'time';
     const goalLabel = isTime ? `${ex.targetSets}×${fmtSec(ex.targetReps)}` : `${ex.targetSets}×${repGoalShort(ex)}`;
     const prevSets = lastSessionSetsFor(log.exerciseId);
     const displayName = log._overrideName || ex.name;
     const ssLinked = !!log.ssGroup;
-    return `<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}" data-li="${li}">
+    const ssConnector = ssLinked && li > 0 && wkLogs[li-1].ssGroup === log.ssGroup
+      ? '<div class="ss-connector"><span></span></div>' : '';
+    return `${ssConnector}<div class="ex-card${ssLinked ? ' ss-linked' : ''}${li === _auraLi ? ' coach-aura' : ''}" data-li="${li}">
       <div class="ex-card-swipe-bg"><span>🗑 Entfernen</span></div>
-      <div class="ex-head wp-head">
+      <div class="ex-head">
+        <span class="wk-drag-handle" onmousedown="wkDragStart(event,${li})" ontouchstart="wkDragStart(event,${li})">⠿</span>
         <span class="ex-title ex-title-tap" onclick="openExEditMenu(${li})">${esc(displayName)} <span style="opacity:.45;font-size:13px;margin-left:4px">›</span></span>
         ${ssLinked ? '<span class="ss-badge">SS</span>' : ''}
         <span class="ex-goal-tap" style="font-size:13px;color:var(--text2)" onclick="openExEditMenu(${li})">Ziel: ${goalLabel} ›</span>
@@ -19505,8 +19412,7 @@ function renderLogCards() {
         <button class="ex-swap-btn" onclick="openExSwap(${li})" title="Übung tauschen" aria-label="Übung tauschen">⇄</button>
       </div>
       <div class="ex-body">
-        ${(_coachCard && _coachCard.exId === log.exerciseId) ? `<div class="wp-coach">${_coachCardHTML()}</div>` : ''}
-        <div class="wp-sets">
+        ${(_coachCard && _coachCard.exId === log.exerciseId) ? _coachCardHTML() : ''}
         <div class="set-hdr"><span></span><span></span><span>TYP</span><span>${unitLabel().toUpperCase()}</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
@@ -19545,20 +19451,14 @@ function renderLogCards() {
           </button>
         </div>${prevHint}`;}).join('')}
         <button class="add-set-btn" onclick="addSet(${li})">+ Satz</button>
-        </div>
       </div>
     </div>`;
-  };
-
-  /* Eine Seite je Einheit. Bei einem Supersatz stehen beide Uebungen
-     untereinander in derselben Seite — so, wie man sie auch trainiert:
-     satzweise abwechselnd, ohne dazwischen zu blaettern. */
-  const _chunks = _seiten.map(seite => ({
-    key: seite.key,
-    html: `<div class="wk-page" data-unit="${seite.key}">${seite.unit.map(_exHtml).join('')}</div>`
-  }));
+  });
   _lcApply(_chunks);
   _attachSwipeToDelete();
+  // Erst die Fokus-Schicht neu anbinden (sie begrenzt _wkFocusLi nach dem
+  // Entfernen/Umsortieren), dann die Klassen setzen — noch im selben Bild.
+  try { _wkFocusObserve(); } catch(_) {}
   try { _wkFocusApply(); } catch(_) {}
   _saveActiveWkSoon();
   try { _coachBarRender(); } catch(_) {}
@@ -19590,14 +19490,14 @@ function _attachSwipeToDelete() {
       startX = t.clientX; startY = t.clientY;
       dx = 0; active = true; decided = false; dir = null;
       card.classList.add('is-swiping');
-      const sheetEl = document.getElementById('wk-pager');
+      const sheetEl = document.querySelector('#ov-wk .sheet');
       if (sheetEl) sheetEl.classList.add('snap-off');
     };
     const _resetCard = () => {
       card.style.transform = '';
       if (bg) bg.classList.remove('on');
       card.classList.remove('is-swiping');
-      const sheetEl = document.getElementById('wk-pager');
+      const sheetEl = document.querySelector('#ov-wk .sheet');
       if (sheetEl) sheetEl.classList.remove('snap-off');
     };
     const onMove = (e) => {
@@ -19629,7 +19529,7 @@ function _attachSwipeToDelete() {
       if (window._tabSwipeActive) { _resetCard(); return; }
       if (dir !== 'h') {
         card.style.transform = ''; if (bg) bg.classList.remove('on');
-        const sheetElV = document.getElementById('wk-pager');
+        const sheetElV = document.querySelector('#ov-wk .sheet');
         if (sheetElV) sheetElV.classList.remove('snap-off');
         return;
       }
@@ -19638,7 +19538,7 @@ function _attachSwipeToDelete() {
       if (Math.abs(dx) > cw * 0.35 && !Number.isNaN(li)) {
         card.classList.add('swipe-removing');
         try { haptic([15, 30, 15]); } catch(_) {}
-        const sheetEl = document.getElementById('wk-pager');
+        const sheetEl = document.querySelector('#ov-wk .sheet');
         if (sheetEl) sheetEl.classList.remove('snap-off');
         setTimeout(() => {
           wkLogs.splice(li, 1);
@@ -19647,7 +19547,7 @@ function _attachSwipeToDelete() {
       } else {
         card.style.transform = '';
         if (bg) bg.classList.remove('on');
-        const sheetElR = document.getElementById('wk-pager');
+        const sheetElR = document.querySelector('#ov-wk .sheet');
         if (sheetElR) sheetElR.classList.remove('snap-off');
       }
     };
@@ -19848,13 +19748,14 @@ function adjustRest(delta) {
    Untersheets) oder der Finger noch auf dem Sheet ist — wer selbst nach oben
    scrollt (etwa zum "Abbrechen"), soll nicht weggezogen werden. ── */
 let _wkAdvTimer = null;
+let _wkAdvSnapT = null;
 let _wkSheetTouching = false;
 (function () {
-  const pg = document.getElementById('wk-pager');
-  if (!pg) return;
-  pg.addEventListener('touchstart',  () => { _wkSheetTouching = true;  }, { passive: true });
-  pg.addEventListener('touchend',    () => { _wkSheetTouching = false; }, { passive: true });
-  pg.addEventListener('touchcancel', () => { _wkSheetTouching = false; }, { passive: true });
+  const sheet = document.querySelector('#ov-wk .sheet');
+  if (!sheet) return;
+  sheet.addEventListener('touchstart',  () => { _wkSheetTouching = true;  }, { passive: true });
+  sheet.addEventListener('touchend',    () => { _wkSheetTouching = false; }, { passive: true });
+  sheet.addEventListener('touchcancel', () => { _wkSheetTouching = false; }, { passive: true });
 })();
 
 function _wkAutoAdvance(li) {
@@ -19869,13 +19770,21 @@ function _wkAutoAdvance(li) {
   _wkAdvTimer = setTimeout(() => {
     if (document.querySelector('.ov.on:not(#ov-wk)')) return;  // Wheel/Satz-Typ/Untersheet offen
     if (_wkSheetTouching) return;                              // Nutzer scrollt/beruehrt gerade
-    if (typeof WorkoutPager === 'undefined') return;
-    const idx = WorkoutPager.pageOfLi(_wkPages, target);
-    if (idx < 0) return;
-    /* Das Ziel ist exakt ein Rastpunkt (Seitenindex × Seitenhoehe). Deshalb
-       braucht es hier kein Abschalten des Einrastens mehr: es gibt keine zweite
-       Kraft auf der Achse, gegen die das weiche Scrollen anlaufen koennte. */
-    _wkGoPage(idx, true);
+    const card = document.querySelector(`#log-cards .ex-card[data-li="${target}"]`);
+    if (!card) return;
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* Snap AUS, solange die eigene Bewegung laeuft. Sonst zieht WebKit waehrend
+       des weichen Scrollens gleichzeitig am naechsten Rastpunkt — zwei Kraefte
+       auf derselben Achse, und das las sich als Zittern und Nachschlagen. Das
+       Ziel ist ohnehin genau ein Rastpunkt (block:'start' + scroll-padding),
+       beim Wiedereinschalten springt also nichts. */
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (sheet && !reduce) {
+      sheet.classList.add('snap-off');
+      clearTimeout(_wkAdvSnapT);
+      _wkAdvSnapT = setTimeout(() => sheet.classList.remove('snap-off'), 700);
+    }
+    card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }, 600);
 }
 
@@ -26422,15 +26331,13 @@ function _coachBarAnimate(el, apply) {
   el.style.height = from + 'px';
   void el.offsetWidth;                         // Reflow: Startwert festschreiben
   el.style.height = to + 'px';
-  // Waehrend die Leiste faehrt, aendert sich die Seitenhoehe in jedem Bild.
-  // Nachgerueckt wird EINMAL am Ende: der Pager setzt die aktive Seite ohne
-  // Animation auf ihren Rastpunkt zurueck. Die Zwischenwerte sieht niemand,
-  // ein weiches Scrollen mitten in der Blende laese sich als Ruckeln.
+  // Solange die Leiste faehrt, halten Fokus-Schicht und Rastabstand still
+  // (s. _wkSnapPadSoon) — danach EIN Abgleich mit dem Endzustand.
   _cbBarBusy = true;
   if (el._cbEndTimer) clearTimeout(el._cbEndTimer);
   el._cbEndTimer = setTimeout(() => {
     el.style.height = ''; el._cbEndTimer = null; _cbBarBusy = false;
-    try { _wkKeepPage(); _wkSetsFit(); _wkFocusSoon(); } catch(_) {}
+    try { _wkSyncSnapPad(); _wkFocusDirty = true; _wkFocusSoon(); } catch(_) {}
   }, 340);
 }
 function _coachBarRender() {
