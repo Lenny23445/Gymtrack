@@ -192,7 +192,7 @@
 
 /* ── DESIGN TOKENS (Radius · Spacing · Motion · Glas) ── */
 :root{
-  --r-sm:10px; --r-md:14px; --r-lg:22px; --r-xl:28px;
+  --r-sm:12px; --r-md:16px; --r-lg:28px; --r-xl:34px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
   /* Harte Obergrenze für Bottom-Sheets/Modals: nie in Statusbar/Dynamic Island
      ragen. dvh = sichtbarer Viewport; safe-area-top = Notch/Island-Zone. */
@@ -201,7 +201,7 @@
   --spring:cubic-bezier(.34,1.56,.64,1);
   /* Zentrale Glas-Blur-Stufen — appweit konsistent.
      sm = kleine Chips/Inputs · md = Karten · lg = Header/Sheets/Floating */
-  --gl-blur-sm:22px; --gl-blur:36px; --gl-blur-lg:54px;
+  --gl-blur-sm:26px; --gl-blur:44px; --gl-blur-lg:66px;
   --gl-sat:180%;
 }
 
@@ -213,23 +213,32 @@
   --soft:rgba(0,122,255,.10);
   --bg:#f2f2f6; --card:#ffffff; --seg-on:#ffffff;
   /* Wie Dark-Referenz, hell gespiegelt: monochromer Grund + weiches Diagonalband */
+  /* Vorlage (hell): ein neutraler, leicht kuehler Grund — KEIN Weiss — und
+     darauf zwei grosse, sehr weich auslaufende Kugeln, eine blaugrau, eine
+     rose. Sie sind der Grund, warum das Glas ueberhaupt als Glas lesbar ist:
+     eine Platte vor einer gleichmaessigen Flaeche zeigt nichts, sie braucht
+     etwas zum Brechen. Deshalb sitzen sie gross und ausserhalb der Mitte. */
   --mesh:
-    linear-gradient(118deg,transparent 28%,rgba(255,255,255,.55) 43%,rgba(255,255,255,.85) 50%,rgba(255,255,255,.55) 57%,transparent 72%),
-    radial-gradient(95% 70% at 85% -6%,rgba(255,255,255,.70) 0%,transparent 55%),
-    radial-gradient(85% 62% at 4% 104%,rgba(120,126,142,.12) 0%,transparent 56%),
-    linear-gradient(180deg,#f5f5f9 0%,#eeeef4 55%,#e6e6ee 100%);
+    radial-gradient(58% 42% at 14% 8%,rgba(126,142,166,.55) 0%,rgba(126,142,166,.18) 45%,transparent 72%),
+    radial-gradient(52% 40% at 92% 46%,rgba(206,182,182,.52) 0%,rgba(206,182,182,.16) 46%,transparent 72%),
+    radial-gradient(46% 34% at 26% 96%,rgba(150,160,178,.38) 0%,transparent 66%),
+    linear-gradient(168deg,#dcdee3 0%,#d2d5db 46%,#c8cbd2 100%);
   /* Halbtransparente Glasflächen (echter Blur wirkt) */
-  --gl-bg:linear-gradient(180deg,rgba(255,255,255,.58) 0%,rgba(255,255,255,.36) 100%);
-  --gl-bg-h:linear-gradient(180deg,rgba(255,255,255,.76) 0%,rgba(255,255,255,.54) 100%);
-  --gl-bg-t:rgba(255,255,255,.30);
-  --gl-bdr:rgba(255,255,255,.60); --gl-bdr2:rgba(0,0,0,.05);
-  --gl-shad:0 2px 8px rgba(0,0,0,.05),0 14px 34px rgba(0,0,0,.08);
-  --gl-shad-lg:0 6px 18px rgba(0,0,0,.08),0 26px 60px rgba(0,0,0,.13);
-  /* Lichtkante oben + feiner Innenrand = Glaslinsen-Look */
-  --gl-hi:inset 0 1px 0 rgba(255,255,255,.75),inset 0 0 0 1px rgba(255,255,255,.22);
-  --sheen:linear-gradient(180deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.05) 55%,transparent 100%);
+  /* Vorlage: die Platte ist FAST leer. Was sie sichtbar macht, ist der Rand —
+     oben und links ein heller Lichtstreif, sonst nichts. Der Schlagschatten
+     faellt fast weg: eine Glasscheibe liegt AUF dem Bild, sie schwebt nicht
+     darueber. */
+  --gl-bg:linear-gradient(158deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 62%,rgba(255,255,255,.22) 100%);
+  --gl-bg-h:linear-gradient(158deg,rgba(255,255,255,.46) 0%,rgba(255,255,255,.24) 100%);
+  --gl-bg-t:rgba(255,255,255,.18);
+  --gl-bdr:rgba(255,255,255,.55); --gl-bdr2:rgba(255,255,255,.22);
+  --gl-shad:0 1px 2px rgba(40,44,56,.05),0 18px 40px rgba(40,44,56,.10);
+  --gl-shad-lg:0 2px 6px rgba(40,44,56,.06),0 34px 76px rgba(40,44,56,.16);
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.85),inset 1px 0 0 rgba(255,255,255,.45),
+          inset 0 -1px 0 rgba(255,255,255,.12);
+  --sheen:linear-gradient(180deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.03) 60%,transparent 100%);
   --sep:rgba(60,60,67,.10);
-  --inp-bg:rgba(255,255,255,.44); --inp-focus:rgba(255,255,255,.72);
+  --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(120,120,128,.10); --g6:rgba(255,255,255,.60);
 }
 [data-theme="rosa"] {
@@ -268,17 +277,27 @@
      Ohne farbigen, kontrastreichen Grund wirkt near-transparentes Glas grau. */
   /* Hintergrund wie das macOS-Batterie-Widget: SCHWARZ, monochrom — nur große,
      weiche graue Diagonalformen als Licht. Keine bunten Pools. */
+  /* Vorlage (dunkel): fast schwarz, und darin ein paar sehr dunkle Koerper,
+     die man eher ahnt als sieht. Genau daran bricht das Glas — ohne sie ist
+     eine dunkle Scheibe vor schwarzem Grund unsichtbar. Kein Farbton, nur
+     Helligkeit: die Vorlage ist monochrom. */
   --mesh:
-    linear-gradient(180deg,#060608 0%,#030304 55%,#000000 100%);
+    radial-gradient(42% 30% at 82% 12%,rgba(255,255,255,.10) 0%,rgba(255,255,255,.03) 44%,transparent 70%),
+    radial-gradient(38% 28% at 10% 40%,rgba(255,255,255,.07) 0%,transparent 68%),
+    radial-gradient(50% 34% at 62% 92%,rgba(255,255,255,.05) 0%,transparent 70%),
+    linear-gradient(172deg,#0a0b0e 0%,#050609 52%,#000000 100%);
   /* Rauchglas wie im Referenz-Widget: Innenfläche fast unsichtbar dunkel,
      KEIN weißer Schleier innen — alles Licht sitzt an der KANTE (Rim + Top-Edge). */
-  --gl-bg:linear-gradient(180deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%);
-  --gl-bg-h:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.05) 100%);
-  --gl-bg-t:rgba(255,255,255,.05);
-  --gl-bdr:rgba(255,255,255,.09); --gl-bdr2:rgba(255,255,255,.05);
-  --gl-shad:0 8px 24px rgba(0,0,0,.38),0 26px 64px rgba(0,0,0,.55);
-  --gl-shad-lg:0 12px 34px rgba(0,0,0,.44),0 44px 100px rgba(0,0,0,.62);
-  --gl-hi:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(255,255,255,.03);
+  --gl-bg:linear-gradient(158deg,rgba(255,255,255,.075) 0%,rgba(255,255,255,.022) 60%,rgba(255,255,255,.045) 100%);
+  --gl-bg-h:linear-gradient(158deg,rgba(255,255,255,.11) 0%,rgba(255,255,255,.04) 100%);
+  --gl-bg-t:rgba(255,255,255,.045);
+  --gl-bdr:rgba(255,255,255,.11); --gl-bdr2:rgba(255,255,255,.05);
+  --gl-shad:0 10px 30px rgba(0,0,0,.42),0 34px 80px rgba(0,0,0,.60);
+  --gl-shad-lg:0 16px 44px rgba(0,0,0,.50),0 56px 120px rgba(0,0,0,.68);
+  /* Rim: oben UND links hell, unten ein Hauch — in der Vorlage sitzt das ganze
+     Licht auf zwei Kanten, nicht rundherum. */
+  --gl-hi:inset 0 1px 0 rgba(255,255,255,.34),inset 1px 0 0 rgba(255,255,255,.14),
+          inset 0 -1px 0 rgba(255,255,255,.05);
   --sheen:linear-gradient(180deg,rgba(255,255,255,.045) 0%,transparent 52%);
   --gl-blur:50px; --gl-blur-lg:82px; --gl-sat:205%;
   --sep:rgba(255,255,255,.08);
@@ -8144,7 +8163,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010019';
+const APP_VERSION = 'gymtrack-v202608020001';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
