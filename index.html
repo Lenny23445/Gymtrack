@@ -3202,22 +3202,58 @@ body.wpick-open #heute-edit-bar{display:none!important}
   transition:transform .12s;
 }
 .week-card:active{transform:scale(.985)}
-.week-circles-row{display:flex;justify-content:space-between;gap:4px}
-.week-day{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0}
-.week-day-lbl{font-size:11px;color:var(--text2);font-weight:600}
+/* ── WOCHENLEISTE: Kapseln statt freistehender Kreise ────────────────────
+   Jeder Tag steht in einer eigenen hohen Kapsel, der Tagespunkt sitzt oben
+   darin. Der heutige Tag wird nicht durch einen Rahmen am Punkt markiert,
+   sondern dadurch, dass seine KAPSEL heller ist als die anderen und eine
+   Marke ueber sich traegt — so ist "heute" schon aus dem Augenwinkel zu
+   sehen, ohne dass der Punkt selbst seine Aussage (trainiert / nicht)
+   dafuer hergeben muss. Genau das war vorher der Konflikt: Rahmen fuer
+   heute und Fuellung fuer trainiert lagen auf demselben Element. */
+.week-circles-row{display:flex;justify-content:space-between;gap:5px;padding-top:9px}
+.week-day{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;position:relative}
+.week-day-lbl{font-size:10.5px;color:var(--text2);font-weight:700;letter-spacing:.2px}
+/* Die Marke ueber dem heutigen Tag. Ein kleines Dreieck, das nach unten auf
+   die Kapsel zeigt — es beansprucht keine Breite (position:absolute), sonst
+   ruecken die sieben Spalten beim Tageswechsel gegeneinander. */
+.week-day.is-today::before{
+  content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:4.5px solid transparent;border-right:4.5px solid transparent;
+  border-top:5px solid var(--text);opacity:.85;
+}
+.week-day.is-today .week-day-lbl{color:var(--text)}
+.week-pill{
+  width:100%;max-width:38px;height:52px;border-radius:999px;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:4px;
+  box-sizing:border-box;
+  background:rgba(255,255,255,.05);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  transition:background .25s ease,box-shadow .25s ease;
+}
+/* Die Kapsel des heutigen Tages: heller Grund und ein Saum in der
+   Akzentfarbe. Der Saum ist bewusst schwach — er soll die Spalte heben, nicht
+   mit dem Punkt darin um Aufmerksamkeit streiten. */
+.week-pill.today{
+  background:rgba(255,255,255,.115);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),.18);
+}
 .week-dot{
   width:30px;height:30px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;
-  background:rgba(128,128,128,.10);color:var(--text2);
-  border:2px solid transparent;box-sizing:border-box;
+  font-size:12.5px;font-weight:800;line-height:1;
+  background:transparent;color:var(--text2);
+  border:none;box-sizing:border-box;flex-shrink:0;
 }
-.week-dot.l1{background:rgba(var(--acc-rgb),.30);color:var(--text)}
-.week-dot.l2{background:rgba(var(--acc-rgb),.55);color:#fff}
-.week-dot.l3{background:rgba(var(--acc-rgb),.80);color:#fff}
+.week-dot.l1{background:rgba(var(--acc-rgb),.42);color:#fff}
+.week-dot.l2{background:rgba(var(--acc-rgb),.62);color:#fff}
+.week-dot.l3{background:rgba(var(--acc-rgb),.82);color:#fff}
 .week-dot.l4{background:var(--acc);color:#fff}
-.week-dot.today{border-color:var(--text)}
 .week-dot.future{opacity:.4}
+/* Kommende Tage treten zurueck, verschwinden aber nicht: die Woche soll als
+   ganze lesbar bleiben, sonst weiss man am Montag nicht, wovon die zwei
+   gefuellten Punkte ein Teil sind. */
+.week-pill.future{background:rgba(255,255,255,.028);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
 /* ── Neon: die trainierten Tage leuchten ──────────────────────────────────
    Der Schein liegt AUSSEN (box-shadow ohne inset) und die Farbe bleibt satt.
    Die vier Stufen (l1–l4) markieren weiterhin, wie viel an dem Tag bewegt
@@ -3235,11 +3271,14 @@ body.wpick-open #heute-edit-bar{display:none!important}
                        0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3))}
 .week-dot svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3;
   stroke-linecap:round;stroke-linejoin:round;display:block}
-/* Ein Tag ohne Training ist leer, nicht durchgestrichen und nicht beziffert:
-   die Zahl im Kreis las sich wie ein Wert, dabei ist sie nur das Datum. */
+/* Ein Tag ohne Training traegt sein Datum als blossen Umriss — kein gefuellter
+   Kreis. Die Zahl allein war frueher missverstaendlich (sie las sich wie ein
+   Wert), in der Kapsel mit Umriss ist sie eindeutig ein Datum. Der Unterschied
+   trainiert / nicht trainiert liegt jetzt in Fuellung und Schein, nicht mehr
+   darin, ob ueberhaupt etwas im Kreis steht. */
 .week-dot:not(.l1):not(.l2):not(.l3):not(.l4){
-  background:rgba(255,255,255,.055);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+  background:transparent;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.10);
 }
 
 /* ── Streak mit Flamme ────────────────────────────────────────────────────
@@ -8799,7 +8838,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030230';
+const APP_VERSION = 'gymtrack-v202608030320';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12749,10 +12788,17 @@ function hwWeekcal(size){
     const isToday  = d.getTime()===today.getTime();
     const isFuture = d>today;
     const cls = [v>0?'l'+level(v):'', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
-    // Erledigte Tage tragen den Haken und leuchten, offene bleiben als
-    // dunkler Kreis stehen — dieselbe Regel wie bei den Strichen: die leeren
-    // sind die Skala, ohne sie waere nicht zu sehen, wovon es wie viele sind.
-    days += `<div class="week-day"><div class="week-dot ${cls}">${v>0?ICO.check({s:15}):''}</div><div class="week-day-lbl">${_WD_LBL[i]}</div></div>`;
+    /* Das Kuerzel steht jetzt UEBER der Kapsel und die Kapsel traegt den
+       Tagespunkt: erst wonach man sucht (der Wochentag), dann was an dem Tag
+       war. "Heute" haengt an der Spalte, nicht am Punkt — deshalb bekommt die
+       week-day die Markierung und nicht mehr der Punkt (siehe CSS).
+       Im Punkt steht das Datum statt eines Hakens: die trainierten Tage sind
+       an Fuellung und Schein zu erkennen, und die Zahl beantwortet nebenbei
+       die Frage, um welche Woche es ueberhaupt geht. */
+    days += `<div class="week-day${isToday?' is-today':''}">`
+          + `<div class="week-day-lbl">${_WD_LBL[i]}</div>`
+          + `<div class="week-pill${isToday?' today':''}${isFuture?' future':''}">`
+          + `<div class="week-dot ${cls}">${d.getDate()}</div></div></div>`;
     dots += `<span class="wk-mini-dot ${cls}"></span>`;
   }
   if (size === 'sm') return `<div class="hw-card hw-week" onclick="openCalendarOverlay()"><div class="hw-stat">
@@ -22997,9 +23043,14 @@ function renderWeekCircles(){
     const isToday  = d.getTime() === today.getTime();
     const isFuture = d > today;
     const cls = [v>0 ? 'l'+lvl : '', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
-    html += `<div class="week-day">
-      <div class="week-dot ${cls}">${v>0 ? '✓' : d.getDate()}</div>
+    /* Gleiche Bauweise wie im Heute-Widget (siehe hwWeekcal): Kuerzel oben,
+       darunter die Kapsel mit dem Datumspunkt. Beide Stellen zeigen dieselbe
+       Woche — sie duerfen nicht unterschiedlich aussehen. */
+    html += `<div class="week-day${isToday?' is-today':''}">
       <div class="week-day-lbl">${_WD_LBL[i]}</div>
+      <div class="week-pill${isToday?' today':''}${isFuture?' future':''}">
+        <div class="week-dot ${cls}">${d.getDate()}</div>
+      </div>
     </div>`;
   }
   row.innerHTML = html;
@@ -27148,6 +27199,7 @@ function _seedDemoData() {
     // gleich stark einfaerben. Sonst zeichnet die Volumen-Staffelung (l1–l4) die
     // fruehen Jahre blass — im Screenshot soll die Serie gleichmaessig wirken.
     st.textContent = '.week-dot.future{opacity:1 !important}' +
+      '.week-pill.future{background:rgba(255,255,255,.05)!important}' +
       '.cal-cell.l1,.cal-cell.l2,.cal-cell.l3,.cal-cell.l4{background:var(--acc)!important;color:#fff!important}';
     document.head.appendChild(st);
   }
