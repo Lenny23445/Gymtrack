@@ -288,7 +288,7 @@ function renderCalendar(monthsBack = 12){
       const cls = [v>0 ? 'l'+lvl : '', isToday?'today':'', info?'has-sess':''].filter(Boolean).join(' ');
       const title = isFuture ? '' : (info ? info.label + ' · ' + fmtKg(v) : (v>0 ? fmtKg(v) : 'kein Training'));
       const tap = info ? ` onclick="openSessDetail('${info.sesId}')"` : '';
-      cells += `<div class="cal-cell ${cls}"${isFuture?' style="opacity:.35"':''} title="${title}"${tap}>${day}</div>`;
+      cells += `<div class="cal-cell ${cls}" title="${title}"${tap}>${day}</div>`;
       if (info) trainedDays.push(`<span class="cal-day-chip" onclick="openSessDetail('${info.sesId}')"><b>${day}.</b> ${info.label}</span>`);
     }
     const dayList = trainedDays.length

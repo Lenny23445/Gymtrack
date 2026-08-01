@@ -3296,7 +3296,9 @@ body.wpick-open #heute-edit-bar{display:none!important}
   border-radius:9px;min-width:0;
   display:flex;align-items:center;justify-content:center;
   font-size:12px;color:var(--text);
-  background:rgba(128,128,128,.07);
+  /* Tage ohne Training bekommen KEINE eigene Flaeche — die grauen Kaestchen
+     bildeten im Gitter ein Streifenmuster. Nur Trainingstage sind gefuellt. */
+  background:transparent;
 }
 .cal-cell.empty{background:transparent}
 .cal-cell.l1{background:rgba(var(--acc-rgb),.30);color:var(--text)}
@@ -3319,7 +3321,10 @@ body.wpick-open #heute-edit-bar{display:none!important}
   display:flex;align-items:center;justify-content:flex-end;
   gap:6px;margin-top:10px;font-size:11px;color:var(--text2);
 }
-.cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px}
+/* In der Legende braucht das "kein Training"-Feld eine sichtbare Flaeche —
+   im Gitter selbst sind diese Zellen bewusst transparent. */
+.cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px;
+  background:rgba(128,128,128,.18)}
 
 /* ── KALENDER: ANSICHTS-UMSCHALTER (Monate ⇄ Matrix) ──────────────
    Segmented Control mit gleitender Kapsel. Liegt unter dem Kopf, damit der
@@ -5269,11 +5274,10 @@ html:not([data-glass="off"]) .cal-card{
 .cal-cell{
   border-radius:12px;font-size:12.5px;font-weight:600;
   font-variant-numeric:tabular-nums;
-  background:var(--gl-bg-t);
+  background:transparent;
   transition-property:transform,background-color,box-shadow;
   transition-duration:var(--t-press);transition-timing-function:var(--press);
 }
-[data-theme="dark"] .cal-cell{background:rgba(255,255,255,.045)}
 .cal-cell.l1{background:rgba(var(--acc-rgb),.22);color:var(--text)}
 .cal-cell.l2{background:rgba(var(--acc-rgb),.42);color:#fff}
 .cal-cell.l3{background:rgba(var(--acc-rgb),.66);color:#fff}
