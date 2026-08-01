@@ -8844,7 +8844,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030345';
+const APP_VERSION = 'gymtrack-v202608030410';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12735,7 +12735,9 @@ function hwRecovery(size){
   }
 
   // Liste (lg): identisches Design wie die Erholung im Statistik-Tab (rec-row + Akku-Balken)
-  const rows = trained.sort((a,b)=>a.r.recPct-b.r.recPct).slice(0,5);
+  // Gleiche Reihenfolge wie die Liste im Statistik-Tab (erholteste zuerst) —
+  // dieselbe Ansicht darf nicht an zwei Stellen andersherum sortiert sein.
+  const rows = trained.sort((a,b)=>b.r.recPct-a.r.recPct).slice(0,5);
   return `<div class="hw-card rec-list-mini" style="gap:0">` + rows.map(({mg,r})=>{
     const col = recoveryColor(r.recPct);
     const sub = recoveryState(r.recPct) + ' · ' + fmtLastTraining(r.lastTs);
@@ -18675,7 +18677,11 @@ function renderRecoveryList() {
   const rows = MUSCLE_GROUPS
     .map(mg => ({ mg, r: mgRec[mg.id] || { recPct:100, fatPct:0, lastTs:null } }))
     .filter(({r}) => r.lastTs)
-    .sort((a,b) => a.r.recPct - b.r.recPct);
+    /* Erholteste zuerst, dann abgestuft nach unten. Die Liste beantwortet
+       damit die Frage, mit der man sie oeffnet — "was kann ich heute
+       trainieren?" —, und nicht die Frage, was gerade wehtut. Ganz unten
+       steht, was noch Ruhe braucht. */
+    .sort((a,b) => b.r.recPct - a.r.recPct);
 
   if (!rows.length) {
     host.innerHTML = '<div class="rec-list-empty">Alle Muskeln erholt</div>';
