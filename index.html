@@ -1886,7 +1886,11 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .tracker-ring-btn:active{transform:scale(.90)}
 .tracker-ring-svg{display:block;overflow:visible}
 .tracker-ring-bg{fill:none;stroke:var(--sep);stroke-width:5;stroke-linecap:round}
-.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%}
+/* Der Ring leuchtet. Der Schein liegt als drop-shadow auf dem Bogen selbst —
+   bei vier Ringen sind das vier Filterebenen, das traegt die Seite. Auf die
+   Hintergrundspur kommt keiner: sie soll die Skala zeigen, nicht mitleuchten. */
+.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 4px rgba(var(--acc-rgb),.85)) drop-shadow(0 0 9px rgba(var(--acc-rgb),.45))}
+.tracker-ring-progress.done{filter:drop-shadow(0 0 4px rgba(76,209,55,.9)) drop-shadow(0 0 10px rgba(76,209,55,.5))}
 .tracker-ring-progress.done{stroke:#4cd137}
 @keyframes tracker-tap{0%{transform:scale(1) rotate(-90deg)}40%{transform:scale(.86) rotate(-90deg)}70%{transform:scale(1.07) rotate(-90deg)}100%{transform:scale(1) rotate(-90deg)}}
 .tracker-ring-progress.tapped{animation:tracker-tap .35s cubic-bezier(0.34,1.56,0.64,1)}
@@ -2530,7 +2534,23 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-card::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:var(--sheen);pointer-events:none;border-radius:22px 22px 0 0}
 .hw-big{font-size:26px;font-weight:800;line-height:1.1}
 .hw-sub{font-size:12px;color:var(--text2);margin-top:3px}
-.hw-spark{display:block;width:100%;height:34px;margin-top:10px;overflow:visible}
+/* Balkenreihe des Verlaufs (siehe _sparkline). */
+.hw-spark{
+  display:flex;align-items:flex-end;gap:2px;width:100%;height:32px;
+}
+.hw-spark > i{
+  flex:1 1 0;min-width:0;border-radius:2px 2px 1px 1px;
+  background:rgba(var(--acc-rgb),.42);
+  box-shadow:0 0 4px rgba(var(--acc-rgb),.25);
+}
+/* Der letzte Wert ist der aktuelle — er leuchtet, die aelteren treten
+   zurueck. Ohne das liest sich die Reihe als gleichwertige Menge, dabei ist
+   der letzte Balken der, um den es geht. */
+.hw-spark > i.is-now{
+  background:var(--acc);
+  box-shadow:0 0 6px rgba(var(--acc-rgb),.9),0 0 13px rgba(var(--acc-rgb),.45);
+}
+.hw-spark-alt{display:block;width:100%;height:34px;margin-top:10px;overflow:visible}
 .hw-empty-mini{font-size:13px;color:var(--text2);text-align:center;padding:6px 0}
 /* Quick-Action Kachel */
 .hw-quick{
@@ -3057,6 +3077,77 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .week-dot.l4{background:var(--acc);color:#fff}
 .week-dot.today{border-color:var(--text)}
 .week-dot.future{opacity:.4}
+/* ── Neon: die trainierten Tage leuchten ──────────────────────────────────
+   Der Schein liegt AUSSEN (box-shadow ohne inset) und die Farbe bleibt satt.
+   Die vier Stufen (l1–l4) markieren weiterhin, wie viel an dem Tag bewegt
+   wurde — sie leuchten deshalb unterschiedlich stark, nicht unterschiedlich
+   bunt. Ein Tag ist ein Tag; die Menge sagt der Schein. */
+.week-dot.l1{box-shadow:0 0 6px rgba(var(--acc-rgb),.35)}
+.week-dot.l2{box-shadow:0 0 8px rgba(var(--acc-rgb),.5)}
+.week-dot.l3{box-shadow:0 0 10px rgba(var(--acc-rgb),.62),0 0 18px rgba(var(--acc-rgb),.3)}
+.week-dot.l4{box-shadow:0 0 11px rgba(var(--acc-rgb),.75),0 0 22px rgba(var(--acc-rgb),.38)}
+.week-dot svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+/* Ein Tag ohne Training ist leer, nicht durchgestrichen und nicht beziffert:
+   die Zahl im Kreis las sich wie ein Wert, dabei ist sie nur das Datum. */
+.week-dot:not(.l1):not(.l2):not(.l3):not(.l4){
+  background:rgba(255,255,255,.055);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+/* ── Streak mit Flamme ────────────────────────────────────────────────────
+   Der Schein liegt HINTER der Flamme als eigener Kreis. Ein drop-shadow auf
+   dem SVG waere teurer und muesste bei jedem Neuzeichnen der Startseite neu
+   gerastert werden — hier reicht ein Verlauf, den der Compositor haelt. */
+.hw-streak .hw-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.strk-flame{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  /* Nur wenig groesser als die Flamme selbst. Vorher war der Ring fast doppelt
+     so breit — dadurch sah man vor allem den Schein und die Flamme darin wie
+     einen Funken. Der Schein soll sie umgeben, nicht ersetzen. */
+  width:calc(var(--fl) * 1.28);height:calc(var(--fl) * 1.28);
+  margin-bottom:5px;
+}
+.strk-flame::before{
+  content:'';position:absolute;inset:-12%;border-radius:50%;
+  background:radial-gradient(circle at 50% 58%,
+    rgba(255,150,50,.55) 0%, rgba(255,90,31,.28) 46%, rgba(255,90,31,0) 74%);
+  /* Das Lodern: der Schein atmet, die Flamme steht. Bewegt wird nur opacity
+     und transform — beides macht der Compositor allein, die Startseite
+     scrollt waehrenddessen unveraendert ruhig. */
+  animation:flmGlow 2.6s ease-in-out infinite;
+}
+@keyframes flmGlow{
+  0%,100%{opacity:.85;transform:scale(1)}
+  50%    {opacity:1;  transform:scale(1.09)}
+}
+.strk-flame svg{position:relative;z-index:1;
+  filter:drop-shadow(0 0 6px rgba(255,150,50,.9)) drop-shadow(0 0 14px rgba(255,90,31,.5));
+  /* Die Flamme selbst zuckt nur minimal — mehr wirkt wie ein Wackeln, und ein
+     Zaehler, der wackelt, liest sich schlechter. */
+  animation:flmZuck 2.6s ease-in-out infinite;
+  transform-origin:50% 88%;
+}
+@keyframes flmZuck{
+  0%,100%{transform:scaleY(1) scaleX(1)}
+  38%    {transform:scaleY(1.05) scaleX(.985)}
+  70%    {transform:scaleY(.98) scaleX(1.012)}
+}
+.strk-val{
+  font-size:30px;font-weight:800;line-height:1;color:var(--text);
+  font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:5px;
+}
+.strk-val span{font-size:13px;font-weight:700;color:var(--text2)}
+.hw-card.hw-streak .hw-sub{margin-top:3px}
+/* Erloschen: kein Schein, gedaempfte Flamme. Eine leuchtende Flamme ueber
+   einer Null waere eine Feier fuer nichts. */
+.hw-streak.is-aus .strk-flame::before{display:none}
+.hw-streak.is-aus .strk-flame svg{animation:none}
+.hw-streak.is-aus .strk-flame svg{filter:none;opacity:.32}
+.hw-streak.is-aus .strk-val{color:var(--text2)}
+@media (prefers-reduced-motion:reduce){
+  .strk-flame::before,.strk-flame svg{animation:none}
+}
 .week-card-foot{
   display:flex;align-items:center;justify-content:space-between;
   margin-top:12px;font-size:12px;color:var(--text2);
@@ -4093,7 +4184,20 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-batt-v-wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:2px 0;overflow:hidden}
 .rec-batt-v-outer{display:flex;flex-direction:column;align-items:center}
 .rec-batt-v-cap{width:14px;height:6px;background:var(--text);border-radius:3px 3px 0 0;opacity:.3}
-.rec-batt-v{width:44px;height:82px;border:2px solid var(--text);border-radius:10px;position:relative;overflow:hidden;opacity:.7}
+.rec-batt-v{width:44px;height:82px;border:2px solid var(--text);border-radius:10px;position:relative;overflow:hidden;opacity:.9}
+/* Senkrechte Strichreihe im stehenden Akku. Die Aussenzellen folgen der
+   Rundung der Huelle — oben die obere, unten die untere, damit ihre Ecken
+   nicht in den Radius stossen (derselbe Grund wie bei der liegenden Reihe). */
+.segbar-v{position:absolute;inset:2px;display:flex;flex-direction:column;gap:2.5px}
+.segbar-v > i{
+  flex:1 1 0;min-height:0;border-radius:2px;
+  background:rgba(255,255,255,.055);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  transition:background .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;
+}
+.segbar-v > i:first-child{border-radius:5px 5px 2px 2px}
+.segbar-v > i:last-child{border-radius:2px 2px 5px 5px}
+@media (prefers-reduced-motion:reduce){.segbar-v > i{transition:none}}
 .rec-batt-v-fill{position:absolute;bottom:0;left:0;right:0;transition:height .6s cubic-bezier(.34,1.56,.64,1);border-radius:7px;opacity:.9}
 .rec-batt-v-pct{font-size:22px;font-weight:800;letter-spacing:.5px}
 .rec-batt-v-lbl{font-size:10px;color:var(--text2);text-align:center;line-height:1.4}
@@ -8519,7 +8623,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021800';
+const APP_VERSION = 'gymtrack-v202608021930';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12309,20 +12413,51 @@ function _sizeHeuteGrid(){
 window.addEventListener('resize', _sizeHeuteGrid);
 
 /* ── Kompakte Widget-Renderer · emoji-frei · Listen nur in lg, Stat in sm/md ── */
+/* Der Streak zeigt eine FLAMME, nicht nur eine Zahl. Sie ist das Bild, das
+   fuer die Sache steht, und sie war schon da: _flameFillSVG zeichnet sie seit
+   dem Flammen-Zaehler, mit demselben Verlauf von Gelb nach Orange.
+
+   Gezaehlt werden WOCHEN, nicht Tage (calcStreak). Das ist bei Krafttraining
+   die richtige Groesse — taeglich trainiert niemand, und ein Tages-Streak
+   waere nach dem ersten Ruhetag gerissen.
+
+   Der Schein liegt hinter der Flamme, nicht auf ihr: ein weicher runder
+   Verlauf plus ein enger Ring. Ein Filter (drop-shadow) auf dem SVG selbst
+   waere teurer und wuerde bei jedem Neuzeichnen der Startseite neu gerastert.
+   Bei erloschenem Streak (0 Wochen) leuchtet nichts — eine leuchtende Flamme
+   ueber einer Null waere eine Feier fuer nichts. */
 function hwStreak(size){
   const st = calcStreak();
-  const sub = `Wochen-Streak${st.bestWeeks?` · Best ${st.bestWeeks}`:''}`;
-  const big = size === 'lg' ? ' style="font-size:36px"' : '';
-  return `<div class="hw-card"><div class="hw-stat">
-    <div class="hw-big"${big}>${st.weeks}</div>
-    <div class="hw-sub">${size==='sm'?'Wochen-Streak':sub}</div>
+  const aus = !st.weeks;
+  const gr  = size === 'lg' ? 62 : (size === 'md' ? 50 : 38);
+  const sub = size === 'sm'
+    ? _cm('Streak', 'Streak')
+    : (st.bestWeeks ? _cm('Streak · Best ' + st.bestWeeks, 'Streak · best ' + st.bestWeeks) : _cm('Wochen-Streak', 'Week streak'));
+  const einheit = st.weeks === 1 ? _cm('Woche', 'week') : _cm('Wochen', 'weeks');
+  return `<div class="hw-card hw-streak${aus ? ' is-aus' : ''}"><div class="hw-stat">
+    <div class="strk-flame" style="--fl:${gr}px">${_flameFillSVG(gr)}</div>
+    <div class="strk-val">${st.weeks}<span>${einheit}</span></div>
+    <div class="hw-sub">${sub}</div>
   </div></div>`;
 }
+/* Der Verlauf als Balkenreihe statt als Linie. Dieselbe Ueberlegung wie bei
+   den Strichen: eine Linie zeigt eine Form, Balken zeigen einzelne Werte —
+   und hier IST jeder Punkt ein einzelnes Training bzw. ein Wiegetag. Der
+   letzte Balken steht heller, das ist der aktuelle.
+   Kein SVG mehr: fuenfzehn Rechtecke als Flexbox sind billiger als ein
+   Zeichenknoten mit Polyline, und der Schein laesst sich per box-shadow
+   setzen statt per Filter, den WebKit je Bild neu rastert. */
 function _sparkline(arr){
   if (!arr || arr.length < 2) return '';
   const max = Math.max(...arr), min = Math.min(...arr), rng = (max-min)||1;
-  const pts = arr.map((v,i)=>`${(i/(arr.length-1)*100).toFixed(1)},${(30-((v-min)/rng)*28).toFixed(1)}`).join(' ');
-  return `<svg class="hw-spark" viewBox="0 0 100 32" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const n = arr.length;
+  return `<div class="hw-spark">` + arr.map((v,i)=>{
+    // Mindesthoehe 12 %: ein Wert am unteren Ende waere sonst unsichtbar und
+    // saehe aus wie ein fehlender Tag.
+    const h = 12 + ((v-min)/rng) * 88;
+    const jetzt = i === n-1 ? ' is-now' : '';
+    return `<i class="${jetzt.trim()}" style="height:${h.toFixed(1)}%"></i>`;
+  }).join('') + `</div>`;
 }
 function hwVolume(size){
   const sessions = [...S.sessions].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -12358,7 +12493,7 @@ function hwRecovery(size){
     return `<div class="hw-card hw-rec-batt" onclick="goTabId('stats')" style="cursor:pointer">
       <div class="rec-batt-v-outer">
         <div class="rec-batt-v-cap"></div>
-        <div class="rec-batt-v"><div class="rec-batt-v-fill" style="height:${pct}%;background:${col}"></div></div>
+        <div class="rec-batt-v">${_segBarsVertHTML(pct, 7)}</div>
       </div>
       <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
       <div class="rec-batt-v-lbl"><b>${state}</b></div>
@@ -12434,7 +12569,10 @@ function hwWeekcal(size){
     const isToday  = d.getTime()===today.getTime();
     const isFuture = d>today;
     const cls = [v>0?'l'+level(v):'', isToday?'today':'', isFuture?'future':''].filter(Boolean).join(' ');
-    days += `<div class="week-day"><div class="week-dot ${cls}">${v>0?'✓':d.getDate()}</div><div class="week-day-lbl">${_WD_LBL[i]}</div></div>`;
+    // Erledigte Tage tragen den Haken und leuchten, offene bleiben als
+    // dunkler Kreis stehen — dieselbe Regel wie bei den Strichen: die leeren
+    // sind die Skala, ohne sie waere nicht zu sehen, wovon es wie viele sind.
+    days += `<div class="week-day"><div class="week-dot ${cls}">${v>0?ICO.check({s:15}):''}</div><div class="week-day-lbl">${_WD_LBL[i]}</div></div>`;
     dots += `<span class="wk-mini-dot ${cls}"></span>`;
   }
   if (size === 'sm') return `<div class="hw-card hw-week" onclick="openCalendarOverlay()"><div class="hw-stat">
@@ -14646,7 +14784,7 @@ function renderTrackers(row) {
     html += `<button class="tracker-add-btn" onclick="openTrackerMenu()">+</button>`;
   }
   row.innerHTML = html;
-  // Animate rings from empty to actual value
+  // Ringe von leer auf ihren Wert ziehen
   requestAnimationFrame(() => {
     targets.forEach(({ id, dashoffset }) => {
       const ring = row.querySelector(`.tracker-ring-btn[data-id="${id}"] .tracker-ring-progress`);
@@ -17924,6 +18062,36 @@ function _segFarbe(pct) {
   const l = 50 - gelbNaehe * 4;
   return { h, s: 100, l, css: `hsl(${h.toFixed(0)},100%,${l.toFixed(0)}%)` };
 }
+/* Senkrechte Fassung der Striche fuer die stehenden Akkus (Erholung gesamt,
+   Muskelgruppen-Detail). Gefuellt wird von UNTEN — ein Akku laeuft von unten
+   voll, nicht von oben. Sonst dieselbe Sprache wie die liegende Reihe:
+   dieselben Farben, derselbe enge Schein, dieselbe Regel, dass die leeren
+   Zellen als Skala stehen bleiben. */
+function _segBarsVertHTML(pct, n, opts) {
+  const o = opts || {};
+  const p = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  const anz = Math.max(1, parseInt(n) || 8);
+  let voll = Math.round((p / 100) * anz);
+  if (p > 0 && voll === 0) voll = 1;
+  if (p >= 100) voll = anz;
+  const f = _segFarbe(p);
+  const H = f.h.toFixed(0), L = f.l.toFixed(0);
+  let out = `<div class="segbar-v${o.cls ? ' ' + o.cls : ''}">`;
+  // Von oben nach unten gebaut, gefuellt sind die UNTERSTEN.
+  for (let i = 0; i < anz; i++) {
+    const an = (anz - i) <= voll;
+    const st = an
+      ? `background:hsl(${H},100%,${L}%);`
+        + `box-shadow:0 0 5px hsla(${H},100%,58%,.95),`
+        + `0 0 9px hsla(${H},100%,50%,.5),`
+        + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
+        + `inset 0 1px 2px hsla(${H},100%,80%,.5)`
+      : '';
+    out += `<i class="${an ? 'on' : 'off'}" style="${st}"></i>`;
+  }
+  return out + '</div>';
+}
+
 /* pct 0–100, n = Anzahl der Striche. Der Anteil wird kaufmaennisch gerundet,
    aber ein Wert ueber 0 bekommt IMMER mindestens einen Strich: "0 von 12"
    fuer 4 % Erholung waere schlicht falsch. */
@@ -18007,7 +18175,7 @@ function renderRecOverall() {
     <div class="rec-batt-v-outer">
       <div class="rec-batt-v-cap"></div>
       <div class="rec-batt-v">
-        <div class="rec-batt-v-fill" style="height:${pct}%;background:${col}"></div>
+        ${_segBarsVertHTML(pct, 7)}
       </div>
     </div>
     <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
