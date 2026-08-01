@@ -276,12 +276,16 @@ Der `Abbrechen`-Knopf oben faellt ersatzlos weg; `Training abbrechen` am Listene
 .wkb-prog i{display:block;height:100%;background:var(--acc);transition:width .25s linear}
 ```
 
-- [ ] **Step 4: Nichts Verwaistes uebrig?**
+- [ ] **Step 4: Coach-Leiste flach machen**
+
+Im `.coach-bar`-Block (Suche: `grep -n "^.coach-bar{" index.html`) `padding:10px 13px` auf `padding:7px 12px` und `margin:0 0 10px` auf `margin:0 0 8px` setzen, `border-radius:16px` auf `14px` — damit sie zur neuen Leiste passt und auf rund 32px kommt. `transition`, `.coach-bar.is-off` und der per JS gesetzte Inline-`height` bleiben unangetastet: `_coachBarAnimate()` rechnet die Hoehe zur Laufzeit aus, ein fester `height`-Wert im CSS wuerde die Blende brechen.
+
+- [ ] **Step 5: Nichts Verwaistes uebrig?**
 
 Run: `grep -n "timer-bar\|rest-bar\|restPulse\|timer-l" index.html`
 Erwartet: nur noch der Treffer in `_wkStops` (`#wk-step2 .timer-bar`) — den raeumt Task 4 ab.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add index.html
