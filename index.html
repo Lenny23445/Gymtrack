@@ -984,24 +984,24 @@ body{
 #log-cards.focus-on .ex-card.dimmed>.ex-head,
 #log-cards.focus-on .ex-card.dimmed>.ex-body{opacity:.42}
 /* ── Die eingerastete Karte ──
-   Sie traegt Akzentrahmen, einen tieferen Schatten und steht 2 px hoeher.
-   Das Anheben laeuft ueber transform und nicht ueber margin: nur so bleibt es
-   eine Bewegung im Compositor statt eines Umbruchs der ganzen Liste. Genau EINE
-   Karte hat diese Klasse, deshalb ist das will-change hier vertretbar — es
-   haelt die Karte auf ihrer eigenen Ebene, sodass der backdrop-filter waehrend
-   der 220 ms nicht in jedem Bild neu gerechnet wird.
+   Sie traegt einen Akzentrahmen und steht 2 px hoeher. Das Anheben laeuft ueber
+   transform und nicht ueber margin: nur so bleibt es eine Bewegung im
+   Compositor statt eines Umbruchs der ganzen Liste.
    Das :not() ist kein Schmuck: diese Regel traegt eine ID und wuerde sonst die
    Kurven des Wischens (.is-swiping, .swipe-removing) ueberstimmen — die Karte
    liefe beim Loeschen nicht mehr sauber hinaus. Wer die Karte gerade in der
-   Hand hat, faehrt sie allein. */
+   Hand hat, faehrt sie allein.
+   Der Schatten wird NICHT mehr mitanimiert. Ein 30-px-Schlagschatten ueber
+   die ganze Kartenbreite ist ein Vollrepaint je Bild — und das lief bei jedem
+   Einrasten 220 ms lang, auf der ein- wie der ausrastenden Karte. Bewegt wird
+   nur noch, was der Compositor allein kann: transform und Rahmenfarbe.
+   Auch KEIN dauerhaftes will-change: es haelt fuer jede Karte eine eigene
+   Ebene im Speicher, obwohl sich meist keine bewegt. */
 #log-cards.focus-on .ex-card:not(.is-swiping):not(.swipe-removing){
-  transition:transform .22s cubic-bezier(.33,1,.68,1),
-             border-color .22s ease,box-shadow .22s ease}
+  transition:transform .22s cubic-bezier(.33,1,.68,1),border-color .22s ease}
 #log-cards.focus-on .ex-card.locked:not(.is-swiping):not(.swipe-removing){
   border-color:rgba(var(--acc-rgb),.52);
-  box-shadow:0 12px 30px rgba(var(--acc-rgb),.20),var(--gl-hi);
-  transform:translateY(-2px);
-  will-change:transform}
+  transform:translateY(-2px)}
 /* Bei 'mandatory' ruht die Ansicht IMMER auf einem Rastpunkt. Alles, was
    erreichbar bleiben soll, braucht darum selbst einen — sonst zieht es das
    Blatt wieder weg.
@@ -1801,7 +1801,17 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 [data-theme="dark"] {--wk-card-bg:rgba(255,255,255,.08);    --wk-inp-bg:rgba(255,255,255,.06)}
 [data-theme="blau"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,130,170,.09)}
 [data-theme="grün"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,150,115,.10)}
-html:not([data-glass="off"]) #wk-step2 .ex-card{background:var(--wk-card-bg)}
+/* KEIN backdrop-filter auf den Uebungskarten. Der Grund ist derselbe wie beim
+   Blatt selbst: .sheet hat einen DECKENDEN Hintergrund, hier wird also eine
+   einfarbige Flaeche weichgezeichnet — optisch fast nichts, aber --gl-blur
+   liegt bei 44-52 px, und WebKit rechnet diesen Radius fuer JEDE Karte in
+   JEDEM Bild neu. Genau das machte das Scrollen im Training ruckelig und das
+   Geraet heiss. Dieselbe Optik entsteht aus zwei deckenden Lagen. */
+html:not([data-glass="off"]) #wk-step2 .ex-card{
+  background:linear-gradient(var(--wk-card-bg),var(--wk-card-bg)),
+             linear-gradient(var(--card),var(--card));
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
 html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 
 /* ── SUGGESTIONS ── */
@@ -4780,7 +4790,10 @@ html:not([data-glass="off"]) .set-in{
   transition-property:transform,opacity;
   transition-duration:var(--t-enter);
   transition-timing-function:var(--ease-out);
-  will-change:transform;
+  /* KEIN will-change: das Blatt ist bildschirmhoch und scrollt. Eine dauerhaft
+     befoerderte Ebene dieser Groesse kostet Speicher und zwingt WebKit, sie bei
+     jeder Inhaltsaenderung neu zu zeichnen — sie hilft nur waehrend der 0,3 s
+     Oeffnungsblende und schadet die restliche Zeit. */
 }
 
 /* ── 3 · ZAHLEN & TEXT ────────────────────────────────────────────
@@ -4812,6 +4825,18 @@ h1,h2,.row-title,.s-title{text-wrap:balance}
   background:rgba(0,0,0,.58)!important;
   backdrop-filter:blur(14px) saturate(110%)!important;
   -webkit-backdrop-filter:blur(14px) saturate(110%)!important;
+}
+
+/* Im Training gilt das NICHT. Das Trainingsblatt ist deckend und nimmt
+   95 vh ein — vom weichgezeichneten Hintergrund bleibt ein schmaler Streifen
+   am oberen Rand sichtbar. Dafuer eine bildschirmfuellende Weichzeichnung zu
+   rechnen lohnt nirgends, und hier schadet es doppelt: das Gewichts-Rad
+   (#ov-wheel) und die Satztyp-Wahl (#ov-settype) gehen waehrend einer Einheit
+   dutzendfach auf und zu, und jedes Aufgehen stoesst den Filter neu an.
+   Etwas mehr Schwarz ersetzt die Trennung zum Hintergrund. */
+#ov-wk,#ov-wheel,#ov-settype{
+  background:rgba(0,0,0,.66)!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
 }
 
 /* ── 2 · SHEET-RAHMEN ─────────────────────────────────────────────*/
@@ -8213,7 +8238,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020024';
+const APP_VERSION = 'gymtrack-v202608020025';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
