@@ -5983,10 +5983,52 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    kann eine leere Fläche hinterlassen. */
 .aic.out{opacity:0;transform:translateY(-6px) scale(.985)}
 [data-glass="off"] .aic{background:linear-gradient(152deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.055) 58%,transparent),var(--inp-bg)}
-/* Aurora: zwei weiche Lichtfelder, die gegeneinander driften → "denkt mit" */
+/* Auf dunklen Themes traegt das Wellenfeld das Licht. Der flaechige Akzent-Verlauf
+   der Karte legte sich als gleichmaessiger Schleier darueber und nahm dem Raster
+   genau den Unterschied zwischen hell und dunkel, von dem die Vorlage lebt. */
+[data-theme="dark"] .aic{background:linear-gradient(152deg,rgba(var(--acc-rgb),.10),rgba(var(--acc-rgb),.02) 58%,transparent),var(--gl-bg-h)}
+/* ── Wellenfeld hinter der Karte (Halbton-Raster) ────────────────────────
+   Vorlage: ein Punktraster, durch das langsam helle Wellen wandern. Gebaut in
+   zwei Lagen und OHNE Maske — mask + backdrop-filter zerlegt WKWebView (an der
+   Snap-Karte schon einmal passiert):
+     unten  .aic-aur  driftende Lichtfelder + eine Welle, die nach aussen laeuft
+     darauf .aic-scr  ein SIEB: Flaeche in Kartenfarbe mit winzigen Loechern
+   Licht ist damit nur in den Loechern sichtbar — also als Punkte, und die
+   Wellen wandern als Helligkeit durch das Raster.
+
+   Aurora: drei weiche Lichtfelder, die gegeneinander driften → "denkt mit".
+   Die Farbe wandert dabei langsam um den Akzent herum (aicHue, ±36°): ein
+   fester Ton wirkte wie ein Standbild, ein voller Regenbogen wie ein fremdes
+   Produkt. */
 .aic-aur{position:absolute;inset:-60% -25%;z-index:-2;pointer-events:none;
-  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.46),transparent 70%),
-             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.28),transparent 72%)}
+  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.62),transparent 70%),
+             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.40),transparent 72%),
+             radial-gradient(26% 40% at 52% 88%,rgba(var(--acc-rgb),.30),transparent 74%)}
+/* Zweite Lage Licht, die GEGEN die erste laeuft. Zwei gleichlaufende Felder
+   sehen aus wie ein verschobenes Bild; erst der Gegenlauf ergibt Wellen, die
+   sich treffen und wieder auseinandergehen. */
+.aic-aur::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.40),transparent 72%),
+             radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.42),transparent 70%),
+             radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.24),transparent 74%),
+             radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.30),transparent 72%)}
+/* Der Puls: ein Lichtring, der aus der Mitte nach aussen laeuft und dabei
+   verblasst. Unter dem Sieb liest er sich als Welle, die durch das Punktfeld
+   zieht. */
+.aic-aur::before{content:'';position:absolute;left:50%;top:50%;width:120%;aspect-ratio:1;
+  transform:translate(-50%,-50%) scale(.2);border-radius:50%;opacity:0;
+  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.55) 66%,transparent 78%)}
+/* Das Sieb. Loch 1,1 px in einer 5,5-px-Kachel — kleiner und das Raster
+   verschwimmt auf 3x-Displays zu Grau, groesser und es wird zum Gitter. */
+.aic{--aic-sieb:rgba(250,250,252,.52)}
+[data-theme="dark"] .aic{--aic-sieb:rgba(4,5,10,.76)}
+/* inset:-14px, weil die Flaeche sich BEWEGT: sie zieht in einer weichen Schleife
+   ueber die Karte, und ohne Ueberstand liefe an den Raendern kurz die nackte
+   Kartenflaeche durch. Bewegt wird per transform (Compositor), nicht ueber
+   background-position — das waere ein Neuzeichnen des Rasters in jedem Bild. */
+.aic-scr{position:absolute;inset:-14px;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(circle at 50% 50%,transparent 0 1.1px,var(--aic-sieb) 1.5px);
+  background-size:5.5px 5.5px;will-change:transform}
 /* Lichtstreifen: einmal beim Erscheinen, danach als seltener Puls */
 .aic-sheen{position:absolute;top:0;bottom:0;left:0;width:38%;z-index:-1;pointer-events:none;opacity:0;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.20),transparent);transform:translateX(-180%)}
@@ -5995,7 +6037,16 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),rgba(var(--acc-rgb),.95),transparent);
   background-size:230% 100%}
 @media (prefers-reduced-motion:no-preference){
-  .aic-aur{animation:aicAur 13s ease-in-out infinite}
+  /* Drei Zeiten, die sich NICHT teilen (13 / 19 / 9 / 26 s): gemeinsame Vielfache
+     ergaeben einen sichtbaren Takt, und ein Takt macht aus dem Feld eine
+     Schleife. So trifft sich das Bild praktisch nie zweimal gleich. */
+  .aic-aur{animation:aicAur 13s ease-in-out infinite,aicHue 29s ease-in-out infinite}
+  .aic-aur::after{animation:aicAur2 19s ease-in-out infinite}
+  .aic-aur::before{animation:aicWelle 14s cubic-bezier(.3,.5,.4,1) infinite}
+  /* Zwei Bewegungen auf demselben Sieb: die Wanderung (23 s, Schleife ueber
+     zwei Kachelbreiten) und das Atmen der Helligkeit (7 s). Getrennte Dauern,
+     damit die Punkte nie im Takt mit dem Licht laufen. */
+  .aic-scr{animation:aicWoge 23s ease-in-out infinite,aicSieb 7s ease-in-out infinite}
   .aic.in .aic-sheen{animation:aicSheen 9s cubic-bezier(.4,0,.2,1) .35s infinite}
   .aic::after{animation:aicLine 7s linear infinite}
   .aic.in{animation:aicIn .5s cubic-bezier(.2,.9,.3,1)}
@@ -6016,6 +6067,36 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 }
 @keyframes aicIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes aicAur{0%,100%{transform:translate3d(-6%,0,0) scale(1)}50%{transform:translate3d(10%,3%,0) scale(1.08)}}
+/* Gegenlauf: andere Richtung, andere Weite, andere Dauer. */
+@keyframes aicAur2{0%,100%{transform:translate3d(8%,2%,0) scale(1.06)}50%{transform:translate3d(-9%,-4%,0) scale(.94)}}
+/* Die Welle: schnell los, weit raus, unterwegs verblassen. */
+@keyframes aicWelle{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
+  12%{opacity:.85}
+  100%{transform:translate(-50%,-50%) scale(1.9);opacity:0}}
+/* Farbwanderung um den Akzent herum — nie weiter als 36°, sonst ist es nicht
+   mehr die Farbe der App. */
+/* Die Farbe wandert langsam um den Akzent (+-14 Grad) und bekommt EINMAL je
+   Runde einen kurzen Tupfer mehr Saettigung — der "kleine Farbimpuls". Beides in
+   EINER Animation, weil zwei Animationen auf derselben filter-Eigenschaft
+   einander ueberschreiben statt sich zu addieren. */
+@keyframes aicHue{
+  0%,100%{filter:hue-rotate(-14deg) saturate(1)}
+  38%{filter:hue-rotate(12deg) saturate(1)}
+  62%{filter:hue-rotate(14deg) saturate(1)}
+  72%{filter:hue-rotate(30deg) saturate(1.55)}
+  82%{filter:hue-rotate(4deg) saturate(1)}}
+/* Die Wanderung des Punktfelds: eine Schleife, in der x und y NICHT im selben
+   Takt laufen (Lissajous) — dadurch liest sie sich als Wogen und nicht als
+   Hin und Her. Amplitude 11 px = zwei Kachelbreiten, mehr faellt als Rutschen
+   auf. */
+@keyframes aicWoge{
+  0%,100%{transform:translate3d(0,0,0)}
+  20%{transform:translate3d(6px,-4px,0)}
+  40%{transform:translate3d(11px,3px,0)}
+  60%{transform:translate3d(4px,5px,0)}
+  80%{transform:translate3d(-5px,-2px,0)}}
+/* Das Sieb atmet mit: die Punkte werden minimal heller und wieder dunkler. */
+@keyframes aicSieb{0%,100%{opacity:1}50%{opacity:.82}}
 @keyframes aicSheen{0%{transform:translateX(-180%);opacity:0}4%{opacity:1}26%{transform:translateX(320%);opacity:0}100%{transform:translateX(320%);opacity:0}}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
 @keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -8042,7 +8123,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010006';
+const APP_VERSION = 'gymtrack-v202608010010';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9248,6 +9329,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-01-coach-wellenfeld': {
+    label: '01.08.2026 · Die Coach-Karte lebt',
+    items: [
+      'Hinter der Coach-Karte liegt jetzt ein feines Punktraster, durch das langsam Lichtwellen wandern',
+      'Die Punkte wogen dauerhaft in einer weichen Schleife — hin, her, nie im selben Takt',
+      'Ab und zu geht ein kurzer Farbimpuls durch das Feld',
+      'Bei „Bewegung reduzieren" steht das Feld still',
+    ]
+  },
   'cl-2026-08-01-tableiste': {
     label: '01.08.2026 · Neue Tab-Leiste',
     items: [
@@ -12640,6 +12730,7 @@ function renderCoachTodayCard() {
       _aicSig = sigQ;
       host.innerHTML = `<div class="aic">
         <span class="aic-aur" aria-hidden="true"></span>
+        <span class="aic-scr" aria-hidden="true"></span>
         <div class="aic-in">
           <div class="aic-top">
             <span class="aic-orb">${ICO.sparkle({s:14})}</span>
@@ -12677,6 +12768,7 @@ function renderCoachTodayCard() {
     const col = recoveryColor(pct);
     host.innerHTML = `<div class="aic">
       <span class="aic-aur" aria-hidden="true"></span>
+      <span class="aic-scr" aria-hidden="true"></span>
       <span class="aic-sheen" aria-hidden="true"></span>
       <div class="aic-in">
         <div class="aic-top">
