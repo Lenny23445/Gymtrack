@@ -5340,7 +5340,13 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    Feste Höhe + innerer Scroller = kein Sprung mehr. Mit dem Akkordeon gilt das
    erst recht: eine aufklappende Kachel darf das Blatt nicht wachsen lassen. */
 #ov-coach-hub .sheet{height:min(78vh,var(--sheet-cap));display:flex;flex-direction:column;
-  overflow:hidden;padding-bottom:0}
+  overflow:hidden;padding-bottom:0;position:relative}
+/* Das Feld liegt UNTER allem im Blatt. Kopf, Griff und Inhalt bekommen dafuer
+   eine eigene Ebene — ohne die stuende der Canvas als letztes Kind im Fluss
+   ueber dem Text. */
+.ch-wv{position:absolute;inset:0;z-index:0;pointer-events:none}
+#ov-coach-hub .sheet>.sh-handle,#ov-coach-hub .sheet>.sh-head,
+#ov-coach-hub .sheet>.px{position:relative;z-index:1}
 #ov-coach-hub .sheet>.px{flex:1;min-height:0;display:flex;flex-direction:column}
 /* #ch-body ist NUR der Scroller. Darin liegen zwei Ebenen übereinander
    (.ch-stage): das Raster der fünf Kacheln und die Detailebene. Immer genau
@@ -7987,6 +7993,12 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      renderCoachHub() in #ch-body. -->
 <div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
   <div class="sheet">
+    <!-- Dasselbe Wellenfeld wie auf der Heute-Karte, nur leiser: das Blatt ist
+         der Innenraum des Coaches, und es soll sichtbar dieselbe Flaeche sein
+         wie die Karte, die es oeffnet. Der Canvas steht STATISCH im Blatt und
+         nicht in #ch-body — der Body wird bei jedem Schalter neu gebaut, das
+         Feld wuerde bei jedem Tipp neu anlaufen. -->
+    <canvas class="aic-wv ch-wv" id="ch-wave" aria-hidden="true"></canvas>
     <div class="sh-handle"></div>
     <div class="sh-head ch-head"><button type="button" class="ch-back" id="ch-back" onclick="coachHubBack()" aria-label="Zurück" hidden></button><span class="aic-orb" id="ch-orb" aria-hidden="true"></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
@@ -8108,7 +8120,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010013';
+const APP_VERSION = 'gymtrack-v202608010015';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9320,6 +9332,7 @@ const CHANGELOG = {
       'Hinter der Coach-Karte rollt ein Feld aus Punkten — echte Wellen, die nach vorn laufen und dabei größer und heller werden',
       'Auf den Kämmen leuchten die Punkte weiß, in den Tälern tragen sie die App-Farbe',
       'Ab und zu geht ein kurzer Farbimpuls durch das Feld',
+      'Dasselbe Feld liegt jetzt auch hinter dem Coach-Menü — leiser, damit die Kacheln vorn bleiben',
       'Das Feld rechnet nur, wenn du es siehst — nicht im Hintergrund, nicht bei „Bewegung reduzieren"',
     ]
   },
@@ -12662,40 +12675,57 @@ let _aicSig = null;
    verstecktem Tab, ausgehaengter Karte oder weggescrolltem Feld an und laeuft
    erst wieder an, wenn sie zurueckkommt. Ein Hintergrundbild, das im
    Hintergrund weiterrechnet, ist Akkuverbrauch ohne Gegenwert. */
-const _AIC_WV = { cv:null, ctx:null, raf:0, io:null, t0:0, laufend:false, ruht:false };
+/* Mehrere Felder gleichzeitig (Heute-Karte UND Coach-Blatt) teilen sich EINE
+   Schleife: zwei getrennte requestAnimationFrame-Ketten auf demselben Bild sind
+   zwei Zeitachsen, die auseinanderlaufen — und doppelte Aufwachkosten. */
+const _AIC_WV = { felder: [], raf: 0, t0: 0 };
+function _aicWaveDrop(cv){
+  _AIC_WV.felder = _AIC_WV.felder.filter(f => {
+    if (cv && f.cv !== cv) return true;
+    if (!cv && f.cv && f.cv.isConnected) return true;
+    try { if (f.io) f.io.disconnect(); } catch(_) {}
+    return false;
+  });
+  if (!_AIC_WV.felder.length && _AIC_WV.raf) { cancelAnimationFrame(_AIC_WV.raf); _AIC_WV.raf = 0; }
+}
 function _aicWaveStop(){
   try {
+    _AIC_WV.felder.forEach(f => { try { if (f.io) f.io.disconnect(); } catch(_) {} });
+    _AIC_WV.felder = [];
     if (_AIC_WV.raf) cancelAnimationFrame(_AIC_WV.raf);
-    _AIC_WV.raf = 0; _AIC_WV.laufend = false;
-    if (_AIC_WV.io) { _AIC_WV.io.disconnect(); _AIC_WV.io = null; }
+    _AIC_WV.raf = 0;
   } catch(_) {}
 }
-function _aicWaveStart(card){
+/* Ein Feld anhaengen. dicht steuert, wie stark es auftraegt: die Heute-Karte
+   ist die Buehne (1), das Blatt liegt hinter Kacheln und bleibt Dunst (.62). */
+function _aicWaveAttach(cv, dicht){
   try {
-    _aicWaveStop();
-    const cv = card && card.querySelector('.aic-wv');
     if (!cv || !cv.getContext) return;
-    _AIC_WV.cv = cv; _AIC_WV.ctx = cv.getContext('2d'); _AIC_WV.ruht = false;
-    if (!_AIC_WV.ctx) return;
-    _aicWaveSize();
+    _aicWaveDrop(cv);                                  // denselben Knoten nie doppelt
+    const f = { cv: cv, ctx: cv.getContext('2d'), io: null, ruht: false, dicht: dicht || 1 };
+    if (!f.ctx) return;
+    _AIC_WV.felder.push(f);
+    _aicWaveSize(f);
     // Reduzierte Bewegung: EIN Bild, dann Ruhe. Das Feld bleibt sichtbar (es ist
     // Textur, keine Meldung), nur die Bewegung entfaellt.
-    if (_chReduceMotion && _chReduceMotion()) { _aicWaveDraw(0); return; }
-    // Ausserhalb des Bildes wird nicht gerechnet.
+    if (typeof _chReduceMotion === 'function' && _chReduceMotion()) { _aicWaveDraw(f, 0); return; }
     try {
-      _AIC_WV.io = new IntersectionObserver((es) => {
-        const sichtbar = es.some(e => e.isIntersecting);
-        _AIC_WV.ruht = !sichtbar;
-        if (sichtbar) _aicWaveLoop();
+      f.io = new IntersectionObserver((es) => {
+        f.ruht = !es.some(e => e.isIntersecting);
+        if (!f.ruht) _aicWaveLoop();
       }, { threshold: 0 });
-      _AIC_WV.io.observe(cv);
+      f.io.observe(cv);
     } catch(_) {}
-    _AIC_WV.t0 = performance.now();
+    if (!_AIC_WV.t0) _AIC_WV.t0 = performance.now();
     _aicWaveLoop();
   } catch(e) { console.warn('[Coach] Wellenfeld:', e); }
 }
-function _aicWaveSize(){
-  const cv = _AIC_WV.cv, ctx = _AIC_WV.ctx;
+function _aicWaveStart(card){
+  _aicWaveDrop(null);                                  // abgeraeumte Karten vergessen
+  _aicWaveAttach(card && card.querySelector('.aic-wv'), 1);
+}
+function _aicWaveSize(f){
+  const cv = f.cv, ctx = f.ctx;
   if (!cv || !ctx) return;
   const w = cv.clientWidth, h = cv.clientHeight;
   if (!w || !h) return;
@@ -12721,14 +12751,15 @@ function _aicWaveRGB(){
   } catch(_) { return [0, 122, 255]; }
 }
 const _AIC_ZEILEN = 20, _AIC_SPALTEN = 64;
-function _aicWaveDraw(t){
-  const cv = _AIC_WV.cv, ctx = _AIC_WV.ctx;
+function _aicWaveDraw(f, t){
+  const cv = f.cv, ctx = f.ctx;
   if (!cv || !ctx) return;
   const W = cv.clientWidth, H = cv.clientHeight;
   if (!W || !H) return;
   ctx.clearRect(0, 0, W, H);
   const rgb = _aicWaveRGB();
   const hell = document.documentElement.getAttribute('data-theme') !== 'dark';
+  const dicht = f.dicht;
   for (let r = 0; r < _AIC_ZEILEN; r++) {
     // d = Naehe zum Betrachter. Die Potenz staucht die hinteren Zeilen
     // zusammen — das ist die ganze Perspektive.
@@ -12754,34 +12785,38 @@ function _aicWaveDraw(t){
       const R = Math.round(rgb[0] + (255 - rgb[0]) * weiss);
       const G = Math.round(rgb[1] + (255 - rgb[1]) * weiss);
       const B = Math.round(rgb[2] + (255 - rgb[2]) * weiss);
-      const a = (0.14 + 0.78 * kamm) * (0.32 + 0.68 * d) * (hell ? 0.72 : 1);
+      const a = (0.14 + 0.78 * kamm) * (0.32 + 0.68 * d) * (hell ? 0.72 : 1) * dicht;
       ctx.fillStyle = 'rgba(' + R + ',' + G + ',' + B + ',' + a.toFixed(3) + ')';
       ctx.fillRect(x - gr / 2, y - gr / 2, gr, gr);
     }
   }
 }
 function _aicWaveLoop(){
-  if (_AIC_WV.laufend) return;
-  _AIC_WV.laufend = true;
+  if (_AIC_WV.raf) return;
   const schritt = (jetzt) => {
-    _AIC_WV.raf = 0; _AIC_WV.laufend = false;
-    const cv = _AIC_WV.cv;
-    // Ausgehaengte Karte (Rerender) beendet die Schleife endgueltig — der neue
-    // Lauf startet ueber _aicCardTap mit einem neuen Canvas.
-    if (!cv || !cv.isConnected) { _aicWaveStop(); return; }
-    if (document.hidden || _AIC_WV.ruht) return;     // Weiterlauf per Ereignis
-    _aicWaveSize();
-    _aicWaveDraw((jetzt - _AIC_WV.t0) / 1000);
-    _AIC_WV.laufend = true;
+    _AIC_WV.raf = 0;
+    let offen = 0;
+    for (let i = _AIC_WV.felder.length - 1; i >= 0; i--) {
+      const f = _AIC_WV.felder[i];
+      // Ausgehaengtes Canvas (Rerender) faellt raus — der neue Lauf startet
+      // ueber _aicCardTap bzw. openCoachHub mit einem neuen Knoten.
+      if (!f.cv || !f.cv.isConnected) { try { if (f.io) f.io.disconnect(); } catch(_) {} _AIC_WV.felder.splice(i, 1); continue; }
+      if (f.ruht) continue;
+      _aicWaveSize(f);
+      _aicWaveDraw(f, (jetzt - _AIC_WV.t0) / 1000);
+      offen++;
+    }
+    if (!_AIC_WV.felder.length) return;
+    if (!offen) return;                                // alle ruhen: Wecken per Ereignis
+    if (document.hidden) return;
     _AIC_WV.raf = requestAnimationFrame(schritt);
   };
+  if (document.hidden) return;
   _AIC_WV.raf = requestAnimationFrame(schritt);
 }
 // Rueckkehr aus dem Hintergrund: die Schleife haelt bei document.hidden an und
 // braucht diesen Anstoss, sonst bliebe das Feld nach dem Wiederaufwecken stehen.
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && _AIC_WV.cv && _AIC_WV.cv.isConnected && !_AIC_WV.ruht) _aicWaveLoop();
-});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) _aicWaveLoop(); });
 // Beide Karten-Varianten hängen am selben Tap-Ziel: die Karte ist der EINZIGE
 // Zugang zum Coach-Hub (Gestaltungsregel 1). Die Karte trägt seit dem Rückbau
 // KEINEN Startknopf mehr — der Trainingsstart wohnt im Schnellstart-Widget und
@@ -28195,6 +28230,9 @@ function openCoachHub(tab){
   // Öffnen des Blattes nie halb offen da.
   _chGoalOpen = false; _chGoalHint = '';
   openOv('ov-coach-hub');
+  // Leiser als auf der Karte (.62): hier liegen Kacheln darueber, und ein Feld,
+  // das mit ihnen um Aufmerksamkeit ringt, macht das Blatt unruhig.
+  try { _aicWaveAttach(document.getElementById('ch-wave'), .62); } catch(_) {}
   renderCoachHub();
 }
 /* Eine Kachel öffnen und wieder zurück. Zwei Ebenen, eine Bewegung.
