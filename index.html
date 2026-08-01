@@ -954,7 +954,13 @@ body{
    halten — das fuehlt sich abgehackt an und reisst mitten in der Bewegung.
    Ohne die Regel gleitet der Schwung durch und setzt sich am Ende weich auf
    den naechstgelegenen Rastpunkt. */
-#log-cards .ex-card{scroll-snap-align:start}
+/* MITTE statt Oberkante: die eingerastete Uebung soll im Bild stehen, nicht an
+   der Kante kleben. Der Rastbereich reicht von der Unterkante der Leisten
+   (scroll-padding-top) bis zur Unterkante des Blattes — 'center' meint dessen
+   Mitte, nicht die des ganzen Bildschirms. Karten, die hoeher sind als dieser
+   Bereich, behandelt _wkSettle() gesondert: sie rasten oben ein, sonst laege
+   ihr Anfang ausserhalb des Bildes. */
+#log-cards .ex-card{scroll-snap-align:center}
 /* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten).
    WICHTIG — warum das Dimmen am INHALT haengt und nicht an der Karte:
    .ex-card traegt backdrop-filter. Aendert sich die Deckkraft (oder die Groesse)
@@ -8198,7 +8204,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020015';
+const APP_VERSION = 'gymtrack-v202608020016';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19212,7 +19218,15 @@ function _wkSettle(){
     const box = _wkFocusBoxes.filter(b => b.li === _wkFocusLi)[0];
     if (!box) return;
     const pad  = _wkSnapPadPx || 72;
-    const ziel = Math.max(0, Math.round(box.top - pad));
+    const buehne = sheet.clientHeight - pad;        // sichtbarer Bereich unter den Leisten
+    const hoehe  = box.bottom - box.top;
+    // Passt die Karte in die Buehne, wird ihre MITTE auf die Mitte der Buehne
+    // gelegt. Ist sie hoeher (viele Saetze, offene Vorschlagskarte), waere die
+    // Mitte die falsche Zusage: dann steht ihr Anfang oben, damit man von oben
+    // lesen kann.
+    const ziel = Math.max(0, Math.round(
+      hoehe > buehne - 8 ? box.top - pad
+                         : box.top - pad - (buehne - hoehe) / 2));
     if (Math.abs(sheet.scrollTop - ziel) < 14) return;
     // Ueber die Blattkante hinaus wird nicht gefahren: am Ende der Liste stuende
     // die letzte Karte sonst dauerhaft "daneben" und das Nachrasten liefe in
