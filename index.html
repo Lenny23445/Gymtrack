@@ -948,19 +948,22 @@ body{
    Sheet-Oberkante ein und verschwindet hinter den Leisten. Der Wert wird in
    _wkSyncSnapPad() aus der echten Hoehe gerechnet, weil beide Leisten je nach
    Lage da sind oder nicht. */
-#ov-wk .sheet{scroll-snap-type:y proximity;scroll-padding-top:var(--wk-snap-pad,72px)}
+#ov-wk .sheet{scroll-snap-type:y mandatory;scroll-padding-top:var(--wk-snap-pad,72px)}
 #ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
-/* KEIN scroll-snap-stop: 'always' laesst den Sheet an JEDER Karte zwangsweise
-   halten — das fuehlt sich abgehackt an und reisst mitten in der Bewegung.
-   Ohne die Regel gleitet der Schwung durch und setzt sich am Ende weich auf
-   den naechstgelegenen Rastpunkt. */
+/* scroll-snap-stop:'always' ist der Kern des harten Einrastens: es verbietet
+   dem Schwung, einen Rastpunkt zu ueberspringen. Ein Wisch bringt genau eine
+   Uebung weiter — egal wie kraeftig er war. Ohne die Regel liefe ein kraeftiger
+   Wisch ueber drei Uebungen hinweg.
+   'mandatory' dazu heisst: die Ansicht bleibt NIE zwischen zwei Uebungen
+   stehen. Beides zusammen ist das Verfahren nativer Pager. */
 /* MITTE statt Oberkante: die eingerastete Uebung soll im Bild stehen, nicht an
    der Kante kleben. Der Rastbereich reicht von der Unterkante der Leisten
    (scroll-padding-top) bis zur Unterkante des Blattes — 'center' meint dessen
-   Mitte, nicht die des ganzen Bildschirms. Karten, die hoeher sind als dieser
-   Bereich, behandelt _wkSettle() gesondert: sie rasten oben ein, sonst laege
-   ihr Anfang ausserhalb des Bildes. */
-#log-cards .ex-card{scroll-snap-align:center}
+   Mitte, nicht die des ganzen Bildschirms. Ist eine Karte hoeher als dieser
+   Bereich (viele Saetze, offene Vorschlagskarte), haelt WebKit den Sichtbereich
+   INNERHALB der Karte, statt sie mit Gewalt zu zentrieren — man kann sie also
+   trotz 'mandatory' von oben nach unten lesen. */
+#log-cards .ex-card{scroll-snap-align:center;scroll-snap-stop:always}
 /* Dimmen nur, wenn die Fokus-Schicht aktiv ist (>= 2 Karten).
    WICHTIG — warum das Dimmen am INHALT haengt und nicht an der Karte:
    .ex-card traegt backdrop-filter. Aendert sich die Deckkraft (oder die Groesse)
@@ -993,12 +996,19 @@ body{
   box-shadow:0 12px 30px rgba(var(--acc-rgb),.20),var(--gl-hi);
   transform:translateY(-2px);
   will-change:transform}
-/* Der Kopf des Trainings (Trainingszeit, "Abbrechen", "Fertig") muss IMMER
-   erreichbar bleiben. Bekaeme die erste Karte einen Rastpunkt, koennte der
-   Sheet beim Hochscrollen an ihr haengen bleiben und den Kopf wieder
-   wegziehen. Darum rastet ab der ZWEITEN Karte — der Weg nach ganz oben
-   bleibt frei scrollbar. */
-#log-cards .ex-card:first-child{scroll-snap-align:none}
+/* Bei 'mandatory' ruht die Ansicht IMMER auf einem Rastpunkt. Alles, was
+   erreichbar bleiben soll, braucht darum selbst einen — sonst zieht es das
+   Blatt wieder weg.
+
+   Frueher war die erste Karte bewusst ausgenommen, damit der Trainingskopf
+   ("Abbrechen", "Fertig") nicht weggezogen wird. Mit dem harten Einrasten
+   kehrt sich das um: ohne eigenen Rastpunkt waere der Kopf gar nicht mehr zu
+   halten, weil das Blatt zur naechsten Karte zoege. Deshalb rasten jetzt AUCH
+   der Kopf und der Abschluss (Notiz, "Training beenden") — je ein Halt an
+   ihrer Oberkante. Der Weg ist damit: Kopf → Uebung 1 → Uebung 2 → … →
+   Abschluss, ein Wisch je Schritt. */
+#wk-step2 .timer-bar{scroll-snap-align:start;scroll-snap-stop:always}
+#wk-note{scroll-snap-align:start;scroll-snap-stop:always}
 @media (prefers-reduced-motion:reduce){
   #log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{transition:none}
 }
@@ -8204,7 +8214,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020016';
+const APP_VERSION = 'gymtrack-v202608020018';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19190,53 +19200,14 @@ function _wkFocusTick() {
 // Hoechstens EINE Auswertung je Bild. Das Scroll-Ereignis selbst tut nichts.
 function _wkFocusSoon() { if (!_wkFocusRaf) _wkFocusRaf = requestAnimationFrame(_wkFocusTick); }
 
-/* ── Nachrasten ───────────────────────────────────────────────────────────
-   scroll-snap-type:proximity rastet nur, wenn der Finger nahe genug an einem
-   Rastpunkt loslaesst. Zwischen zwei Karten liess es die Ansicht deshalb
-   einfach stehen — man sah zwei Haelften und keine ganze Uebung. "Mandatory"
-   waere die naheliegende Antwort und die falsche: es reisst die Ansicht auch
-   dann an die naechste Karte, wenn man nur ein Stueck weiterlesen will.
-
-   Stattdessen raeumt DIESE Funktion nach: 180 ms nachdem die Bewegung steht
-   (und der Finger weg ist), faehrt das Blatt die eingerastete Uebung sauber an
-   den Rastpunkt. Nicht die naechstliegende Karte, sondern die, die der
-   Fokus-Modus ohnehin als "dran" fuehrt — sonst raeumt es gegen die eigene
-   Hervorhebung.
-
-   Nichts passiert, wenn: der Finger noch liegt, gerade umsortiert/gewischt
-   wird (.snap-off), oder die Karte schon nah genug (14 px) steht. */
-let _wkSettleT = 0, _wkTouching = false;
-function _wkSettleSoon(){
-  clearTimeout(_wkSettleT);
-  _wkSettleT = setTimeout(_wkSettle, 180);
-}
-function _wkSettle(){
-  try {
-    const sheet = document.querySelector('#ov-wk .sheet');
-    if (!sheet || _wkTouching || sheet.classList.contains('snap-off')) return;
-    if (_wkFocusLi < 0 || !_wkFocusBoxes) return;
-    const box = _wkFocusBoxes.filter(b => b.li === _wkFocusLi)[0];
-    if (!box) return;
-    const pad  = _wkSnapPadPx || 72;
-    const buehne = sheet.clientHeight - pad;        // sichtbarer Bereich unter den Leisten
-    const hoehe  = box.bottom - box.top;
-    // Passt die Karte in die Buehne, wird ihre MITTE auf die Mitte der Buehne
-    // gelegt. Ist sie hoeher (viele Saetze, offene Vorschlagskarte), waere die
-    // Mitte die falsche Zusage: dann steht ihr Anfang oben, damit man von oben
-    // lesen kann.
-    const ziel = Math.max(0, Math.round(
-      hoehe > buehne - 8 ? box.top - pad
-                         : box.top - pad - (buehne - hoehe) / 2));
-    if (Math.abs(sheet.scrollTop - ziel) < 14) return;
-    // Ueber die Blattkante hinaus wird nicht gefahren: am Ende der Liste stuende
-    // die letzte Karte sonst dauerhaft "daneben" und das Nachrasten liefe in
-    // jeder Ruhepause erneut.
-    const max = sheet.scrollHeight - sheet.clientHeight;
-    if (ziel > max - 4) return;
-    try { sheet.scrollTo({ top: ziel, behavior: 'smooth' }); }
-    catch(_) { sheet.scrollTop = ziel; }
-  } catch(_) {}
-}
+/* ── Kein Nachrasten mehr ─────────────────────────────────────────────────
+   Frueher raeumte hier eine Funktion 180 ms nach dem Stillstand nach: bei
+   'proximity' blieb die Ansicht sonst zwischen zwei Karten stehen. Mit
+   'mandatory' + scroll-snap-stop:always gibt es diesen Zwischenzustand nicht
+   mehr — WebKit setzt selbst auf genau einen Rastpunkt, und zwar auf den
+   naechsten, nie auf einen uebersprungenen. Eine zweite Kraft auf derselben
+   Achse waere jetzt schaedlich: sie zoege gegen das Einrasten und laese sich
+   als Nachschlagen. */
 
 /* Rastabstand = Klebe-Offset von #wk-sticky (58px) + dessen echte Hoehe.
    Coach-Leiste und Pausenbalken kommen und gehen; ein fester Wert waere
@@ -19292,12 +19263,7 @@ function _wkFocusObserve() {
   // EIN passiver Zuhoerer fuer die Lebensdauer des Blattes — nicht ein Observer
   // je Karte, der bei jedem Rendern neu aufgebaut wird.
   if (!_wkFocusBound) {
-    sheet.addEventListener('scroll', () => { _wkFocusSoon(); _wkSettleSoon(); }, { passive: true });
-    // Solange der Finger liegt, wird nicht nachgeraeumt — ein Blatt, das unter
-    // dem Finger wegfaehrt, ist schlimmer als eine schiefe Karte.
-    sheet.addEventListener('touchstart', () => { _wkTouching = true; clearTimeout(_wkSettleT); }, { passive: true });
-    sheet.addEventListener('touchend',   () => { _wkTouching = false; _wkSettleSoon(); }, { passive: true });
-    sheet.addEventListener('touchcancel',() => { _wkTouching = false; }, { passive: true });
+    sheet.addEventListener('scroll', _wkFocusSoon, { passive: true });
     _wkFocusBound = true;
   }
   _wkFocusDirty = true;
