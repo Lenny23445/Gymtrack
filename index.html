@@ -6111,7 +6111,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      ease-in-out sah aus, als würde er ruckeln — er war am Umkehrpunkt am
      langsamsten und genau dort am sichtbarsten. Die Welle laeuft jetzt schnell
      los und verliert sich weich (cubic-bezier), so wie ein Puls. */
-  .aic-orb::before{animation:aicOrbStreif 6.5s cubic-bezier(.4,0,.2,1) infinite}
   /* Im Orb steht das Zeichen der App. Es pocht nicht mit, sondern WIEGT sich:
      eine Hantel, die kippt, ist eine Bewegung aus dem Training — ein Symbol,
      das im Takt groesser und kleiner wird, ist ein Ladebalken. */
@@ -6143,12 +6142,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
 @keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
-/* Der Lichtstreifen laeuft einmal je Runde ueber das Feld und ist die meiste
-   Zeit gar nicht da — ein dauernd wanderndes Glanzlicht auf 26 px waere
-   Flimmern. */
-@keyframes aicOrbStreif{0%{transform:translateX(-120%)}
-  22%{transform:translateX(120%)}
-  100%{transform:translateX(120%)}}
+
 /* Die Hantel kippt langsam von der einen auf die andere Seite und haelt oben
    kurz inne (die Pausen bei 0/48/100 % sind die Umkehrpunkte). 11 Grad reichen:
    mehr sieht bei 14 px nach Zeiger aus, weniger sieht man nicht. */
@@ -6176,11 +6170,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   color:#fff;background:linear-gradient(160deg,#15171d,#07080c);
   border:1px solid rgba(255,255,255,.14);
   box-shadow:0 2px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10)}
-/* Ein Lichtstreifen wandert langsam ueber das Feld — die einzige Bewegung
-   ausser der Hantel selbst, und sie liegt UNTER dem Symbol (z-index). */
-.aic-orb::before{border-radius:0;border:none;inset:-40%;
-  background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.16) 50%,transparent 62%)}
-.aic-orb::after{display:none}
+/* Kein Lichtstreifen mehr ueber dem Zeichen: der Puls, der alle paar Sekunden
+   durchs Bild lief, war die eine Bewegung, die im Blatt auffiel. Uebrig bleibt
+   die kippende Hantel. */
+.aic-orb::before,.aic-orb::after{display:none}
 .aic-orb svg{position:relative;z-index:1}
 /* Nur noch EIN Pseudo-Element, und es ist kein Reifen mehr, sondern der
    Lichtstreifen (s. unten). */
@@ -8187,7 +8180,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020009';
+const APP_VERSION = 'gymtrack-v202608020010';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -13349,7 +13342,7 @@ function _buildMiniChart(log, goal, acc) {
       { pointRadius: 0, pointHoverRadius: 0, backgroundColor: _accFill(canvas, acc, '30') }
     ), ...goalDs]},
     options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, _gtGlow:_hexA(acc,.7),
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
         x: { display: false },
@@ -13449,7 +13442,7 @@ function openWeightChartFull() {
       data: { labels: pts.map(p => new Date(p.date).toLocaleDateString(GT_LOCALE,{day:'numeric',month:'short'})),
         datasets: [Object.assign({ data }, _glowDs(canvas, acc, data.length, true)), ...goalDs]},
       options: {
-        responsive: true, maintainAspectRatio: false, _gtGlow:_hexA(acc,.85),
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: {
           label: ctx => ctx.datasetIndex===0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}`
         }}},
@@ -16829,7 +16822,7 @@ function renderDet1rmChart(hist) {
       }]
     },
     options:{
-      responsive:true, _gtGlow:_hexA(acc,.85),
+      responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt1RM(c.parsed.y)}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(pts.length)},
@@ -16857,7 +16850,7 @@ function renderDetChart(hist) {
       }]
     },
     options:{
-      responsive:true, _gtGlow:_hexA(acc,.85),
+      responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(pts.length)},
@@ -17729,32 +17722,19 @@ function openMuscleDetail(id) {
   openOv('ov-muscle');
 }
 
-/* ── Leuchtkurve (Vorlage: Kennzahl gross, darunter EINE glimmende Linie) ──
-   Kein Raster, keine Achsen, keine Punktreihe: die Vorlage zeigt den VERLAUF,
-   nicht die Ablesbarkeit einzelner Werte. Wer einen Wert braucht, tippt die
-   Linie an (Tooltip bleibt).
-   Das Leuchten ist ein Schatten am Kontext, kein Bildfilter: filter:blur auf
-   dem Canvas kostet in der WKWebView eine eigene Ebene je Bild, shadowBlur
-   zeichnet die Engine mit. */
-const _GLOW_PLUGIN = {
-  id: 'gtGlow',
-  beforeDatasetDraw(c, a){
-    const ctx = c.ctx, f = c.options._gtGlow;
-    if (!f) return;
-    ctx.save(); ctx.shadowColor = f; ctx.shadowBlur = a.index === 0 ? 16 : 0;
-  },
-  afterDatasetDraw(c){ if (c.options._gtGlow) c.ctx.restore(); }
-};
-try { if (window.Chart && Chart.register) Chart.register(_GLOW_PLUGIN); } catch(_) {}
-/* Der Strich wird zur Mitte hin hell und laeuft an beiden Enden aus — in der
-   Vorlage sitzt das Licht auf dem Kamm, nicht auf der ganzen Linie. */
+/* ── Die Kurve der Diagramme ─────────────────────────────────────────────
+   Eine weiche Linie, an den Enden ausgeblendet, nur der aktuelle Punkt
+   markiert. Der Lichtschein (Schatten um die Linie, weisses Aufhellen in der
+   Mitte) ist auf Wunsch wieder entfernt — geblieben ist die Form. */
+/* Der Strich laeuft an beiden Enden weich aus und steht in der Mitte voll — das
+   ist die Form der Kurve, KEIN Leuchten: das weisse Aufhellen und der Schatten
+   um die Linie sind auf Wunsch wieder raus. */
 function _glowStroke(cv, acc){
   try {
     const g = cv.getContext('2d').createLinearGradient(0, 0, cv.clientWidth || 300, 0);
-    g.addColorStop(0,   _hexA(acc, .38));
-    g.addColorStop(.42, _hexA(acc, 1));
-    g.addColorStop(.62, 'rgba(255,255,255,.92)');
-    g.addColorStop(1,   _hexA(acc, .38));
+    g.addColorStop(0,   _hexA(acc, .55));
+    g.addColorStop(.5,  _hexA(acc, 1));
+    g.addColorStop(1,   _hexA(acc, .55));
     return g;
   } catch(_) { return acc; }
 }
@@ -17801,7 +17781,6 @@ function _volChartCfg(cv, pts, acc, voll){
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      _gtGlow:_hexA(acc, .85),
       layout:{padding:{top:14,bottom:voll?0:6,left:6,right:10}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       // Achsen bleiben. In der Kachel eine Spur kleiner gesetzt, sonst frisst
@@ -17939,7 +17918,6 @@ function _erfRadarDraw(kraft){
       },
       options:{
         responsive:true, maintainAspectRatio:false,
-        _gtGlow:_hexA(acc,.7),
         // Die Ecken-Beschriftung steht AUSSERHALB der Netzflaeche und wurde links
         // und rechts abgeschnitten: Chart.js rechnet den Platz dafuer nicht in
         // die Flaeche ein. Seitlich deshalb deutlich mehr Luft als oben.
@@ -18414,7 +18392,7 @@ function renderMgStatChart(sessions) {
       }]
     },
     options:{
-      responsive:true, _gtGlow:_hexA(acc,.85),
+      responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(sessions.length)},
@@ -28798,7 +28776,6 @@ function _chWeekDraw(){
           const _n = (cfg.data.datasets[0].data || []).length;
           Object.assign(cfg.data.datasets[0], _glowDs(cv, _acc, _n, false));
           cfg.options = cfg.options || {};
-          cfg.options._gtGlow = _hexA(_acc, .8);
         }
       } catch(e) { console.warn('[Coach] Diagramm-Stil:', e); }
       try { _chWeekInst.push(new Chart(cv.getContext('2d'), cfg)); }
