@@ -2628,6 +2628,17 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-content>.tracker-row,
 .hw-content>.btn{height:100%;min-height:0}
 .hw-card,.hw-quick{display:flex;flex-direction:column;overflow:hidden}
+/* Eine Kachel, deren Inhalt leer bleibt (Coach ohne Abo, Startkarte nach dem
+   ersten Training), darf keine Rasterzelle besetzen — sonst klafft oben auf der
+   Startseite ein Loch, das aussieht wie ein Ladefehler. Im Bearbeiten-Modus
+   bleibt sie sichtbar, sonst kann man sie weder greifen noch entfernen. */
+.hw.hw-leer{display:none}
+.heute-pad.editing .hw.hw-leer{display:flex;opacity:.4}
+.heute-pad.editing .hw.hw-leer .hw-content::after{
+  content:'leer';display:flex;align-items:center;justify-content:center;
+  flex:1;font-size:12px;font-weight:700;color:var(--text2);
+  border:1.5px dashed var(--sep);border-radius:18px}
+
 /* sm/md: Inhalt zentriert */
 .hw-sm .hw-card,.hw-md .hw-card{align-items:center;justify-content:center;text-align:center}
 .hw-md .hw-card{padding:10px 14px}
@@ -8869,7 +8880,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030437';
+const APP_VERSION = 'gymtrack-v202608030442';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -12560,15 +12571,23 @@ function setGlass(on) {
    Layout in S.heuteLayout = [{type, size:'lg'|'sm'}, …]
    ════════════════════════════════════════════════════════════════ */
 const DEFAULT_HEUTE_LAYOUT = [
-  /* 'weekcal' ist hier raus: dieselbe Wochenübersicht mit demselben Kalender
-     dahinter steht bereits im Statistik-Tab — zweimal dasselbe wirkte doppelt.
-     In der Widget-Auswahl steht es aber zur Verfügung (siehe WIDGET_DEFS). */
+  /* Reihenfolge nach dem, was beim Aufschlagen zaehlt: erst die Woche als
+     Ueberblick, dann die beiden Quadrate, dann der Knopf ueber die volle
+     Breite. Auf einer Startseite ohne Eintraege haelt diese Folge die Flaeche
+     zusammen — vorher stand oben die Coach-Kachel, die ohne Abo leer bleibt
+     und ein Loch hinterliess (siehe renderHeuteGrid: leere Kacheln fallen aus
+     dem Raster). */
+  {type:'weekcal', size:'lg'},   // Wochenuebersicht Mo–So
+  {type:'streak',  size:'sm'},   // links
+  {type:'recovery',size:'sm'},   // rechts daneben
+  {type:'train',   size:'lg'},   // lange Leiste ueber beide Spalten (lgRows:1)
+  {type:'woche',   size:'lg'},   // Wochenziele
+  /* Der Coach steht bewusst NICHT mehr ganz oben: fuer Abonnenten bleibt er
+     sichtbar, ohne Abo faellt seine Kachel hier heraus, ohne dass die obere
+     Haelfte der Seite darunter leidet. */
   {type:'coach',   size:'lg'},
-  {type:'streak',  size:'sm'},
-  {type:'recovery',size:'sm'},
   {type:'weight',  size:'md'},
-  {type:'train',   size:'md'},
-  {type:'woche',   size:'lg'},
+  {type:'volume',  size:'md'},
   {type:'history', size:'lg'},
 ];
 
@@ -12581,7 +12600,7 @@ const WIDGET_DEFS = {
      es aber wieder: wer die Woche auf dem Heute-Tab sehen will, holt es sich im
      Bearbeiten-Modus dazu. */
   weekcal: {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochenübersicht Mo–So',       sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
-  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:2, build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
+  woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:()=>((S.trackerItems||[]).length>2?2:1), build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:renderTrackers},
   weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:renderWeightCard},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
   train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
@@ -12643,7 +12662,12 @@ function renderHeuteGrid(){
       const size = def.sizes.includes(w.size) ? w.size : def.sizes[0];
       const canResize = def.sizes.length > 1;
       // lg darf je nach Inhalt mehrere Rastereinheiten hoch sein
-      const spanStyle = size === 'lg' ? ` style="grid-row:span ${def.lgRows||2}"` : '';
+      /* lgRows darf auch eine Funktion sein: die Wochenziele brauchen zwei
+         Rasterzeilen, sobald Ringe da sind, und nur eine, solange dort bloss
+         der Plus-Knopf steht — sonst haengt unter dem Knopf eine halbe leere
+         Kachel. */
+      const rows = typeof def.lgRows === 'function' ? (def.lgRows() || 1) : (def.lgRows || 2);
+      const spanStyle = size === 'lg' ? ` style="grid-row:span ${rows}"` : '';
       const titleHtml = (size === 'lg' && def.title) ? `<div class="hw-title">${def.title}</div>` : '';
       return `<div class="hw hw-${size}" data-type="${w.type}" data-size="${size}" data-idx="${i}"${spanStyle}>
         <div class="hw-badge hw-remove" onclick="removeWidget(${i})">−</div>
@@ -12655,6 +12679,20 @@ function renderHeuteGrid(){
   }
   _sizeHeuteGrid();
   layout.forEach(w => { const d = WIDGET_DEFS[w.type]; if (d && d.fill) { try { d.fill(); } catch(e){} } });
+  /* Erst NACH fill() steht fest, ob eine Kachel wirklich etwas zeigt: der Coach
+     etwa entscheidet dort, ob er eine Empfehlung hat. Leere Kacheln bekommen
+     .hw-leer und fallen aus dem Raster — vorher stand an ihrer Stelle ein Loch,
+     das wie ein Ladefehler aussah. */
+  grid.querySelectorAll('.hw').forEach(el => {
+    const inhalt = el.querySelector('.hw-content');
+    /* Auf VORHANDENE Kinder zu prüfen reicht nicht: der Coach lässt seinen
+       Wirtscontainer stehen und leert nur dessen Inneres — die Kachel hätte
+       weiter als "gefüllt" gegolten. Gezählt wird deshalb, ob überhaupt etwas
+       Sichtbares drinsteht: Text, ein Symbol, ein Bild oder ein Bedienelement. */
+    const leer = !inhalt || (!inhalt.textContent.trim()
+      && !inhalt.querySelector('svg,img,canvas,input,button'));
+    el.classList.toggle('hw-leer', leer);
+  });
   attachHeuteGestures(grid);
 }
 
@@ -12821,8 +12859,12 @@ function hwHeatmap(size){
   return `<div class="hw-card hw-hm-wrap">${html}</div>`;
 }
 function hwWeekcal(size){
-  if (!S.sessions || !S.sessions.length)
-    return `<div class="hw-card${size==='sm'?' hw-stat-sm':''}"><div class="hw-empty-mini">Noch keine Trainings diese Woche</div></div>`;
+  /* Frueher stand hier ein Frueh-Ausstieg mit dem blossen Satz "Noch keine
+     Trainings diese Woche" — auf einer grossen Kachel war das eine leere
+     Flaeche mit einer Zeile darin. Das Wochenraster wird deshalb IMMER
+     gezeichnet: sieben Tage mit Datum sind auch ohne einen einzigen Eintrag
+     eine Aussage (die Woche, in der man steht), und die Kachel traegt sich
+     selbst. Die leeren Tage zeigt das CSS ohnehin als blossen Umriss. */
   const today = new Date(); today.setHours(0,0,0,0);
   const { map, level } = _volMap();
   const mon = new Date(today); mon.setDate(today.getDate() - _DOW_MON0(today));
