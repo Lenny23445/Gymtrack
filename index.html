@@ -6133,12 +6133,17 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 /* Der Text kommt einen Tick nach der Hoehe. Beides gleichzeitig liest sich
    als ein Ruck; leicht versetzt wirkt es, als klappe die Leiste auf und der
    Inhalt komme darin zum Vorschein. */
-.cb-offer-txt,.cb-offer-opts{
+.cb-offer-for,.cb-offer-txt,.cb-offer-opts{
   opacity:0;transition:opacity .18s ease .10s;
 }
+.coach-bar.cb-offer.open .cb-offer-for,
 .coach-bar.cb-offer.open .cb-offer-txt,
 .coach-bar.cb-offer.open .cb-offer-opts{opacity:1}
 .cb-offer-txt{font-size:12.5px;line-height:1.45;color:var(--text2)}
+.cb-offer-for{
+  font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--acc);
+  margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .cb-offer-opts{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .cb-offer-opt{
   flex:1 1 auto;min-width:82px;padding:7px 10px;border-radius:10px;
@@ -8412,7 +8417,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021440';
+const APP_VERSION = 'gymtrack-v202608021455';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19915,23 +19920,59 @@ let _wkSheetTouching = false;
   sheet.addEventListener('touchcancel', () => { _wkSheetTouching = false; }, { passive: true });
 })();
 
+/* Steht fuer diese Uebung noch eine Coach-Auswertung aus? Drei Phasen, und in
+   allen dreien darf das Blatt nicht weiterziehen:
+   1. die Entprellung laeuft noch (_coachEvalTimers, Schluessel "li_si"),
+   2. die Anfrage ist unterwegs (die Leiste steht auf 'thinking'),
+   3. ein Vorschlag steht und wartet auf Antwort (_coachCard). */
+function _coachBeschaeftigt(li) {
+  try {
+    if (_coachCard) return true;
+    if (_coachBarState && _coachBarState.mode === 'thinking') return true;
+    const p = li + '_';
+    return Object.keys(_coachEvalTimers || {}).some(k => k.indexOf(p) === 0);
+  } catch(_) { return false; }
+}
 function _wkAutoAdvance(li) {
   if (typeof WorkoutFocus === 'undefined') return;
   const unit = WorkoutFocus.focusUnitOf(wkLogs, li);
   if (!unit.length) return;
   const stillOpen = unit.some(i => (wkLogs[i].sets || []).some(s => !s.done));
   if (stillOpen) return;                                  // Einheit noch nicht fertig
-  const target = WorkoutFocus.nextOpenUnit(wkLogs, li);
-  if (target == null) return;                             // alles fertig → kein Scroll
+  if (WorkoutFocus.nextOpenUnit(wkLogs, li) == null) return;  // alles fertig → kein Scroll
   clearTimeout(_wkAdvTimer);
-  _wkAdvTimer = setTimeout(() => {
+  const seit = Date.now();
+  /* Der Coach braucht laenger als das Blatt: die Auswertung ist um 1,2 s
+     entprellt, das Weiterziehen lief nach 0,6 s. Der Vorschlag zur eben
+     beendeten Uebung erschien also GRUNDSAETZLICH erst, nachdem man schon
+     woanders stand — und die Uebung, um die es ging, lag dann ausgegraut
+     ausserhalb des Bildes. Es war nie ein Zufall, sondern immer so.
+     Jetzt wartet das Weiterziehen, bis der Coach fertig ist: kein Vorschlag
+     unterwegs, keiner offen. Die Obergrenze faengt den Fall ab, dass ein
+     Vorschlag unbeantwortet stehen bleibt — nach einer Minute zieht das Blatt
+     weiter, damit es nicht stehen bleibt, nur weil man nicht antwortet. */
+  const MAX_WARTEN = 60000;
+  const tick = () => {
+    _wkAdvTimer = 0;
     if (document.querySelector('.ov.on:not(#ov-wk)')) return;  // Wheel/Satz-Typ/Untersheet offen
     if (_wkSheetTouching) return;                              // Nutzer scrollt/beruehrt gerade
+    // Lage neu bewerten: ein angenommener Top-Satz haengt der eben beendeten
+    // Uebung einen Satz an — dann ist sie nicht mehr fertig und das Blatt hat
+    // hier gar nichts mehr zu suchen.
+    const u = WorkoutFocus.focusUnitOf(wkLogs, li);
+    if (!u.length || u.some(i => ((wkLogs[i] && wkLogs[i].sets) || []).some(s => !s.done))) return;
+    if (_coachBeschaeftigt(li) && Date.now() - seit < MAX_WARTEN) {
+      _wkAdvTimer = setTimeout(tick, 700);
+      return;
+    }
+    const target = WorkoutFocus.nextOpenUnit(wkLogs, li);
+    if (target == null) return;
     const card = document.querySelector(`#log-cards .ex-card[data-li="${target}"]`);
     if (!card) return;
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-  }, 600);
+  };
+  _wkAdvTimer = setTimeout(tick, 600);
 }
 
 function toggleSetDone(li,si) {
@@ -26598,8 +26639,17 @@ function _coachBarOfferRender(el) {
      auf Hoehe null gefahren (siehe .cb-offer-more). Nur so hat er beim
      Aufklappen einen Zustand, aus dem heraus er wachsen kann; erst beim Tippen
      erzeugt, spraenge er in seiner vollen Groesse ins Bild. */
-  const mehr = (c.text || opts.length > 1)
+  /* Zu welcher Uebung der Vorschlag gehoert. In der Karte war das
+     selbstverstaendlich — sie stand ja darin. In der Leiste ist es das nicht
+     mehr, und wer inzwischen eine Uebung weiter ist, muesste sonst raten. */
+  let fuer = '';
+  try {
+    const exC = _coachCard && exById(_coachCard.exId);
+    if (exC && exC.name && wkLogs.length > 1) fuer = `<div class="cb-offer-for">${esc(exC.name)}</div>`;
+  } catch(_) {}
+  const mehr = (c.text || opts.length > 1 || fuer)
     ? `<div class="cb-offer-more">
+         ${fuer}
          ${c.text ? `<div class="cb-offer-txt">${esc(c.text)}</div>` : ''}
          ${opts.length > 1 ? `<div class="cb-offer-opts">${opts.map((o,i) =>
              `<button type="button" class="cb-offer-opt" onclick="event.stopPropagation();_coachPickOption(${i})">${esc(o.label)}</button>`
