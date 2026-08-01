@@ -1078,6 +1078,17 @@ body{
 }
 .tab.on svg{animation:tab-ic-pop .40s cubic-bezier(.34,1.56,.64,1) both}
 
+/* Netzdiagramm der Erfolge: quadratische Flaeche, damit das Netz rund bleibt —
+   ein gestrecktes Netz liest sich als Verzerrung der Werte. */
+.erf-radar-card{padding:12px 10px 6px}
+.erf-radar-wrap{position:relative;height:min(78vw,330px)}
+.erf-radar-legend{display:flex;align-items:center;gap:14px;padding:2px 6px 6px;
+  font-size:11px;font-weight:700;color:var(--text2)}
+.erf-radar-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.erf-radar-legend i.jetzt{background:var(--acc)}
+.erf-radar-legend i.start{background:#41d869}
+.erf-radar-legend .hint{margin-left:auto;font-weight:600;opacity:.75}
+
 /* Kennzahl ueber der Volumenkurve: die Zahl traegt, der Pfeil ordnet ein. */
 .stats-vol-kopf{display:flex;align-items:baseline;gap:6px;margin:-2px 0 2px;min-height:22px}
 .stats-vol-kopf b{font-size:19px;font-weight:900;letter-spacing:-.5px;color:var(--text);
@@ -8172,7 +8183,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020004';
+const APP_VERSION = 'gymtrack-v202608020005';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -8491,7 +8502,7 @@ const I18N_EN = {
 'Letzte Einheiten mehrfach schwer bei niedriger Energie — App hat Gewichte um 8 % gesenkt und Pausen um 25 % verlängert.':'Several recent sessions were hard on low energy — weights lowered by 8% and rests extended by 25%.',
 'Simulator: mit deinem Founder-Konto anmelden, um KI-Funktionen zu testen.':'Simulator: sign in with your founder account to test the AI features.',
 'Erste Einheit':'First session','Muskel':'Muscle','Kraftaufbau':'Strength gain','Kraftsteigerung pro Muskel':'Strength gain per muscle',
-'Meilensteine ·':'Milestones ·','Meilenstein erreicht':'Milestone reached','Ausgangskraft':'Starting strength','Zuwachs':'Gain',
+'Kraftverteilung':'Strength balance','Jetzt':'Now','Start':'Start','Ecke antippen für Details':'Tap a corner for details','Meilensteine ·':'Milestones ·','Meilenstein erreicht':'Milestone reached','Ausgangskraft':'Starting strength','Zuwachs':'Gain',
   'Tippen für Details ›':'Tap for details ›','Gruppe gesamt':'Group total',
 'Noch keine verwertbaren Sätze für diese Gruppe.':'No usable sets for this group yet.',
 'So entsteht der Wert:':'How this value is calculated:',
@@ -9378,6 +9389,15 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-02-erfolge-netz': {
+    label: '02.08.2026 · Erfolge: dein Kraftprofil auf einen Blick',
+    items: [
+      'Neu im Erfolge-Tab: ein Netzdiagramm über alle Muskelgruppen — blaue Fläche ist dein Stand jetzt, grüne Linie dein Start',
+      'An jeder Ecke stehen beide Werte; tippst du eine Ecke an, öffnet sich die Gruppe im Detail',
+      'Woche, Monat, Jahr und Gesamt schalten das Netz mit um',
+      'Die Meilensteine sind entfernt — sie feierten Zahlen, die mit deinem Training nichts zu tun hatten',
+    ]
+  },
   'cl-2026-08-02-volumen-kurve': {
     label: '02.08.2026 · Alle Diagramme als Leuchtkurve',
     items: [
@@ -10008,7 +10028,9 @@ S.trackerCounts = S.trackerCounts || {};
 // Erfolge: bereits erreichte Meilensteine merken. Bestehende Nutzer werden NICHT
 // rückwirkend gefeiert – ihre aktuell erfüllten Meilensteine gelten als „bekannt".
 if (!Array.isArray(S.erfAchieved)) {
-  S.erfAchieved = (S.sessions && S.sessions.length) ? _milestoneDoneKeys() : [];
+  // Meilensteine sind entfernt; das Feld bleibt leer bestehen, damit Sync und
+  // Rules unveraendert weiterlaufen.
+  S.erfAchieved = [];
 }
 S.weightLog     = S.weightLog     || []; // [{date:'YYYY-MM-DD', weight:80.5}]
 S.weightStart   = S.weightStart   ?? null; // Startgewicht (einmalig)
@@ -17800,90 +17822,19 @@ function _erfTotals() {
   return { totalSessions: sessions.length, totalTimeSec, totalVol, totalHours: totalTimeSec / 3600 };
 }
 
-// Meilenstein-Definitionen – zentral, damit Anzeige & Belohnung identisch sind.
-function _milestoneDefs(t) {
-  t = t || _erfTotals();
-  const { totalSessions, totalVol, totalHours } = t;
-  return [
-    { key:'1',    name:'Erste Einheit',    done: totalSessions >= 1,   sub: totalSessions >= 1 ? 'Geschafft' : '0/1' },
-    { key:'10',   name:'10 Einheiten',     done: totalSessions >= 10,  sub: `${Math.min(totalSessions,10)}/10` },
-    { key:'25',   name:'25 Einheiten',     done: totalSessions >= 25,  sub: `${Math.min(totalSessions,25)}/25` },
-    { key:'50',   name:'50 Einheiten',     done: totalSessions >= 50,  sub: `${Math.min(totalSessions,50)}/50` },
-    { key:'100',  name:'100 Einheiten',    done: totalSessions >= 100, sub: `${Math.min(totalSessions,100)}/100` },
-    { key:'10h',  name:'10 Std. Training', done: totalHours >= 10,     sub: `${totalHours.toFixed(1).replace('.',GT_DEC)}/10 h` },
-    { key:'50h',  name:'50 Std. Training', done: totalHours >= 50,     sub: `${totalHours.toFixed(0)}/50 h` },
-    { key:'10t',  name:'10 t Volumen',     done: totalVol >= 10000,    sub: `${(totalVol/1000).toFixed(1).replace('.',GT_DEC)}/10 t` },
-    { key:'100t', name:'100 t Volumen',    done: totalVol >= 100000,   sub: `${(totalVol/1000).toFixed(0)}/100 t` },
-  ];
-}
-function _milestoneDoneKeys() {
-  return _milestoneDefs().filter(m => m.done).map(m => m.key);
-}
+/* Die Meilensteine (Erste Einheit, 10/25/50/100 Einheiten, Stunden, Tonnage)
+   sind ENTFERNT — Anzeige, Belohnungs-Toast und Merkliste. Sie feierten Zahlen,
+   die mit dem Training nichts zu tun haben: wer 100 Einheiten hat, weiss das.
+   S.erfAchieved bleibt als Feld in den Firestore-Rules erlaubt, damit aeltere
+   Installationen weiter hochladen duerfen; geschrieben wird es hier nicht mehr. */
 
-// Belohnung: prüft auf neu erreichte Meilensteine, feiert mit Vibration + Toast.
-function checkMilestoneRewards() {
-  if (!Array.isArray(S.erfAchieved)) S.erfAchieved = [];
-  const newly = _milestoneDefs().filter(m => m.done && !S.erfAchieved.includes(m.key));
-  if (!newly.length) return;
-  S.erfAchieved.push(...newly.map(m => m.key));
-  persist();
-  newly.forEach((m, i) => setTimeout(() => showMilestoneReward(m), i * 2000));
-}
-
-function showMilestoneReward(m) {
-  haptic([0, 35, 55, 30, 80, 45]);   // Belohnungs-Vibrationsmuster
-  const el = document.createElement('div');
-  el.className = 'mr-toast';
-  el.innerHTML = `<div class="mr-card">
-      <div class="mr-ring"><span>${m.key}</span></div>
-      <div class="mr-txt">
-        <div class="mr-lbl">Meilenstein erreicht</div>
-        <div class="mr-name">${m.name}</div>
-      </div>
-    </div>`;
-  document.body.appendChild(el);
-  requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 420); }, 2600);
-}
-
-function renderErfolge() {
-  const sub  = document.getElementById('erfolge-sub');
-  const body = document.getElementById('erfolge-body');
-  if (!body) return;
-
-  const sessions      = S.sessions || [];
-  const totalSessions = sessions.length;
-  const totalTimeSec  = sessions.reduce((a, s) => a + (s.duration || 0), 0);
-  const totalSets     = sessions.reduce((a, ses) => a + ses.logs.reduce((b, l) => b + l.sets.length, 0), 0);
-  const totalVol      = sessions.reduce((a, ses) => a + sessionVolume(ses), 0);
-  const totalHours    = totalTimeSec / 3600;
-
-  if (sub) sub.textContent = totalSessions
-    ? `${totalSessions} Einheit${totalSessions !== 1 ? 'en' : ''} · ${_erfHours(totalTimeSec)} trainiert`
-    : 'Deine Ziele warten — leg los!';
-
-  // Hinweis: Auch ohne Daten wird die volle Struktur gezeigt (Meilensteine als Ziele).
-
-  // ── Meilensteine (ohne Emoji – Zahl/Einheit im Ring) ──
-  const milestones = _milestoneDefs({ totalSessions, totalVol, totalHours });
-  const unlocked = milestones.filter(m => m.done).length;
-
-  const badgesHtml = milestones.map(m => `
-    <div class="erf-badge${m.done ? '' : ' locked'}">
-      ${m.done ? '<div class="erf-badge-check">✓</div>' : ''}
-      <div class="erf-badge-ic"><span class="erf-badge-key">${m.key}</span></div>
-      <div class="erf-badge-name">${m.name}</div>
-      <div class="erf-badge-sub">${m.sub}</div>
-    </div>`).join('');
-
-  // ── Zeitraum-Filter (Woche / Monat / Jahr / Gesamt) ──
-  const period = S.erfPeriod || 'all';
-  const cutoff = _erfCutoff(period);
-  const perSessions = cutoff ? sessions.filter(s => new Date(s.date).getTime() >= cutoff) : sessions;
-  const perTimeSec  = perSessions.reduce((a, s) => a + (s.duration || 0), 0);
-
-  // ── Kraftsteigerung pro Muskelgruppe (innerhalb des Zeitraums) ──
-  const kraft = MUSCLE_GROUPS.map(mg => {
+/* Kraft je Muskelgruppe im gewaehlten Zeitraum: Ausgangswert (erste Einheit im
+   Zeitraum) und Bestwert (beste Einheit im Zeitraum), beides als Summe der
+   geschaetzten Einermaxima der Uebungen dieser Gruppe. EINE Rechnung fuer
+   Netzdiagramm und Balken — zwei Rechnungen waeren zwei Wahrheiten auf einer
+   Flaeche, und genau das ist in dieser App schon einmal passiert. */
+function _erfKraft(cutoff){
+  return MUSCLE_GROUPS.map(mg => {
     const exs = S.exercises.filter(e => e.muscleGroup === mg.id);
     let start = 0, now = 0, hasData = false;
     exs.forEach(e => {
@@ -17897,6 +17848,95 @@ function renderErfolge() {
     });
     return { mg, start, now, hasData };
   }).filter(k => k.hasData && k.now > 0);
+}
+/* ── Das Netzdiagramm ────────────────────────────────────────────────────
+   Alles auf EINEM Fleck: wo du stehst (blaue Flaeche), wo du gestartet bist
+   (gruene Linie) und wie die Gruppen zueinander stehen. Die Balken darunter
+   sagen dasselbe je Gruppe in Zahlen — das Netz ist der Ueberblick, die Balken
+   sind die Einzelheiten.
+
+   Skala: JEDE Achse geht bis zum staerksten Wert ueber alle Gruppen, nicht bis
+   zum eigenen. Sonst laege jede Gruppe am Rand und das Netz waere immer ein
+   volles Sechseck — die Aussage "Beine sind weiter als Arme" ginge verloren.
+
+   Mindestens DREI Gruppen: mit zwei Achsen zeichnet ein Netz eine Linie. */
+let erfRadarChart = null;
+function _erfRadarDraw(kraft){
+  try {
+    const cv = document.getElementById('erf-radar');
+    if (erfRadarChart) { erfRadarChart.destroy(); erfRadarChart = null; }
+    if (!cv || kraft.length < 3) return;
+    const acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+    const txt2 = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#888';
+    const max = Math.max(...kraft.map(k => k.now), 1);
+    const skal = w => Math.round(w / max * 100);
+    erfRadarChart = new Chart(cv.getContext('2d'), {
+      type:'radar',
+      data:{
+        // Zwei Zeilen je Achse: Name und darunter "jetzt / Start" — dieselbe
+        // Anordnung wie in der Vorlage, nur mit echten Kilo statt Spielwerten.
+        labels: kraft.map(k => [tr(k.mg.label), fmt1RM(k.now) + ' / ' + fmt1RM(k.start)]),
+        datasets:[
+          { label:tr('Jetzt'), data:kraft.map(k => skal(k.now)),
+            borderColor:acc, backgroundColor:_hexA(acc,.16), borderWidth:2.4,
+            pointRadius:3.2, pointBackgroundColor:acc, pointBorderColor:'#fff', pointBorderWidth:1.4 },
+          { label:tr('Start'), data:kraft.map(k => skal(k.start)),
+            borderColor:'#41d869', backgroundColor:'rgba(65,216,105,.09)', borderWidth:1.8,
+            pointRadius:0, pointHoverRadius:5 }
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        _gtGlow:_hexA(acc,.7),
+        layout:{padding:4},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:c => {
+            const k = kraft[c.dataIndex];
+            return ' ' + c.dataset.label + ': ' + fmt1RM(c.datasetIndex === 0 ? k.now : k.start);
+          }}}
+        },
+        scales:{ r:{
+          min:0, max:100, beginAtZero:true,
+          angleLines:{color:'rgba(128,128,128,.16)'},
+          grid:{color:'rgba(128,128,128,.13)'},
+          ticks:{display:false, stepSize:25},
+          pointLabels:{color:txt2, font:{size:10, weight:'700'}, padding:6}
+        }},
+        // Tipp auf eine Ecke fuehrt in die Gruppe — dieselbe Detailflaeche wie
+        // der Balken darunter.
+        onClick:(ev, els) => {
+          try {
+            const i = els && els.length ? els[0].index : -1;
+            if (i >= 0 && kraft[i]) openKraftDetail(kraft[i].mg.id);
+          } catch(_) {}
+        }
+      }
+    });
+  } catch(e) { console.warn('[Erfolge] Netzdiagramm:', e); }
+}
+function renderErfolge() {
+  const sub  = document.getElementById('erfolge-sub');
+  const body = document.getElementById('erfolge-body');
+  if (!body) return;
+
+  const sessions      = S.sessions || [];
+  const totalSessions = sessions.length;
+  const totalTimeSec  = sessions.reduce((a, s) => a + (s.duration || 0), 0);
+
+  if (sub) sub.textContent = totalSessions
+    ? `${totalSessions} Einheit${totalSessions !== 1 ? 'en' : ''} · ${_erfHours(totalTimeSec)} trainiert`
+    : 'Deine Ziele warten — leg los!';
+
+  // Hinweis: Auch ohne Daten wird die volle Struktur gezeigt (Meilensteine als Ziele).
+
+  // ── Zeitraum-Filter (Woche / Monat / Jahr / Gesamt) ──
+  const period = S.erfPeriod || 'all';
+  const cutoff = _erfCutoff(period);
+  const perSessions = cutoff ? sessions.filter(s => new Date(s.date).getTime() >= cutoff) : sessions;
+  const perTimeSec  = perSessions.reduce((a, s) => a + (s.duration || 0), 0);
+
+  const kraft = _erfKraft(cutoff);
 
   const maxNow = Math.max(...kraft.map(k => k.now), 1);
 
@@ -17950,21 +17990,32 @@ function renderErfolge() {
 
     <div class="erf-time-line">${periodLbl} · Trainingszeit · <b>${_erfHours(perTimeSec)}</b> · ${perSessions.length} Einheit${perSessions.length!==1?'en':''}</div>
 
+    ${kraft.length >= 3 ? `<div>
+      <div class="s-title">${tr('Kraftverteilung')}</div>
+      <div class="card erf-radar-card">
+        <div class="erf-radar-legend">
+          <span><i class="jetzt"></i>${tr('Jetzt')}</span>
+          <span><i class="start"></i>${tr('Start')}</span>
+          <span class="hint">${tr('Ecke antippen für Details')}</span>
+        </div>
+        <div class="erf-radar-wrap"><canvas id="erf-radar"></canvas></div>
+      </div>
+    </div>` : ''}
+
     <div>
       <div class="s-title">Kraftsteigerung pro Muskel</div>
       ${kraftLegend}
       ${kraftHtml}
     </div>
-
-    <div>
-      <div class="s-title">Meilensteine · ${unlocked}/${milestones.length}</div>
-      <div class="erf-badges">${badgesHtml}</div>
-    </div>`;
+`;
 
   // Balken-Segmente aus 0 hochwachsen lassen (nach dem ersten Paint)
   requestAnimationFrame(() => requestAnimationFrame(() => {
     body.querySelectorAll('.erf-kraft-base,.erf-kraft-gain').forEach(f => { f.style.width = (f.dataset.w || 0) + '%'; });
   }));
+  // Das Netz erst NACH dem Einhaengen zeichnen: Chart.js misst die Flaeche, und
+  // ein Canvas, das noch nicht im Dokument steht, misst 0.
+  requestAnimationFrame(() => _erfRadarDraw(kraft));
 }
 
 // Bester Satz (höchstes geschätztes 1RM) innerhalb einer Satz-Liste.
@@ -19875,7 +19926,6 @@ function _finishWkContinue(sess, dayName) {
     if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 600); }
   }
   renderHome();
-  checkMilestoneRewards();   // neu erreichte Meilensteine feiern (Vibration + Toast)
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
 }
 
