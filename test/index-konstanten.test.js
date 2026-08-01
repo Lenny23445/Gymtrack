@@ -13,10 +13,11 @@
    schlaegt der Waechter bei Browser-Eigenschaften an. */
 const test = require('node:test');
 const assert = require('node:assert');
-const fs = require('node:fs');
-const path = require('node:path');
+const { appQuelltext } = require('./helfer/quelltext');
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+/* index.html + alle js/app-*.js. Seit dem Modul-Split steht der JS-Teil nicht mehr
+   in index.html — wer hier nur die HTML-Datei laese, pruefte ein leeres Geruest. */
+const HTML = appQuelltext();
 
 /* Kommentare raus, bevor gesucht wird: die Datei erklaert an vielen Stellen
    Konstanten fremder Module (CoachReport.MIN_WEEKS, COACH_SCHEMA im Worker),

@@ -20,6 +20,19 @@ const SHELL = [
   './js/coach-notify.js',
   './js/coach-report.js',
   './js/coach-charts.js',
+  './js/app-i18n.js',
+  './js/app-native.js',
+  './js/app-ui.js',
+  './js/app-session.js',
+  './js/app-plans.js',
+  './js/app-workout.js',
+  './js/app-streak.js',
+  './js/app-community.js',
+  './js/app-coach.js',
+  './js/app-coach-setup.js',
+  './js/app-update.js',
+  './js/app-boot.js',
+  './js/app-tabbar.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
@@ -73,13 +86,16 @@ self.addEventListener('message', e => {
 });
 
 /* ── Fetch-Strategien ──
-   - index.html + sw.js + ./js/coach-*.js: NETWORK-FIRST (immer neueste Version
-     wenn online) → fixt das Problem, dass Updates hängen bleiben. Die Coach-
-     Module sind Anwendungslogik (Dossier/Log/Intent-Router), keine
+   - index.html + sw.js + ./js/coach-*.js + ./js/app-*.js: NETWORK-FIRST (immer
+     neueste Version wenn online) → fixt das Problem, dass Updates hängen bleiben.
+     Die Coach-Module sind Anwendungslogik (Dossier/Log/Intent-Router), keine
      unveraenderlichen Assets — sie muessen so aktuell bleiben wie index.html,
      das sie aufruft. Cache-first waere hier riskant: ein Client koennte ein
      frisches index.html gegen ein veraltetes coach-intent.js laufen lassen,
      ohne dass ein CACHE-Bump das je bemerkt (Review Wichtig 1).
+     Fuer die app-*-Module gilt dasselbe in noch schaerferer Form: seit dem
+     Modul-Split steckt die KOMPLETTE App in diesen 13 Dateien. Ein veralteter
+     Stand darunter ist nicht ein kaputtes Feature, sondern eine kaputte App.
    - Andere Shell-Dateien (Icons, Chart.js): cache-first (Performance, ändern sich selten,
      Chart.js ist ohnehin per Versions-Pin in der URL fixiert)
    - Rest: network-first mit Cache-Fallback                                         */
@@ -87,10 +103,10 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
 
-  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-') || url.includes('/css/app.css');
+  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-') || url.includes('/js/app-') || url.includes('/css/app.css');
   const isStaticShell   = SHELL.some(s => {
     const name = s.replace('./', '');
-    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && !name.startsWith('css/') && url.includes(name);
+    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && !name.startsWith('js/app-') && !name.startsWith('css/') && url.includes(name);
   });
 
   if (isCriticalShell) {

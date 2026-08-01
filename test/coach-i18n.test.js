@@ -14,8 +14,6 @@
    Werte gegeneinander — er kann nicht veralten. */
 const test = require('node:test');
 const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
 const CoachIntent = require('../js/coach-intent.js');
 
 // Extrahiert das I18N_RX-Array direkt aus index.html und wertet es per
@@ -77,8 +75,9 @@ function extractI18nRx(html) {
   return new Function('return ' + src)();
 }
 
-const htmlPath = path.join(__dirname, '..', 'index.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
+/* index.html + alle js/app-*.js: I18N_RX steht seit dem Modul-Split in
+   js/app-i18n.js, nicht mehr in index.html. */
+const html = require('./helfer/quelltext').appQuelltext();
 
 let I18N_RX = null;
 let extractError = null;
