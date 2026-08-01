@@ -6001,34 +6001,34 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    fester Ton wirkte wie ein Standbild, ein voller Regenbogen wie ein fremdes
    Produkt. */
 .aic-aur{position:absolute;inset:-60% -25%;z-index:-2;pointer-events:none;
-  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.50),transparent 70%),
-             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.32),transparent 72%),
-             radial-gradient(26% 40% at 52% 88%,rgba(var(--acc-rgb),.30),transparent 74%)}
+  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.30),transparent 70%),
+             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.20),transparent 72%),
+             radial-gradient(26% 40% at 52% 88%,rgba(var(--acc-rgb),.18),transparent 74%)}
 /* Zweite Lage Licht, die GEGEN die erste laeuft. Zwei gleichlaufende Felder
    sehen aus wie ein verschobenes Bild; erst der Gegenlauf ergibt Wellen, die
    sich treffen und wieder auseinandergehen. */
 .aic-aur::after{content:'';position:absolute;inset:0;
-  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.30),transparent 72%),
+  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.16),transparent 72%),
              radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.42),transparent 70%),
-             radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.18),transparent 74%),
+             radial-gradient(18% 26% at 16% 74%,rgba(255,255,255,.10),transparent 74%),
              radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.30),transparent 72%)}
 /* Der Puls: ein Lichtring, der aus der Mitte nach aussen laeuft und dabei
    verblasst. Unter dem Sieb liest er sich als Welle, die durch das Punktfeld
    zieht. */
 .aic-aur::before{content:'';position:absolute;left:50%;top:50%;width:120%;aspect-ratio:1;
   transform:translate(-50%,-50%) scale(.2);border-radius:50%;opacity:0;
-  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.40) 66%,transparent 78%)}
-/* Das Sieb. Loch 1,1 px in einer 5,5-px-Kachel — kleiner und das Raster
-   verschwimmt auf 3x-Displays zu Grau, groesser und es wird zum Gitter. */
-.aic{--aic-sieb:rgba(250,250,252,.52)}
-[data-theme="dark"] .aic{--aic-sieb:rgba(4,5,10,.76)}
+  background:radial-gradient(circle,transparent 52%,rgba(var(--acc-rgb),.26) 66%,transparent 78%)}
 /* inset:-14px, weil die Flaeche sich BEWEGT: sie zieht in einer weichen Schleife
    ueber die Karte, und ohne Ueberstand liefe an den Raendern kurz die nackte
    Kartenflaeche durch. Bewegt wird per transform (Compositor), nicht ueber
    background-position — das waere ein Neuzeichnen des Rasters in jedem Bild. */
-.aic-scr{position:absolute;inset:-14px;z-index:-1;pointer-events:none;
-  background-image:radial-gradient(circle at 50% 50%,transparent 0 1.1px,var(--aic-sieb) 1.5px);
-  background-size:5.5px 5.5px;will-change:transform}
+/* Das Wellenfeld selbst. Ein statisches Raster kann nicht wogen — die Punkte
+   muessen EINZELN wandern, und dafuer gibt es in CSS kein Mittel. Also Canvas:
+   ein Punktgitter mit Perspektive, durch das Sinuswellen rollen (_aicWave).
+   Es liegt UNTER dem Inhalt (z-index -1) und ueber der Aurora (-2), die weiter
+   die Farbe stellt. */
+.aic-wv{position:absolute;inset:0;z-index:-1;pointer-events:none;display:block;
+  width:100%;height:100%}
 /* Lichtstreifen: einmal beim Erscheinen, danach als seltener Puls */
 .aic-sheen{position:absolute;top:0;bottom:0;left:0;width:38%;z-index:-1;pointer-events:none;opacity:0;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.20),transparent);transform:translateX(-180%)}
@@ -6043,10 +6043,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   .aic-aur{animation:aicAur 13s ease-in-out infinite,aicHue 29s ease-in-out infinite}
   .aic-aur::after{animation:aicAur2 19s ease-in-out infinite}
   .aic-aur::before{animation:aicWelle 14s cubic-bezier(.3,.5,.4,1) infinite}
-  /* Zwei Bewegungen auf demselben Sieb: die Wanderung (23 s, Schleife ueber
-     zwei Kachelbreiten) und das Atmen der Helligkeit (7 s). Getrennte Dauern,
-     damit die Punkte nie im Takt mit dem Licht laufen. */
-  .aic-scr{animation:aicWoge 23s ease-in-out infinite,aicSieb 7s ease-in-out infinite}
   .aic.in .aic-sheen{animation:aicSheen 9s cubic-bezier(.4,0,.2,1) .35s infinite}
   .aic::after{animation:aicLine 7s linear infinite}
   .aic.in{animation:aicIn .5s cubic-bezier(.2,.9,.3,1)}
@@ -6085,18 +6081,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   62%{filter:hue-rotate(14deg) saturate(1)}
   72%{filter:hue-rotate(30deg) saturate(1.55)}
   82%{filter:hue-rotate(4deg) saturate(1)}}
-/* Die Wanderung des Punktfelds: eine Schleife, in der x und y NICHT im selben
-   Takt laufen (Lissajous) — dadurch liest sie sich als Wogen und nicht als
-   Hin und Her. Amplitude 11 px = zwei Kachelbreiten, mehr faellt als Rutschen
-   auf. */
-@keyframes aicWoge{
-  0%,100%{transform:translate3d(0,0,0)}
-  20%{transform:translate3d(6px,-4px,0)}
-  40%{transform:translate3d(11px,3px,0)}
-  60%{transform:translate3d(4px,5px,0)}
-  80%{transform:translate3d(-5px,-2px,0)}}
-/* Das Sieb atmet mit: die Punkte werden minimal heller und wieder dunkler. */
-@keyframes aicSieb{0%,100%{opacity:1}50%{opacity:.82}}
+
 @keyframes aicSheen{0%{transform:translateX(-180%);opacity:0}4%{opacity:1}26%{transform:translateX(320%);opacity:0}100%{transform:translateX(320%);opacity:0}}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
 @keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -8123,7 +8108,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010011';
+const APP_VERSION = 'gymtrack-v202608010013';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9332,10 +9317,10 @@ const CHANGELOG = {
   'cl-2026-08-01-coach-wellenfeld': {
     label: '01.08.2026 · Die Coach-Karte lebt',
     items: [
-      'Hinter der Coach-Karte liegt jetzt ein feines Punktraster, durch das langsam Lichtwellen wandern',
-      'Die Punkte wogen dauerhaft in einer weichen Schleife — hin, her, nie im selben Takt',
+      'Hinter der Coach-Karte rollt ein Feld aus Punkten — echte Wellen, die nach vorn laufen und dabei größer und heller werden',
+      'Auf den Kämmen leuchten die Punkte weiß, in den Tälern tragen sie die App-Farbe',
       'Ab und zu geht ein kurzer Farbimpuls durch das Feld',
-      'Bei „Bewegung reduzieren" steht das Feld still',
+      'Das Feld rechnet nur, wenn du es siehst — nicht im Hintergrund, nicht bei „Bewegung reduzieren"',
     ]
   },
   'cl-2026-08-01-tableiste': {
@@ -12661,6 +12646,142 @@ function _aicSay(){
 // Signatur der zuletzt gerenderten Karte: verhindert, dass jeder renderHome()
 // (Tab-Wechsel, Sync, Timer) die Einblend-Animation erneut abfeuert.
 let _aicSig = null;
+/* ── Das Wellenfeld der Coach-Karte ──────────────────────────────────────
+   Vorlage: ein Punktgitter, durch das Wellen rollen — die Punkte selbst gehen
+   mit. Genau das kann CSS nicht: ein Verlaufsraster kann als Ganzes wandern,
+   aber der einzelne Punkt bleibt an seinem Platz im Muster. Deshalb Canvas.
+
+   Gerechnet wird ein Gitter in Zeilen (Tiefe) und Spalten (Breite). Die Hoehe
+   jedes Punktes ist die Summe DREI verschieden schneller Sinuswellen — eine
+   einzelne Welle sieht aus wie ein wehendes Tuch, erst die Ueberlagerung
+   ergibt das unruhige Feld der Vorlage. Perspektive entsteht ueber die Zeile:
+   weiter hinten liegen die Zeilen dichter, die Punkte kleiner und blasser.
+
+   Kosten: rund 700 Punkte je Bild, gezeichnet als fillRect (kein arc/Pfad).
+   Gemalt wird nur, wenn die Karte SICHTBAR ist — die Schleife haelt bei
+   verstecktem Tab, ausgehaengter Karte oder weggescrolltem Feld an und laeuft
+   erst wieder an, wenn sie zurueckkommt. Ein Hintergrundbild, das im
+   Hintergrund weiterrechnet, ist Akkuverbrauch ohne Gegenwert. */
+const _AIC_WV = { cv:null, ctx:null, raf:0, io:null, t0:0, laufend:false, ruht:false };
+function _aicWaveStop(){
+  try {
+    if (_AIC_WV.raf) cancelAnimationFrame(_AIC_WV.raf);
+    _AIC_WV.raf = 0; _AIC_WV.laufend = false;
+    if (_AIC_WV.io) { _AIC_WV.io.disconnect(); _AIC_WV.io = null; }
+  } catch(_) {}
+}
+function _aicWaveStart(card){
+  try {
+    _aicWaveStop();
+    const cv = card && card.querySelector('.aic-wv');
+    if (!cv || !cv.getContext) return;
+    _AIC_WV.cv = cv; _AIC_WV.ctx = cv.getContext('2d'); _AIC_WV.ruht = false;
+    if (!_AIC_WV.ctx) return;
+    _aicWaveSize();
+    // Reduzierte Bewegung: EIN Bild, dann Ruhe. Das Feld bleibt sichtbar (es ist
+    // Textur, keine Meldung), nur die Bewegung entfaellt.
+    if (_chReduceMotion && _chReduceMotion()) { _aicWaveDraw(0); return; }
+    // Ausserhalb des Bildes wird nicht gerechnet.
+    try {
+      _AIC_WV.io = new IntersectionObserver((es) => {
+        const sichtbar = es.some(e => e.isIntersecting);
+        _AIC_WV.ruht = !sichtbar;
+        if (sichtbar) _aicWaveLoop();
+      }, { threshold: 0 });
+      _AIC_WV.io.observe(cv);
+    } catch(_) {}
+    _AIC_WV.t0 = performance.now();
+    _aicWaveLoop();
+  } catch(e) { console.warn('[Coach] Wellenfeld:', e); }
+}
+function _aicWaveSize(){
+  const cv = _AIC_WV.cv, ctx = _AIC_WV.ctx;
+  if (!cv || !ctx) return;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  // Auf 2 gedeckelt: 3x-Displays verdreifachen die Flaeche fuer einen
+  // Unterschied, den bei 1,5-px-Punkten niemand sieht.
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(w * dpr)) cv.width = Math.round(w * dpr);
+  if (cv.height !== Math.round(h * dpr)) cv.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+// Der Akzent als Zahlentripel. Einmal je Bild aus dem Stylesheet zu lesen wäre
+// ein erzwungenes Layout — deshalb gepuffert und nur bei Themenwechsel neu.
+let _aicWvRGB = null, _aicWvRGBKey = '';
+function _aicWaveRGB(){
+  try {
+    const key = document.documentElement.getAttribute('data-theme') || '';
+    if (_aicWvRGB && key === _aicWvRGBKey) return _aicWvRGB;
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--acc-rgb').trim();
+    const p = v.split(',').map(x => parseInt(x, 10));
+    _aicWvRGB = (p.length === 3 && p.every(n => isFinite(n))) ? p : [0, 122, 255];
+    _aicWvRGBKey = key;
+    return _aicWvRGB;
+  } catch(_) { return [0, 122, 255]; }
+}
+const _AIC_ZEILEN = 20, _AIC_SPALTEN = 64;
+function _aicWaveDraw(t){
+  const cv = _AIC_WV.cv, ctx = _AIC_WV.ctx;
+  if (!cv || !ctx) return;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (!W || !H) return;
+  ctx.clearRect(0, 0, W, H);
+  const rgb = _aicWaveRGB();
+  const hell = document.documentElement.getAttribute('data-theme') !== 'dark';
+  for (let r = 0; r < _AIC_ZEILEN; r++) {
+    // d = Naehe zum Betrachter. Die Potenz staucht die hinteren Zeilen
+    // zusammen — das ist die ganze Perspektive.
+    const d = r / (_AIC_ZEILEN - 1);
+    const zeilenY = H * (0.20 + 0.86 * Math.pow(d, 1.7));
+    const breite  = W * (0.92 + 0.34 * d);
+    const amp     = H * 0.078 * (0.30 + d);
+    for (let c = 0; c < _AIC_SPALTEN; c++) {
+      const u = c / (_AIC_SPALTEN - 1) - 0.5;
+      const x = W * 0.5 + u * breite;
+      if (x < -4 || x > W + 4) continue;
+      const w1 = Math.sin(u * 6.2 + t * 0.62 + d * 2.4);
+      const w2 = Math.sin(u * 11.4 - t * 0.93 + d * 1.2) * 0.55;
+      const w3 = Math.sin(u * 3.1 + t * 0.38 - d * 0.7) * 0.38;
+      const h  = w1 + w2 + w3;                       // -1.93 … 1.93
+      const y  = zeilenY + h * amp;
+      if (y < -3 || y > H + 3) continue;
+      const kamm = Math.max(0, Math.min(1, (h + 1.93) / 3.86));
+      const gr = (0.6 + 1.25 * d) * (0.72 + 0.55 * kamm);
+      // Auf dem Kamm wird der Punkt weiss, im Tal traegt er den Akzent — so
+      // bekommt die Welle eine Kante, statt gleichmaessig blau zu leuchten.
+      const weiss = Math.max(0, (kamm - 0.62) / 0.38);
+      const R = Math.round(rgb[0] + (255 - rgb[0]) * weiss);
+      const G = Math.round(rgb[1] + (255 - rgb[1]) * weiss);
+      const B = Math.round(rgb[2] + (255 - rgb[2]) * weiss);
+      const a = (0.14 + 0.78 * kamm) * (0.32 + 0.68 * d) * (hell ? 0.72 : 1);
+      ctx.fillStyle = 'rgba(' + R + ',' + G + ',' + B + ',' + a.toFixed(3) + ')';
+      ctx.fillRect(x - gr / 2, y - gr / 2, gr, gr);
+    }
+  }
+}
+function _aicWaveLoop(){
+  if (_AIC_WV.laufend) return;
+  _AIC_WV.laufend = true;
+  const schritt = (jetzt) => {
+    _AIC_WV.raf = 0; _AIC_WV.laufend = false;
+    const cv = _AIC_WV.cv;
+    // Ausgehaengte Karte (Rerender) beendet die Schleife endgueltig — der neue
+    // Lauf startet ueber _aicCardTap mit einem neuen Canvas.
+    if (!cv || !cv.isConnected) { _aicWaveStop(); return; }
+    if (document.hidden || _AIC_WV.ruht) return;     // Weiterlauf per Ereignis
+    _aicWaveSize();
+    _aicWaveDraw((jetzt - _AIC_WV.t0) / 1000);
+    _AIC_WV.laufend = true;
+    _AIC_WV.raf = requestAnimationFrame(schritt);
+  };
+  _AIC_WV.raf = requestAnimationFrame(schritt);
+}
+// Rueckkehr aus dem Hintergrund: die Schleife haelt bei document.hidden an und
+// braucht diesen Anstoss, sonst bliebe das Feld nach dem Wiederaufwecken stehen.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && _AIC_WV.cv && _AIC_WV.cv.isConnected && !_AIC_WV.ruht) _aicWaveLoop();
+});
 // Beide Karten-Varianten hängen am selben Tap-Ziel: die Karte ist der EINZIGE
 // Zugang zum Coach-Hub (Gestaltungsregel 1). Die Karte trägt seit dem Rückbau
 // KEINEN Startknopf mehr — der Trainingsstart wohnt im Schnellstart-Widget und
@@ -12670,6 +12791,9 @@ let _aicSig = null;
 function _aicCardTap(card) {
   if (!card) return;
   requestAnimationFrame(() => card.classList.add('in'));
+  // Das Wellenfeld haengt am Canvas DIESER Karte: jeder Rerender tauscht den
+  // Knoten, also startet der Lauf hier neu (und der alte wird abgeraeumt).
+  _aicWaveStart(card);
   card.style.cursor = 'pointer';
   // Die Karte ist der EINZIGE Zugang zum Hub — als reines Tap-Ziel war er für
   // Tastatur und VoiceOver unerreichbar. role/tabindex/aria-label sitzen auf dem
@@ -12730,7 +12854,7 @@ function renderCoachTodayCard() {
       _aicSig = sigQ;
       host.innerHTML = `<div class="aic">
         <span class="aic-aur" aria-hidden="true"></span>
-        <span class="aic-scr" aria-hidden="true"></span>
+        <canvas class="aic-wv" aria-hidden="true"></canvas>
         <div class="aic-in">
           <div class="aic-top">
             <span class="aic-orb">${ICO.sparkle({s:14})}</span>
@@ -12768,7 +12892,7 @@ function renderCoachTodayCard() {
     const col = recoveryColor(pct);
     host.innerHTML = `<div class="aic">
       <span class="aic-aur" aria-hidden="true"></span>
-      <span class="aic-scr" aria-hidden="true"></span>
+      <canvas class="aic-wv" aria-hidden="true"></canvas>
       <span class="aic-sheen" aria-hidden="true"></span>
       <div class="aic-in">
         <div class="aic-top">
