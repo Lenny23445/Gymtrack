@@ -37,3 +37,33 @@ test('restFraction: ohne sinnvolle Gesamtzeit 0', () => {
   assert.strictEqual(B.restFraction(30, -1), 0);
   assert.strictEqual(B.restFraction(30, null), 0);
 });
+
+/* revealDelta: Bezug ist die Buehne — oben verdeckt die klebende Leiste pad
+   Pixel, unten ist bei stage Schluss. Rand 8 px. */
+test('revealDelta: was schon ganz im Bild steht, bleibt liegen', () => {
+  assert.strictEqual(B.revealDelta(200, 400, 800, 100), 0);
+});
+
+test('revealDelta: was unten rausragt, wird hochgeholt', () => {
+  assert.strictEqual(B.revealDelta(600, 900, 800, 100), 108);
+});
+
+test('revealDelta: was unter der klebenden Leiste liegt, kommt darunter hervor', () => {
+  assert.strictEqual(B.revealDelta(40, 300, 800, 100), -68);
+});
+
+test('revealDelta: passt der Kasten nicht ins Bild, gewinnt die Oberkante', () => {
+  // 1000 hoch bei 800 Buehne: nach dem Hochholen laege der Kopf ausserhalb,
+  // also zaehlt er — man muss sehen, WORUM es geht.
+  assert.strictEqual(B.revealDelta(300, 1300, 800, 100), 192);
+});
+
+test('revealDelta: Zwerg-Verschiebungen zaehlen nicht als Bewegung', () => {
+  assert.strictEqual(B.revealDelta(110, 791, 800, 100), 0);
+});
+
+test('revealDelta: haelt Unsinn aus', () => {
+  assert.strictEqual(B.revealDelta(NaN, 100, 800, 100), 0);
+  assert.strictEqual(B.revealDelta(100, NaN, 800, 100), 0);
+  assert.strictEqual(B.revealDelta(100, 200, NaN, 100), 0);
+});

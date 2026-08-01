@@ -8213,7 +8213,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020023';
+const APP_VERSION = 'gymtrack-v202608020024';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19573,6 +19573,9 @@ function renderLogCards() {
   try { _coachBarRender(); } catch(_) {}
   // Deckt toggleSetDone/addSet/delSet gleich mit ab: alle drei rendern neu.
   try { _wkBarRender(); } catch(_) {}
+  // NACH _wkFocusApply: die Fokus-Schicht scrollt selbst, und eine Karte, die
+  // man annehmen soll, hat Vorrang vor der Fokus-Lage.
+  try { _coachCardReveal(); } catch(_) {}
   // "Uebung geoeffnet": die erste Uebung mit offenen Saetzen — dieselbe Uebung
   // erneut liefert dank Entprellung in _csExercise() KEINE zweite Ansage.
   try { _csSyncCurrentEx(); } catch(_) {}
@@ -26520,6 +26523,37 @@ function _coachBarRender() {
 function _coachClearCard() {
   if (_coachCard && _coachCard.timer) clearTimeout(_coachCard.timer);
   _coachCard = null;
+}
+
+/* Die Vorschlagskarte waechst MITTEN in einer Uebungskarte auf. Beim Blaettern
+   steht das Blatt fest am Anfang dieser Uebung — der neue Teil samt
+   "Annehmen"/"Lassen" rutscht dann unter die Unterkante. Was man nicht sieht,
+   kann man nicht annehmen, also rueckt das Blatt EINMAL je Karte nach.
+   Gemerkt wird das Karten-Objekt selbst: jede neue Karte ist ein neues Objekt,
+   ein blosses Neuzeichnen (Satz abgehakt, angenommen) dagegen nicht — sonst
+   spraenge das Blatt bei jedem Rendern. */
+let _coachCardRevealed = null;
+function _coachCardReveal() {
+  if (!_coachCard) { _coachCardRevealed = null; return; }
+  if (_coachCardRevealed === _coachCard) return;
+  const sheet = document.querySelector('#ov-wk .sheet');
+  const el = document.querySelector('#log-cards .coach-card');
+  if (!sheet || !el || typeof WorkoutBar === 'undefined') return;
+  _coachCardRevealed = _coachCard;
+  // Ein Bild warten: die Karte ist gerade erst eingehaengt, ihre Hoehe steht
+  // erst nach dem Layout fest.
+  requestAnimationFrame(() => {
+    const sr = sheet.getBoundingClientRect();
+    const r  = el.getBoundingClientRect();
+    const d  = WorkoutBar.revealDelta(r.top - sr.top, r.bottom - sr.top,
+                                      sheet.clientHeight, _wkSnapPadPx || 72);
+    if (!d) return;
+    const max = Math.max(0, sheet.scrollHeight - sheet.clientHeight);
+    const ziel = Math.min(max, Math.max(0, sheet.scrollTop + d));
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try { sheet.scrollTo({ top: ziel, behavior: reduce ? 'auto' : 'smooth' }); }
+    catch(_) { sheet.scrollTop = ziel; }
+  });
 }
 
 // Debounce (~1.2s je Satz, Key = "li_si") — wird vom Abhaken des Satzes (toggleSetDone)

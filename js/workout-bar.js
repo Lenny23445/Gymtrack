@@ -29,7 +29,23 @@
     return Math.min(1, Math.max(0, r / t));
   }
 
-  const API = { setProgress: setProgress, restFraction: restFraction };
+  /* Wie weit muss das Blatt nachruecken, damit ein Kasten GANZ im Bild steht?
+     Positiv = nach unten scrollen. Bezug ist die Buehne des Blattes: oben
+     verdeckt die klebende Leiste `pad` Pixel, unten ist bei `stage` Schluss.
+     Passt der Kasten gar nicht hinein, gewinnt seine Oberkante — bei einem
+     Angebot mit Knoepfen ist der Kopf wichtiger als der Fuss. */
+  function revealDelta(top, bottom, stage, pad, rand) {
+    const r = isFinite(rand) ? rand : 8;
+    if (!isFinite(top) || !isFinite(bottom) || !isFinite(stage)) return 0;
+    const p = isFinite(pad) ? pad : 0;
+    let d = 0;
+    if (bottom > stage - r) d = bottom - (stage - r);
+    if (top - d < p + r) d = top - (p + r);
+    return Math.abs(d) < 2 ? 0 : Math.round(d);
+  }
+
+  const API = { setProgress: setProgress, restFraction: restFraction,
+                revealDelta: revealDelta };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.WorkoutBar = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
