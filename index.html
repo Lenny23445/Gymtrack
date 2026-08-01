@@ -4811,6 +4811,24 @@ h1,h2,.row-title,.s-title{text-wrap:balance}
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
 }
 
+/* Und das Trainingsblatt SELBST traegt keinen Weichzeichner und keinen Verlauf.
+   Das steht so schon bei .sheet (siehe dort: "KEIN Verlauf", "KEIN
+   backdrop-filter") — nur kam die Regel dort nie an: die Glas-Politur weiter
+   unten in diesem Block setzt beides mit !important zurueck, und !important
+   schlaegt jede Deklaration ohne. Auf einem 95 vh hohen Blatt, das scrollt, ist
+   genau das die teuerste Kombination, die es gibt: WebKit haelt eine
+   bildschirmgrosse Filterebene, und jede Aenderung im Inhalt — ein Haken, eine
+   eingeblendete Karte, ein Zahlenwechsel im Timer — zwingt sie zur
+   Neuzusammensetzung. Das war das Stocken beim Scrollen im Training.
+   Die ID gewinnt gegen die Klassenregel, das !important gegen deren !important.
+   Optisch aendert sich nichts Wesentliches: die Flaeche ist mit --card ohnehin
+   deckend, der Glanz kommt aus .sheet::after. */
+#ov-wk>.sheet{
+  background:var(--card)!important;
+  background-image:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+
 /* ── 2 · SHEET-RAHMEN ─────────────────────────────────────────────*/
 html:not([data-glass="off"]) .sheet,
 html:not([data-glass="off"]) .cal-card{
@@ -6038,6 +6056,55 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   background:rgba(var(--acc-rgb),.08);cursor:pointer}
 .coach-card-skip{display:block;margin:7px auto 0;background:none;border:none;font-family:inherit;
   font-size:11.5px;color:var(--text2);cursor:pointer;padding:2px}
+
+/* ── DER PLATZ DES LIVE-COACHES (#wk-coach-slot) ──────────────────────────
+   Ein fester Ort statt eines Einschubs mitten im Satz-Log. Warum das der Kern
+   des Problems war: die Karte wuchs frueher IN der Uebungskarte auf, also
+   zwischen Kopf und Satzzeilen. Alles darunter rutschte um ihre Hoehe nach
+   unten — und "alles darunter" ist genau die Zeile, auf die der Daumen gerade
+   zielte. Kein Anker und keine Scroll-Korrektur repariert das wirklich; sie
+   verschieben nur, WO es springt.
+
+   Hier klebt die Karte am unteren Rand des Blattes. Sie liegt UEBER dem
+   Inhalt, verschiebt also nichts, und sie steht bei jedem Vorschlag an
+   derselben Stelle — man muss sie nicht suchen.
+
+   Der Behaelter bleibt leer 0 hoch und ohne Rand; erst mit Inhalt bekommt er
+   Hoehe. Das Auf- und Zufahren laeuft ueber transform und opacity, nie ueber
+   Hoehe: eine Hoehenanimation waere wieder eine Verschiebung, also genau das,
+   was hier abgeschafft wird. */
+.wk-coach-slot{
+  position:sticky;
+  /* Ueber der Tabbar (bottom 6px + sab, ~66px hoch) — sonst liegt der untere
+     Rand der Karte hinter der Leiste und die Knoepfe sind halb verdeckt. */
+  bottom:calc(78px + var(--sab));
+  z-index:6;
+  pointer-events:none;                 /* leer: Taps gehen an die Karten dahinter */
+}
+.wk-coach-slot:empty{display:none}
+.wk-coach-slot > *{pointer-events:auto}
+/* Im Slot traegt die Karte ihre eigene Flaeche: sie schwebt jetzt ueber dem
+   Inhalt statt in einer Karte zu liegen, also braucht sie einen deckenden
+   Grund und einen Schatten, der sie abhebt. */
+.wk-coach-slot .coach-card{
+  margin-bottom:0;
+  animation:none;                      /* das Auffahren macht der Slot, s.u. */
+  background:var(--card);
+  border:1px solid rgba(var(--acc-rgb),.34);
+  box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 0 1px rgba(var(--acc-rgb),.06);
+  transform:translateY(14px);opacity:0;
+  transition:transform .34s cubic-bezier(.22,.9,.3,1),opacity .24s ease;
+}
+.wk-coach-slot.on .coach-card{transform:none;opacity:1}
+/* Zu welcher Uebung der Vorschlag gehoert. Solange die Karte in der Uebung
+   steckte, war das selbstverstaendlich; unten am Rand ist es das nicht mehr. */
+.coach-card-for{
+  display:block;font-size:11px;font-weight:700;letter-spacing:.02em;
+  color:var(--text2);margin-bottom:3px;
+}
+@media (prefers-reduced-motion:reduce){
+  .wk-coach-slot .coach-card{transition:none;transform:none;opacity:1}
+}
 
 /* ── KI-TAGESBRIEFING auf der Startseite (.aic) ───────────────────────────
    Hochwertig statt laut: getönte Glasfläche, eine langsam wandernde Aurora,
@@ -7420,6 +7487,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
         <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
         </div>
         <div id="log-cards"></div>
+        <!-- Fester Platz fuer den Live-Coach. Die Vorschlagskarte stand frueher
+             IM Koerper der Uebungskarte: sie erschien mitten zwischen den
+             Satzzeilen, schob alles darunter weg und riss dem Nutzer die Zeile
+             unter dem Daumen fort ("die Fenster der Uebungen springen abrupt
+             nach unten"). Hier unten klebt sie am unteren Rand, immer an
+             derselben Stelle, und verschiebt nichts, was man gerade eintraegt. -->
+        <div id="wk-coach-slot" class="wk-coach-slot" aria-live="polite"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
         <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
         <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
@@ -19335,7 +19409,6 @@ function renderLogCards() {
         <button class="ex-swap-btn" onclick="openExSwap(${li})" title="Übung tauschen" aria-label="Übung tauschen">⇄</button>
       </div>
       <div class="ex-body">
-        ${(_coachCard && _coachCard.exId === log.exerciseId) ? _coachCardHTML() : ''}
         <div class="set-hdr"><span></span><span></span><span>TYP</span><span>${unitLabel().toUpperCase()}</span><span>${isTime?'ZEIT':'WDH'}</span><span></span></div>
         ${log.sets.map((s,si)=>{
           const elapsed = s.tRunning ? s.tElapsed + Math.floor((Date.now()-s.tStart)/1000) : (s.tElapsed||0);
@@ -19387,6 +19460,9 @@ function renderLogCards() {
   try { _coachBarRender(); } catch(_) {}
   // Deckt toggleSetDone/addSet/delSet gleich mit ab: alle drei rendern neu.
   try { _wkBarRender(); } catch(_) {}
+  // Der Coach schreibt in seinen eigenen Platz — das Satz-Log oben ist damit
+  // fertig und wird davon nicht mehr angefasst.
+  try { _coachSlotRender(); } catch(e) { console.warn('[Coach] Platz:', e); }
   // NACH _wkFocusApply: die Fokus-Schicht scrollt selbst, und eine Karte, die
   // man annehmen soll, hat Vorrang vor der Fokus-Lage.
   try { _coachCardReveal(); } catch(_) {}
@@ -26311,19 +26387,58 @@ function _coachClearCard() {
   _coachCard = null;
 }
 
-/* Die Vorschlagskarte waechst MITTEN in einer Uebungskarte auf. Beim Blaettern
-   steht das Blatt fest am Anfang dieser Uebung — der neue Teil samt
-   "Annehmen"/"Lassen" rutscht dann unter die Unterkante. Was man nicht sieht,
-   kann man nicht annehmen, also rueckt das Blatt EINMAL je Karte nach.
-   Gemerkt wird das Karten-Objekt selbst: jede neue Karte ist ein neues Objekt,
-   ein blosses Neuzeichnen (Satz abgehakt, angenommen) dagegen nicht — sonst
-   spraenge das Blatt bei jedem Rendern. */
+/* ── Der Coach zieht in seinen eigenen Platz um (#wk-coach-slot) ──────────
+   Vorher wuchs die Vorschlagskarte mitten in der Uebungskarte auf, und weil
+   der Karten-Diff (_lcApply) je Uebung ein Stueck Markup vergleicht, wurde
+   dafuer die GANZE Uebungskarte ausgetauscht: neue Satzzeilen, neu gebundene
+   Wischgriffe, dazu eine Scroll-Korrektur, damit die Karte nicht wegrutscht.
+   Sichtbar war davon genau eins — ein Sprung.
+
+   Jetzt schreibt diese Funktion die Karte in den klebenden Platz am unteren
+   Rand. Das Satz-Log wird dabei nicht angefasst, also gibt es nichts zu
+   verschieben und nichts neu zu binden. Geschrieben wird nur, wenn sich das
+   Markup wirklich aendert — sonst liefe die Auffahrt bei jedem Neuzeichnen
+   (jeder Haken!) von vorn. */
+let _coachSlotHTML = '';
+let _coachSlotAus = 0;
+function _coachSlotRender() {
+  const slot = document.getElementById('wk-coach-slot');
+  if (!slot) return;
+  const html = _coachCard ? _coachCardHTML() : '';
+  if (html === _coachSlotHTML) return;
+  _coachSlotHTML = html;
+  if (_coachSlotAus) { clearTimeout(_coachSlotAus); _coachSlotAus = 0; }
+  if (!html) {
+    // Ausfahren, dann leeren. Sofort leeren hiesse: die Karte verschwindet
+    // schlagartig — genau das "Abgehackte", das hier weg soll.
+    slot.classList.remove('on');
+    _coachSlotAus = setTimeout(() => { _coachSlotAus = 0; if (!_coachSlotHTML) slot.innerHTML = ''; }, 300);
+    return;
+  }
+  const warLeer = !slot.firstElementChild;
+  slot.innerHTML = html;
+  if (warLeer) {
+    // Ein Bild Abstand: die Karte muss im Ausgangszustand (unten, unsichtbar)
+    // einmal gerechnet worden sein, sonst springt der Browser direkt zum
+    // Endzustand und die Auffahrt faellt aus.
+    slot.classList.remove('on');
+    requestAnimationFrame(() => requestAnimationFrame(() => slot.classList.add('on')));
+  } else {
+    slot.classList.add('on');   // Inhaltswechsel (z. B. "Uebernommen") ohne Neustart
+  }
+}
+
+/* Nachruecken, falls der Platz des Coaches doch einmal unter der Unterkante
+   liegt — etwa direkt nach dem Oeffnen, wenn das Blatt ganz oben steht und
+   noch gar nicht gescrollt wurde. Gemerkt wird das Karten-Objekt selbst: jede
+   neue Karte ist ein neues Objekt, ein blosses Neuzeichnen (Satz abgehakt,
+   angenommen) dagegen nicht — sonst rueckte das Blatt bei jedem Rendern nach. */
 let _coachCardRevealed = null;
 function _coachCardReveal() {
   if (!_coachCard) { _coachCardRevealed = null; return; }
   if (_coachCardRevealed === _coachCard) return;
   const sheet = document.querySelector('#ov-wk .sheet');
-  const el = document.querySelector('#log-cards .coach-card');
+  const el = document.querySelector('#wk-coach-slot .coach-card');
   if (!sheet || !el || typeof WorkoutBar === 'undefined') return;
   _coachCardRevealed = _coachCard;
   // Ein Bild warten: die Karte ist gerade erst eingehaengt, ihre Hoehe steht
@@ -27980,9 +28095,18 @@ function _coachCardHTML() {
           <button type="button" class="coach-card-btn dismiss" onclick="_coachDismiss()">Ignorieren</button>
         </div>`;
     }
+    // Zu welcher Uebung: die Karte steht nicht mehr in der Uebungskarte,
+    // sondern unten am Rand — ohne den Namen waere bei sechs Uebungen nicht
+    // mehr klar, worauf sich "naechster Satz" bezieht.
+    let fuer = '';
+    try {
+      const exC = exById(_coachCard.exId);
+      if (exC && exC.name) fuer = `<span class="coach-card-for">${esc(exC.name)}</span>`;
+    } catch(_) {}
     return `<div class="coach-card" id="coach-card-live">
       <div class="coach-card-bar"></div>
       <div class="coach-card-body">
+        ${fuer}
         <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(c.title||'')}</span></div>
         <div class="coach-card-text">${esc(c.text||'')}</div>
         ${btns}
