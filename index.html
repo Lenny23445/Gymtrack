@@ -491,10 +491,6 @@
 .ex-row-img{width:38px;height:38px;border-radius:9px;flex-shrink:0;margin-right:4px;
   background-size:cover;background-position:center;background-color:var(--inp-bg)}
 
-/* ── HERZFREQUENZ IM TRAINING ── */
-.wk-hr{font-size:12.5px;font-weight:700;color:var(--red);margin-top:3px;
-  display:flex;align-items:center;gap:4px}
-.wk-hr b{font-size:14px;font-variant-numeric:tabular-nums}
 
 /* ── SUPERSET ── */
 .ex-card.ss-linked{border-color:rgba(var(--acc-rgb),.45);
@@ -4802,7 +4798,7 @@ html:not([data-glass="off"]) .set-in{
    Tabellenziffern: Zähler/Timer/Gewichte springen sonst in der Breite. */
 .erf-tile-val,.erf-hero-val,.hw-card b,.rec-row-sub,.pc-plate,
 .st-val,.stat-val,.set-in,.f-in,.rr-val,.frp-stat,.hdr .sub,
-.wk-hr b,.tab span{font-variant-numeric:tabular-nums}
+.tab span{font-variant-numeric:tabular-nums}
 h1,h2,.row-title,.s-title{text-wrap:balance}
 .row-sub,.sub,.rec-row-sub,.cs-intro,.priv-hint{text-wrap:pretty}
 
@@ -7414,7 +7410,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
           <div>
             <div class="timer-l">Trainingszeit</div>
             <div class="timer-v" id="timer-v">00:00</div>
-            <div class="wk-hr" id="wk-hr" style="display:none">❤️ <b>--</b> bpm</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="wk-cancel-btn" onclick="cancelWk()">Abbrechen</button>
@@ -10468,37 +10463,6 @@ async function _importWeightFromHealthKit() {
     const t = document.getElementById('update-toast');
     if (t) { t.textContent = 'Gewicht aus Apple Health importiert'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
   } catch(e) {}
-}
-/* ── HERZFREQUENZ (Apple Watch via HealthKit) ──────────────
-   Zeigt im aktiven Training den letzten Puls-Wert aus Apple Health.
-   Die Watch schreibt kontinuierlich, wenn auf ihr ein Workout läuft —
-   sonst kommen Samples nur alle paar Minuten. Werte älter als 10 min
-   filtert schon der native Plugin-Code aus. */
-let _hrInt = null;
-async function _pollHeartRate() {
-  const HK = _cap('HealthKitPlugin');
-  const el = document.getElementById('wk-hr');
-  if (!HK || !el || typeof HK.getLatestHeartRate !== 'function') return;
-  try {
-    const r = await HK.getLatestHeartRate();
-    if (r && r.bpm) {
-      el.querySelector('b').textContent = Math.round(r.bpm);
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
-    }
-  } catch(_) { el.style.display = 'none'; }
-}
-function _startHrPolling() {
-  if (!_isNative() || !S.healthKitEnabled) return;
-  clearInterval(_hrInt);
-  _pollHeartRate();
-  _hrInt = setInterval(_pollHeartRate, 15000);
-}
-function _stopHrPolling() {
-  clearInterval(_hrInt); _hrInt = null;
-  const el = document.getElementById('wk-hr');
-  if (el) el.style.display = 'none';
 }
 
 async function _saveWorkoutToHealthKit(session) {
@@ -19027,7 +18991,6 @@ function startActive() {
     );
   }
   _startWkTimer();
-  _startHrPolling();
   _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
@@ -19111,7 +19074,6 @@ function _restoreActiveWk() {
   const note = document.getElementById('wk-note'); if (note) note.value = saved.note || '';
   _activePlanSrc = saved.planSrc || null;
   _startWkTimer();
-  _startHrPolling();
   renderLogCards();
   updateWkMiniVisibility();
   // Laufende Satzpause wiederherstellen, falls sie beim Neustart noch nicht abgelaufen war
@@ -20181,7 +20143,6 @@ function finishWk() {
   _endLiveActivity();
   _saveWorkoutToHealthKit(_newSess);
   haptic([20,40,20]);
-  _stopHrPolling();
   _clearActiveWk();
   timerTs = null;
   wkLogs = [];
@@ -20309,7 +20270,6 @@ function cancelWk() {
   clearInterval(setTimerInt); setTimerInt = null;
   skipRest();
   if (document.getElementById('wk-note')) document.getElementById('wk-note').value = '';
-  _stopHrPolling();
   _clearActiveWk();
   timerTs = null;
   wkLogs = [];
