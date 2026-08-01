@@ -214,8 +214,17 @@
      Balken nebeneinander gleich hell wirken.
      --gw-* = Radien, --gwa-* = die zugehoerigen Deckkraften. Die FARBE bleibt
      bei jeder Anzeige ihre eigene; vereinheitlicht ist die Geometrie. */
+  /* --neon = EIN Dimmer fuer jeden Schein der App. 1 = der alte, volle Stand.
+     Er sitzt hier, weil das Leuchten sonst an zwanzig Stellen einzeln geregelt
+     werden muesste und die Anzeigen dann wieder unterschiedlich hell wirken.
+     Gedimmt wird ueber die DECKKRAFT, nicht ueber die Radien: ein enger
+     gezogener Schein sieht aus wie ein anderer Effekt, ein schwaecherer wie
+     dasselbe Licht weiter weg. Die Geometrie bleibt also ueberall dieselbe.
+     Wer es heller will, dreht nur diese eine Zahl hoch. */
+  --neon:.6;
   --gw-1:4px;  --gw-2:10px; --gw-3:20px;
-  --gwa-1:.95; --gwa-2:.7;  --gwa-3:.42;
+  --gwa-1:calc(.95 * var(--neon)); --gwa-2:calc(.7 * var(--neon));
+  --gwa-3:calc(.42 * var(--neon));
   /* Die Abstufung fuer schwaechere Zustaende (etwa die vier Stufen der
      Wochenpunkte) laeuft ueber WENIGER LAGEN derselben Staffel, nicht ueber
      eigene Werte: Stufe 1 nur der enge Saum, Stufe 4 alle drei. So bleibt die
@@ -1937,15 +1946,20 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
    Markup ueberschreiben und den Fehler zurueckholen.
    Der Bogen ist schmaler als der sichtbare Kern (4 statt 5): so verschwindet
    die scharfe Linie dieser Ebene unter ihm, und nach aussen tritt nur Licht. */
+/* Der Schein der Ringe kommt aus einem SVG-Filter, erreicht die --gwa-Staffel
+   also nicht. Damit der zentrale Dimmer (--neon) trotzdem greift, sitzt er hier
+   als Deckkraft der beiden Lichtebenen. Der scharfe Kern bleibt voll: er ist
+   der Wert, nicht das Licht. */
 .tracker-ring-glow{
   fill:none;stroke-width:4;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
+  opacity:var(--neon);
   transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);
 }
 .tracker-ring-halo{
   fill:none;stroke-width:5;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
-  filter:blur(2px);opacity:1;
+  filter:blur(2px);opacity:calc(.55 + .45 * var(--neon));
   transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);
 }
 
@@ -3309,9 +3323,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
      scrollt waehrenddessen unveraendert ruhig. */
   animation:flmGlow 2.6s ease-in-out infinite;
 }
+/* Auch das Lodern haengt am zentralen Dimmer; die Bewegung bleibt, nur die
+   Helligkeit gibt nach. */
 @keyframes flmGlow{
-  0%,100%{opacity:.85;transform:scale(1)}
-  50%    {opacity:1;  transform:scale(1.09)}
+  0%,100%{opacity:calc(.85 * var(--neon));transform:scale(1)}
+  50%    {opacity:var(--neon);            transform:scale(1.09)}
 }
 /* Die Bewegung bringt die Flamme selbst mit (.fl-outer/.fl-inner/.fl-core).
    Hier kommt nur der Schein dazu — eine zweite Animation auf demselben
@@ -4404,7 +4420,10 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 #ov-done{align-items:stretch!important;background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:1100!important}
 .done-screen{width:100%;height:100%;background:linear-gradient(160deg,#0c0c26 0%,#070714 40%,#090820 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;animation:done-slide-in .38s cubic-bezier(.32,1,.32,1)}
 @keyframes done-slide-in{from{transform:translateY(100%)}}
-.done-bg-glow{position:absolute;border-radius:50%;pointer-events:none}
+/* Die drei Farbwolken hinter dem Abschluss-Bild laufen ueber denselben Dimmer
+   wie jedes andere Licht — sonst ist der Fertig-Screen der einzige Ort, an dem
+   es noch grell ist. */
+.done-bg-glow{position:absolute;border-radius:50%;pointer-events:none;opacity:calc(.4 + .6 * var(--neon))}
 .done-glow-1{width:440px;height:440px;top:-110px;left:-110px;background:radial-gradient(circle,rgba(88,36,230,.58) 0%,transparent 68%);filter:blur(65px)}
 .done-glow-2{width:360px;height:360px;bottom:-90px;right:-90px;background:radial-gradient(circle,rgba(0,124,255,.52) 0%,transparent 68%);filter:blur(60px)}
 .done-glow-3{width:300px;height:300px;top:38%;left:50%;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,168,36,.26) 0%,transparent 68%);filter:blur(55px)}
@@ -6382,7 +6401,8 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    auf älteren Geräten. */
 .ex-card.coach-aura{position:relative;border-color:rgba(var(--acc-rgb),.50)}
 .ex-card.coach-aura::after{content:'';position:absolute;inset:0;height:auto;background:none;border-radius:inherit;pointer-events:none;z-index:0;
-  box-shadow:inset 0 0 0 2px rgba(var(--acc-rgb),.55),0 0 26px 5px rgba(var(--acc-rgb),.34);opacity:.45}
+  box-shadow:inset 0 0 0 2px rgba(var(--acc-rgb),.55),0 0 26px 5px rgba(var(--acc-rgb),.34);
+  opacity:calc(.25 + .2 * var(--neon))}
 @media (prefers-reduced-motion:no-preference){
   /* will-change haelt den weichgezeichneten Schein auf einer eigenen Ebene.
      Ohne das mischt WebKit den 26-px-Schatten bei jedem Pulsschlag neu in die
@@ -6390,7 +6410,9 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      eine Karte im Training hat diese Klasse, es entsteht also EINE Ebene. */
   .ex-card.coach-aura::after{animation:coachAuraOp 2.2s ease-in-out infinite;will-change:opacity}
 }
-@keyframes coachAuraOp{0%,100%{opacity:.35}50%{opacity:1}}
+/* Der Dimmer greift auch hier, aber mit Untergrenze: die Aura sagt, an welcher
+   Uebung der Coach gerade dran ist — sie darf leiser werden, nicht verschwinden. */
+@keyframes coachAuraOp{0%,100%{opacity:calc(.2 + .15 * var(--neon))}50%{opacity:calc(.4 + .6 * var(--neon))}}
 .coach-ki-tag{font-size:9px;font-weight:800;letter-spacing:.6px;color:#fff;background:var(--acc);
   border-radius:6px;padding:1.5px 6px;margin-left:6px;vertical-align:1px}
 /* ═══════════════════ KI-COACH: LIVE-COACH IM TRAINING (Phase D) ═══════════════════ */
@@ -6864,14 +6886,17 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 /* Kein CSS-filter: der Schein kommt aus dem SVG-Filter im Markup, weil die
    Filterregion sonst bei zehn Prozent abschneidet — ausfuehrlich begruendet
    bei .tracker-ring-glow. */
+/* Deckkraft wie bei den Wochenziel-Ringen aus dem zentralen Dimmer — sonst
+   leuchtet die Coach-Karte staerker als alles daneben. */
 .aic-r-glow{
   fill:none;stroke-width:4;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
+  opacity:var(--neon);
 }
 .aic-r-halo{
   fill:none;stroke-width:5;stroke-linecap:round;
   transform:rotate(-90deg);transform-origin:50% 50%;
-  filter:blur(2px);opacity:1;
+  filter:blur(2px);opacity:calc(.55 + .45 * var(--neon));
 }
 /* Die Spur fast unsichtbar — in der Vorlage steht der Bogen frei auf der
    dunklen Flaeche; eine getoente Spur legt sich als matte Linie daneben. */
@@ -8844,7 +8869,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030435';
+const APP_VERSION = 'gymtrack-v202608030436';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -18976,13 +19001,22 @@ function _glowDs(cv, acc, n, voll){
    CSS-Variablen, deshalb steht die Zahl hier.
    Der Schatten wird vor der Datenreihe gesetzt und danach wieder abgeraeumt —
    sonst erben Achsen und Tooltip ihn mit. */
+/* Der Dimmer aus dem CSS (--neon) fuer den Canvas: Chart.js zeichnet in 2D-Kontext,
+   der kennt keine Custom-Properties. Einmal auslesen, Zahl zurueck; faellt der
+   Wert weg, bleibt es beim vollen Schein. */
+function _neonF(){
+  try {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--neon'));
+    return isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
+  } catch(_) { return 1; }
+}
 function _neonLinePlugin(acc, voll){
   return {
     id:'neonline',
     beforeDatasetDraw(chart){
       const ctx = chart.ctx;
       ctx.save();
-      ctx.shadowColor = _hexA(acc, .85);
+      ctx.shadowColor = _hexA(acc, .85 * _neonF());
       ctx.shadowBlur  = voll ? 12 : 16;
       ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     },
