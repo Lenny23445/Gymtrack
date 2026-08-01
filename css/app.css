@@ -3989,7 +3989,12 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 }
 .rec-list-mini::-webkit-scrollbar{width:4px}
 .rec-list-mini::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
+/* rechts mehr Luft als links: der Pluspol der Batterie (.rec-batt::after) sitzt mit
+   right:-3.5px ausserhalb ihrer Box und stiess sonst an den Kachelrand. */
 .rec-list-mini .rec-row{padding:7px 8px;gap:8px;border-radius:10px}
+/* Der Pluspol der Batterie sitzt per right:-3.5px AUSSERHALB ihrer Box. Ohne diesen
+   Rand stiess er an die Kachelkante bzw. wurde vom overflow abgeschnitten. */
+.rec-list-mini .rec-batt{margin-right:6px}
 .rec-list-mini .rec-row + .rec-row{border-top-color:var(--sep)}
 .rec-list-mini .rec-row-title{font-size:12px;line-height:1.2}
 .rec-list-mini .rec-row-sub{font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -4038,7 +4043,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-batt .segbar.segbar-batt > i{border-radius:1.5px}
 .rec-batt .segbar.segbar-batt > i:first-child{border-radius:4.5px 1.5px 1.5px 4.5px}
 .rec-batt .segbar.segbar-batt > i:last-child{border-radius:1.5px 4.5px 4.5px 1.5px}
-.rec-list-mini .rec-batt .segbar.segbar-batt{inset:1px;gap:1.5px}
+/* Rechts mehr Inset als links: in der Mini-Groesse lief der letzte Strich sonst in
+   die Rundung der Huelle und sah aus, als staende er ueber den Rahmen hinaus. */
+.rec-list-mini .rec-batt .segbar.segbar-batt{inset:1.5px 3px 1.5px 1.5px;gap:1.5px}
 /* .rec-batt-val (die Prozentzahl IN der Batterie) wird nicht mehr gerendert:
    sie lag mittig auf der Fuellung und zwang den Schein klein zu halten, damit
    sie lesbar blieb. Die Grundregeln dazu bleiben unangetastet stehen — die
@@ -6831,3 +6838,34 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-go:active{transform:scale(.975);box-shadow:0 4px 12px rgba(var(--acc-rgb),.28)}
 .aic-later{border:1px solid var(--gl-bdr);border-radius:13px;padding:11px 14px;font-family:inherit;
   font-size:13px;font-weight:700;color:var(--text2);background:rgba(127,127,127,.08);cursor:pointer}
+
+/* ── NEON-PROBE: Splits im Training-Tab ─────────────────────────────
+   Nur aktiv, solange <html data-neon="1"> gesetzt ist — das schaltet
+   setNeonSplits(true/false) (Flag localStorage 'gt_neon'). Ohne das
+   Attribut sind alle Regeln hier wirkungslos, die Probe kostet also
+   nichts, wenn sie aus ist. Ganz raus = diesen Block loeschen plus
+   setNeonSplits() in js/app-plans.js und den Aufruf in js/app-boot.js.
+   Der Schein zieht seine Farbe aus --sc, der Split-Farbe der Karte. */
+/* Wochen-Rail bewusst schwaecher als die Split-Karten unten: die Tageskarten stehen
+   dicht nebeneinander, da summiert sich der volle Schein zu einem Farbteppich. */
+html[data-neon="1"] .wk-cell.assigned{
+  border-color:var(--sc,var(--acc));
+  box-shadow:0 0 6px -3px var(--sc,var(--acc)), inset 0 0 10px -7px var(--sc,var(--acc));
+}
+html[data-neon="1"] .wk-cell.assigned .wk-cell-l{ text-shadow:0 0 4px rgba(0,0,0,.35) }
+html[data-neon="1"] .split-card{
+  border-color:var(--sc,var(--acc));
+  box-shadow:0 0 8px -4px var(--sc,var(--acc));
+}
+html[data-neon="1"] .split-card::before{ box-shadow:0 0 6px 0 var(--sc,var(--acc)) }
+
+/* Batterie-Fuellung sicher INNERHALB der Huelle (galt vorher nur unter
+   .rec-list-mini — die Erholungs-Kachel rendert die Zeilen aber ohne diese
+   Klasse, deshalb blieb der letzte Strich rechts auf dem Rahmen liegen).
+   Zusaetzlich Luft fuer den Pluspol, der per right:-3.5px ausserhalb sitzt. */
+.rec-batt .segbar.segbar-batt{ inset:2px 4px 2px 2px }
+.rec-row .rec-batt{ margin-right:7px }
+/* Der letzte Strich lag mit seinem Schein auf dem Rahmenbogen. Die Strichreihe
+   bekommt deshalb eine eigene abgerundete Maske: was darueber hinausgeht (auch
+   der Glow), wird beschnitten, der Rahmen bleibt frei. */
+.rec-batt .segbar.segbar-batt{ overflow:hidden;border-radius:5px;inset:2px 5px 2px 2px }

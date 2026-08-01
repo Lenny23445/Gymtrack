@@ -168,7 +168,9 @@ function renderWeekPreview() {
       cls.push('assigned');
       const col = s.color || '#0A84FF';
       const isHex = typeof col === 'string' && col.startsWith('#');
-      style = `background:${isHex?_rgba(col,0.14):'rgba(var(--acc-rgb),.12)'};border-color:${isHex?_rgba(col,0.5):'var(--acc)'}`;
+      // --sc = Split-Farbe als Variable (wie bei .split-card). Nur dadurch kann die
+      // Neon-Probe in css/app.css (Block "NEON-PROBE") den Schein faerben.
+      style = `--sc:${col};background:${isHex?_rgba(col,0.14):'rgba(var(--acc-rgb),.12)'};border-color:${isHex?_rgba(col,0.5):'var(--acc)'}`;
       inner = `<div class="wk-cell-l" style="color:${col}">${esc(s.badge||'Plan')}</div>`;
     } else {
       inner = `<div class="wk-cell-dot"></div><div class="wk-cell-l empty">Frei</div>`;
@@ -2104,6 +2106,21 @@ function _neonLinePlugin(acc, voll){
    Genauigkeit, die man auf 160 Pixel Hoehe ohnehin nicht ablesen kann. Wer sie
    braucht, tippt die Kachel an; im Vollbild sind Datums- und Mengenachse da,
    und dort ist auch der Platz dafuer. */
+/* ── NEON-PROBE (Splits im Training-Tab) ───────────────────────────
+   An/aus zur Laufzeit: setNeonSplits(true) / setNeonSplits(false) — merkt sich
+   den Stand in localStorage 'gt_neon'. Die Optik selbst steht komplett in
+   css/app.css (Block "NEON-PROBE"), hier haengt nur der Schalter.
+   Zuruecknehmen = den CSS-Block, diese Funktion und den Aufruf in app-boot.js raus. */
+function setNeonSplits(on){
+  try { localStorage.setItem('gt_neon', on ? '1' : '0'); } catch(_){}
+  document.documentElement.setAttribute('data-neon', on ? '1' : '0');
+}
+function _applyNeonSplits(){
+  let on = false;
+  try { on = localStorage.getItem('gt_neon') === '1'; } catch(_){}
+  document.documentElement.setAttribute('data-neon', on ? '1' : '0');
+}
+
 function _volChartCfg(cv, pts, acc, voll){
   return {
     type:'line',

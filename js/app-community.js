@@ -1223,8 +1223,13 @@ function _seedDemoData() {
   // haben, damit der naechste Nicht-Demo-Start beides wieder abraeumt (sonst blockt
   // _demoModeAny() dauerhaft das Aufraeumen der Demo-Daten).
   try { localStorage.setItem('gt_demo', '1'); localStorage.setItem('gt_demo_bySeed', '1'); } catch(_){}
+  try { localStorage.setItem('gt_neon', '1'); } catch(_){}   // Neon-Probe an (setNeonSplits(false) schaltet sie aus)
   S.socialOn = true;
   if (!S.userName) S.userName = 'Lenny';
+  // Dunkles Theme erzwingen: nach einer Neuinstallation ist der WebView-Storage leer
+  // und die App startet hell — die Promo-Screenshots sind aber alle dunkel.
+  S.theme = 'dark';
+  try { setTheme('dark', true); } catch(_){}
   // Profilbild oben links auf der Heute-Seite (sonst nur die Initiale "L"). Motiv aus
   // dem Gym statt Portrait — im runden Ausschnitt bleibt der Hantelgriff erkennbar.
   const DEMO_AVA = 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=300&h=300&q=70';

@@ -18,9 +18,11 @@ try {
     localStorage.removeItem('gt_demo'); localStorage.removeItem('gt_demo_bySeed');
     localStorage.removeItem('gt_premiumDev');
     localStorage.removeItem('gt_prof_photo');   // Demo-Portrait, sonst landet es per Social-Push in der Cloud
+    localStorage.removeItem('gt_neon');         // Neon-Probe war nur fuer den Demo-Build an
   }
 } catch(_){}
 try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
+_applyNeonSplits();   // Neon-Probe fuer die Splits (nur wenn localStorage gt_neon=1)
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
 renderExList();
