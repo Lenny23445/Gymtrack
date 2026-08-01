@@ -8172,7 +8172,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020003';
+const APP_VERSION = 'gymtrack-v202608020004';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9379,10 +9379,11 @@ const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
   'cl-2026-08-02-volumen-kurve': {
-    label: '02.08.2026 · Volumen als Leuchtkurve',
+    label: '02.08.2026 · Alle Diagramme als Leuchtkurve',
     items: [
-      'Das Volumen-Diagramm zeigt jetzt eine einzige weiche Linie, die zur Mitte hin aufleuchtet — kein Raster, keine Achsen',
-      'Über der Kurve steht deine letzte Einheit als Zahl, daneben der Vergleich zur vorherigen',
+      'Volumen, Gewicht, 1RM, Muskelgruppen und die Coach-Woche zeigen jetzt dieselbe weiche Linie, die zur Mitte hin aufleuchtet',
+      'Die Achsen bleiben — du siehst weiter, worüber du liest',
+      'Über der Volumen-Kachel steht deine letzte Einheit als Zahl, daneben der Vergleich zur vorherigen',
       'Nur der aktuelle Punkt ist markiert; für einzelne Werte tippst du die Linie an',
     ]
   },
@@ -13268,12 +13269,13 @@ function _buildMiniChart(log, goal, acc) {
   }] : [];
   _weightMiniChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    data: { labels: pts.map(() => ''), datasets: [{
-      data, borderColor: acc, backgroundColor: _accFill(canvas, acc, '30'),
-      fill: true, tension: .4, pointRadius: 0, borderWidth: 2
-    }, ...goalDs]},
+    data: { labels: pts.map(() => ''), datasets: [Object.assign({ data },
+      _glowDs(canvas, acc, data.length, false),
+      // Die Mini-Kurve ist ein Vorschaubild: kein Punkt, duennere Fuellung.
+      { pointRadius: 0, pointHoverRadius: 0, backgroundColor: _accFill(canvas, acc, '30') }
+    ), ...goalDs]},
     options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, _gtGlow:_hexA(acc,.7),
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
         x: { display: false },
@@ -13371,12 +13373,9 @@ function openWeightChartFull() {
     _weightFullChart = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: pts.map(p => new Date(p.date).toLocaleDateString(GT_LOCALE,{day:'numeric',month:'short'})),
-        datasets: [{ data, borderColor: acc, backgroundColor: _accFill(canvas, acc),
-          fill: true, tension: .4, pointBackgroundColor: acc,
-          pointRadius: _cPR(data.length), pointHoverRadius: 7, borderWidth: 2.5
-        }, ...goalDs]},
+        datasets: [Object.assign({ data }, _glowDs(canvas, acc, data.length, true)), ...goalDs]},
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, _gtGlow:_hexA(acc,.85),
         plugins: { legend: { display: false }, tooltip: { callbacks: {
           label: ctx => ctx.datasetIndex===0 ? ` ${ctx.parsed.y} ${unit}` : ` Ziel: ${goal} ${unit}`
         }}},
@@ -16752,13 +16751,11 @@ function renderDet1rmChart(hist) {
       labels: pts.map(p=>p.x),
       datasets:[{
         data: pts.map(p=>p.y),
-        borderColor: acc, backgroundColor: _accFill(canvas, acc),
-        fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
+        ..._glowDs(canvas, acc, pts.length, true)
       }]
     },
     options:{
-      responsive:true,
+      responsive:true, _gtGlow:_hexA(acc,.85),
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt1RM(c.parsed.y)}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(pts.length)},
@@ -16782,13 +16779,11 @@ function renderDetChart(hist) {
       labels: pts.map(p=>p.x),
       datasets:[{
         data: pts.map(p=>p.y),
-        borderColor: acc, backgroundColor: _accFill(detCv, acc),
-        fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:_cPR(pts.length), pointHoverRadius:7, borderWidth:2.5
+        ..._glowDs(detCv, acc, pts.length, true)
       }]
     },
     options:{
-      responsive:true,
+      responsive:true, _gtGlow:_hexA(acc,.85),
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(pts.length)},
@@ -17699,39 +17694,49 @@ function _hexA(hex, a){
     return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
   } catch(_) { return hex; }
 }
+/* Das Aussehen EINER Datenreihe im Leuchtkurven-Stil. Alle Liniendiagramme der
+   App teilen es sich — Volumen, Gewicht, 1RM, Muskelgruppe, Coach-Blatt —, sonst
+   sieht jede Flaeche anders aus, obwohl sie dasselbe zeigt (Gestaltungsregel 7).
+   Die ACHSEN bleiben, wo sie vorher waren: sie sagen, worueber man liest. */
+function _glowDs(cv, acc, n, voll){
+  const letzt = (n || 1) - 1;
+  return {
+    borderColor:_glowStroke(cv, acc),
+    borderWidth: voll ? 3.2 : 2.6,
+    borderCapStyle:'round', borderJoinStyle:'round',
+    tension:.45, cubicInterpolationMode:'monotone',
+    fill:true, backgroundColor:_accFill(cv, acc),
+    // Nur der letzte Punkt steht da: er ist der aktuelle Stand. Eine Reihe
+    // gleich grosser Punkte macht aus dem Verlauf wieder eine Tabelle.
+    pointRadius: c => c.dataIndex === letzt ? (voll ? 5.5 : 4) : 0,
+    pointHoverRadius: voll ? 8 : 6,
+    pointBackgroundColor:'#fff',
+    pointBorderColor:acc,
+    pointBorderWidth: voll ? 2.8 : 2.2
+  };
+}
 /* Die gemeinsame Konfiguration beider Volumen-Diagramme (Kachel und Vollbild).
    voll=true zeigt zusaetzlich die Datumsachse — im Vollbild hat man den Platz,
    und dort will man auch wissen, WANN. */
 function _volChartCfg(cv, pts, acc, voll){
-  const letzt = pts.length - 1;
   return {
     type:'line',
     data:{
       labels: pts.map(p=>p.x),
-      datasets:[{
-        data: pts.map(p=>p.y),
-        borderColor: _glowStroke(cv, acc),
-        borderWidth: voll ? 3.5 : 2.8,
-        borderCapStyle:'round', borderJoinStyle:'round',
-        tension:.45, cubicInterpolationMode:'monotone',
-        fill:true, backgroundColor:_accFill(cv, acc),
-        // Nur der LETZTE Punkt steht da — er ist der Stand von heute. Eine Reihe
-        // gleich grosser Punkte macht aus dem Verlauf wieder eine Tabelle.
-        pointRadius: c => c.dataIndex === letzt ? (voll ? 6 : 4.5) : 0,
-        pointHoverRadius: voll ? 8 : 6,
-        pointBackgroundColor:'#fff',
-        pointBorderColor:acc,
-        pointBorderWidth: voll ? 3 : 2.4
-      }]
+      datasets:[Object.assign({ data: pts.map(p=>p.y) }, _glowDs(cv, acc, pts.length, voll))]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       _gtGlow:_hexA(acc, .85),
       layout:{padding:{top:14,bottom:voll?0:6,left:6,right:10}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
+      // Achsen bleiben. In der Kachel eine Spur kleiner gesetzt, sonst frisst
+      // die Beschriftung die halbe Flaeche.
       scales:{
-        x:{display:!!voll,grid:{display:false},ticks:_cXT(pts.length)},
-        y:{display:false,grace:'18%'}
+        x:{grid:{display:false},ticks: voll ? _cXT(pts.length) : {..._cXT(pts.length),font:{size:9}}},
+        y: voll ? _cYT(v=>fmtKg(v))
+                : {grid:{color:'rgba(128,128,128,.08)'},grace:'12%',
+                   ticks:{font:{size:9},maxTicksLimit:4,callback:v=>fmtKg(v)}}
       }
     }
   };
@@ -18299,13 +18304,11 @@ function renderMgStatChart(sessions) {
       labels: sessions.map(s => dateShort(s.date)),
       datasets:[{
         data: sessions.map(s => s.vol),
-        borderColor: acc, backgroundColor: _accFill(canvas, acc),
-        fill:true, tension:.4, pointBackgroundColor:acc,
-        pointRadius:_cPR(sessions.length), pointHoverRadius:7, borderWidth:2.5
+        ..._glowDs(canvas, acc, sessions.length, true)
       }]
     },
     options:{
-      responsive:true,
+      responsive:true, _gtGlow:_hexA(acc,.85),
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales:{
         x:{grid:{display:false},ticks:_cXT(sessions.length)},
@@ -28684,6 +28687,18 @@ function _chWeekDraw(){
       if (!cfg) return;
       const cv = document.getElementById(id);
       if (!cv) return;
+      // Die Konfiguration kommt aus js/coach-charts.js (eigene Tests). Statt das
+      // Modul anzufassen, bekommt die FERTIGE Konfiguration hier denselben
+      // Leuchtkurven-Stil wie alle anderen Liniendiagramme.
+      try {
+        if (cfg && cfg.type === 'line' && cfg.data && cfg.data.datasets && cfg.data.datasets[0]) {
+          const _acc = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+          const _n = (cfg.data.datasets[0].data || []).length;
+          Object.assign(cfg.data.datasets[0], _glowDs(cv, _acc, _n, false));
+          cfg.options = cfg.options || {};
+          cfg.options._gtGlow = _hexA(_acc, .8);
+        }
+      } catch(e) { console.warn('[Coach] Diagramm-Stil:', e); }
       try { _chWeekInst.push(new Chart(cv.getContext('2d'), cfg)); }
       catch(e) { console.warn('[Coach] Diagramm ' + id + ':', e); }
     };
