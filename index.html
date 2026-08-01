@@ -1762,21 +1762,26 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 .wkb-prog{height:2px;background:transparent}
 .wkb-prog i{display:block;height:100%;background:var(--acc);transition:width .25s linear}
 
-/* ── AKTIVES WORKOUT: Glaslook + bessere Lesbarkeit (Theme-korrekte Farbbasis) ── */
-:root       {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(120,120,128,.09)}
-[data-theme="rosa"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(150,110,130,.09)}
-[data-theme="dark"] {--wk-card-bg:rgba(255,255,255,.08);    --wk-inp-bg:rgba(255,255,255,.06)}
-[data-theme="blau"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,130,170,.09)}
-[data-theme="grün"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,150,115,.10)}
+/* ── AKTIVES WORKOUT: Feldfarbe je Theme (Karten tragen die volle --card) ── */
+:root       {--wk-inp-bg:rgba(120,120,128,.09)}
+[data-theme="rosa"] {--wk-inp-bg:rgba(150,110,130,.09)}
+[data-theme="dark"] {--wk-inp-bg:rgba(255,255,255,.06)}
+[data-theme="blau"] {--wk-inp-bg:rgba(100,130,170,.09)}
+[data-theme="grün"] {--wk-inp-bg:rgba(100,150,115,.10)}
 /* KEIN backdrop-filter auf den Uebungskarten. Der Grund ist derselbe wie beim
    Blatt selbst: .sheet hat einen DECKENDEN Hintergrund, hier wird also eine
    einfarbige Flaeche weichgezeichnet — optisch fast nichts, aber --gl-blur
    liegt bei 44-52 px, und WebKit rechnet diesen Radius fuer JEDE Karte in
    JEDEM Bild neu. Genau das machte das Scrollen im Training ruckelig und das
    Geraet heiss. Dieselbe Optik entsteht aus zwei deckenden Lagen. */
-html:not([data-glass="off"]) #wk-step2 .ex-card{
-  background:linear-gradient(var(--wk-card-bg),var(--wk-card-bg)),
-             linear-gradient(var(--card),var(--card));
+#wk-step2 .ex-card{
+  /* Die echte Kartenfarbe, deckend und ohne Aufheller. Die frueher hier
+     liegende weisse Lage war fuer den backdrop-filter gedacht:
+     sie sollte den weichgezeichneten Untergrund milchig machen. Ohne Filter
+     hellt sie die Karte nur auf — im dunklen Theme wurde aus #17171b ein
+     Grau, in den Premium-Themes (52 % Weiss) sogar ein deutliches. Getrennt
+     vom Blatt wird die Karte durch Rahmen und Schatten, nicht durch Helligkeit. */
+  background:var(--card);
   backdrop-filter:none;-webkit-backdrop-filter:none;
 }
 html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
@@ -8205,7 +8210,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020027';
+const APP_VERSION = 'gymtrack-v202608020028';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
