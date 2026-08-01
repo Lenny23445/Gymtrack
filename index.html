@@ -18987,6 +18987,7 @@ function startActive() {
   _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
+  const _dt = document.getElementById('wk-done-top'); if (_dt) _dt.style.display = '';
   document.getElementById('wk-title').textContent = 'Aktives Training';
   renderLogCards();
   // Erzaehlbogen (Task 17): Begruessung, erste Uebung, Aufwaermschema. Laeuft
@@ -19228,14 +19229,13 @@ let _wkSwX = 0, _wkSwY = 0, _wkSwAchse = null, _wkSwAktiv = false, _wkSwipeBound
    Genau so gingen sie am 01.08. mit der temporaeren Diagnose verloren. */
 const WK_SW_MIN = 34;      // ab hier gilt es als Wisch, nicht als Wackler
 const WK_SW_ACHSE = 8;     // ab hier steht die Richtung fest
-/* Alle Halte in Dokumentreihenfolge. Kopf und Abschluss zaehlen mit: sonst
-   waeren "Abbrechen"/"Fertig" und die Notiz nicht mehr erreichbar. */
+/* Alle Halte in Dokumentreihenfolge: Uebung 1 → Uebung 2 → … → Abschluss.
+   Die Zeitleiste ist KEIN Halt mehr — sie klebt oben und ist immer im Bild.
+   Der Abschluss zaehlt weiter mit, sonst waere die Notiz nicht erreichbar. */
 function _wkStops() {
   const sheet = document.querySelector('#ov-wk .sheet');
   if (!sheet) return [];
   const stops = [];
-  const kopf = sheet.querySelector('#wk-step2 .timer-bar');
-  if (kopf) stops.push(kopf);
   sheet.querySelectorAll('#log-cards .ex-card').forEach(c => stops.push(c));
   const note = sheet.querySelector('#wk-note');
   if (note) stops.push(note);
@@ -19571,6 +19571,8 @@ function renderLogCards() {
   try { _wkFocusApply(); } catch(_) {}
   _saveActiveWkSoon();
   try { _coachBarRender(); } catch(_) {}
+  // Deckt toggleSetDone/addSet/delSet gleich mit ab: alle drei rendern neu.
+  try { _wkBarRender(); } catch(_) {}
   // "Uebung geoeffnet": die erste Uebung mit offenen Saetzen — dieselbe Uebung
   // erneut liefert dank Entprellung in _csExercise() KEINE zweite Ansage.
   try { _csSyncCurrentEx(); } catch(_) {}
@@ -19673,7 +19675,7 @@ function _attachSwipeToDelete() {
 }
 
 function setVal(li,si,f,v) { wkLogs[li].sets[si][f]=v; _saveActiveWk(); }
-let _restInt = null, _restSecs = 0, _restEndTs = 0, _restSmart = false;
+let _restInt = null, _restSecs = 0, _restEndTs = 0, _restSmart = false, _restTotal = 0;
 /* ── PAUSENINTELLIGENZ ──────────────────────────────────────
    Empfohlene Satzpause abhängig von Übung (Muskelgruppe),
    Belastung (Wiederholungen) und Gewicht relativ zum Bestwert. */
@@ -19785,6 +19787,7 @@ function startRestTimer(ex, set) {
   _restSmart = !!(S.smartRest && ex);
   _restSecs = _restSmart ? smartRestSecs(ex, set) : (S.restTimerSecs || 90);
   _restEndTs = Date.now() + _restSecs * 1000; // Endzeitpunkt für native Live-Activity-Countdown
+  _restTotal = _restSecs;            // Bezugsgroesse fuer den Fortschrittsfaden
   _scheduleRestEndNotif(_restEndTs); // Hintergrund-Signal planen
   _beginRestCountdown();
   _saveActiveWk(); // Endzeitpunkt sichern → übersteht App-Neustart (s. _restoreActiveWk)
@@ -19797,11 +19800,9 @@ function _beginRestCountdown() {
   // _restSecs 0, und CoachSession.onRest() braucht die tatsaechliche Pausenlaenge
   // (Vorschau ab 60 s, Ermuedung aus wachsenden Pausen).
   _csRestPlan = _restSecs || 0;
-  const bar = document.getElementById('rest-timer-bar');
-  if (bar) bar.style.display = '';
-  // Label zeigt an, dass die Pause automatisch gewählt wurde
-  const lbl = bar?.querySelector('.rest-bar-lbl');
-  if (lbl) lbl.textContent = _restSmart ? 'Pause · Auto' : 'Pause';
+  // Beim Wiederherstellen nach App-Neustart fehlt die Bezugsgroesse — dann
+  // gilt der laufende Rest als Gesamtlaenge, sonst waere der Faden leer.
+  if (!_restTotal || _restTotal < _restSecs) _restTotal = _restSecs;
   _updRest();
   // Anzeige aus dem absoluten Endzeitpunkt (_restEndTs) ableiten — exакt dieselbe
   // Quelle wie die native Dynamic Island, exakt. So bleiben App und Island synchron, auch
@@ -19817,8 +19818,7 @@ function _beginRestCountdown() {
     }
     if (remaining <= 0) {
       clearInterval(_restInt); _restInt = null;
-      const b = document.getElementById('rest-timer-bar');
-      if (b) b.style.display = 'none';
+      _wkBarRender();
       _cancelRestEndNotif(); // App war offen → in-App-Signal reicht, Banner unterdrücken
       haptic([30,50,30]);
       _saveActiveWk(); // beendete Pause sichern, damit sie beim Neustart nicht wiederkehrt
@@ -19831,11 +19831,33 @@ function _updRest() {
   const el = document.getElementById('rest-timer-val');
   if (!el) return;
   el.textContent = Math.floor(_restSecs/60) + ':' + String(_restSecs%60).padStart(2,'0');
+  _wkBarRender();
+}
+/* Zeichnet die Trainings-Leiste. Zwei Zustaende, GLEICHE Hoehe: laeuft eine
+   Pause, zeigt die rechte Seite sie samt Faden; sonst steht dort der
+   Satzfortschritt. Nur der Inhalt wechselt — die Hoehe von #wk-sticky bleibt,
+   damit die Rastpunkte des Blattes nicht neu gerechnet werden muessen. */
+function _wkBarRender() {
+  const rest = document.getElementById('wk-rest');
+  const prog = document.querySelector('#wk-bar-prog i');
+  const sp   = document.getElementById('wk-setprog');
+  if (!rest || !sp || typeof WorkoutBar === 'undefined') return;
+  const laeuft = _restInt != null && _restSecs > 0;
+  rest.style.display = laeuft ? '' : 'none';
+  sp.style.display   = laeuft ? 'none' : '';
+  if (laeuft) {
+    const lbl = rest.querySelector('.wkb-rest-lbl');
+    if (lbl) lbl.textContent = _restSmart ? 'Pause · Auto' : 'Pause';
+    if (prog) prog.style.width = (WorkoutBar.restFraction(_restSecs, _restTotal) * 100) + '%';
+  } else {
+    if (prog) prog.style.width = '0%';
+    const p = WorkoutBar.setProgress(typeof wkLogs !== 'undefined' ? wkLogs : []);
+    sp.textContent = p.done + '/' + p.total + ' Sätze';
+  }
 }
 function skipRest() {
   clearInterval(_restInt); _restInt = null;
-  const b = document.getElementById('rest-timer-bar');
-  if (b) b.style.display = 'none';
+  _wkBarRender();
   _cancelRestEndNotif();
   _syncLiveActivity();
   _saveActiveWk(); // übersprungene Pause sichern
@@ -19843,6 +19865,7 @@ function skipRest() {
 function adjustRest(delta) {
   _restSecs = Math.max(0, _restSecs + delta);
   if (_restSecs <= 0) { skipRest(); return; }
+  _restTotal = Math.max(_restTotal, _restSecs);   // "+15" darf den Faden nicht ueber 100 % treiben
   _restEndTs = Date.now() + _restSecs * 1000;
   _csRestPlan = _restSecs;           // verschobene Pause ist die neue geplante Laenge
   _scheduleRestEndNotif(_restEndTs); // verschobenes Ende neu planen (überschreibt gleiche ID)
@@ -20046,6 +20069,7 @@ function _maybeUpdatePlanFromSession(valid) {
 function finishWk() {
   clearInterval(timerInt); timerInt = null;
   clearInterval(setTimerInt); setTimerInt = null;
+  { const d = document.getElementById('wk-done-top'); if (d) d.style.display = 'none'; }
   try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   // Zeit-Übungen: elapsed als r sichern
   wkLogs.forEach(l => {
@@ -20257,6 +20281,7 @@ function cancelWk() {
   // (isStale faengt ihn zwar, aber der Abbruch ist der ehrlichere Ort).
   try { _csDiscard(); } catch(_) {}
   _activePlanSrc = null;
+  { const d = document.getElementById('wk-done-top'); if (d) d.style.display = 'none'; }
   try { Object.keys(_coachEvalTimers).forEach(k => clearTimeout(_coachEvalTimers[k])); _coachEvalTimers = {}; _coachClearCard(); } catch(_) {}
   _endLiveActivity();
   clearInterval(timerInt); timerInt = null;
