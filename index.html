@@ -1011,9 +1011,8 @@ body{
    kehrt sich das um: ohne eigenen Rastpunkt waere der Kopf gar nicht mehr zu
    halten, weil das Blatt zur naechsten Karte zoege. Deshalb rasten jetzt AUCH
    der Kopf und der Abschluss (Notiz, "Training beenden") — je ein Halt an
-   ihrer Oberkante. Der Weg ist damit: Kopf → Uebung 1 → Uebung 2 → … →
+   ihrer Oberkante. Der Weg ist damit: Uebung 1 → Uebung 2 → … →
    Abschluss, ein Wisch je Schritt. */
-#wk-step2 .timer-bar{scroll-snap-align:start;scroll-snap-stop:always}
 #wk-note{scroll-snap-align:start;scroll-snap-stop:always}
 @media (prefers-reduced-motion:reduce){
   #log-cards .ex-card>.ex-head,#log-cards .ex-card>.ex-body{transition:none}
@@ -1767,24 +1766,34 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 }
 .ex-type-seg button.on{background:var(--seg-on);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 
-/* ── TIMER BAR ── */
-.timer-bar{
-  background:var(--gl-bg);
-  backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
-  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
-  border:1px solid var(--gl-bdr);
-  border-radius:20px;padding:16px;
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;
-  box-shadow:var(--gl-shad),var(--gl-hi);
-  position:relative;overflow:hidden;
+/* ── TRAININGS-LEISTE ──────────────────────────────────────────────
+   EINE klebende Zeile fuer Zeit und Pause, feste Hoehe in BEIDEN
+   Zustaenden. Aendert der Klebe-Stapel seine Hoehe, muss WebKit die
+   Rastpunkte des ganzen Blattes neu rechnen — genau das passierte frueher
+   bei jedem Pausenstart.
+   KEIN backdrop-filter: Glas auf klebenden Elementen hat in der WKWebView
+   schon zweimal Kanten quer durch den Inhalt gezogen. */
+#wk-bar{
+  background:var(--card);border:1px solid var(--gl-bdr);border-radius:14px;
+  margin:0 0 8px;overflow:hidden;
 }
-.timer-bar::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:50%;
-  background:var(--sheen);pointer-events:none;
+.wkb-row{display:flex;align-items:center;justify-content:space-between;gap:10px;height:42px;padding:0 12px}
+.wkb-time{display:flex;align-items:center;gap:6px;color:var(--green);flex-shrink:0}
+.wkb-time svg{width:15px;height:15px}
+.wkb-time b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.wkb-right{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);min-width:0}
+#wk-rest{display:flex;align-items:center;gap:7px;color:var(--acc)}
+#wk-rest b{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+.wkb-rest-lbl{font-size:12px;font-weight:700}
+.wkb-adj,.wkb-skip{
+  font-size:12px;font-weight:700;color:var(--acc);
+  background:rgba(var(--acc-rgb),.12);border:1px solid rgba(var(--acc-rgb),.28);
+  border-radius:14px;padding:3px 8px;cursor:pointer;
 }
-.timer-v{font-size:28px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;position:relative;z-index:1}
-.timer-l{font-size:11px;color:var(--text2);margin-bottom:2px;position:relative;z-index:1}
+.wkb-adj:active,.wkb-skip:active{background:rgba(var(--acc-rgb),.26)}
+/* 2px-Faden statt Pulsieren: zeigt den Ablauf, ohne zu blinken. */
+.wkb-prog{height:2px;background:transparent}
+.wkb-prog i{display:block;height:100%;background:var(--acc);transition:width .25s linear}
 
 /* ── AKTIVES WORKOUT: Glaslook + bessere Lesbarkeit (Theme-korrekte Farbbasis) ── */
 :root       {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(120,120,128,.09)}
@@ -1793,7 +1802,6 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 [data-theme="blau"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,130,170,.09)}
 [data-theme="grün"] {--wk-card-bg:rgba(255,255,255,.52); --wk-inp-bg:rgba(100,150,115,.10)}
 html:not([data-glass="off"]) #wk-step2 .ex-card{background:var(--wk-card-bg)}
-html:not([data-glass="off"]) #wk-step2 .timer-bar{background:var(--wk-card-bg)}
 html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 
 /* ── SUGGESTIONS ── */
@@ -3920,25 +3928,6 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Sticky-Stapel im Training: Coach-Leiste + Pause-Balken bleiben beim Scrollen
    gemeinsam oben sichtbar (der Wrapper klebt, nicht mehr der Balken allein). */
 #wk-sticky{position:sticky;top:58px;z-index:4}
-.rest-bar{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  background:linear-gradient(135deg,rgba(var(--acc-rgb),.97),rgba(var(--acc-rgb),.80));
-  border:1px solid rgba(255,255,255,.28);
-  border-radius:16px;padding:11px 14px;margin:10px 0 12px;
-  color:#fff;
-  box-shadow:0 10px 30px rgba(var(--acc-rgb),.45),0 2px 10px rgba(0,0,0,.28);
-  animation:restPulse 1.7s ease-in-out infinite;
-}
-@keyframes restPulse{
-  0%,100%{box-shadow:0 10px 30px rgba(var(--acc-rgb),.42),0 2px 10px rgba(0,0,0,.28)}
-  50%    {box-shadow:0 10px 40px rgba(var(--acc-rgb),.80),0 2px 10px rgba(0,0,0,.28)}
-}
-.rest-bar-lbl{font-size:13px;font-weight:700;color:rgba(255,255,255,.92);flex-shrink:0}
-.rest-bar-controls{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
-.rest-bar-val{font-size:26px;font-weight:800;color:#fff;min-width:62px;text-align:center;letter-spacing:.5px;font-variant-numeric:tabular-nums}
-.rest-adj-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:5px 10px;cursor:pointer}
-.rest-adj-btn:active{background:rgba(255,255,255,.32)}
-.rest-bar-skip{font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:5px 13px;cursor:pointer;flex-shrink:0}
 .last-train-tag{display:inline-block;font-size:11px;font-weight:600;background:rgba(var(--acc-rgb),.12);color:var(--acc);border:1px solid rgba(var(--acc-rgb),.25);border-radius:10px;padding:2px 8px;margin-left:8px;vertical-align:middle;white-space:nowrap}
 /* ── SESSION-NOTIZ ──────────────────────────────────── */
 .wk-note-inp{width:100%;background:var(--soft);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:10px 13px;font-size:16px;color:var(--text);font-family:inherit;resize:none;box-sizing:border-box;outline:none;margin-top:10px;display:block}
@@ -5931,7 +5920,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    allein und sieht auf jedem Untergrund gleich aus. */
 .coach-bar{
   position:relative;overflow:hidden;isolation:isolate;
-  margin:0 0 10px;padding:10px 13px;border-radius:16px;
+  margin:0 0 8px;padding:7px 12px;border-radius:14px;
   /* Deckender Grund GANZ unten: die Leiste klebt in #wk-sticky beim Scrollen
      ueber der Uebungskarte. Mit rein glasigem Hintergrund las man den
      Uebungsnamen durch die Leiste hindurch — das sah nach Fehler aus. */
@@ -7378,6 +7367,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
       <div class="wk-head-title-row">
         <h2 id="wk-title">Training</h2>
       </div>
+      <button class="btn btn-acc btn-sm" id="wk-done-top" style="display:none;width:auto;padding:8px 16px;margin-right:8px" onclick="finishWk()">Fertig ✓</button>
       <button class="x-btn" onclick="closeOv('ov-wk')">✕</button>
     </div>
     <!-- step 1: select -->
@@ -7406,28 +7396,31 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     <!-- step 2: log -->
     <div id="wk-step2" style="display:none">
       <div class="px">
-        <div class="timer-bar">
-          <div>
-            <div class="timer-l">Trainingszeit</div>
-            <div class="timer-v" id="timer-v">00:00</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="wk-cancel-btn" onclick="cancelWk()">Abbrechen</button>
-            <button class="btn btn-acc btn-sm" style="width:auto;padding:10px 20px" onclick="finishWk()">Fertig ✓</button>
-          </div>
-        </div>
-        <!-- Sticky-Stapel: Coach-Leiste + Pause-Balken scrollen gemeinsam mit -->
+        <!-- Klebe-Stapel: EINE schlanke Leiste (Zeit + Pause) und darunter die
+             Coach-Leiste. Zeit und Pause teilen sich bewusst eine Zeile mit
+             fester Hoehe — aendert der Stapel seine Hoehe, rechnet WebKit die
+             Rastpunkte des ganzen Blattes neu. -->
         <div id="wk-sticky">
-        <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
-        <div id="rest-timer-bar" class="rest-bar" style="display:none">
-          <span class="rest-bar-lbl">Pause</span>
-          <div class="rest-bar-controls">
-            <button class="rest-adj-btn" onclick="adjustRest(-15)">−15s</button>
-            <span class="rest-bar-val" id="rest-timer-val">1:30</span>
-            <button class="rest-adj-btn" onclick="adjustRest(15)">+15s</button>
+        <div id="wk-bar">
+          <div class="wkb-row">
+            <span class="wkb-time">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <b id="timer-v">00:00</b>
+            </span>
+            <span class="wkb-right">
+              <span id="wk-setprog">0/0 Sätze</span>
+              <span id="wk-rest" style="display:none">
+                <span class="wkb-rest-lbl">Pause</span>
+                <button class="wkb-adj" onclick="adjustRest(-15)">−15</button>
+                <b id="rest-timer-val">1:30</b>
+                <button class="wkb-adj" onclick="adjustRest(15)">+15</button>
+                <button class="wkb-skip" onclick="skipRest()">✕</button>
+              </span>
+            </span>
           </div>
-          <button class="rest-bar-skip" onclick="skipRest()">✕</button>
+          <div id="wk-bar-prog" class="wkb-prog"><i style="width:0%"></i></div>
         </div>
+        <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
         </div>
         <div id="log-cards"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
