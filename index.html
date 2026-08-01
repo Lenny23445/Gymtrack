@@ -700,7 +700,7 @@ body{
 .mr-ring{width:48px;height:48px;flex-shrink:0;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   background:rgba(var(--acc-rgb),.16);border:1.5px solid var(--acc);
-  box-shadow:0 0 16px rgba(var(--acc-rgb),.5);animation:mr-pop .5s cubic-bezier(.34,1.56,.64,1) both}
+  box-shadow:0 0 16px rgba(var(--acc-rgb),calc(.5 * var(--neon)));animation:mr-pop .5s cubic-bezier(.34,1.56,.64,1) both}
 .mr-ring span{font-size:17px;font-weight:800;letter-spacing:-.5px;color:var(--acc)}
 @keyframes mr-pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 .mr-lbl{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc)}
@@ -3344,7 +3344,9 @@ body.wpick-open #heute-edit-bar{display:none!important}
    Hier kommt nur der Schein dazu — eine zweite Animation auf demselben
    Element wuerde gegen ihre eigene laufen. */
 .strk-flame .fl{position:relative;z-index:1;
-  filter:drop-shadow(0 0 7px rgba(255,150,50,.9)) drop-shadow(0 0 16px rgba(255,90,31,.5))}
+  /* Der Kern der Flamme stand bei .9 und war damit heller als jeder Ring —
+     auch sie folgt jetzt dem zentralen Dimmer. */
+  filter:drop-shadow(0 0 7px rgba(255,150,50,calc(.9 * var(--neon)))) drop-shadow(0 0 16px rgba(255,90,31,calc(.5 * var(--neon))))}
 .strk-val{
   font-size:30px;font-weight:800;line-height:1;color:var(--text);
   font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:5px;
@@ -4774,7 +4776,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   transition:transform .7s cubic-bezier(.34,1.4,.5,1),opacity .7s ease}
 .xp-pill.in{transform:translate(-50%,-50%) scale(1);opacity:1}
 .xp-dot{position:fixed;z-index:4000;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%) scale(1);
-  background:var(--acc);box-shadow:0 0 12px rgba(var(--acc-rgb),.95),0 0 3px rgba(255,255,255,.85) inset;
+  background:var(--acc);box-shadow:0 0 12px rgba(var(--acc-rgb),calc(.95 * var(--neon))),0 0 3px rgba(255,255,255,.85) inset;
   pointer-events:none;opacity:1;animation:xpPop .18s ease-out;
   transition:transform .52s cubic-bezier(.4,.02,.3,1),opacity .5s ease-in}
 @keyframes xpPop{0%{transform:translate(-50%,-50%) scale(0)}62%{transform:translate(-50%,-50%) scale(1.4)}100%{transform:translate(-50%,-50%) scale(1)}}
@@ -5561,7 +5563,7 @@ html:not([data-glass="off"]) #tab-indicator{
 .cpg-flct.dim{opacity:.7;font-weight:700}
 .cpg-snap .flm-btn{position:static;transform:none;bottom:auto;left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16);padding:8px 24px}
 .cpg-snap .flm-btn:active{transform:scale(.92)}
-.cpg-snap .flm-btn.on{background:rgba(255,90,0,.34);border-color:rgba(255,140,0,.4);box-shadow:0 0 22px rgba(255,120,0,.4)}
+.cpg-snap .flm-btn.on{background:rgba(255,90,0,.34);border-color:rgba(255,140,0,.4);box-shadow:0 0 22px rgba(255,120,0,calc(.4 * var(--neon)))}
 .cpg-vdate{position:absolute;right:12px;top:50%;transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;font-size:11px;letter-spacing:2.5px;color:rgba(255,255,255,.65);text-transform:uppercase;z-index:3}
 .cpg-water{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-8deg);font-size:34px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.13);white-space:nowrap;pointer-events:none;z-index:2}
 .cpg-info{position:absolute;left:16px;right:16px;bottom:76px;color:#fff;z-index:3}
@@ -5578,7 +5580,7 @@ html:not([data-glass="off"]) #tab-indicator{
 .flm-btn:active{transform:translateX(-50%) scale(.92)}
 .flm-btn .ct:not(:empty){margin-left:8px}
 .flm-btn .fl{display:inline-flex;align-items:center;justify-content:center;transform-origin:center;filter:grayscale(1) brightness(1.6);transition:filter .2s}
-.flm-btn.on{background:rgba(255,90,0,.32);box-shadow:0 0 22px rgba(255,120,0,.45)}
+.flm-btn.on{background:rgba(255,90,0,.32);box-shadow:0 0 22px rgba(255,120,0,calc(.45 * var(--neon)))}
 .flm-btn.on .fl{filter:none}
 @keyframes flmPop{0%{transform:scale(1)}40%{transform:scale(1.55) rotate(-8deg)}70%{transform:scale(.9)}100%{transform:scale(1)}}
 .flm-btn.pop .fl{animation:flmPop .5s cubic-bezier(.34,1.56,.64,1)}
@@ -5693,7 +5695,7 @@ html:not([data-glass="off"]) #tab-indicator{
 .pwa-scan{overflow:hidden}
 .pwa-scanline{position:absolute;left:8%;right:8%;height:2.5px;border-radius:2px;top:17%;
   background:linear-gradient(90deg,transparent,var(--acc),transparent);
-  box-shadow:0 0 12px 2px rgba(var(--acc-rgb),.55);animation:pwScan 2.2s ease-in-out infinite}
+  box-shadow:0 0 12px 2px rgba(var(--acc-rgb),calc(.55 * var(--neon)));animation:pwScan 2.2s ease-in-out infinite}
 /* % statt px: Weg bleibt im kleinen Orb (78px) symmetrisch zur Mitte */
 @keyframes pwScan{0%,100%{top:17%}50%{top:79%}}
 /* analyze: wachsende Balken — gemeinsame Grundlinie (transform-origin:bottom),
@@ -6384,7 +6386,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .pf-tick b{position:absolute;bottom:2px;font-size:9.5px;font-weight:800;color:var(--text2);letter-spacing:.2px}
 .pf-tick.on b{color:var(--acc)}
 .pf-ruler-needle{position:absolute;left:50%;top:64px;transform:translateX(-50%);
-  width:3px;height:36px;border-radius:2px;background:var(--acc);box-shadow:0 0 14px rgba(var(--acc-rgb),.55);pointer-events:none}
+  width:3px;height:36px;border-radius:2px;background:var(--acc);box-shadow:0 0 14px rgba(var(--acc-rgb),calc(.55 * var(--neon)));pointer-events:none}
 /* Lieblingsübungen: Suchfeld + Vorschlagsliste */
 .pf-exlist{margin-top:7px;border:1px solid var(--gl-bdr);border-radius:14px;overflow:hidden;background:var(--gl-bg-t)}
 .pf-exrow{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;border-bottom:1px solid var(--gl-bdr2)}
@@ -8880,7 +8882,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030442';
+const APP_VERSION = 'gymtrack-v202608030443';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -22066,7 +22068,9 @@ const SHARE_LAYOUTS = [
       gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(1, 'rgba(0,0,0,.6)');
       ctx.fillStyle = gg; ctx.fillRect(pad, pad, iw, ih);
       ctx.restore();
-      ctx.save(); ctx.strokeStyle = acc; ctx.lineWidth = 8; ctx.shadowColor = acc; ctx.shadowBlur = 34;
+      // Canvas kennt keine CSS-Variablen — der Dimmer kommt ueber _neonF().
+      ctx.save(); ctx.strokeStyle = acc; ctx.lineWidth = 8;
+      ctx.shadowColor = _hexA(acc, _neonF()); ctx.shadowBlur = 34;
       ctx.beginPath(); ctx.roundRect(pad, pad, iw, ih, 30); ctx.stroke();
       ctx.restore();
       let cx = pad + 20, cy = pad + ih - 74;
