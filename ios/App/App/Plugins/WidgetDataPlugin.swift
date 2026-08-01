@@ -36,6 +36,11 @@ public class WidgetDataPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.set(call.getString("weekStartKey") ?? "", forKey: "gymtrack.weekStartKey")
         defaults.set(call.getString("plansJson")   ?? "[]", forKey: "gymtrack.plansJson")
         defaults.set(call.getString("trackerJson") ?? "{\"weekKey\":\"\",\"items\":[]}", forKey: "gymtrack.trackerJson")
+        // Jahresmatrix: eine Ziffer je Tag (Stufe 0-4, 9 = liegt in der Zukunft),
+        // 53 Wochenspalten, aeltester Tag zuerst. yearEndKey ist der heutige Tag —
+        // daran erkennt das Widget, ob der Schnappschuss von gestern stammt.
+        defaults.set(call.getString("yearDays")    ?? "", forKey: "gymtrack.yearDays")
+        defaults.set(call.getString("yearEndKey")  ?? "", forKey: "gymtrack.yearEndKey")
         defaults.set(Date().timeIntervalSince1970,         forKey: "gymtrack.lastUpdated")
         call.resolve()
     }

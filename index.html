@@ -225,6 +225,48 @@
   --gw-1:4px;  --gw-2:10px; --gw-3:20px;
   --gwa-1:calc(.95 * var(--neon)); --gwa-2:calc(.7 * var(--neon));
   --gwa-3:calc(.42 * var(--neon));
+  /* ── NEON AUF HELLEM GRUND ───────────────────────────────────────────────
+     Ein Schein ist Licht, das zum Untergrund DAZUKOMMT. Auf Schwarz ist das
+     sichtbar, auf einer hellen Flaeche nicht: dort ist schon alles hell, der
+     Hof kann nur noch trueben. Genau das war in Weiss/Rosa/Blau/Gruen zu
+     sehen — ein farbiger Schleier um die Anzeige statt Licht, und der Kern
+     dazu blass, weil dieselbe Farbe, die auf Schwarz strahlt, auf Weiss kaum
+     noch Kontrast hat.
+     Auf hellem Grund liest sich dasselbe Signal deshalb anders: der Kern wird
+     SATTER und dunkler (er traegt den Kontrast), der Hof wird schwaecher und
+     ebenfalls dunkler (er liest sich dann als farbiger Schatten, nicht als
+     Dunst), und dazu kommt eine feine Kontaktkante, damit das Element auf der
+     Flaeche aufliegt statt auszufransen.
+     Die GEOMETRIE bleibt in allen Themes dieselbe (--gw-*) — nur Helligkeit,
+     Deckkraft und die Kante sind Theme-Sache. Wer neu leuchtet, nimmt diese
+     Tokens statt eigener Zahlen. */
+  --ng-core:58%;                       /* Kernhelligkeit leuchtender Punkte/Striche */
+  --ng-1:58%; --ng-2:50%; --ng-3:48%;  /* Helligkeit der drei Schein-Ebenen */
+  --ng-hi:.5;  --ng-lo:.45;            /* Innenlichter, die aus der Flaeche eine Roehre machen */
+  /* Die Helligkeiten der Wochenziel-Ringe (_neonRamp baut daraus den Bogen).
+     Als Zahlen ohne Einheit, weil das JS sie in hsl() einsetzt. Auf Dunkel darf
+     der Bogen fast ausgluehen, auf Hell muss er dunkler bleiben als die Karte,
+     auf der er liegt — sonst ist der Ring da, wo er voll ist, unsichtbar. */
+  --nr-c1:60; --nr-c2:72;              /* scharfer Bogen: Anfang → Ende */
+  --nr-g1:55; --nr-g2:65;              /* Hof und Wolke darunter */
+  --neon-edge:0 0 0 rgba(0,0,0,0);     /* Kontaktkante — nur auf hellem Grund noetig */
+  /* Die MULDEN: leere Zellen, Ringspuren, Tageskapseln — der Grund, auf dem
+     das Licht sitzt. Sie standen bisher als feste Weisswerte im CSS, weil sie
+     beim Neon-Umbau fuer den dunklen Grund gebaut wurden. Auf Weiss ist Weiss
+     auf Weiss nichts: die Skala verschwand und uebrig blieben ein paar
+     leuchtende Punkte ohne erkennbaren Rahmen — genau der Eindruck, dass die
+     Anzeige "nicht reinpasst". Hell gedreht wird daraus eine dunkle Mulde. */
+  --ng-well:rgba(255,255,255,.055);     /* leere Zelle / Spur */
+  --ng-well-bdr:rgba(255,255,255,.045);
+  --ng-well-on:rgba(255,255,255,.115);  /* hervorgehobene Mulde (heutige Kapsel) */
+  --ng-well-on-bdr:rgba(255,255,255,.16);
+  --ng-well-off:rgba(255,255,255,.028); /* zurueckgenommene Mulde (kommende Tage) */
+  --ng-well-off-bdr:rgba(255,255,255,.03);
+  --ng-outline:rgba(255,255,255,.10);   /* blosser Umriss ohne Fuellung */
+  /* Die vier Stufen der Wochenpunkte. Auf Dunkel reicht wenig Deckkraft, damit
+     der Punkt noch als Stufe lesbar ist; auf Weiss traegt dieselbe Deckkraft
+     die weisse Zahl darin nicht mehr. */
+  --ng-step-1:.42; --ng-step-2:.62; --ng-step-3:.82;
   /* Die Abstufung fuer schwaechere Zustaende (etwa die vier Stufen der
      Wochenpunkte) laeuft ueber WENIGER LAGEN derselben Staffel, nicht ueber
      eigene Werte: Stufe 1 nur der enge Saum, Stufe 4 alle drei. So bleibt die
@@ -375,6 +417,44 @@
   --sep:rgba(45,90,60,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(100,150,115,.10); --g6:rgba(255,255,255,.60);
+}
+
+/* ── NEON IN DEN HELLEN THEMES ──
+   Ein Block fuer alle vier hellen Themes, nicht vier einzelne: das Leuchten
+   soll ueberall gleich stark sein, sonst wirkt der Themewechsel wie ein
+   Wechsel der Anzeige. Die Farbe bleibt die des Themes (--acc bzw. der Wert),
+   angepasst ist nur, wie Licht auf hellem Grund funktioniert (siehe :root).
+   Dark bleibt unveraendert — dort stimmt der Stand bereits. */
+[data-theme="light"],[data-theme="rosa"],[data-theme="blau"],[data-theme="grün"]{
+  /* Halber Dimmer: auf Weiss wird aus demselben Hof sonst ein Schleier. */
+  --neon:.32;
+  /* Kerne satt statt hell — auf Weiss traegt die SAETTIGUNG den Kontrast,
+     nicht die Helligkeit. */
+  --ng-core:48%;
+  --ng-1:52%; --ng-2:45%; --ng-3:42%;
+  /* Weniger Weiss im Innenlicht, mehr Tiefe unten: sonst verschwindet der
+     Strich in der weissen Karte, auf der er liegt. */
+  --ng-hi:.28; --ng-lo:.55;
+  --neon-lmax:52;
+  /* Die Kante ersetzt, was auf Dunkel der Schein leistet: sie trennt das
+     Element vom Grund. Neutral getoent, nicht schwarz — ein harter Schatten
+     stuende gegen das Glas. */
+  --neon-edge:0 1px 2px rgba(28,28,38,.16);
+  /* Mulden gedreht: dunkel statt hell, sonst liegt Weiss auf Weiss. Nur die
+     heutige Kapsel bleibt heller als ihre Umgebung — sie soll herausstehen,
+     und auf hellem Grund heisst "herausstehen" heller, nicht dunkler. Ihr
+     Saum nimmt die Akzentfarbe auf, damit die Spalte den Tag markiert, ohne
+     mit dem leuchtenden Punkt darin zu konkurrieren. */
+  --ng-well:rgba(30,30,42,.055);
+  --ng-well-bdr:rgba(30,30,42,.07);
+  --ng-well-on:rgba(255,255,255,.55);
+  --ng-well-on-bdr:rgba(var(--acc-rgb),.28);
+  --ng-well-off:rgba(30,30,42,.025);
+  --ng-well-off-bdr:rgba(30,30,42,.045);
+  --ng-outline:rgba(30,30,42,.16);
+  --ng-step-1:.62; --ng-step-2:.78; --ng-step-3:.9;
+  --nr-c1:46; --nr-c2:56;
+  --nr-g1:44; --nr-g2:50;
 }
 
 /* ── GLASS EFFECT OFF ──
@@ -1911,7 +1991,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .tracker-ring-btn{background:none;border:none;padding:0;cursor:pointer;display:block;-webkit-tap-highlight-color:transparent;transition:transform .13s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 .tracker-ring-btn:active{transform:scale(.90)}
 .tracker-ring-svg{display:block;overflow:visible}
-.tracker-ring-bg{fill:none;stroke:rgba(255,255,255,.045);stroke-width:4.5;stroke-linecap:round}
+.tracker-ring-bg{fill:none;stroke:var(--ng-well-bdr);stroke-width:4.5;stroke-linecap:round}
 /* NEON IN DREI EBENEN. Die wichtigste Regel dabei: die Lichtebenen sind NICHT
    breiter als der Bogen. Ein breiterer Zwilling schiebt seine eigene Kante
    neben die Linie — das Ergebnis ist ein dicker Ring mit Rand, kein Leuchten.
@@ -1986,7 +2066,7 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
    steht der Bogen frei auf der dunklen Flaeche. Ganz weg kann sie hier nicht —
    ohne sie fehlt bei niedrigem Stand die Skala —, aber alles ueber diesem Wert
    legt sich als graue Linie neben den Schein und macht ihn matt. */
-.tracker-ring-bg{stroke:rgba(255,255,255,.045);stroke-width:4.5}
+.tracker-ring-bg{stroke:var(--ng-well-bdr);stroke-width:4.5}
 /* KEIN stroke bei .done: das Gruen steckt schon in den beiden Stopps des
    Verlaufs (siehe renderTrackers). Eine einfarbige Ueberschreibung hier haette
    den Verlauf beim erreichten Ziel wieder plattgemacht — genau bei dem Ring,
@@ -2048,10 +2128,11 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .trh-dot{
   width:22px;height:22px;border-radius:50%;flex-shrink:0;
   border:2px solid transparent;padding:0;cursor:pointer;
-  background:hsl(var(--h,210),100%,58%);
-  box-shadow:0 0 var(--gw-1) hsla(var(--h,210),100%,58%,var(--gwa-1)),
-             0 0 var(--gw-2) hsla(var(--h,210),100%,52%,var(--gwa-2)),
-             0 0 var(--gw-3) hsla(var(--h,210),100%,50%,var(--gwa-3));
+  background:hsl(var(--h,210),100%,var(--ng-core));
+  box-shadow:0 0 var(--gw-1) hsla(var(--h,210),100%,var(--ng-1),var(--gwa-1)),
+             0 0 var(--gw-2) hsla(var(--h,210),100%,var(--ng-2),var(--gwa-2)),
+             0 0 var(--gw-3) hsla(var(--h,210),100%,var(--ng-3),var(--gwa-3)),
+             var(--neon-edge);
   transition:transform .14s ease,border-color .14s ease;
 }
 .trh-dot.trh-std{
@@ -2697,7 +2778,8 @@ html[data-glass] .tabbar::before{display:block!important}
   background:var(--acc);
   box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
              0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
-             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3));
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
+             var(--neon-edge);
 }
 .hw-spark-alt{display:block;width:100%;height:34px;margin-top:10px;overflow:visible}
 .hw-empty-mini{font-size:13px;color:var(--text2);text-align:center;padding:6px 0}
@@ -3257,17 +3339,17 @@ body.wpick-open #heute-edit-bar{display:none!important}
   width:100%;max-width:38px;height:52px;border-radius:999px;
   display:flex;align-items:flex-start;justify-content:center;padding-top:4px;
   box-sizing:border-box;
-  background:rgba(255,255,255,.05);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  background:var(--ng-well);
+  box-shadow:inset 0 0 0 1px var(--ng-well-bdr);
   transition:background .25s ease,box-shadow .25s ease;
 }
 /* Die Kapsel des heutigen Tages: heller Grund und ein Saum in der
    Akzentfarbe. Der Saum ist bewusst schwach — er soll die Spalte heben, nicht
    mit dem Punkt darin um Aufmerksamkeit streiten. */
 .week-pill.today{
-  background:rgba(255,255,255,.115);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),
-             0 0 var(--gw-2) rgba(var(--acc-rgb),.18);
+  background:var(--ng-well-on);
+  box-shadow:inset 0 0 0 1px var(--ng-well-on-bdr),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),calc(.3 * var(--neon)));
 }
 .week-dot{
   width:30px;height:30px;border-radius:50%;
@@ -3276,15 +3358,15 @@ body.wpick-open #heute-edit-bar{display:none!important}
   background:transparent;color:var(--text2);
   border:none;box-sizing:border-box;flex-shrink:0;
 }
-.week-dot.l1{background:rgba(var(--acc-rgb),.42);color:#fff}
-.week-dot.l2{background:rgba(var(--acc-rgb),.62);color:#fff}
-.week-dot.l3{background:rgba(var(--acc-rgb),.82);color:#fff}
+.week-dot.l1{background:rgba(var(--acc-rgb),var(--ng-step-1));color:#fff}
+.week-dot.l2{background:rgba(var(--acc-rgb),var(--ng-step-2));color:#fff}
+.week-dot.l3{background:rgba(var(--acc-rgb),var(--ng-step-3));color:#fff}
 .week-dot.l4{background:var(--acc);color:#fff}
 .week-dot.future{opacity:.4}
 /* Kommende Tage treten zurueck, verschwinden aber nicht: die Woche soll als
    ganze lesbar bleiben, sonst weiss man am Montag nicht, wovon die zwei
    gefuellten Punkte ein Teil sind. */
-.week-pill.future{background:rgba(255,255,255,.028);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
+.week-pill.future{background:var(--ng-well-off);box-shadow:inset 0 0 0 1px var(--ng-well-off-bdr)}
 /* ── Neon: die trainierten Tage leuchten ──────────────────────────────────
    Der Schein liegt AUSSEN (box-shadow ohne inset) und die Farbe bleibt satt.
    Die vier Stufen (l1–l4) markieren weiterhin, wie viel an dem Tag bewegt
@@ -3309,7 +3391,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
    darin, ob ueberhaupt etwas im Kreis steht. */
 .week-dot:not(.l1):not(.l2):not(.l3):not(.l4){
   background:transparent;
-  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.10);
+  box-shadow:inset 0 0 0 1.5px var(--ng-outline);
 }
 
 /* ── Streak mit Flamme ────────────────────────────────────────────────────
@@ -4104,8 +4186,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   flex:1 1 0;min-width:0;border-radius:3px;
   /* Leere Huelse: dunkel, aber sichtbar — sie ist die Skala, an der man den
      gefuellten Teil abliest. Ganz unsichtbar waere die Reihe nur ein Balken. */
-  background:rgba(255,255,255,.055);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  background:var(--ng-well);
+  box-shadow:inset 0 0 0 1px var(--ng-well-bdr);
   transition:background .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;
 }
 /* Der aktuelle Strich traegt die Marke aus der Vorlage — ein heller Rahmen,
@@ -4416,8 +4498,8 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .segbar-v{position:absolute;inset:2px;display:flex;flex-direction:column;gap:2.5px}
 .segbar-v > i{
   flex:1 1 0;min-height:0;border-radius:2px;
-  background:rgba(255,255,255,.055);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  background:var(--ng-well);
+  box-shadow:inset 0 0 0 1px var(--ng-well-bdr);
   transition:background .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;
 }
 .segbar-v > i:first-child{border-radius:5px 5px 2px 2px}
@@ -6913,7 +6995,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 }
 /* Die Spur fast unsichtbar — in der Vorlage steht der Bogen frei auf der
    dunklen Flaeche; eine getoente Spur legt sich als matte Linie daneben. */
-.aic-r-bg{fill:none;stroke:rgba(255,255,255,.045);stroke-width:4.5}
+.aic-r-bg{fill:none;stroke:var(--ng-well-bdr);stroke-width:4.5}
 .aic-r-fg{fill:none;stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:32px 32px}
 .aic-r-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   white-space:nowrap;font-size:15px;font-weight:900;letter-spacing:-.3px}
@@ -8882,7 +8964,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030443';
+const APP_VERSION = 'gymtrack-v202608030444';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -11001,6 +11083,27 @@ function _pushWidgetData() {
     try {
       plansJson = JSON.stringify(['mon','tue','wed','thu','fri','sat','sun'].map(_planLabelFor));
     } catch(e) {}
+    /* Jahresmatrix fürs Homescreen-Widget: 53 Wochenspalten à 7 Tage als eine
+       Ziffernkette, ältester Tag zuerst. Eine Ziffer je Tag (Stufe 0–4) statt
+       JSON — 371 Zeichen passen ohne Weiteres in die App-Group, ein Array
+       gleicher Länge wäre das Zehnfache.
+       Die Kette endet am SONNTAG der laufenden Woche, nicht heute: nur so geht
+       das Raster in ganzen Spalten auf. Die Tage nach heute tragen die 9 —
+       das Widget lässt sie leer, statt sie als "nicht trainiert" zu zeigen.
+       Ein Tag ohne Eintrag ist keine Aussage über die Zukunft. */
+    let yearDays = '', yearEndKey = '';
+    try {
+      const { map, level } = _volMap();
+      const t0 = new Date(); t0.setHours(0,0,0,0);
+      yearEndKey = _localDateKey(t0);
+      const end = new Date(t0); end.setDate(t0.getDate() + (6 - ((t0.getDay()+6)%7)));
+      const N = 53 * 7, out = [];
+      for (let i = N - 1; i >= 0; i--) {
+        const d = new Date(end); d.setDate(end.getDate() - i);
+        out.push(d > t0 ? 9 : level(map[_localDateKey(d)] || 0));
+      }
+      yearDays = out.join('');
+    } catch(e) {}
     // Tracker-Ringe (max 4) als Snapshot für das interaktive Widget
     let trackerJson = '{"weekKey":"","items":[]}';
     try {
@@ -11021,7 +11124,9 @@ function _pushWidgetData() {
       todayIndex:    todayIdx,
       weekStartKey:  weekStartKey,
       plansJson:     plansJson,
-      trackerJson:   trackerJson
+      trackerJson:   trackerJson,
+      yearDays:      yearDays,
+      yearEndKey:    yearEndKey
     }).then(() => WDP.reloadWidget()).catch(() => {});
   } catch(e) {}
 }
@@ -18285,9 +18390,14 @@ function _neonRamp(hex) {
   /* Kein ausgeglühtes, fast weisses Ende: in der Vorlage bleibt der Bogen ueber
      seine ganze Laenge GESAETTIGT und wird nur etwas heller. Ein weisser Kern
      sieht nach Leuchtstoffroehre aus, die Vorlage zeigt aber farbiges Licht. */
+  /* Die Helligkeiten kommen aus dem CSS (--nr-*), nicht aus festen Zahlen:
+     dieselbe Farbe, die auf Schwarz strahlt, ist auf Weiss zu blass. Der Ring
+     wird in den hellen Themes deshalb dunkler und enger gefasst — gleiche
+     Farbe, gleiche Geometrie, nur die Helligkeit folgt dem Untergrund. */
+  const L = _nrL();
   return {
-    c1: `hsl(${h},100%,60%)`, c2: `hsl(${h},100%,72%)`,
-    g1: `hsl(${h},100%,55%)`, g2: `hsl(${h},100%,65%)`
+    c1: `hsl(${h},100%,${L.c1}%)`, c2: `hsl(${h},100%,${L.c2}%)`,
+    g1: `hsl(${h},100%,${L.g1}%)`, g2: `hsl(${h},100%,${L.g2}%)`
   };
 }
 function recoveryState(pct) {
@@ -18614,11 +18724,12 @@ function _segBarsVertHTML(pct, n, opts) {
        Roehre, das ist unabhaengig vom Schein nach aussen. */
     const st = an
       ? `background:hsl(${H},100%,${L}%);`
-        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,58%,var(--gwa-1)),`
-        + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2)),`
-        + `0 0 var(--gw-3) hsla(${H},100%,48%,var(--gwa-3)),`
-        + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
-        + `inset 0 1px 2px hsla(${H},100%,80%,.5)`
+        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,var(--ng-1),var(--gwa-1)),`
+        + `0 0 var(--gw-2) hsla(${H},100%,var(--ng-2),var(--gwa-2)),`
+        + `0 0 var(--gw-3) hsla(${H},100%,var(--ng-3),var(--gwa-3)),`
+        + `var(--neon-edge),`
+        + `inset 0 -1px 3px hsla(${H},100%,30%,var(--ng-lo)),`
+        + `inset 0 1px 2px hsla(${H},100%,80%,var(--ng-hi))`
       : '';
     out += `<i class="${an ? 'on' : 'off'}" style="${st}"></i>`;
   }
@@ -18659,11 +18770,12 @@ function _segBarsHTML(pct, n, opts) {
        Nippel der Batterie ausserhalb sitzt und mit weggeschnitten wuerde. */
     if (an && o.eng) {
       out += `<i class="on" style="background:hsl(${H},100%,${l.toFixed(0)}%);`
-           + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,58%,var(--gwa-1)),`
-           + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2)),`
-           + `0 0 var(--gw-3) hsla(${H},100%,48%,var(--gwa-3)),`
-           + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
-           + `inset 0 1px 2px hsla(${H},100%,80%,.5)"></i>`;
+           + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,var(--ng-1),var(--gwa-1)),`
+           + `0 0 var(--gw-2) hsla(${H},100%,var(--ng-2),var(--gwa-2)),`
+           + `0 0 var(--gw-3) hsla(${H},100%,var(--ng-3),var(--gwa-3)),`
+           + `var(--neon-edge),`
+           + `inset 0 -1px 3px hsla(${H},100%,30%,var(--ng-lo)),`
+           + `inset 0 1px 2px hsla(${H},100%,80%,var(--ng-hi))"></i>`;
       continue;
     }
     /* Der Schein in drei Lagen: ein enger heller Saum direkt am Strich, ein
@@ -18678,10 +18790,11 @@ function _segBarsHTML(pct, n, opts) {
        vom Wert abhaengt und deshalb aus dem JS kommen muss. */
     const st = an
       ? `background:hsl(${H},${S}%,${l.toFixed(0)}%);`
-        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,60%,var(--gwa-1)),`
-        + `0 0 var(--gw-2) hsla(${H},${S}%,50%,var(--gwa-2)),`
-        + `0 0 var(--gw-3) hsla(${H},${S}%,48%,var(--gwa-3)),`
-        + `inset 0 1px 3px hsla(${H},100%,78%,.45)`
+        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,var(--ng-1),var(--gwa-1)),`
+        + `0 0 var(--gw-2) hsla(${H},${S}%,var(--ng-2),var(--gwa-2)),`
+        + `0 0 var(--gw-3) hsla(${H},${S}%,var(--ng-3),var(--gwa-3)),`
+        + `var(--neon-edge),`
+        + `inset 0 1px 3px hsla(${H},100%,78%,var(--ng-hi))`
       : '';
     // Der letzte gefuellte Strich ist der "aktuelle" — er traegt die Marke.
     const akt = an && i === voll - 1 && !o.flach ? ' is-now' : '';
@@ -19061,6 +19174,21 @@ function _glowDs(cv, acc, n, voll){
 /* Der Dimmer aus dem CSS (--neon) fuer den Canvas: Chart.js zeichnet in 2D-Kontext,
    der kennt keine Custom-Properties. Einmal auslesen, Zahl zurueck; faellt der
    Wert weg, bleibt es beim vollen Schein. */
+/* Die vier Helligkeiten der Ring-Rampe aus dem CSS. Wie _neonF: der Wert steht
+   im Theme, gebraucht wird er im JS. Faellt eine Zahl weg, bleibt der dunkle
+   Stand — das ist der, fuer den die Rampe urspruenglich gebaut wurde. */
+function _nrL(){
+  const D = { c1:60, c2:72, g1:55, g2:65 };
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const out = {};
+    for (const k in D) {
+      const v = parseFloat(cs.getPropertyValue('--nr-' + k));
+      out[k] = isFinite(v) ? Math.max(0, Math.min(100, v)) : D[k];
+    }
+    return out;
+  } catch(_) { return D; }
+}
 function _neonF(){
   try {
     const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--neon'));
@@ -27350,7 +27478,7 @@ function _seedDemoData() {
     // gleich stark einfaerben. Sonst zeichnet die Volumen-Staffelung (l1–l4) die
     // fruehen Jahre blass — im Screenshot soll die Serie gleichmaessig wirken.
     st.textContent = '.week-dot.future{opacity:1 !important}' +
-      '.week-pill.future{background:rgba(255,255,255,.05)!important}' +
+      '.week-pill.future{background:var(--ng-well)!important}' +
       '.cal-cell.l1,.cal-cell.l2,.cal-cell.l3,.cal-cell.l4{background:var(--acc)!important;color:#fff!important}';
     document.head.appendChild(st);
   }
@@ -35957,6 +36085,19 @@ function _handleWidgetDeepLink(url) {
     if (t) {
       goTabId('heute');
       if (typeof incrementTracker === 'function') incrementTracker(decodeURIComponent(t[1]));
+      return;
+    }
+    // Jahresmatrix-Widget angetippt → derselbe Kalender, aber direkt in der
+    // Matrix-Ansicht. Das Widget IST dieses Raster; es woanders hin zu öffnen
+    // hiesse, den Nutzer nach dem Tippen suchen zu lassen.
+    if (/^gymtrack:\/\/matrix/.test(url)) {
+      goTabId('heute');
+      setTimeout(() => {
+        try {
+          if (typeof openCalendarOverlay === 'function') openCalendarOverlay();
+          if (typeof setCalMode === 'function') setCalMode('matrix');
+        } catch(_){}
+      }, 120);
       return;
     }
     // Wochentag-Kreis im Widget angetippt → Kalender öffnen, aber Tab bleibt "Heute".
