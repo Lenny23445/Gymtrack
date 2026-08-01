@@ -1533,6 +1533,72 @@ body.sheet-modal #ai-bubble{pointer-events:none}
 .set-pr-star{font-size:13px;line-height:1;display:inline-block;animation:prStarPop .5s ease}
 @keyframes prStarPop{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
 .set-row.done .set-n,.set-row.done .set-in{opacity:.38}
+
+/* ══ BEWEGUNGEN IM SATZ-LOG ══════════════════════════════════════════════
+   Vier Rueckmeldungen, jede an genau der Stelle, an der die Handlung
+   passiert ist. Alle laufen ueber transform, opacity und box-shadow — nichts
+   davon bricht die Seite neu um, das Blatt scrollt waehrenddessen ruhig
+   weiter. Alle vier haengen an einer Notiz aus dem JS (_wkNeueZeile, _wkTick,
+   _wkWert), nicht an einem Dauerzustand: das Satz-Log wird als Zeichenkette
+   neu gebaut, jede Zeile ist danach ein frisches Element — eine Animation an
+   .done liefe sonst bei jedem Neuzeichnen auf allen erledigten Zeilen
+   gleichzeitig los, also als Flackern statt als Bestaetigung. */
+
+/* 1 · Die neu dazugekommene Zeile faehrt auf ("+ Satz", Top-Satz des
+       Coaches). Der kurze Akzentschimmer sagt: DAS ist die neue Zeile. */
+@keyframes setRowIn{
+  from{opacity:0;transform:translateY(-8px);max-height:0}
+  40%{opacity:1}
+  to{opacity:1;transform:none;max-height:120px}
+}
+/* position:relative ist Pflicht und kein Schmuck: ohne sie bezoege sich das
+   ::after auf .ex-card (die naechste positionierte Vorfahrin) und der
+   Schimmer legte sich ueber die GANZE Karte statt ueber eine Zeile. */
+.set-row-neu{position:relative;animation:setRowIn .34s cubic-bezier(.22,.9,.3,1)}
+.set-row-neu::after{
+  content:'';position:absolute;inset:0;border-radius:12px;pointer-events:none;
+  background:rgba(var(--acc-rgb),.16);
+  animation:setRowGlow .9s ease-out forwards;
+}
+@keyframes setRowGlow{from{opacity:1}to{opacity:0}}
+
+/* 2 · Die geloeschte Zeile faehrt hinaus, BEVOR gerechnet wird. Vorher
+       verschwand sie schlagartig und alles darunter sprang hoch. */
+.set-row-weg{
+  overflow:hidden;pointer-events:none;
+  animation:setRowOut .24s cubic-bezier(.4,0,1,1) forwards;
+}
+@keyframes setRowOut{
+  from{opacity:1;transform:none;max-height:120px}
+  to{opacity:0;transform:translateX(-16%);max-height:0;padding-top:0;padding-bottom:0}
+}
+
+/* 3 · Der Haken ploppt auf, wenn ein Satz erledigt ist — nur der eben
+       gesetzte, nie alle auf einmal. */
+@keyframes chkPop{0%{transform:scale(.55)}55%{transform:scale(1.16)}100%{transform:scale(1)}}
+@keyframes chkTick{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+.set-chk.just-done{animation:chkPop .34s cubic-bezier(.34,1.56,.64,1)}
+.set-chk.just-done svg{animation:chkTick .3s ease-out}
+
+/* 4 · Das Feld, in dem der Wert des Rades gelandet ist, blinkt einmal auf.
+       Ohne das ist bei vier gleich aussehenden Zeilen nicht zu sehen, WO die
+       neue Zahl gelandet ist. */
+@keyframes valSet{
+  from{box-shadow:0 0 0 2px rgba(var(--acc-rgb),.60)}
+  to{box-shadow:0 0 0 2px rgba(var(--acc-rgb),0)}
+}
+.set-in-btn.just-set{animation:valSet .6s ease-out}
+
+/* 5 · "+ Satz" gibt beim Druecken nach — bisher der einzige Knopf in der
+       Karte ganz ohne Reaktion. */
+.add-set-btn{transition:transform .14s ease,opacity .14s ease}
+.add-set-btn:active{transform:scale(.96);opacity:.6}
+
+@media (prefers-reduced-motion:reduce){
+  .set-row-neu,.set-row-neu::after,.set-row-weg,
+  .set-chk.just-done,.set-chk.just-done svg,.set-in-btn.just-set{animation:none}
+  .add-set-btn{transition:none}
+}
 .set-chk{
   width:26px;height:26px;border-radius:50%;border:2px solid var(--text2);
   background:none;display:flex;align-items:center;justify-content:center;
@@ -6011,23 +6077,67 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      Antippung entfernt. */
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+/* Gross genug fuer eine Hand, die gerade Gewichte gehalten hat. 36 px sichtbar,
+   die Trefferflaeche daempft das auf die 44 px auf, die Apple als Mindestmass
+   nennt (::after, damit die Leiste dafuer nicht hoeher wird). Bei 28 px lag
+   der Daumen zu leicht daneben — und danebenliegen heisst hier: aus Versehen
+   verworfen. */
 .cb-offer-btn{
-  flex-shrink:0;width:28px;height:28px;padding:0;border-radius:50%;
+  position:relative;
+  flex-shrink:0;width:36px;height:36px;padding:0;border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;
-  font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+  font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;
   border:1px solid transparent;-webkit-tap-highlight-color:transparent;
   transition:transform .14s ease,opacity .14s ease;
+}
+.cb-offer-btn::after{
+  content:'';position:absolute;top:50%;left:50%;
+  width:44px;height:44px;transform:translate(-50%,-50%);
 }
 .cb-offer-btn:active{transform:scale(.9)}
 .cb-offer-btn.ja{background:var(--acc);color:#fff}
 .cb-offer-btn.ja svg{stroke:#fff}
 .cb-offer-btn.nein{background:transparent;color:var(--text2);border-color:var(--gl-bdr)}
-/* Aufgeklappt: Begruendung und, wenn es mehrere Wege gibt, die Auswahl. */
+/* Aufgeklappt: Begruendung und, wenn es mehrere Wege gibt, die Auswahl.
+   Die Hoehe faehrt ueber grid-template-rows 0fr → 1fr. Das ist der einzige
+   Weg, eine UNBEKANNTE Hoehe sauber zu animieren: max-height muesste man
+   raten, und raet man zu hoch, haengt die Bewegung am Ende in der Luft — sie
+   laeuft dann noch, obwohl optisch nichts mehr passiert.
+   Der Inhalt liegt in einer eigenen Innenschicht mit overflow:hidden und
+   min-height:0; ohne beides weigert sich das Raster zu schrumpfen.
+
+   Und der Teil waechst NICHT in der Leiste, sondern klappt darunter auf.
+   Das ist der Unterschied zwischen fluessig und hakelig, und er hat nichts
+   mit der Kurve zu tun: die Leiste sitzt in #wk-sticky, an dem ein
+   ResizeObserver haengt (_wkSnapPadSoon). Jede Hoehenaenderung dort schreibt
+   den Rastabstand des Blattes neu, WebKit rechnet daraufhin die Rastpunkte
+   des GANZEN Blattes neu und die Fokus-Schicht misst alle Karten nach — und
+   das bei jedem Bild der Blende. Eine Hoehenanimation an dieser Stelle kann
+   gar nicht fluessig sein.
+   Absolut positioniert aendert sich kein Layout: es bewegen sich nur
+   transform und opacity, beides Sachen, die der Compositor allein macht. */
+.coach-bar.cb-offer{overflow:visible}
 .cb-offer-more{
-  margin-top:8px;padding-top:8px;border-top:1px solid rgba(var(--acc-rgb),.20);
-  animation:cbMoreIn .22s cubic-bezier(.22,.9,.3,1);
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:3;
+  padding:11px 13px;border-radius:14px;
+  background:var(--card);
+  border:1px solid rgba(var(--acc-rgb),.34);
+  box-shadow:0 14px 34px rgba(0,0,0,.38);
+  opacity:0;pointer-events:none;
+  transform:translateY(-10px) scale(.97);transform-origin:top center;
+  transition:opacity .18s ease,transform .26s cubic-bezier(.22,.9,.3,1);
 }
-@keyframes cbMoreIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.coach-bar.cb-offer.open .cb-offer-more{
+  opacity:1;transform:none;pointer-events:auto;
+}
+/* Der Text kommt einen Tick nach der Hoehe. Beides gleichzeitig liest sich
+   als ein Ruck; leicht versetzt wirkt es, als klappe die Leiste auf und der
+   Inhalt komme darin zum Vorschein. */
+.cb-offer-txt,.cb-offer-opts{
+  opacity:0;transition:opacity .18s ease .10s;
+}
+.coach-bar.cb-offer.open .cb-offer-txt,
+.coach-bar.cb-offer.open .cb-offer-opts{opacity:1}
 .cb-offer-txt{font-size:12.5px;line-height:1.45;color:var(--text2)}
 .cb-offer-opts{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .cb-offer-opt{
@@ -6036,11 +6146,29 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   color:var(--acc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
 }
 .cb-offer-opt:active{transform:scale(.97)}
+/* Ein neuer Vorschlag laeuft einmal ein: die Zeile ruecht von oben nach,
+   der Rahmen leuchtet kurz auf. Danach steht sie ruhig — sie soll auffallen,
+   wenn sie kommt, und nicht dauernd blinken, waehrend man loggt. */
+@keyframes cbNeuIn{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:none}
+}
+@keyframes cbNeuGlow{
+  0%{box-shadow:0 0 0 0 rgba(var(--acc-rgb),.45),0 4px 20px rgba(var(--acc-rgb),.20)}
+  60%{box-shadow:0 0 0 5px rgba(var(--acc-rgb),0),0 4px 20px rgba(var(--acc-rgb),.20)}
+  100%{box-shadow:0 0 0 0 rgba(var(--acc-rgb),0),0 4px 20px rgba(var(--acc-rgb),.20)}
+}
+.coach-bar.cb-neu{animation:cbNeuGlow .9s ease-out}
+.coach-bar.cb-neu .cb-offer-row{animation:cbNeuIn .3s cubic-bezier(.22,.9,.3,1)}
+
 /* Bestaetigung: derselbe Ort, gruen, und sie verschwindet von selbst. */
 .coach-bar.cb-done{border-color:rgba(76,209,55,.55)}
 .cb-offer-ok{display:inline-flex;flex-shrink:0;color:#4cd137}
 .cb-offer-ok svg{stroke:#4cd137}
-@media (prefers-reduced-motion:reduce){.cb-offer-more{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  .cb-offer-more,.cb-offer-txt,.cb-offer-opts{transition:none}
+  .coach-bar.cb-neu,.coach-bar.cb-neu .cb-offer-row{animation:none}
+}
 /* Die Balken stehen auf VOLLER Hoehe und werden gestaucht — nicht umgekehrt.
    Vorher liefen die Keyframes ueber 'height': das ist eine Layout-Eigenschaft,
    also rechnete die WebView 60-mal je Sekunde das Layout der Leiste neu, und
@@ -8284,7 +8412,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021345';
+const APP_VERSION = 'gymtrack-v202608021440';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -15883,6 +16011,11 @@ function confirmWheel() {
     value = String(reps);
   }
   wkLogs[li].sets[si][field] = value === 0 ? '' : (field === 'r' ? String(value) : value);
+  // Das Rad schliesst sich, und dahinter steht eine neue Zahl. Ohne ein
+  // Zeichen am Feld selbst ist nicht zu sehen, WO sie gelandet ist — bei vier
+  // gleich aussehenden Zeilen ist das eine echte Frage. Der Ring am Feld
+  // beantwortet sie und verschwindet von allein.
+  _wkWert = { li: li, si: si, field: field, ts: Date.now() };
   // HIER meldet sich der Coach NICHT — weder mit der Vorschlagskarte
   // (_coachEval) noch mit dem Kurzkommentar (_coachMicroReact). Gewicht und
   // Wiederholungen sind an dieser Stelle nur EINGETRAGEN; wer beim naechsten
@@ -19446,19 +19579,19 @@ function renderLogCards() {
           const _neu = !!(_wkNeueZeile && _wkNeueZeile.li === li && _wkNeueZeile.si === si
                           && Date.now() - _wkNeueZeile.ts < 800);
           return `
-        <div class="set-row${s.done?' done':''}${_neu?' set-row-neu':''}">
+        <div class="set-row${s.done?' done':''}${_neu?' set-row-neu':''}" data-si="${si}">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
           <div class="set-n">${s.pr?'<span class="set-pr-star" title="Persönlicher Rekord!">🏆</span>':si+1}</div>
           <button class="set-type ${type}" onclick="openSetTypePopup(${li},${si})" title="${SET_TYPE_TITLE[type]} – tippen für Typ-Auswahl">${typeLabel||'•'}</button>
-          <button class="set-in set-in-btn${s.w && s.w===log.sugW?' is-sug':''}" onclick="openWheel(${li},${si},'w')">${wDisp===''?'<span class="set-in-ph">–</span>':wDisp}</button>
+          <button class="set-in set-in-btn${s.w && s.w===log.sugW?' is-sug':''}${_wkFrisch(_wkWert,li,si) && _wkWert.field==='w'?' just-set':''}" onclick="openWheel(${li},${si},'w')">${wDisp===''?'<span class="set-in-ph">–</span>':wDisp}</button>
           ${isTime
             ? `<button class="set-timer-btn ${timerCls}" id="set-timer-${li}-${si}" onclick="toggleSetTimer(${li},${si})">
                 <span class="set-timer-time">${s.done ? fmtSec(ex.targetReps) : fmtSec(remaining)}</span>
                 <span style="font-size:12px">${s.done ? '✓' : timerIcon}</span>
                </button>`
-            : `<button class="set-in set-in-btn${s.r && s.r===log.sugR?' is-sug':''}" onclick="openWheel(${li},${si},'r')">${s.r===''||s.r==null?'<span class="set-in-ph">–</span>':s.r}</button>`
+            : `<button class="set-in set-in-btn${s.r && s.r===log.sugR?' is-sug':''}${_wkFrisch(_wkWert,li,si) && _wkWert.field==='r'?' just-set':''}" onclick="openWheel(${li},${si},'r')">${s.r===''||s.r==null?'<span class="set-in-ph">–</span>':s.r}</button>`
           }
-          <button class="set-chk${s.done?' done':''}" onclick="toggleSetDone(${li},${si})">
+          <button class="set-chk${s.done?' done':''}${s.done && _wkFrisch(_wkTick,li,si,600)?' just-done':''}" onclick="toggleSetDone(${li},${si})">
             <svg viewBox="0 0 12 10"><polyline points="1,5.5 4.5,9 11,1"/></svg>
           </button>
         </div>${prevHint}`;}).join('')}
@@ -19804,6 +19937,9 @@ function _wkAutoAdvance(li) {
 function toggleSetDone(li,si) {
   const next = !wkLogs[li].sets[si].done;
   wkLogs[li].sets[si].done = next;
+  // Nur beim Setzen, nicht beim Zuruecknehmen: das Aufploppen ist die
+  // Bestaetigung "geschafft" — beim Abwaehlen waere es eine Feier fuer nichts.
+  _wkTick = next ? { li: li, si: si, ts: Date.now() } : null;
   haptic(next ? 18 : 8);
   if (next) {
     // Satz jetzt bestätigt → erst jetzt auf PR prüfen und ggf. feiern.
@@ -19876,6 +20012,19 @@ function toggleSetDone(li,si) {
    liegen im selben Tick — gezeichnet wird nur der zweite, und der soll die
    Animation noch haben. */
 let _wkNeueZeile = null;
+/* Dieselbe Notiz-Technik fuer die beiden anderen Bewegungen im Satz-Log: den
+   frisch gesetzten Haken und den eben eingetragenen Wert. Warum ueberhaupt
+   eine Notiz und nicht einfach eine CSS-Animation an .done bzw. am Feld: das
+   Satz-Log wird als Zeichenkette neu gebaut, jede Zeile ist danach ein
+   frisches Element — eine Animation an der Klasse liefe also bei JEDEM
+   Neuzeichnen auf ALLEN erledigten Zeilen gleichzeitig los. Sichtbar waere
+   das nicht als Bestaetigung, sondern als Flackern. Die Notiz sagt: genau
+   diese eine Zeile, genau jetzt. */
+let _wkTick = null;   // zuletzt abgehakter Satz
+let _wkWert = null;   // zuletzt eingetragener Wert: { li, si, field, ts }
+function _wkFrisch(m, li, si, ms) {
+  return !!(m && m.li === li && m.si === si && Date.now() - m.ts < (ms || 800));
+}
 function addSet(li) {
   const ex = exById(wkLogs[li].exerciseId);
   const p = wkLogs[li].sets.slice(-1)[0];
@@ -19890,9 +20039,27 @@ function addSet(li) {
 }
 function delSet(li,si) {
   if (wkLogs[li].sets.length<=1) return;
-  wkLogs[li].sets.splice(si,1);
-  renderLogCards();
-  _syncLiveActivity();
+  const weg = () => {
+    // Innerhalb der Wartezeit kann sich die Liste geaendert haben (Coach-
+    // Aktion, Wiederherstellung): dann lieber nichts loeschen als den
+    // falschen Satz.
+    if (!wkLogs[li] || !wkLogs[li].sets[si] || wkLogs[li].sets.length <= 1) { renderLogCards(); return; }
+    wkLogs[li].sets.splice(si,1);
+    renderLogCards();
+    _syncLiveActivity();
+  };
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const row = document.querySelector(`#log-cards .ex-card[data-li="${li}"] .set-row[data-si="${si}"]`);
+  if (!row || reduce) { weg(); return; }
+  // Die Zeile faehrt hinaus, DANN wird gerechnet. Vorher verschwand sie
+  // schlagartig und die Zeilen darunter sprangen eine Position hoch — bei
+  // einem Loeschen, das man auch versehentlich ausloest, ist das die
+  // unklarste aller Rueckmeldungen.
+  haptic(8);
+  row.classList.add('set-row-weg');
+  const hint = row.nextElementSibling;
+  if (hint && hint.classList.contains('set-prev-hint')) hint.classList.add('set-row-weg');
+  setTimeout(weg, 240);
 }
 
 // Ziel-Satzzahl einer Übung SOFORT in ein laufendes Training spiegeln.
@@ -26364,11 +26531,21 @@ function _coachBarAnimate(el, apply) {
    zugeklappt anfangen — sonst schoebe er beim Erscheinen die Satzliste weg,
    also genau das, was hier abgestellt wird. */
 let _coachOfferOpen = false;
+/* Welches Karten-Objekt zuletzt gezeichnet wurde — Grundlage fuer "ist der
+   Vorschlag neu?" (siehe cb-neu). Bewusst die Objekt-Referenz und keine ID:
+   jede neue Karte ist ein neues Objekt, jedes Neuzeichnen dasselbe. */
+let _coachOfferShown = null;
+/* Auf- und Zuklappen laeuft NUR ueber die Klasse, nie ueber ein Neuzeichnen.
+   Das ist der ganze Trick an der Sache: schriebe die Funktion das Markup neu,
+   waere der aufgeklappte Teil ein frisches Element — und ein frisches Element
+   hat keinen Zustand, von dem aus es sich bewegen koennte. Es stuende sofort
+   in seiner Endgroesse da, und genau das sah abgehackt aus. So bleibt das
+   Element stehen und faehrt seine Hoehe. */
 function _coachOfferToggle() {
   _coachOfferOpen = !_coachOfferOpen;
   haptic(8);
   const el = document.getElementById('wk-coach-bar');
-  if (el) _coachBarOfferRender(el);
+  if (el) el.classList.toggle('open', _coachOfferOpen);
 }
 /* Die kurze Fassung des Vorschlags. Der Titel des Modells ist bereits knapp
    ("Top-Satz-Chance"); traegt die Aktion einen Wert, steht er dahinter — das
@@ -26376,7 +26553,14 @@ function _coachOfferToggle() {
    tippen. */
 function _coachOfferLabel(c) {
   const t = (c.title || c.text || '').trim();
-  const a = c.action || {};
+  /* Die Zahl kann an zwei Stellen stehen: an einer Einzel-Aktion ODER an der
+     ersten Option. Genau der haeufigste Fall — die lokal erzeugte
+     Top-Satz-Chance — nutzt Optionen, und dort fehlte die Zahl in der Zeile.
+     Sie ist aber der ganze Punkt der Zeile: ohne sie muss man aufklappen,
+     nur um zu erfahren, um welches Gewicht es geht. */
+  const a = (c.action && c.action.kind && c.action.kind !== 'none')
+    ? c.action
+    : ((Array.isArray(c.options) && c.options[0] && c.options[0].action) || {});
   if (a.kind && a.kind !== 'none' && typeof a.value === 'number' && isFinite(a.value))
     return t + ' · ' + kgToDisp(roundToStep(a.value)) + ' ' + unitLabel();
   return t;
@@ -26386,8 +26570,16 @@ function _coachBarOfferRender(el) {
   const opts = Array.isArray(c.options) ? c.options.filter(o => o && o.label && o.action) : [];
   const hatAktion = !!(c.action && c.action.kind && c.action.kind !== 'none');
   const uebernommen = !!(_coachCard && _coachCard.applied);
+  /* Ein NEUER Vorschlag laeuft einmal ein. "Neu" heisst: ein anderes
+     Karten-Objekt als beim letzten Zeichnen — ein blosses Neuzeichnen (Satz
+     abgehakt, Zeile ergaenzt) ist es nicht, sonst zuckte die Leiste bei jedem
+     Haken. Das ist der Moment, in dem sich der Coach meldet, und er soll zu
+     sehen sein, ohne dass man ihn suchen muss. */
+  const frisch = _coachOfferShown !== _coachCard;
+  _coachOfferShown = _coachCard;
   el.style.display = '';
-  el.className = 'coach-bar cb-offer' + (_coachOfferOpen ? ' open' : '') + (uebernommen ? ' cb-done' : '');
+  el.className = 'coach-bar cb-offer' + (_coachOfferOpen ? ' open' : '')
+    + (uebernommen ? ' cb-done' : '') + (frisch ? ' cb-neu' : '');
   if (uebernommen) {
     el.innerHTML = `<div class="cb-offer-row"><span class="cb-offer-ok">${ICO.check({s:15})}</span>` +
       `<span class="cb-offer-lbl">${esc(_cm('Übernommen', 'Applied'))}</span>` +
@@ -26402,7 +26594,11 @@ function _coachBarOfferRender(el) {
     ? `<button type="button" class="cb-offer-btn ja" aria-label="${esc(_cm('Annehmen','Accept'))}"
          onclick="event.stopPropagation();${opts.length ? '_coachPickOption(0)' : '_coachAccept()'}">${ICO.check({s:16})}</button>`
     : '';
-  const mehr = _coachOfferOpen
+  /* Der aufklappbare Teil steht IMMER im Markup, auch zugeklappt — er ist dann
+     auf Hoehe null gefahren (siehe .cb-offer-more). Nur so hat er beim
+     Aufklappen einen Zustand, aus dem heraus er wachsen kann; erst beim Tippen
+     erzeugt, spraenge er in seiner vollen Groesse ins Bild. */
+  const mehr = (c.text || opts.length > 1)
     ? `<div class="cb-offer-more">
          ${c.text ? `<div class="cb-offer-txt">${esc(c.text)}</div>` : ''}
          ${opts.length > 1 ? `<div class="cb-offer-opts">${opts.map((o,i) =>
