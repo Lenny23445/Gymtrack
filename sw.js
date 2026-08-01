@@ -3,6 +3,7 @@ const CACHE = 'gymtrack-v202608030444';
 const SHELL = [
   './index.html',
   './manifest.json',
+  './css/app.css',
   './icon-192.png',
   './icon-512.png',
   './js/coach-memory.js',
@@ -86,10 +87,10 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
 
-  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-');
+  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-') || url.includes('/css/app.css');
   const isStaticShell   = SHELL.some(s => {
     const name = s.replace('./', '');
-    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && url.includes(name);
+    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && !name.startsWith('css/') && url.includes(name);
   });
 
   if (isCriticalShell) {

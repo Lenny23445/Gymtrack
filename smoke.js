@@ -13,7 +13,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 
-const WURZEL = path.resolve(__dirname, '..');
+const WURZEL = __dirname;
 
 /* Eigener Mini-Server statt file://. Unter file:// blockiert die CORS-Regel des
    Browsers manifest.json und die sw.js-Abfrage — lauter Fehler, die es in
