@@ -203,6 +203,23 @@
      sm = kleine Chips/Inputs · md = Karten · lg = Header/Sheets/Floating */
   --gl-blur-sm:26px; --gl-blur:44px; --gl-blur-lg:66px;
   --gl-sat:180%;
+  /* ── ZENTRALE NEON-STAFFEL ──────────────────────────────────────────────
+     Jede leuchtende Anzeige der App benutzt DIESELBEN drei Radien: ein enger
+     heller Saum, ein mittlerer Hof, ein weiter schwacher Schimmer. Vorher hatte
+     jedes Widget eigene Werte (6/13, 4, 10/18, 5/13/26 …) — nebeneinander sah
+     das aus, als leuchteten sie unterschiedlich stark, obwohl sie dasselbe
+     meinten.
+     Die Staffel entspricht dem SVG-Filter der Ringe (stdDeviation 1.6/4/9; ein
+     Gauss-Radius ist etwa das Doppelte der Standardabweichung), damit Ringe und
+     Balken nebeneinander gleich hell wirken.
+     --gw-* = Radien, --gwa-* = die zugehoerigen Deckkraften. Die FARBE bleibt
+     bei jeder Anzeige ihre eigene; vereinheitlicht ist die Geometrie. */
+  --gw-1:4px;  --gw-2:10px; --gw-3:20px;
+  --gwa-1:.95; --gwa-2:.7;  --gwa-3:.42;
+  /* Gedaempfte Fassung fuer viele kleine Punkte nebeneinander (Wochenraster,
+     Sparkline): dieselbe Geometrie, weniger Deckkraft — sonst verschmelzen
+     benachbarte Punkte zu einem Band. */
+  --gwa-1s:.6;  --gwa-2s:.34; --gwa-3s:.16;
 }
 
 /* ── THEMES ── */
@@ -2009,12 +2026,16 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
   width:22px;height:22px;border-radius:50%;flex-shrink:0;
   border:2px solid transparent;padding:0;cursor:pointer;
   background:hsl(var(--h,210),100%,58%);
-  box-shadow:0 0 6px hsla(var(--h,210),100%,58%,.8),0 0 13px hsla(var(--h,210),100%,52%,.45);
+  box-shadow:0 0 var(--gw-1) hsla(var(--h,210),100%,58%,var(--gwa-1)),
+             0 0 var(--gw-2) hsla(var(--h,210),100%,52%,var(--gwa-2)),
+             0 0 var(--gw-3) hsla(var(--h,210),100%,50%,var(--gwa-3));
   transition:transform .14s ease,border-color .14s ease;
 }
 .trh-dot.trh-std{
   background:linear-gradient(135deg,var(--acc),var(--acc2,var(--acc)));
-  box-shadow:0 0 6px rgba(var(--acc-rgb),.8),0 0 13px rgba(var(--acc-rgb),.45);
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3));
 }
 .trh-dot.on{border-color:#fff;transform:scale(1.14)}
 .trh-dot:active{transform:scale(.9)}
@@ -2633,14 +2654,16 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-spark > i{
   flex:1 1 0;min-width:0;border-radius:2px 2px 1px 1px;
   background:rgba(var(--acc-rgb),.42);
-  box-shadow:0 0 4px rgba(var(--acc-rgb),.25);
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-3));
 }
 /* Der letzte Wert ist der aktuelle — er leuchtet, die aelteren treten
    zurueck. Ohne das liest sich die Reihe als gleichwertige Menge, dabei ist
    der letzte Balken der, um den es geht. */
 .hw-spark > i.is-now{
   background:var(--acc);
-  box-shadow:0 0 6px rgba(var(--acc-rgb),.9),0 0 13px rgba(var(--acc-rgb),.45);
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3));
 }
 .hw-spark-alt{display:block;width:100%;height:34px;margin-top:10px;overflow:visible}
 .hw-empty-mini{font-size:13px;color:var(--text2);text-align:center;padding:6px 0}
@@ -2685,6 +2708,20 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-mg-head span{display:block;font-size:10.5px;font-weight:600;color:var(--text2);margin-top:1px}
 .hw-mg-seg{flex:1;min-width:0;display:flex;align-items:center}
 .hw-mg-card .segbar.segbar-mini{height:11px;gap:2px}
+/* Kompaktform (mittelgrosse Kachel): dieselben Zeilen, nur enger gesetzt.
+   Der Platz kommt aus der Beschriftung und den Abstaenden — die Striche
+   behalten ihre Hoehe, sonst leuchten sie schwaecher als die in der grossen
+   Kachel daneben, und genau dieser Unterschied faellt auf. */
+/* Die mittlere Kachel zentriert ihren Inhalt sonst mittig — richtig fuer eine
+   einzelne Kennzahl, falsch fuer eine Liste: die Zeilen sollen linksbuendig
+   untereinander stehen und oben anfangen. */
+.hw-md .hw-card.hw-mg-kompakt{align-items:stretch;justify-content:flex-start;text-align:left;padding:10px 11px}
+.hw-mg-kompakt .hw-mg-head{font-size:11.5px;margin-bottom:7px}
+.hw-mg-kompakt .hw-mg-head span{font-size:9.5px}
+.hw-mg-kompakt .hw-mg-row{gap:6px;margin-bottom:6px}
+.hw-mg-kompakt .hw-mg-label{flex:0 0 58px;font-size:10.5px}
+.hw-mg-kompakt .hw-mg-val{flex:0 0 28px;font-size:10px}
+.hw-mg-kompakt .segbar.segbar-mini{height:10px;gap:2.5px}
 .hw-mg-bar{flex:1;height:7px;border-radius:4px;background:var(--g5);overflow:hidden}
 .hw-mg-bar>span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
 .hw-mg-val{font-size:11px;font-weight:700;color:var(--text2);flex:0 0 36px;text-align:right}
@@ -3183,10 +3220,16 @@ body.wpick-open #heute-edit-bar{display:none!important}
    Die vier Stufen (l1–l4) markieren weiterhin, wie viel an dem Tag bewegt
    wurde — sie leuchten deshalb unterschiedlich stark, nicht unterschiedlich
    bunt. Ein Tag ist ein Tag; die Menge sagt der Schein. */
-.week-dot.l1{box-shadow:0 0 6px rgba(var(--acc-rgb),.35)}
-.week-dot.l2{box-shadow:0 0 8px rgba(var(--acc-rgb),.5)}
-.week-dot.l3{box-shadow:0 0 10px rgba(var(--acc-rgb),.62),0 0 18px rgba(var(--acc-rgb),.3)}
-.week-dot.l4{box-shadow:0 0 11px rgba(var(--acc-rgb),.75),0 0 22px rgba(var(--acc-rgb),.38)}
+/* Dieselbe Staffel wie ueberall, nur mit steigender Deckkraft je Stufe: die
+   Menge sagt der Schein, nicht ein eigener Radius je Stufe. */
+.week-dot.l1{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-2))}
+.week-dot.l2{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-3))}
+.week-dot.l3{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2))}
+.week-dot.l4{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+                       0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3))}
 .week-dot svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3;
   stroke-linecap:round;stroke-linejoin:round;display:block}
 /* Ein Tag ohne Training ist leer, nicht durchgestrichen und nicht beziffert:
@@ -8746,7 +8789,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030035';
+const APP_VERSION = 'gymtrack-v202608030105';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12726,14 +12769,20 @@ function hwMuscles(size){
   }));
   if (!grand) return `<div class="hw-card"><div class="hw-stat"><div class="hw-empty-mini">Noch keine Daten</div></div></div>`;
   const all = MUSCLE_GROUPS.map(mg=>({mg,v:tot[mg.id]||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
-  if (size === 'sm' || size === 'md'){
+  /* Nur die quadratische Kleinstform zeigt eine einzelne Zahl — dort ist fuer
+     eine Liste schlicht kein Platz. Die mittlere Groesse zeigt dieselbe
+     Verteilung wie die grosse: eine Verteilung, von der man nur den groessten
+     Posten sieht, ist keine Verteilung mehr. Kompakt wird sie ueber schmalere
+     Beschriftung und weniger Striche, nicht ueber weniger Zeilen. */
+  if (size === 'sm'){
     const top = all[0];
     return `<div class="hw-card"><div class="hw-stat">
       <div class="hw-big">${Math.round(top.v/grand*100)}%</div>
       <div class="hw-sub">${top.mg.label}</div>
     </div></div>`;
   }
-  const rows = all.slice(0,6);
+  const kompakt = size === 'md';
+  const rows = all.slice(0, kompakt ? 5 : 6);
   const max = rows[0].v || 1;
   /* Eine Kopfzeile, die sagt, WAS hier verglichen wird. Ohne sie stand da nur
      eine Liste von Muskelgruppen mit Balken, und dass es um die Verteilung des
@@ -12741,13 +12790,18 @@ function hwMuscles(size){
      raten. Genau das ist passiert.
      Die Balken zeigen den Anteil am STAERKSTEN Wert (so ist der Vergleich
      untereinander ablesbar), die Prozentzahl den Anteil am Gesamtvolumen. */
-  return `<div class="hw-card hw-mg-card">
+  /* Weniger Striche in der kompakten Form ist Absicht: bei zehn blieben in der
+     halben Kachelbreite gut zwei Pixel je Strich, und ein Strich, der schmaler
+     ist als sein eigener Schein, verschwindet in ihm — die Reihe sah aus wie
+     ein durchgehender Balken. Sechs Striche behalten die Luecken. */
+  const segN = kompakt ? 6 : 10;
+  return `<div class="hw-card hw-mg-card${kompakt ? ' hw-mg-kompakt' : ''}">
     <div class="hw-mg-head">${esc(_cm('Volumen-Verteilung','Volume split'))}
       <span>${esc(_cm('Anteil am Gesamtvolumen','share of total volume'))}</span></div>`
     + rows.map(({mg,v})=>`
     <div class="hw-mg-row">
       <span class="hw-mg-label">${mg.label}</span>
-      <span class="hw-mg-seg">${_segBarsHTML(Math.max(5,Math.round(v/max*100)), 10, { flach:true, cls:'segbar-mini' })}</span>
+      <span class="hw-mg-seg">${_segBarsHTML(Math.max(5,Math.round(v/max*100)), segN, { flach:true, cls:'segbar-mini' })}</span>
       <span class="hw-mg-val">${Math.round(v/grand*100)}%</span>
     </div>`).join('') + `</div>`;
 }
@@ -18420,8 +18474,8 @@ function _segBarsHTML(pct, n, opts) {
        leuchtende Roehre, ohne einen Millimeter nach aussen zu brauchen. */
     if (an && o.eng) {
       out += `<i class="on" style="background:hsl(${H},100%,${l.toFixed(0)}%);`
-           + `box-shadow:0 0 5px hsla(${H},100%,58%,.95),`
-           + `0 0 9px hsla(${H},100%,50%,.55),`
+           + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,58%,var(--gwa-1)),`
+           + `0 0 var(--gw-2) hsla(${H},100%,50%,var(--gwa-2s)),`
            + `inset 0 -1px 3px hsla(${H},100%,30%,.45),`
            + `inset 0 1px 2px hsla(${H},100%,80%,.5)"></i>`;
       continue;
@@ -18431,11 +18485,16 @@ function _segBarsHTML(pct, n, opts) {
        sieht aus wie ein weicher Schatten; erst die Staffelung liest sich als
        Leuchten. Dazu ein Innenlicht (inset), das den Strich selbst wie eine
        Roehre wirken laesst statt wie eine gefuellte Flaeche. */
+    /* Radien und Deckkraften kommen aus der zentralen Neon-Staffel (--gw-*,
+       --gwa-* im :root). Frueher standen hier eigene Werte (5/13/26) — neben
+       einem Ring mit anderer Staffel las sich das als "leuchtet staerker",
+       obwohl beide dasselbe meinten. Nur die FARBE ist hier eigen, weil sie
+       vom Wert abhaengt und deshalb aus dem JS kommen muss. */
     const st = an
       ? `background:hsl(${H},${S}%,${l.toFixed(0)}%);`
-        + `box-shadow:0 0 5px hsla(${H},100%,60%,.95),`
-        + `0 0 13px hsla(${H},${S}%,50%,.75),`
-        + `0 0 26px hsla(${H},${S}%,48%,.45),`
+        + `box-shadow:0 0 var(--gw-1) hsla(${H},100%,60%,var(--gwa-1)),`
+        + `0 0 var(--gw-2) hsla(${H},${S}%,50%,var(--gwa-2)),`
+        + `0 0 var(--gw-3) hsla(${H},${S}%,48%,var(--gwa-3)),`
         + `inset 0 1px 3px hsla(${H},100%,78%,.45)`
       : '';
     // Der letzte gefuellte Strich ist der "aktuelle" — er traegt die Marke.
