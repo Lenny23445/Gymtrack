@@ -5998,8 +5998,21 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    Einschaetzung aus Soll und Ist ab (_rpeDerive), statt nach jedem Satz zu
    fragen. Damit gibt es in der Leiste wieder GENAU eine Sorte Inhalt — Kopf
    und Nachricht. */
+/* Die Karte faehrt AUF: Hoehe, Deckkraft und ein kurzer Weg von oben in einem
+   Zug. Vorher stand sie schlagartig da und schob den ganzen Satzblock nach
+   unten — zusammen mit dem Scroll-Anker (s. _lcAnker) ist der Sprung damit weg.
+   KEIN fill-mode: nach dem Lauf gilt wieder die natuerliche Hoehe, sonst
+   schnitte die max-height eine laengere Karte ab. 420 px ist nur die Obergrenze
+   der Blende, keine Begrenzung des Inhalts. */
 .coach-card{position:relative;display:flex;border-radius:14px;overflow:hidden;margin-bottom:10px;
-  background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2)}
+  background:rgba(var(--acc-rgb),.07);border:1px solid rgba(var(--acc-rgb),.2);
+  animation:coachCardIn .38s cubic-bezier(.22,.9,.3,1)}
+@keyframes coachCardIn{
+  from{max-height:0;opacity:0;transform:translateY(-6px);margin-bottom:0;
+       padding-top:0;padding-bottom:0;border-top-width:0;border-bottom-width:0}
+  60%{opacity:1}
+  to{max-height:420px;opacity:1;transform:none;margin-bottom:10px}}
+@media (prefers-reduced-motion:reduce){.coach-card{animation:none}}
 .coach-card-bar{width:4px;flex-shrink:0;background:var(--acc)}
 .coach-card-body{flex:1;min-width:0;padding:10px 12px}
 .coach-card-head{display:flex;align-items:center;gap:7px;color:var(--acc)}
@@ -8185,7 +8198,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020014';
+const APP_VERSION = 'gymtrack-v202608020015';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19171,6 +19184,46 @@ function _wkFocusTick() {
 // Hoechstens EINE Auswertung je Bild. Das Scroll-Ereignis selbst tut nichts.
 function _wkFocusSoon() { if (!_wkFocusRaf) _wkFocusRaf = requestAnimationFrame(_wkFocusTick); }
 
+/* ── Nachrasten ───────────────────────────────────────────────────────────
+   scroll-snap-type:proximity rastet nur, wenn der Finger nahe genug an einem
+   Rastpunkt loslaesst. Zwischen zwei Karten liess es die Ansicht deshalb
+   einfach stehen — man sah zwei Haelften und keine ganze Uebung. "Mandatory"
+   waere die naheliegende Antwort und die falsche: es reisst die Ansicht auch
+   dann an die naechste Karte, wenn man nur ein Stueck weiterlesen will.
+
+   Stattdessen raeumt DIESE Funktion nach: 180 ms nachdem die Bewegung steht
+   (und der Finger weg ist), faehrt das Blatt die eingerastete Uebung sauber an
+   den Rastpunkt. Nicht die naechstliegende Karte, sondern die, die der
+   Fokus-Modus ohnehin als "dran" fuehrt — sonst raeumt es gegen die eigene
+   Hervorhebung.
+
+   Nichts passiert, wenn: der Finger noch liegt, gerade umsortiert/gewischt
+   wird (.snap-off), oder die Karte schon nah genug (14 px) steht. */
+let _wkSettleT = 0, _wkTouching = false;
+function _wkSettleSoon(){
+  clearTimeout(_wkSettleT);
+  _wkSettleT = setTimeout(_wkSettle, 180);
+}
+function _wkSettle(){
+  try {
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (!sheet || _wkTouching || sheet.classList.contains('snap-off')) return;
+    if (_wkFocusLi < 0 || !_wkFocusBoxes) return;
+    const box = _wkFocusBoxes.filter(b => b.li === _wkFocusLi)[0];
+    if (!box) return;
+    const pad  = _wkSnapPadPx || 72;
+    const ziel = Math.max(0, Math.round(box.top - pad));
+    if (Math.abs(sheet.scrollTop - ziel) < 14) return;
+    // Ueber die Blattkante hinaus wird nicht gefahren: am Ende der Liste stuende
+    // die letzte Karte sonst dauerhaft "daneben" und das Nachrasten liefe in
+    // jeder Ruhepause erneut.
+    const max = sheet.scrollHeight - sheet.clientHeight;
+    if (ziel > max - 4) return;
+    try { sheet.scrollTo({ top: ziel, behavior: 'smooth' }); }
+    catch(_) { sheet.scrollTop = ziel; }
+  } catch(_) {}
+}
+
 /* Rastabstand = Klebe-Offset von #wk-sticky (58px) + dessen echte Hoehe.
    Coach-Leiste und Pausenbalken kommen und gehen; ein fester Wert waere
    entweder zu klein (Karte liegt hinter der Leiste) oder zu gross (Karte
@@ -19225,7 +19278,12 @@ function _wkFocusObserve() {
   // EIN passiver Zuhoerer fuer die Lebensdauer des Blattes — nicht ein Observer
   // je Karte, der bei jedem Rendern neu aufgebaut wird.
   if (!_wkFocusBound) {
-    sheet.addEventListener('scroll', _wkFocusSoon, { passive: true });
+    sheet.addEventListener('scroll', () => { _wkFocusSoon(); _wkSettleSoon(); }, { passive: true });
+    // Solange der Finger liegt, wird nicht nachgeraeumt — ein Blatt, das unter
+    // dem Finger wegfaehrt, ist schlimmer als eine schiefe Karte.
+    sheet.addEventListener('touchstart', () => { _wkTouching = true; clearTimeout(_wkSettleT); }, { passive: true });
+    sheet.addEventListener('touchend',   () => { _wkTouching = false; _wkSettleSoon(); }, { passive: true });
+    sheet.addEventListener('touchcancel',() => { _wkTouching = false; }, { passive: true });
     _wkFocusBound = true;
   }
   _wkFocusDirty = true;
@@ -19248,18 +19306,46 @@ function _wkFocusObserve() {
    Aufbau), faellt die Funktion auf den vollstaendigen Aufbau zurueck — der
    Diff ist eine Abkuerzung, nie die einzige Moeglichkeit. */
 let _lcChunks = null;
+/* Anker gegen das Wegrutschen: taucht die Vorschlagskarte des Coaches auf,
+   waechst die Uebungskarte nach UNTEN — und alles darunter rutscht mit. Stand
+   die eingerastete Uebung weiter oben, schob es sie aus dem Bild; genau das war
+   der Befund ("dann ist die Uebung ganz schnell ausserhalb vom Sichtfeld").
+
+   Gemessen wird die Bildschirmlage der eingerasteten Karte VOR und NACH dem
+   Austausch; die Differenz wird auf den Scrollstand addiert. Die Karte steht
+   danach exakt dort, wo sie vorher stand — der neue Inhalt waechst um sie
+   herum, statt sie wegzuschieben. */
+function _lcAnker(){
+  try {
+    const sheet = document.querySelector('#ov-wk .sheet');
+    if (!sheet || _wkFocusLi < 0) return null;
+    const el = sheet.querySelector('#log-cards .ex-card[data-li="' + _wkFocusLi + '"]');
+    if (!el) return null;
+    return { sheet: sheet, li: _wkFocusLi, top: el.getBoundingClientRect().top };
+  } catch(_) { return null; }
+}
+function _lcAnkerHalten(a){
+  if (!a) return;
+  try {
+    const el = a.sheet.querySelector('#log-cards .ex-card[data-li="' + a.li + '"]');
+    if (!el) return;
+    const d = el.getBoundingClientRect().top - a.top;
+    if (Math.abs(d) > 0.5) a.sheet.scrollTop += d;
+  } catch(_) {}
+}
 function _lcApply(chunks) {
   const wrap = document.getElementById('log-cards');
   if (!wrap) return;
+  const anker = _lcAnker();
   const voll = () => {
     wrap.innerHTML = chunks.join('');
     _lcChunks = chunks.slice();
   };
-  if (!_lcChunks || _lcChunks.length !== chunks.length || !wrap.firstElementChild) return voll();
+  if (!_lcChunks || _lcChunks.length !== chunks.length || !wrap.firstElementChild) { voll(); _lcAnkerHalten(anker); return; }
   for (let i = 0; i < chunks.length; i++) {
     if (chunks[i] === _lcChunks[i]) continue;
     const card = wrap.querySelector('.ex-card[data-li="' + i + '"]');
-    if (!card) return voll();                      // Annahme gebrochen → alles neu
+    if (!card) { voll(); _lcAnkerHalten(anker); return; }   // Annahme gebrochen → alles neu
     // Der Supersatz-Verbinder gehoert zum Stueck und steht VOR der Karte.
     const vor = card.previousElementSibling;
     const alt = (vor && vor.classList.contains('ss-connector')) ? [vor, card] : [card];
@@ -19270,6 +19356,10 @@ function _lcApply(chunks) {
     alt.forEach(n => n.remove());
   }
   _lcChunks = chunks.slice();
+  _lcAnkerHalten(anker);
+  // Die Karten liegen jetzt anders — die Messwerte des Fokus sind veraltet.
+  _wkFocusDirty = true;
+  _wkFocusSoon();
 }
 
 function renderLogCards() {
