@@ -1041,8 +1041,11 @@ body{
   position:relative;z-index:1;
   opacity:0.55;
 }
+/* Monochrome Leiste: der aktive Tab traegt KEINE Akzentfarbe mehr, sondern
+   volle Deckkraft in der Textfarbe. Die Mulde darunter sagt, wo man steht;
+   Farbe UND Fuellung UND Deckkraft sagten dreimal dasselbe. */
 .tab.on{
-  color:var(--acc);
+  color:var(--text);
   opacity:1;
 }
 .tab svg{width:22px;height:22px;will-change:transform;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
@@ -2000,20 +2003,28 @@ html[data-glass][data-theme="dark"] .tabbar{
 }
 html[data-glass] .tabbar::after{display:block!important}
 html[data-glass] .tabbar::before{display:block!important}
-/* Auswahl-Pill (Campus-Style) auch bei „Glas aus" im Glas-Look halten */
+/* ── Auswahl-Pille: EINGELASSEN, nicht erhaben ───────────────────────────
+   Vorher lag ein heller, leuchtender Pill AUF dem Glas — zwei Materialien
+   uebereinander, und der aktive Tab wirkte wie ein zweiter Knopf. Jetzt ist es
+   eine Vertiefung IM Glas: getoentes Schwarz, feine Lichtkante oben aussen,
+   Schatten nach innen. Genau eine Regel fuer alle Themes — getoentes Schwarz
+   liest sich auf hellem wie auf dunklem Glas als dieselbe Mulde, waehrend eine
+   helle Fuellung auf hellem Glas verschwindet.
+   Der Akzent-Schimmer faellt weg: die Leiste ist monochrom, Farbe traegt in der
+   App die Aktion, nicht die Navigation. */
 #tab-indicator{
-  background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(255,255,255,.74))!important;
-  -webkit-backdrop-filter:blur(10px) saturate(150%)!important;
-  backdrop-filter:blur(10px) saturate(150%)!important;
-  border:1px solid rgba(255,255,255,0.70)!important;
-  box-shadow:0 1px 3px rgba(0,0,0,.08),0 5px 14px rgba(0,0,0,.07),
-             inset 0 1px 0 rgba(255,255,255,.95),0 0 14px rgba(var(--acc-rgb),.12)!important;
+  background:rgba(0,0,0,.22)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.30),inset 0 -1px 0 rgba(255,255,255,.05),
+             0 1px 0 rgba(255,255,255,.06)!important;
 }
 [data-theme="dark"] #tab-indicator{
-  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.08))!important;
-  border:1px solid rgba(255,255,255,0.18)!important;
-  box-shadow:0 2px 8px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.28),
-             0 0 16px rgba(var(--acc-rgb),.16)!important;
+  background:rgba(0,0,0,.34)!important;
+  border:1px solid rgba(255,255,255,.06)!important;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.45),inset 0 -1px 0 rgba(255,255,255,.04),
+             0 1px 0 rgba(255,255,255,.05)!important;
 }
 
 /* ── Scrollbalken global ausblenden (iOS-Look, kein Balken rechts) ── */
@@ -4809,18 +4820,18 @@ html:not([data-glass="off"]) .cal-card{
 /* ── 5 · TABBAR: mehr Luft, weniger Gedrängel ─────────────────────
    5 Labels in einer schmalen Kapsel wirkten voll. Kapsel etwas breiter (die
    KI-Kugel ist kleiner), Innenabstände knapper, Labels eine Spur kleiner. */
-.tabbar{left:12px;right:74px;padding:8px 6px}
-.tabbar .tab{padding:7px 2px 8px;gap:3px;min-width:0}
-.tabbar .tab span{font-size:9.5px;letter-spacing:0;white-space:nowrap}
-.tabbar .tab svg{width:21px;height:21px}
-/* Labels dürfen weder aneinanderkleben noch am Kapselrand abreißen: jeder Tab
-   bekommt exakt ein Fünftel, das Label wird auf seine Spalte begrenzt. Ohne
-   max-width lief der längste Text unter den Nachbarn durch. */
-.tabbar .tab{flex:1 1 0}
-.tabbar .tab span{display:block;max-width:100%;text-align:center;text-overflow:ellipsis}
-/* Englische Labels sind spürbar länger als die deutschen (Achievements vs.
-   Erfolge) — eine Spur enger gesetzt, damit sie ganz in ihre Spalte passen. */
-html[lang="en"] .tabbar .tab span{font-size:9px;letter-spacing:-.15px}
+/* ── Kapsel: nur Symbole ──────────────────────────────────────────────────
+   Die Beschriftungen sind raus. Fuenf Woerter in einer schmalen Kapsel waren
+   die eigentliche Enge — mit Symbolen allein bekommt jedes Ziel eine ruhige
+   Flaeche, und die Kapsel wird flach wie die Vorlage.
+   Das <span> BLEIBT im Markup und wird nur optisch versteckt: VoiceOver liest
+   den Tab weiter als "Heute", "Training" — display:none haette die Leiste fuer
+   die Vorlesehilfe zu fuenf namenlosen Knoepfen gemacht. */
+.tabbar{left:12px;right:74px;padding:6px}
+.tabbar .tab{padding:10px 2px;gap:0;min-width:0;flex:1 1 0}
+.tabbar .tab span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.tabbar .tab svg{width:24px;height:24px}
 #ai-bubble{width:52px;height:52px;bottom:calc(8px + var(--sab))}
 /* Aktiver Tab: KEINE eigene Farbfläche — das übernimmt die gleitende Bubble
    (#tab-indicator). Zwei Highlights übereinander sahen doppelt/blau aus. */
@@ -8031,7 +8042,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010004';
+const APP_VERSION = 'gymtrack-v202608010006';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9237,6 +9248,14 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-01-tableiste': {
+    label: '01.08.2026 · Neue Tab-Leiste',
+    items: [
+      'Die Leiste unten zeigt nur noch Symbole — mehr Luft, ruhigeres Bild',
+      'Der aktive Tab sitzt in einer eingelassenen Mulde statt unter einer hellen Pille',
+      'Die Leiste ist monochrom: Farbe trägt in der App die Aktion, nicht die Navigation',
+    ]
+  },
   'cl-2026-08-01-coach-menue-klarer': {
     label: '01.08.2026 · Coach-Menü: sagt jetzt, wohin es geht',
     items: [
