@@ -1886,11 +1886,29 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .tracker-ring-btn:active{transform:scale(.90)}
 .tracker-ring-svg{display:block;overflow:visible}
 .tracker-ring-bg{fill:none;stroke:var(--sep);stroke-width:5;stroke-linecap:round}
-/* Der Ring leuchtet. Der Schein liegt als drop-shadow auf dem Bogen selbst —
-   bei vier Ringen sind das vier Filterebenen, das traegt die Seite. Auf die
-   Hintergrundspur kommt keiner: sie soll die Skala zeigen, nicht mitleuchten. */
-.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 4px rgba(var(--acc-rgb),.85)) drop-shadow(0 0 9px rgba(var(--acc-rgb),.45))}
-.tracker-ring-progress.done{filter:drop-shadow(0 0 4px rgba(76,209,55,.9)) drop-shadow(0 0 10px rgba(76,209,55,.5))}
+/* Der Ring leuchtet UND atmet. Der Schein liegt als drop-shadow auf dem Bogen
+   selbst — bei vier Ringen sind das vier Filterebenen, das traegt die Seite.
+   Auf die Hintergrundspur kommt keiner: sie soll die Skala zeigen, nicht
+   mitleuchten.
+   Das Atmen laeuft ueber den Filter, nicht ueber transform: der Bogen soll
+   sich nicht bewegen (er zeigt einen Wert), nur sein Schein soll staerker und
+   schwaecher werden. Die drei Ringe atmen versetzt (--rd je Ring), sonst
+   pulsiert die ganze Reihe im Gleichschritt und wirkt wie ein Blinken. */
+.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 5px rgba(var(--acc-rgb),1)) drop-shadow(0 0 12px rgba(var(--acc-rgb),.7)) drop-shadow(0 0 22px rgba(var(--acc-rgb),.35));
+  animation:trRingAtem 3.1s ease-in-out infinite;animation-delay:var(--rd,0ms)}
+@keyframes trRingAtem{
+  0%,100%{filter:drop-shadow(0 0 4px rgba(var(--acc-rgb),.85)) drop-shadow(0 0 10px rgba(var(--acc-rgb),.5)) drop-shadow(0 0 18px rgba(var(--acc-rgb),.22))}
+  50%    {filter:drop-shadow(0 0 7px rgba(var(--acc-rgb),1))   drop-shadow(0 0 16px rgba(var(--acc-rgb),.8)) drop-shadow(0 0 30px rgba(var(--acc-rgb),.45))}
+}
+.tracker-ring-progress.done{animation-name:trRingAtemGruen}
+@keyframes trRingAtemGruen{
+  0%,100%{filter:drop-shadow(0 0 4px rgba(76,209,55,.9))  drop-shadow(0 0 11px rgba(76,209,55,.55)) drop-shadow(0 0 19px rgba(76,209,55,.25))}
+  50%    {filter:drop-shadow(0 0 7px rgba(76,209,55,1))    drop-shadow(0 0 17px rgba(76,209,55,.85)) drop-shadow(0 0 31px rgba(76,209,55,.5))}
+}
+@media (prefers-reduced-motion:reduce){.tracker-ring-progress{animation:none}}
+/* Die Hintergrundspur dunkler, damit der leuchtende Bogen sich abhebt. Bei
+   heller Spur verschwimmt der Schein mit ihr und der Ring wirkt matt. */
+.tracker-ring-bg{stroke:rgba(255,255,255,.07)}
 .tracker-ring-progress.done{stroke:#4cd137}
 @keyframes tracker-tap{0%{transform:scale(1) rotate(-90deg)}40%{transform:scale(.86) rotate(-90deg)}70%{transform:scale(1.07) rotate(-90deg)}100%{transform:scale(1) rotate(-90deg)}}
 .tracker-ring-progress.tapped{animation:tracker-tap .35s cubic-bezier(0.34,1.56,0.64,1)}
@@ -2584,6 +2602,15 @@ html[data-glass] .tabbar::before{display:block!important}
 .hw-mg-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .hw-mg-row:last-child{margin-bottom:0}
 .hw-mg-label{font-size:12px;font-weight:600;flex:0 0 90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Kopfzeile der Volumen-Verteilung: Titel plus eine Zeile, die die Einheit
+   nennt. Beides klein — sie soll erklaeren, nicht dominieren. */
+.hw-mg-head{
+  font-size:12.5px;font-weight:800;color:var(--text);
+  margin:0 0 10px;line-height:1.35;
+}
+.hw-mg-head span{display:block;font-size:10.5px;font-weight:600;color:var(--text2);margin-top:1px}
+.hw-mg-seg{flex:1;min-width:0;display:flex;align-items:center}
+.hw-mg-card .segbar.segbar-mini{height:11px;gap:2px}
 .hw-mg-bar{flex:1;height:7px;border-radius:4px;background:var(--g5);overflow:hidden}
 .hw-mg-bar>span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
 .hw-mg-val{font-size:11px;font-weight:700;color:var(--text2);flex:0 0 36px;text-align:right}
@@ -3121,18 +3148,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
   0%,100%{opacity:.85;transform:scale(1)}
   50%    {opacity:1;  transform:scale(1.09)}
 }
-.strk-flame svg{position:relative;z-index:1;
-  filter:drop-shadow(0 0 6px rgba(255,150,50,.9)) drop-shadow(0 0 14px rgba(255,90,31,.5));
-  /* Die Flamme selbst zuckt nur minimal — mehr wirkt wie ein Wackeln, und ein
-     Zaehler, der wackelt, liest sich schlechter. */
-  animation:flmZuck 2.6s ease-in-out infinite;
-  transform-origin:50% 88%;
-}
-@keyframes flmZuck{
-  0%,100%{transform:scaleY(1) scaleX(1)}
-  38%    {transform:scaleY(1.05) scaleX(.985)}
-  70%    {transform:scaleY(.98) scaleX(1.012)}
-}
+/* Die Bewegung bringt die Flamme selbst mit (.fl-outer/.fl-inner/.fl-core).
+   Hier kommt nur der Schein dazu — eine zweite Animation auf demselben
+   Element wuerde gegen ihre eigene laufen. */
+.strk-flame .fl{position:relative;z-index:1;
+  filter:drop-shadow(0 0 7px rgba(255,150,50,.9)) drop-shadow(0 0 16px rgba(255,90,31,.5))}
 .strk-val{
   font-size:30px;font-weight:800;line-height:1;color:var(--text);
   font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:5px;
@@ -3142,11 +3162,15 @@ body.wpick-open #heute-edit-bar{display:none!important}
 /* Erloschen: kein Schein, gedaempfte Flamme. Eine leuchtende Flamme ueber
    einer Null waere eine Feier fuer nichts. */
 .hw-streak.is-aus .strk-flame::before{display:none}
-.hw-streak.is-aus .strk-flame svg{animation:none}
-.hw-streak.is-aus .strk-flame svg{filter:none;opacity:.32}
+
+.hw-streak.is-aus .strk-flame .fl{filter:grayscale(.7);opacity:.34}
+.hw-streak.is-aus .strk-flame .fl-outer,
+.hw-streak.is-aus .strk-flame .fl-inner,
+.hw-streak.is-aus .strk-flame .fl-core{animation:none}
 .hw-streak.is-aus .strk-val{color:var(--text2)}
 @media (prefers-reduced-motion:reduce){
-  .strk-flame::before,.strk-flame svg{animation:none}
+  .strk-flame::before{animation:none}
+  .strk-flame .fl-outer,.strk-flame .fl-inner,.strk-flame .fl-core{animation:none}
 }
 .week-card-foot{
   display:flex;align-items:center;justify-content:space-between;
@@ -8623,7 +8647,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021930';
+const APP_VERSION = 'gymtrack-v202608022035';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12413,9 +12437,13 @@ function _sizeHeuteGrid(){
 window.addEventListener('resize', _sizeHeuteGrid);
 
 /* ── Kompakte Widget-Renderer · emoji-frei · Listen nur in lg, Stat in sm/md ── */
-/* Der Streak zeigt eine FLAMME, nicht nur eine Zahl. Sie ist das Bild, das
-   fuer die Sache steht, und sie war schon da: _flameFillSVG zeichnet sie seit
-   dem Flammen-Zaehler, mit demselben Verlauf von Gelb nach Orange.
+/* Der Streak zeigt eine FLAMME, nicht nur eine Zahl. Und zwar DIESELBE, die
+   im Streak-Abzeichen oben und im Streak-Blatt lodert: _flameSVG zeichnet drei
+   Lagen (aussen, innen, Kern), jede mit eigenem Rhythmus (1,9 s / 1,25 s /
+   0,95 s). Weil die Zeiten nicht aufgehen, wiederholt sich das Muster praktisch
+   nie — das ist der Unterschied zwischen "lodert" und "pulsiert".
+   Die einfache _flameFillSVG (ein Pfad, keine Bewegung) stand hier zuerst und
+   war der Fehler: zwei Flammen in einer App, von denen nur eine lebt.
 
    Gezaehlt werden WOCHEN, nicht Tage (calcStreak). Das ist bei Krafttraining
    die richtige Groesse — taeglich trainiert niemand, und ein Tages-Streak
@@ -12435,7 +12463,7 @@ function hwStreak(size){
     : (st.bestWeeks ? _cm('Streak · Best ' + st.bestWeeks, 'Streak · best ' + st.bestWeeks) : _cm('Wochen-Streak', 'Week streak'));
   const einheit = st.weeks === 1 ? _cm('Woche', 'week') : _cm('Wochen', 'weeks');
   return `<div class="hw-card hw-streak${aus ? ' is-aus' : ''}"><div class="hw-stat">
-    <div class="strk-flame" style="--fl:${gr}px">${_flameFillSVG(gr)}</div>
+    <div class="strk-flame" style="--fl:${gr}px">${_flameSVG(gr, true)}</div>
     <div class="strk-val">${st.weeks}<span>${einheit}</span></div>
     <div class="hw-sub">${sub}</div>
   </div></div>`;
@@ -12608,10 +12636,19 @@ function hwMuscles(size){
   }
   const rows = all.slice(0,6);
   const max = rows[0].v || 1;
-  return `<div class="hw-card">` + rows.map(({mg,v})=>`
+  /* Eine Kopfzeile, die sagt, WAS hier verglichen wird. Ohne sie stand da nur
+     eine Liste von Muskelgruppen mit Balken, und dass es um die Verteilung des
+     Gesamtvolumens geht — nicht etwa um Erholung oder Energie — musste man
+     raten. Genau das ist passiert.
+     Die Balken zeigen den Anteil am STAERKSTEN Wert (so ist der Vergleich
+     untereinander ablesbar), die Prozentzahl den Anteil am Gesamtvolumen. */
+  return `<div class="hw-card hw-mg-card">
+    <div class="hw-mg-head">${esc(_cm('Volumen-Verteilung','Volume split'))}
+      <span>${esc(_cm('Anteil am Gesamtvolumen','share of total volume'))}</span></div>`
+    + rows.map(({mg,v})=>`
     <div class="hw-mg-row">
       <span class="hw-mg-label">${mg.label}</span>
-      <span class="hw-mg-bar"><span style="width:${Math.max(5,Math.round(v/max*100))}%"></span></span>
+      <span class="hw-mg-seg">${_segBarsHTML(Math.max(5,Math.round(v/max*100)), 10, { flach:true, cls:'segbar-mini' })}</span>
       <span class="hw-mg-val">${Math.round(v/grand*100)}%</span>
     </div>`).join('') + `</div>`;
 }
@@ -14772,6 +14809,7 @@ function renderTrackers(row) {
         <svg class="tracker-ring-svg" width="64" height="64" viewBox="0 0 64 64">
           <circle class="tracker-ring-bg" cx="${CX}" cy="${CY}" r="${R}"/>
           <circle class="tracker-ring-progress${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
+            style="--rd:${targets.length * 420}ms"
             stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
           <text class="tracker-ring-count" x="${CX}" y="${CY - 5}">${Math.min(count, goal)}</text>
           <text class="tracker-ring-goal" x="${CX}" y="${CY + 9}">/${goal}×</text>
