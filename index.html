@@ -3785,6 +3785,52 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .rec-list-mini .rec-row + .rec-row{border-top-color:var(--sep)}
 .rec-list-mini .rec-row-title{font-size:12px;line-height:1.2}
 .rec-list-mini .rec-row-sub{font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ══ SEGMENT-BALKEN ("die Striche") ══════════════════════════════════════
+   Gefuellte Striche leuchten (Farbe und Schein kommen aus dem JS, weil sie
+   vom Wert abhaengen), leere bleiben als dunkle Huelsen stehen. Dass die
+   leeren sichtbar bleiben, ist der Punkt: nur so ist die Skala ablesbar und
+   "sieben von sechzehn" wird zu einer Menge statt zu einer Laenge. */
+.segbar{display:flex;align-items:stretch;gap:3px;width:100%;height:22px}
+.segbar > i{
+  flex:1 1 0;min-width:0;border-radius:3px;
+  /* Leere Huelse: dunkel, aber sichtbar — sie ist die Skala, an der man den
+     gefuellten Teil abliest. Ganz unsichtbar waere die Reihe nur ein Balken. */
+  background:rgba(255,255,255,.055);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+  transition:background .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;
+}
+/* Der aktuelle Strich traegt die Marke aus der Vorlage — ein heller Rahmen,
+   der den Kopf der Reihe zeigt. */
+.segbar > i.is-now{outline:1.5px solid rgba(255,255,255,.55);outline-offset:2px}
+/* Klein in den Erholungs-Zeilen: schmaler, ohne Marke — dort zaehlt der
+   Vergleich der Zeilen untereinander, nicht der Kopf einer einzelnen. */
+.segbar.segbar-mini{height:14px;gap:2px}
+.segbar.segbar-mini > i{border-radius:2px}
+.rec-seg-wrap{flex:0 0 100px;display:flex;align-items:center;gap:7px}
+.rec-list-mini .rec-seg-wrap{flex:0 0 92px}
+.rec-seg-val{
+  flex-shrink:0;font-size:10.5px;font-weight:800;
+  font-variant-numeric:tabular-nums;letter-spacing:.2px;min-width:30px;text-align:right;
+}
+@media (prefers-reduced-motion:reduce){.segbar > i{transition:none}}
+
+/* ── Bereitschaft im Coach-Hub ── */
+.ch-rdy{
+  margin:14px 0 4px;padding:12px 13px 13px;border-radius:16px;
+  background:var(--gl-bg-h);border:1px solid var(--gl-bdr);
+}
+.ch-rdy-head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.ch-rdy-ico{display:inline-flex;flex-shrink:0}
+.ch-rdy-ico svg{fill:currentColor;stroke:none}
+.ch-rdy-lbl{font-size:14px;font-weight:800;color:var(--text)}
+.ch-rdy-sub{flex:1;min-width:0;font-size:11px;color:var(--text2);font-weight:600}
+.ch-rdy-pct{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+/* Deutlich hoeher als breit — daran haengt der ganze Eindruck. Bei sechzehn
+   Strichen ueber die volle Breite werden sie sonst fast quadratisch und die
+   Reihe liest sich als Kachelband statt als Skala. */
+.ch-rdy .segbar{height:32px;gap:4px}
+.ch-rdy .segbar > i{border-radius:4px}
+
 .rec-list-mini .rec-batt{flex:0 0 42px;height:18px;border-width:1.5px;padding:1.5px}
 .rec-list-mini .rec-batt::after{width:2px;height:7px;right:-3.5px}
 .rec-list-mini .rec-batt-val{font-size:9px;letter-spacing:.2px}
@@ -8417,7 +8463,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021455';
+const APP_VERSION = 'gymtrack-v202608021535';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -12283,9 +12329,10 @@ function hwRecovery(size){
         <div class="rec-row-title">${mg.label}</div>
         <div class="rec-row-sub">${sub}</div>
       </div>
-      <div class="rec-batt${emptyCls}">
-        <div class="rec-batt-fill" style="width:${Math.max(4,r.recPct)}%;background:${col};color:${col}"></div>
-        <div class="rec-batt-val">${r.recPct}%</div>
+      <div class="rec-seg-wrap">
+        ${_segBarsHTML(r.recPct, 10, { flach: true, cls: 'segbar-mini',
+          label: mg.label + ' ' + r.recPct + ' %' })}
+        <span class="rec-seg-val" style="color:${col}">${r.recPct}%</span>
       </div>
     </div>`;
   }).join('') + `</div>`;
@@ -17622,6 +17669,164 @@ function getMuscleGroupRecovery() {
     out[mg.id] = { recPct:Math.max(0, 100-Math.round(avgFat)), fatPct:Math.round(avgFat), lastTs, exercises:groupExs };
   }
   return out;
+}
+
+/* ══ BEREITSCHAFT ════════════════════════════════════════════════════════
+   Wie belastbar ist der Koerper gerade — aus dem, was die App wirklich weiss.
+
+   Ausdruecklich KEIN Erholungswert im Sinne von Whoop oder Oura: dafuer
+   fehlen Schlaf, Herzfrequenzvariabilitaet und Ruhepuls. Die App misst
+   Herzfrequenz nur WAEHREND einer Einheit. Was sie stattdessen hat, ist die
+   Trainingsseite derselben Frage, und die ist nicht wenig — vier
+   voneinander unabhaengige Signale:
+
+     1. Muskuloese Ermuedung   (getMuscleGroupRecovery, 45 %)
+        Der Kern. Mittel ueber die Gruppen, die ueberhaupt trainiert werden.
+     2. Tagesform aus dem Check-in (feel/en der letzten Einheiten, 30 %)
+        Selbst eingeschaetzt, dafuer die einzige Stimme des Nutzers darin.
+     3. Satz-Schwierigkeit      (rpeAnswer der letzten Einheit, 15 %)
+        Gemessen aus Soll und Ist, nicht erfragt.
+     4. Angesammelte Wochen     (harte Wochen am Stueck, 10 %)
+        Die lange Linie: sechs harte Wochen sind auch ohne schlechten Tag ein
+        Grund, kuerzer zu treten.
+
+   Fehlt ein Signal (neuer Nutzer, keine Check-ins), faellt sein Gewicht weg
+   und die uebrigen werden neu normiert — statt es mit einem erfundenen
+   Mittelwert zu fuellen. Gibt es GAR nichts, liefert die Funktion null, und
+   die Anzeige bleibt weg. Lieber keine Zahl als eine geratene. */
+function _rdyScore() {
+  try {
+    const teile = [];   // { wert 0..100, gewicht }
+    // 1 · Ermuedung der Muskelgruppen
+    try {
+      const rec = getMuscleGroupRecovery();
+      const werte = Object.keys(rec || {})
+        .map(k => rec[k])
+        .filter(r => r && r.lastTs)          // nie trainierte Gruppen sagen nichts
+        .map(r => Math.max(0, Math.min(100, r.recPct)));
+      if (werte.length) teile.push({ w: werte.reduce((a, b) => a + b, 0) / werte.length, g: 45 });
+    } catch(_) {}
+    // 2 · Check-in: Gefuehl (1 leicht … 4 sehr schwer) und Energie (1 … 3)
+    try {
+      const all = (S.checkins || []).filter(c => c && c.feel).slice(-3);
+      if (all.length) {
+        const feel = all.reduce((s, c) => s + c.feel, 0) / all.length;      // 1..4
+        const en   = all.reduce((s, c) => s + (c.en || 2), 0) / all.length; // 1..3
+        // Der juengste Check-in zaehlt doppelt: Tagesform ist tagesaktuell.
+        const letzte = all[all.length - 1];
+        const feelG = (feel + letzte.feel) / 2;
+        const enG   = (en + (letzte.en || 2)) / 2;
+        const vFeel = (4 - feelG) / 3 * 100;    // feel 1 → 100, feel 4 → 0
+        const vEn   = (enG - 1) / 2 * 100;      // en 1 → 0, en 3 → 100
+        teile.push({ w: vFeel * 0.6 + vEn * 0.4, g: 30 });
+      }
+    } catch(_) {}
+    // 3 · Satz-Schwierigkeit der letzten Einheit
+    try {
+      const ses = (S.sessions || []).slice(-1)[0];
+      const sets = [];
+      (ses && ses.logs || []).forEach(l => (l.sets || []).forEach(s => { if (s && s.rpeAnswer) sets.push(s.rpeAnswer); }));
+      if (sets.length >= 3) {
+        const hart = sets.filter(x => x === 'hard').length;
+        const leicht = sets.filter(x => x === 'easy').length;
+        // Von 50 aus in beide Richtungen: mehr schwere Saetze druecken, mehr
+        // leichte heben. Der Anteil, nicht die Anzahl — sonst zaehlte eine
+        // lange Einheit automatisch als schwerer.
+        teile.push({ w: Math.max(0, Math.min(100, 50 + (leicht - hart) / sets.length * 100)), g: 15 });
+      }
+    } catch(_) {}
+    // 4 · Harte Wochen am Stueck (dieselbe Zaehlung wie die Entlastungswoche)
+    try {
+      const proWoche = Object.create(null);
+      (S.sessions || []).forEach(s => {
+        if (!s || !s.date) return;
+        const t = new Date(s.date).getTime();
+        if (!isFinite(t)) return;
+        proWoche[Math.floor(t / (7 * 864e5))] = (proWoche[Math.floor(t / (7 * 864e5))] || 0) + 1;
+      });
+      const jetzt = Math.floor(Date.now() / (7 * 864e5));
+      let hart = 0;
+      for (let wo = jetzt - 1; wo >= jetzt - 20; wo--) { if ((proWoche[wo] || 0) >= 2) hart++; else break; }
+      // Erst ab der dritten harten Woche zieht es nach unten; bei DELOAD_NACH_WOCHEN
+      // ist der Boden erreicht. Zwei harte Wochen sind normales Training.
+      const spanne = Math.max(1, DELOAD_NACH_WOCHEN - 2);
+      teile.push({ w: Math.max(0, 100 - Math.max(0, hart - 2) / spanne * 100), g: 10 });
+    } catch(_) {}
+
+    if (!teile.length) return null;
+    const gSum = teile.reduce((s, t) => s + t.g, 0);
+    const pct = Math.round(teile.reduce((s, t) => s + t.w * t.g, 0) / gSum);
+    return { pct: Math.max(0, Math.min(100, pct)), signale: teile.length };
+  } catch(e) { console.warn('[Coach] Bereitschaft:', e); return null; }
+}
+function _rdyLabel(pct) {
+  if (pct >= 80) return _cm('Voll belastbar', 'Fully ready');
+  if (pct >= 62) return _cm('Bereit', 'Ready');
+  if (pct >= 44) return _cm('Solide', 'Steady');
+  if (pct >= 26) return _cm('Angeschlagen', 'Worn down');
+  return _cm('Erholung nötig', 'Needs recovery');
+}
+
+/* ══ SEGMENT-BALKEN ("die Striche") ══════════════════════════════════════
+   Ein Wert in Strichen statt in einem durchgezogenen Balken. Der Unterschied
+   ist nicht nur Geschmack: ein durchgezogener Balken bei 62 % sieht aus wie
+   "irgendwo etwas ueber der Mitte", zwoelf Striche mit sieben gefuellten
+   sind ABZAEHLBAR. Man sieht den Wert, ohne die Zahl zu lesen.
+
+   Genau EINE Stelle baut sie, weil sie an mehreren auftauchen (Bereitschaft
+   im Coach-Hub, Erholungs-Akkus in der Statistik). Zwei Fassungen desselben
+   Musters wuerden sofort auseinanderlaufen.
+
+   Farbe: nicht je Strich, sondern nach dem GESAMTWERT. Ein Verlauf ueber die
+   Striche (erster rot, letzter gruen) waere hier falsch — er behauptete, die
+   ersten 20 % einer Erholung seien "schlecht" und die letzten "gut". Der Wert
+   als Ganzes ist gut oder schlecht, also faerbt er alle gefuellten Striche.
+   Innerhalb bleibt ein leichter Helligkeitsverlauf, damit die Reihe lebt. */
+function _segFarbe(pct) {
+  // Rot (4°) bis Gruen (140°), hoch gesaettigt: die Striche sollen leuchten
+  // und nicht getoent wirken. Die leichte Senke zur Mitte ist Absicht — reines
+  // Gelb bei 50 % brennt sonst deutlich staerker als seine Nachbarn und der
+  // Verlauf bekaeme dort eine Beule.
+  const p = Math.max(0, Math.min(100, Number(pct) || 0));
+  const h = 4 + (p / 100) * 136;
+  const s = 94 - Math.abs(p - 50) * 0.10;
+  return { h, s, css: `hsl(${h.toFixed(0)},${s.toFixed(0)}%,58%)` };
+}
+/* pct 0–100, n = Anzahl der Striche. Der Anteil wird kaufmaennisch gerundet,
+   aber ein Wert ueber 0 bekommt IMMER mindestens einen Strich: "0 von 12"
+   fuer 4 % Erholung waere schlicht falsch. */
+function _segBarsHTML(pct, n, opts) {
+  const o = opts || {};
+  const p = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  const anz = Math.max(1, parseInt(n) || 12);
+  let voll = Math.round((p / 100) * anz);
+  if (p > 0 && voll === 0) voll = 1;
+  if (p >= 100) voll = anz;
+  const f = _segFarbe(p);
+  let out = `<div class="segbar${o.cls ? ' ' + o.cls : ''}"${o.label ? ` role="img" aria-label="${esc(o.label)}"` : ''}>`;
+  for (let i = 0; i < anz; i++) {
+    const an = i < voll;
+    // Helligkeit steigt leicht ueber die gefuellten Striche — die Reihe wirkt
+    // dadurch gerichtet statt wie ein Block.
+    const l = an ? (54 + (i / Math.max(1, anz - 1)) * 10) : 0;
+    const H = f.h.toFixed(0), S = f.s.toFixed(0);
+    /* Der Schein in drei Lagen: ein enger heller Saum direkt am Strich, ein
+       mittlerer Hof und ein weiter, schwacher Schimmer. Eine einzelne Lage
+       sieht aus wie ein weicher Schatten; erst die Staffelung liest sich als
+       Leuchten. Dazu ein Innenlicht (inset), das den Strich selbst wie eine
+       Roehre wirken laesst statt wie eine gefuellte Flaeche. */
+    const st = an
+      ? `background:hsl(${H},${S}%,${l.toFixed(0)}%);`
+        + `box-shadow:0 0 4px hsla(${H},100%,72%,.95),`
+        + `0 0 11px hsla(${H},${S}%,58%,.72),`
+        + `0 0 22px hsla(${H},${S}%,52%,.45),`
+        + `inset 0 0 5px hsla(${H},100%,88%,.55)`
+      : '';
+    // Der letzte gefuellte Strich ist der "aktuelle" — er traegt die Marke.
+    const akt = an && i === voll - 1 && !o.flach ? ' is-now' : '';
+    out += `<i class="${an ? 'on' : 'off'}${akt}" style="${st}"></i>`;
+  }
+  return out + '</div>';
 }
 
 /* Rendert die Akku-Liste auf dem Stats-Tab – pro Muskelgruppe */
@@ -29597,14 +29802,37 @@ function renderCoachHub(){
        zurück ins Raster braucht das Raster als messbaren Knoten, bevor es
        sichtbar wird. Teuer ist daran nichts — die Kacheln tragen nur fünf
        Kennzahlen, der Inhalt steckt im einen Panel. */
+    /* Die Bereitschaft steht UNTER dem Raster und nur dort: sie fasst zusammen,
+       was die Kacheln im Einzelnen zeigen — in der Detailebene waere sie eine
+       Wiederholung neben dem Gegenstand, um den es gerade geht. */
     body.innerHTML = `<div class="ch-stage" id="ch-stage" data-v="${karte ? 'det' : 'grid'}">`
       + `<div class="ch-grid">${_CH_CARDS.map((c, i) => _chTileHTML(c, cur, i)).join('')}</div>`
+      + (karte ? '' : _chRdyHTML())
       + `<div class="ch-pane">${karte ? _chPanelHTML(karte, cur) : ''}</div></div>`;
     if (detOffen) { const d = body.querySelector('#ch-panel-scope details'); if (d) d.open = true; }
     body.scrollTop = zurueck ? 0 : scrollVor;
     // Nur die OFFENE Wochenkachel bekommt ihre Diagramme.
     if (_chOpen === 'week') _chWeekDraw();
   } catch(e) { console.warn('[Coach] Hub-Render:', e); }
+}
+/* Die Bereitschafts-Leiste im Coach-Hub. Sie nennt die Zahl NICHT gross:
+   die Striche tragen den Wert, die Prozentzahl steht klein daneben fuer alle,
+   die es genau wissen wollen. Wie viele Signale eingeflossen sind, steht
+   dabei — ein Wert aus zwei Quellen ist etwas anderes als einer aus vier,
+   und das zu verschweigen waere eine falsche Sicherheit. */
+function _chRdyHTML() {
+  const r = _rdyScore();
+  if (!r) return '';
+  const f = _segFarbe(r.pct);
+  return `<div class="ch-rdy">
+    <div class="ch-rdy-head">
+      <span class="ch-rdy-ico" style="color:${f.css}">${ICO.bolt ? ICO.bolt({s:14}) : ''}</span>
+      <span class="ch-rdy-lbl">${esc(_rdyLabel(r.pct))}</span>
+      <span class="ch-rdy-sub">${r.signale} ${r.signale === 1 ? _cm('Signal','signal') : _cm('Signale','signals')}</span>
+      <span class="ch-rdy-pct" style="color:${f.css}">${r.pct}%</span>
+    </div>
+    ${_segBarsHTML(r.pct, 16, { label: _cm('Bereitschaft ','Readiness ') + r.pct + ' %' })}
+  </div>`;
 }
 // Der Name schreibt sich ohne Rerender des Bodys: Kopf, Eingabefeld und der
 // Beispielsatz-Vorspann sind die einzigen Stellen im Hub, die ihn tragen.
