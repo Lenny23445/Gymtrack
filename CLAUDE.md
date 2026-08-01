@@ -12,10 +12,58 @@
 **Live:** https://lenny23445.github.io/Gymtrack/ · **Repo:** https://github.com/Lenny23445/Gymtrack (`main`, GitHub Pages ~1 Min nach Push)
 
 ## Dateien
-- `index.html` — gesamte App (HTML+CSS+JS)
+- `index.html` — HTML-Geruest + `<script src>`-Tags (~2.100 Zeilen, **nicht** mehr die ganze App)
+- `css/app.css` — komplettes CSS
+- `js/app-*.js` — der JS-Teil, 13 Module (s. „Parallelarbeit" unten)
+- `js/coach-*.js`, `js/workout-*.js` — aeltere ausgelagerte Module
 - `sw.js` — Service Worker (Offline-Cache)
 - `manifest.json` — PWA-Metadaten
 - `GymTrack-Update.ps1` (`C:\Users\wolte\Desktop\`) — bumpt Version, git add/commit/push
+
+## Parallelarbeit (mehrere Agents gleichzeitig)
+
+Bis 01.08.2026 lag die gesamte App in einer 36.000-Zeilen-`index.html`. Zwei Agents
+gleichzeitig bedeutete zwangslaeufig einen Konflikt. Seitdem ist der Code aufgeteilt:
+
+| Datei | Zeilen | Inhalt |
+|---|---|---|
+| `js/app-i18n.js` | 1.670 | Uebersetzung (`I18N_EN`/`I18N_RX`/`tr`), `APP_VERSION`, `S`, `persist` |
+| `js/app-native.js` | 1.570 | Muskelgruppen, Capacitor-Bruecken, Uebungs-DB |
+| `js/app-ui.js` | 1.928 | Heute-Widgets (`WIDGET_DEFS`), Overlays, Sheets |
+| `js/app-session.js` | 2.999 | Sessions, Gewicht, Tracker |
+| `js/app-plans.js` | 2.738 | Plaene, Splits, Statistik |
+| `js/app-workout.js` | 3.279 | Training, Saetze, Progression |
+| `js/app-streak.js` | 3.038 | Streak, Haptik, Gamification |
+| `js/app-community.js` | 2.961 | Freunde, Feed, Share-Card |
+| `js/app-coach.js` | 3.018 | KI-Coach |
+| `js/app-coach-setup.js` | 2.393 | Coach-Einrichtung, Premium |
+| `js/app-update.js` | 1.926 | Auto-Update, Firebase, Analytics |
+| `js/app-boot.js` | 101 | Startsequenz — laeuft als **letztes** |
+| `js/app-tabbar.js` | 30 | Tab-Leiste |
+
+**Regeln:**
+
+1. **Ein Agent, ein Modul.** Vor dem Start sagen, welche Datei du anfasst. Zwei Agents in
+   derselben Datei sind wieder derselbe Konflikt wie frueher.
+2. **Reihenfolge ist heilig.** Die Tags in `index.html` laufen von oben nach unten. Module
+   nicht umsortieren, `app-boot.js` bleibt vorletztes, `app-tabbar.js` letztes.
+3. **Kein `type="module"`.** Es sind klassische Skripte — sie teilen sich den globalen Scope,
+   deshalb ist jede Funktion ueberall sichtbar. Mit `type="module"` waere schlagartig nichts
+   mehr global und die vielen `onclick="..."`-Attribute im HTML waeren alle tot.
+4. **Top-Level-Code, der eine Funktion aus einer SPAETEREN Datei aufruft, ist ein
+   ReferenceError.** Hoisting wirkt nur innerhalb einer Datei. Innerhalb von Funktionskoerpern
+   ist alles erlaubt — die laufen erst nach dem Laden. Betrifft also nur Code auf oberster
+   Ebene: `const X = spaetereFunktion()`, `obj = {fill: spaetereFunktion}`, direkte Aufrufe.
+   Gehoert so etwas in den Start, dann nach `js/app-boot.js`.
+5. **Neues Modul anlegen** = Tag in `index.html` + Eintrag in `build.js` + Eintrag in `sw.js`
+   (`SHELL`; network-first greift ueber das `/js/app-`-Praefix automatisch).
+6. **Vor dem Melden:** `npm test` (670 gruen) und `node smoke.js` (laedt die App im Browser und
+   meldet jeden Konsolenfehler, 404 und fehlende Kernfunktion). Der Rauchtest ist das Netz, das
+   einen kaputten Split findet — Tests allein sehen ihn nicht.
+
+**Nicht parallelisierbar** (nacheinander, sonst Kollision): Merges nach `main`, Version+`CACHE`-Bump,
+`npm run build && npx cap sync ios`, App-Store-Upload, Firebase (`gymtrack-25d39` — es gibt keinen
+Emulator, alle Agents teilen sich dieselbe echte Datenbank).
 
 ## Deploy / Versionsbump
 
