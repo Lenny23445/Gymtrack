@@ -6096,6 +6096,8 @@ textarea.pf-inp{height:auto;padding:12px 13px}
   transition:transform .34s cubic-bezier(.22,.9,.3,1),opacity .24s ease;
 }
 .wk-coach-slot.on .coach-card{transform:none;opacity:1}
+@keyframes ccSwapIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.wk-coach-slot .coach-card.cc-swap{animation:ccSwapIn .26s cubic-bezier(.22,.9,.3,1)}
 /* Zu welcher Uebung der Vorschlag gehoert. Solange die Karte in der Uebung
    steckte, war das selbstverstaendlich; unten am Rand ist es das nicht mehr. */
 .coach-card-for{
@@ -8284,7 +8286,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020028';
+const APP_VERSION = 'gymtrack-v202608021130';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19011,6 +19013,10 @@ function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
   _ensureRestNotifPermission(); // Pause-Ende-Signal darf im Hintergrund feuern
   _livePR = {};   // Live-PR-Tracker für neue Einheit zurücksetzen
+  // Der Platz des Coaches gehoert zur EINHEIT: ohne diesen Rueckstoss haelt
+  // _coachSlotRender() das Markup der letzten Einheit fuer "unveraendert" und
+  // schriebe die neue Karte nie.
+  _coachSlotHTML = '';
   _coachState = _coachDefaultState(); // Live-Coach-Rate-Limits für neue Einheit zurücksetzen
   _coachClearCard();
   _coachEvalTimers = {};
@@ -19133,6 +19139,20 @@ function _restoreActiveWk() {
   const t = document.getElementById('wk-title'); if (t) t.textContent = 'Aktives Training';
   const note = document.getElementById('wk-note'); if (note) note.value = saved.note || '';
   _activePlanSrc = saved.planSrc || null;
+  /* Die Begruendungen der Gewichtsvorschlaege (_weightReasons) liegen bewusst
+     nur im Speicher — nach einem Neustart sind sie also weg, waehrend die
+     vorgeschlagenen ZAHLEN in wkLogs weiterleben. Genau dann stuende der Wert
+     ohne Erklaerung da ("warum 135?"), und zwar in der Lage, in der man am
+     ehesten fragt: mitten in der Einheit, nach einem Blick aufs Handy.
+     Der Aufruf rechnet dieselbe Funktion noch einmal fuer jede Uebung; der
+     Rueckgabewert wird verworfen, uebernommen wird nichts — die eingetragenen
+     Gewichte bleiben, wie sie sind. Nur die Begruendung entsteht neu. */
+  try {
+    wkLogs.forEach(l => {
+      const e = exById(l.exerciseId);
+      if (e) getSuggestedWeight(e);
+    });
+  } catch(e) { console.warn('[Training] Begruendungen:', e); }
   _startWkTimer();
   renderLogCards();
   updateWkMiniVisibility();
@@ -19429,8 +19449,10 @@ function renderLogCards() {
             }
           }
           const wDisp = s.w === '' || s.w == null ? '' : kgToDisp(s.w);
+          const _neu = !!(_wkNeueZeile && _wkNeueZeile.li === li && _wkNeueZeile.si === si
+                          && Date.now() - _wkNeueZeile.ts < 800);
           return `
-        <div class="set-row${s.done?' done':''}">
+        <div class="set-row${s.done?' done':''}${_neu?' set-row-neu':''}">
           <button class="set-del" onclick="delSet(${li},${si})">−</button>
           <div class="set-n">${s.pr?'<span class="set-pr-star" title="Persönlicher Rekord!">🏆</span>':si+1}</div>
           <button class="set-type ${type}" onclick="openSetTypePopup(${li},${si})" title="${SET_TYPE_TITLE[type]} – tippen für Typ-Auswahl">${typeLabel||'•'}</button>
@@ -19855,6 +19877,17 @@ function toggleSetDone(li,si) {
   } else skipRest();
   renderLogCards();
 }
+/* Welche Zeile gerade dazugekommen ist. Der Karten-Diff baut die Satzliste als
+   Zeichenkette neu auf, die neue Zeile ist also ein frisches Element und
+   erscheint schlagartig — beim Knopf "+ Satz" wie beim Top-Satz des Coaches
+   ("das ist einfach abgehackt"). Diese Notiz gibt genau EINER Zeile die
+   Auffahrt mit; alle anderen bleiben ohne Animation und flackern dadurch beim
+   Abhaken nicht mit.
+   Der Zeitstempel steht hier, weil eine Coach-Aktion zweimal hintereinander
+   rendert (addSet rendert selbst, danach der Aufrufer nochmal). Beide Laeufe
+   liegen im selben Tick — gezeichnet wird nur der zweite, und der soll die
+   Animation noch haben. */
+let _wkNeueZeile = null;
 function addSet(li) {
   const ex = exById(wkLogs[li].exerciseId);
   const p = wkLogs[li].sets.slice(-1)[0];
@@ -19863,6 +19896,7 @@ function addSet(li) {
   } else {
     wkLogs[li].sets.push({w:p?.w||'', r:p?.r||''});
   }
+  _wkNeueZeile = { li: li, si: wkLogs[li].sets.length - 1, ts: Date.now() };
   renderLogCards();
   _syncLiveActivity();
 }
@@ -26424,7 +26458,13 @@ function _coachSlotRender() {
     slot.classList.remove('on');
     requestAnimationFrame(() => requestAnimationFrame(() => slot.classList.add('on')));
   } else {
-    slot.classList.add('on');   // Inhaltswechsel (z. B. "Uebernommen") ohne Neustart
+    // Inhaltswechsel bei stehender Karte — der haeufigste ist "Uebernommen"
+    // nach dem Annehmen. Das neue Markup ist ein frisches Element, ein
+    // transition greift daran nicht; also blendet es sich per Animation ein.
+    // Ohne das schlaegt die Bestaetigung hart an die Stelle des Vorschlags.
+    slot.classList.add('on');
+    const kind = slot.firstElementChild;
+    if (kind) kind.classList.add('cc-swap');
   }
 }
 
