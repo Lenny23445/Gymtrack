@@ -1217,7 +1217,47 @@ function _seedDemoData() {
   // Premium-UI freischalten (Screenshots der KI-/Premium-Features). Nur Demo-Builds:
   // Funktion läuft ausschliesslich bei DEMO_SEED=true, und der Dev-Unlock ist rein lokal.
   try { localStorage.setItem('gt_premiumDev', '1'); } catch(_){}
-  const r2 = v => Math.round(v / 2.5) * 2.5;              // auf 2,5-kg-Schritte runden
+  // Community mit Beispiel-Daten (Roster, Feed, Rangliste, Karte) statt Login-Gate.
+  // Das Flag hing bisher nur am Legacy-Skript .seed_demo.py — im DEMO_SEED-Build war
+  // der Freunde-Tab deshalb leer. `gt_demo_bySeed` merkt sich, dass WIR es gesetzt
+  // haben, damit der naechste Nicht-Demo-Start beides wieder abraeumt (sonst blockt
+  // _demoModeAny() dauerhaft das Aufraeumen der Demo-Daten).
+  try { localStorage.setItem('gt_demo', '1'); localStorage.setItem('gt_demo_bySeed', '1'); } catch(_){}
+  S.socialOn = true;
+  if (!S.userName) S.userName = 'Lenny';
+  // Profilbild oben links auf der Heute-Seite (sonst nur die Initiale "L"). Motiv aus
+  // dem Gym statt Portrait — im runden Ausschnitt bleibt der Hantelgriff erkennbar.
+  const DEMO_AVA = 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=300&h=300&q=70';
+  try { localStorage.setItem('gt_prof_photo', DEMO_AVA); } catch(_){}
+  // Erholung fuer den Screenshot fest vorgeben. Die Demo trainiert Mo–Sa durch, damit
+  // die Wochenleiste voll ist — dieselbe Historie zieht die Akkus aber alle auf
+  // "wenig erholt". Feste Werte pro Muskelgruppe loesen das UND geben der Kachel eine
+  // Staffelung: zwei volle Akkus, der Rest gestaffelt bis "Fast bereit" — alles gleich
+  // gruen sieht nach Attrappe aus. Nur ein Wrapper, die echte Berechnung bleibt
+  // unveraendert; getMuscleGroupRecovery() mittelt darauf auf und wird automatisch mit.
+  // Je Gruppe eine ANDERE Erholungsstufe, damit die Kachel im Screenshot alle fuenf
+  // Zustaende von recoveryState() zeigt: 100 = "Vollständig erholt", >=75 "Bereit",
+  // >=55 "Fast bereit", >=30 "Wenig erholt", <30 "Nicht erholt". Brust voll,
+  // Schultern halb, Arme leer.
+  const DEMO_REC = { brust:100, ruecken:85, beine:65, schultern:50, arme:8, core:100 };
+  try {
+    const _echteRec = getExerciseRecovery;
+    getExerciseRecovery = function() {
+      const r = _echteRec.apply(this, arguments);
+      for (const id in r) {
+        const ex = (S.exercises || []).find(e => e.id === id);
+        const pct = DEMO_REC[ex && ex.muscleGroup];
+        if (pct == null) continue;
+        r[id].recPct = pct; r[id].fatPct = 100 - pct;
+      }
+      return r;
+    };
+  } catch(_){}
+  const r05 = v => Math.round(v * 2) / 2;                 // auf 0,5-kg-Schritte runden
+  // Wdh haengen NUR am Satz-Index, nicht mehr am Wochentag. Vorher war es
+  // 8 + ((s + di) % 3) — damit hatte jeder Wochentag eine andere Wdh-Summe und
+  // das Volumen sprang von Einheit zu Einheit. Das war die halbe Zickzack-Ursache.
+  const repsOf = s => [10,9,9,8,9][s % 5];
   // Übungen (fester Split: Push / Pull / Legs)
   // base = realistisches ENDgewicht nach den drei Jahren. Der Verlauf startet bei
   // 50 % davon (siehe factor). Vorher standen hier Startgewichte, die ein zweiter
@@ -1242,14 +1282,24 @@ function _seedDemoData() {
   });
   const baseOf = id => EX.find(e => e.id === id).base;
   // Satzzahl je Plan so gewaehlt, dass alle drei Einheiten aehnlich viel Volumen
-  // ergeben (~10,5 t bei vollem Gewicht). Sonst zeichnet der Wechsel Push/Pull/Legs
-  // ein Zickzack ins Volumen-Chart — genau das sollte der alte, weggeworfene
-  // Normalisierungs-Durchgang glaetten.
+  // ergeben (~10,5 t bei vollem Gewicht). Der Rest-Unterschied (Push lag 5 % unter
+  // Legs) wird unten pro Einheit exakt ausgeglichen — sonst zeichnet der Wechsel
+  // Push/Pull/Legs ein Zickzack ins Volumen-Chart.
   const TEMPLATES = [
-    { ex:['dm_bench','dm_ohp','dm_dip'],  sets:5 },   // Push  ~10,4 t
-    { ex:['dm_dead','dm_row','dm_curl'],  sets:4 },   // Pull  ~10,7 t
-    { ex:['dm_squat','dm_press'],         sets:3 },   // Legs  ~10,7 t
+    { ex:['dm_bench','dm_ohp','dm_dip'],  sets:5 },   // Push
+    { ex:['dm_dead','dm_row','dm_curl'],  sets:4 },   // Pull
+    { ex:['dm_squat','dm_press'],         sets:3 },   // Legs
   ];
+  // Referenzvolumen = Mittel der drei Einheiten bei vollem Zielgewicht (~10,7 t).
+  // Daran wird jede Einheit ausgerichtet, deshalb bleibt der Korrekturfaktor
+  // immer nahe 1 — anders als beim alten Durchgang, der auf 27 t hochskaliert hat.
+  const _rohVol = tpl => tpl.ex.reduce((sum, exId) => {
+    const w0 = Math.max(2.5, r05(baseOf(exId)));
+    let v = 0;
+    for (let s = 0; s < tpl.sets; s++) v += (s === 0 ? r05(w0 * 0.9) : w0) * repsOf(s);
+    return sum + v;
+  }, 0);
+  const V_REF = TEMPLATES.reduce((a, t) => a + _rohVol(t), 0) / TEMPLATES.length;
 
   const WEEKS = 187;                                      // ab Anfang 2023 (Matrix-Screenshot)
   const today = new Date(); today.setHours(18,0,0,0);
@@ -1263,30 +1313,43 @@ function _seedDemoData() {
     const dayIdx = [0,1,2,3,4,5];
     const weekMon = new Date(curMon);
     weekMon.setDate(curMon.getDate() - (WEEKS - 1 - w) * 7);
-    // Fortschritt 0..1 über die drei Jahre → stetige Progression
-    const prog = w / (WEEKS - 1);
-    // 50 % → 100 % des Zielgewichts, leicht beschleunigend. Damit steigt auch das
-    // Volumen glatt und ohne den frueheren Nachbearbeitungs-Durchgang.
-    const factor = 0.5 + 0.5 * Math.pow(prog, 1.25);
     for (const di of dayIdx) {
       const d = new Date(weekMon);
       d.setDate(weekMon.getDate() + di);
       d.setHours(18, (di*7) % 40, 0, 0);
+      // Fortschritt 0..1 über die drei Jahre, pro EINHEIT (nicht pro Woche) — sonst
+      // liegen die sechs Trainings einer Woche exakt aufeinander und die Kurve
+      // steigt in Stufen statt stetig.
+      const idx  = w * dayIdx.length + di;
+      const prog = idx / (WEEKS * dayIdx.length - 1);
+      // 50 % → 100 % des Zielgewichts, leicht beschleunigend.
+      const factor = 0.5 + 0.5 * Math.pow(prog, 1.25);
       // Zukunftstage der aktuellen Woche (Do–Sa liegen nach "jetzt"): als warmup
       // taggen → volles Volumen fürs Chart, aber gedämpfte Ermüdung (sonst würde
       // die negative Zeitdifferenz die Erholung überall auf 0% ziehen).
       const isFuture = d.getTime() > Date.now();
       const tpl = TEMPLATES[tmplIdx % TEMPLATES.length]; tmplIdx++;
       const logs = tpl.ex.map(exId => {
-        const w0 = Math.max(2.5, r2(baseOf(exId) * factor));
+        const w0 = Math.max(2.5, r05(baseOf(exId) * factor));
         const sets = [];
         for (let s = 0; s < tpl.sets; s++) {
-          const reps = 8 + ((s + di) % 3);               // 8..10
-          const wt   = s === 0 ? r2(w0 * 0.9) : w0;       // 1. Satz etwas leichter
-          sets.push(isFuture ? { w: wt, r: reps, type:'warmup' } : { w: wt, r: reps });
+          const wt = s === 0 ? r05(w0 * 0.9) : w0;        // 1. Satz etwas leichter
+          sets.push(isFuture ? { w: wt, r: repsOf(s), type:'warmup' } : { w: wt, r: repsOf(s) });
         }
         return { exerciseId: exId, sets };
       });
+      // Volumen dieser Einheit exakt auf die Zielkurve ziehen. Zwei Schritte:
+      // (1) alle Saetze proportional (Faktor liegt zwischen 0,97 und 1,03),
+      // (2) die verbleibende Rundungsdifferenz auf den leichten Auftaktsatz.
+      // Ergebnis: benachbarte Einheiten unterscheiden sich um < 0,15 % statt um
+      // bis zu 8,7 % — im Chart eine durchgehende Linie statt Zickzack.
+      const ziel  = V_REF * factor;
+      const alle  = logs.flatMap(l => l.sets);
+      const volOf = () => alle.reduce((a, s) => a + s.w * s.r, 0);
+      const k = ziel / volOf();
+      alle.forEach(s => { s.w = Math.max(2.5, r05(s.w * k)); });
+      const auftakt = alle[0];
+      auftakt.w = Math.max(2.5, r05(auftakt.w + (ziel - volOf()) / auftakt.r));
       sessions.push({
         id: 'dm_' + w + '_' + di,
         date: d.toISOString(),
@@ -1295,12 +1358,27 @@ function _seedDemoData() {
       });
     }
   }
-  // KEIN Nachbearbeiten der Gewichte mehr. Der frühere zweite Durchgang hat jede
-  // Einheit auf eine Ziel-Volumenkurve bis 27 t skaliert — bei rund zwölf Sätzen à
-  // neun Wiederholungen ergab das 245 kg Bankdrücken. Die Kurve steigt jetzt allein
-  // über factor (50 % → 100 % des Zielgewichts), die Einheiten sind über die
-  // Satzzahlen in TEMPLATES aneinander angeglichen.
+  // Der Feinabgleich oben ist NICHT der alte, weggeworfene Normalisierungs-Durchgang:
+  // der hat auf eine frei gesetzte Zielkurve bis 27 t skaliert und damit 245 kg
+  // Bankdruecken erzeugt. Hier ist das Ziel aus den realen Basisgewichten abgeleitet
+  // (V_REF ~10,7 t), der Faktor bleibt deshalb im Prozentbereich — Bankdruecken
+  // laeuft ueber die drei Jahre von rund 50 auf 105 kg.
   S.sessions = sessions;
+  // Derselbe Push/Pull/Legs-Split auch als angelegter Plan: drei Presets + Eintrag
+  // auf Mo–Sa im Wochenplan (Sonntag Ruhetag). Ohne das stand der Heute-Tab ohne
+  // Tagesplan da und der Trainings-Start zeigte "kein Plan" — die Historie kam ja
+  // aus denselben Vorlagen, nur angelegt war nie eine.
+  S.workoutPresets = [
+    { id:'dm_p_push', name:'Push Day', exIds:['dm_bench','dm_ohp','dm_dip'],  color:SPLIT_PALETTE[0] },
+    { id:'dm_p_pull', name:'Pull Day', exIds:['dm_dead','dm_row','dm_curl'],  color:SPLIT_PALETTE[1] },
+    { id:'dm_p_legs', name:'Leg Day',  exIds:['dm_squat','dm_press'],         color:SPLIT_PALETTE[2] },
+  ];
+  S.weekPlan = {
+    mon:{ type:'preset', id:'dm_p_push' }, tue:{ type:'preset', id:'dm_p_pull' },
+    wed:{ type:'preset', id:'dm_p_legs' }, thu:{ type:'preset', id:'dm_p_push' },
+    fri:{ type:'preset', id:'dm_p_pull' }, sat:{ type:'preset', id:'dm_p_legs' },
+    sun:{ type:'none' },
+  };
   S.onboarded = true;                                    // Onboarding überspringen
   // Demo: direkt Statistik-Tab zeigen (nur zum Screenshot-Prüfen)
   setTimeout(() => { try { goTab('stats', document.querySelectorAll('.tab')[2]); } catch(_){} }, 400);

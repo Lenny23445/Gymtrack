@@ -11,6 +11,15 @@ setTheme(S.theme);
 setGlass(S.glass);
 applyCompanion();
 try { if (typeof DEMO_SEED !== 'undefined' && DEMO_SEED) _seedDemoData(); } catch(_){}
+// Zurueck auf DEMO_SEED=false: das vom Seed gesetzte gt_demo wieder abraeumen. Sonst
+// bliebe die Demo-Community stehen UND _demoModeAny() wuerde _purgeDemoData() blocken.
+try {
+  if ((typeof DEMO_SEED === 'undefined' || !DEMO_SEED) && localStorage.getItem('gt_demo_bySeed') === '1') {
+    localStorage.removeItem('gt_demo'); localStorage.removeItem('gt_demo_bySeed');
+    localStorage.removeItem('gt_premiumDev');
+    localStorage.removeItem('gt_prof_photo');   // Demo-Portrait, sonst landet es per Social-Push in der Cloud
+  }
+} catch(_){}
 try { if (_purgeDemoData(S)) persist(); } catch(_){}   // Demo-Altlasten lokal entfernen
 migrateExercises();   // feste Wdh-Zahlen → Bereich + Standard-Schema
 renderHome();
