@@ -6062,9 +6062,11 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      ease-in-out sah aus, als würde er ruckeln — er war am Umkehrpunkt am
      langsamsten und genau dort am sichtbarsten. Die Welle laeuft jetzt schnell
      los und verliert sich weich (cubic-bezier), so wie ein Puls. */
-  .aic-orb{animation:aicOrbKern 3.6s cubic-bezier(.45,0,.35,1) infinite}
-  .aic-orb::before{animation:aicOrbWelle 3.6s cubic-bezier(.2,.62,.3,1) infinite}
-  .aic-orb::after{animation:aicOrbWelle 3.6s cubic-bezier(.2,.62,.3,1) 1.15s infinite}
+  .aic-orb::before{animation:aicOrbStreif 6.5s cubic-bezier(.4,0,.2,1) infinite}
+  /* Im Orb steht das Zeichen der App. Es pocht nicht mit, sondern WIEGT sich:
+     eine Hantel, die kippt, ist eine Bewegung aus dem Training — ein Symbol,
+     das im Takt groesser und kleiner wird, ist ein Ladebalken. */
+  .aic-orb svg{animation:aicOrbHantel 4.4s cubic-bezier(.45,0,.35,1) infinite}
   .aic-live i{animation:aicDot 2.1s ease-in-out infinite}
 }
 @keyframes aicIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
@@ -6092,26 +6094,48 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 @keyframes aicLine{0%{background-position:130% 0}100%{background-position:-130% 0}}
 @keyframes aicRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes aicRing{from{stroke-dashoffset:163.4}to{stroke-dashoffset:var(--aic-off)}}
-@keyframes aicOrbKern{0%,100%{transform:scale(1);box-shadow:0 3px 12px rgba(var(--acc-rgb),.45)}
-  46%{transform:scale(1.06);box-shadow:0 5px 18px rgba(var(--acc-rgb),.66)}}
-@keyframes aicOrbWelle{0%{transform:scale(1);opacity:.62}
-  60%{opacity:.12}
-  100%{transform:scale(2.1);opacity:0}}
+/* Der Lichtstreifen laeuft einmal je Runde ueber das Feld und ist die meiste
+   Zeit gar nicht da — ein dauernd wanderndes Glanzlicht auf 26 px waere
+   Flimmern. */
+@keyframes aicOrbStreif{0%{transform:translateX(-120%)}
+  22%{transform:translateX(120%)}
+  100%{transform:translateX(120%)}}
+/* Die Hantel kippt langsam von der einen auf die andere Seite und haelt oben
+   kurz inne (die Pausen bei 0/48/100 % sind die Umkehrpunkte). 11 Grad reichen:
+   mehr sieht bei 14 px nach Zeiger aus, weniger sieht man nicht. */
+@keyframes aicOrbHantel{
+  0%,100%{transform:rotate(-11deg)}
+  8%{transform:rotate(-11deg)}
+  48%{transform:rotate(11deg)}
+  56%{transform:rotate(11deg)}}
 @keyframes aicDot{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
 /* Kompakter als zuvor (13/15/14 → 11/13/12): die Karte ist der Einstieg in
    den Coach, nicht der halbe Heute-Tab. */
 .aic-in{position:relative;z-index:1;padding:10px 12px 11px}
 .aic-top{display:flex;align-items:center;gap:8px}
-.aic-orb{position:relative;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;flex-shrink:0;
-  color:#fff;background:linear-gradient(140deg,var(--acc),rgba(var(--acc-rgb),.62));
-  box-shadow:0 3px 12px rgba(var(--acc-rgb),.45)}
-/* Zwei Reifen um den Kern. Ohne Animation (reduzierte Bewegung) steht nur der
-   erste sichtbar da — der zweite ist reine Bewegung und bleibt dann unsichtbar,
-   statt als doppelter Rand zu erscheinen. */
-.aic-orb::before,.aic-orb::after{content:'';position:absolute;inset:0;border-radius:50%;
-  border:1px solid rgba(var(--acc-rgb),.85);pointer-events:none}
-.aic-orb::before{opacity:.55}
-.aic-orb::after{opacity:0}
+/* Der Kern ist keine flache Scheibe mehr: ueber dem Akzent liegt ein heller
+   Fleck, der nicht in der Mitte sitzt. Dreht sich der Kreis, wandert dieser
+   Fleck — bei einem Kreis ist die Drehung sonst unsichtbar, und genau deshalb
+   funktioniert der Trick ohne dass sich der Umriss bewegt. */
+/* Das App-Zeichen, nicht mehr ein leuchtender Punkt: schwarzes Feld mit weisser
+   Hantel — dasselbe Bild wie das Symbol auf dem Homescreen. Der pulsierende
+   blaue Kreis davor war ein Gestaltungselement ohne Bedeutung; das Zeichen der
+   App sagt an dieser Stelle, WER spricht. Quadrat mit stark gerundeten Ecken
+   (Squircle-Naeherung) statt Kreis, sonst ist es nicht das App-Symbol. */
+.aic-orb{position:relative;display:grid;place-items:center;width:26px;height:26px;
+  border-radius:8px;flex-shrink:0;overflow:hidden;
+  color:#fff;background:linear-gradient(160deg,#15171d,#07080c);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 2px 8px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.10)}
+/* Ein Lichtstreifen wandert langsam ueber das Feld — die einzige Bewegung
+   ausser der Hantel selbst, und sie liegt UNTER dem Symbol (z-index). */
+.aic-orb::before{border-radius:0;border:none;inset:-40%;
+  background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.16) 50%,transparent 62%)}
+.aic-orb::after{display:none}
+.aic-orb svg{position:relative;z-index:1}
+/* Nur noch EIN Pseudo-Element, und es ist kein Reifen mehr, sondern der
+   Lichtstreifen (s. unten). */
+.aic-orb::before,.aic-orb::after{content:'';position:absolute;inset:0;pointer-events:none}
 /* Der Name MUSS schrumpfen duerfen. Ohne min-width:0 steht ein Flex-Kind auf
    seiner Inhaltsbreite (min-width:auto) — ein langer Coach-Name plus Chip plus
    Winkel war breiter als die Karte, und weil .aic overflow:hidden traegt, war
@@ -8000,7 +8024,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
          Feld wuerde bei jedem Tipp neu anlaufen. -->
     <canvas class="aic-wv ch-wv" id="ch-wave" aria-hidden="true"></canvas>
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><button type="button" class="ch-back" id="ch-back" onclick="coachHubBack()" aria-label="Zurück" hidden></button><span class="aic-orb" id="ch-orb" aria-hidden="true"></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
+    <div class="sh-head ch-head"><button type="button" class="ch-back" id="ch-back" onclick="coachHubBack()" aria-label="Zurück" hidden></button><span class="aic-orb" id="ch-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
       <div id="ch-body"></div>
     </div>
@@ -8020,7 +8044,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 <div class="ov" id="ov-coach-setup">
   <div class="sheet">
     <div class="sh-handle"></div>
-    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"></span><h2 id="cst-title">Coach</h2>
+    <div class="sh-head ch-head"><span class="aic-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg></span><h2 id="cst-title">Coach</h2>
       <button class="x-btn" onclick="coachSetupDone(true)" aria-label="Überspringen">✕</button></div>
     <div class="px">
       <div class="pwz-dots" id="cst-dots"></div>
@@ -8120,7 +8144,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608010015';
+const APP_VERSION = 'gymtrack-v202608010019';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9326,6 +9350,13 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-01-coach-zeichen': {
+    label: '01.08.2026 · Das Zeichen der App beim Coach',
+    items: [
+      'Neben dem Coach-Namen steht jetzt das App-Symbol — schwarzes Feld, weiße Hantel — statt eines pulsierenden blauen Punktes',
+      'Die Hantel wiegt sich langsam, und einmal je Runde läuft ein Lichtstreifen über das Feld',
+    ]
+  },
   'cl-2026-08-01-coach-wellenfeld': {
     label: '01.08.2026 · Die Coach-Karte lebt',
     items: [
@@ -12892,7 +12923,7 @@ function renderCoachTodayCard() {
         <canvas class="aic-wv" aria-hidden="true"></canvas>
         <div class="aic-in">
           <div class="aic-top">
-            <span class="aic-orb">${ICO.sparkle({s:14})}</span>
+            <span class="aic-orb">${ICO.dumbbell({s:14})}</span>
             <span class="aic-lbl">${esc(_coachName())}</span>
             <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
           </div>
@@ -12931,7 +12962,7 @@ function renderCoachTodayCard() {
       <span class="aic-sheen" aria-hidden="true"></span>
       <div class="aic-in">
         <div class="aic-top">
-          <span class="aic-orb">${ICO.sparkle({s:14})}</span>
+          <span class="aic-orb">${ICO.dumbbell({s:14})}</span>
           <span class="aic-lbl">${esc(_coachName())}</span>
           <span class="aic-live"><i></i>${esc(s.chip)}</span>
           <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
@@ -20026,6 +20057,9 @@ Object.assign(ICO, {
   // Zeigt an, dass hinter einer Fläche mehr liegt — der Einstieg in den
   // Coach-Hub auf der Heute-Karte. Dieselbe Form wie chevron, nur gedreht.
   chevronRight:o=>_svg('<path d="M9.5 6 15.5 12 9.5 18"/>',o),
+  // Das Zeichen der App: die Hantel aus dem Startknopf, hier in der ICO-Form
+  // (currentColor statt festem Weiss), damit sie in jedem Theme mitgeht.
+  dumbbell:o=>_svg('<path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/>',o),
   // Symbol der Journal-Kachel. Ein aufgeschlagenes Heft: das Journal ist das,
   // was der Coach über den Nutzer notiert hat.
   book:o=>_svg('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 15.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5z"/>',o),
