@@ -314,25 +314,37 @@ Die Liste durchgehen und dort Grenzen setzen, wo das Thema wechselt. Zielgroesse
 1.500–3.500 Zeilen je Modul. Ausgangsvorschlag (Reihenfolge des Originals, Namen nach
 Hauptinhalt):
 
-| # | Datei | beginnt etwa bei |
-|---|---|---|
-| 1 | `js/app-i18n.js` | Anfang des Skriptblocks (`setAppLang`) |
-| 2 | `js/app-basis.js` | `muscleLabel` — Muskeln, Modi, Einheiten, Icon-Picker, Coach-Persona |
-| 3 | `js/app-native.js` | `_updateWidgetData` — Widget, LiveActivity, Spotlight, HealthKit, Benachrichtigungen |
-| 4 | `js/app-exercises.js` | `_exIdxAll` — Uebungen, Saetze, PR-Logik |
-| 5 | `js/app-ui.js` | `goTab` — Reiter, Overlays, Themes |
-| 6 | `js/app-session.js` | `openSessDetail` — Session-Detail, Mini-Charts, Ziele |
-| 7 | `js/app-plans.js` | `applyExRename` — Splits, Presets, Custom-Split-Editor |
-| 8 | `js/app-streak.js` | `hapticSelStart` — Haptik, Streak, Suche |
-| 9 | `js/app-community.js` | `_cpgReload` — Feed und Beitraege |
-| 10 | `js/app-coach.js` | `_rpeFlushTrend` — Coach-Logik, RPE, Volumen |
-| 11 | `js/app-coach-setup.js` | `coachSetupDone` — Coach-Onboarding |
-| 12 | `js/app-update.js` | `_handleWaitingWorker` — SW-Update, native Update-Leiste, Sync |
-| 13 | `js/app-tabbar.js` | das eigenstaendige Skript ganz am Dateiende |
+**Gemessen am 2026-08-01 auf Stand `d3e06fb`** (nach der CSS-Auslagerung).
+Hauptblock: `<script>` Zeile 2118, `</script>` Zeile 29727, Inhalt also 2119–29726.
+Die Zeilennummern belegen die Messung, sind aber **nicht** die Schnittgrundlage —
+geschnitten wird gegen die Marker aus Schritt 3, weil die Datei sich weiter aendert.
 
-Die genannten Funktionsnamen sind Ausgangspunkte, keine Vorschrift — die tatsaechliche
-Grenze gehoert vor die erste Funktion des neuen Themas, nicht mitten in einen
-zusammengehoerenden Block.
+| # | Datei | Bereich | Zeilen | Ankerfunktion |
+|---|---|---|---|---|
+| 1 | `js/app-i18n.js` | 2119–3788 | 1.670 | Blockanfang, `setAppLang` (2177) |
+| 2 | `js/app-native.js` | 3789–5354 | 1.566 | `muscleLabel` (3789) |
+| 3 | `js/app-ui.js` | 5355–7282 | 1.928 | `_exIdxAll` (5355) |
+| 4 | `js/app-session.js` | 7283–10281 | 2.999 | `openSessDetail` (7283) |
+| 5 | `js/app-plans.js` | 10282–13019 | 2.738 | `applyExRename` (10282) |
+| 6 | `js/app-workout.js` | 13020–16298 | 3.279 | `openWorkout` (13020) |
+| 7 | `js/app-streak.js` | 16299–19336 | 3.038 | `hapticSelStart` (16299) |
+| 8 | `js/app-community.js` | 19337–22297 | 2.961 | `_cpgReload` (19337) |
+| 9 | `js/app-coach.js` | 22298–25315 | 3.018 | `_rpeFlushTrend` (22298) |
+| 10 | `js/app-coach-setup.js` | 25316–27800 | 2.485 | `coachSetupDone` (25316) |
+| 11 | `js/app-update.js` | 27801–29726 | 1.926 | `_handleWaitingWorker` (27801) |
+| 12 | `js/app-tabbar.js` | 29729–29758 | 30 | eigener `<script>`-Block am Dateiende |
+
+Abweichungen vom urspruenglichen Vorschlag, mit Begruendung:
+
+- `app-basis` (416 Zeilen) und `app-exercises` (275 Zeilen) waren zu klein fuer eigene
+  Dateien und sind in die jeweils folgenden Bereiche aufgegangen. Deshalb enthaelt
+  `app-native` zusaetzlich Muskeln/Einheiten/Icon-Picker/Coach-Persona und `app-ui`
+  zusaetzlich Uebungen und PR-Logik.
+- Der urspruengliche `app-plans`-Bereich war mit 6.017 Zeilen zu gross und ist bei
+  `openWorkout` geteilt — dort wechselt das Thema von Statistik zu Training.
+
+Modulnamen beschreiben den **Hauptinhalt** ihres Bereichs, nicht dessen gesamten Inhalt.
+Die Reihenfolge des Originals bleibt in jedem Fall unangetastet.
 
 - [ ] **Schritt 3: Marker einfuegen**
 
@@ -452,9 +464,9 @@ git add js/app-<name>.js index.html build.js sw.js
 git commit -m "refactor: <name> aus index.html nach js/app-<name>.js"
 ```
 
-**Reihenfolge der Aufgaben 5–17:** `app-tabbar`, `app-update`, `app-coach-setup`,
-`app-coach`, `app-community`, `app-streak`, `app-plans`, `app-session`, `app-ui`,
-`app-exercises`, `app-native`, `app-basis`, `app-i18n`.
+**Reihenfolge der Aufgaben 5–16:** `app-tabbar`, `app-update`, `app-coach-setup`,
+`app-coach`, `app-community`, `app-streak`, `app-workout`, `app-plans`, `app-session`,
+`app-ui`, `app-native`, `app-i18n`.
 
 ---
 
