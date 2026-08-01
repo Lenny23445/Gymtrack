@@ -1,6 +1,7 @@
 .claude/
 model/renders/
 node_modules/
+.worktrees/
 android/
 www/
 distribution.key
