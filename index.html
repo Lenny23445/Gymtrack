@@ -1886,6 +1886,23 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
 .tracker-ring-btn:active{transform:scale(.90)}
 .tracker-ring-svg{display:block;overflow:visible}
 .tracker-ring-bg{fill:none;stroke:var(--sep);stroke-width:5;stroke-linecap:round}
+/* Der glimmende Zwilling. Breiter, unscharf, halbdurchsichtig — er liegt im
+   Markup VOR dem scharfen Bogen und damit darunter. Zusammen ergibt das eine
+   Leuchtroehre statt einer Linie mit Schatten. */
+.tracker-ring-halo{
+  fill:none;stroke:var(--acc);stroke-width:9;stroke-linecap:round;
+  transform:rotate(-90deg);transform-origin:50% 50%;
+  filter:blur(4.5px);opacity:.85;
+  transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1);
+  animation:trHaloAtem 3.1s ease-in-out infinite;animation-delay:var(--rd,0ms);
+}
+.tracker-ring-halo.done{stroke:#4cd137}
+.tracker-ring-halo[style*="--trh"]{stroke:hsl(var(--trh),100%,60%)!important}
+@keyframes trHaloAtem{
+  0%,100%{opacity:.62;stroke-width:8}
+  50%    {opacity:1;  stroke-width:11}
+}
+@media (prefers-reduced-motion:reduce){.tracker-ring-halo{animation:none}}
 /* Der Ring leuchtet UND atmet. Der Schein liegt als drop-shadow auf dem Bogen
    selbst — bei vier Ringen sind das vier Filterebenen, das traegt die Seite.
    Auf die Hintergrundspur kommt keiner: sie soll die Skala zeigen, nicht
@@ -1899,21 +1916,25 @@ html:not([data-glass="off"]) #wk-step2 .set-in{background:var(--wk-inp-bg)}
    also nicht. Gespeichert wird er als item.hue IM Tracker-Objekt, nicht als
    neues Feld in S: trackerItems ist in den Firestore-Rules bereits erlaubt,
    ein zusaetzliches Feld dort haette den kompletten Push blockiert. */
+/* Der scharfe Bogen ist fast weiss — so leuchten echte Leuchtroehren: der
+   Kern ist heller als die Farbe, die Farbe kommt aus dem Halo drumherum.
+   Ein Bogen in voller Farbe mit Schatten sieht dagegen immer nach "farbige
+   Linie" aus, nie nach Licht. */
 .tracker-ring-progress[style*="--trh"]{
-  stroke:hsl(var(--trh),100%,58%)!important;
+  stroke:hsl(var(--trh),100%,88%)!important;
   animation-name:trRingAtemBunt!important;
 }
 @keyframes trRingAtemBunt{
   0%,100%{filter:drop-shadow(0 0 4px hsla(var(--trh),100%,60%,.85)) drop-shadow(0 0 10px hsla(var(--trh),100%,55%,.5))  drop-shadow(0 0 18px hsla(var(--trh),100%,50%,.22))}
   50%    {filter:drop-shadow(0 0 7px hsla(var(--trh),100%,65%,1))   drop-shadow(0 0 16px hsla(var(--trh),100%,58%,.8)) drop-shadow(0 0 30px hsla(var(--trh),100%,52%,.45))}
 }
-.tracker-ring-progress{fill:none;stroke:var(--acc);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 5px rgba(var(--acc-rgb),1)) drop-shadow(0 0 12px rgba(var(--acc-rgb),.7)) drop-shadow(0 0 22px rgba(var(--acc-rgb),.35));
+.tracker-ring-progress{fill:none;stroke:#fff;stroke-width:4.2;stroke-linecap:round;transition:stroke-dashoffset .55s cubic-bezier(0.34,1.56,0.64,1),stroke .3s ease;transform:rotate(-90deg);transform-origin:50% 50%;filter:drop-shadow(0 0 5px rgba(var(--acc-rgb),1)) drop-shadow(0 0 12px rgba(var(--acc-rgb),.7)) drop-shadow(0 0 22px rgba(var(--acc-rgb),.35));
   animation:trRingAtem 3.1s ease-in-out infinite;animation-delay:var(--rd,0ms)}
 @keyframes trRingAtem{
   0%,100%{filter:drop-shadow(0 0 4px rgba(var(--acc-rgb),.85)) drop-shadow(0 0 10px rgba(var(--acc-rgb),.5)) drop-shadow(0 0 18px rgba(var(--acc-rgb),.22))}
   50%    {filter:drop-shadow(0 0 7px rgba(var(--acc-rgb),1))   drop-shadow(0 0 16px rgba(var(--acc-rgb),.8)) drop-shadow(0 0 30px rgba(var(--acc-rgb),.45))}
 }
-.tracker-ring-progress.done{animation-name:trRingAtemGruen}
+.tracker-ring-progress.done{stroke:#eaffe8;animation-name:trRingAtemGruen}
 @keyframes trRingAtemGruen{
   0%,100%{filter:drop-shadow(0 0 4px rgba(76,209,55,.9))  drop-shadow(0 0 11px rgba(76,209,55,.55)) drop-shadow(0 0 19px rgba(76,209,55,.25))}
   50%    {filter:drop-shadow(0 0 7px rgba(76,209,55,1))    drop-shadow(0 0 17px rgba(76,209,55,.85)) drop-shadow(0 0 31px rgba(76,209,55,.5))}
@@ -8684,7 +8705,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608022055';
+const APP_VERSION = 'gymtrack-v202608022120';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -14845,6 +14866,13 @@ function renderTrackers(row) {
         oncontextmenu="trackerLongPress(this,'${item.id}');return false">
         <svg class="tracker-ring-svg" width="64" height="64" viewBox="0 0 64 64">
           <circle class="tracker-ring-bg" cx="${CX}" cy="${CY}" r="${R}"/>
+          <!-- Der Halo: derselbe Bogen, breiter und unscharf, LIEGT DARUNTER.
+               Das ist der Unterschied zwischen "leuchtet" und "hat einen
+               Schatten": ein drop-shadow faellt weich nach aussen, ein
+               geblurrter Zwilling glueht um die ganze Linie herum. -->
+          <circle class="tracker-ring-halo${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
+            style="--rd:${targets.length * 420}ms${item.hue != null ? `;--trh:${item.hue}` : ''}"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
           <circle class="tracker-ring-progress${done?' done':''}" cx="${CX}" cy="${CY}" r="${R}"
             style="--rd:${targets.length * 420}ms${item.hue != null ? `;--trh:${item.hue}` : ''}"
             stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
@@ -14862,8 +14890,9 @@ function renderTrackers(row) {
   // Ringe von leer auf ihren Wert ziehen
   requestAnimationFrame(() => {
     targets.forEach(({ id, dashoffset }) => {
-      const ring = row.querySelector(`.tracker-ring-btn[data-id="${id}"] .tracker-ring-progress`);
-      if (ring) ring.style.strokeDashoffset = dashoffset;
+      // Beide Boegen ziehen gemeinsam auf — der Halo darf nicht hinterherhinken.
+      row.querySelectorAll(`.tracker-ring-btn[data-id="${id}"] .tracker-ring-progress, .tracker-ring-btn[data-id="${id}"] .tracker-ring-halo`)
+        .forEach(el => { el.style.strokeDashoffset = dashoffset; });
     });
   });
 }
