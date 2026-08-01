@@ -1,5 +1,32 @@
 # Modul-Split fuer Parallelarbeit — Umsetzungsplan
 
+> **ERLEDIGT am 01.08.2026**, gemergt als `28728ce` auf `main`, live und nativ verifiziert.
+> Der Plan bleibt als Beleg stehen; die verbindliche Beschreibung des Ergebnisses steht in
+> `CLAUDE.md` unter „Parallelarbeit". Ergebnis: `index.html` 36.591 → 2.133 Zeilen,
+> `css/app.css` (6.829) + 13 `js/app-*.js` (27.651).
+>
+> **Abweichungen vom Plan — bewusst, nicht aus Bequemlichkeit:**
+>
+> 1. **Keine Marker-Kommentare, kein Modul-fuer-Modul-Commit.** Der Plan sah 12 Einzelschritte
+>    mit je eigenem Testlauf vor, um bisektieren zu koennen. Stattdessen wurde erst mit einem
+>    AST-Lauf (`acorn`) bewiesen, dass es ueber alle 1.768 Top-Level-Knoten hinweg genau **fuenf**
+>    Stellen gibt, an denen der Split etwas kaputtmacht. Die wurden im ungesplitteten Zustand
+>    einzeln repariert und getestet (`59cd864`); danach war der Schnitt selbst reines
+>    Textverschieben mit `node --check` als Nachweis pro Datei. Bisektieren war damit
+>    gegenstandslos — es gab nichts mehr, wonach man haette suchen muessen.
+> 2. **Aufgabe 18 war viel kleiner als angenommen.** Der Plan wollte „allen ausfuehrenden
+>    Top-Level-Code" nach `app-boot.js` schieben — das waeren 533 Knoten und 3.219 Zeilen
+>    gewesen. Noetig war nur die 91-zeilige INIT-Startsequenz. Der Rest ist reihenfolgetreu und
+>    damit unveraendert korrekt, weil klassische Skripte in Dokumentreihenfolge laufen.
+> 3. **`app-basis` und `app-exercises` entfielen** (416 bzw. 275 Zeilen — zu klein), das
+>    6.017-zeilige `app-plans` wurde bei `openWorkout` geteilt. 13 Dateien statt 14.
+> 4. **Kein Rebase noetig** (Aufgabe 21): `main` stand beim Merge unveraendert auf dem
+>    Ausgangspunkt, der Merge war ein Fast-Forward.
+>
+> **Nachweise:** `node --check` auf allen 13 Dateien · 670 Tests gruen · Rauchtest lokal und
+> gegen die Live-Seite je 0 eigene Fehler · native App im Simulator mit gerendertem Heute-Tab ·
+> Gegenprobe mit einer undeklarierten Konstante in `js/app-workout.js` (Waechter wird rot).
+
 > **Fuer agentische Bearbeiter:** Aufgabe fuer Aufgabe abarbeiten. Schritte nutzen
 > Checkbox-Syntax (`- [ ]`). Entwurf: `docs/superpowers/specs/2026-08-01-parallelarbeit-modulsplit-design.md`
 
