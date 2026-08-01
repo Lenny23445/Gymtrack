@@ -68,7 +68,10 @@ Emulator, alle Agents teilen sich dieselbe echte Datenbank).
 ## Deploy / Versionsbump
 
 **Nach JEDER App-Änderung immer beides (Standard-Workflow, Mac):**
-1. Version bumpen: `APP_VERSION` in index.html == `CACHE` in sw.js (`gymtrack-vJJJJMMTTNNNN`)
+1. Version bumpen: `APP_VERSION` in **`js/app-i18n.js`** == `CACHE` in sw.js (`gymtrack-vJJJJMMTTNNNN`).
+   Seit dem Modul-Split (01.08.2026) steht `APP_VERSION` nicht mehr in index.html.
+   ⚠️ `GymTrack-Update.ps1` auf dem Windows-Desktop ersetzt `gymtrack-v\d+` noch in
+   index.html und findet dort nichts mehr — Pfad im Skript auf `js/app-i18n.js` umstellen.
 2. **Nativ lokal:** `npm run build && npx cap sync ios` → aktualisiert `www/` + `ios/App/App/public/` (Xcode/Codemagic bauen daraus)
 3. **Web parallel:** `git add` (nur geänderte Dateien) + `git commit` auf `main`; `git push origin main` → GitHub Pages deployt ~1 Min. Falls Push-Auth fehlt: committen und User Bescheid geben.
 
