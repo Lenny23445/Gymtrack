@@ -5986,6 +5986,61 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 /* Equalizer statt statischem Punkt: drei atmende Balken lesen sich als "hört zu",
    ein Blink-Punkt eher als Statuslampe. */
 .coach-bar-eq{display:flex;align-items:flex-end;gap:2.5px;height:13px;flex-shrink:0}
+
+/* ── DER VORSCHLAG IN DER LEISTE (.coach-bar.cb-offer) ────────────────────
+   Er bekommt keine eigene Flaeche. Die Leiste steht ohnehin im klebenden Kopf
+   und ist ohnehin sichtbar — der Vorschlag uebernimmt sie, statt darunter
+   einen zweiten Kasten aufzumachen. Zugeklappt ist er eine Zeile hoch, kostet
+   also NULL zusaetzliche Sicht auf die Satzliste. Das war der Punkt: eine
+   Karte, egal ob in der Uebung oder am unteren Rand, nimmt im Training Platz
+   weg, den es dort nicht gibt.
+   Ein Tipp auf die Zeile klappt Begruendung und Auswahl auf; nur DANN waechst
+   die Leiste, und nur, weil man es angefordert hat. */
+.coach-bar.cb-offer{
+  border-color:rgba(var(--acc-rgb),.55);
+  box-shadow:0 4px 20px rgba(var(--acc-rgb),.20);
+}
+.cb-offer-row{
+  display:flex;align-items:center;gap:8px;min-height:24px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.cb-offer-lbl{
+  flex:1;min-width:0;font-size:13px;font-weight:800;color:var(--text);
+  /* Eine Zeile, Rest gekuerzt: bricht der Titel um, wandert die Satzliste
+     beim Erscheinen doch wieder nach unten. Die volle Fassung steht eine
+     Antippung entfernt. */
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cb-offer-btn{
+  flex-shrink:0;width:28px;height:28px;padding:0;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;
+  border:1px solid transparent;-webkit-tap-highlight-color:transparent;
+  transition:transform .14s ease,opacity .14s ease;
+}
+.cb-offer-btn:active{transform:scale(.9)}
+.cb-offer-btn.ja{background:var(--acc);color:#fff}
+.cb-offer-btn.ja svg{stroke:#fff}
+.cb-offer-btn.nein{background:transparent;color:var(--text2);border-color:var(--gl-bdr)}
+/* Aufgeklappt: Begruendung und, wenn es mehrere Wege gibt, die Auswahl. */
+.cb-offer-more{
+  margin-top:8px;padding-top:8px;border-top:1px solid rgba(var(--acc-rgb),.20);
+  animation:cbMoreIn .22s cubic-bezier(.22,.9,.3,1);
+}
+@keyframes cbMoreIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.cb-offer-txt{font-size:12.5px;line-height:1.45;color:var(--text2)}
+.cb-offer-opts{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.cb-offer-opt{
+  flex:1 1 auto;min-width:82px;padding:7px 10px;border-radius:10px;
+  border:1px solid rgba(var(--acc-rgb),.35);background:rgba(var(--acc-rgb),.10);
+  color:var(--acc);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+}
+.cb-offer-opt:active{transform:scale(.97)}
+/* Bestaetigung: derselbe Ort, gruen, und sie verschwindet von selbst. */
+.coach-bar.cb-done{border-color:rgba(76,209,55,.55)}
+.cb-offer-ok{display:inline-flex;flex-shrink:0;color:#4cd137}
+.cb-offer-ok svg{stroke:#4cd137}
+@media (prefers-reduced-motion:reduce){.cb-offer-more{animation:none}}
 /* Die Balken stehen auf VOLLER Hoehe und werden gestaucht — nicht umgekehrt.
    Vorher liefen die Keyframes ueber 'height': das ist eine Layout-Eigenschaft,
    also rechnete die WebView 60-mal je Sekunde das Layout der Leiste neu, und
@@ -6057,56 +6112,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .coach-card-skip{display:block;margin:7px auto 0;background:none;border:none;font-family:inherit;
   font-size:11.5px;color:var(--text2);cursor:pointer;padding:2px}
 
-/* ── DER PLATZ DES LIVE-COACHES (#wk-coach-slot) ──────────────────────────
-   Ein fester Ort statt eines Einschubs mitten im Satz-Log. Warum das der Kern
-   des Problems war: die Karte wuchs frueher IN der Uebungskarte auf, also
-   zwischen Kopf und Satzzeilen. Alles darunter rutschte um ihre Hoehe nach
-   unten — und "alles darunter" ist genau die Zeile, auf die der Daumen gerade
-   zielte. Kein Anker und keine Scroll-Korrektur repariert das wirklich; sie
-   verschieben nur, WO es springt.
-
-   Hier klebt die Karte am unteren Rand des Blattes. Sie liegt UEBER dem
-   Inhalt, verschiebt also nichts, und sie steht bei jedem Vorschlag an
-   derselben Stelle — man muss sie nicht suchen.
-
-   Der Behaelter bleibt leer 0 hoch und ohne Rand; erst mit Inhalt bekommt er
-   Hoehe. Das Auf- und Zufahren laeuft ueber transform und opacity, nie ueber
-   Hoehe: eine Hoehenanimation waere wieder eine Verschiebung, also genau das,
-   was hier abgeschafft wird. */
-.wk-coach-slot{
-  position:sticky;
-  /* Ueber der Tabbar (bottom 6px + sab, ~66px hoch) — sonst liegt der untere
-     Rand der Karte hinter der Leiste und die Knoepfe sind halb verdeckt. */
-  bottom:calc(78px + var(--sab));
-  z-index:6;
-  pointer-events:none;                 /* leer: Taps gehen an die Karten dahinter */
-}
-.wk-coach-slot:empty{display:none}
-.wk-coach-slot > *{pointer-events:auto}
-/* Im Slot traegt die Karte ihre eigene Flaeche: sie schwebt jetzt ueber dem
-   Inhalt statt in einer Karte zu liegen, also braucht sie einen deckenden
-   Grund und einen Schatten, der sie abhebt. */
-.wk-coach-slot .coach-card{
-  margin-bottom:0;
-  animation:none;                      /* das Auffahren macht der Slot, s.u. */
-  background:var(--card);
-  border:1px solid rgba(var(--acc-rgb),.34);
-  box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 0 1px rgba(var(--acc-rgb),.06);
-  transform:translateY(14px);opacity:0;
-  transition:transform .34s cubic-bezier(.22,.9,.3,1),opacity .24s ease;
-}
-.wk-coach-slot.on .coach-card{transform:none;opacity:1}
-@keyframes ccSwapIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-.wk-coach-slot .coach-card.cc-swap{animation:ccSwapIn .26s cubic-bezier(.22,.9,.3,1)}
-/* Zu welcher Uebung der Vorschlag gehoert. Solange die Karte in der Uebung
-   steckte, war das selbstverstaendlich; unten am Rand ist es das nicht mehr. */
-.coach-card-for{
-  display:block;font-size:11px;font-weight:700;letter-spacing:.02em;
-  color:var(--text2);margin-bottom:3px;
-}
-@media (prefers-reduced-motion:reduce){
-  .wk-coach-slot .coach-card{transition:none;transform:none;opacity:1}
-}
 
 /* ── KI-TAGESBRIEFING auf der Startseite (.aic) ───────────────────────────
    Hochwertig statt laut: getönte Glasfläche, eine langsam wandernde Aurora,
@@ -7489,13 +7494,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
         <div id="wk-coach-bar" class="coach-bar" style="display:none"></div>
         </div>
         <div id="log-cards"></div>
-        <!-- Fester Platz fuer den Live-Coach. Die Vorschlagskarte stand frueher
-             IM Koerper der Uebungskarte: sie erschien mitten zwischen den
-             Satzzeilen, schob alles darunter weg und riss dem Nutzer die Zeile
-             unter dem Daumen fort ("die Fenster der Uebungen springen abrupt
-             nach unten"). Hier unten klebt sie am unteren Rand, immer an
-             derselben Stelle, und verschiebt nichts, was man gerade eintraegt. -->
-        <div id="wk-coach-slot" class="wk-coach-slot" aria-live="polite"></div>
         <textarea id="wk-note" class="wk-note-inp" placeholder="Notiz zum Training (optional)…" rows="2" oninput="_saveActiveWk()"></textarea>
         <button class="btn btn-gray" style="margin-top:10px;margin-bottom:8px" onclick="openMidAddExercise()">＋ Übung hinzufügen</button>
         <button class="btn btn-acc" style="margin-top:6px;margin-bottom:4px" onclick="finishWk()">Training beenden</button>
@@ -8286,7 +8284,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021130';
+const APP_VERSION = 'gymtrack-v202608021345';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19013,10 +19011,6 @@ function startActive() {
   if (!wkExIds.length) { alert('Wähle mindestens eine Übung!'); return; }
   _ensureRestNotifPermission(); // Pause-Ende-Signal darf im Hintergrund feuern
   _livePR = {};   // Live-PR-Tracker für neue Einheit zurücksetzen
-  // Der Platz des Coaches gehoert zur EINHEIT: ohne diesen Rueckstoss haelt
-  // _coachSlotRender() das Markup der letzten Einheit fuer "unveraendert" und
-  // schriebe die neue Karte nie.
-  _coachSlotHTML = '';
   _coachState = _coachDefaultState(); // Live-Coach-Rate-Limits für neue Einheit zurücksetzen
   _coachClearCard();
   _coachEvalTimers = {};
@@ -19482,12 +19476,6 @@ function renderLogCards() {
   try { _coachBarRender(); } catch(_) {}
   // Deckt toggleSetDone/addSet/delSet gleich mit ab: alle drei rendern neu.
   try { _wkBarRender(); } catch(_) {}
-  // Der Coach schreibt in seinen eigenen Platz — das Satz-Log oben ist damit
-  // fertig und wird davon nicht mehr angefasst.
-  try { _coachSlotRender(); } catch(e) { console.warn('[Coach] Platz:', e); }
-  // NACH _wkFocusApply: die Fokus-Schicht scrollt selbst, und eine Karte, die
-  // man annehmen soll, hat Vorrang vor der Fokus-Lage.
-  try { _coachCardReveal(); } catch(_) {}
   // "Uebung geoeffnet": die erste Uebung mit offenen Saetzen — dieselbe Uebung
   // erneut liefert dank Entprellung in _csExercise() KEINE zweite Ansage.
   try { _csSyncCurrentEx(); } catch(_) {}
@@ -26371,6 +26359,67 @@ function _coachBarAnimate(el, apply) {
     try { _wkSyncSnapPad(); _wkFocusDirty = true; _wkFocusSoon(); } catch(_) {}
   }, 0);
 }
+/* Ist der Vorschlag aufgeklappt? Der Zustand gehoert NICHT an _coachCard: der
+   wird bei jeder neuen Karte ersetzt, und ein neuer Vorschlag soll immer
+   zugeklappt anfangen — sonst schoebe er beim Erscheinen die Satzliste weg,
+   also genau das, was hier abgestellt wird. */
+let _coachOfferOpen = false;
+function _coachOfferToggle() {
+  _coachOfferOpen = !_coachOfferOpen;
+  haptic(8);
+  const el = document.getElementById('wk-coach-bar');
+  if (el) _coachBarOfferRender(el);
+}
+/* Die kurze Fassung des Vorschlags. Der Titel des Modells ist bereits knapp
+   ("Top-Satz-Chance"); traegt die Aktion einen Wert, steht er dahinter — das
+   ist die Zahl, um die es geht, und sie soll man lesen koennen, ohne zu
+   tippen. */
+function _coachOfferLabel(c) {
+  const t = (c.title || c.text || '').trim();
+  const a = c.action || {};
+  if (a.kind && a.kind !== 'none' && typeof a.value === 'number' && isFinite(a.value))
+    return t + ' · ' + kgToDisp(roundToStep(a.value)) + ' ' + unitLabel();
+  return t;
+}
+function _coachBarOfferRender(el) {
+  const c = (_coachCard && _coachCard.c) || {};
+  const opts = Array.isArray(c.options) ? c.options.filter(o => o && o.label && o.action) : [];
+  const hatAktion = !!(c.action && c.action.kind && c.action.kind !== 'none');
+  const uebernommen = !!(_coachCard && _coachCard.applied);
+  el.style.display = '';
+  el.className = 'coach-bar cb-offer' + (_coachOfferOpen ? ' open' : '') + (uebernommen ? ' cb-done' : '');
+  if (uebernommen) {
+    el.innerHTML = `<div class="cb-offer-row"><span class="cb-offer-ok">${ICO.check({s:15})}</span>` +
+      `<span class="cb-offer-lbl">${esc(_cm('Übernommen', 'Applied'))}</span>` +
+      `<span class="coach-ki-tag">KI</span></div>`;
+    return;
+  }
+  /* Der Haken nimmt an: bei einer Einzel-Aktion sie selbst, bei mehreren Wegen
+     den ERSTEN — das Modell setzt seine Empfehlung nach vorn. Wer einen
+     anderen Weg will, klappt auf. Gibt es gar keine Aktion (reines Lob),
+     bleibt nur das Wegtippen. */
+  const jaKnopf = (hatAktion || opts.length)
+    ? `<button type="button" class="cb-offer-btn ja" aria-label="${esc(_cm('Annehmen','Accept'))}"
+         onclick="event.stopPropagation();${opts.length ? '_coachPickOption(0)' : '_coachAccept()'}">${ICO.check({s:16})}</button>`
+    : '';
+  const mehr = _coachOfferOpen
+    ? `<div class="cb-offer-more">
+         ${c.text ? `<div class="cb-offer-txt">${esc(c.text)}</div>` : ''}
+         ${opts.length > 1 ? `<div class="cb-offer-opts">${opts.map((o,i) =>
+             `<button type="button" class="cb-offer-opt" onclick="event.stopPropagation();_coachPickOption(${i})">${esc(o.label)}</button>`
+           ).join('')}</div>` : ''}
+       </div>`
+    : '';
+  el.innerHTML = `<div class="cb-offer-row" onclick="_coachOfferToggle()">
+      <span class="coach-bar-eq"><i></i><i></i><i></i></span>
+      <span class="cb-offer-lbl">${esc(_coachOfferLabel(c))}</span>
+      <span class="coach-ki-tag">KI</span>
+      ${jaKnopf}
+      <button type="button" class="cb-offer-btn nein" aria-label="${esc(_cm('Ignorieren','Dismiss'))}"
+        onclick="event.stopPropagation();_coachDismiss()">✕</button>
+    </div>${mehr}`;
+}
+
 function _coachBarRender() {
   const el = document.getElementById('wk-coach-bar'); if (!el) return;
   const on = isPremium() && _coachLevel() !== 'off';
@@ -26394,6 +26443,17 @@ function _coachBarRender() {
   // KI-Chat (Knopf unten rechts), nicht ueber ein zweites Mikrofon im Training.
   // Auch keine Satz-Rueckfrage mehr: die Einschaetzung leitet _rpeDerive() aus
   // Soll und Ist ab, statt sie nach jedem Satz zu erfragen.
+  /* Ein offener Vorschlag uebernimmt die Leiste, statt eine zweite Flaeche
+     aufzumachen. Vorher war das eine eigene Karte — erst mitten im Satz-Log,
+     dann als Kasten am unteren Rand — und beide Male nahm sie Sicht weg, die
+     im Training niemand uebrig hat. Die Leiste ist ohnehin da und ohnehin
+     sichtbar; der Vorschlag kostet damit KEINEN zusaetzlichen Platz.
+     Zugeklappt ist er eine Zeile: worum es geht, dazu Annehmen und Verwerfen.
+     Erst ein Tipp auf die Zeile zeigt die Begruendung und, falls es mehrere
+     Wege gibt, die Auswahl. Wer weiterloggen will, ignoriert ihn einfach. */
+  const angebot = !!_coachCard;
+  if (angebot) { _coachBarOfferRender(el); return; }
+  _coachOfferOpen = false;
   _coachBarAnimate(el, () => {
     el.style.display = '';
     el.className = 'coach-bar' + (thinking ? ' thinking' : '');
@@ -26419,82 +26479,6 @@ function _coachBarRender() {
 function _coachClearCard() {
   if (_coachCard && _coachCard.timer) clearTimeout(_coachCard.timer);
   _coachCard = null;
-}
-
-/* ── Der Coach zieht in seinen eigenen Platz um (#wk-coach-slot) ──────────
-   Vorher wuchs die Vorschlagskarte mitten in der Uebungskarte auf, und weil
-   der Karten-Diff (_lcApply) je Uebung ein Stueck Markup vergleicht, wurde
-   dafuer die GANZE Uebungskarte ausgetauscht: neue Satzzeilen, neu gebundene
-   Wischgriffe, dazu eine Scroll-Korrektur, damit die Karte nicht wegrutscht.
-   Sichtbar war davon genau eins — ein Sprung.
-
-   Jetzt schreibt diese Funktion die Karte in den klebenden Platz am unteren
-   Rand. Das Satz-Log wird dabei nicht angefasst, also gibt es nichts zu
-   verschieben und nichts neu zu binden. Geschrieben wird nur, wenn sich das
-   Markup wirklich aendert — sonst liefe die Auffahrt bei jedem Neuzeichnen
-   (jeder Haken!) von vorn. */
-let _coachSlotHTML = '';
-let _coachSlotAus = 0;
-function _coachSlotRender() {
-  const slot = document.getElementById('wk-coach-slot');
-  if (!slot) return;
-  const html = _coachCard ? _coachCardHTML() : '';
-  if (html === _coachSlotHTML) return;
-  _coachSlotHTML = html;
-  if (_coachSlotAus) { clearTimeout(_coachSlotAus); _coachSlotAus = 0; }
-  if (!html) {
-    // Ausfahren, dann leeren. Sofort leeren hiesse: die Karte verschwindet
-    // schlagartig — genau das "Abgehackte", das hier weg soll.
-    slot.classList.remove('on');
-    _coachSlotAus = setTimeout(() => { _coachSlotAus = 0; if (!_coachSlotHTML) slot.innerHTML = ''; }, 300);
-    return;
-  }
-  const warLeer = !slot.firstElementChild;
-  slot.innerHTML = html;
-  if (warLeer) {
-    // Ein Bild Abstand: die Karte muss im Ausgangszustand (unten, unsichtbar)
-    // einmal gerechnet worden sein, sonst springt der Browser direkt zum
-    // Endzustand und die Auffahrt faellt aus.
-    slot.classList.remove('on');
-    requestAnimationFrame(() => requestAnimationFrame(() => slot.classList.add('on')));
-  } else {
-    // Inhaltswechsel bei stehender Karte — der haeufigste ist "Uebernommen"
-    // nach dem Annehmen. Das neue Markup ist ein frisches Element, ein
-    // transition greift daran nicht; also blendet es sich per Animation ein.
-    // Ohne das schlaegt die Bestaetigung hart an die Stelle des Vorschlags.
-    slot.classList.add('on');
-    const kind = slot.firstElementChild;
-    if (kind) kind.classList.add('cc-swap');
-  }
-}
-
-/* Nachruecken, falls der Platz des Coaches doch einmal unter der Unterkante
-   liegt — etwa direkt nach dem Oeffnen, wenn das Blatt ganz oben steht und
-   noch gar nicht gescrollt wurde. Gemerkt wird das Karten-Objekt selbst: jede
-   neue Karte ist ein neues Objekt, ein blosses Neuzeichnen (Satz abgehakt,
-   angenommen) dagegen nicht — sonst rueckte das Blatt bei jedem Rendern nach. */
-let _coachCardRevealed = null;
-function _coachCardReveal() {
-  if (!_coachCard) { _coachCardRevealed = null; return; }
-  if (_coachCardRevealed === _coachCard) return;
-  const sheet = document.querySelector('#ov-wk .sheet');
-  const el = document.querySelector('#wk-coach-slot .coach-card');
-  if (!sheet || !el || typeof WorkoutBar === 'undefined') return;
-  _coachCardRevealed = _coachCard;
-  // Ein Bild warten: die Karte ist gerade erst eingehaengt, ihre Hoehe steht
-  // erst nach dem Layout fest.
-  requestAnimationFrame(() => {
-    const sr = sheet.getBoundingClientRect();
-    const r  = el.getBoundingClientRect();
-    const d  = WorkoutBar.revealDelta(r.top - sr.top, r.bottom - sr.top,
-                                      sheet.clientHeight, _wkSnapPadPx || 72);
-    if (!d) return;
-    const max = Math.max(0, sheet.scrollHeight - sheet.clientHeight);
-    const ziel = Math.min(max, Math.max(0, sheet.scrollTop + d));
-    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    try { sheet.scrollTo({ top: ziel, behavior: reduce ? 'auto' : 'smooth' }); }
-    catch(_) { sheet.scrollTop = ziel; }
-  });
 }
 
 // Debounce (~1.2s je Satz, Key = "li_si") — wird vom Abhaken des Satzes (toggleSetDone)
@@ -28108,52 +28092,6 @@ function _coachEvalRun(li, si) {
 }
 
 // ── Vorschlagskarte: Rendering + Annehmen/Ignorieren ──
-function _coachCardHTML() {
-  // Läuft INNERHALB des renderLogCards()-Template-Literals (map über alle
-  // Übungen) — ein Fehler hier würde ohne dieses try/catch das komplette
-  // Satz-Log zum Absturz bringen. Im Fehlerfall lieber keine Karte als ein
-  // kaputtes Trainings-Screen.
-  try {
-    if (!_coachCard) return '';
-    const c = _coachCard.c || {};
-    if (_coachCard.applied) {
-      return `<div class="coach-card"><div class="coach-card-bar"></div>
-        <div class="coach-card-body coach-card-applied">${ICO.check({s:16})}<span>Übernommen</span></div></div>`;
-    }
-    // Entweder mehrere Wege (options) ODER eine Einzel-Aktion (action) ODER reines
-    // Lob ohne Aktion (kind:'none'/fehlt) — s. COACH_SCHEMA im Worker.
-    const opts = Array.isArray(c.options) ? c.options.filter(o => o && o.label && o.action) : [];
-    const hasAction = c.action && c.action.kind && c.action.kind !== 'none';
-    let btns = '';
-    if (opts.length) {
-      btns = `<div class="coach-card-opts">${opts.map((o,i) =>
-          `<button type="button" class="coach-card-opt" onclick="_coachPickOption(${i})">${esc(o.label)}</button>`).join('')}</div>
-        <button type="button" class="coach-card-skip" onclick="_coachDismiss()">Ignorieren</button>`;
-    } else if (hasAction) {
-      btns = `<div class="coach-card-btns">
-          <button type="button" class="coach-card-btn accept" onclick="_coachAccept()">Annehmen</button>
-          <button type="button" class="coach-card-btn dismiss" onclick="_coachDismiss()">Ignorieren</button>
-        </div>`;
-    }
-    // Zu welcher Uebung: die Karte steht nicht mehr in der Uebungskarte,
-    // sondern unten am Rand — ohne den Namen waere bei sechs Uebungen nicht
-    // mehr klar, worauf sich "naechster Satz" bezieht.
-    let fuer = '';
-    try {
-      const exC = exById(_coachCard.exId);
-      if (exC && exC.name) fuer = `<span class="coach-card-for">${esc(exC.name)}</span>`;
-    } catch(_) {}
-    return `<div class="coach-card" id="coach-card-live">
-      <div class="coach-card-bar"></div>
-      <div class="coach-card-body">
-        ${fuer}
-        <div class="coach-card-head">${ICO.sparkle({s:15})}<span class="coach-card-title">${esc(c.title||'')}</span></div>
-        <div class="coach-card-text">${esc(c.text||'')}</div>
-        ${btns}
-      </div>
-    </div>`;
-  } catch(e) { console.warn('[Coach] card render:', e); return ''; }
-}
 function _coachDismiss() {
   // Zuerst loggen, dann aufraeumen: nach _coachClearCard() ist _coachCard leer.
   try {
@@ -28283,7 +28221,7 @@ function _coachCommitAction(action) {
   try { if (li >= 0) _coachApplyAction(li, action, _coachCard.baseW); } catch(e) { console.warn('[Coach] Aktion:', e); }
   _coachCard.applied = true;
   try { haptic(14); } catch(_) {}
-  renderLogCards(); // zeigt kurz die Checkmark-Bestätigung (applied-Zweig von _coachCardHTML)
+  renderLogCards(); // zeigt kurz die Bestaetigung in der Coach-Leiste (cb-done)
   setTimeout(() => { _coachClearCard(); renderLogCards(); }, 1000);
 }
 function _coachAccept() {
