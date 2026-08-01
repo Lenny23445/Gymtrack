@@ -5395,9 +5395,12 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
    erst recht: eine aufklappende Kachel darf das Blatt nicht wachsen lassen. */
 #ov-coach-hub .sheet{height:min(78vh,var(--sheet-cap));display:flex;flex-direction:column;
   overflow:hidden;padding-bottom:0;position:relative}
-/* Kein Wellenfeld im Blatt: das Licht gehoert auf die Karte, die den Coach
-   ankuendigt — im Blatt selbst stand es hinter Kacheln und Text und machte die
-   Flaeche nur unruhig. Die Karte auf dem Heute-Tab behaelt ihres. */
+/* Das Feld liegt UNTER allem im Blatt. Kopf, Griff und Inhalt bekommen dafuer
+   eine eigene Ebene — ohne die stuende der Canvas als letztes Kind im Fluss
+   ueber dem Text. */
+.ch-wv{position:absolute;inset:0;z-index:0;pointer-events:none}
+#ov-coach-hub .sheet>.sh-handle,#ov-coach-hub .sheet>.sh-head,
+#ov-coach-hub .sheet>.px{position:relative;z-index:1}
 #ov-coach-hub .sheet>.px{flex:1;min-height:0;display:flex;flex-direction:column}
 /* #ch-body ist NUR der Scroller. Darin liegen zwei Ebenen übereinander
    (.ch-stage): das Raster der fünf Kacheln und die Detailebene. Immer genau
@@ -8054,6 +8057,12 @@ textarea.pf-inp{height:auto;padding:12px 13px}
      renderCoachHub() in #ch-body. -->
 <div class="ov" id="ov-coach-hub" onclick="if(event.target===this)closeOv('ov-coach-hub')">
   <div class="sheet">
+    <!-- Dasselbe Wellenfeld wie auf der Heute-Karte, nur leiser: das Blatt ist
+         der Innenraum des Coaches, und es soll sichtbar dieselbe Flaeche sein
+         wie die Karte, die es oeffnet. Der Canvas steht STATISCH im Blatt und
+         nicht in #ch-body — der Body wird bei jedem Schalter neu gebaut, das
+         Feld wuerde bei jedem Tipp neu anlaufen. -->
+    <canvas class="aic-wv ch-wv" id="ch-wave" aria-hidden="true"></canvas>
     <div class="sh-handle"></div>
     <div class="sh-head ch-head"><button type="button" class="ch-back" id="ch-back" onclick="coachHubBack()" aria-label="Zurück" hidden></button><span class="aic-orb" id="ch-orb" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg></span><div class="ch-head-t"><h2 id="ch-title">Coach</h2><i id="ch-sub"></i></div><button class="x-btn" onclick="closeOv('ov-coach-hub')">✕</button></div>
     <div class="px">
@@ -8175,7 +8184,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020012';
+const APP_VERSION = 'gymtrack-v202608020013';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -28443,6 +28452,9 @@ function openCoachHub(tab){
   // Öffnen des Blattes nie halb offen da.
   _chGoalOpen = false; _chGoalHint = '';
   openOv('ov-coach-hub');
+  // Leiser als auf der Karte (.62): hier liegen Kacheln darueber, und ein Feld,
+  // das mit ihnen um Aufmerksamkeit ringt, macht das Blatt unruhig.
+  try { _aicWaveAttach(document.getElementById('ch-wave'), .62); } catch(_) {}
   renderCoachHub();
 }
 /* Eine Kachel öffnen und wieder zurück. Zwei Ebenen, eine Bewegung.
