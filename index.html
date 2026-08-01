@@ -8196,7 +8196,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020007';
+const APP_VERSION = 'gymtrack-v202608020008';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9402,6 +9402,14 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-02-coach-einrichtung': {
+    label: '02.08.2026 · Coach-Einrichtung: drei Schritte statt vier',
+    items: [
+      'Die Frage nach der Stimme ist raus — den Sprech-Knopf gibt es nicht mehr',
+      'Der letzte Schritt fragt jetzt nach den Meldungen deines Coaches (Wochenbericht, erholte Muskeln) statt nach der einfachen Trainings-Erinnerung, die es auch ohne Premium gibt',
+      'Die einfache Erinnerung bleibt unberührt in den Einstellungen',
+    ]
+  },
   'cl-2026-08-02-coach-widget': {
     label: '02.08.2026 · Coach-Karte in der Größe verstellbar',
     items: [
@@ -30401,7 +30409,7 @@ function _chScopeHTML(){
 // _CH_PRESETS, _chToneLine, _chToneExInner, _chSwitch, .ch-preset/.ch-voice) —
 // kein zweites Aussehen für dieselbe Sache. Die Schrittführung nimmt die
 // bestehenden Wizard-Klassen (.pwz-dots/.pwz-q/.pwz-s/.pwz-nav).
-const _CS_STEPS = 4;
+const _CS_STEPS = 3;
 // Erst 420 ms nach dem Schließen der Paywall erscheint die Einrichtung: zwei
 // gleichzeitig laufende Overlay-Animationen sehen kaputt aus. Derselbe Versatz
 // trägt die Übergabe an den Hub am Ende.
@@ -30491,71 +30499,14 @@ function _csStep1HTML(){
     ${(() => { const inner = _chToneExInner();
         return inner ? `<div class="ch-jrn ghost" id="cst-tone-ex">${inner}</div>` : ''; })()}`;
 }
-// ── Schritt 2: Stimme ────────────────────────────────────────────────────
-// Wieder da, seit TtsPlugin.swift steht (dieser Kommentar beschrieb bis eben den
-// Weg zurück, jetzt beschreibt er den Zustand): _CS_STEPS ist wieder 4, und das
-// DATENFELD voiceOn, das die ganze Zeit in S.aiCoach und CoachPersona.personaGet
-// mitlief, hat endlich wieder einen Schalter.
-//
-// Der Erklärsatz nennt beide Zusagen, die den Unterschied machen: gefragt wird
-// nur auf Knopfdruck, und laufende Musik wird leiser statt abgeschnitten
-// (.duckOthers im Plugin). Ohne diese zwei Sätze klingt "sprechen" nach einer
-// App, die im Gym von selbst losredet.
+/* Der Sprech-Schritt ist ENTFERNT. Er waehlte Stimme und Sprachausgabe fuer den
+   Sprech-Knopf im Training — und den Knopf gibt es nicht mehr. Eine Einrichtung,
+   die etwas einstellt, das die App nicht mehr hat, ist schlimmer als eine
+   fehlende Frage: sie verspricht eine Funktion. Das Datenfeld voiceOn bleibt in
+   S.aiCoach unberuehrt liegen, damit nichts anderes darueber stolpert. */
+
+// ── Schritt 2: Umfang ────────────────────────────────────────────────────
 function _csStep2HTML(){
-  const nm = _coachName();
-  const an = _persona().voiceOn !== false;
-  return `<div class="pwz-q">${esc(_cm('Soll ' + nm + ' mit dir sprechen?',
-                                       'Should ' + nm + ' speak to you?'))}</div>
-    <div class="pwz-s">${esc(_cm(
-      'Nur wenn du im Training auf den Sprech-Knopf drückst — von selbst sagt ' + nm + ' nie etwas. Laufende Musik wird dabei leiser, nicht unterbrochen.',
-      nm + ' only speaks when you press the talk button during your workout — never on its own. Music ducks instead of stopping.'))}</div>
-    <button type="button" class="ch-preset${an ? '' : ' on'}" onclick="coachSetupVoiceOn(false)">
-      <b>${esc(_cm('Lieber lesen','Rather read'))}</b><span>${esc(_cm(
-        'Antworten stehen nur in der Leiste.','Answers appear in the bar only.'))}</span></button>
-    <button type="button" class="ch-preset${an ? ' on' : ''}" onclick="coachSetupVoiceOn(true)">
-      <b>${esc(_cm('Ja, sprich mit mir','Yes, speak to me'))}</b><span>${esc(_cm(
-        'Antworten kommen gesprochen und geschrieben.','Answers come spoken and written.'))}</span></button>
-    <div class="ch-voices" id="cst-voices"></div>`;
-}
-function coachSetupVoiceOn(on){
-  try { setAiCoachOpt('voiceOn', !!on); } catch(e) { console.warn('[Coach] Stimme schalten:', e); }
-  try { renderCoachSetup(); } catch(e) { console.warn('[Coach] Einrichtung neu zeichnen:', e); }
-}
-// Stimmenliste: höchstens acht. Vorausgewählt ist CoachVoice.pickVoice(...);
-// liefert das null, bleibt es bei der Systemstimme. Ist die Sprachausgabe aus,
-// verschwindet die Liste — ein Wahlfeld für etwas Abgeschaltetes ist Deko.
-// Die Kennungen hängen NICHT als Text im onclick: eine Stimm-Kennung ist ein
-// fremder String, und der gehört nicht in ein Attribut.
-async function _csRenderVoices(el){
-  if (!el) return;
-  const p = _persona();
-  if (p.voiceOn === false || !_cvCaps.tts) { el.innerHTML = ''; return; }
-  let list = [];
-  try { list = await _coachVoiceList(); } catch(e) { console.warn('[Coach] Stimmen laden:', e); list = []; }
-  if (!list.length) {
-    el.innerHTML = `<div class="pwz-s">${esc(_cm('Auf diesem Gerät ist keine Stimme installiert.',
-                                                 'No voice is installed on this device.'))}</div>`;
-    return;
-  }
-  const top = list.slice(0, 8);
-  const sel = window.CoachVoice.pickVoice(list, p.voice || null, GT_LANG === 'en' ? 'en' : 'de');
-  el.innerHTML = top.map((v, i) =>
-    `<button type="button" class="ch-vopt${v.id === sel ? ' on' : ''}" data-i="${i}">${esc(v.name || v.id)}</button>`).join('');
-  Array.prototype.forEach.call(el.querySelectorAll('.ch-vopt'), (b) => {
-    b.onclick = () => coachSetupPickVoice(top[parseInt(b.getAttribute('data-i'), 10)]);
-  });
-}
-// Vorhören mit genau dem Satz, den der Coach später wirklich sagt — kein "Dies
-// ist eine Testansage": man wählt die Stimme für den echten Fall.
-function coachSetupPickVoice(v){
-  if (!v || !v.id) return;
-  try { setAiCoachOpt('voice', v.id); } catch(e) { console.warn('[Coach] Stimme wählen:', e); }
-  try { _csRenderVoices(document.getElementById('cst-voices')); } catch(e) { console.warn('[Coach] Stimmen zeichnen:', e); }
-  try { const tone = _persona().tone; coachSpeak(_chToneSayText(tone) || _chToneLine(tone)); }
-  catch(e) { console.warn('[Coach] Vorhören:', e); }
-}
-// ── Schritt 3: Umfang ────────────────────────────────────────────────────
-function _csStep3HTML(){
   const p = _persona();
   // Vorbelegt ist die MITTLERE, nicht die lauteste. preset ist hier noch offen
   // (undefined) — 'balanced' trägt trotzdem schon die Markierung, damit „Fertig"
@@ -30569,87 +30520,59 @@ function _csStep3HTML(){
       `<button type="button" class="ch-preset${x.k === cur ? ' on' : ''}" onclick="setCoachPreset('${x.k}')">
         <b>${esc(tr(x.de))}</b><span>${esc(tr(x.s))}</span></button>`).join('')}`;
 }
-// ── Schritt 4: die Trainings-Erinnerung ──────────────────────────────────
-// Die INHALTLICHE Erinnerung („Heute Push — Bank 3 × 8 @ 62,5", Block 4) hängt
-// an S.notifEnabled. Der Schalter steht per Default AUS und liegt in den
-// Einstellungen unter „Benachrichtigungen"; die Systemberechtigung wiederum
-// bietet bisher nur die Zeile „Mitteilungen erlauben" im Coach-Hub an. Ein
-// frischer Nutzer sieht die Vorzeigefunktion des Blocks also nie.
-//
-// Deshalb steht die Frage HIER: es ist derselbe Moment, in dem der Nutzer
-// ohnehin bewusst festlegt, wie sehr sich der Coach einmischt — und die einzige
-// Stelle, an der er versteht, wofür sein Gerät gleich nach Erlaubnis fragt.
-// ZULETZT, weil danach nichts mehr kommt: der Systemdialog erscheint direkt nach
-// dem Ja, nicht drei Bildschirme später. iOS zeigt ihn EINMAL pro Installation,
-// eine Ablehnung ist dauerhaft.
-//
-// Vorbelegt ist die ZURÜCKHALTENDE Karte. „Fertig" ohne Tipp schaltet nichts
-// ein; nichts wird ungefragt aktiviert. Die Zeile im Hub bleibt, wo sie ist —
-// sie ist der Nachhol-Weg für Bestandsnutzer.
-function _csStep4HTML(){
+// ── Schritt 3: die Meldungen des Coaches ─────────────────────────────────
+/* Bis hierher fragte dieser Schritt nach der TRAININGS-ERINNERUNG (S.notifEnabled).
+   Die gibt es aber auch OHNE Abo — sie steht in den Einstellungen unter
+   "Benachrichtigungen" und hat mit dem Coach nichts zu tun. Wer gerade Premium
+   gekauft hat, bekam hier also eine Frage gestellt, die seinen Kauf nicht
+   betrifft.
+
+   Was das Abo wirklich dazugibt, sind die Meldungen des Coaches selbst:
+   Wochenbericht, Hinweis auf wieder erholte Muskelgruppen, Nachfassen nach
+   stillen Tagen. Genau die stehen jetzt hier.
+
+   ZULETZT, weil danach nichts mehr kommt: der Systemdialog erscheint direkt nach
+   der Wahl, nicht drei Bildschirme spaeter. iOS zeigt ihn EINMAL pro
+   Installation, eine Ablehnung ist dauerhaft. Ausgeloest wird er ueber den
+   BESTEHENDEN Weg (setAiCoachOpt('pushLevel', …) → _cnLevelChanged →
+   _cnPermission); ein zweiter Abfragepfad waere die naechste Stelle, die
+   auseinanderlaeuft.
+
+   Vorbelegt ist die Stufe, die im Schritt davor gewaehlt wurde — "Fertig" ohne
+   Tipp aendert hier also nichts. */
+const _CS_PUSH = [
+  { k:'still',  de:'Nur in der App',   en:'In the app only',
+    sd:'Dein Coach meldet sich nie von selbst.',
+    se:'Your coach never speaks up on its own.' },
+  { k:'normal', de:'Wichtige Momente', en:'Key moments',
+    sd:'Wochenbericht, erholte Muskelgruppen, längere Pausen.',
+    se:'Weekly report, recovered muscle groups, longer breaks.' },
+  { k:'eng',    de:'Eng dabei',        en:'Close by',
+    sd:'Dazu Erinnerungen an deinen Trainingstagen.',
+    se:'Plus reminders on your training days.' }
+];
+function _csStep3HTML(){
   const nm = _coachName();
-  const zeit = S.notifTime || '08:00';
-  const an = S.notifEnabled === true;
-  return `<div class="pwz-q">${esc(_cm('Soll dich ' + nm + ' an dein Training erinnern?',
-                                       'Should ' + nm + ' remind you about your workouts?'))}</div>
-    <div class="pwz-s">${esc(tr('Die Erinnerung nennt Übung, Sätze, Wiederholungen und Gewicht deines nächsten Trainings.'))}</div>
-    <button type="button" class="ch-preset${an ? '' : ' on'}" onclick="coachSetupReminder(false)">
-      <b>${esc(tr('Nicht erinnern'))}</b><span>${esc(_cm(
-        nm + ' meldet sich nur, wenn du die App öffnest.',
-        nm + ' only speaks up when you open the app.'))}</span></button>
-    <button type="button" class="ch-preset${an ? ' on' : ''}" onclick="coachSetupReminder(true)">
-      <b>${esc(tr('Ja, erinnere mich'))}</b><span>${esc(_cm(
-        'Täglich um ' + zeit + ' Uhr an deinen Trainingstagen. Dein Gerät fragt dich einmal um Erlaubnis.',
-        'Daily at ' + zeit + ' on your training days. Your device asks for permission once.'))}</span></button>`;
+  let cur = 'normal'; try { cur = _persona().pushLevel || 'normal'; } catch(_) {}
+  return `<div class="pwz-q">${esc(_cm('Wann darf sich ' + nm + ' melden?',
+                                       'When may ' + nm + ' reach out?'))}</div>
+    <div class="pwz-s">${esc(_cm(
+      'Das sind die Mitteilungen deines Coaches — sie gehören zu Premium. Die einfache Trainings-Erinnerung bleibt davon unberührt in den Einstellungen.',
+      "These are your coach's notifications — part of Premium. The plain workout reminder stays untouched in settings."))}</div>
+    ${_CS_PUSH.map(x =>
+      `<button type="button" class="ch-preset${x.k === cur ? ' on' : ''}" onclick="coachSetupPush('${x.k}')">
+        <b>${esc(_cm(x.de, x.en))}</b><span>${esc(_cm(x.sd, x.se))}</span></button>`).join('')}`;
 }
-// Gemeinsamer Rückweg für „Nicht erinnern" UND für die Ablehnung des
-// Systemdialogs. Bewusst über den bestehenden Schalterweg toggleNotif(false):
-// der räumt die schon geplanten Termine (ids 1000–1999) mit ab, statt sie
-// verwaist stehen zu lassen — ein zweiter Abräumpfad wäre die nächste Stelle,
-// die auseinanderläuft.
-async function _csReminderOff(){
-  try { await toggleNotif(false); }
-  catch(e) {
-    console.warn('[Coach] Erinnerung aus:', e);
-    // Der Zustand muss auch dann stimmen, wenn der Schalterweg platzt.
-    S.notifEnabled = false;
-    try { persist(); } catch(_) {}
-  }
+/* Aeusserer Deckel wie ueberall in dieser Flaeche: die Funktion haengt an einem
+   inline onclick und darf weder den Kauf noch die Einrichtung abbrechen.
+   Zweimal gezeichnet, weil die Rueckkehr auf 'still' nach einer Ablehnung
+   ASYNCHRON passiert (Systemdialog) — eine Karte, die die Ablehnung nicht
+   zeigt, waere die schlechtere Haelfte. */
+function coachSetupPush(stufe){
+  try { setAiCoachOpt('pushLevel', stufe); }
+  catch(e) { console.warn('[Coach] Push-Stufe in der Einrichtung:', e); }
   try { renderCoachSetup(); } catch(_) {}
-  // Der Coach-Plan trägt die inhaltliche Erinnerung — er muss sie mit fallen lassen.
-  try { await _cnSync(); } catch(e) { console.warn('[Coach] Erinnerung planen:', e); }
-}
-/* Der EINZIGE Ort in der Einrichtung, an dem die Systemberechtigung erfragt
-   wird — über denselben Weg wie der Hub (_cnPermission), aus demselben Grund:
-   ein Dialog pro Installation. Ohne Premium fragt _cnPermission() gar nicht
-   erst; der Riegel steht dort und nicht hier, damit ihn keine Fläche umgeht.
-   Verweigert der Nutzer, ist das KEIN Fehler: der Schalter bleibt aus, ein
-   ruhiger Hinweis erscheint, die Karte springt zurück — genau wie in
-   _cnLevelChanged() und coachHubAskPerm(). Äußerer Deckel wie überall in dieser
-   Fläche: die Funktion hängt an einem inline onclick und darf weder den Kauf
-   noch die Einrichtung abbrechen. */
-async function coachSetupReminder(on){
-  try {
-    if (!on) { await _csReminderOff(); return; }
-    let ok = false;
-    try { ok = await _cnPermission(); }
-    catch(e) { console.warn('[Coach] Erinnerung Berechtigung:', e); ok = false; }
-    if (!ok) {
-      try { _dndToast(_cm('Ohne Mitteilungen meldet sich dein Coach nur in der App.',
-                          'Without notifications your coach only speaks inside the app.')); } catch(_) {}
-      await _csReminderOff();
-      return;
-    }
-    S.notifEnabled = true;
-    try { persist(); } catch(e) { console.warn('[Coach] Erinnerung sichern:', e); }
-    try { updateNotifUI(); } catch(_) {}
-    try { renderCoachSetup(); } catch(_) {}
-    // Die Erinnerung soll ab heute stehen, nicht erst beim nächsten App-Start.
-    try { await _cnSync(); } catch(e) { console.warn('[Coach] Erinnerung planen:', e); }
-  } catch(e) {
-    console.warn('[Coach] Erinnerung:', e);
-    try { renderCoachSetup(); } catch(_) {}
-  }
+  setTimeout(() => { try { renderCoachSetup(); } catch(_) {} }, 900);
 }
 function renderCoachSetup(){
   const ov = document.getElementById('ov-coach-setup');
@@ -30667,14 +30590,9 @@ function renderCoachSetup(){
       for (let i = 1; i <= _CS_STEPS; i++) d += `<div class="pwz-dot${i === _csStep ? ' on' : ''}"></div>`;
       dots.innerHTML = d; }
     if (_csHold) return;
-    body.innerHTML = _csStep === 4 ? _csStep4HTML()
-                   : _csStep === 3 ? _csStep3HTML()
+    body.innerHTML = _csStep === 3 ? _csStep3HTML()
                    : _csStep === 2 ? _csStep2HTML()
                    : _csStep1HTML();
-    // Die Stimmenliste kommt asynchron aus dem Plugin und wird deshalb NACH dem
-    // Body nachgereicht — der Schritt steht sofort, die Liste tröpfelt hinein.
-    if (_csStep === 2) { try { _csRenderVoices(document.getElementById('cst-voices')); }
-                         catch(e) { console.warn('[Coach] Stimmen zeichnen:', e); } }
     // Getrennter Behälter, damit die Leiste nicht mit dem Inhalt wegscrollt.
     const nav = document.getElementById('cst-nav'); if (nav) nav.innerHTML = _csNavHTML();
   } catch(e) { console.warn('[Coach] Einrichtung zeichnen:', e); }
