@@ -1078,6 +1078,20 @@ body{
 }
 .tab.on svg{animation:tab-ic-pop .40s cubic-bezier(.34,1.56,.64,1) both}
 
+/* Die Coach-Karte im Raster: sie fuellt ihre Zelle. Der Aussenabstand der
+   freistehenden Karte (margin-bottom) faellt weg — im Raster sorgt die Luecke
+   des Rasters fuer den Abstand, sonst stuende sie schief zwischen den anderen. */
+.hw-content>#coach-today-card{height:100%;min-height:0}
+#coach-today-card>.aic{margin:0;height:100%;display:flex;flex-direction:column}
+#coach-today-card>.aic>.aic-in{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+/* Klein: nur Ring und Name. Der Ring rueckt in die Mitte, der Kopf wird schmal. */
+.aic-sm .aic-in{padding:9px 10px 10px}
+.aic-sm .aic-main{margin-top:6px;justify-content:center}
+.aic-sm .aic-left{flex:1;align-items:center}
+.aic-sm .aic-lbl{font-size:10px;letter-spacing:.6px}
+/* Mittel: Ring plus Schlagzeile, kein Coach-Satz. */
+.aic-md .aic-in{padding:10px 11px 11px}
+
 /* Netzdiagramm der Erfolge: quadratische Flaeche, damit das Netz rund bleibt —
    ein gestrecktes Netz liest sich als Verzerrung der Werte. */
 .erf-radar-card{padding:12px 10px 6px}
@@ -6331,7 +6345,6 @@ textarea.pf-inp{height:auto;padding:12px 13px}
     </div>
   </div>
   <div class="pad heute-pad" id="heute-pad">
-    <div id="coach-today-card"></div>
     <div id="heute-grid"></div>
   </div>
 </div>
@@ -8183,7 +8196,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020006';
+const APP_VERSION = 'gymtrack-v202608020007';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -9389,6 +9402,14 @@ function _trTree(root) {
 const CHANGELOG = {
   // WICHTIG: Keys dürfen NICHT dem Muster gymtrack-v\d+ entsprechen,
   // sonst werden sie vom Deploy-Script überschrieben. Reihenfolge: NEUESTE zuerst.
+  'cl-2026-08-02-coach-widget': {
+    label: '02.08.2026 · Coach-Karte in der Größe verstellbar',
+    items: [
+      'Die Coach-Karte liegt jetzt im Raster des Heute-Tabs wie jedes andere Widget — Größe ziehen, verschieben, entfernen',
+      'Klein zeigt sie nur Ring und Namen, mittel dazu die Schlagzeile und deine Woche, groß zusätzlich den Satz vom Coach',
+      'Wer sein Raster schon selbst eingerichtet hat, bekommt die Karte einmalig oben eingefügt',
+    ]
+  },
   'cl-2026-08-02-erfolge-netz': {
     label: '02.08.2026 · Erfolge: dein Kraftprofil auf einen Blick',
     items: [
@@ -11879,6 +11900,7 @@ const DEFAULT_HEUTE_LAYOUT = [
   /* 'weekcal' ist hier raus: dieselbe Wochenübersicht mit demselben Kalender
      dahinter steht bereits im Statistik-Tab — zweimal dasselbe wirkte doppelt.
      In der Widget-Auswahl steht es aber zur Verfügung (siehe WIDGET_DEFS). */
+  {type:'coach',   size:'lg'},
   {type:'streak',  size:'sm'},
   {type:'recovery',size:'sm'},
   {type:'weight',  size:'md'},
@@ -11910,6 +11932,9 @@ const WIDGET_DEFS = {
   qweight: {title:'',                icon:'⚖️', label:'Gewicht eintragen', desc:'Schnellzugriff',              sizes:['sm','md','lg'], lgRows:1, build:(size)=>hwQuick('','Gewicht','openWeightEntry()',size)},
   plans:   {title:'Deine Trainingspläne', icon:'', label:'Trainingspläne', desc:'Pläne mit einem Tipp starten', sizes:['sm','md','lg'], lgRows:2, build:hwPlans},
   social:  {title:'Rangliste',       icon:'', label:'Rangliste',        desc:'Wochen-Vergleich mit Freunden', sizes:['sm','md','lg'], lgRows:2, build:hwSocial},
+  // Der Coach steht im Raster wie jedes andere Widget — kein Sonderplatz mehr
+  // ueber dem Raster. Sein Inhalt richtet sich nach der Groesse (s. _aicSize).
+  coach:   {title:'',                icon:'', label:'KI-Coach',         desc:'Tagesempfehlung & Coach-Menü', sizes:['sm','md','lg'], lgRows:2, build:()=>`<div id="coach-today-card"></div>`, fill:renderCoachTodayCard},
 };
 const WIDGET_PICK_ORDER = ['woche','weekcal','weight','history','train','plans','social','streak','volume','recovery','muscles','onerm','qadd','qweight'];
 
@@ -11920,6 +11945,22 @@ function getHeuteLayout(){
     return S.heuteLayout.filter(w => w && WIDGET_DEFS[w.type]);
   return DEFAULT_HEUTE_LAYOUT.map(w => ({...w}));
 }
+/* Einmalige Nachruestung: wer schon ein eigenes Raster gespeichert hat, kennt
+   das Coach-Widget nicht — die Karte stand frueher FEST ueber dem Raster. Ohne
+   diesen Schritt waere der Coach nach dem Update einfach weg.
+   Der Merker ist Pflicht: wer das Widget bewusst entfernt, darf es nicht bei
+   jedem Start zurueckbekommen. */
+function _migCoachWidget(){
+  try {
+    if (S.heuteCoachMig) return;
+    S.heuteCoachMig = 1;
+    if (Array.isArray(S.heuteLayout) && S.heuteLayout.length
+        && !S.heuteLayout.some(w => w && w.type === 'coach')) {
+      S.heuteLayout.unshift({ type:'coach', size:'lg' });
+    }
+    persist();
+  } catch(e) { console.warn('[Heute] Coach-Widget nachruesten:', e); }
+}
 function _heuteLayout(){
   if (!Array.isArray(S.heuteLayout)) S.heuteLayout = getHeuteLayout();
   return S.heuteLayout;
@@ -11928,6 +11969,7 @@ function _heuteLayout(){
 function renderHeuteGrid(){
   const grid = document.getElementById('heute-grid');
   if (!grid) return;
+  _migCoachWidget();
   const layout = getHeuteLayout();
   if (!layout.length){
     grid.innerHTML = `<div class="heute-grid-empty">Keine Widgets.<br>Lange auf die Seite drücken oder ＋ tippen, um welche hinzuzufügen.</div>`;
@@ -12968,9 +13010,21 @@ function _aicCardTap(card) {
     try { openCoachHub(); } catch(e) { console.warn('[Coach] Hub öffnen:', e); }
   };
 }
+/* Die Coach-Karte ist ein WIDGET wie die anderen: sie liegt im Raster des
+   Heute-Tabs und laesst sich in der Groesse ziehen. Was sie zeigt, haengt an
+   dieser Groesse — eine Karte, die klein gezogen denselben Text traegt, ist
+   nicht kleiner, sondern nur gedraengter:
+     sm  Ring und Name. Wie weit bin ich erholt, mehr nicht.
+     md  dazu die Schlagzeile des Tages und die Wochenzahl.
+     lg  dazu der Satz vom Coach und die Chips (voller Umfang wie bisher). */
+function _aicSize(host){
+  try { return (host.closest('.hw') || {}).dataset?.size || 'lg'; } catch(_) { return 'lg'; }
+}
 function renderCoachTodayCard() {
   const host = document.getElementById('coach-today-card');
   if (!host) return;
+  const groesse = _aicSize(host);
+  const klein = groesse === 'sm', mittel = groesse === 'md';
   try {
     const s = _coachTodaySuggestion();
     if (!s) {
@@ -12983,10 +13037,10 @@ function renderCoachTodayCard() {
       let stumm = false;
       try { stumm = !!(isPremium() && S.aiCoach && S.aiCoach.insights === false); } catch(_) {}
       if (!stumm) { host.innerHTML = ''; _aicSig = null; return; }
-      const sigQ = 'quiet|' + _coachName();
+      const sigQ = 'quiet|' + groesse + '|' + _coachName();
       if (sigQ === _aicSig && host.firstElementChild) return;
       _aicSig = sigQ;
-      host.innerHTML = `<div class="aic">
+      host.innerHTML = `<div class="aic aic-${groesse}">
         <span class="aic-aur" aria-hidden="true"></span>
         <canvas class="aic-wv" aria-hidden="true"></canvas>
         <div class="aic-in">
@@ -12995,7 +13049,7 @@ function renderCoachTodayCard() {
             <span class="aic-lbl">${esc(_coachName())}</span>
             <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
           </div>
-          <div class="aic-sub">${esc(tr('Tippen für Chat, Journal und Einstellungen.'))}</div>
+          ${klein ? '' : `<div class="aic-sub">${esc(tr('Tippen für Chat, Journal und Einstellungen.'))}</div>`}
         </div>
       </div>`;
       _aicCardTap(host.firstElementChild);
@@ -13016,7 +13070,7 @@ function renderCoachTodayCard() {
        der nächsten Inhaltsänderung. Genau dieser Fehler ist in Task 8 mit dem
        Coach-Namen passiert; Ton, Einheit, Gruppe und Wochenzahl hängen jetzt
        mit drin. */
-    const sig = [s.kind, s.head, s.chip2, ringLbl, pct, wochenZeile, satz,
+    const sig = [groesse, s.kind, s.head, s.chip2, ringLbl, pct, wochenZeile, satz,
                  _coachName(), unitLabel()].join('|');
     if (sig === _aicSig && host.firstElementChild) return;
     _aicSig = sig;
@@ -13024,7 +13078,7 @@ function renderCoachTodayCard() {
     const C   = 163.4;                       // Umfang r=26
     const off = C * (1 - pct / 100);
     const col = recoveryColor(pct);
-    host.innerHTML = `<div class="aic">
+    host.innerHTML = `<div class="aic aic-${groesse}">
       <span class="aic-aur" aria-hidden="true"></span>
       <canvas class="aic-wv" aria-hidden="true"></canvas>
       <span class="aic-sheen" aria-hidden="true"></span>
@@ -13032,7 +13086,7 @@ function renderCoachTodayCard() {
         <div class="aic-top">
           <span class="aic-orb">${ICO.dumbbell({s:14})}</span>
           <span class="aic-lbl">${esc(_coachName())}</span>
-          <span class="aic-live"><i></i>${esc(s.chip)}</span>
+          ${klein ? '' : `<span class="aic-live"><i></i>${esc(s.chip)}</span>`}
           <span class="aic-go-hint" aria-hidden="true">${ICO.chevronRight({s:15})}</span>
         </div>
         <div class="aic-main">
@@ -13048,16 +13102,15 @@ function renderCoachTodayCard() {
           </div>
           <!-- Was HEUTE ansteht trägt die große Schrift, die Wochenzahl steht
                kleiner darunter: die sichtbarste Zeile der Startseite gehört der
-               Handlungsaufforderung, nicht einer Kennzahl. Getauscht sind nur
-               Gewichtung und Reihenfolge — beide Angaben bleiben auf der Karte,
-               Pfeil und Prozent zur Vorwoche hängen weiter an der Zahl. -->
-          <div class="aic-txt">
+               Handlungsaufforderung, nicht einer Kennzahl. In der kleinsten
+               Stufe faellt der Block ganz weg — dort steht nur der Ring. -->
+          ${klein ? '' : `<div class="aic-txt">
             <div class="aic-head">${esc(s.head)}</div>
             ${wochenZeile ? `<div class="aic-sub">${esc(wochenZeile)}</div>` : ''}
-          </div>
+          </div>`}
         </div>
-        ${satz ? `<div class="aic-say">${esc(satz)}</div>` : ''}
-        ${s.chip2 ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span></div>` : ''}
+        ${(!klein && !mittel && satz) ? `<div class="aic-say">${esc(satz)}</div>` : ''}
+        ${(!klein && !mittel && s.chip2) ? `<div class="aic-chips"><span class="aic-chip">${ICO.bolt({s:11})}${esc(s.chip2)}</span></div>` : ''}
       </div>
     </div>`;
     _aicCardTap(host.firstElementChild);
