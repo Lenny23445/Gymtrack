@@ -3816,8 +3816,11 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
    liegt darueber. Die Striche stossen dabei nicht an den Rand — der schmale
    Abstand ist es, der die Huelle weiter als Huelle lesbar haelt statt als
    Rahmen um einen Block. */
+/* Absolute Kinder beziehen sich auf die PADDING-Box, liegen also ohnehin
+   innerhalb des 2-px-Rahmens. Ein Pixel Luft genuegt, damit die Striche die
+   Rundung der Huelle nicht beruehren. */
 .rec-batt .segbar.segbar-batt{
-  position:absolute;inset:1.5px;height:auto;gap:2px;z-index:0;
+  position:absolute;inset:1px;height:auto;gap:2px;z-index:0;
 }
 .rec-batt .segbar.segbar-batt > i{border-radius:1.5px}
 .rec-list-mini .rec-batt .segbar.segbar-batt{inset:1px;gap:1.5px}
@@ -3825,7 +3828,10 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
    Schatten wird kraeftiger, damit sie auf den leuchtenden Strichen nicht
    verschwimmt. Position und Stapel NICHT anfassen: beides steht bei
    .rec-batt-val und wuerde hier zerbrechen. */
-.rec-batt .rec-batt-val{text-shadow:0 1px 3px rgba(0,0,0,.8)}
+/* Die Zahl liegt mittig ueber der Fuellung. Mit der ruhigen Strichfassung
+   reicht ein kraeftiger Schatten, damit sie auf jedem Farbwert steht — ein
+   eigener Kasten dahinter wuerde die Batterie zerteilen. */
+.rec-batt .rec-batt-val{text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.75)}
 
 @media (prefers-reduced-motion:reduce){.segbar > i{transition:none}}
 
@@ -8510,7 +8516,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608021620';
+const APP_VERSION = 'gymtrack-v202608021640';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -17918,6 +17924,15 @@ function _segBarsHTML(pct, n, opts) {
     // dadurch gerichtet statt wie ein Block.
     const l = an ? (54 + (i / Math.max(1, anz - 1)) * 10) : 0;
     const H = f.h.toFixed(0), S = f.s.toFixed(0);
+    /* Ruhige Fassung fuer enge Gehaeuse (die Erholungs-Batterien): dort steht
+       eine Prozentzahl UEBER den Strichen, und der Schein strahlt ueber die
+       Huelle hinaus — abschneiden geht nicht, weil der Nippel der Batterie
+       ausserhalb liegt und mit weggeschnitten wuerde. Also leuchtet hier
+       nichts nach aussen; die Farbe traegt den Wert allein. */
+    if (an && o.ruhig) {
+      out += `<i class="on" style="background:hsl(${H},${(f.s * 0.82).toFixed(0)}%,${(l - 4).toFixed(0)}%)"></i>`;
+      continue;
+    }
     /* Der Schein in drei Lagen: ein enger heller Saum direkt am Strich, ein
        mittlerer Hof und ein weiter, schwacher Schimmer. Eine einzelne Lage
        sieht aus wie ein weicher Schatten; erst die Staffelung liest sich als
@@ -18028,7 +18043,7 @@ function renderRecoveryList() {
       // werden, und es ist dieselbe Sprache wie die Leistungs-Leiste im
       // Coach-Hub. Die Prozentzahl liegt weiterhin darueber.
       + '<div class="rec-batt' + emptyCls + '">'
-      + _segBarsHTML(r.recPct, 5, { flach: true, cls: 'segbar-batt' })
+      + _segBarsHTML(r.recPct, 5, { flach: true, ruhig: true, cls: 'segbar-batt' })
       + '<div class="rec-batt-val">' + r.recPct + '%</div>'
       + '</div>'
       + '</div>';
