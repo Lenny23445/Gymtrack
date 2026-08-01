@@ -19265,9 +19265,6 @@ function _wkSnapPadSoon() {
    Waagerechte Wische bleiben unangetastet (Loeschen), ebenso Gesten in
    Textfeldern und waehrend Umsortieren/Wischen (.snap-off). */
 let _wkSwX = 0, _wkSwY = 0, _wkSwAchse = null, _wkSwAktiv = false, _wkSwipeBound = false;
-const WK_SW_MIN = 34;      // ab hier gilt es als Wisch, nicht als Wackler
-const WK_SW_ACHSE = 8;     // ab hier steht die Richtung fest
-
 /* Alle Halte in Dokumentreihenfolge. Kopf und Abschluss zaehlen mit: sonst
    waeren "Abbrechen"/"Fertig" und die Notiz nicht mehr erreichbar. */
 function _wkStops() {
@@ -19341,9 +19338,22 @@ function _wkStep(dir) {
     }
   }
   if (ziel == null) {
-    const j = Math.min(stops.length - 1, Math.max(0, i + dir));
-    if (j === i) return;
-    ziel = _wkStopTop(stops[j]);
+    /* Mehrere Halte koennen auf DERSELBEN Stelle liegen. Am Anfang etwa fallen
+       Trainingskopf und erste Uebung zusammen: die Karte steht bei Scrollstand 0
+       schon zentriert, ihr rechnerisches Ziel ist sogar negativ und wird auf 0
+       geklemmt. Ein simples i+1 landet dann wieder dort, wo man schon ist — und
+       es sieht aus, als wuerde das Blaettern gar nicht reagieren.
+       Darum wird in Wischrichtung weitergesucht, bis ein Halt kommt, der das
+       Blatt wirklich bewegt. Dasselbe schuetzt am Ende der Liste. */
+    let j = i;
+    while (true) {
+      const nj = j + dir;
+      if (nj < 0 || nj >= stops.length) { j = null; break; }
+      j = nj;
+      const z = _wkStopTop(stops[j]);
+      if (Math.abs(z - sheet.scrollTop) > 8) { ziel = z; break; }
+    }
+    if (j == null || ziel == null) return;   // schon am Anfang bzw. Ende
   }
   const max = Math.max(0, sheet.scrollHeight - sheet.clientHeight);
   ziel = Math.min(max, Math.max(0, ziel));
