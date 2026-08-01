@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Sperre gegen versehentlich committete Screenshot-Flag DEMO_SEED=true.
+#
+# Warum ein Hook und nicht nur der Check in BUILD-FUER-APPSTORE.command:
+# der Build-Guard schuetzt ausschliesslich den App-Store-Upload. Der Web-Kanal
+# (git push -> GitHub Pages) hatte gar keinen Schutz — am 01.08.2026 ging
+# DEMO_SEED=true genau darueber live, echte Nutzer sahen 368 Fake-Sessions.
+# Dieser Hook greift auf BEIDEN Rechnern, weil .githooks/ mitcommittet wird.
+#
+# Einmalig pro Klon aktivieren (Mac + Windows-PC):
+#   git config core.hooksPath .githooks
+#
+# Notausstieg, wenn es wirklich mal gewollt ist:  git commit --no-verify
+set -euo pipefail
+
+PATTERN='^[[:space:]]*(const|let|var)[[:space:]]+DEMO_SEED[[:space:]]*=[[:space:]]*true'
+HITS=""
+
+# Nur den GESTAGETEN Inhalt pruefen, nicht das Arbeitsverzeichnis: sonst blockiert
+# der Hook auch Commits, die die Flag gar nicht anfassen (Screenshot-Sitzung laeuft
+# lokal weiter, waehrend an anderen Dateien gearbeitet und committet wird).
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  case "$f" in www/*|ios/App/App/public/*) continue ;; esac   # Build-Artefakte
+  # Erst in eine Variable lesen, dann per Here-String greppen — KEINE Pipe.
+  # `irgendwas | grep -q` ist hier eine Falle: grep -q steigt beim ersten Treffer
+  # aus, der Schreiber links stirbt an SIGPIPE (141), und `pipefail` wertet den
+  # Treffer dadurch als "kein Treffer". Der Hook liess damit genau den Fall durch,
+  # den er verhindern soll (beim Bauen zweimal reingelaufen: erst mit `git show |`,
+  # dann mit `printf |`). Here-String hat keinen Schreiberprozess, also kein SIGPIPE.
+  blob=$(git show ":$f" 2>/dev/null || true)
+  if grep -qE "$PATTERN" <<<"$blob"; then
+    HITS="$HITS  - $f"$'\n'
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACM -- '*.js' '*.html')
+
+if [ -n "$HITS" ]; then
+  echo "COMMIT ABGEBROCHEN: DEMO_SEED=true steht im Commit:" >&2
+  printf '%s' "$HITS" >&2
+  echo "Das Flag ist NUR fuer Promo-Screenshots im Simulator gedacht." >&2
+  echo "Auf 'const DEMO_SEED = false;' zuruecksetzen und erneut committen." >&2
+  exit 1
+fi

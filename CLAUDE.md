@@ -65,6 +65,31 @@ gleichzeitig bedeutete zwangslaeufig einen Konflikt. Seitdem ist der Code aufget
 `npm run build && npx cap sync ios`, App-Store-Upload, Firebase (`gymtrack-25d39` — es gibt keinen
 Emulator, alle Agents teilen sich dieselbe echte Datenbank).
 
+## Demo-Daten (`DEMO_SEED`) — nur lokal, nie im Upload
+
+`DEMO_SEED` in **`js/app-i18n.js`** füllt die App beim Start mit Simulationsdaten
+(368 Sessions o.ä.) — ausschliesslich für Promo-Screenshots im iOS-Simulator.
+Zum Screenshot-Machen lokal auf `true` setzen, danach **sofort zurück auf `false`**.
+
+Zwei Sperren verhindern, dass die Flag in einen der beiden Kanäle rutscht:
+
+| Kanal | Sperre |
+|---|---|
+| App Store (`BUILD-FUER-APPSTORE.command`) | Schritt 0: greppt `index.html` + `js/*.js`, bricht ab |
+| Web / GitHub Pages (`git push`) | `.githooks/pre-commit` blockt den Commit |
+
+**Einmalig pro Klon aktivieren — auch auf dem Windows-PC:**
+```
+git config core.hooksPath .githooks
+```
+Ohne das ist der Web-Kanal ungeschützt (Hooks werden von `git clone` nicht aktiviert).
+
+Historie: die Flag ist zweimal live gegangen. 25.07. über den Store (daraufhin der
+Build-Guard), 01.08. über den Web-Push — der Build-Guard durchsuchte nur `index.html`,
+seit dem Modul-Split steht die Flag aber in `js/app-i18n.js`. Beim Reparieren zusätzlich
+gelernt: `git show … | grep -q` im Hook meldet **falsch-negativ** (grep -q steigt früh aus →
+SIGPIPE links → `pipefail` macht 141 daraus). Im Hook deshalb Here-String statt Pipe.
+
 ## Deploy / Versionsbump
 
 **Nach JEDER App-Änderung immer beides (Standard-Workflow, Mac):**

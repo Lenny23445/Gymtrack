@@ -36,9 +36,18 @@ echo; echo "==> 0/8  Sicherheits-Check: DEMO_SEED darf NICHT aktiv sein"
 # so live hochgeladen -> App startete fuer echte Nutzer mit Demodaten auf dem
 # Statistik-Tab. Dieses Skript baut aus dem Arbeitsverzeichnis, NICHT aus git HEAD,
 # darum reicht "ist committed" nicht als Schutz. Bricht IMMER ab, wenn die Flag aktiv ist.
-if grep -qE "const DEMO_SEED = true" index.html; then
-  echo "ABBRUCH: DEMO_SEED=true in index.html."
-  echo "Das wuerde Demodaten + Statistik-Tab-Start ins App-Store-Build backen (ist schon einmal passiert)."
+#
+# 2026-08-01: Die Sperre lief ins Leere. Sie durchsuchte nur index.html, aber seit dem
+# Modul-Split (01.08.) steht die Flag in js/app-i18n.js -> DEMO_SEED=true ging erneut
+# durch, diesmal sogar committed. Darum jetzt ueber ALLE Quelldateien greppen statt
+# ueber einen festen Pfad. www/ und ios/App/App/public/ sind ausgenommen: die werden
+# in Schritt 1+2 aus genau diesen Quellen neu erzeugt.
+DEMO_HIT=$(grep -rlE "^[[:space:]]*(const|let|var)[[:space:]]+DEMO_SEED[[:space:]]*=[[:space:]]*true" \
+             index.html js/*.js 2>/dev/null || true)
+if [ -n "$DEMO_HIT" ]; then
+  echo "ABBRUCH: DEMO_SEED=true gefunden in:"
+  echo "$DEMO_HIT" | sed 's/^/  - /'
+  echo "Das wuerde Demodaten + Statistik-Tab-Start ins App-Store-Build backen (ist schon zweimal passiert)."
   echo "Erst auf 'const DEMO_SEED = false;' zuruecksetzen, dann dieses Skript erneut starten."
   exit 1
 fi
