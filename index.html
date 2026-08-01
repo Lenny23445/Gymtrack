@@ -949,6 +949,16 @@ body{
    _wkSyncSnapPad() aus der echten Hoehe gerechnet, weil beide Leisten je nach
    Lage da sind oder nicht. */
 #ov-wk .sheet{scroll-snap-type:y mandatory;scroll-padding-top:var(--wk-snap-pad,72px)}
+/* DER entscheidende Teil fuer "ein Wisch = eine Uebung".
+   preventDefault im touchmove reicht nicht: WebKit beginnt das Scrollen schon
+   beim ERSTEN touchmove, und wer diesen durchlaesst (etwa um erst die Richtung
+   zu bestimmen), bekommt es danach nicht mehr abbestellt. touch-action:none
+   sagt der Engine vorher, dass sie diese Geste gar nicht selbst behandeln
+   soll — bewegt wird das Blatt nur noch von _wkStep().
+   Gilt nur fuer Schritt 2: die Uebungswahl scrollt weiter ganz normal. */
+#wk-step2{touch-action:none}
+/* Ausnahmen: im Textfeld will man den Text bewegen, nicht das Training. */
+#wk-step2 textarea,#wk-step2 input{touch-action:auto}
 #ov-wk .sheet.snap-off{scroll-snap-type:none}   /* waehrend Drag-Reorder/Loesch-Swipe */
 /* scroll-snap-stop:'always' ist der Kern des harten Einrastens: es verbietet
    dem Schwung, einen Rastpunkt zu ueberspringen. Ein Wisch bringt genau eine
@@ -8214,7 +8224,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608020019';
+const APP_VERSION = 'gymtrack-v202608020020';
 
 /* ⚠️ DEMO/SIMULATIONS-DATEN — nur für Screenshots im iOS-Simulator.
    true = überschreibt beim Start S.sessions/S.exercises im Speicher (NICHT persistiert,
@@ -19254,7 +19264,7 @@ function _wkSnapPadSoon() {
    Die Halte sind: Trainingskopf → Uebung 1 → Uebung 2 → … → Abschluss.
    Waagerechte Wische bleiben unangetastet (Loeschen), ebenso Gesten in
    Textfeldern und waehrend Umsortieren/Wischen (.snap-off). */
-let _wkSwX = 0, _wkSwY = 0, _wkSwAchse = null, _wkSwAktiv = false;
+let _wkSwX = 0, _wkSwY = 0, _wkSwAchse = null, _wkSwAktiv = false, _wkSwipeBound = false;
 const WK_SW_MIN = 34;      // ab hier gilt es als Wisch, nicht als Wackler
 const WK_SW_ACHSE = 8;     // ab hier steht die Richtung fest
 
@@ -19402,6 +19412,10 @@ function _wkFocusObserve() {
   const wrap = document.getElementById('log-cards');
   const sheet = document.querySelector('#ov-wk .sheet');
   if (!wrap || !sheet || typeof WorkoutFocus === 'undefined') return;
+  /* VOR jeder anderen Bedingung: mit touch-action:none bewegt nur noch der
+     Wisch-Zuhoerer das Blatt. Haenge er erst ab zwei Uebungen, waere ein
+     Training mit einer einzigen Uebung unbedienbar. */
+  if (!_wkSwipeBound) { _wkBindSwipe(sheet); _wkSwipeBound = true; }
   const cards = wrap.querySelectorAll('.ex-card');
   // Bei 0–1 Karten gibt es nichts zu fokussieren — nichts dimmen.
   wrap.classList.toggle('focus-on', cards.length > 1);
@@ -19411,7 +19425,6 @@ function _wkFocusObserve() {
   // je Karte, der bei jedem Rendern neu aufgebaut wird.
   if (!_wkFocusBound) {
     sheet.addEventListener('scroll', _wkFocusSoon, { passive: true });
-    _wkBindSwipe(sheet);
     _wkFocusBound = true;
   }
   _wkFocusDirty = true;
