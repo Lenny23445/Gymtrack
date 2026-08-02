@@ -34,6 +34,10 @@
      dasselbe Licht weiter weg. Die Geometrie bleibt also ueberall dieselbe.
      Wer es heller will, dreht nur diese eine Zahl hoch. */
   --neon:.6;
+  /* Das Neon-Gruen der Zuwachs-Anzeigen. Als RGB-Tripel, damit derselbe Ton
+     in rgb() und in rgba(...,var(--gwa-*)) steht — sonst driften Kern und
+     Schein auseinander. */
+  --kg-rgb:65,216,105;
   --gw-1:4px;  --gw-2:10px; --gw-3:20px;
   --gwa-1:calc(.95 * var(--neon)); --gwa-2:calc(.7 * var(--neon));
   --gwa-3:calc(.42 * var(--neon));
@@ -247,6 +251,9 @@
   /* Weniger Weiss im Innenlicht, mehr Tiefe unten: sonst verschwindet der
      Strich in der weissen Karte, auf der er liegt. */
   --ng-hi:.28; --ng-lo:.55;
+  /* Gruen dunkler und satter: das helle Neon-Gruen ist auf einer weissen
+     Karte kaum noch vom Untergrund zu trennen. */
+  --kg-rgb:34,178,77;
   --neon-lmax:52;
   /* Die Kante ersetzt, was auf Dunkel der Schein leistet: sie trennt das
      Element vom Grund. Neutral getoent, nicht schwarz — ein harter Schatten
@@ -607,20 +614,60 @@ body{
 .erf-kraft-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:8px}
 .erf-kraft-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px}
 .erf-chev{color:var(--text2);font-size:15px;font-weight:600;line-height:1}
-.erf-kraft-delta{font-size:13px;font-weight:700;color:#34c759;flex-shrink:0}
-.erf-kraft-delta.flat{color:var(--text2)}
-.erf-kraft-bar{height:9px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;display:flex}
-.erf-kraft-base{height:100%;transition:width .55s cubic-bezier(.22,1,.36,1);
-  background:linear-gradient(90deg,rgba(var(--acc-rgb),.42),rgba(var(--acc-rgb),.62))}
-.erf-kraft-gain{height:100%;transition:width .55s cubic-bezier(.22,1,.36,1);
-  background:linear-gradient(90deg,#2fb24d,#41d869);box-shadow:0 0 9px rgba(52,199,89,.55)}
-.erf-kraft-sub{font-size:11px;color:var(--text2);margin-top:5px}
+/* ── KRAFTSTEIGERUNG PRO MUSKEL: NEON-BALKEN ───────────────────────────
+   Gleiche Lichtstaffel wie ueberall in der App (--gw-* Radien, --gwa-*
+   Deckkraften, zentral gedimmt ueber --neon) statt eigener Zahlen — sonst
+   leuchtet diese Anzeige anders hell als Ringe, Splits und Wochen-Rail.
+   Der Balken ist eine Mulde (--ng-well), in der zwei Leuchtroehren liegen:
+   Akzentfarbe = Ausgangskraft, Gruen = Zuwachs.
+   KEIN overflow:hidden mehr: das hat den Schein exakt an der Balkenkante
+   abgeschnitten, und ein Neon ohne Hof ist nur ein farbiger Strich. Die
+   Rundung machen deshalb die Segmente selbst — das linke rund links, das
+   rechte rund rechts, und ohne Zuwachs (.solo) ist das eine Segment ganz
+   rund. */
+.erf-kraft-delta{font-size:13px;font-weight:700;color:#41d869;flex-shrink:0;
+  text-shadow:0 0 var(--gw-2) rgba(var(--kg-rgb),calc(.8 * var(--neon)))}
+.erf-kraft-delta.flat{color:var(--text2);text-shadow:none}
+.erf-kraft-bar{height:10px;border-radius:999px;display:flex;overflow:visible;
+  background:var(--ng-well);box-shadow:inset 0 0 0 1px var(--ng-well-bdr)}
+.erf-kraft-base,.erf-kraft-gain{height:100%;position:relative;
+  transition:width .55s cubic-bezier(.22,1,.36,1)}
+/* Die beiden Innenlichter (hell oben, dunkel unten) machen aus der flachen
+   Flaeche eine Roehre — ohne sie liest sich der Balken als Aufkleber. */
+.erf-kraft-base{border-radius:999px 0 0 999px;
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.62),var(--acc));
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
+             inset 0 1px 0 rgba(255,255,255,var(--ng-hi)),
+             inset 0 -1px 0 rgba(0,0,0,var(--ng-lo)),
+             var(--neon-edge)}
+.erf-kraft-bar.solo .erf-kraft-base{border-radius:999px}
+/* Der Zuwachs liegt ueber der Ausgangskraft: sein Hof soll den Uebergang
+   ueberstrahlen, nicht andersherum — er ist die Aussage der Zeile. */
+.erf-kraft-gain{border-radius:0 999px 999px 0;z-index:1;
+  background:linear-gradient(90deg,rgb(var(--kg-rgb)),#7dffb4);
+  box-shadow:0 0 var(--gw-1) rgba(var(--kg-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--kg-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--kg-rgb),var(--gwa-3)),
+             inset 0 1px 0 rgba(255,255,255,var(--ng-hi)),
+             inset 0 -1px 0 rgba(0,0,0,var(--ng-lo)),
+             var(--neon-edge)}
+.erf-kraft-sub{font-size:11px;color:var(--text2);margin-top:7px}
 .erf-kraft-sub b{color:var(--text)}
+.erf-kraft-sub .up{color:#41d869;font-weight:700;
+  text-shadow:0 0 var(--gw-2) rgba(var(--kg-rgb),calc(.7 * var(--neon)))}
 .erf-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:0 2px 10px;font-size:11px;color:var(--text2)}
 .erf-legend-item{display:flex;align-items:center;gap:6px}
-.erf-legend-sw{width:14px;height:8px;border-radius:3px;flex-shrink:0}
-.erf-legend-sw.base{background:rgba(var(--acc-rgb),.55)}
-.erf-legend-sw.gain{background:#41d869}
+.erf-legend-sw{width:14px;height:8px;border-radius:999px;flex-shrink:0}
+.erf-legend-sw.base{background:var(--acc);
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             var(--neon-edge)}
+.erf-legend-sw.gain{background:rgb(var(--kg-rgb));
+  box-shadow:0 0 var(--gw-1) rgba(var(--kg-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--kg-rgb),var(--gwa-2)),
+             var(--neon-edge)}
 
 /* ── KRAFT-DETAIL (Sheet) ── */
 .kd-formula{font-size:12px;color:var(--text2);line-height:1.55;
@@ -5154,6 +5201,18 @@ html:not([data-glass="off"]) .set-in{
 [data-glass="off"] .fmode-btn:not(.on),[data-glass="off"] .soc-chip:not(.on){
   background:var(--gl-ctrl);border:1px solid var(--gl-bdr);
   box-shadow:var(--gl-rim);color:var(--text);
+}
+/* Segment mit gleitender Pille: die inaktiven Felder bekommen im Glas-Modus
+   sonst einen eigenen deckenden Grund (Regeln weiter oben) — die Pille liegt
+   HINTER den Beschriftungen und waere auf ihrem Weg dahinter verschwunden.
+   Im Slide-Modus traegt darum nur die Wanne den Grund, die Felder sind nackt.
+   Steht bewusst hier unten: die Glas-Regeln kommen spaeter in der Datei als
+   der Segment-Block, ein Override oben waere wirkungslos. */
+html:not([data-glass="off"]) .fmode-slide .fmode-btn:not(.on),
+[data-glass="off"] .fmode-slide .fmode-btn:not(.on){
+  background:transparent;border-color:transparent;box-shadow:none;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  color:var(--text2);
 }
 /* ===== LIQUID GLASS v3 — ENDE ===== */
 /* ===================================================================

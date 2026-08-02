@@ -2350,11 +2350,11 @@ function renderErfolge() {
           <span class="erf-kraft-name">${k.mg.label}<span class="erf-chev">›</span></span>
           <span class="erf-kraft-delta${up ? '' : ' flat'}">${deltaTxt}</span>
         </div>
-        <div class="erf-kraft-bar">
+        <div class="erf-kraft-bar${gainW ? '' : ' solo'}">
           <div class="erf-kraft-base" style="width:0" data-w="${baseW}"></div>
           <div class="erf-kraft-gain" style="width:0" data-w="${gainW}"></div>
         </div>
-        <div class="erf-kraft-sub">Start ${fmt1RM(k.start)} → jetzt <b>${fmt1RM(k.now)}</b>${up ? ` · <b style="color:#41d869">+${fmt1RM(delta)}</b> Zuwachs` : ''}</div>
+        <div class="erf-kraft-sub">Start ${fmt1RM(k.start)} → jetzt <b>${fmt1RM(k.now)}</b>${up ? ` · <b class="up">+${fmt1RM(delta)}</b> Zuwachs` : ''}</div>
       </div>`;
     }).join('') + `</div>`;
   }
