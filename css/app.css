@@ -711,17 +711,23 @@ body{
   background:var(--ng-well);box-shadow:inset 0 0 0 1px var(--ng-well-bdr)}
 .erf-kraft-base,.erf-kraft-gain{height:100%;position:relative;
   transition:width .55s cubic-bezier(.22,1,.36,1)}
-/* Die beiden Innenlichter (hell oben, dunkel unten) machen aus der flachen
-   Flaeche eine Roehre — ohne sie liest sich der Balken als Aufkleber. */
+/* Das Innenlicht ist dasselbe wie beim Level-Balken (.lvl-fill): ein WEICHER
+   Schimmer ueber die obere Kante. Vorher standen hier zwei harte 1-px-Linien
+   (hell oben, dunkel unten) — auf 10 px Hoehe ist das keine Roehre mehr,
+   sondern eine weisse Oberkante, und die Anzeige leuchtete dadurch sichtbar
+   greller als Level, Wochen-Rail und Sparkline. Kein anderer Balken der App
+   setzt die Gegenlinie unten; deshalb faellt sie hier weg. */
 .erf-kraft-base{border-radius:999px 0 0 999px;
   background:linear-gradient(90deg,rgba(var(--acc-rgb),.62),var(--acc));
   box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
              0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
              0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
-             inset 0 1px 0 rgba(255,255,255,var(--ng-hi)),
-             inset 0 -1px 0 rgba(0,0,0,var(--ng-lo)),
-             var(--neon-edge)}
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
+/* Ohne Zuwachs bleibt ein 0 px breites Segment stehen — dessen Schein wuerde als
+   gruener Fleck am Balkenende haengen, obwohl es nichts zu zeigen gibt. */
 .erf-kraft-bar.solo .erf-kraft-base{border-radius:999px}
+.erf-kraft-bar.solo .erf-kraft-gain{display:none}
 /* Der Zuwachs liegt ueber der Ausgangskraft: sein Hof soll den Uebergang
    ueberstrahlen, nicht andersherum — er ist die Aussage der Zeile. */
 .erf-kraft-gain{border-radius:0 999px 999px 0;z-index:1;
@@ -729,9 +735,8 @@ body{
   box-shadow:0 0 var(--gw-1) rgba(var(--kg-rgb),var(--gwa-1)),
              0 0 var(--gw-2) rgba(var(--kg-rgb),var(--gwa-2)),
              0 0 var(--gw-3) rgba(var(--kg-rgb),var(--gwa-3)),
-             inset 0 1px 0 rgba(255,255,255,var(--ng-hi)),
-             inset 0 -1px 0 rgba(0,0,0,var(--ng-lo)),
-             var(--neon-edge)}
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
 .erf-kraft-sub{font-size:11px;color:var(--text2);margin-top:7px}
 .erf-kraft-sub b{color:var(--text)}
 .erf-kraft-sub .up{color:#41d869;font-weight:700;
@@ -756,19 +761,47 @@ body{
 .kd-ex:first-child{border-top:none}
 .kd-ex-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px}
 .kd-ex-name{font-size:15px;font-weight:700}
-.kd-ex-delta{font-size:13px;font-weight:700;color:#34c759;flex-shrink:0}
-.kd-ex-delta.flat{color:var(--text2)}
+/* Dieselbe Zuwachs-Farbe und derselbe Schein wie in der Liste (.erf-kraft-delta).
+   Vorher stand hier ein dritter Gruenton (#34c759) ganz ohne Licht — beim Tippen
+   auf eine Zeile wechselte damit die Anzeige die Sprache. */
+.kd-ex-delta{font-size:13px;font-weight:700;color:#41d869;flex-shrink:0;
+  text-shadow:0 0 var(--gw-2) rgba(var(--kg-rgb),calc(.8 * var(--neon)))}
+.kd-ex-delta.flat{color:var(--text2);text-shadow:none}
 .kd-step{display:flex;align-items:center;gap:9px;font-size:13px;padding:3px 0}
 .kd-step-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .kd-step-dot.start{background:rgba(var(--acc-rgb),.65)}
-.kd-step-dot.best{background:#41d869}
+.kd-step-dot.best{background:rgb(var(--kg-rgb));
+  box-shadow:0 0 var(--gw-1) rgba(var(--kg-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--kg-rgb),var(--gwa-2)),
+             var(--neon-edge)}
 .kd-step-lbl{color:var(--text2);width:58px;flex-shrink:0}
 .kd-step-val{color:var(--text)}
 .kd-step-val b{color:var(--acc);font-weight:700}
 .kd-step-date{color:var(--text2);margin-left:auto;font-size:11px;flex-shrink:0;padding-left:8px}
-.kd-bar{height:8px;border-radius:6px;background:var(--gl-bg-t);overflow:hidden;display:flex;margin-top:10px}
-.kd-bar .b{height:100%;background:linear-gradient(90deg,rgba(var(--acc-rgb),.42),rgba(var(--acc-rgb),.62))}
-.kd-bar .g{height:100%;background:linear-gradient(90deg,#2fb24d,#41d869)}
+/* Die Balken im Detail-Sheet sind dieselbe Anzeige wie die Zeile, auf die man
+   getippt hat — nur pro Uebung statt pro Muskelgruppe. Sie tragen deshalb
+   dieselbe Mulde und dieselbe Lichtstaffel wie .erf-kraft-bar. Vorher waren es
+   flache Farbstreifen mit overflow:hidden: der Schein war nicht schwach, es gab
+   ihn gar nicht, und ein overflow:hidden haette ihn ohnehin an der Balkenkante
+   abgeschnitten. Die Rundung machen darum wieder die Segmente selbst. */
+.kd-bar{height:8px;border-radius:999px;display:flex;overflow:visible;margin-top:10px;
+  background:var(--ng-well);box-shadow:inset 0 0 0 1px var(--ng-well-bdr)}
+.kd-bar .b,.kd-bar .g{height:100%;position:relative}
+.kd-bar .b{border-radius:999px 0 0 999px;
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.62),var(--acc));
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
+.kd-bar.solo .b{border-radius:999px}
+.kd-bar .g{border-radius:0 999px 999px 0;z-index:1;
+  background:linear-gradient(90deg,rgb(var(--kg-rgb)),#7dffb4);
+  box-shadow:0 0 var(--gw-1) rgba(var(--kg-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--kg-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--kg-rgb),var(--gwa-3)),
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
 
 /* ── PLAN / WOCHENPLAN ── */
 .plan-day{
@@ -5916,17 +5949,15 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   opacity:0;transition:opacity .22s ease;
 }
 #ai-radial-backdrop.on{display:block;opacity:1}
-/* Dunkel: die .46 stammen aus dem hellen Fall, wo sie den Seiteninhalt bremsen
-   müssen. Auf schwarzem Grund addieren sie sich zu Schwarz auf Schwarz — das
-   Menü lag dann in einem Loch. Weniger Deckschicht, dafür mehr Unschärfe: die
-   Trennung macht hier der Blur, den Kontrast machen die Pillen selbst. */
+/* Dunkel behaelt exakt die Werte von vor dem Hell-Umbau: .20 Deckschicht und
+   blur(12px). Die .46 oben sind ausschliesslich fuer hell/rosa/blau/gruen da,
+   wo die Pillen sonst auf dem Seiteninhalt stehen. Auf Schwarz braucht es die
+   zusaetzliche Deckschicht nicht — dort war das Menue mit ihr nur noch ein Loch.
+   Die glass-off-Ausnahme weiter oben (blur 14px) gilt unveraendert fuer alle
+   Themes; ein eigener Dark-Wert dafuer entfaellt wieder. */
 [data-theme="dark"] #ai-radial-backdrop{
-  background:rgba(0,0,0,.30);
-  backdrop-filter:blur(18px) saturate(1.15);-webkit-backdrop-filter:blur(18px) saturate(1.15);
-}
-[data-glass="off"][data-theme="dark"] #ai-radial-backdrop{
-  backdrop-filter:blur(18px) saturate(1.15)!important;
-  -webkit-backdrop-filter:blur(18px) saturate(1.15)!important;
+  background:rgba(0,0,0,.20);
+  backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);
 }
 /* Bewusst KEIN Scroll-Container mehr: overflow-y + Kind-Effekte erzeugten in
    WKWebView eine durchgehende dunkle Compositing-Fläche hinter den Pillen. */
@@ -5954,19 +5985,13 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ai-radial[data-side="l"] .ai-r-item{align-self:flex-start}
 #ai-radial[data-side="r"] .ai-r-item{align-self:flex-end}
 .ai-r-item.on{opacity:1;pointer-events:auto;transform:none}
-/* Dunkel: --inp-bg sind hier 6 % Weiss — auf dem abgedunkelten Grund ergibt das
-   eine Pille, die praktisch dieselbe Farbe hat wie alles dahinter. Sie bekommt
-   deshalb dieselbe aufgehellte Fassung wie die Tableiste im Dunkelmodus: ein
-   Körper, der ueber dem Grund steht, statt einer Kontur, die man erraten muss. */
-[data-theme="dark"] .ai-r-item{
-  background:rgba(104,104,116,.78);
-  border-color:rgba(255,255,255,.20);
-  box-shadow:0 10px 28px rgba(0,0,0,.50),0 2px 8px rgba(0,0,0,.28),
-             inset 0 1px 0 rgba(255,255,255,.13);
-}
-/* Der Kontingent-Kopf traegt weiter den Akzentrand — er ist Information, keine
-   Aktion, und darf sich von den Pillen darunter unterscheiden. */
-[data-theme="dark"] .ai-r-quota{border-color:rgba(var(--acc-rgb),.42)}
+/* KEIN Dark-Override fuer .ai-r-item. Es gab hier einmal eine aufgehellte
+   Fassung (rgba(104,104,116,.78)) — gegen einen zu dunklen Grund, den es seit
+   der Ruecknahme des Backdrops auf .20 nicht mehr gibt. Auf schwarzem Grund
+   liest sich die Pille dadurch als helle Kachel; das Glas aus --inp-bg (6 %
+   Weiss) ist der Zustand, den das Menue im Dunkelmodus haben soll. Die hellen
+   Themes sind davon nicht betroffen — sie kommen ueber dieselbe Basisregel und
+   ihren eigenen --inp-bg-Wert. */
 .ai-r-lbl{
   white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--text);
 }

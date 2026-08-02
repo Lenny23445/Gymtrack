@@ -2546,7 +2546,7 @@ function openKraftDetail(mgId) {
         </div>
         <div class="kd-step"><span class="kd-step-dot start"></span><span class="kd-step-lbl">Start</span><span class="kd-step-val">${fmtWeight(s.set.w)} × ${s.set.r} → <b>${fmt1RM(s.oneRM)}</b></span><span class="kd-step-date">${dateShort(s.date)}</span></div>
         <div class="kd-step"><span class="kd-step-dot best"></span><span class="kd-step-lbl">Bestwert</span><span class="kd-step-val">${fmtWeight(b.set.w)} × ${b.set.r} → <b>${fmt1RM(b.oneRM)}</b></span><span class="kd-step-date">${dateShort(b.date)}</span></div>
-        <div class="kd-bar"><div class="b" style="width:${baseW}%"></div><div class="g" style="width:${gainW}%"></div></div>
+        <div class="kd-bar${gainW ? '' : ' solo'}"><div class="b" style="width:${baseW}%"></div>${gainW ? `<div class="g" style="width:${gainW}%"></div>` : ''}</div>
       </div>`;
     }).join('')}
   `;
