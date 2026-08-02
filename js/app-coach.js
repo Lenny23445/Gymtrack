@@ -85,9 +85,14 @@ function _exNameAliases(name) {
    ist die Zusage. */
 function _coachKeepExName(c, ex) {
   if (!c || !ex || !ex.name) return c;
-  const al = _exNameAliases(ex.name);
+  // Ziel ist der ANZEIGE-Name: derselbe, der auf der Uebungskarte steht. Im
+  // deutschen Modus ist das der gespeicherte Name, im englischen der aus
+  // I18N_EN — der gespeicherte wird dort selbst zum Alias.
+  const ziel = _exDisp(ex.name);
+  const al = _exNameAliases(ex.name).concat([ex.name])
+    .filter(a => a && a.trim().toLowerCase() !== String(ziel).trim().toLowerCase());
   if (!al.length) return c;
-  const fix = t => window.CoachCues.keepName(t, ex.name, al);
+  const fix = t => window.CoachCues.keepName(t, ziel, al);
   if (typeof c.title === 'string') c.title = fix(c.title);
   if (typeof c.text  === 'string') c.text  = fix(c.text);
   if (Array.isArray(c.options)) c.options.forEach(o => {
@@ -109,8 +114,10 @@ function _exNameGuardList() {
     (S.exercises || []).forEach(ex => {
       const n = (ex && typeof ex.name === 'string') ? ex.name.trim() : '';
       if (!n) return;
-      const al = _exNameAliases(n).filter(a => a && a.trim().toLowerCase() !== n.toLowerCase());
-      if (al.length) out.push({ name: n, aliases: al });
+      const ziel = String(_exDisp(n)).trim();
+      const al = _exNameAliases(n).concat([n])
+        .filter(a => a && a.trim().toLowerCase() !== ziel.toLowerCase());
+      if (al.length) out.push({ name: ziel, aliases: al });
     });
   } catch(_) {}
   return out.sort((a, b) => b.name.length - a.name.length);
@@ -449,7 +456,10 @@ function _coachEvalRun(li, si) {
   let _coachPayloadLimits = [];
   try { _coachPayloadLimits = (_dossier().limits || []).map(e => e.t); } catch(_) {}
   const payload = {
-    type, limits: _coachPayloadLimits, ex: ex.name, mg,
+    // Anzeige-Name statt gespeichertem Namen: das Modell soll die Uebung so
+    // nennen, wie sie auf dem Bildschirm steht — dann muss der Riegel unten
+    // im Regelfall gar nichts mehr richten.
+    type, limits: _coachPayloadLimits, ex: _exDisp(ex.name), mg,
     goal: S.obGoal || null,
     set: { n: si + 1, of: (log.sets || []).length, w, r },
     last: { w: lastW, r: lastR, e1rm: Math.round(lastE1RM * 10) / 10 },

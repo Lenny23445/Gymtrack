@@ -1154,14 +1154,20 @@ function _aicContext(){
     profile: { goal: S.obGoal || null, exp: S.obExp || null, freq: S.obFreq || null },
     dossier: dossierTxt,
     muted: mutedList,
-    exerciseNames: (S.exercises || []).slice(0, 60).map(e => e.name),
+    // Anzeige-Namen ans Modell: es soll die Uebung so nennen, wie sie auf dem
+    // Bildschirm steht. Intern bleibt der Name deutsch (Lookups, Cloud-Felder);
+    // im englischen Modus zeigt die Uebungskarte aber den I18N_EN-Namen, und
+    // eine Antwort mit dem deutschen daneben ist fuer den Nutzer eine andere
+    // Uebung.
+    exerciseNames: (S.exercises || []).slice(0, 60).map(e => _exDisp(e.name)),
     recentSessions: (S.sessions || []).slice(-5).map(s => ({
       date: (s.date || '').slice(0, 10),
       exercises: (s.logs || []).map(l => {
         const ex = exById(l.exerciseId); if (!ex) return null;
         const best = (l.sets || []).filter(x => x.type !== 'warmup')
           .sort((a, b) => (parseFloat(b.w) || 0) - (parseFloat(a.w) || 0))[0];
-        return best ? { name: ex.name, w: parseFloat(best.w) || 0, r: parseInt(best.r) || 0 } : { name: ex.name };
+        const nm = _exDisp(ex.name);
+        return best ? { name: nm, w: parseFloat(best.w) || 0, r: parseInt(best.r) || 0 } : { name: nm };
       }).filter(Boolean),
     })),
   };
@@ -1307,10 +1313,11 @@ function _aicApplyPlanCore(deleteOthers){
     const ids = [];
     day.exercises.slice(0, 10).forEach(de => {
       const nm = String(de.name || '').trim().slice(0, 60); if (!nm) return;
-      let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
+      let ex = _exFindByAnyName(nm);
       if (!ex) {
         if (S.exercises.length >= 500) return;
-        const libItem = EX_LIBRARY.find(it => it.n.toLowerCase() === nm.toLowerCase());
+        const libItem = EX_LIBRARY.find(it => it.n.toLowerCase() === nm.toLowerCase()
+                                           || String(_exDisp(it.n)).toLowerCase() === nm.toLowerCase());
         ex = {
           id: uid(), name: libItem ? libItem.n : nm, emoji: '',   // KI-Übungen ohne Emoji (Lenny-Regel)
           muscleGroup: validMg.includes(de.muscleGroup) ? de.muscleGroup : (libItem ? libItem.mg : ''),
@@ -1898,7 +1905,7 @@ function _aiaData(mode, scope){
       const ex = exById(id); if (!ex) return null;
       const hist = exHistory(id); const last = hist[hist.length - 1];
       const best = last ? _coachTopSet(last.sets) : null;
-      return { name: ex.name, muscleGroup: ex.muscleGroup, targetSets: ex.targetSets, repMin: ex.repMin, repMax: ex.repMax,
+      return { name: _exDisp(ex.name), muscleGroup: ex.muscleGroup, targetSets: ex.targetSets, repMin: ex.repMin, repMax: ex.repMax,
                lastBest: best ? { w: parseFloat(best.w) || 0, r: parseInt(best.r) || 0, date: (last.date || '').slice(0, 10) } : null,
                bestE1RM: Math.round((exBest1RM(id) || 0) * 10) / 10 };
     }).filter(Boolean);
@@ -1924,7 +1931,7 @@ function _aiaData(mode, scope){
   if (sc && sc.exercise && mode === 'progress') {
     const ex = exById(sc.exercise); if (!ex) return {};
     const hist = exHistory(sc.exercise).slice(-10);
-    return { scope: 'exercise', exercise: ex.name, muscleGroup: ex.muscleGroup,
+    return { scope: 'exercise', exercise: _exDisp(ex.name), muscleGroup: ex.muscleGroup,
       history: hist.map(h => {
         const b = _coachTopSet(h.sets);
         const w = b ? parseFloat(b.w) || 0 : 0, r = b ? parseInt(b.r) || 0 : 0;
@@ -1942,7 +1949,7 @@ function _aiaData(mode, scope){
       durationMin: Math.round((s.duration || 0) / 60),
       exercises: (s.logs || []).map(l => {
         const ex = exById(l.exerciseId);
-        return { name: ex ? ex.name : '?', muscleGroup: ex ? ex.muscleGroup : '',
+        return { name: ex ? _exDisp(ex.name) : '?', muscleGroup: ex ? ex.muscleGroup : '',
                  sets: (l.sets || []).map(st => ({ w: parseFloat(st.w) || 0, r: parseInt(st.r) || 0, type: st.type || 'normal' })) };
       }),
       // Check-in dieser Einheit (Premium-only, s. _checkinOpen) — Coach soll
@@ -2090,7 +2097,7 @@ function _aiaApply(i){
   const validMg = ['brust','ruecken','beine','arme','schultern','core'];
   const nm = String(ac.exercise || '').trim().slice(0, 60); if (!nm) return;
   const clampI = (v, lo, hi, dflt) => { v = parseInt(v); return isNaN(v) ? dflt : Math.max(lo, Math.min(hi, v)); };
-  let ex = S.exercises.find(e => e.name.toLowerCase() === nm.toLowerCase());
+  let ex = _exFindByAnyName(nm);
   let where = tr('Ziel angepasst');
   if (ac.kind === 'addEx') {
     if (ex) { _dndToast('Übung ist schon in deiner Liste.'); }

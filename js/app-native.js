@@ -336,7 +336,38 @@ function _persona() {
   catch(_) { try { return CoachPersona.personaGet({}); } catch(__) { return { name:'Coach', tone:'sachlich', voice:null, voiceOn:true, inTraining:'key', setFeedback:true, pushLevel:'normal', insights:true }; } }
 }
 function _lang() { try { return GT_LANG === 'en' ? 'en' : 'de'; } catch(_) { return 'de'; } }
-function _say(key, vars) { try { return CoachPersona.say(key, vars || {}, _persona(), _lang()); } catch(_) { return ''; } }
+/* Der Uebungsname im Katalogsatz ist derselbe Name, der zwei Zeilen tiefer auf
+   der Uebungskarte steht — also der ANZEIGE-Name. Intern heisst die Uebung
+   weiter deutsch ('Kreuzheben'), die Karte zeigt im englischen Modus aber
+   'Deadlift'; ohne diese Stelle stand in der Coach-Leiste 'Kreuzheben: last
+   session 180 kg' ueber einer Karte mit der Aufschrift 'Deadlift'. tr() ist
+   genau die Abbildung, die auch die Karte benutzt, und im deutschen Modus
+   gibt sie den Namen unveraendert zurueck. */
+function _exDisp(name) {
+  if (typeof name !== 'string' || !name) return name;
+  try { return tr(name) || name; } catch(_) { return name; }
+}
+/* Gegenstueck: eine Uebung ueber IRGENDEINEN ihrer Namen finden. Das Modell
+   bekommt die Anzeige-Namen und antwortet mit ihnen; gespeichert ist der
+   deutsche. Ohne diesen Vergleich legt ein Plan-Import oder eine 'addEx'-
+   Aktion eine zweite Uebung ohne Historie an, obwohl es dieselbe ist. */
+function _exFindByAnyName(nm) {
+  const s = String(nm || '').trim().toLowerCase();
+  if (!s) return null;
+  try {
+    return (S.exercises || []).find(e => {
+      const n = String((e && e.name) || '').trim().toLowerCase();
+      return n === s || String(_exDisp(e && e.name) || '').trim().toLowerCase() === s;
+    }) || null;
+  } catch(_) { return null; }
+}
+function _say(key, vars) {
+  try {
+    const v = Object.assign({}, vars || {});
+    if (typeof v.ex === 'string') v.ex = _exDisp(v.ex);
+    return CoachPersona.say(key, v, _persona(), _lang());
+  } catch(_) { return ''; }
+}
 function _coachName()  { return _persona().name; }
 function _coachLevel() { return _persona().inTraining; }
 
