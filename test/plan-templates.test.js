@@ -20,6 +20,7 @@ const path = require('node:path');
 const WURZEL = path.join(__dirname, '..');
 const STREAK = fs.readFileSync(path.join(WURZEL, 'js', 'app-streak.js'), 'utf8');
 const EXDB   = fs.readFileSync(path.join(WURZEL, 'js', 'app-exdb.js'), 'utf8');
+const I18N   = fs.readFileSync(path.join(WURZEL, 'js', 'app-i18n.js'), 'utf8');
 
 /* Die Konstanten stehen in klassischen Skripten (kein module.exports), deshalb
    wird der Literal-Block aus der Quelle geschnitten und ausgewertet. Ende ist
@@ -163,6 +164,59 @@ test('Zeit-Uebungen bekommen kein Wiederholungsschema aufgedrueckt', () => {
     const li = EX_LIBRARY.find(x => x.n === u.name);
     if (li && li.t === 'time' && u.ov) assert.fail(t.id + '/' + u.tag + ': Schema-Override auf Zeit-Uebung ' + u.name);
   }));
+});
+
+/* Englische Anzeige. Jeder neue deutsche Text braucht laut CLAUDE.md einen
+   Eintrag in I18N_EN oder eine Regel in I18N_RX — vergessen faellt niemandem
+   auf, der die App auf Deutsch benutzt. Beim Bau dieser Vorlagen ist genau das
+   aufgeflogen: 'Schultern & Arme' aus dem Arnold-Split stand seit jeher
+   uebersetzt daneben ('Brust & Rücken'), fehlte aber selbst. */
+global.GT_LANG = 'en';
+global.I18N_EN = literal(I18N, 'I18N_EN', '{');
+global.I18N_RX = eval('(' + I18N.match(/const I18N_RX = (\[[\s\S]*?\n\]);/)[1] + ')');
+const TR_SRC = I18N.match(/function tr\(s\)[\s\S]*?\n\}/);
+assert.ok(TR_SRC, 'tr() nicht gefunden');
+eval(TR_SRC[0]);
+
+/* Reste, an denen eine ausgebliebene Uebersetzung erkennbar ist: Umlaute oder
+   deutsche Woerter, die in keinem englischen Text der App vorkommen. */
+const DEUTSCH = /[ÄÖÜäöüß]|\bWoche\b|\bTage\b|Ganzkörper|Oberkörper|Unterkörper|Schema|Sätze|Wdh|Pläne|anzeigen|Kraft|Zirkel|schwer|leicht/;
+
+test('alle Vorlagen-Texte sind auf Englisch verfuegbar', () => {
+  const fehlend = [];
+  const pruef = (s, wo) => { const en = tr(s); if (DEUTSCH.test(en)) fehlend.push(wo + ': "' + s + '" → "' + en + '"'); };
+  PLAN_TEMPLATES.forEach(t => {
+    pruef(t.title, t.id + '/title');
+    pruef(t.freq,  t.id + '/freq');
+    pruef(t.desc,  t.id + '/desc');
+  });
+  assert.deepStrictEqual(fehlend, [], 'ohne englische Fassung:\n' + fehlend.join('\n'));
+});
+
+test('alle Split-Labels sind auf Englisch verfuegbar', () => {
+  // Die Labels landen als Split-NAMEN in den Nutzerdaten (S.workoutPresets) und
+  // laufen danach ueber tr() durch die Anzeige — fehlt der Eintrag, steht in der
+  // englischen App ein deutscher Split-Name.
+  const fehlend = [];
+  Object.entries(TPL_LABELS).forEach(([id, lbl]) => Object.values(lbl).forEach(v => {
+    const en = tr(v);
+    if (DEUTSCH.test(en)) fehlend.push(id + ': "' + v + '" → "' + en + '"');
+  }));
+  assert.deepStrictEqual(fehlend, [], 'ohne englische Fassung:\n' + fehlend.join('\n'));
+});
+
+test('die zusammengesetzten Onboarding-Zeilen uebersetzen vollstaendig', () => {
+  // Zahlen machen diese Zeilen als feste Phrase ungreifbar, sie haengen an
+  // I18N_RX. tr() zerlegt ausserdem an ' · ', deshalb hier ganze Zeilen pruefen.
+  [
+    'Schema: 4 Sätze · 7 Wdh.',
+    'Schema: 3–5 Sätze · 5–12 Wdh.',
+    'Alle 16 Pläne anzeigen',
+    'Basierend auf deinen Angaben. Übungen, Tage und Wiederholungen kannst du jederzeit anpassen.'
+  ].forEach(s => {
+    const en = tr(s);
+    assert.ok(!DEUTSCH.test(en), '"' + s + '" bleibt deutsch: "' + en + '"');
+  });
 });
 
 test('kein Tag wiederholt dieselbe Uebung', () => {

@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030803';
+const APP_VERSION = 'gymtrack-v202608030804';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -319,7 +319,7 @@ const I18N_EN = {
 'Du hast Luft nach oben':'You have room to grow',
 'Einheit im Kasten':'Session in the bag',
 'Beine schwer':'Heavy legs',
-'Brust & Rücken':'Chest & back',
+'Brust & Rücken':'Chest & back','Schultern & Arme':'Shoulders & arms',
 'Größere Steigerung ist freigegeben.':'A bigger jump is unlocked.',
 'Deload aktiv: ~8 % weniger Gewicht, längere Pausen.':'Deload active: ~8% less weight, longer rests.',
 'Deload: ich habe die Vorschläge um ~8 % gesenkt und die Pausen verlängert.':'Deload: I lowered the suggestions by ~8% and extended your rests.',
