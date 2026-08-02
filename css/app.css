@@ -4137,7 +4137,11 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   letter-spacing:.5px;color:var(--text2);margin-bottom:6px;
   position:relative;z-index:1;
 }
-.stats-mini-canvas-wrap{flex:1;position:relative;min-height:160px;max-height:200px;z-index:1}
+/* min-height war 160px. Zusammen mit Titel (19), Kopfzeile (22), Fuss (16) und
+   Padding (22) ergab das 239px in einer 230px hohen Kachel — overflow:hidden hat
+   den Fuss "Tap fuer Vollbild" abgeschnitten. Die Zeichenflaeche darf schrumpfen
+   (Chart.js ist responsive), der Fuss nicht (flex-shrink:0 unten). */
+.stats-mini-canvas-wrap{flex:1;min-height:120px;max-height:200px;position:relative;z-index:1}
 .stats-mini-canvas-wrap canvas{display:block}
 .stats-mini-empty{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -4146,7 +4150,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .stats-mini-foot{
   font-size:10px;color:var(--text2);text-align:center;margin-top:4px;
   position:relative;z-index:1;font-weight:500;
+  flex-shrink:0;line-height:1.2;
 }
+.stats-mini-title,.stats-vol-kopf{flex-shrink:0}
 
 /* ── MUSKEL-AKKU-LISTE ── */
 .rec-list{
