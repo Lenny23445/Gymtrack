@@ -273,6 +273,10 @@ persist = function() {
   S.updatedAt = Date.now();
   _origPersist();
   if (_fbUser && !_syncing && _initialMergeDone) {
+    // Ab hier gilt der lokale Stand als ungesichert. Erst ein durchgegangener
+    // Push nimmt den Vermerk wieder weg — stirbt die App vorher (oder scheitert
+    // der Push), schuetzt er die Aenderung im naechsten Merge.
+    try { _cloudDirtySet(true); } catch(_) {}
     if (_pushTimer) clearTimeout(_pushTimer);
     _pushTimer = setTimeout(_pushToCloud, 800);
   }
@@ -341,9 +345,38 @@ async function _pushToCloud() {
       _serverTime: window.FB.serverTimestamp()
     };
     await window.FB.setDoc(ref, payload, { merge: false });
+    _cloudDirtySet(false);   // bestaetigt: die Cloud kennt diesen Stand
   } catch (e) {
+    /* Ein abgelehnter Push war bisher eine Konsolenzeile — und damit der
+       Anfang eines stillen Datenverlusts: die Cloud bleibt auf dem alten
+       Stand, der naechste Merge zieht ihn herein und ueberschreibt die
+       Einstellungen, die es nie hinausgeschafft haben (gemeldet: der Name des
+       Coaches sprang nach einem Profil-Speichern zurueck). Der Vermerk hier
+       ueberlebt jeden Neustart und macht den lokalen Stand im Merge
+       unantastbar, bis ein Push wirklich durchgeht. */
+    _cloudDirtySet(true);
     console.warn('[GymTrack] Cloud-Push fehlgeschlagen:', e);
+    // permission-denied heisst fast immer: die Rules in der Konsole sind aelter
+    // als firestore.rules im Repo (ein Feld fehlt im hasOnly). Das kann der
+    // Nutzer nicht beheben — er soll aber wissen, dass gerade nichts gesichert
+    // wird, statt es beim naechsten Geraet zu merken.
+    if (String(e?.code || e).includes('permission')) {
+      try { _dndToast('Sync gerade nicht möglich — deine Daten bleiben auf diesem Gerät.'); } catch(_) {}
+    }
   }
+}
+/* Gibt es lokale Aenderungen, die die Cloud nie bestaetigt hat? Der Zeitstempel
+   liegt in localStorage und NICHT in S: er beschreibt den Zustand DIESES
+   Geraets gegenueber der Cloud und haette in einem Feld, das selbst gesynct
+   wird, nichts verloren. */
+function _cloudDirtySet(an) {
+  try {
+    if (an) localStorage.setItem('gt_cloud_dirty', String(Date.now()));
+    else localStorage.removeItem('gt_cloud_dirty');
+  } catch(_) {}
+}
+function _cloudDirty() {
+  try { return !!localStorage.getItem('gt_cloud_dirty'); } catch(_) { return false; }
 }
 
 // Listen mit stabilen ids verlustfrei vereinen (Pläne/Splits): nie eine Seite
@@ -397,7 +430,16 @@ function _mergeData(local, cloud) {
     if (e && e.date) wlMap.set(e.date, e);
   });
   // Strukturierte Felder (Plan, Splits, Tracker): neuerer Stand gewinnt
-  const cloudNewer = (cloud.updatedAt || 0) >= (local.updatedAt || 0);
+  /* Ein Stand, den die Cloud nie bestaetigt hat, darf nicht von ihr
+     ueberschrieben werden. Genau das passierte, wenn ein Push abgelehnt wurde
+     (Rules aelter als firestore.rules) oder das Netz fehlte: lokal geaendert,
+     nie hochgekommen, und der naechste Merge zog den alten Cloud-Stand
+     herein — Coach-Name, Ton und die uebrigen Einstellungen waren wieder die
+     von vorher. Solange der Vermerk steht, gewinnt in JEDEM Feld die lokale
+     Seite; Uebungen und Einheiten werden ohnehin vereinigt und nicht gewaehlt,
+     da geht dabei nichts verloren. */
+  const nichtGesichert = (typeof _cloudDirty === 'function') && _cloudDirty();
+  const cloudNewer = !nichtGesichert && (cloud.updatedAt || 0) >= (local.updatedAt || 0);
   const pick = (a, b) => cloudNewer ? (a ?? b) : (b ?? a); // a=cloud, b=local
   return {
     exercises: [...exMap.values()],
