@@ -3496,7 +3496,15 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-head-title{font-size:17px;font-weight:700}
-.cal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+/* Seitliche Luft fuer die Ringe, ohne die Spalten schmaler zu machen.
+   overflow-y:auto schaltet in CSS auch die X-Achse auf Beschneiden — und das
+   Gitter fuellt die Box exakt aus. Der Akzentring von "heute" liegt 5px AUSSEN
+   um die Zelle; faellt der Tag auf einen Montag oder Sonntag, lief er genau in
+   diese Kante und war zur Haelfte abgeschnitten (dasselbe gilt fuer den
+   Schatten der vollen Trainingstage). Das Innenmass bleibt durch das negative
+   Aussenmass unveraendert, die Box wuchert nur in das Kartenpolster hinein. */
+.cal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;
+  padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px}
 .cal-month{margin-bottom:18px}
 .cal-month-title{font-size:14px;font-weight:700;color:var(--text);margin:0 2px 8px}
 .cal-weekhdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
