@@ -1337,6 +1337,28 @@ body.sheet-modal #ai-bubble{pointer-events:none}
   color:var(--text);
   box-shadow:0 1px 3px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.03);
 }
+/* ── Gleitende Pille (nur .fmode-slide, gesetzt am Statistik-Umschalter) ──
+   Die Pille ist ein eigenes Element hinter den Beschriftungen statt der
+   Hintergrund des aktiven Knopfes: nur so kann sie von einem Feld zum
+   anderen wandern — ein Hintergrund kann nicht von einem Element zum
+   naechsten animieren, er kann nur ein- und ausblenden.
+   Masse kommen aus dem JS (_fmodeSyncThumb), weil die Felder je nach
+   Beschriftung unterschiedlich breit sind. left:0 ist die Innenkante des
+   Rahmens — dieselbe Bezugskante wie offsetLeft, darum passt translateX
+   ohne Korrektur um das Polster. */
+.fmode-wrap.fmode-slide .fmode-btn{position:relative;z-index:1}
+.fmode-wrap.fmode-slide .fmode-btn.on{background:transparent;box-shadow:none}
+.fmode-thumb{
+  position:absolute;top:3px;bottom:3px;left:0;width:0;
+  border-radius:11px;background:var(--seg-on);
+  box-shadow:0 1px 3px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.03);
+  transform:translateX(0);pointer-events:none;
+  /* Die Kurve der iOS-Segmente: schnell los, weich ankommen. */
+  transition:transform .34s cubic-bezier(.32,.72,0,1),width .34s cubic-bezier(.32,.72,0,1);
+}
+/* Erster Sitz nach dem Aufbau: hinsetzen, nicht von links hereinfahren. */
+.fmode-thumb.fmode-nofx{transition:none}
+@media (prefers-reduced-motion:reduce){.fmode-thumb{transition:none}}
 .fmode-btn.fmode-add{flex:0 0 auto;padding:8px 10px;color:var(--acc);font-size:16px;font-weight:700;line-height:1}
 .fmode-edit{margin-left:6px;opacity:.55;font-size:11px;font-weight:600;cursor:pointer;display:inline-block;padding:0 2px}
 .fmode-edit:hover{opacity:1;color:var(--acc)}

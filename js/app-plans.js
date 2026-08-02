@@ -2551,6 +2551,36 @@ function _statGroupExIds(mode, g){
   return S.exercises.filter(e => exInGroup(e, mode.id, g.id)).map(e => e.id);
 }
 
+/* ── Gleitende Pille im Segment-Umschalter ─────────────────────────
+   Die Felder sind unterschiedlich breit ("Muskeln" vs. "Splits"), darum kann
+   die Pille nicht in CSS stehen — Breite und Weg kommen aus der Geometrie des
+   aktiven Knopfes. left:0 der Pille und offsetLeft haben dieselbe Bezugskante
+   (Innenkante des Rahmens), deshalb passt translateX ohne Korrektur. */
+function _fmodeSyncThumb(wrap){
+  if (!wrap) return;
+  const thumb = wrap.querySelector('.fmode-thumb');
+  const on    = wrap.querySelector('.fmode-btn.on');
+  // Unsichtbar (anderer Tab, display:none) misst der Browser 0 — dann NICHTS
+  // setzen, sonst steht die Pille auf Breite 0 und schnellt beim Sichtbarwerden
+  // auf. Der ResizeObserver holt es nach, sobald die Leiste eine Groesse hat.
+  if (!thumb || !on || !on.offsetWidth) return;
+  const ersterSitz = !thumb.style.width;
+  if (ersterSitz) thumb.classList.add('fmode-nofx');
+  thumb.style.width = on.offsetWidth + 'px';
+  thumb.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+  // Reflow erzwingen, bevor der Uebergang zurueckkommt: sonst faehrt die Pille
+  // beim ersten Zeigen von links herein statt einfach dazustehen.
+  if (ersterSitz) { void thumb.offsetWidth; thumb.classList.remove('fmode-nofx'); }
+}
+/* Nachziehen, wenn die Leiste ihre Groesse bekommt (Tab-Wechsel, Drehung,
+   Schriftgroesse des Systems). Ein einmaliger Aufruf beim Rendern reicht nicht:
+   der Statistik-Tab ist beim ersten Rendern oft noch ausgeblendet. */
+function _fmodeObserve(wrap){
+  if (!wrap || wrap._fmodeRO || typeof ResizeObserver === 'undefined') return;
+  wrap._fmodeRO = new ResizeObserver(() => _fmodeSyncThumb(wrap));
+  wrap._fmodeRO.observe(wrap);
+}
+
 function setStatsFilterMode(mode) {
   if (S.statsFilterMode === mode) return;
   S.statsFilterMode = mode;
@@ -2567,9 +2597,23 @@ function renderStatsMuscleGroups() {
     const modes = [{ id:'muskel', label:'Muskeln' }];
     if (hasSplits) modes.push({ id:'splits', label:'Splits' });
     modeBar.style.display = modes.length > 1 ? '' : 'none';
-    modeBar.innerHTML = modes.map(m =>
-      `<button class="fmode-btn${S.statsFilterMode===m.id?' on':''}" onclick="setStatsFilterMode('${m.id}')">${esc(m.label)}</button>`
-    ).join('');
+    // Die Leiste wird nur neu gebaut, wenn sich die Felder selbst aendern (Splits
+    // kommen dazu/fallen weg). Beim blossen Umschalten bleibt das DOM stehen und
+    // nur die Pille wandert — ein Neuaufbau wuerde sie zerstoeren und neu
+    // hinsetzen, und genau das soll ja nicht mehr passieren.
+    const sig = modes.map(m => m.id).join('|');
+    if (modeBar.dataset.modes !== sig) {
+      modeBar.dataset.modes = sig;
+      modeBar.classList.add('fmode-slide');
+      modeBar.innerHTML = '<span class="fmode-thumb"></span>' + modes.map(m =>
+        `<button class="fmode-btn${S.statsFilterMode===m.id?' on':''}" onclick="setStatsFilterMode('${m.id}')">${esc(m.label)}</button>`
+      ).join('');
+      _fmodeObserve(modeBar);
+    } else {
+      modeBar.querySelectorAll('.fmode-btn').forEach((b, i) =>
+        b.classList.toggle('on', modes[i] && modes[i].id === S.statsFilterMode));
+    }
+    _fmodeSyncThumb(modeBar);
   }
   // Titel an Modus anpassen
   const title = document.getElementById('stats-mg-title');
