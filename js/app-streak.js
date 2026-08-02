@@ -621,16 +621,13 @@ function openExLibrary(){
   openOv('ov-ex-lib');
 }
 function setLibCat(id){ _libCat = id; renderExLibrary(); }
-// 'cardio' ist eine reine Bibliotheks-Kategorie (Eintraege mit mg:''), KEINE
-// Muskelgruppe — ohne sie waeren Cardio-Uebungen ueber den Balken unerreichbar.
 function _libMatch(it, cat, q){
-  if (cat === 'cardio') { if (it.mg !== '') return false; }
-  else if (cat !== 'alle' && it.mg !== cat) return false;
+  if (cat !== 'alle' && it.mg !== cat) return false;
   if (q && !_normSearch(it.n).includes(q)) return false;
   return true;
 }
 function renderExLibrary(){
-  const cats = [{id:'alle',label:'Alle'}, ...MUSCLE_GROUPS, {id:'cardio',label:'Cardio'}];
+  const cats = [{id:'alle',label:'Alle'}, ...MUSCLE_GROUPS];
   const catBar = document.getElementById('lib-cat-row');
   if (catBar) {
     catBar.innerHTML = cats.map(c =>
@@ -657,7 +654,7 @@ function renderExLibrary(){
     return `<div class="lib-item" onclick="pickExFromLibrary(${gi})">
       <div style="flex:1;min-width:0">
         <div class="lib-name">${esc(it.n)}</div>
-        <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : 'Cardio'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
+        <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : '—'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
       </div>
       ${has ? '<span class="lib-already">✓ vorhanden</span>' : ''}
     </div>`;

@@ -7,8 +7,9 @@
  *   n  Name (deutsch) — zugleich De-facto-ID: PLAN_TEMPLATES.libNames, Plan-Import und
  *      die "vorhanden"-Pruefung matchen ueber diesen String. NIE bestehende Namen aendern.
  *   e  Emoji
- *   mg Muskelgruppen-ID aus MUSCLE_GROUPS ('brust'|'ruecken'|'beine'|'arme'|'schultern'|'core')
- *      oder '' = ohne Muskelgruppe (Cardio/Kondition, eigener Bibliotheks-Filter "Cardio")
+ *   mg Muskelgruppen-ID aus MUSCLE_GROUPS ('brust'|'ruecken'|'beine'|'arme'|'schultern'|'core').
+ *      Ein Wert ausserhalb dieser Liste macht den Eintrag ueber den Kategoriebalken
+ *      unerreichbar — die Bibliothek baut ihre Kategorien direkt aus MUSCLE_GROUPS.
  *   s  Ziel-Saetze
  *   r  Ziel-Wiederholungen — bei t:'time' stattdessen Sekunden
  *   t  optional 'time' = Zeit-Uebung
@@ -357,40 +358,6 @@ const EX_LIBRARY = [
   {n:'Bauch-Vakuum',           e:'', mg:'core', s:3, r:20, t:'time', en:'Stomach Vacuum'},
 
   // ══ CARDIO & KONDITION (ohne Muskelgruppe) ═════════════
-  {n:'Laufband',               e:'', mg:'', s:1, r:1200, t:'time'},
-  {n:'Seilspringen',           e:'', mg:'', s:3, r:60,  t:'time'},
-  {n:'Rudern (Cardio)',        e:'', mg:'', s:1, r:1200, t:'time'},
-  {n:'Crosstrainer',           e:'', mg:'', s:1, r:1200, t:'time', en:'Elliptical'},
-  {n:'Stairmaster',            e:'', mg:'', s:1, r:900,  t:'time'},
-  {n:'Spinning',               e:'', mg:'', s:1, r:1800, t:'time', en:'Spin Bike'},
-  {n:'Assault Bike',           e:'', mg:'', s:1, r:600,  t:'time'},
-  {n:'SkiErg',                 e:'', mg:'', s:1, r:600,  t:'time'},
-  {n:'Laufen draußen',         e:'', mg:'', s:1, r:1800, t:'time', en:'Outdoor Run'},
-  {n:'Rad fahren draußen',     e:'', mg:'', s:1, r:2700, t:'time', en:'Outdoor Cycling'},
-  {n:'Gehen',                  e:'', mg:'', s:1, r:1800, t:'time', en:'Walking'},
-  {n:'Gehen mit Steigung',     e:'', mg:'', s:1, r:1800, t:'time', en:'Incline Walk'},
-  {n:'Wandern',                e:'', mg:'', s:1, r:3600, t:'time', en:'Hiking'},
-  {n:'Treppenlauf',            e:'', mg:'', s:1, r:600,  t:'time', en:'Stair Run'},
-  {n:'Schwimmen',              e:'', mg:'', s:1, r:1800, t:'time', en:'Swimming'},
-  {n:'Sprints',                e:'', mg:'', s:6, r:20,   t:'time'},
-  {n:'Bergsprints',            e:'', mg:'', s:6, r:20,   t:'time', en:'Hill Sprints'},
-  {n:'Intervallsprints',       e:'', mg:'', s:8, r:30,   t:'time', en:'Sprint Intervals'},
-  {n:'Burpees',                e:'', mg:'', s:3, r:15},
-  {n:'Battle Ropes',           e:'', mg:'', s:4, r:30,   t:'time'},
-  {n:'Boxsack',                e:'', mg:'', s:5, r:180,  t:'time', en:'Heavy Bag'},
-  {n:'Schattenboxen',          e:'', mg:'', s:3, r:180,  t:'time', en:'Shadow Boxing'},
-  {n:'Double Unders',          e:'', mg:'', s:5, r:40 },
-  {n:'Hampelmänner',           e:'', mg:'', s:3, r:40,   en:'Jumping Jacks'},
-  {n:'Kniehebelauf',           e:'', mg:'', s:3, r:30,   t:'time', en:'High Knees'},
-  {n:'Anfersen',               e:'', mg:'', s:3, r:30,   t:'time', en:'Butt Kicks'},
-  {n:'Wall Balls',             e:'', mg:'', s:4, r:15},
-  {n:'Thrusters',              e:'', mg:'', s:4, r:10},
-  {n:'Clean & Press',          e:'', mg:'', s:4, r:5 },
-  {n:'Power Clean',            e:'', mg:'', s:5, r:3 },
-  {n:'Hang Clean',             e:'', mg:'', s:5, r:3 },
-  {n:'Reißen',                 e:'', mg:'', s:5, r:2,    en:'Snatch'},
-  {n:'Devil Press',            e:'', mg:'', s:4, r:10},
-  {n:'Man Makers',             e:'', mg:'', s:3, r:8 },
   // ══ ERGÄNZUNGEN ════════════════════════════════════════
   {n:'Guillotine Press',            e:'', mg:'brust', s:3, r:10},
   {n:'Bankdrücken (neutral, KH)',   e:'', mg:'brust', s:3, r:10, en:'Neutral-Grip Dumbbell Press'},
@@ -447,17 +414,6 @@ const EX_LIBRARY = [
   {n:'Seitlicher Plank mit Beinheben', e:'', mg:'core', s:3, r:12, en:'Side Plank Leg Raise'},
   {n:'Sit-Ups mit Rotation',        e:'', mg:'core', s:3, r:20, en:'Twisting Sit-Ups'},
   {n:'Beinheben mit Hüftschub',     e:'', mg:'core', s:3, r:12, en:'Leg Raise with Hip Lift'},
-  {n:'Laufband-Intervalle',         e:'', mg:'', s:8, r:60,   t:'time', en:'Treadmill Intervals'},
-  {n:'Ruder-Intervalle',            e:'', mg:'', s:8, r:60,   t:'time', en:'Rowing Intervals'},
-  {n:'HIIT-Intervalle',             e:'', mg:'', s:10, r:30,  t:'time', en:'HIIT Intervals'},
-  {n:'Zirkeltraining',              e:'', mg:'', s:3, r:600,  t:'time', en:'Circuit Training'},
-  {n:'Sandsack-Tragen',             e:'', mg:'', s:3, r:40,   t:'time', en:'Sandbag Carry'},
-  {n:'Reifen-Flippen',              e:'', mg:'', s:4, r:8,    en:'Tire Flips'},
-  {n:'Vorschlaghammer',             e:'', mg:'', s:4, r:20,   en:'Sledgehammer Swings'},
-  {n:'Aufwärmen',                   e:'', mg:'', s:1, r:600,  t:'time', en:'Warm-Up'},
-  {n:'Cool-Down',                   e:'', mg:'', s:1, r:300,  t:'time'},
-  {n:'Beweglichkeitstraining',      e:'', mg:'', s:1, r:600,  t:'time', en:'Mobility Work'},
-  {n:'Dehnen',                      e:'', mg:'', s:1, r:600,  t:'time', en:'Stretching'},
   // ══ VARIANTEN — Basisbewegung × Gerät / Griff / Winkel / Technik ══
 
   // ── BRUST · Varianten ──
