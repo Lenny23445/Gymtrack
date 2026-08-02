@@ -2129,15 +2129,23 @@ function _volChartCfg(cv, pts, acc, voll){
     type:'line',
     data:{
       labels: pts.map(p=>p.x),
-      datasets:[Object.assign({ data: pts.map(p=>p.y) }, _glowDs(cv, acc, pts.length, voll))]
+      // clip:false — Chart.js beschneidet eine Datenreihe sonst exakt an der
+      // Zeichenflaeche, und der Schein ist Teil der Reihe. Genau daran wurde
+      // im Vollbild der letzte Punkt rechts halbiert. Die Luft dafuer steht
+      // unten im layout.padding; der Canvasrand kappt weiterhin alles.
+      datasets:[Object.assign({ data: pts.map(p=>p.y), clip:false }, _glowDs(cv, acc, pts.length, voll))]
     },
     plugins:[_neonLinePlugin(acc, voll)],
     options:{
       responsive:true, maintainAspectRatio:false,
       // Ohne Achsen braucht die Kachel nur noch Luft fuer den Schein selbst,
       // sonst wird er am Rand des Zeichenbereichs abgeschnitten.
-      layout:{padding: voll ? {top:14,bottom:0,left:6,right:10}
-                            : {top:12,bottom:8,left:4,right:8}},
+      // Rechts am meisten: dort sitzt der letzte Punkt (Radius 5,5 + 2,8 Rand)
+      // UND sein Schein (shadowBlur 12) — zusammen gut 20 Pixel, die vorher
+      // nicht da waren. Links/unten laeuft nur die Linie selbst gegen den Rand,
+      // die braucht weniger.
+      layout:{padding: voll ? {top:16,bottom:6,left:14,right:22}
+                            : {top:12,bottom:8,left:6,right:14}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtKg(c.parsed.y)}}},
       scales: voll
         ? { x:{grid:{display:false},ticks:_cXT(pts.length)},
