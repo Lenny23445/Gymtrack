@@ -603,130 +603,72 @@ function renderMatrix(){
   requestAnimationFrame(() => { wrap.scrollLeft = wrap.scrollWidth; });
 }
 
-// ── ÜBUNGS-BIBLIOTHEK (Standard-Übungen) ──────────────
-const EX_LIBRARY = [
-  // Brust
-  {n:'Bankdrücken',          e:'🏋️', mg:'brust',     s:3, r:8 },
-  {n:'Schrägbankdrücken',    e:'📈', mg:'brust',     s:3, r:10},
-  {n:'Kurzhantel-Bankdrücken',e:'💪', mg:'brust',    s:3, r:10},
-  {n:'Fliegende',            e:'🦋', mg:'brust',     s:3, r:12},
-  {n:'Liegestütze',          e:'🤸', mg:'brust',     s:3, r:15},
-  {n:'Dips',                 e:'⬇️', mg:'brust',     s:3, r:8 },
-  {n:'Butterfly (Maschine)', e:'🦋', mg:'brust',     s:3, r:12},
-  {n:'Kabelzug Brust',       e:'🪢', mg:'brust',     s:3, r:12},
-
-  // Rücken
-  {n:'Klimmzüge',            e:'🆙', mg:'ruecken',   s:3, r:8 },
-  {n:'Latzug',               e:'⬇️', mg:'ruecken',   s:3, r:10},
-  {n:'Rudern (Langhantel)',  e:'🚣', mg:'ruecken',   s:3, r:8 },
-  {n:'Kurzhantel-Rudern',    e:'🚣', mg:'ruecken',   s:3, r:10},
-  {n:'T-Bar Rudern',         e:'🅻', mg:'ruecken',   s:3, r:10},
-  {n:'Kreuzheben',           e:'🏋️', mg:'ruecken',   s:3, r:5 },
-  {n:'Rumänisches Kreuzheben',e:'🦵', mg:'ruecken',  s:3, r:8 },
-  {n:'Hyperextensions',      e:'🦴', mg:'ruecken',   s:3, r:15},
-  {n:'Face Pulls',           e:'😤', mg:'ruecken',   s:3, r:15},
-  {n:'Pullover',             e:'🛏️', mg:'ruecken',   s:3, r:12},
-
-  // Beine
-  {n:'Kniebeugen',           e:'🦵', mg:'beine',     s:3, r:8 },
-  {n:'Front-Kniebeuge',      e:'🦵', mg:'beine',     s:3, r:8 },
-  {n:'Beinpresse',           e:'🦵', mg:'beine',     s:3, r:10},
-  {n:'Ausfallschritte',      e:'🚶', mg:'beine',     s:3, r:12},
-  {n:'Bulgarian Split Squats',e:'🇧🇬', mg:'beine',  s:3, r:10},
-  {n:'Beinstrecker',         e:'🦿', mg:'beine',     s:3, r:12},
-  {n:'Beinbeuger',           e:'🦿', mg:'beine',     s:3, r:12},
-  {n:'Wadenheben',           e:'🦶', mg:'beine',     s:3, r:15},
-  {n:'Hip Thrust',           e:'🍑', mg:'beine',     s:3, r:10},
-  {n:'Goblet Squat',         e:'🥤', mg:'beine',     s:3, r:12},
-
-  // Schultern
-  {n:'Schulterdrücken',      e:'🏋️', mg:'schultern', s:3, r:8 },
-  {n:'KH-Schulterdrücken',   e:'💪', mg:'schultern', s:3, r:10},
-  {n:'Seitheben',            e:'🤷', mg:'schultern', s:3, r:12},
-  {n:'Frontheben',           e:'🙆', mg:'schultern', s:3, r:12},
-  {n:'Reverse Flys',         e:'🦋', mg:'schultern', s:3, r:12},
-  {n:'Aufrechtes Rudern',    e:'🆙', mg:'schultern', s:3, r:10},
-  {n:'Arnold Press',         e:'💪', mg:'schultern', s:3, r:10},
-  {n:'Shrugs',               e:'🤷', mg:'schultern', s:3, r:12},
-
-  // Arme
-  {n:'Bizeps-Curls (KH)',    e:'💪', mg:'arme',      s:3, r:10},
-  {n:'Bizeps-Curls (LH)',    e:'💪', mg:'arme',      s:3, r:10},
-  {n:'Hammer-Curls',         e:'🔨', mg:'arme',      s:3, r:10},
-  {n:'Konzentrations-Curls', e:'🎯', mg:'arme',      s:3, r:12},
-  {n:'Trizeps-Dips',         e:'⬇️', mg:'arme',      s:3, r:10},
-  {n:'Trizepsdrücken (Kabel)',e:'🪢', mg:'arme',     s:3, r:12},
-  {n:'French Press',         e:'🇫🇷', mg:'arme',     s:3, r:10},
-  {n:'Engers Bankdrücken',   e:'🤏', mg:'arme',      s:3, r:8 },
-  {n:'Preacher Curls',       e:'🙏', mg:'arme',      s:3, r:10},
-  {n:'Unterarm-Curls',       e:'✊', mg:'arme',      s:3, r:15},
-
-  // Core
-  {n:'Plank',                e:'🪵', mg:'core',      s:3, r:60, t:'time'},
-  {n:'Seitlicher Plank',     e:'🪵', mg:'core',      s:3, r:45, t:'time'},
-  {n:'Crunches',             e:'😬', mg:'core',      s:3, r:20},
-  {n:'Beinheben',            e:'🦵', mg:'core',      s:3, r:12},
-  {n:'Russian Twists',       e:'🌀', mg:'core',      s:3, r:20},
-  {n:'Mountain Climbers',    e:'⛰️', mg:'core',      s:3, r:30, t:'time'},
-  {n:'Hollow Hold',          e:'🌑', mg:'core',      s:3, r:30, t:'time'},
-  {n:'Cable Crunches',       e:'🪢', mg:'core',      s:3, r:15},
-  {n:'Käfer',                e:'🪲', mg:'core',      s:3, r:20},
-  {n:'Hängendes Beinheben',  e:'🦵', mg:'core',      s:3, r:10},
-
-  // Cardio (als Zeit-Übungen unter Core gruppiert? Eher als "ohne MG")
-  {n:'Laufband',             e:'🏃', mg:'',          s:1, r:1200, t:'time'},
-  {n:'Rad fahren',           e:'🚴', mg:'beine',     s:1, r:1500, t:'time'},
-  {n:'Rudern (Cardio)',      e:'🚣', mg:'ruecken',   s:1, r:1200, t:'time'},
-  {n:'Seilspringen',         e:'🪢', mg:'',          s:3, r:60,  t:'time'},
-];
+// ── ÜBUNGS-BIBLIOTHEK ──────────────────────────────────
+// Die Daten (EX_LIBRARY) stehen in js/app-exdb.js — laedt VOR dieser Datei.
 let _libCat = 'alle';
+let _libT   = null;
+// Deckel pro Ansicht: die Bibliothek hat >1.300 Eintraege. Nicht das Rendern ist
+// das Problem, sondern der i18n-MutationObserver — der schickt jeden neuen
+// Textknoten durch tr(). Deshalb Deckel + Debounce wie in renderExList.
+const LIB_MAX = 150;
+function libSearchInput(){ clearTimeout(_libT); _libT = setTimeout(renderExLibrary, 110); }
 function openExLibrary(){
   haptic(8);
   _libCat = 'alle';
+  clearTimeout(_libT);
   const s = document.getElementById('lib-search'); if (s) s.value = '';
   renderExLibrary();
   openOv('ov-ex-lib');
 }
 function setLibCat(id){ _libCat = id; renderExLibrary(); }
+// 'cardio' ist eine reine Bibliotheks-Kategorie (Eintraege mit mg:''), KEINE
+// Muskelgruppe — ohne sie waeren Cardio-Uebungen ueber den Balken unerreichbar.
+function _libMatch(it, cat, q){
+  if (cat === 'cardio') { if (it.mg !== '') return false; }
+  else if (cat !== 'alle' && it.mg !== cat) return false;
+  if (q && !_normSearch(it.n).includes(q)) return false;
+  return true;
+}
 function renderExLibrary(){
-  const cats = [{id:'alle',label:'Alle'}, ...MUSCLE_GROUPS];
+  const cats = [{id:'alle',label:'Alle'}, ...MUSCLE_GROUPS, {id:'cardio',label:'Cardio'}];
   const catBar = document.getElementById('lib-cat-row');
   if (catBar) {
     catBar.innerHTML = cats.map(c =>
       `<button class="lib-cat${_libCat===c.id?' on':''}" onclick="setLibCat('${c.id}')">${c.label}</button>`
     ).join('');
   }
-  const q = (document.getElementById('lib-search')?.value || '').trim().toLowerCase();
+  const q = _normSearch(document.getElementById('lib-search')?.value || '').trim();
   const list = document.getElementById('lib-list');
   const existingNames = new Set(S.exercises.map(e => e.name.toLowerCase()));
-  const items = EX_LIBRARY.filter(it => {
-    if (_libCat !== 'alle' && it.mg !== _libCat) return false;
-    if (q && !it.n.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  // Globaler Index statt Position in der gefilterten Liste: pickExFromLibrary
+  // loest direkt auf, statt die Filterung zeichengleich nachbauen zu muessen.
+  const items = [];
+  for (let i = 0; i < EX_LIBRARY.length; i++) {
+    if (_libMatch(EX_LIBRARY[i], _libCat, q)) items.push(i);
+  }
   if (!items.length) {
     list.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--text2);font-size:14px">Keine Übungen gefunden.</div>`;
     return;
   }
-  list.innerHTML = items.map((it,i) => {
+  const shown = items.slice(0, LIB_MAX);
+  let html = shown.map(gi => {
+    const it = EX_LIBRARY[gi];
     const has = existingNames.has(it.n.toLowerCase());
-    return `<div class="lib-item" onclick="pickExFromLibrary(${i},'${_libCat}','${(q||'').replace(/'/g,"\\'")}')">
+    return `<div class="lib-item" onclick="pickExFromLibrary(${gi})">
       <div style="flex:1;min-width:0">
-        <div class="lib-name">${it.n}</div>
-        <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : '—'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
+        <div class="lib-name">${esc(it.n)}</div>
+        <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : 'Cardio'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
       </div>
       ${has ? '<span class="lib-already">✓ vorhanden</span>' : ''}
     </div>`;
   }).join('');
+  if (items.length > shown.length) {
+    html += `<div style="padding:14px 10px 4px;text-align:center;color:var(--text2);font-size:13px">Mehr Treffer vorhanden · Suche verfeinern</div>`;
+  }
+  list.innerHTML = html;
 }
-function pickExFromLibrary(filteredIdx, cat, q){
-  // Re-filter to find the actual item (matching renderExLibrary order)
-  const items = EX_LIBRARY.filter(it => {
-    if (cat !== 'alle' && it.mg !== cat) return false;
-    if (q && !it.n.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  });
-  const it = items[filteredIdx];
+function pickExFromLibrary(gi){
+  const it = EX_LIBRARY[gi];
   if (!it) return;
   haptic(15);
   // Werte ins Formular übernehmen
@@ -738,7 +680,7 @@ function pickExFromLibrary(filteredIdx, cat, q){
     document.getElementById('in-reps-min').value = Math.max(1, it.r - 2);
     document.getElementById('in-reps').value = it.r + 2;
   }
-  selEmoji  = it.e;
+  selEmoji  = it.e || '';
   selMuscle = it.mg || '';
   selScheme = 'straight';
   setExType(it.t === 'time' ? 'time' : 'reps');

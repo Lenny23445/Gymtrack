@@ -26,6 +26,7 @@ const SHELL = [
   './js/app-session.js',
   './js/app-plans.js',
   './js/app-workout.js',
+  './js/app-exdb.js',
   './js/app-streak.js',
   './js/app-community.js',
   './js/app-coach.js',
