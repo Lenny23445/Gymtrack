@@ -1604,7 +1604,49 @@ function _segFarbe(pct) {
      Strich sich von der weissen Karte abhebt. Ohne ihn lagen die Fuellungen bei
      1,03:1 — heller als dieselben Striche im Dark Mode, also genau verkehrt. */
   const l = Math.min(_nrLmax(), 50 - gelbNaehe * 4);
-  return { h, s: 100, l, css: `hsl(${h.toFixed(0)},100%,${l.toFixed(0)}%)` };
+  /* Die FUELLUNG ist eine andere Rolle als die SCHRIFT und bekommt deshalb eine
+     eigene Helligkeit — siehe _sigFillL(). Auf Dunkel sind beide identisch. */
+  const lf = _sigFillL(h, l);
+  return {
+    h, s: 100, l, css: `hsl(${h.toFixed(0)},100%,${l.toFixed(0)}%)`,
+    lFill: lf, cssFill: `hsl(${h.toFixed(0)},100%,${lf.toFixed(0)}%)`
+  };
+}
+/* ── HELLIGKEIT DER SIGNAL-FUELLUNGEN AUF HELLEM GRUND ──────────────────────
+   Bis 02.08.2026 lief die Fuellung durch DENSELBEN Deckel wie die Schrift
+   (--neon-lmax: 30). Der Deckel war fuer Text gebaut und dort richtig; als
+   Regel fuer Flaechen war er die Ursache dafuer, dass in rosa/hell aus der
+   Ampel Matsch wurde: Gelb (h≈50) bei L=30 ist #997700 — Oliv. Orange (h≈25)
+   wurde Rostbraun. Nebeneinander waren "wenig erholt" und "nicht erholt" nicht
+   mehr zu unterscheiden, und von "gruen, gelb, orange, rot" kam nichts an.
+
+   Der Grund ist nicht Willkuer, sondern Wahrnehmung: die EIGENhelligkeit einer
+   satten Farbe haengt stark vom Farbton ab. Gelb ist von Natur aus hell, Gruen
+   und Rot sind dunkel. Zwingt man alle auf denselben HSL-L-Wert, verliert
+   ausgerechnet Gelb seine Identitaet — es wird braun, nicht dunkelgelb.
+
+   Deshalb hier eine Stuetzstellen-Kurve statt eines Deckels: jeder Farbton
+   bekommt die Helligkeit, bei der er noch als DIESE Farbe gelesen wird.
+   Rot und Gelb duerfen hell bleiben, Gruen geht deutlich herunter (satt-dunkles
+   Gruen liest sich auf Weiss besser als helles). Was an Kontrast fehlt — vor
+   allem bei Gelb — traegt nicht die Farbe, sondern die haarfeine dunkle Kante
+   um jeden Strich (--sig-ring, gesetzt in _segBarsHTML). Das ist auch der Weg,
+   den WCAG 1.4.11 fuer grafische Elemente vorsieht: Umriss statt Flaechenkontrast.
+
+   Auf Dunkel greift die Kurve NICHT — dort ist der uebergebene Wert bereits
+   richtig und jede Aenderung waere eine Regression an einer Stelle, die stimmt. */
+const _SIG_FILL_L = [[0, 46], [25, 44], [50, 46], [95, 38], [140, 35]];
+function _sigFillL(h, fallback) {
+  if (!_neonHell()) return fallback;
+  const t = _SIG_FILL_L;
+  if (h <= t[0][0]) return t[0][1];
+  for (let i = 1; i < t.length; i++) {
+    if (h <= t[i][0]) {
+      const [h0, l0] = t[i - 1], [h1, l1] = t[i];
+      return l0 + (l1 - l0) * ((h - h0) / (h1 - h0));
+    }
+  }
+  return t[t.length - 1][1];
 }
 /* Liest --neon-lmax. Der Token war seit dem Neon-Umbau deklariert und hatte
    KEINEN Leser — das ist die gemeinsame Ursache dafuer, dass Erholungsstriche,
@@ -1664,7 +1706,9 @@ function _segBarsVertHTML(pct, n, opts) {
   if (p > 0 && voll === 0) voll = 1;
   if (p >= 100) voll = anz;
   const f = _segFarbe(p);
-  const H = f.h.toFixed(0), L = f.l.toFixed(0);
+  // Fuellung = lFill (eigene Helligkeitskurve auf hellem Grund), nicht die Ink-Helligkeit.
+  const H = f.h.toFixed(0), L = f.lFill.toFixed(0);
+  const ring = `inset 0 0 0 1px hsla(${H},100%,${Math.max(18, f.lFill - 22).toFixed(0)}%,var(--sig-ring,0))`;
   let out = `<div class="segbar-v${o.cls ? ' ' + o.cls : ''}">`;
   // Von oben nach unten gebaut, gefuellt sind die UNTERSTEN.
   for (let i = 0; i < anz; i++) {
@@ -1680,6 +1724,7 @@ function _segBarsVertHTML(pct, n, opts) {
         + `0 0 var(--gw-2) hsla(${H},100%,var(--ng-2),var(--gwa-2)),`
         + `0 0 var(--gw-3) hsla(${H},100%,var(--ng-3),var(--gwa-3)),`
         + `var(--neon-edge),`
+        + `${ring},`
         + `inset 0 -1px 3px hsla(${H},100%,30%,var(--ng-lo)),`
         + `inset 0 1px 2px hsla(${H},100%,80%,var(--ng-hi))`
       : '';
@@ -1709,8 +1754,13 @@ function _segBarsHTML(pct, n, opts) {
        lassen, nahm ihr aber die Deutlichkeit: der erste Strich war merklich
        dunkler als der letzte, und aus einem klaren Gruen wurde ein Verlauf
        ins Blasse. Eine Reihe, ein Wert, eine Farbe. */
-    const l = f.l;
+    const l = f.lFill;
     const H = f.h.toFixed(0), S = f.s.toFixed(0);
+    /* Die haarfeine Kante in der eigenen, dunkleren Farbe. Sie ist der Ersatz
+       fuer den Kontrast, den eine helle Fuellung auf weissem Grund nicht haben
+       kann — vor allem bei Gelb. Auf Dunkel steht --sig-ring auf 0, die Kante
+       ist dort also nicht vorhanden und es aendert sich nichts. */
+    const ring = `inset 0 0 0 1px hsla(${H},100%,${Math.max(18, l - 22).toFixed(0)}%,var(--sig-ring,0))`;
     /* Fassung fuer Gehaeuse (die Erholungs-Batterien): volle Neon-Staffel wie
        jede andere Anzeige, dazu die beiden Innenlichter, die aus der Flaeche
        eine Roehre machen.
@@ -1726,6 +1776,7 @@ function _segBarsHTML(pct, n, opts) {
            + `0 0 var(--gw-2) hsla(${H},100%,var(--ng-2),var(--gwa-2)),`
            + `0 0 var(--gw-3) hsla(${H},100%,var(--ng-3),var(--gwa-3)),`
            + `var(--neon-edge),`
+           + `${ring},`
            + `inset 0 -1px 3px hsla(${H},100%,30%,var(--ng-lo)),`
            + `inset 0 1px 2px hsla(${H},100%,80%,var(--ng-hi))"></i>`;
       continue;
@@ -1746,6 +1797,7 @@ function _segBarsHTML(pct, n, opts) {
         + `0 0 var(--gw-2) hsla(${H},${S}%,var(--ng-2),var(--gwa-2)),`
         + `0 0 var(--gw-3) hsla(${H},${S}%,var(--ng-3),var(--gwa-3)),`
         + `var(--neon-edge),`
+        + `${ring},`
         + `inset 0 1px 3px hsla(${H},100%,78%,var(--ng-hi))`
       : '';
     // Der letzte gefuellte Strich ist der "aktuelle" — er traegt die Marke.
