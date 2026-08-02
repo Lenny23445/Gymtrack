@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030503';
+const APP_VERSION = 'gymtrack-v202608030601';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -152,7 +152,8 @@ const I18N_EN = {
   'Übung bearbeiten':'Edit exercise','Übung löschen':'Delete exercise','Übung wirklich löschen?':'Really delete this exercise?',
   'Übung':'Exercise','Muskelgruppen':'Muscle groups','Muskelgruppe':'Muscle group','Muskelgruppe oder Split':'Muscle group or split',
   'Bitte eine Muskelgruppe oder einen Split wählen.':'Please choose a muscle group or split.',
-  'Aus Bibliothek wählen':'Choose from library','Über 70 fertige Standard-Übungen mit Muskelgruppe':'Over 70 ready-made exercises with muscle groups',
+  'Aus Bibliothek wählen':'Choose from library','Über 1.300 Übungen mit Muskelgruppe und Zielvorgabe':'Over 1,300 exercises with muscle group and target',
+  'Mehr Treffer vorhanden · Suche verfeinern':'More results available · refine your search',
   'Bild (optional)':'Image (optional)','Bild wählen':'Choose image','Bild konnte nicht geladen werden.':'Image could not be loaded.',
   'Bild zu groß zum Speichern — bitte kleineres wählen.':'Image too large to save — please choose a smaller one.',
   'Ziel pro Einheit':'Goal per session','Wiederholungsbereich':'Rep range','Gewichts-Schema über die Sätze':'Weight scheme across sets',
