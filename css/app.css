@@ -3636,7 +3636,6 @@ body.wpick-open #heute-edit-bar{display:none!important}
   text-align:left;transition:opacity .15s;
 }
 .lib-trigger:active{opacity:.7}
-.lib-trigger-ico{font-size:22px;flex-shrink:0}
 .lib-trigger-body{flex:1;min-width:0}
 .lib-trigger-title{font-size:14px;font-weight:700;color:var(--acc)}
 .lib-trigger-sub{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3}

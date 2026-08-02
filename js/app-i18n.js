@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030701';
+const APP_VERSION = 'gymtrack-v202608030801';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -1002,7 +1002,7 @@ const I18N_RX = [
  [/Ziel ändern: /g, 'Change goal: '],
  /* Uebungs-Bibliothek: "Chest·Ziel 3×8" — hier steht Ziel OHNE Doppelpunkt. */
  [/Ziel (\d)/g, 'Goal $1'],
- [/✓ vorhanden/g, '✓ in your library'],
+ [/^vorhanden$/g, 'in your library'],
  /* Bestwert-Zeile einer Uebung: "aus 10×242 kg · 5. Jun 25" */
  [/\baus (\d+)×/g, 'from $1×'],
  /* Tagesempfehlung und Erholungs-Hinweise — Muskelname und Prozent stehen

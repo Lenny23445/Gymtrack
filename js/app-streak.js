@@ -656,7 +656,7 @@ function renderExLibrary(){
         <div class="lib-name">${esc(it.n)}</div>
         <div class="lib-mg">${it.mg ? muscleLabel(it.mg) : '—'} · Ziel ${it.s}×${it.t==='time'?fmtSec(it.r):it.r}</div>
       </div>
-      ${has ? '<span class="lib-already">✓ vorhanden</span>' : ''}
+      ${has ? '<span class="lib-already">vorhanden</span>' : ''}
     </div>`;
   }).join('');
   if (items.length > shown.length) {
