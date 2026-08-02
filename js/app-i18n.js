@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030802';
+const APP_VERSION = 'gymtrack-v202608030803';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -214,12 +214,38 @@ const I18N_EN = {
   'dein Tagesplan':'your daily plan','der Plan':'the plan',
   'Push · Pull · Legs (6×/Woche)':'Push · Pull · Legs (6×/week)','Push · Pull · Legs (3×/Woche)':'Push · Pull · Legs (3×/week)',
   'Upper · Lower (4×/Woche)':'Upper · Lower (4×/week)','Full Body (3×/Woche)':'Full Body (3×/week)','Arnold Split (6×/Woche)':'Arnold Split (6×/week)',
-  '6 Tage':'6 days','4 Tage':'4 days','3 Tage':'3 days',
+  'Ganzkörper (2×/Woche)':'Full Body (2×/week)','Ober · Unterkörper (2×/Woche)':'Upper · Lower (2×/week)',
+  'Grundübungen-Kraft (3×/Woche)':'Compound Strength (3×/week)','Ganzkörper-Zirkel (3×/Woche)':'Full-Body Circuit (3×/week)',
+  'Push · Pull · Legs · Oberkörper (4×/Woche)':'Push · Pull · Legs · Upper (4×/week)',
+  'Kraft: Ober · Unterkörper (4×/Woche)':'Strength: Upper · Lower (4×/week)',
+  'Ganzkörper kurz (4×/Woche)':'Full Body Short (4×/week)','Muskelgruppen-Split (4×/Woche)':'Body-Part Split (4×/week)',
+  'Muskelgruppen-Split (5×/Woche)':'Body-Part Split (5×/week)',
+  'Push · Pull · Legs · Ober · Unter (5×/Woche)':'Push · Pull · Legs · Upper · Lower (5×/week)',
+  'Ober · Unter · Ganzkörper (5×/Woche)':'Upper · Lower · Full Body (5×/week)',
+  '6 Tage':'6 days','5 Tage':'5 days','4 Tage':'4 days','3 Tage':'3 days','2 Tage':'2 days',
   'Klassisches Bodybuilding-Schema. Push (Brust/Schulter/Trizeps), Pull (Rücken/Bizeps), Legs zweimal die Woche.':'Classic bodybuilding scheme. Push (chest/shoulders/triceps), pull (back/biceps), legs twice a week.',
   'Einsteiger-Variante: Eine PPL-Runde pro Woche mit 1–2 Tagen Pause zwischen Einheiten.':'Beginner variant: one PPL round per week with 1–2 rest days between sessions.',
   'Oberkörper- und Unterkörper-Splits jeweils zweimal. Solide Mischung aus Volumen und Erholung.':'Upper and lower body splits twice each. A solid mix of volume and recovery.',
   'Ganzkörper jeweils Mo/Mi/Fr. Ideal für Einsteiger oder bei wenig Zeit.':'Full body on Mon/Wed/Fri. Ideal for beginners or when short on time.',
   'Brust+Rücken, Schultern+Arme, Beine — zweimal pro Woche. Hohes Volumen, fortgeschritten.':'Chest+back, shoulders+arms, legs — twice a week. High volume, advanced.',
+  'Zwei Ganzkörper-Einheiten mit allen Grundbewegungen. Das Minimum, mit dem du sichtbar vorankommst.':'Two full-body sessions covering all the basic movements. The minimum that still gets you visible results.',
+  'Ein Oberkörper- und ein Unterkörpertag. Mehr Volumen pro Einheit als Ganzkörper, wenn du nur zweimal kannst.':'One upper and one lower body day. More volume per session than full body when twice a week is all you have.',
+  'Drei kurze Einheiten aus schweren Grundübungen — 5 Sätze à 5 Wiederholungen. Wenig Übungen, viel Gewicht.':'Three short sessions of heavy compound lifts — 5 sets of 5. Few exercises, heavy weight.',
+  'Ganzkörper mit hohen Wiederholungen und kurzen Pausen. Viel Bewegung pro Einheit, gut zum Abnehmen.':'Full body with high reps and short rests. Lots of movement per session, good for losing weight.',
+  'Eine PPL-Runde plus ein zusätzlicher Oberkörpertag. Brust, Rücken und Schultern kommen zweimal pro Woche dran.':'One PPL round plus an extra upper body day. Chest, back and shoulders get trained twice a week.',
+  'Je ein schwerer und ein leichterer Ober- und Unterkörpertag. Schwer für Maximalkraft (5×5), leicht für Technik und Volumen.':'One heavy and one lighter upper and lower body day each. Heavy for max strength (5×5), light for technique and volume.',
+  'Vier kurze Ganzkörper-Einheiten mit je vier Übungen. Passt auch in eine halbe Stunde.':'Four short full-body sessions with four exercises each. Fits into half an hour.',
+  'Brust & Trizeps, Rücken & Bizeps, Beine, Schultern & Core. Jede Gruppe hat ihren eigenen Tag.':'Chest & triceps, back & biceps, legs, shoulders & core. Every group gets its own day.',
+  'Klassischer Bro-Split: Brust, Rücken, Beine, Schultern, Arme — jeweils ein ganzer Tag pro Gruppe.':'Classic bro split: chest, back, legs, shoulders, arms — a full day per group.',
+  'PPL zum Wochenstart, danach je ein Ober- und Unterkörpertag. Hohes Volumen bei fünf Tagen.':'PPL to start the week, then one upper and one lower body day. High volume across five days.',
+  'Zweimal Ober-, zweimal Unterkörper plus ein Ganzkörpertag obendrauf. Sehr hohes Volumen, nur mit guter Regeneration.':'Upper and lower twice each plus a full-body day on top. Very high volume, only with good recovery.',
+  'Ganzkörper A':'Full body A','Ganzkörper B':'Full body B','Ganzkörper C':'Full body C','Ganzkörper D':'Full body D',
+  'Kraft A':'Strength A','Kraft B':'Strength B','Kraft C':'Strength C',
+  'Zirkel A':'Circuit A','Zirkel B':'Circuit B','Zirkel C':'Circuit C',
+  'Oberkörper schwer':'Upper body heavy','Unterkörper schwer':'Lower body heavy',
+  'Oberkörper leicht':'Upper body light','Unterkörper leicht':'Lower body light',
+  'Brust & Trizeps':'Chest & triceps','Rücken & Bizeps':'Back & biceps','Schultern & Core':'Shoulders & core',
+  'Basierend auf deinen Angaben. Übungen, Tage und Wiederholungen kannst du jederzeit anpassen.':'Based on your answers. You can adjust exercises, days and reps at any time.',
   'Empfohlen für dich':'Recommended for you','Plan übernehmen':'Apply plan','Ohne Plan starten':'Start without a plan',
   'Ohne Einrichtung starten — alles selbst anlegen':'Start without setup — create everything yourself',
   'Brust':'Chest','Rücken':'Back','Beine':'Legs','Arme':'Arms','Schultern':'Shoulders','Muskeln':'Muscles',
@@ -971,6 +997,12 @@ const I18N_RX = [
  [/: (.{1,24}?) ausprobieren\./g, ': try $1.'],
  [/ ausprobieren\./g, '.'],
  /* Fragmente, in denen eine Zahl steckt — als feste Phrase nicht greifbar. */
+ /* Satz-/Wdh-Zeile der Trainingsplan-Vorlagen („Schema: 4 Sätze · 8–11 Wdh.").
+    tr() zerlegt an den Mittelpunkten, deshalb muss jedes Teilstueck fuer sich
+    greifen. Der Bindestrich ist ein Halbgeviertstrich, kein Minus. */
+ [/Schema: (\d+(?:–\d+)?) Sätze/g, 'Scheme: $1 sets'],
+ [/(\d+(?:–\d+)?) Wdh\./g, '$1 reps'],
+ [/Alle (\d+) Pläne anzeigen/g, 'Show all $1 plans'],
  [/% vom Arbeitsgewicht — gut dosiert\./g, '% of working weight — well judged.'],
  [/% über letzter Einheit\./g, '% above your last session.'],
  [/Alle Arbeitssätze am oberen Wiederholungsende,/g, 'All working sets at the top of the rep range,'],

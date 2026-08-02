@@ -688,48 +688,59 @@ function pickExFromLibrary(gi){
 }
 
 // ── TRAININGSPLAN-VORLAGEN ────────────────────────────
+// Sortierung: aufsteigend nach Trainingstagen. Der Vorlagen-Picker im Plan-Tab
+// zeigt sie in genau dieser Reihenfolge; im Onboarding entscheidet das Scoring
+// (_obScoreTpl), dort ist die Array-Position nur noch der Gleichstands-Brecher.
+//
+// fit = Passung zu den Onboarding-Antworten:
+//   goals  Ziel aus OB_GOALS      ('muskel'|'kraft'|'abnehmen'|'fit')
+//   exps   Erfahrung aus OB_EXPS  ('neu'|'mittel'|'profi')
+//   freq   Trainingstage pro Woche, für die die Vorlage gedacht ist
+// Ohne fit fällt eine Vorlage im Onboarding hinter alle anderen zurück, bleibt
+// im Plan-Tab aber normal auswählbar.
+//
+// scheme = Satz-/Wiederholungsschema {s, r, band}. Ohne das erbte jede Übung
+// stumpf die DB-Vorgabe (meist 3×8–12) — ein Kraftplan mit 3×8 ist aber
+// Etikettenschwindel. Aufloesung in _tplTargets: Einzel-Override > Tages-scheme
+// > Vorlagen-scheme > DB. Zeit-Uebungen (Plank & Co.) ignorieren das Schema,
+// sonst wuerde aus 5×5 ein 5-Sekunden-Plank.
 const PLAN_TEMPLATES = [
+  // ══ 2 TAGE ═════════════════════════════════════════
   {
-    id:'ppl6', emoji:'🔄', title:'Push · Pull · Legs (6×/Woche)', freq:'6 Tage',
-    desc:'Klassisches Bodybuilding-Schema. Push (Brust/Schulter/Trizeps), Pull (Rücken/Bizeps), Legs zweimal die Woche.',
+    id:'fullbody2', emoji:'🌱', title:'Ganzkörper (2×/Woche)', freq:'2 Tage',
+    fit:{goals:['fit','abnehmen','muskel','kraft'], exps:['neu','mittel'], freq:[2]},
+    scheme:{s:3, r:10},
+    desc:'Zwei Ganzkörper-Einheiten mit allen Grundbewegungen. Das Minimum, mit dem du sichtbar vorankommst.',
     days:{
-      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Schulterdrücken','Seitheben','Trizepsdrücken (Kabel)']},
-      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Face Pulls','Bizeps-Curls (LH)']},
-      wed:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
-      thu:{type:'exercises', libNames:['Kurzhantel-Bankdrücken','Fliegende','KH-Schulterdrücken','Reverse Flys','French Press']},
-      fri:{type:'exercises', libNames:['Kreuzheben','T-Bar Rudern','Kurzhantel-Rudern','Hammer-Curls','Shrugs']},
-      sat:{type:'exercises', libNames:['Front-Kniebeuge','Ausfallschritte','Hip Thrust','Beinstrecker','Wadenheben']},
+      mon:{type:'exercises', libNames:['Kniebeugen','Bankdrücken','Latzug','Schulterdrücken','Plank']},
+      tue:{type:'none'},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Rumänisches Kreuzheben','Beinpresse','Kurzhantel-Rudern','KH-Schulterdrücken','Crunches']},
+      fri:{type:'none'},
+      sat:{type:'none'},
       sun:{type:'none'}
     }
   },
   {
-    id:'ppl3', emoji:'🏋️', title:'Push · Pull · Legs (3×/Woche)', freq:'3 Tage',
-    desc:'Einsteiger-Variante: Eine PPL-Runde pro Woche mit 1–2 Tagen Pause zwischen Einheiten.',
+    id:'upperlower2', emoji:'⚖️', title:'Ober · Unterkörper (2×/Woche)', freq:'2 Tage',
+    fit:{goals:['muskel','kraft'], exps:['mittel','profi'], freq:[2]},
+    scheme:{s:4, r:8},
+    desc:'Ein Oberkörper- und ein Unterkörpertag. Mehr Volumen pro Einheit als Ganzkörper, wenn du nur zweimal kannst.',
     days:{
-      mon:{type:'exercises', libNames:['Bankdrücken','Schulterdrücken','Schrägbankdrücken','Seitheben','Trizepsdrücken (Kabel)']},
-      tue:{type:'none'},
-      wed:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Bizeps-Curls (LH)','Face Pulls']},
+      mon:{type:'none'},
+      tue:{type:'exercises', libNames:['Bankdrücken','Klimmzüge','Schulterdrücken','Bizeps-Curls (LH)','Trizepsdrücken (Kabel)']},
+      wed:{type:'none'},
       thu:{type:'none'},
       fri:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
       sat:{type:'none'},
       sun:{type:'none'}
     }
   },
-  {
-    id:'upperlower', emoji:'⬆️', title:'Upper · Lower (4×/Woche)', freq:'4 Tage',
-    desc:'Oberkörper- und Unterkörper-Splits jeweils zweimal. Solide Mischung aus Volumen und Erholung.',
-    days:{
-      mon:{type:'exercises', libNames:['Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Klimmzüge','Bizeps-Curls (LH)']},
-      tue:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
-      wed:{type:'none'},
-      thu:{type:'exercises', libNames:['Schrägbankdrücken','Kurzhantel-Rudern','KH-Schulterdrücken','Latzug','Trizepsdrücken (Kabel)']},
-      fri:{type:'exercises', libNames:['Kreuzheben','Front-Kniebeuge','Ausfallschritte','Beinstrecker','Hip Thrust']},
-      sat:{type:'none'},
-      sun:{type:'none'}
-    }
-  },
+  // ══ 3 TAGE ═════════════════════════════════════════
   {
     id:'fullbody3', emoji:'💪', title:'Full Body (3×/Woche)', freq:'3 Tage',
+    fit:{goals:['fit','abnehmen','muskel'], exps:['neu'], freq:[3]},
+    scheme:{s:3, r:10},
     desc:'Ganzkörper jeweils Mo/Mi/Fr. Ideal für Einsteiger oder bei wenig Zeit.',
     days:{
       mon:{type:'exercises', libNames:['Kniebeugen','Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Plank']},
@@ -742,7 +753,192 @@ const PLAN_TEMPLATES = [
     }
   },
   {
+    id:'ppl3', emoji:'🏋️', title:'Push · Pull · Legs (3×/Woche)', freq:'3 Tage',
+    fit:{goals:['muskel','kraft'], exps:['neu','mittel'], freq:[3]},
+    scheme:{s:3, r:10},
+    desc:'Einsteiger-Variante: Eine PPL-Runde pro Woche mit 1–2 Tagen Pause zwischen Einheiten.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schulterdrücken','Schrägbankdrücken','Seitheben','Trizepsdrücken (Kabel)']},
+      tue:{type:'none'},
+      wed:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Bizeps-Curls (LH)','Face Pulls']},
+      thu:{type:'none'},
+      fri:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'strength3', emoji:'🥇', title:'Grundübungen-Kraft (3×/Woche)', freq:'3 Tage',
+    fit:{goals:['kraft'], exps:['neu','mittel'], freq:[3]},
+    scheme:{s:5, r:5, band:1},
+    desc:'Drei kurze Einheiten aus schweren Grundübungen — 5 Sätze à 5 Wiederholungen. Wenig Übungen, viel Gewicht.',
+    days:{
+      mon:{type:'exercises', libNames:['Kniebeugen','Bankdrücken','Rudern (Langhantel)','Plank']},
+      tue:{type:'none'},
+      wed:{type:'exercises', libNames:['Front-Kniebeuge','Schulterdrücken',{n:'Kreuzheben', s:3, r:5, band:1},{n:'Hyperextensions', s:3, r:12}]},
+      thu:{type:'none'},
+      fri:{type:'exercises', libNames:['Kniebeugen','Schrägbankdrücken','Klimmzüge',{n:'Engers Bankdrücken', s:3, r:8}]},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'circuit3', emoji:'🔥', title:'Ganzkörper-Zirkel (3×/Woche)', freq:'3 Tage',
+    fit:{goals:['abnehmen','fit'], exps:['neu','mittel'], freq:[3]},
+    scheme:{s:3, r:15, band:3},
+    desc:'Ganzkörper mit hohen Wiederholungen und kurzen Pausen. Viel Bewegung pro Einheit, gut zum Abnehmen.',
+    days:{
+      mon:{type:'exercises', libNames:['Goblet Squat','Liegestütze','Kurzhantel-Rudern','KH-Schulterdrücken','Mountain Climbers']},
+      tue:{type:'none'},
+      wed:{type:'exercises', libNames:['Ausfallschritte (KH)','Latzug','Brustpresse (Maschine)','Plank','Russian Twists']},
+      thu:{type:'none'},
+      fri:{type:'exercises', libNames:['Beinpresse','Kabelrudern sitzend','Kabelzug Brust','Seitheben','Bicycle Crunches']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  // ══ 4 TAGE ═════════════════════════════════════════
+  {
+    id:'upperlower', emoji:'⬆️', title:'Upper · Lower (4×/Woche)', freq:'4 Tage',
+    fit:{goals:['muskel','kraft'], exps:['mittel','profi'], freq:[4]},
+    scheme:{s:4, r:8},
+    desc:'Oberkörper- und Unterkörper-Splits jeweils zweimal. Solide Mischung aus Volumen und Erholung.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Klimmzüge','Bizeps-Curls (LH)']},
+      tue:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Schrägbankdrücken','Kurzhantel-Rudern','KH-Schulterdrücken','Latzug','Trizepsdrücken (Kabel)']},
+      fri:{type:'exercises', libNames:['Kreuzheben','Front-Kniebeuge','Ausfallschritte','Beinstrecker','Hip Thrust']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'ppl4', emoji:'🔁', title:'Push · Pull · Legs · Oberkörper (4×/Woche)', freq:'4 Tage',
+    fit:{goals:['muskel'], exps:['mittel','profi'], freq:[4]},
+    scheme:{s:4, r:10},
+    desc:'Eine PPL-Runde plus ein zusätzlicher Oberkörpertag. Brust, Rücken und Schultern kommen zweimal pro Woche dran.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schulterdrücken','Schrägbankdrücken (KH)','Seitheben','Trizepsdrücken (Seil)']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug (neutral)','Face Pulls','Bizeps-Curls (SZ-Stange)']},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger sitzend','Wadenheben']},
+      fri:{type:'exercises', libNames:['Schrägbankdrücken','Brustgestütztes Rudern','KH-Schulterdrücken','Hammer-Curls','Überkopf-Trizepsdrücken']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'strength4', emoji:'🧱', title:'Kraft: Ober · Unterkörper (4×/Woche)', freq:'4 Tage',
+    fit:{goals:['kraft'], exps:['mittel','profi'], freq:[4]},
+    scheme:{s:4, r:8},
+    desc:'Je ein schwerer und ein leichterer Ober- und Unterkörpertag. Schwer für Maximalkraft (5×5), leicht für Technik und Volumen.',
+    days:{
+      mon:{type:'exercises', scheme:{s:5, r:5, band:1}, libNames:['Bankdrücken','Rudern (Langhantel)','Schulterdrücken',{n:'Engers Bankdrücken', s:3, r:8}]},
+      tue:{type:'exercises', scheme:{s:5, r:5, band:1}, libNames:['Kniebeugen',{n:'Kreuzheben', s:3, r:5, band:1},'Beinpresse',{n:'Wadenheben', s:4, r:12}]},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Bankdrücken mit Pause','Klimmzüge','KH-Schulterdrücken','Face Pulls','Bizeps-Curls (LH)']},
+      fri:{type:'exercises', libNames:['Front-Kniebeuge','Rumänisches Kreuzheben','Bulgarian Split Squats','Beinbeuger','Hyperextensions']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'fullbody4', emoji:'⚡', title:'Ganzkörper kurz (4×/Woche)', freq:'4 Tage',
+    fit:{goals:['fit','abnehmen'], exps:['neu','mittel'], freq:[4]},
+    scheme:{s:3, r:12},
+    desc:'Vier kurze Ganzkörper-Einheiten mit je vier Übungen. Passt auch in eine halbe Stunde.',
+    days:{
+      mon:{type:'exercises', libNames:['Kniebeugen','Bankdrücken','Latzug','Plank']},
+      tue:{type:'exercises', libNames:['Rumänisches Kreuzheben','Schulterdrücken','Kabelrudern sitzend','Crunches']},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Beinpresse','Schrägbankdrücken (KH)','Klimmzüge','Russian Twists']},
+      fri:{type:'exercises', libNames:['Ausfallschritte','Butterfly (Maschine)','Kurzhantel-Rudern','Beinheben']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'bodypart4', emoji:'🎯', title:'Muskelgruppen-Split (4×/Woche)', freq:'4 Tage',
+    fit:{goals:['muskel'], exps:['neu','mittel'], freq:[4]},
+    scheme:{s:4, r:10},
+    desc:'Brust & Trizeps, Rücken & Bizeps, Beine, Schultern & Core. Jede Gruppe hat ihren eigenen Tag.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Butterfly (Maschine)','Trizepsdrücken (Kabel)','Dips']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Bizeps-Curls (LH)','Hammer-Curls']},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Kniebeugen','Beinpresse','Beinbeuger','Beinstrecker','Wadenheben']},
+      fri:{type:'exercises', libNames:['Schulterdrücken','Seitheben','Reverse Flys','Shrugs','Plank']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  // ══ 5 TAGE ═════════════════════════════════════════
+  {
+    id:'bro5', emoji:'🧩', title:'Muskelgruppen-Split (5×/Woche)', freq:'5 Tage',
+    fit:{goals:['muskel','abnehmen'], exps:['neu','mittel'], freq:[5]},
+    scheme:{s:4, r:10},
+    desc:'Klassischer Bro-Split: Brust, Rücken, Beine, Schultern, Arme — jeweils ein ganzer Tag pro Gruppe.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Kurzhantel-Bankdrücken','Fliegende','Kabel-Crossover']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','T-Bar Rudern','Face Pulls']},
+      wed:{type:'exercises', libNames:['Kniebeugen','Beinpresse','Rumänisches Kreuzheben','Beinbeuger','Wadenheben']},
+      thu:{type:'exercises', libNames:['Schulterdrücken','Seitheben','Reverse Flys','Frontheben','Shrugs']},
+      fri:{type:'exercises', libNames:['Bizeps-Curls (LH)','Hammer-Curls','Preacher Curls','Trizepsdrücken (Seil)','Überkopf-Trizepsdrücken']},
+      sat:{type:'none'},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'ppl5', emoji:'🌀', title:'Push · Pull · Legs · Ober · Unter (5×/Woche)', freq:'5 Tage',
+    fit:{goals:['muskel'], exps:['mittel','profi'], freq:[5]},
+    scheme:{s:4, r:10},
+    desc:'PPL zum Wochenstart, danach je ein Ober- und Unterkörpertag. Hohes Volumen bei fünf Tagen.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schulterdrücken','Schrägbankdrücken (KH)','Seitheben','Trizepsdrücken (Seil)']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug (neutral)','Face Pulls','Bizeps-Curls (SZ-Stange)']},
+      wed:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger sitzend','Wadenheben']},
+      thu:{type:'none'},
+      fri:{type:'exercises', libNames:['Schrägbankdrücken','Brustgestütztes Rudern','Arnold Press','Hammer-Curls','Überkopf-Trizepsdrücken']},
+      sat:{type:'exercises', libNames:['Front-Kniebeuge','Bulgarian Split Squats','Hip Thrust','Beinstrecker','Wadenheben']},
+      sun:{type:'none'}
+    }
+  },
+  {
+    id:'upperlower5', emoji:'🧨', title:'Ober · Unter · Ganzkörper (5×/Woche)', freq:'5 Tage',
+    fit:{goals:['kraft','muskel'], exps:['profi'], freq:[5]},
+    scheme:{s:4, r:8},
+    desc:'Zweimal Ober-, zweimal Unterkörper plus ein Ganzkörpertag obendrauf. Sehr hohes Volumen, nur mit guter Regeneration.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Rudern (Langhantel)','Schulterdrücken','Klimmzüge','Trizepsdrücken (Kabel)']},
+      tue:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      wed:{type:'none'},
+      thu:{type:'exercises', libNames:['Schrägbankdrücken','Kurzhantel-Rudern','KH-Schulterdrücken','Latzug','Bizeps-Curls (LH)']},
+      fri:{type:'exercises', libNames:['Kreuzheben','Front-Kniebeuge','Bulgarian Split Squats','Beinstrecker','Hip Thrust']},
+      sat:{type:'exercises', libNames:['Push Press','Pendlay-Rudern','Goblet Squat','Face Pulls','Hängendes Beinheben']},
+      sun:{type:'none'}
+    }
+  },
+  // ══ 6 TAGE ═════════════════════════════════════════
+  {
+    id:'ppl6', emoji:'🔄', title:'Push · Pull · Legs (6×/Woche)', freq:'6 Tage',
+    fit:{goals:['muskel','kraft','abnehmen'], exps:['mittel','profi'], freq:[6]},
+    scheme:{s:4, r:10},
+    desc:'Klassisches Bodybuilding-Schema. Push (Brust/Schulter/Trizeps), Pull (Rücken/Bizeps), Legs zweimal die Woche.',
+    days:{
+      mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Schulterdrücken','Seitheben','Trizepsdrücken (Kabel)']},
+      tue:{type:'exercises', libNames:['Klimmzüge','Rudern (Langhantel)','Latzug','Face Pulls','Bizeps-Curls (LH)']},
+      wed:{type:'exercises', libNames:['Kniebeugen','Rumänisches Kreuzheben','Beinpresse','Beinbeuger','Wadenheben']},
+      thu:{type:'exercises', libNames:['Kurzhantel-Bankdrücken','Fliegende','KH-Schulterdrücken','Reverse Flys','French Press']},
+      fri:{type:'exercises', libNames:['Kreuzheben','T-Bar Rudern','Kurzhantel-Rudern','Hammer-Curls','Shrugs']},
+      sat:{type:'exercises', libNames:['Front-Kniebeuge','Ausfallschritte','Hip Thrust','Beinstrecker','Wadenheben']},
+      sun:{type:'none'}
+    }
+  },
+  {
     id:'arnold', emoji:'🏆', title:'Arnold Split (6×/Woche)', freq:'6 Tage',
+    fit:{goals:['muskel'], exps:['profi'], freq:[6]},
+    scheme:{s:4, r:10},
     desc:'Brust+Rücken, Schultern+Arme, Beine — zweimal pro Woche. Hohes Volumen, fortgeschritten.',
     days:{
       mon:{type:'exercises', libNames:['Bankdrücken','Schrägbankdrücken','Klimmzüge','Rudern (Langhantel)','Fliegende']},
@@ -765,12 +961,14 @@ function renderTemplatePicker(){
   if (!el) return;
   el.innerHTML = PLAN_TEMPLATES.map(t => {
     const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
+    const sch  = _obTplSchemeLbl(t);
     return `<button class="tpl-card" onclick="applyTemplate('${t.id}')">
       <div class="tpl-card-head">
         <span class="tpl-card-title">${t.title}</span>
         <span class="tpl-card-freq">${t.freq}</span>
       </div>
       <div class="tpl-card-desc">${t.desc}</div>
+      ${sch ? `<div class="tpl-card-desc">Schema: ${sch}</div>` : ''}
       <div class="tpl-card-days">${days.map(d => `<span class="tpl-day-chip">${d}</span>`).join('')}</div>
     </button>`;
   }).join('');
@@ -795,11 +993,22 @@ function applyTemplate(id){
 // (gleiches Label = ein Split, Übungen werden vereinigt). So bekommen die Tage
 // Farbe + sprechendes Label (Push/Pull/Ober/Unter …) und sind normal editierbar.
 const _TPL_DAY_LABELS = {
-  ppl6:       { mon:'Push', tue:'Pull', wed:'Legs', thu:'Push', fri:'Pull', sat:'Legs' },
-  ppl3:       { mon:'Push', wed:'Pull', fri:'Legs' },
-  upperlower: { mon:'Oberkörper', tue:'Unterkörper', thu:'Oberkörper', fri:'Unterkörper' },
-  fullbody3:  { mon:'Ganzkörper', wed:'Ganzkörper', fri:'Ganzkörper' },
-  arnold:     { mon:'Brust & Rücken', tue:'Schultern & Arme', wed:'Beine', thu:'Brust & Rücken', fri:'Schultern & Arme', sat:'Beine' },
+  fullbody2:   { mon:'Ganzkörper A', thu:'Ganzkörper B' },
+  upperlower2: { tue:'Oberkörper', fri:'Unterkörper' },
+  fullbody3:   { mon:'Ganzkörper', wed:'Ganzkörper', fri:'Ganzkörper' },
+  ppl3:        { mon:'Push', wed:'Pull', fri:'Legs' },
+  strength3:   { mon:'Kraft A', wed:'Kraft B', fri:'Kraft C' },
+  circuit3:    { mon:'Zirkel A', wed:'Zirkel B', fri:'Zirkel C' },
+  upperlower:  { mon:'Oberkörper', tue:'Unterkörper', thu:'Oberkörper', fri:'Unterkörper' },
+  ppl4:        { mon:'Push', tue:'Pull', thu:'Legs', fri:'Oberkörper' },
+  strength4:   { mon:'Oberkörper schwer', tue:'Unterkörper schwer', thu:'Oberkörper leicht', fri:'Unterkörper leicht' },
+  fullbody4:   { mon:'Ganzkörper A', tue:'Ganzkörper B', thu:'Ganzkörper C', fri:'Ganzkörper D' },
+  bodypart4:   { mon:'Brust & Trizeps', tue:'Rücken & Bizeps', thu:'Beine', fri:'Schultern & Core' },
+  bro5:        { mon:'Brust', tue:'Rücken', wed:'Beine', thu:'Schultern', fri:'Arme' },
+  ppl5:        { mon:'Push', tue:'Pull', wed:'Legs', fri:'Oberkörper', sat:'Unterkörper' },
+  upperlower5: { mon:'Oberkörper', tue:'Unterkörper', thu:'Oberkörper', fri:'Unterkörper', sat:'Ganzkörper' },
+  ppl6:        { mon:'Push', tue:'Pull', wed:'Legs', thu:'Push', fri:'Pull', sat:'Legs' },
+  arnold:      { mon:'Brust & Rücken', tue:'Schultern & Arme', wed:'Beine', thu:'Brust & Rücken', fri:'Schultern & Arme', sat:'Beine' },
 };
 function _deriveDayLabel(ids){
   const mg = {};
@@ -807,33 +1016,68 @@ function _deriveDayLabel(ids){
   const top = Object.entries(mg).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([g])=>muscleLabel(g)).filter(Boolean);
   return top.length ? top.join(' · ') : null;
 }
-function _applyTemplateCore(tpl){
+// Das Ziel aus dem Onboarding verschiebt den Wiederholungsbereich noch einmal:
+// wer stärker werden will, trainiert schwerer und kürzer, wer abnehmen oder fit
+// bleiben will, länger und leichter. Beidseitig gedeckelt — sonst wird aus einem
+// 5×5 ein 5×2 und aus dem Zirkelplan ein 18er-Satz.
+function _tplGoalReps(r, goal){
+  if (goal === 'kraft')                      return Math.max(5,  r - 3);
+  if (goal === 'abnehmen' || goal === 'fit') return Math.min(15, r + 3);
+  return r;
+}
+// Satz-/Wiederholungsziele einer Vorlagen-Übung. Auflösung von stark nach schwach:
+// Einzel-Override (Objekt in libNames) → Tages-scheme → Vorlagen-scheme → Übungs-DB.
+// Zeit-Übungen (Plank & Co.) bleiben beim DB-Wert, außer ein Einzel-Override sagt
+// ausdrücklich etwas anderes: sonst macht ein 5×5-Schema aus dem Plank 5 Sekunden.
+function _tplTargets(libItem, ov, daySch, tplSch, goal){
+  const isTime = libItem.t === 'time';
+  const sch    = ov || (isTime ? null : (daySch || tplSch)) || null;
+  const s      = (sch && sch.s != null) ? sch.s : libItem.s;
+  const band   = (sch && sch.band != null) ? sch.band : 2;
+  let   r      = (sch && sch.r != null) ? sch.r : libItem.r;
+  if (!isTime) r = _tplGoalReps(r, goal);
+  return {
+    targetSets: s, targetReps: r,
+    targetType: isTime ? 'time' : 'reps',
+    repMin: isTime ? null : Math.max(1, r - band),
+    repMax: isTime ? null : r + band,
+    weightScheme: isTime ? null : 'straight'
+  };
+}
+// opts.goal überschreibt das gespeicherte Ziel — im Onboarding steht die Antwort
+// noch in _ob und ist bei diesem Aufruf noch nicht in S geschrieben.
+function _applyTemplateCore(tpl, opts){
+  const goal = (opts && 'goal' in opts) ? opts.goal : (S.obGoal || null);
   // Zuvor automatisch erzeugte Vorlagen-Splits entfernen (editierte bleiben, weil savePreset _tpl verwirft)
   S.workoutPresets = (S.workoutPresets || []).filter(p => !p._tpl);
   const labels = _TPL_DAY_LABELS[tpl.id] || {};
   const newPlan = {};
   const byLabel = {};                       // Label → Split (Dedup + Übungs-Union)
   let colorIdx = (S.workoutPresets || []).length;
+  // Übungen mit Trainingshistorie bleiben unangetastet — deren Ziele hat sich der
+  // Nutzer erarbeitet. Nie geloggte dürfen das Schema der Vorlage übernehmen,
+  // sonst trüge ein Kraftplan weiter die 3×8 aus der Bibliothek.
+  const trained = new Set();
+  (S.sessions || []).forEach(se => (se.exercises || []).forEach(e => trained.add(e.id)));
   Object.entries(tpl.days).forEach(([dayKey, def]) => {
     if (def.type === 'group' && def.group) { newPlan[dayKey] = { type:'group', group: def.group }; return; }
     if (def.type === 'exercises' && Array.isArray(def.libNames)) {
       const ids = [];
-      def.libNames.forEach(name => {
-        let ex = S.exercises.find(e => e.name.toLowerCase() === name.toLowerCase());
+      def.libNames.forEach(entry => {
+        const ov      = (entry && typeof entry === 'object') ? entry : null;
+        const name    = ov ? ov.n : entry;
+        const libItem = EX_LIBRARY.find(it => it.n === name);
+        let ex = S.exercises.find(e => e.name.toLowerCase() === String(name).toLowerCase());
         if (!ex) {
-          const libItem = EX_LIBRARY.find(it => it.n === name);
           if (libItem) {
-            const isTimeLib = libItem.t === 'time';
-            ex = {
-              id: uid(), name: libItem.n, emoji: libItem.e, muscleGroup: libItem.mg || '',
-              targetSets: libItem.s, targetReps: libItem.r, targetWeight: 0,
-              targetType: isTimeLib ? 'time' : 'reps',
-              repMin: isTimeLib ? null : Math.max(1, libItem.r - 2),
-              repMax: isTimeLib ? null : libItem.r + 2,
-              weightScheme: isTimeLib ? null : 'straight'
-            };
+            ex = Object.assign(
+              { id: uid(), name: libItem.n, emoji: libItem.e, muscleGroup: libItem.mg || '', targetWeight: 0 },
+              _tplTargets(libItem, ov, def.scheme, tpl.scheme, goal)
+            );
             S.exercises.push(ex);
           }
+        } else if (libItem && !trained.has(ex.id)) {
+          Object.assign(ex, _tplTargets(libItem, ov, def.scheme, tpl.scheme, goal));
         }
         if (ex) ids.push(ex.id);
       });
@@ -1123,7 +1367,7 @@ function maybeStartOnboarding(){
   return true;
 }
 function startOnboarding(){
-  _ob = { step:0, name:'', goal:null, exp:null, freq:null, tpl:null, applied:false };
+  _ob = { step:0, name:'', goal:null, exp:null, freq:null, tpl:null, showAll:false, applied:false };
   renderOb();
   document.getElementById('ob-screen').classList.add('on');
 }
@@ -1152,19 +1396,80 @@ function obFinishCloud(){
   _obClose();
   setTimeout(()=>{ try{ openAccountSheet(); }catch(_){} }, 420);
 }
+// Passung einer Vorlage zu den Antworten. Die Frequenz ist das harte Kriterium:
+// ein 6er-Split bei zwei geplanten Tagen ist kein Vorschlag, sondern ein Fehler —
+// deshalb fliegt alles mit mehr als einem Tag Abstand raus (Score -1). Ziel und
+// Erfahrung feilen danach nur noch an der Reihenfolge.
+function _obScoreTpl(t, goal, exp, freq){
+  const f = (t.fit && t.fit.freq) || [];
+  const dist = f.length ? Math.min(...f.map(n => Math.abs(n - freq))) : 99;
+  if (dist > 1) return -1;
+  // 6 ist absichtlich mehr, als Ziel und Erfahrung zusammen einbringen koennen:
+  // sonst schoebe sich eine Vorlage mit doppeltem Treffer, aber einem Tag
+  // Abstand, vor die exakt passende — und der Nutzer bekaeme fuenf Tage
+  // empfohlen, nachdem er sechs angegeben hat.
+  let sc = dist === 0 ? 6 : 1;
+  if (goal && t.fit && t.fit.goals.includes(goal)) sc += 2;
+  // goals[0] ist das Ziel, für das die Vorlage gebaut wurde — der Rest sind
+  // Ziele, für die sie auch taugt. Ohne diesen Punkt liefen spezialisierte
+  // Vorlagen in Gleichstände: „Stärker werden, 3 Tage" empfahl den PPL-Plan
+  // statt des Kraftplans, weil beide Ziel und Erfahrung gleich gut trafen.
+  if (goal && t.fit && t.fit.goals[0] === goal)    sc += 1;
+  if (exp  && t.fit && t.fit.exps.includes(exp))   sc += 2;
+  return sc;
+}
+// Vorlagen mit passender Frequenz, beste zuerst. Gleichstand → Reihenfolge im
+// Array, damit derselbe Fragebogen immer dieselbe Empfehlung liefert.
+function _obRankTpls(){
+  const goal = _ob ? _ob.goal : S.obGoal;
+  const exp  = _ob ? _ob.exp  : S.obExp;
+  const freq = (_ob ? _ob.freq : S.obFreq) || 3;
+  return PLAN_TEMPLATES
+    .map((t, i) => ({ t, i, sc: _obScoreTpl(t, goal, exp, freq) }))
+    .filter(x => x.sc >= 0)
+    .sort((a, b) => (b.sc - a.sc) || (a.i - b.i))
+    .map(x => x.t);
+}
+// Passende zuerst, danach der Rest in Bibliotheks-Reihenfolge — der Rest wird
+// erst nach „Alle Pläne anzeigen" sichtbar, bleibt aber wählbar.
+function _obTplList(){
+  const ranked = _obRankTpls();
+  return ranked.concat(PLAN_TEMPLATES.filter(t => ranked.indexOf(t) < 0));
+}
 function _obRecTpl(){
-  const f = _ob.freq || 3, e = _ob.exp || 'neu';
-  if (f <= 3) return e === 'neu' ? 'fullbody3' : 'ppl3';
-  if (f <= 5) return 'upperlower';
-  return e === 'profi' ? 'arnold' : 'ppl6';
+  const r = _obRankTpls();
+  return r.length ? r[0].id : 'fullbody3';
+}
+// Satz-/Wdh-Spanne einer Vorlage für die Karte — mit dem Ziel-Versatz aus
+// _tplGoalReps, damit die Karte das anzeigt, was der Plan hinterher wirklich
+// enthält. Zeit-Übungen bleiben draußen: ihre Sekunden gehören nicht in eine
+// Wiederholungsspanne.
+function _obTplSchemeLbl(t){
+  const goal = _ob ? _ob.goal : S.obGoal;
+  const ss = [], rs = [];
+  Object.values(t.days).forEach(d => {
+    if (d.type !== 'exercises' || !Array.isArray(d.libNames)) return;
+    d.libNames.forEach(entry => {
+      const ov  = (entry && typeof entry === 'object') ? entry : null;
+      const li  = EX_LIBRARY.find(x => x.n === (ov ? ov.n : entry));
+      if (li && li.t === 'time' && !ov) return;
+      const sch = ov || d.scheme || t.scheme;
+      if (!sch || sch.s == null || sch.r == null) return;
+      ss.push(sch.s); rs.push(li && li.t === 'time' ? sch.r : _tplGoalReps(sch.r, goal));
+    });
+  });
+  if (!ss.length) return '';
+  const rng = a => { const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? String(lo) : lo + '–' + hi; };
+  return rng(ss) + ' Sätze · ' + rng(rs) + ' Wdh.';
 }
 // Bewusst KEIN Auto-Weiter mehr nach der Auswahl: das sprang gefühlt „von
 // alleine" weiter und bestätigte Dinge, die der Nutzer nur antippen wollte.
 // Weiter geht es ausschließlich über den Weiter-Button.
 function obPickGoal(id){ _ob.goal = id; haptic(8); renderOb(); }
 function obPickExp(id){ _ob.exp = id; haptic(8); renderOb(); }
-function obPickFreq(n){ _ob.freq = n; haptic(8); _ob.tpl = null; renderOb(); }
+function obPickFreq(n){ _ob.freq = n; haptic(8); _ob.tpl = null; _ob.showAll = false; renderOb(); }
 function obPickTpl(id){ _ob.tpl = id; haptic(8); renderOb(); }
+function obShowAllTpls(){ if (!_ob) return; _ob.showAll = true; haptic(6); renderOb(); }
 function obBack(){ if(!_ob || _ob.step===0) return; haptic(6); _ob.step--; renderOb(); }
 function obNext(){
   if (!_ob) return;
@@ -1175,7 +1480,8 @@ function obNext(){
   if (s === 4 && !_ob.freq) return;
   if (s === 5) {
     const tpl = PLAN_TEMPLATES.find(t => t.id === (_ob.tpl || _obRecTpl()));
-    if (tpl) { _applyTemplateCore(tpl); _ob.applied = true; }
+    // Ziel ausdrücklich mitgeben: _obSaveAnswers schreibt es erst danach nach S.
+    if (tpl) { _applyTemplateCore(tpl, { goal: _ob.goal }); _ob.applied = true; }
     _obSaveAnswers();
   }
   haptic(10);
@@ -1226,17 +1532,31 @@ function _obStepHTML(s){
   if (s === 5) {
     const rec = _obRecTpl();
     if (!_ob.tpl) _ob.tpl = rec;
-    const order = [...PLAN_TEMPLATES].sort((a,b) => (a.id===rec?-1:0) - (b.id===rec?-1:0));
-    return `<div class="ob-q">Dein Startplan</div>
-      <div class="ob-qsub">Basierend auf deinen Angaben. Übungen und Tage kannst du jederzeit anpassen.</div>
-      <div class="ob-opts">${order.map(t => {
-        const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
-        return `<button class="ob-tpl${t.id===_ob.tpl?' on':''}" onclick="obPickTpl('${t.id}')">
+    const all   = _obTplList();
+    const shown = _ob.showAll ? all : all.slice(0, 4);
+    // Die gewählte Vorlage darf nie aus der Liste fallen (Zurück → Frequenz ändern
+    // → die alte Wahl liegt plötzlich hinter dem Mehr-Button): sonst steht oben
+    // „Plan übernehmen" für etwas, das der Nutzer gar nicht mehr sieht.
+    if (!shown.some(t => t.id === _ob.tpl)) {
+      const picked = all.find(t => t.id === _ob.tpl);
+      if (picked) shown.push(picked);
+    }
+    const cards = shown.map(t => {
+      const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
+      const sch  = _obTplSchemeLbl(t);
+      return `<button class="ob-tpl${t.id===_ob.tpl?' on':''}" onclick="obPickTpl('${t.id}')">
           ${t.id===rec?'<span class="ob-tpl-badge">Empfohlen für dich</span>':''}
           <div class="ob-tpl-title">${t.title}</div>
           <div class="ob-tpl-desc">${t.desc}</div>
+          ${sch ? `<div class="ob-tpl-desc">Schema: ${sch}</div>` : ''}
           <div class="ob-tpl-days">${days.map(d=>`<span class="ob-day-chip">${d}</span>`).join('')}</div>
-        </button>`; }).join('')}</div>`;
+        </button>`;
+    }).join('');
+    const more = (!_ob.showAll && all.length > shown.length)
+      ? `<button class="ob-ghost" onclick="obShowAllTpls()">Alle ${all.length} Pläne anzeigen</button>` : '';
+    return `<div class="ob-q">Dein Startplan</div>
+      <div class="ob-qsub">Basierend auf deinen Angaben. Übungen, Tage und Wiederholungen kannst du jederzeit anpassen.</div>
+      <div class="ob-opts">${cards}</div>${more}`;
   }
   return `<div class="ob-hero" style="padding-top:12vh">
       <div class="ob-done-ring">${_OB_SVG.check}</div>
