@@ -365,6 +365,17 @@
           '), den Bereich oben also nicht erreicht — Regel: das Gewicht bleibt bei ' + to +
           ', die Schrittweite ' + step + ' greift erst, wenn der Bereich oben klappt.';
     }
+    if (wr.reason === 'volumeUp') {
+      // Der Volumenpfad: nicht jeder Satz lag oben, aber der erste, und in
+      // Summe kamen mehr Wiederholungen zusammen als in der Einheit davor.
+      return en
+        ? name + 'Last time ' + reps + ' reps (range ' + range +
+          ') — the first working set hit the top and your total reps went up versus the session before' +
+          ' — rule: that counts as progression, the weight goes up by ' + step + ' to ' + to + '.'
+        : name + 'Zuletzt ' + reps + ' Wiederholungen (Bereich ' + range +
+          ') — der erste Arbeitssatz lag oben und in Summe kamen mehr Wiederholungen zusammen als in der Einheit davor' +
+          ' — Regel: das zählt als Fortschritt, das Gewicht steigt um ' + step + ' auf ' + to + '.';
+    }
     if (wr.reason === 'checkinUp') {
       return en
         ? name + 'Your check-in shows good recovery — rule: that already unlocks the bigger step ' +

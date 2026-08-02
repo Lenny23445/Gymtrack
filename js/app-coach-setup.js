@@ -1986,6 +1986,14 @@ function _aiaData(mode, scope){
     return {
       days, activeDaysPerWeek: days.filter(d => !d.rest).length, targetFreqPerWeek: S.obFreq || null,
       volume4wByMuscle: Object.fromEntries(Object.entries(volByMg).map(([k, v]) => [k, Math.round(v)])),
+      // Wochensaetze und Reiztage je Muskelgruppe, bereits gegen die Richtwerte
+      // beurteilt (10-20 Saetze, mindestens zwei Reiztage). Die App rechnet das
+      // selbst und schickt das Ergebnis mit, statt es dem Modell zu ueberlassen
+      // — so steht im Text dieselbe Zahl, die die Kacheln zeigen.
+      weeklySetsByMuscle: _volVerdict(4).map(v => ({
+        muscleGroup: v.mg, setsPerWeek: v.sets, daysPerWeek: v.days,
+        verdict: v.state, frequencyLow: v.freqLow, landmark: [v.mev, v.mav],
+      })),
       ...(recentCheckins.length ? { recentCheckins } : {}),
       ..._aiaReadinessBlock(),
     };
@@ -2025,6 +2033,31 @@ function _aiaData(mode, scope){
 // Lokale Daten-Kacheln: sofort sichtbar (noch bevor die KI antwortet) — der
 // Nutzer sieht direkt echte Zahlen aus seinen Daten, die KI-Bewertung kommt oben drauf.
 function _aiaFmtK(n){ return n >= 10000 ? (Math.round(n / 100) / 10).toLocaleString(GT_LOCALE) + 'k' : String(Math.round(n)); }
+/* Wochensaetze gegen die Richtwerte — ohne Modell, ohne Netz, ohne
+   Kontingent. Das ist der Teil der Analyse, der IMMER dasteht: 10 bis 20
+   Arbeitssaetze je Muskelgruppe und Woche, mindestens zwei Reiztage. Die
+   Zeilen, die eine Handlung nach sich ziehen, stehen oben (CoachVolume sortiert
+   nach Dringlichkeit); in Ordnung ist grau, zu wenig und zu viel tragen Farbe. */
+function _aiaVolumeHTML(data){
+  try {
+    const rows = (data && data.weeklySetsByMuscle) || [];
+    if (!rows.length) return '';
+    const farbe = { low: '#ff9f0a', high: '#ff453a', ok: 'var(--text2)' };
+    const wort  = {
+      low:  _cm('zu wenig', 'too little'),
+      high: _cm('sehr viel', 'very high'),
+      ok:   _cm('im Bereich', 'in range'),
+    };
+    return `<div class="aia-sec" style="margin-top:4px">
+      <div class="aia-sec-t">${tr('Wochensätze je Muskelgruppe')} <span style="opacity:.6;font-weight:400">${rows[0].landmark[0]}–${rows[0].landmark[1]}</span></div>
+      ${rows.map(r => `<div class="aia-hrow">
+        <span class="aia-hrow-l">${esc(muscleLabel(r.muscleGroup) || r.muscleGroup)}</span>
+        <div class="aia-hrow-bar"><div class="aia-hrow-fill" style="width:${Math.max(2, Math.min(100, Math.round(r.setsPerWeek / r.landmark[1] * 100)))}%;background:${r.verdict === 'ok' ? 'var(--acc)' : farbe[r.verdict]}"></div></div>
+        <span class="aia-hrow-v" style="color:${farbe[r.verdict]}">${r.setsPerWeek}</span></div>
+        <div style="font-size:12px;color:var(--text2);margin:-4px 0 8px 2px">${wort[r.verdict]} · ${r.daysPerWeek}× ${tr('pro Woche')}${r.frequencyLow ? ` · ${_cm('zweimal wöchentlich wirkt besser', 'twice a week works better')}` : ''}</div>`).join('')}
+    </div>`;
+  } catch(e) { console.warn('[Coach] Volumenblock:', e); return ''; }
+}
 function _aiaLocalHTML(mode, data){
   try {
     // Split-/Übungs-Fokus hat eigene Datenform — Kacheln nur wo die Form passt
@@ -2059,7 +2092,8 @@ function _aiaLocalHTML(mode, data){
         ${entries.map(([mg, v]) => `<div class="aia-hrow">
           <span class="aia-hrow-l">${esc(muscleLabel(mg) || mg)}</span>
           <div class="aia-hrow-bar"><div class="aia-hrow-fill" style="width:${Math.round(v / max * 100)}%"></div></div>
-          <span class="aia-hrow-v">${_aiaFmtK(v)}</span></div>`).join('')}</div>` : ''}`;
+          <span class="aia-hrow-v">${_aiaFmtK(v)}</span></div>`).join('')}</div>` : ''}
+      ${_aiaVolumeHTML(data)}`;
     }
     if (mode === 'progress') {
       const weeks = data.weeks || []; if (!weeks.length) return '';

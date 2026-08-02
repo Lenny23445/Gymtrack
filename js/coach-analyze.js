@@ -202,6 +202,32 @@
      Verschreiben ist Block 6 und hat hier keine Spec. Ein Test in
      test/coach-analyze.test.js haelt den gerenderten Satz auf Beobachtung
      fest, damit die Grenze nicht beim naechsten Textfix wieder faellt. */
+  /* plateauPlan(diag, opts) -> {kind:'reset', pct, weeks, fromKg, toKg} | null
+
+     Die Diagnose allein hat den Nutzer nie aus dem Plateau geholt: sie sagte
+     ihm, dass er steht, und das war es. Die Progressionslehre kennt dafuer
+     eine Standardantwort — Last zurueck und wieder hocharbeiten. Zehn Prozent
+     sind der ueblichste Wert; darunter merkt der Koerper den Unterschied
+     nicht, darueber verliert man Wochen mit Gewichten, die schon geschafft
+     waren.
+     Erst ab MIN_ACT_WEEKS: zwei Wochen ohne Sprung sind normale Streuung und
+     kein Plateau, ein Reset darauf waere selbst der Rueckschritt.
+     Der Plan ist ein ANGEBOT — angewendet wird er nur auf Knopfdruck. */
+  var MIN_ACT_WEEKS = 3;
+  var RESET_PCT     = 0.10;
+  function plateauPlan(diag, opts) {
+    if (!diag) return null;
+    var from = num(diag.topKg);
+    if (from === null || from <= 0) return null;
+    var minW = (opts && num(opts.minWeeks) > 0) ? num(opts.minWeeks) : MIN_ACT_WEEKS;
+    if (!(num(diag.weeks) >= minW)) return null;
+    var p   = opts ? num(opts.pct) : null;
+    var pct = (p !== null && p > 0 && p < 0.5) ? p : RESET_PCT;
+    var to  = round1(from * (1 - pct));
+    if (!(to > 0) || to >= from) return null;
+    return { kind: 'reset', pct: pct, weeks: num(diag.weeks), fromKg: round1(from), toKg: to };
+  }
+
   function plateauSay(diag, exName) {
     if (!diag || typeof diag !== 'object') return null;
     var weeks = num(diag.weeks);
@@ -293,6 +319,7 @@
   var API = {
     plateau: plateau,
     plateauSay: plateauSay,
+    plateauPlan: plateauPlan,
     prioritize: prioritize,
     prioritizeSay: prioritizeSay,
     costSecs: costSecs,
@@ -302,7 +329,9 @@
     SEC_PER_SET: SEC_PER_SET,
     REST_DEFAULT: REST_DEFAULT,
     MAX_GAP_WEEKS: MAX_GAP_WEEKS,
-    VOL_TOL: VOL_TOL
+    VOL_TOL: VOL_TOL,
+    MIN_ACT_WEEKS: MIN_ACT_WEEKS,
+    RESET_PCT: RESET_PCT
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

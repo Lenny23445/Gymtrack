@@ -716,20 +716,45 @@ function _deloadDue() {
     if (!isPremium()) return false;
     const zuletzt = Number(S.deloadAt) || 0;
     if (zuletzt && Date.now() - zuletzt < DELOAD_NACH_WOCHEN * 7 * 864e5) return false;
-    const proWoche = Object.create(null);
+    const proWoche = Object.create(null);   // Einheiten je Woche
+    const saetze   = Object.create(null);   // Arbeitssaetze je Woche
     (S.sessions || []).forEach(s => {
       if (!s || !s.date) return;
       const t = new Date(s.date).getTime();
       if (!isFinite(t)) return;
       const wo = Math.floor(t / (7 * 864e5));
       proWoche[wo] = (proWoche[wo] || 0) + 1;
+      let n = 0;
+      (s.logs || []).forEach(l => { n += _workSets(l && l.sets).length; });
+      saetze[wo] = (saetze[wo] || 0) + n;
     });
     const jetzt = Math.floor(Date.now() / (7 * 864e5));
+    /* Eine harte Woche ist nicht einfach eine Woche mit zwei Terminen. Vorher
+       zaehlten sechs Wochen mit je zwei lockeren Einheiten genauso wie sechs
+       harte — die Entlastung kam dann, ohne dass sich etwas angesammelt haette.
+       Bezug ist das eigene Mittel: der Median der Satzzahl ueber die letzten
+       zwoelf Wochen mit Training. Wer weniger als drei Viertel davon macht,
+       hat sich in dieser Woche bereits selbst entlastet. Ohne Median (weniger
+       als drei Wochen Historie) bleibt es beim reinen Terminzaehler — eine
+       Schwelle aus zwei Datenpunkten waere geraten. */
+    const werte = [];
+    for (let wo = jetzt - 1; wo >= jetzt - 12; wo--) {
+      if ((proWoche[wo] || 0) > 0) werte.push(saetze[wo] || 0);
+    }
+    let median = null;
+    if (werte.length >= 3) {
+      const v = werte.slice().sort((a, b) => a - b);
+      const m = Math.floor(v.length / 2);
+      median = v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+    }
+    const schwelle = median !== null ? median * 0.75 : 0;
     let hart = 0;
     // Die laufende Woche zaehlt nicht mit: sie ist noch nicht vorbei und
     // stuende sonst je nach Wochentag mal als hart, mal als leicht da.
     for (let wo = jetzt - 1; wo >= jetzt - 20; wo--) {
-      if ((proWoche[wo] || 0) >= 2) hart++; else break;
+      const genugTermine = (proWoche[wo] || 0) >= 2;
+      const genugLast    = (saetze[wo] || 0) >= schwelle;
+      if (genugTermine && genugLast) hart++; else break;
     }
     return hart >= DELOAD_NACH_WOCHEN;
   } catch(e) { console.warn('[Coach] Entlastungswoche:', e); return false; }
@@ -739,7 +764,18 @@ function _deloadDue() {
    spraengen mitten in der Einheit wieder hoch. Die Entscheidung faellt einmal
    beim Start und gilt fuer die ganze Einheit. */
 let _deloadActive = false;
-function _deloadFactor() { return _deloadActive ? 0.90 : 1; }
+/* Eine Entlastung ist eine WOCHE, keine Einheit. Vorher setzte _deloadStart()
+   S.deloadAt und war damit selbst der Grund, warum _deloadDue() sofort wieder
+   false lieferte: die zweite Einheit derselben Woche lief wieder mit vollen
+   100 Prozent. Der Faktor haengt deshalb am Fenster ab dem Zeitstempel, nicht
+   am Flag der laufenden Einheit — das Flag entscheidet nur noch, ob die
+   Entlastung JETZT beginnt. */
+const DELOAD_FENSTER_MS = 7 * 864e5;
+function _deloadImFenster() {
+  const at = Number(S.deloadAt) || 0;
+  return at > 0 && (Date.now() - at) < DELOAD_FENSTER_MS;
+}
+function _deloadFactor() { return (_deloadActive || _deloadImFenster()) ? 0.90 : 1; }
 function _deloadStart() {
   _deloadActive = false;
   if (!_deloadDue()) return false;
@@ -773,12 +809,72 @@ function _ciAdjustW(w, meta) {
 }
 // Progressions-Bremse: „Sehr schwer" bei genau dieser Einheit ODER ein aktuell
 // aktiver Halte-/Deload-Zustand (der bezieht sich immer auf die jüngste Einheit).
-function _ciBlocksProgression(sessionId) {
+/* Muskelgruppen, die in dieser Einheit wirklich vorkamen. Ermuedung ist zum
+   Teil oertlich: ein "Sehr schwer" nach dem Beintag sagt nichts ueber den
+   Bizeps aus, bremste aber bisher jede Uebung gleichermassen. */
+function _ciSessionMgs(sessionId) {
+  const out = new Set();
+  try {
+    const s = (S.sessions || []).find(x => x && x.id === sessionId);
+    (s && s.logs || []).forEach(l => {
+      const ex = exById(l && l.exerciseId);
+      if (ex && ex.muscleGroup) out.add(ex.muscleGroup);
+    });
+  } catch(_) {}
+  return out;
+}
+/* Zwei Arten von Bremse, bewusst getrennt:
+   OERTLICH  — die eine sehr schwere Einheit (feel 4). Sie gilt nur fuer die
+               Muskelgruppen, die darin trainiert wurden. Ist die Gruppe der
+               Uebung unbekannt oder liegt die Einheit nicht mehr vor, wird
+               konservativ gebremst.
+   SYSTEMISCH — Deload, gedrosselt, Entlastungswoche. Sie kommen aus mehreren
+               Einheiten und niedriger Energie, betreffen also den ganzen
+               Organismus und gelten weiter fuer jede Uebung. */
+function _ciBlocksProgression(sessionId, ex) {
   if (!sessionId) return false;
-  const c = (S.checkins || []).find(c => c.sid === sessionId);
-  if (c && c.feel === 4) return true;
   const r = _ciReadiness();
-  return !!(r && r.hold && r.sid === sessionId);
+  if (r && r.hold && r.sid === sessionId && r.mode !== 'hold') return true;  // systemisch
+  const c = (S.checkins || []).find(c => c.sid === sessionId);
+  const sehrSchwer = !!(c && c.feel === 4) || !!(r && r.hold && r.mode === 'hold' && r.sid === sessionId);
+  if (!sehrSchwer) return false;
+  const mg = ex && ex.muscleGroup;
+  if (!mg) return true;
+  const mgs = _ciSessionMgs(sessionId);
+  return mgs.size ? mgs.has(mg) : true;
+}
+// Arbeitssaetze, die die Progression tragen: Job-Saetze, sonst Top-Saetze.
+// Steht hier einmal, damit Gewicht und Wiederholungen dieselbe Auswahl sehen.
+function _progMainSets(sets) {
+  const work = _workSets(sets);
+  const job  = work.filter(s => (s.type || 'normal') !== 'top');
+  return job.length ? job : work.filter(s => s.type === 'top');
+}
+function _progTotalReps(sets) {
+  return sets.reduce((a, s) => a + (parseInt(s.r) || 0), 0);
+}
+/* Zweiter Progressionspfad. Die reine Double Progression verlangt ALLE
+   Arbeitssaetze am oberen Bereichsende — bei vier Saetzen bricht der letzte
+   fast immer um ein bis zwei Wiederholungen ein, was physiologisch normal ist
+   und hier zum Dauerstopp wurde. Anerkannt ist deshalb auch der Weg ueber das
+   Gesamtvolumen: erster Arbeitssatz oben im Bereich UND in Summe mehr
+   Wiederholungen als in der Vorwoche bei GLEICHEM Topgewicht. Das ist
+   progressive Ueberlastung ueber die Wiederholungen, bevor die Last steigt. */
+function _progFirstSetRule(ex, hist, lastIdx) {
+  try {
+    if (!ex || !Array.isArray(hist) || lastIdx < 1) return false;
+    const cur = _progMainSets((hist[lastIdx] || {}).sets || []);
+    if (!cur.length) return false;
+    if (!_repsOk(cur[0], ex.targetReps)) return false;
+    let prevIdx = -1;
+    for (let i = lastIdx - 1; i >= 0; i--) {
+      if (_progMainSets((hist[i] || {}).sets || []).length) { prevIdx = i; break; }
+    }
+    if (prevIdx < 0) return false;
+    const prev = _progMainSets(hist[prevIdx].sets || []);
+    if (maxW(cur) !== maxW(prev)) return false;   // andere Last, andere Aussage
+    return _progTotalReps(cur) > _progTotalReps(prev);
+  } catch(e) { console.warn('[Coach] Volumenpfad:', e); return false; }
 }
 function getSuggestedWeight(ex) {
   const hist = exHistory(ex.id);
@@ -820,7 +916,7 @@ function getSuggestedWeight(ex) {
   const cfgStep   = progStepFor(ex);
   const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
   const stepSmall = cfgStep != null ? cfgStep : 2.5;
-  const held = _ciBlocksProgression(last.id);
+  const held = _ciBlocksProgression(last.id, ex);
 
   // Grunddaten fuer die Task-4-Begruendung (_weightReasons). repRange()
   // liefert {min,max}, die Router-Schnittstelle verlangt ein Array [min,max].
@@ -857,6 +953,13 @@ function getSuggestedWeight(ex) {
     const step = ciUp ? stepBig : stepSmall;
     return _ciAdjustW(lMaxW + step, { ...reasonBase, reason: ciUp ? 'checkinUp' : 'repsHigh', stepKg: step });
   }
+  // Volumenpfad: der Bereich ist oben nicht ueberall erreicht, aber der erste
+  // Arbeitssatz sitzt oben und in Summe kamen mehr Wiederholungen zusammen als
+  // in der Vorwoche. Ohne diesen Zweig steht ein Nutzer, dessen letzter Satz
+  // regelmaessig eine Wiederholung nachgibt, dauerhaft auf demselben Gewicht.
+  if (!held && _progFirstSetRule(ex, hist, lastIdx)) {
+    return _ciAdjustW(lMaxW + stepSmall, { ...reasonBase, reason: 'volumeUp', stepKg: stepSmall });
+  }
   // Fallback: Gewicht bleibt. held=true kommt entweder aus "Sehr schwer"
   // bewertet (reine Erholungs-Pause, 'hold') oder aus einem Check-in-Faktor
   // <1 (Deload/leicht gedrosselt, 'checkinDown' -- _ciAdjustW senkt hier
@@ -889,7 +992,7 @@ function getSuggestion(ex) {
   const cfgStep   = progStepFor(ex);
   const stepBig   = cfgStep != null ? cfgStep : (topOnly ? (lMaxW >= 100 ? 5 : 2.5) : (lMaxW >= 60 ? 5 : 2.5));
   const stepSmall = cfgStep != null ? cfgStep : 2.5;
-  const held = _ciBlocksProgression(last.id);
+  const held = _ciBlocksProgression(last.id, ex);
 
   if (held) {
     // Begründung kommt aus dem Check-in-Zustand (Deload/Halten/leicht gedrosselt),
@@ -2536,7 +2639,10 @@ function getSuggestedReps(ex) {
   // Gewicht steigt: Rückschritt statt Progression.
   const warmups = last.sets.filter(s => (s.type||'normal') === 'warmup').length;
   const allSets = mainSets.length >= (topOnly ? 1 : Math.max(1, (ex.targetSets||1) - warmups));
-  if (allTop && allSets && !_ciBlocksProgression(last.id)) return min;
+  // Reset auch auf dem Volumenpfad — Gewichtssprung und Wdh-Reset gehoeren
+  // IMMER zusammen (sonst Rueckschritt statt Progression, s. getSuggestedWeight).
+  const steigt = (allTop && allSets) || _progFirstSetRule(ex, hist, hist.length - 1);
+  if (steigt && !_ciBlocksProgression(last.id, ex)) return min;
   // Noch im Bereich am Aufbauen → eine Wdh mehr anpeilen als der schwächste Satz.
   const minReps = Math.min(...mainSets.map(s => parseInt(s.r) || 0));
   return Math.max(min, Math.min(max, minReps + 1));

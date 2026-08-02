@@ -1260,3 +1260,15 @@ test('unbekannter lang-Wert faellt wie fehlendes Feld auf Deutsch zurueck', () =
   const r = R.resolveIntent('wie viele saetze noch?', { ...SNAP, lang: 'fr' });
   assert.strictEqual(r.answer, 'Noch 3 Sätze.');
 });
+
+// Volumenpfad: nicht jeder Satz lag oben, aber der erste, und in Summe kamen
+// mehr Wiederholungen zusammen. Die Begruendung muss das benennen -- sonst
+// liest der Nutzer eine Steigerung, deren Regel er nirgends findet.
+test('Volumenpfad wird als Fortschritt begruendet', () => {
+  const s = { ...S4, weightReason: { ...WR, reason: 'volumeUp', toKg: 62.5, stepKg: 2.5, lastReps: [10, 10, 9] } };
+  const r = R.resolveIntent('warum 62,5?', s);
+  assert.strictEqual(r && r.intent, 'weightWhy');
+  assert.ok(/erste Arbeitssatz/.test(r.answer), 'erster Satz nicht benannt');
+  assert.ok(/mehr Wiederholungen/.test(r.answer), 'Volumenzuwachs nicht benannt');
+  assert.ok(/steigt/.test(r.answer), 'Steigerung nicht benannt');
+});

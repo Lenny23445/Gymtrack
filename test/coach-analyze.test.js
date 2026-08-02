@@ -514,3 +514,29 @@ test('mit gemessener Pause bleibt es beim ausfuehrlichen Schluessel', () => {
   assert.strictEqual(say.key, 'plateau');
   assert.strictEqual(say.vars.secs, 120);
 });
+
+// --- plateauPlan: die Diagnose bekommt eine Antwort ------------------------
+// Ohne diesen Teil sagte der Coach dem Nutzer nur, dass er steht. Der Plan ist
+// die Standardantwort der Progressionslehre (Last zurueck, wieder hoch) und
+// bleibt ein Angebot — deshalb Zahlen, kein Automatismus.
+test('plateauPlan schlaegt ab drei Wochen den Reset vor', () => {
+  const plan = A.plateauPlan({ weeks: 4, topKg: 100 });
+  assert.strictEqual(plan.kind, 'reset');
+  assert.strictEqual(plan.fromKg, 100);
+  assert.strictEqual(plan.toKg, 90);
+  assert.strictEqual(plan.weeks, 4);
+});
+
+test('plateauPlan schweigt bei zu kurzem Plateau', () => {
+  assert.strictEqual(A.plateauPlan({ weeks: 2, topKg: 100 }), null);
+});
+
+test('plateauPlan schweigt ohne brauchbares Gewicht', () => {
+  assert.strictEqual(A.plateauPlan({ weeks: 5, topKg: 0 }), null);
+  assert.strictEqual(A.plateauPlan(null), null);
+});
+
+test('plateauPlan nimmt eigene Vorgaben an', () => {
+  const plan = A.plateauPlan({ weeks: 3, topKg: 80 }, { pct: 0.05, minWeeks: 3 });
+  assert.strictEqual(plan.toKg, 76);
+});

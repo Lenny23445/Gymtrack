@@ -2701,8 +2701,43 @@ function _csPlateau(ex) {
       if (!_csHasRoomFine(sess)) return;          // strengerer Rueckhalt: Feinheiten sind zuerst da
       const r = window.CoachSession.emit(sess, 'plateau', say.key, say.vars);
       _csPut(r.sess); if (r.out) _csEmit(r.out);
+      // Und jetzt die ANTWORT auf das Plateau. Die Beobachtung allein hat den
+      // Nutzer nie herausgeholt: er erfuhr, dass er steht, und stand weiter.
+      // Ab drei Wochen bietet der Coach den Reset an — zehn Prozent runter und
+      // wieder hocharbeiten. Kein Modell, kein Netz, kein Kontingent: das ist
+      // Progressionslehre und keine Einschaetzung.
+      try { _csPlateauAngebot(ex, diag); } catch(e2) { console.warn('[Coach] Plateau-Angebot:', e2); }
     });
   } catch(e) { console.warn('[Coach] Plateau:', e); }
+}
+/* Das Angebot als Karte — derselbe Weg wie Top- und Dropsatz, mit Knopf und
+   ohne Automatik. Es gilt fuer die ganze Uebung (action 'resetLoad' setzt
+   jeden noch offenen Satz), denn ein Reset, der nach einem Satz wieder auf das
+   Plateaugewicht springt, waere keiner. */
+function _csPlateauAngebot(ex, diag) {
+  if (!ex || !diag) return;
+  if (typeof _coachCardOffen === 'function' && _coachCardOffen()) return;  // eine offene Karte reicht
+  const plan = window.CoachAnalyze.plateauPlan(diag);
+  if (!plan) return;
+  const li = (typeof wkLogs !== 'undefined' && Array.isArray(wkLogs))
+    ? wkLogs.findIndex(l => l && l.exerciseId === ex.id) : -1;
+  if (li < 0) return;
+  const nm  = (typeof _exDisp === 'function') ? _exDisp(ex.name) : ex.name;
+  const von = kgToDisp(plan.fromKg), auf = kgToDisp(plan.toKg), e = unitLabel();
+  const c = {
+    title: _cm('Plateau lösen', 'Break the plateau'),
+    text: _cm(
+      nm + ' steht seit ' + plan.weeks + ' Wochen bei ' + von + ' ' + e + '. Zurück auf ' + auf + ' ' + e
+        + ' und in den nächsten Wochen wieder hocharbeiten — das ist der übliche Weg aus einem Plateau.',
+      nm + ' has been stuck at ' + von + ' ' + e + ' for ' + plan.weeks + ' weeks. Drop to ' + auf + ' ' + e
+        + ' and work back up over the next weeks — that is the standard way out of a plateau.'),
+    options: [
+      { label: _cm('Auf ', 'Down to ') + auf + ' ' + e, action: { kind: 'resetLoad', value: plan.toKg } },
+      { label: _cm('Weiter wie geplant', 'Stay on plan'), action: { kind: 'none' } },
+    ],
+  };
+  const w = parseFloat((wkLogs[li].sets || [])[0]?.w) || plan.fromKg;
+  if (typeof _coachOffer === 'function') _coachOffer(ex.id, c, w);
 }
 // Ein Eintrag JE UEBUNG UND WOCHE (Hinweis aus Task 16: mehrere Eintraege pro
 // Woche verkuerzen die Spanne, und die Diagnose faellt aus). Der Wochenschluessel

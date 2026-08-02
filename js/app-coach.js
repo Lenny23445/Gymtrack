@@ -131,6 +131,34 @@ function _aiKeepExNames(text) {
     return out;
   } catch(e) { console.warn('[Coach] Namensriegel:', e); return text; }
 }
+/* Wochensaetze und Reiztage je Muskelgruppe — die Bruecke von S.sessions auf
+   das reine Rechenmodul CoachVolume. Das Fenster steht auf vier Wochen: eine
+   einzelne Woche schwankt zu stark (ein verschobener Termin macht aus 'zu
+   wenig' ein 'passt'), vier Wochen sind der uebliche Beobachtungszeitraum.
+   Aufwaermsaetze zaehlen nicht mit — _workSets filtert sie. */
+function _volRows() {
+  const rows = [];
+  try {
+    (S.sessions || []).forEach(s => {
+      if (!s || !s.date) return;
+      const ts = new Date(s.date).getTime();
+      if (!isFinite(ts)) return;
+      (s.logs || []).forEach(l => {
+        const ex = exById(l && l.exerciseId);
+        if (!ex || !ex.muscleGroup) return;
+        const n = _workSets(l.sets || []).length;
+        if (n > 0) rows.push({ ts, mg: ex.muscleGroup, sets: n });
+      });
+    });
+  } catch(e) { console.warn('[Coach] Volumenzeilen:', e); }
+  return rows;
+}
+function _volVerdict(weeks) {
+  try {
+    if (!window.CoachVolume) return [];
+    return CoachVolume.verdict(CoachVolume.weekLoad(_volRows(), Date.now(), weeks || 4));
+  } catch(e) { console.warn('[Coach] Volumenurteil:', e); return []; }
+}
 /* Fuer strukturierte Modellantworten (Analyse, Plan): jede Zeichenkette im
    Baum durchlaeuft den Riegel. Ein Feld einzeln aufzuzaehlen hiesse, ihn beim
    naechsten neuen Feld im Schema wieder zu vergessen. Ersetzt wird nur, was
@@ -546,6 +574,15 @@ function _coachApplyAction(li, action, baseW) {
     case 'weight': {
       const si = _coachNextSetIdx(log);
       if (si >= 0 && val != null) log.sets[si].w = String(roundToStep(val));
+      break;
+    }
+    // Plateau-Reset: NICHT nur der naechste Satz, sondern jeder noch offene.
+    // Ein Reset, der nach einem Satz wieder auf das Plateaugewicht springt,
+    // waere kein Reset — die Entlastung traegt die ganze Uebung.
+    case 'resetLoad': {
+      if (val == null) break;
+      const w = String(roundToStep(val));
+      log.sets.forEach(s => { if (s && !s.done && (s.type || 'normal') !== 'warmup') s.w = w; });
       break;
     }
     case 'dropSet': {
@@ -2218,6 +2255,17 @@ async function _crAskModel(n, forecast) {
       muscleVolume: muskeln
     };
     if (forecast) { zahlen.goal = kgToDisp(forecast.goalKg); zahlen.goalInWeeks = forecast.weeks; }
+    // Die EINE Muskelgruppe, die eine Handlung nach sich zieht — von der App
+    // gerechnet und beurteilt, nicht vom Modell geschaetzt. Ist alles im
+    // Bereich, steht hier nichts: ein Bericht, der jede Woche eine Baustelle
+    // erfindet, wird nicht gelesen.
+    try {
+      const w = window.CoachVolume ? CoachVolume.worstFirst(_volVerdict(4)) : null;
+      if (w) zahlen.volumeFocus = {
+        muscleGroup: w.mg, setsPerWeek: w.sets, daysPerWeek: w.days,
+        verdict: w.state, frequencyLow: w.freqLow, landmark: [w.mev, w.mav],
+      };
+    } catch(_) {}
     const auftrag = en
       ? 'Summarise this training week for the user. Exactly three sentences, no emojis, no promises about the future. Use only the numbers given and invent nothing. Every weight value is already in the unit named by the "unit" field — write that unit and convert nothing. Do not suggest any change to the training plan.'
       : 'Fasse diese Trainingswoche für den Nutzer zusammen. Genau drei Sätze, keine Emojis, keine Zusagen über die Zukunft. Nutze ausschließlich die genannten Zahlen und erfinde nichts. Alle Gewichtsangaben stehen bereits in der Einheit, die das Feld "unit" nennt — nenne genau diese Einheit und rechne nichts um. Mach keinen Vorschlag zur Änderung des Trainingsplans.';
