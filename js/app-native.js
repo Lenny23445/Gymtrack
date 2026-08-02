@@ -1034,13 +1034,47 @@ function _cnTz() { try { return -new Date().getTimezoneOffset(); } catch(_) { re
 
 function _cnLevel() { try { return _persona().pushLevel; } catch(_) { return 'still'; } }
 
+/* Markdown-Auszeichnung raus, Satz bleibt stehen.
+
+   Der Wochenbericht kommt aus dem Modell, und das schreibt Zahlen gern fett:
+   "**12.450 kg**". Der Chat rendert das (_aicMd in app-coach-setup.js), die
+   Meldung und der Wochen-Reiter des Coach-Hubs koennen es nicht — dort stand
+   die Auszeichnung woertlich im Text.
+
+   Wie bei speakable() in coach-voice.js ist die gefaehrlichere Haelfte die zu
+   weit greifende Regel. Darum steht neben jeder Ersetzung, was sie NICHT
+   anfassen darf:
+
+   - fett nur als PAAR und ohne Marker dazwischen ([^*]+ / [^_]+). Ein gieriger
+     Ausdruck verschluckt bei zwei fetten Stellen alles dazwischen; ein halbes
+     Paar bleibt unangetastet stehen, statt Text mitzureissen.
+   - EINZELNE Sternchen und Unterstriche bleiben. "Bank 3 * 8" ist eine
+     Satzangabe und keine Kursivschrift, "week_key" ein Bezeichner. Kursiv
+     schreibt das Modell praktisch nie, der Schaden waere aber jedes Mal da.
+   - Rauten nur am ZEILENANFANG (^ mit m-Flag) — eine Raute mitten im Satz ist
+     keine Ueberschrift.
+
+   Zeilenumbrueche bleiben stehen: _cnPlain() zieht sie danach ohnehin
+   zusammen, die Anzeige im Hub braucht sie. */
+function _mdPlain(s) {
+  try {
+    return String(s == null ? '' : s)
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^[ \t]*#{1,6}[ \t]+/gm, '');
+  } catch(_) { return ''; }
+}
+
 /* Keine Emojis, auch nicht im Titel: der Coach-Name ist Nutzereingabe. Das
    Modul entschärft ihn für die Oberfläche, hier wird zusätzlich alles
    Piktogrammartige und jedes Steuerzeichen entfernt — eine Meldung ist eine
-   Zeile Text. */
+   Zeile Text. Die Auszeichnung geht durch _mdPlain() voraus: eine Meldung
+   kennt keine Fettschrift, und ein Bericht aus dem Archiv ist entstanden,
+   bevor _crClean() sie entfernt hat. */
 function _cnPlain(s) {
   try {
-    return String(s == null ? '' : s)
+    return _mdPlain(s)
       .replace(/[\p{Extended_Pictographic}\u{FE00}-\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{200D}]/gu, '')
       .replace(/[\u0000-\u001F\u007F]/g, ' ')
       .replace(/\s+/g, ' ')

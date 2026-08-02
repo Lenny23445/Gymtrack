@@ -66,6 +66,7 @@
   --nr-c1:60; --nr-c2:72;              /* scharfer Bogen: Anfang → Ende */
   --nr-g1:55; --nr-g2:65;              /* Hof und Wolke darunter */
   --neon-edge:0 0 0 rgba(0,0,0,0);     /* Kontaktkante — nur auf hellem Grund noetig */
+  --sig-ring:0;                        /* Umriss der Signal-Fuellungen — nur auf hellem Grund */
   /* Die MULDEN: leere Zellen, Ringspuren, Tageskapseln — der Grund, auf dem
      das Licht sitzt. Sie standen bisher als feste Weisswerte im CSS, weil sie
      beim Neon-Umbau fuer den dunklen Grund gebaut wurden. Auf Weiss ist Weiss
@@ -256,11 +257,33 @@
    Dark bleibt unveraendert — dort stimmt der Stand bereits. */
 [data-theme="light"],[data-theme="rosa"],[data-theme="blau"],[data-theme="grün"]{
   /* Halber Dimmer: auf Weiss wird aus demselben Hof sonst ein Schleier. */
-  --neon:.32;
+  --neon:.26;
   /* Kerne satt statt hell — auf Weiss traegt die SAETTIGUNG den Kontrast,
      nicht die Helligkeit. */
   --ng-core:48%;
-  --ng-1:52%; --ng-2:45%; --ng-3:42%;
+  /* Die drei Schein-Ebenen MUESSEN dunkler sein als die Fuellung, um die sie
+     liegen. Bis 02.08.2026 standen sie auf 52/45/42 — heller als die geklemmte
+     Fuellung. Ein Schein, der heller ist als sein Kern, ist auf hellem Grund
+     kein Licht mehr, sondern ein farbiger Nebel: genau der gruene Schleier, der
+     in rosa um die vollen Zeilen der Volumen-Verteilung stand. Dunkler als der
+     Kern liest sich dieselbe Staffel als farbiger Kontaktschatten — das ist die
+     helle Entsprechung zum Leuchten, nicht seine Kopie. */
+  --ng-1:34%; --ng-2:30%; --ng-3:27%;
+  /* Die Geometrie (--gw-*) bleibt appweit dieselbe, die Verteilung der
+     Deckkraft auf die drei Lagen nicht: auf Dunkel traegt die WEITE Lage das
+     Leuchten, auf Hell macht genau sie den Fleck. Eine volle Reihe gruener
+     Striche legte dadurch eine 20-px-Wolke ueber die weisse Karte — jeder
+     einzelne Schein blass, uebereinander ein Schleier. Auf Hell liegt das
+     Gewicht deshalb auf der ENGEN Lage (Kontaktschatten direkt am Strich), die
+     weite bleibt fast nur noch als Andeutung stehen. */
+  --gwa-1:calc(1 * var(--neon));
+  --gwa-2:calc(.48 * var(--neon));
+  --gwa-3:calc(.16 * var(--neon));
+  /* Deckkraft der haarfeinen Kante um jede Signal-Fuellung (Erholungs-Akkus,
+     Volumen-Verteilung, Leistungsleiste). Sie traegt den Kontrast, den eine
+     helle Fuellung auf weissem Grund nicht selbst haben kann — vor allem bei
+     Gelb. Auf Dunkel steht sie auf 0. Leser: _segBarsHTML()/_segBarsVertHTML(). */
+  --sig-ring:.5;
   /* Weniger Weiss im Innenlicht, mehr Tiefe unten: sonst verschwindet der
      Strich in der weissen Karte, auf der er liegt. */
   --ng-hi:.18; --ng-lo:.55;
@@ -3479,19 +3502,27 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .cal-weekhdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .cal-weekhdr span{text-align:center;font-size:10px;color:var(--text2);font-weight:600}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:40px;gap:4px}
+/* Tage ohne Training bekommen keine FUELLUNG — die grauen Kaestchen bildeten im
+   Gitter ein Streifenmuster. Ohne Fuellung war aber auch das Feld weg und das
+   Gitter loeste sich in einzelne Zahlen auf. Beides loest eine Haarlinie nach
+   innen: sie zeichnet das Feld, ohne Flaeche zu setzen.
+   Neutrales Grau statt --gl-bdr: die Glas-Variable ist in den hellen Themes
+   WEISS und waere auf dem hellen Blatt unsichtbar. 128,128,128 traegt in hell
+   wie dunkel. */
 .cal-cell{
   border-radius:9px;min-width:0;
   display:flex;align-items:center;justify-content:center;
   font-size:12px;color:var(--text);
-  /* Tage ohne Training bekommen KEINE eigene Flaeche — die grauen Kaestchen
-     bildeten im Gitter ein Streifenmuster. Nur Trainingstage sind gefuellt. */
   background:transparent;
+  box-shadow:inset 0 0 0 1px rgba(128,128,128,.22);
 }
-.cal-cell.empty{background:transparent}
-.cal-cell.l1{background:rgba(var(--acc-rgb),.30);color:var(--text)}
-.cal-cell.l2{background:rgba(var(--acc-rgb),.55);color:#fff}
-.cal-cell.l3{background:rgba(var(--acc-rgb),.80);color:#fff}
-.cal-cell.l4{background:var(--acc);color:#fff}
+/* Platzhalter vor dem Monatsersten sind KEIN Tag — sie bekommen auch kein Feld. */
+.cal-cell.empty{background:transparent;box-shadow:none}
+/* Trainingstage tragen ihre Flaeche; ein Rahmen darauf waere ein zweiter Rand. */
+.cal-cell.l1{background:rgba(var(--acc-rgb),.30);color:var(--text);box-shadow:none}
+.cal-cell.l2{background:rgba(var(--acc-rgb),.55);color:#fff;box-shadow:none}
+.cal-cell.l3{background:rgba(var(--acc-rgb),.80);color:#fff;box-shadow:none}
+.cal-cell.l4{background:var(--acc);color:#fff;box-shadow:none}
 .cal-cell.today{outline:2px solid var(--text);outline-offset:-2px}
 .cal-cell.has-sess{cursor:pointer}
 .cal-cell.has-sess:active{transform:scale(.9)}
@@ -3508,10 +3539,9 @@ body.wpick-open #heute-edit-bar{display:none!important}
   display:flex;align-items:center;justify-content:flex-end;
   gap:6px;margin-top:10px;font-size:11px;color:var(--text2);
 }
-/* In der Legende braucht das "kein Training"-Feld eine sichtbare Flaeche —
-   im Gitter selbst sind diese Zellen bewusst transparent. */
-.cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px;
-  background:rgba(128,128,128,.18)}
+/* Die Legende zeigt dasselbe wie das Gitter: "kein Training" ist ein leeres
+   Feld mit Kontur, keine graue Flaeche. Die Kontur erbt sie von .cal-cell. */
+.cal-legend .cal-cell{width:14px;height:14px;aspect-ratio:auto;border-radius:4px}
 
 /* ── KALENDER: ANSICHTS-UMSCHALTER (Monate ⇄ Matrix) ──────────────
    Segmented Control mit gleitender Kapsel. Liegt unter dem Kopf, damit der
@@ -3610,9 +3640,14 @@ body.wpick-open #heute-edit-bar{display:none!important}
   font-size:0;padding:0;min-width:0;
   transition:transform .12s var(--press,ease),box-shadow .2s;
 }
+/* Zukunftstage: dasselbe leere Feld wie ein vergangener Tag ohne Training, nur
+   eine Spur blasser. Vorher stand hier --gl-bdr — in den hellen Themes ist die
+   Variable WEISS, das Feld also unsichtbar; und weil die Vergangenheit gar
+   keine Kontur hatte, war ausgerechnet die Zukunft der einzige sichtbare Teil
+   des Rasters. */
 .mx .mx-cell.future{
   background:transparent;
-  box-shadow:inset 0 0 0 1px var(--gl-bdr,rgba(128,128,128,.14));
+  box-shadow:inset 0 0 0 1px rgba(128,128,128,.15);
   pointer-events:none;
 }
 .mx .mx-cell.today{box-shadow:0 0 0 1.5px var(--acc),0 0 0 3.5px rgba(var(--acc-rgb),.18)}
@@ -3661,7 +3696,12 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .mx-year .mx-wdcol span{font-size:7.5px;letter-spacing:-.02em;min-width:20px}
 .mx-year .mx-mrow{height:12px}
 .mx-year .mx-m{line-height:12px;font-size:8.5px;letter-spacing:.02em}
-.mx.full .mx-cell{border-radius:1.5px}
+/* Vollansicht: die Zelle ist nur noch wenige Pixel gross. Eine 1px-Kontur in
+   voller Staerke fuellte sie fast — hier reicht ein Hauch, das Raster traegt
+   ohnehin schon der Abstand zwischen den Zellen. */
+.mx.full .mx-cell{border-radius:1.5px;box-shadow:inset 0 0 0 1px rgba(128,128,128,.12)}
+.mx.full .mx-cell.l1,.mx.full .mx-cell.l2,
+.mx.full .mx-cell.l3,.mx.full .mx-cell.l4{box-shadow:none}
 .mx-mrow.m12{display:grid;grid-template-columns:repeat(12,1fr);gap:0;width:100%}
 .mx-m12{
   font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;

@@ -2186,11 +2186,17 @@ function _crTerminText() {
    wird sich darauf NICHT — eine Vorgabe im Prompt ist eine Bitte, keine
    Zusicherung. Codeblöcke fliegen raus (der Chat-Endpunkt kennt ```gtplan und
    ```gtmem, beide gehören nicht in einen Bericht), Piktogramme und
-   Steuerzeichen ebenso, und nach dem dritten Satz ist Schluss. */
+   Steuerzeichen ebenso, und nach dem dritten Satz ist Schluss.
+
+   Auch die Markdown-Auszeichnung (_mdPlain): das Modell setzt Zahlen gern fett,
+   und dieser Text geht in zwei Flächen, die kein Markdown rendern — die Meldung
+   und den Wochen-Reiter des Hubs. Zuerst die Codeblöcke, dann _mdPlain: sonst
+   nähme dessen Backtick-Schritt einem ```-Block die Zäune und ließe den Inhalt
+   im Bericht stehen. */
 function _crClean(t) {
   try {
-    let s = String(t == null ? '' : t)
-      .replace(/```[\s\S]*?```/g, ' ')
+    let s = _mdPlain(String(t == null ? '' : t)
+      .replace(/```[\s\S]*?```/g, ' '))
       .replace(/[\p{Extended_Pictographic}\u{FE00}-\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{200D}]/gu, '')
       .replace(/[\u0000-\u001F\u007F]/g, ' ')
       .replace(/\s+/g, ' ')
@@ -2548,8 +2554,11 @@ function _chReportHTML(cur){
 
     // Einordnung. Fehlt sie (kein Netz, kein Budget, noch nicht fällig), steht
     // hier kein leerer Rahmen, sondern die Auskunft, was noch aussteht.
+    // _mdPlain auch hier, nicht nur in _crClean: Berichte, die vor dieser
+    // Änderung entstanden sind, liegen mit ihren Sternchen im Archiv und
+    // werden nie neu erzeugt — der Reiter zeigt sie sonst weiter roh.
     if (r.text) {
-      out.push(`<div class="ch-jrn"><span>${esc(r.text)}</span></div>`);
+      out.push(`<div class="ch-jrn"><span>${esc(_mdPlain(r.text))}</span></div>`);
     } else if (!cur.fertig) {
       out.push(`<div class="ch-jrn ghost"><span>${esc(_cm(
         'Zwischenstand. Der fertige Bericht kommt ' + _crTerminText() + '.',
