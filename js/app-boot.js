@@ -17,7 +17,23 @@ try {
   if ((typeof DEMO_SEED === 'undefined' || !DEMO_SEED) && localStorage.getItem('gt_demo_bySeed') === '1') {
     localStorage.removeItem('gt_demo'); localStorage.removeItem('gt_demo_bySeed');
     localStorage.removeItem('gt_premiumDev');
-    localStorage.removeItem('gt_prof_photo');   // Demo-Portrait, sonst landet es per Social-Push in der Cloud
+    /* NUR das Demo-Portrait, niemals das eigene Bild. Vorher stand hier ein
+       bedingungsloses removeItem: wer die App einmal mit Simulationsdaten
+       gestartet hatte, verlor beim naechsten Start ohne Seed sein selbst
+       angelegtes Profilbild — ohne Meldung und ohne Weg zurueck.
+       Zwei Merkmale, beide muessen zutreffen:
+       - der beim Seed gemerkte Wert (gt_prof_photo_demo) ist noch derselbe und
+       - das Bild ist kein 'data:'-Bild. Selbst angelegte Bilder entstehen
+         IMMER im Canvas (_pickProfilePhoto) und sind damit data-URLs; das
+         Demo-Portrait ist eine https-Adresse. Das faengt auch die Altbestaende
+         ab, die noch keinen gemerkten Wert haben. */
+    try {
+      const foto = localStorage.getItem('gt_prof_photo') || '';
+      const seed = localStorage.getItem('gt_prof_photo_demo') || '';
+      const istDemo = foto && !/^data:/i.test(foto) && (!seed || foto === seed);
+      if (istDemo) localStorage.removeItem('gt_prof_photo');
+      localStorage.removeItem('gt_prof_photo_demo');
+    } catch(_) {}
     // 'gt_neon' wird hier BEWUSST nicht mehr abgeraeumt: das Neon im Tab Training
     // haengt nicht mehr am Demo-Build, es ist der Normalzustand (s. _applyNeonSplits).
   }

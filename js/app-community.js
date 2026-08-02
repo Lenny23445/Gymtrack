@@ -1232,7 +1232,16 @@ function _seedDemoData() {
   // Profilbild oben links auf der Heute-Seite (sonst nur die Initiale "L"). Motiv aus
   // dem Gym statt Portrait — im runden Ausschnitt bleibt der Hantelgriff erkennbar.
   const DEMO_AVA = 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=300&h=300&q=70';
-  try { localStorage.setItem('gt_prof_photo', DEMO_AVA); } catch(_){}
+  /* Ein selbst angelegtes Bild wird NICHT ueberschrieben — der Seed laeuft auf
+     echten Geraeten mit echten Profilen. Und was der Seed setzt, merkt er sich
+     unter gt_prof_photo_demo: nur DAS raeumt app-boot.js spaeter wieder ab. */
+  try {
+    const vorhanden = localStorage.getItem('gt_prof_photo');
+    if (!vorhanden || !/^data:/i.test(vorhanden)) {
+      localStorage.setItem('gt_prof_photo', DEMO_AVA);
+      localStorage.setItem('gt_prof_photo_demo', DEMO_AVA);
+    }
+  } catch(_){}
   // Erholung fuer den Screenshot fest vorgeben. Die Demo trainiert Mo–Sa durch, damit
   // die Wochenleiste voll ist — dieselbe Historie zieht die Akkus aber alle auf
   // "wenig erholt". Feste Werte pro Muskelgruppe loesen das UND geben der Kachel eine
