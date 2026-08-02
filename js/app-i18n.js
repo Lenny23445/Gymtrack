@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608030450';
+const APP_VERSION = 'gymtrack-v202608030455';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der

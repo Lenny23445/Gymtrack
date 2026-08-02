@@ -1223,7 +1223,6 @@ function _seedDemoData() {
   // haben, damit der naechste Nicht-Demo-Start beides wieder abraeumt (sonst blockt
   // _demoModeAny() dauerhaft das Aufraeumen der Demo-Daten).
   try { localStorage.setItem('gt_demo', '1'); localStorage.setItem('gt_demo_bySeed', '1'); } catch(_){}
-  try { localStorage.setItem('gt_neon', '1'); } catch(_){}   // Neon-Probe an (setNeonSplits(false) schaltet sie aus)
   S.socialOn = true;
   if (!S.userName) S.userName = 'Lenny';
   // Dunkles Theme erzwingen: nach einer Neuinstallation ist der WebView-Storage leer

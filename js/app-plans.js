@@ -2106,18 +2106,21 @@ function _neonLinePlugin(acc, voll){
    Genauigkeit, die man auf 160 Pixel Hoehe ohnehin nicht ablesen kann. Wer sie
    braucht, tippt die Kachel an; im Vollbild sind Datums- und Mengenachse da,
    und dort ist auch der Platz dafuer. */
-/* ── NEON-PROBE (Splits im Training-Tab) ───────────────────────────
-   An/aus zur Laufzeit: setNeonSplits(true) / setNeonSplits(false) — merkt sich
-   den Stand in localStorage 'gt_neon'. Die Optik selbst steht komplett in
-   css/app.css (Block "NEON-PROBE"), hier haengt nur der Schalter.
+/* ── NEON (Splits im Training-Tab) ─────────────────────────────────
+   Standardmaessig AN. Bis 01.08.2026 war das eine Probe hinter localStorage
+   'gt_neon', und gesetzt hat die Flag ausschliesslich _seedDemoData() — im
+   Upload (DEMO_SEED=false) war der Schalter deshalb nie an, der Tab Training
+   kam ohne Neon heraus. Der Default liest jetzt "an, solange nicht ausdruecklich
+   abgeschaltet": nur ein explizites '0' (setNeonSplits(false)) dimmt.
+   Die Optik selbst steht komplett in css/app.css (Block "NEON").
    Zuruecknehmen = den CSS-Block, diese Funktion und den Aufruf in app-boot.js raus. */
 function setNeonSplits(on){
   try { localStorage.setItem('gt_neon', on ? '1' : '0'); } catch(_){}
   document.documentElement.setAttribute('data-neon', on ? '1' : '0');
 }
 function _applyNeonSplits(){
-  let on = false;
-  try { on = localStorage.getItem('gt_neon') === '1'; } catch(_){}
+  let on = true;
+  try { on = localStorage.getItem('gt_neon') !== '0'; } catch(_){}
   document.documentElement.setAttribute('data-neon', on ? '1' : '0');
 }
 

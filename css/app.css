@@ -6846,12 +6846,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-later{border:1px solid var(--gl-bdr);border-radius:13px;padding:11px 14px;font-family:inherit;
   font-size:13px;font-weight:700;color:var(--text2);background:rgba(127,127,127,.08);cursor:pointer}
 
-/* ── NEON-PROBE: Splits im Training-Tab ─────────────────────────────
-   Nur aktiv, solange <html data-neon="1"> gesetzt ist — das schaltet
-   setNeonSplits(true/false) (Flag localStorage 'gt_neon'). Ohne das
-   Attribut sind alle Regeln hier wirkungslos, die Probe kostet also
-   nichts, wenn sie aus ist. Ganz raus = diesen Block loeschen plus
-   setNeonSplits() in js/app-plans.js und den Aufruf in js/app-boot.js.
+/* ── NEON: Splits im Training-Tab ───────────────────────────────────
+   Aktiv, solange <html data-neon="1"> gesetzt ist — das setzt beim Start
+   _applyNeonSplits(), und zwar per Default AN; nur setNeonSplits(false)
+   (localStorage 'gt_neon' = '0') schaltet es ab. Bis 01.08.2026 hing das
+   Attribut allein am Demo-Seed, im Store-Build fehlte das Neon deshalb.
+   Ganz raus = diesen Block loeschen plus setNeonSplits()/_applyNeonSplits()
+   in js/app-plans.js und den Aufruf in js/app-boot.js.
    Der Schein zieht seine Farbe aus --sc, der Split-Farbe der Karte. */
 /* Wochen-Rail bewusst schwaecher als die Split-Karten unten: die Tageskarten stehen
    dicht nebeneinander, da summiert sich der volle Schein zu einem Farbteppich. */
