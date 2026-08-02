@@ -361,8 +361,7 @@ function _aibSyncVisibility(){
   document.body.classList.toggle('sheet-modal', !!document.querySelector('.ov.on:not(#ov-wk)'));
   if (_aibOpenState && (hide || document.querySelector('.ov.on'))) closeAiRadial();
 }
-// Bubble-Durchmesser = gemessene Tableisten-Höhe (gleiche Unterkante per CSS-bottom):
-// Bubble folgt damit auch dem tabbar--min-Schrumpfen beim Scrollen.
+// Bubble-Durchmesser = gemessene Tableisten-Höhe (gleiche Unterkante per CSS-bottom).
 function _aibDock(){
   const b = document.getElementById('ai-bubble');
   const tb = document.querySelector('.tabbar');
@@ -386,12 +385,10 @@ function _aibInit(){
     if (el) new MutationObserver(_aibSyncVisibility).observe(el, { attributes:true, attributeFilter:['class'] });
   });
   const tb = document.querySelector('.tabbar');
-  // ResizeObserver statt MutationObserver: Tabbar-Höhe ändert sich beim
-  // tabbar--min-Wechsel über eine .32s-CSS-Transition (Padding). ResizeObserver
-  // feuert JEDEN gerenderten Zwischenframe dieser Animation, nicht nur einmal
-  // beim Klassenwechsel — Bubble bleibt so während der ganzen Animation exakt
-  // an der echten (gemessenen) Tableisten-Höhe angedockt, kein eigenes Timing/
-  // keine eigene Transition nötig, die aus dem Tritt geraten könnte.
+  // ResizeObserver statt MutationObserver: die Leiste schrumpft seit 02.08.2026
+  // nicht mehr beim Scrollen, ihre Höhe ändert sich aber weiter durch Schriftgröße,
+  // Safe-Area und Rotation. Der Observer misst jede dieser Änderungen direkt am
+  // Element — Bubble bleibt angedockt, ohne eigenes Timing.
   if (tb && 'ResizeObserver' in window) new ResizeObserver(_aibDock).observe(tb);
   window.addEventListener('resize', _aibDock);
   _aibDock();

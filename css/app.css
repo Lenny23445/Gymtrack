@@ -972,7 +972,7 @@ body{
   box-shadow:0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05),
              inset 0 1px 0 rgba(255,255,255,.70);
   display:flex;align-items:center;z-index:1000;padding:11px;
-  transition:background .4s,padding .32s cubic-bezier(.32,1,.32,1);
+  transition:background .4s;
   overflow:hidden;
 }
 [data-glass="off"] .tabbar{
@@ -1015,7 +1015,7 @@ body{
   flex:1;display:flex;flex-direction:column;align-items:center;
   padding:8px 4px 9px;gap:2px;cursor:pointer;border:none;
   background:none;color:var(--text2);
-  transition:color .22s,opacity .22s,padding .28s cubic-bezier(.32,1,.32,1);
+  transition:color .22s,opacity .22s;
   font-family:inherit;border-radius:22px;
   position:relative;z-index:1;
   opacity:0.55;
@@ -1027,16 +1027,12 @@ body{
   color:var(--text);
   opacity:1;
 }
-.tab svg{width:22px;height:22px;will-change:transform;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
+/* Ruhige Leiste: kein Icon-Pop beim Tab-Wechsel. Nur kurzes Eindruecken
+   waehrend der Beruehrung, ohne Overshoot-Kurve — die federte beim Loslassen
+   nach und las sich als Wackeln. */
+.tab svg{width:22px;height:22px;will-change:transform;transition:transform .16s ease}
 .tab span{font-size:10px;font-weight:600;letter-spacing:.1px}
-.tab:active svg{transform:scale(.82) translateY(1px)}
-@keyframes tab-ic-pop{
-  0%  {transform:scale(1)    translateY(0)}
-  30% {transform:scale(.80)  translateY(2px)}
-  65% {transform:scale(1.14) translateY(-2.5px)}
-  100%{transform:scale(1)    translateY(0)}
-}
-.tab.on svg{animation:tab-ic-pop .40s cubic-bezier(.34,1.56,.64,1) both}
+.tab:active svg{transform:scale(.9)}
 
 /* Die Coach-Karte im Raster: sie fuellt ihre Zelle. Der Aussenabstand der
    freistehenden Karte (margin-bottom) faellt weg — im Raster sorgt die Luecke
@@ -5018,13 +5014,9 @@ html:not([data-glass="off"])[data-theme="dark"] .tabbar::before{
     rgba(255,255,255,.58) 0%,rgba(255,255,255,.14) 24%,
     transparent 50%,rgba(255,255,255,.05) 74%,rgba(255,255,255,.20) 100%);
 }
-/* Tab-Bar minimiert beim Runterscrollen → kompakte Kapsel (nur Icons).
-   Gilt für ALLE Themes; explizite max-height auf dem Label ist Pflicht —
-   von `none` auf 0 kann CSS nicht animieren (das war der Ruckler). */
-.tabbar.tabbar--min{ padding:4px 7px; }
-.tabbar .tab span{ transition:opacity .18s ease,max-height .28s cubic-bezier(.32,1,.32,1); overflow:hidden; max-height:16px; }
-.tabbar.tabbar--min .tab span{ opacity:0; max-height:0; }
-.tabbar.tabbar--min .tab{ padding-top:9px; padding-bottom:9px; }
+/* Die Tab-Leiste bleibt konstant hoch. Das frühere Schrumpfen zur Icon-Kapsel
+   beim Runterscrollen (.tabbar--min) ist entfernt — die wandernde Unterkante
+   verschob Layout und Auswahl-Pille bei jedem Scroll-Richtungswechsel. */
 
 /* KI-Bubble neben der Tabbar: gleiches Material, sonst wirkt sie wie ein Fremdkörper */
 html:not([data-glass="off"]) #ai-bubble{
