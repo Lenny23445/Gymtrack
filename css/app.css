@@ -4725,8 +4725,10 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvl-rank{display:inline-flex;align-items:center;gap:8px;font-size:15.5px;font-weight:900;letter-spacing:.2px;color:var(--rc,var(--acc))}
 .lvl-rank .lvl-dot{width:11px;height:11px;border-radius:50%;background:var(--rc,var(--acc));box-shadow:0 0 9px var(--rc,var(--acc));flex-shrink:0}
 .lvl-xp{font-size:13px;font-weight:800;color:var(--text2);white-space:nowrap}
-.lvl-bar{height:9px;border-radius:6px;background:var(--gl-bg-t,rgba(120,120,128,.2));overflow:hidden}
-.lvl-fill{height:100%;border-radius:6px;background:var(--acc);transition:width .55s cubic-bezier(.32,1,.32,1)}
+/* Neon: Mulde + 3-Layer-Staffel wie .segbar/.hw-spark. KEIN overflow:hidden mehr —
+   das wuerde den Hof des Fills abschneiden; der Fill traegt seinen eigenen Radius. */
+.lvl-bar{height:9px;border-radius:6px;background:var(--ng-well,rgba(120,120,128,.2));box-shadow:inset 0 0 0 1px var(--ng-well-bdr,transparent)}
+.lvl-fill{height:100%;border-radius:6px;background:var(--acc);transition:width .55s cubic-bezier(.32,1,.32,1);box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),var(--neon-edge),inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
 .lvl-sub{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--text2)}
 /* Level-Info-Sheet: Level-Leiter */
 .lvl-ladder{display:flex;flex-direction:column;gap:8px;margin-top:6px}
@@ -5815,7 +5817,10 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 }
 #ai-radial-backdrop{
   position:fixed;inset:0;z-index:1055;display:none;
-  background:rgba(0,0,0,.20);backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);
+  /* Dunkler als die fruehere .20: auf hellen Themes (light/rosa) standen die
+     Menue-Pillen kaum lesbar auf dem Seiteninhalt. Der Blur mildert nur Kanten,
+     den Kontrast macht die Deckschicht. */
+  background:rgba(0,0,0,.46);backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);
   opacity:0;transition:opacity .22s ease;
 }
 #ai-radial-backdrop.on{display:block;opacity:1}
