@@ -737,7 +737,7 @@ function hwRecovery(size){
         <div class="rec-batt-v-cap"></div>
         <div class="rec-batt-v">${_segBarsVertHTML(pct, 7)}</div>
       </div>
-      <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
+      <div class="rec-batt-v-pct" style="color:${_neonInk(col)}">${pct}%</div>
       <div class="rec-batt-v-lbl"><b>${state}</b></div>
     </div>`;
   }
@@ -746,7 +746,7 @@ function hwRecovery(size){
     const pct = Math.round(trained.reduce((s,x)=>s+x.r.recPct,0)/trained.length);
     const col = recoveryColor(pct);
     return `<div class="hw-card" onclick="goTabId('stats')" style="cursor:pointer"><div class="hw-stat">
-      <div class="hw-big" style="color:${col}">${pct}%</div>
+      <div class="hw-big" style="color:${_neonInk(col)}">${pct}%</div>
       <div class="hw-sub">${recoveryState(pct)}</div>
     </div></div>`;
   }
@@ -767,7 +767,7 @@ function hwRecovery(size){
       <div class="rec-seg-wrap">
         ${_segBarsHTML(r.recPct, 10, { flach: true, cls: 'segbar-mini',
           label: mg.label + ' ' + r.recPct + ' %' })}
-        <span class="rec-seg-val" style="color:${col}">${r.recPct}%</span>
+        <span class="rec-seg-val" style="color:${_neonInk(col)}">${r.recPct}%</span>
       </div>
     </div>`;
   }).join('') + `</div>`;
@@ -1607,10 +1607,10 @@ function _aicWaveVar(name, ersatz){
 function _aicWaveRGB(){ return _aicWaveVar('--acc-rgb', [0, 122, 255]); }
 /* Wohin der Kamm laeuft. Im Dunkeln nach Weiss — dort IST Weiss das Licht. Auf
    den hellen Themes waere das ein weisser Punkt auf weissem Glas, also nach
-   --aic-ink, der dunklen Fassung des Akzents: derselbe Kontrast, nur
+   --acc-ink, der dunklen Fassung des Akzents: derselbe Kontrast, nur
    andersherum. Ohne diese Umkehr lagen alle Punkte auf derselben blassen
    Helligkeit und aus der Welle wurde ein gleichmaessiger Punktteppich. */
-function _aicWaveInk(){ return _aicWaveVar('--aic-ink', [0, 52, 120]); }
+function _aicWaveInk(){ return _aicWaveVar('--acc-ink', [0, 52, 120]); }
 const _AIC_ZEILEN = 20, _AIC_SPALTEN = 64;
 function _aicWaveDraw(f, t){
   const cv = f.cv, ctx = f.ctx;
@@ -1857,7 +1857,7 @@ function renderCoachTodayCard() {
                 <circle class="aic-r-halo" cx="32" cy="32" r="26" style="stroke:url(#aicg${pct}-g);stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
                 <circle class="aic-r-fg" cx="32" cy="32" r="26" style="stroke:url(#aicg${pct});stroke-dasharray:${C};stroke-dashoffset:${off.toFixed(1)};--aic-off:${off.toFixed(1)}"/>
               </svg>
-              <div class="aic-r-val" style="color:${col}">${pct}<span>%</span></div>
+              <div class="aic-r-val" style="color:${_neonInk(col)}">${pct}<span>%</span></div>
             </div>
             ${ringLbl ? `<div class="aic-r-lbl">${esc(ringLbl)}</div>` : ''}
           </div>

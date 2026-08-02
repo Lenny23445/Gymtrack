@@ -93,7 +93,12 @@
 [data-theme="light"] {
   --acc:#007AFF; --acc2:#5AC8FA; --acc-rgb:0,122,255;
   --text:#1d1d1f; --text2:rgba(60,60,67,.60);
-  --green:#34C759; --orange:#FF9500; --red:#FF3B30;
+  /* Signalfarben in iOS-Dark-Helligkeit taugen als TEXT auf Weiss nicht: das
+     "↗ 0 %" der Volumen-Kachel stand bei 1,78:1. Dieselben Farbtoene, nur
+     dunkler — als Fuellung unter weisser Schrift werden sie dadurch ebenfalls
+     besser, deshalb ein Wert fuer beide Rollen. Blau macht das mit #00875A
+     laengst vor, dort war die Zahl als einzige lesbar. */
+  --green:#0E8C3F; --orange:#B26A00; --red:#D93025;
   --soft:rgba(0,122,255,.10);
   --bg:#f2f2f6; --card:#ffffff; --seg-on:#ffffff;
   /* Wie Dark-Referenz, hell gespiegelt: monochromer Grund + weiches Diagonalband */
@@ -125,14 +130,15 @@
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(120,120,128,.10); --g6:rgba(255,255,255,.60);
   /* Dunkle Fassung des Akzents. Auf hellem Grund traegt WEISS kein Licht mehr —
-     Wellenkaemme, Aurora-Gegenlicht und Kanten der Coach-Karte holen sich ihren
-     Kontrast hier (siehe .aic). Dark braucht sie nicht, dort bleibt es Weiss. */
-  --aic-ink:0,52,120;
+     Wellenkaemme, Aurora-Gegenlicht, Kanten und Beschriftungen auf getoenten
+     Flaechen holen sich ihren Kontrast hier. Dark braucht sie nicht, dort
+     bleibt Weiss das Licht. */
+  --acc-ink:0,52,120;
 }
 [data-theme="rosa"] {
   --acc:#E91E8C; --acc2:#F48FB1; --acc-rgb:233,30,140;
   --text:#1d1d1f; --text2:rgba(60,60,67,.60);
-  --green:#2DB562; --orange:#F57C00; --red:#E53935;
+  --green:#128A48; --orange:#B26A00; --red:#D32F2F;
   --soft:rgba(233,30,140,.09);
   --bg:#f4e7ef; --card:#ffffff; --seg-on:#ffffff;
   --mesh:
@@ -151,7 +157,7 @@
   --sep:rgba(90,50,70,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(150,110,130,.10); --g6:rgba(255,255,255,.60);
-  --aic-ink:112,8,64;
+  --acc-ink:112,8,64;
 }
 [data-theme="dark"] {
   --acc:#0A84FF; --acc2:#64D2FF; --acc-rgb:10,132,255;
@@ -215,7 +221,7 @@
   --sep:rgba(30,60,110,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(100,130,170,.10); --g6:rgba(255,255,255,.60);
-  --aic-ink:0,36,98;
+  --acc-ink:0,36,98;
 }
 [data-theme="grün"] {
   --acc:#28A745; --acc2:#48D368; --acc-rgb:40,167,69;
@@ -239,7 +245,7 @@
   --sep:rgba(45,90,60,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(100,150,115,.10); --g6:rgba(255,255,255,.60);
-  --aic-ink:10,74,32;
+  --acc-ink:10,74,32;
 }
 
 /* ── NEON IN DEN HELLEN THEMES ──
@@ -257,11 +263,22 @@
   --ng-1:52%; --ng-2:45%; --ng-3:42%;
   /* Weniger Weiss im Innenlicht, mehr Tiefe unten: sonst verschwindet der
      Strich in der weissen Karte, auf der er liegt. */
-  --ng-hi:.28; --ng-lo:.55;
+  --ng-hi:.18; --ng-lo:.55;
   /* Gruen dunkler und satter: das helle Neon-Gruen ist auf einer weissen
      Karte kaum noch vom Untergrund zu trennen. */
   --kg-rgb:34,178,77;
-  --neon-lmax:52;
+  /* DER HELLIGKEITSDECKEL. Jede Farbe, die als Leuchtfarbe gebaut wurde, kommt
+     aus dem Dark Mode und liegt dort bei L≈50-60 — auf Schwarz ist das Licht,
+     auf Weiss ist es fast der Untergrund. Wer eine solche Farbe auf hellem
+     Grund als KERN oder als TEXT einsetzt, klemmt sie hier.
+     Der Token stand bis 02.08.2026 auf 52 und wurde von NIEMANDEM gelesen — er
+     war als Werkzeug gedacht und nie angeschlossen. Das war die gemeinsame
+     Ursache dafuer, dass Erholungs-Striche (1,03:1), Split-Namen (1,46:1) und
+     Prozentzahlen (1,25:1) in hell praktisch unsichtbar waren. Leser sind
+     jetzt _nrLmax() -> _segFarbe()/_splitInk()/recoveryInk() in app-plans.js.
+     30 statt 52, weil erst dort alle fuenf Signalfarben ueber 3:1 kommen —
+     Gelb (h≈50) ist der Fall, der den Wert bestimmt. */
+  --neon-lmax:30;
   /* Die Kante ersetzt, was auf Dunkel der Schein leistet: sie trennt das
      Element vom Grund. Neutral getoent, nicht schwarz — ein harter Schatten
      stuende gegen das Glas. */
@@ -271,17 +288,72 @@
      und auf hellem Grund heisst "herausstehen" heller, nicht dunkler. Ihr
      Saum nimmt die Akzentfarbe auf, damit die Spalte den Tag markiert, ohne
      mit dem leuchtenden Punkt darin zu konkurrieren. */
-  --ng-well:rgba(30,30,42,.055);
-  --ng-well-bdr:rgba(30,30,42,.07);
-  --ng-well-on:rgba(255,255,255,.55);
-  --ng-well-on-bdr:rgba(var(--acc-rgb),.28);
+  --ng-well:rgba(30,30,42,.085);
+  --ng-well-bdr:rgba(30,30,42,.11);
+  /* Die heutige Kapsel war HELLER gedacht als ihre Umgebung — auf einer weissen
+     Karte heisst das aber Weiss auf Weiss (gemessen 1,05:1, sichtbar blieb nur
+     der 1-px-Saum). Sie bekommt deshalb einen Akzenthauch statt mehr Weiss:
+     "herausstehen" laeuft hier ueber Farbe, nicht ueber Helligkeit. */
+  --ng-well-on:rgba(var(--acc-rgb),.10);
+  --ng-well-on-bdr:rgba(var(--acc-rgb),.45);
   --ng-well-off:rgba(30,30,42,.025);
   --ng-well-off-bdr:rgba(30,30,42,.045);
   --ng-outline:rgba(30,30,42,.16);
   --ng-step-1:.62; --ng-step-2:.78; --ng-step-3:.9;
-  --nr-c1:46; --nr-c2:56;
-  --nr-g1:44; --nr-g2:50;
+  /* Ringe: der volle Bogen lag bei L≈46-56 und damit auf derselben Helligkeit
+     wie die Karte darunter (gemessen 1,13:1) — er war nur noch am Farbton zu
+     erkennen, nicht mehr als Licht. Dunkler heisst hier lesbarer. */
+  --nr-c1:34; --nr-c2:42;
+  --nr-g1:36; --nr-g2:44;
 }
+/* ── FLAECHEN, DIE AUF WEISS KEINE KONTUR HABEN ──────────────────────────
+   Kein Neon, aber derselbe Denkfehler: --gl-bdr und --gl-bg-t sind in den
+   hellen Themes WEISS (rgba(255,255,255,.55) bzw. .18). Auf einer dunklen
+   Flaeche ist das ein Lichtsaum, auf einer weissen Karte ist es nichts —
+   gemessen 1,02:1 fuer den Rand der Filter-Chips, 1,04:1 fuer das Suchfeld.
+   Beide Tokens global zu drehen verbietet sich (--gl-bdr hat 145 Verwender,
+   --inp-bg 41), deshalb hier gezielt die drei Flaechen, bei denen es auffiel.
+   Die Kante ist getoent statt schwarz, damit sie zum Glas passt. */
+[data-theme="light"] .icat,[data-theme="rosa"] .icat,
+[data-theme="blau"]  .icat,[data-theme="grün"] .icat{
+  background:rgba(255,255,255,.72);border-color:rgba(30,30,42,.14)}
+[data-theme="light"] .ex-search,[data-theme="rosa"] .ex-search,
+[data-theme="blau"]  .ex-search,[data-theme="grün"] .ex-search{
+  background:rgba(255,255,255,.66);border-color:rgba(30,30,42,.12)}
+/* "+ Split" / "+ Uebung": das Akzent-Plaettchen machte den Grund auf Weiss
+   DUNKLER statt heller — der Effekt kippt, und die Schrift darauf stand bei
+   2,28:1. Weisse Basis, Akzent nur noch als Innenkante, Text im geklemmten
+   Akzent. */
+[data-theme="light"] .ex-sec-add,[data-theme="rosa"] .ex-sec-add,
+[data-theme="blau"]  .ex-sec-add,[data-theme="grün"] .ex-sec-add{
+  background:rgba(255,255,255,.72);
+  box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.22),var(--neon-edge);
+  color:rgb(var(--acc-ink))}
+/* Der Streak-Hof war auf Weiss gemessen DUNKLER als die Karte, auf der er
+   liegt — also kein Schein, sondern ein brauner Schmutzrand, und die beiden
+   weiten drop-shadows verwaschen zusaetzlich die Flammenkontur. Enger und
+   schwaecher: auf hellem Grund macht ein Hof die Form kaputt, nicht sichtbar. */
+[data-theme="light"] .strk-flame::before,[data-theme="rosa"] .strk-flame::before,
+[data-theme="blau"]  .strk-flame::before,[data-theme="grün"] .strk-flame::before{
+  inset:-4%;
+  background:radial-gradient(circle at 50% 58%,
+    rgba(255,150,50,.30) 0%, rgba(255,90,31,.12) 46%, rgba(255,90,31,0) 74%)}
+[data-theme="light"] .strk-flame .fl,[data-theme="rosa"] .strk-flame .fl,
+[data-theme="blau"]  .strk-flame .fl,[data-theme="grün"] .strk-flame .fl{
+  filter:drop-shadow(0 0 4px rgba(255,150,50,calc(.9 * var(--neon))))
+         drop-shadow(0 0 9px rgba(255,90,31,calc(.5 * var(--neon))))}
+/* Premium-Chip: goldenes Symbol auf blassgoldenem Feld ist auf Weiss dieselbe
+   Farbfamilie ohne Eigenkontrast — die Hantel war nicht mehr zu erkennen.
+   Feld satter, Rand deutlicher; der Puls kann auf Weiss ohnehin nichts
+   ausrichten und bleibt deshalb still stehen. */
+[data-theme="light"] .prem-tag,[data-theme="rosa"] .prem-tag,
+[data-theme="blau"]  .prem-tag,[data-theme="grün"] .prem-tag{
+  background:radial-gradient(circle at 35% 30%,rgba(217,165,52,.34),rgba(217,165,52,.24) 70%,rgba(217,165,52,.14));
+  border-color:rgba(168,118,10,.75);
+  box-shadow:0 0 0 1px rgba(0,0,0,.05),0 2px 6px rgba(138,106,0,.28);
+  animation:none}
+[data-theme="light"] .prem-tag svg,[data-theme="rosa"] .prem-tag svg,
+[data-theme="blau"]  .prem-tag svg,[data-theme="grün"] .prem-tag svg{filter:none}
 
 /* ── GLASS EFFECT OFF ──
    Hintergrund bleibt das ruhige Theme-Gradient (#bg nutzt --mesh).
@@ -3258,14 +3330,24 @@ body.wpick-open #heute-edit-bar{display:none!important}
    bunt. Ein Tag ist ein Tag; die Menge sagt der Schein. */
 /* Dieselbe Staffel wie ueberall, nur mit steigender Deckkraft je Stufe: die
    Menge sagt der Schein, nicht ein eigener Radius je Stufe. */
-.week-dot.l1{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-2))}
+/* var(--neon-edge) als letzte Lage: auf hellem Grund kann ein Hof nichts mehr
+   ausrichten (er kann nur truebem), die Kontaktkante uebernimmt dort seine
+   Aufgabe — den Punkt vom Grund zu trennen. Diese vier Regeln waren die
+   EINZIGE Stelle der Neon-Familie ohne die Kante, deshalb klebten die
+   Wochenpunkte in hell flach auf der Karte. Auf Dark kostet es nichts, dort
+   ist das Token durchsichtig. */
+.week-dot.l1{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-2)),
+                       var(--neon-edge)}
 .week-dot.l2{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
-                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-3))}
+                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-3)),
+                       var(--neon-edge)}
 .week-dot.l3{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
-                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2))}
+                       0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+                       var(--neon-edge)}
 .week-dot.l4{box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
                        0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
-                       0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3))}
+                       0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
+                       var(--neon-edge)}
 .week-dot svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3;
   stroke-linecap:round;stroke-linejoin:round;display:block}
 /* Ein Tag ohne Training traegt sein Datum als blossen Umriss — kein gefuellter
@@ -5100,6 +5182,18 @@ html:not([data-glass="off"]) .btn-acc{
     0 2px 8px rgba(var(--acc-rgb),.34),
     0 14px 34px rgba(var(--acc-rgb),.28);
 }
+/* Auf hellem Grund verschwindet der weite 34-px-Schatten restlos — die Leiste
+   stand ohne jeden Saum da, waehrend sie im Dunkeln einen klaren Lichtsockel
+   hat. Enger und satter statt weiter und blasser, dieselbe Regel wie beim
+   Neon. Muss NACH der Regel oben stehen: gleiche Spezifitaet, es entscheidet
+   die Reihenfolge. */
+html[data-theme="light"] .btn-acc,html[data-theme="rosa"] .btn-acc,
+html[data-theme="blau"]  .btn-acc,html[data-theme="grün"] .btn-acc{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.45),
+    0 2px 6px rgba(var(--acc-rgb),.32),
+    0 10px 22px rgba(var(--acc-rgb),.40);
+}
 
 /* ── 7 · SHEETS / MODALS ──────────────────────────────────────────
    Dichter als Karten (Content dahinter darf nicht durchlesen), aber weiter Glas. */
@@ -5822,6 +5916,18 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
   opacity:0;transition:opacity .22s ease;
 }
 #ai-radial-backdrop.on{display:block;opacity:1}
+/* Dunkel: die .46 stammen aus dem hellen Fall, wo sie den Seiteninhalt bremsen
+   müssen. Auf schwarzem Grund addieren sie sich zu Schwarz auf Schwarz — das
+   Menü lag dann in einem Loch. Weniger Deckschicht, dafür mehr Unschärfe: die
+   Trennung macht hier der Blur, den Kontrast machen die Pillen selbst. */
+[data-theme="dark"] #ai-radial-backdrop{
+  background:rgba(0,0,0,.30);
+  backdrop-filter:blur(18px) saturate(1.15);-webkit-backdrop-filter:blur(18px) saturate(1.15);
+}
+[data-glass="off"][data-theme="dark"] #ai-radial-backdrop{
+  backdrop-filter:blur(18px) saturate(1.15)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.15)!important;
+}
 /* Bewusst KEIN Scroll-Container mehr: overflow-y + Kind-Effekte erzeugten in
    WKWebView eine durchgehende dunkle Compositing-Fläche hinter den Pillen. */
 #ai-radial{
@@ -5848,6 +5954,19 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 #ai-radial[data-side="l"] .ai-r-item{align-self:flex-start}
 #ai-radial[data-side="r"] .ai-r-item{align-self:flex-end}
 .ai-r-item.on{opacity:1;pointer-events:auto;transform:none}
+/* Dunkel: --inp-bg sind hier 6 % Weiss — auf dem abgedunkelten Grund ergibt das
+   eine Pille, die praktisch dieselbe Farbe hat wie alles dahinter. Sie bekommt
+   deshalb dieselbe aufgehellte Fassung wie die Tableiste im Dunkelmodus: ein
+   Körper, der ueber dem Grund steht, statt einer Kontur, die man erraten muss. */
+[data-theme="dark"] .ai-r-item{
+  background:rgba(104,104,116,.78);
+  border-color:rgba(255,255,255,.20);
+  box-shadow:0 10px 28px rgba(0,0,0,.50),0 2px 8px rgba(0,0,0,.28),
+             inset 0 1px 0 rgba(255,255,255,.13);
+}
+/* Der Kontingent-Kopf traegt weiter den Akzentrand — er ist Information, keine
+   Aktion, und darf sich von den Pillen darunter unterscheiden. */
+[data-theme="dark"] .ai-r-quota{border-color:rgba(var(--acc-rgb),.42)}
 .ai-r-lbl{
   white-space:nowrap;font-size:13.5px;font-weight:700;color:var(--text);
 }
@@ -6716,7 +6835,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    war: eine flaechig getoente Pastellkarte mit einem gleichmaessigen
    Punktteppich darauf, ohne Wellen, ohne Kante, ohne Tiefe.
    Der Ausweg ist NICHT mehr Farbe (rosa war schon zu satt), sondern ein zweiter
-   Pol: --aic-ink, die dunkle Fassung des Akzents. Damit bekommt die Karte
+   Pol: --acc-ink, die dunkle Fassung des Akzents. Damit bekommt die Karte
    dieselbe Hell-Dunkel-Spanne wie im Dark Mode, nur andersherum — Licht bleibt
    weiss, aber die Tiefe kommt jetzt aus der Tinte statt aus dem Grund.
    Die Grundtoenung faellt dafuer auf rund die Haelfte: sie war der Schleier,
@@ -6724,10 +6843,10 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 [data-theme="light"] .aic,[data-theme="rosa"] .aic,
 [data-theme="blau"]  .aic,[data-theme="grün"] .aic{
   background:linear-gradient(152deg,rgba(var(--acc-rgb),.11),rgba(var(--acc-rgb),.035) 54%,rgba(255,255,255,.10)),var(--gl-bg-h);
-  border-color:rgba(var(--aic-ink),.17);
-  box-shadow:0 10px 26px rgba(var(--aic-ink),.11),
+  border-color:rgba(var(--acc-ink),.17);
+  box-shadow:0 10px 26px rgba(var(--acc-ink),.11),
              inset 0 1px 0 rgba(255,255,255,.75),
-             inset 0 -1px 0 rgba(var(--aic-ink),.06)}
+             inset 0 -1px 0 rgba(var(--acc-ink),.06)}
 /* Glas aus: kein Durchblick, also traegt die Karte die Toenung selbst — sonst
    stuende die halbtransparente Fassung von oben auf dem nackten Grund. */
 [data-glass="off"][data-theme="light"] .aic,[data-glass="off"][data-theme="rosa"] .aic,
@@ -6746,7 +6865,7 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 [data-theme="blau"]  .aic-aur::after,[data-theme="grün"] .aic-aur::after{
   background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.60),transparent 72%),
              radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.16),transparent 70%),
-             radial-gradient(18% 26% at 16% 74%,rgba(var(--aic-ink),.13),transparent 74%),
+             radial-gradient(18% 26% at 16% 74%,rgba(var(--acc-ink),.13),transparent 74%),
              radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.14),transparent 72%)}
 /* Lichtstreif kraeftiger: auf getoentem Glas ist ein 20-%-Weiss nicht mehr als
    ein Hauch, im Dunkeln war es der klar sichtbare Wisch. */
@@ -6939,7 +7058,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    wie im Dunkeln, nur mit umgekehrtem Vorzeichen. */
 [data-theme="light"] .aic-say,[data-theme="rosa"] .aic-say,
 [data-theme="blau"]  .aic-say,[data-theme="grün"] .aic-say{
-  background:rgba(255,255,255,.52);border-color:rgba(var(--aic-ink),.11)}
+  background:rgba(255,255,255,.52);border-color:rgba(var(--acc-ink),.11)}
+/* --text2 ist fuer den neutralen Kartengrund gebaut; auf der getoenten
+   Coach-Flaeche kam die Zeile in rosa nur noch auf 3,54:1 und riss damit die
+   4,5:1 fuer 12-px-Text. Etwas satter, Farbe bleibt dieselbe. */
+[data-theme="light"] .aic .aic-sub,[data-theme="rosa"] .aic .aic-sub,
+[data-theme="blau"]  .aic .aic-sub,[data-theme="grün"] .aic .aic-sub{
+  color:rgba(45,45,58,.82)}
 /* 62 px ist KEIN Zierwert: das SVG im Ring traegt feste Maße und skaliert nicht
    mit der Box. Kleiner gesetzt, ragt der Ring heraus und legt sich ueber den
    Text (gemessen bei 44 px: 'Legs' verschwand unter dem Bogen). Die Karte wird
@@ -7003,12 +7128,47 @@ html[data-neon="1"] .wk-cell.assigned{
   border-color:var(--sc,var(--acc));
   box-shadow:0 0 6px -3px var(--sc,var(--acc)), inset 0 0 10px -7px var(--sc,var(--acc));
 }
+/* Der Heute-Ring lag als box-shadow auf .wk-cell.today (Z. 824) und wurde von
+   der Regel darueber ueberschrieben, sobald an dem Tag ein Split steht — also
+   genau dann, wenn man ihn braucht. Hier kommt er zurueck, zusammen mit dem
+   Schein statt an seiner Stelle. */
+html[data-neon="1"] .wk-cell.assigned.today{
+  box-shadow:0 0 0 1.5px rgba(var(--acc-rgb),.55),
+             0 0 6px -3px var(--sc,var(--acc)), inset 0 0 10px -7px var(--sc,var(--acc));
+}
 html[data-neon="1"] .wk-cell.assigned .wk-cell-l{ text-shadow:0 0 4px rgba(0,0,0,.35) }
 html[data-neon="1"] .split-card{
   border-color:var(--sc,var(--acc));
   box-shadow:0 0 8px -4px var(--sc,var(--acc));
 }
 html[data-neon="1"] .split-card::before{ box-shadow:0 0 6px 0 var(--sc,var(--acc)) }
+/* ── Derselbe Schein auf hellem Grund ────────────────────────────────────
+   Gemessen war der Hof hier nicht schwach, sondern VERKEHRT: 20 px ueber der
+   Kante stieg der Blaukanal auf Dunkel um +66 % (Licht kommt dazu), auf Hell
+   fiel er um 11 % — ein grauer Schmutzrand um die Karte. Ein Hof kann auf
+   Weiss nichts aufhellen, er kann nur truebem.
+   Also dieselbe Loesung wie ueberall sonst in der App: Kontaktkante
+   (--neon-edge) statt Hof, und der verbleibende enge Schein nimmt die
+   geklemmte Farbe (--sc-ink), damit er als Farbe liest und nicht als Grau.
+   Der dunkle Textschatten faellt weg — er sass auf hellem Grund als Schmutz
+   unter der Schrift. */
+html[data-neon="1"][data-theme="light"] .wk-cell.assigned,html[data-neon="1"][data-theme="rosa"] .wk-cell.assigned,
+html[data-neon="1"][data-theme="blau"]  .wk-cell.assigned,html[data-neon="1"][data-theme="grün"] .wk-cell.assigned{
+  border-color:var(--sc-ink,var(--sc,var(--acc)));
+  box-shadow:var(--neon-edge), 0 0 10px -6px var(--sc-ink,var(--sc,var(--acc)));
+}
+html[data-neon="1"][data-theme="light"] .wk-cell.assigned.today,html[data-neon="1"][data-theme="rosa"] .wk-cell.assigned.today,
+html[data-neon="1"][data-theme="blau"]  .wk-cell.assigned.today,html[data-neon="1"][data-theme="grün"] .wk-cell.assigned.today{
+  box-shadow:0 0 0 1.5px rgba(var(--acc-rgb),.55), var(--neon-edge),
+             0 0 10px -6px var(--sc-ink,var(--sc,var(--acc)));
+}
+html[data-neon="1"][data-theme="light"] .wk-cell.assigned .wk-cell-l,html[data-neon="1"][data-theme="rosa"] .wk-cell.assigned .wk-cell-l,
+html[data-neon="1"][data-theme="blau"]  .wk-cell.assigned .wk-cell-l,html[data-neon="1"][data-theme="grün"] .wk-cell.assigned .wk-cell-l{
+  text-shadow:none}
+html[data-neon="1"][data-theme="light"] .split-card,html[data-neon="1"][data-theme="rosa"] .split-card,
+html[data-neon="1"][data-theme="blau"]  .split-card,html[data-neon="1"][data-theme="grün"] .split-card{
+  box-shadow:var(--neon-edge), 0 0 10px -6px var(--sc,var(--acc));
+}
 
 /* Luft fuer den Pluspol, der per right:-5px ausserhalb der Huelle sitzt. */
 .rec-row .rec-batt{ margin-right:7px }

@@ -370,8 +370,17 @@ function _accFill(canvas, hex, aTop) {
     const ctx = canvas.getContext('2d');
     const h = canvas.clientHeight || canvas.height || 220;
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, hex + (aTop || '3D'));
-    g.addColorStop(.55, hex + '14');
+    /* Auf Dunkel ist die Flaeche unter der Kurve praktisch unsichtbar (1,03),
+       auf Weiss traegt dieselbe Deckkraft deutlich — und weil die Fuellung am
+       letzten Punkt endet, entsteht rechts eine senkrechte Schnittkante, die
+       sich als Rechteck liest statt als Auslaufen. Hell deshalb schwaecher.
+       _neonHell() wohnt in app-plans.js und wird SPAETER geladen; der Aufruf
+       hier passiert zur Laufzeit, der Waechter deckt nur den Fall ab, dass
+       jemand _accFill frueher aufruft. */
+    const hell = (typeof _neonHell === 'function') ? _neonHell()
+               : (document.documentElement.getAttribute('data-theme') !== 'dark');
+    g.addColorStop(0, hex + (aTop || (hell ? '26' : '3D')));
+    g.addColorStop(.55, hex + (hell ? '0D' : '14'));
     g.addColorStop(1, hex + '00');
     return g;
   } catch(e) { return hex + '22'; }

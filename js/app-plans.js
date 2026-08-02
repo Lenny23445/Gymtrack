@@ -170,8 +170,20 @@ function renderWeekPreview() {
       const isHex = typeof col === 'string' && col.startsWith('#');
       // --sc = Split-Farbe als Variable (wie bei .split-card). Nur dadurch kann die
       // Neon-Probe in css/app.css (Block "NEON-PROBE") den Schein faerben.
-      style = `--sc:${col};background:${isHex?_rgba(col,0.14):'rgba(var(--acc-rgb),.12)'};border-color:${isHex?_rgba(col,0.5):'var(--acc)'}`;
-      inner = `<div class="wk-cell-l" style="color:${col}">${esc(s.badge||'Plan')}</div>`;
+      /* Auf hellem Grund lag die 14-%-Volltoenung praktisch auf derselben
+         Helligkeit wie der Grund daneben — die Zelle "lag auf nichts", und der
+         Split-Name darin verlor zusaetzlich Kontrast. Hell bekommt deshalb eine
+         weisse Basis mit Farbhauch darauf und einen deutlich staerkeren Rand:
+         die Zelle traegt ihre Farbe im RAND, nicht in der Flaeche.
+         --sc-ink ist dieselbe Farbe geklemmt — daran haengt der Schein im
+         Neon-Block (css/app.css), der sonst als grauer Schmutzrand erschien. */
+      const hell = _neonHell();
+      const tint = c => `linear-gradient(${c},${c})`;   // Farbschicht ueber der Basis
+      const flaeche = isHex
+        ? (hell ? `${tint(_rgba(col, 0.09))},rgba(255,255,255,.62)` : _rgba(col, 0.14))
+        : 'rgba(var(--acc-rgb),.12)';
+      style = `--sc:${col};--sc-ink:${_neonInk(col)};background:${flaeche};border-color:${isHex?_rgba(col, hell?0.85:0.5):'var(--acc)'}`;
+      inner = `<div class="wk-cell-l" style="color:${_neonInk(col)}">${esc(s.badge||'Plan')}</div>`;
     } else {
       inner = `<div class="wk-cell-dot"></div><div class="wk-cell-l empty">Frei</div>`;
     }
@@ -199,7 +211,7 @@ function renderSplitList() {
     const cnt   = _presetExIdsExisting(p).length;
     const days  = presetDays(p.id);
     const mono  = (p.name || '?').trim().charAt(0).toUpperCase() || '•';
-    const pills = days.map(k => `<span class="split-day-pill" style="background:${_rgba(col,.16)};color:${col}">${dayByKey(k).short}</span>`).join('');
+    const pills = days.map(k => `<span class="split-day-pill" style="background:${_rgba(col,.16)};color:${_neonInk(col)}">${dayByKey(k).short}</span>`).join('');
     return `<div class="split-card" style="--sc:${col}">
       <div class="split-grab" onmousedown="splitPresetDragStart(event,'${p.id}')" ontouchstart="splitPresetDragStart(event,'${p.id}')">⠿</div>
       <div class="split-mono" style="background:${col}">${esc(mono)}</div>
@@ -1587,9 +1599,58 @@ function _segFarbe(pct) {
      dunkler gehalten: es ist von Natur aus das hellste der drei und stuende
      sonst als greller Fleck zwischen seinen Nachbarn. */
   const gelbNaehe = 1 - Math.min(1, Math.abs(h - 50) / 30);
-  const l = 50 - gelbNaehe * 4;
+  /* Der Deckel aus dem Stylesheet. Auf Dunkel steht er auf 100 und aendert
+     nichts; auf hellem Grund zieht er dieselbe Farbe so weit herunter, dass der
+     Strich sich von der weissen Karte abhebt. Ohne ihn lagen die Fuellungen bei
+     1,03:1 — heller als dieselben Striche im Dark Mode, also genau verkehrt. */
+  const l = Math.min(_nrLmax(), 50 - gelbNaehe * 4);
   return { h, s: 100, l, css: `hsl(${h.toFixed(0)},100%,${l.toFixed(0)}%)` };
 }
+/* Liest --neon-lmax. Der Token war seit dem Neon-Umbau deklariert und hatte
+   KEINEN Leser — das ist die gemeinsame Ursache dafuer, dass Erholungsstriche,
+   Split-Namen und Prozentzahlen in den hellen Themes unsichtbar waren. Default
+   100 heisst "kein Deckel", damit Dark unveraendert bleibt. */
+function _nrLmax(){
+  try {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--neon-lmax'));
+    return isFinite(v) ? Math.max(0, Math.min(100, v)) : 100;
+  } catch(_) { return 100; }
+}
+function _neonHell(){
+  try { return document.documentElement.getAttribute('data-theme') !== 'dark'; } catch(_) { return false; }
+}
+/* Eine fuer Dunkel gebaute Leuchtfarbe als TEXT oder KERN auf hellem Grund
+   brauchbar machen: Farbton bleibt, Helligkeit auf den Deckel, Saettigung eine
+   Spur hoch (auf Weiss traegt die Saettigung den Kontrast, nicht die
+   Helligkeit). Auf Dark unveraendert zurueck.
+   BEWUSST nur beim Rendern — die Palette selbst bleibt, wie sie ist. Sonst
+   wandern die gedunkelten Werte ueber p.color in gespeicherte und gesyncte
+   Daten, und in Dark haette der Nutzer ploetzlich andere Split-Farben. */
+function _neonInk(hex){
+  if (!_neonHell()) return hex;
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  const l = (mx + mn) / 2;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1) || 1);
+    if (mx === r)      h = ((g - b) / d + (g < b ? 6 : 0));
+    else if (mx === g) h = (b - r) / d + 2;
+    else               h = (r - g) / d + 4;
+    h *= 60;
+  }
+  const L = Math.min(_nrLmax(), l * 100);
+  const S = Math.min(100, s * 100 + 8);
+  return `hsl(${Math.round(h)},${S.toFixed(0)}%,${L.toFixed(0)}%)`;
+}
+/* Erholungsfarbe als TEXT. recoveryColor() liefert weiter die Signalfarbe fuer
+   Ringe und Balken — dort ist sie richtig. Als Schriftfarbe stand dieselbe
+   Farbe auf hellem Grund bei 1,25:1 ("62 %" auf der Erholungs-Kachel), und das
+   an rund zehn Stellen quer durch Heute- und Statistik-Tab. */
+function recoveryInk(pct){ return _neonInk(recoveryColor(pct)); }
 /* Senkrechte Fassung der Striche fuer die stehenden Akkus (Erholung gesamt,
    Muskelgruppen-Detail). Gefuellt wird von UNTEN — ein Akku laeuft von unten
    voll, nicht von oben. Sonst dieselbe Sprache wie die liegende Reihe:
@@ -1723,7 +1784,7 @@ function renderRecOverall() {
         ${_segBarsVertHTML(pct, 7)}
       </div>
     </div>
-    <div class="rec-batt-v-pct" style="color:${col}">${pct}%</div>
+    <div class="rec-batt-v-pct" style="color:${_neonInk(col)}">${pct}%</div>
     <div class="rec-batt-v-lbl">Gesamterholung<br><b>${state}</b></div>`;
 }
 function initRecSlider() {
@@ -1849,7 +1910,7 @@ function openExRecoveryDetail(exId) {
                   stroke-linecap="round" stroke-dasharray="${dash} ${C - dash}"/>
         </svg>
         <div class="mus-ring-val">
-          <div class="mus-ring-pct" style="color:${col}">${pct}%</div>
+          <div class="mus-ring-pct" style="color:${_neonInk(col)}">${pct}%</div>
           <div class="mus-ring-state">${state}</div>
         </div>
       </div>
@@ -1861,7 +1922,7 @@ function openExRecoveryDetail(exId) {
       </div>
       <div class="mus-stat-box">
         <div class="mus-stat-l">Ready in</div>
-        <div class="mus-stat-v" style="color:${col}">${fmtRecovery(readyH)}</div>
+        <div class="mus-stat-v" style="color:${_neonInk(col)}">${fmtRecovery(readyH)}</div>
       </div>
     </div>
     <div class="s-title" style="margin-top:6px">Trainings-Historie</div>
@@ -1894,7 +1955,7 @@ function openMuscleGroupRecoveryDetail(groupId) {
   const exRows = (r.exercises || []).map(ex => {
     const er = exRec[ex.id] || { recPct:100, fatPct:0, lastTs:null };
     const c = recoveryColor(er.recPct);
-    const trained = er.lastTs ? `<span style="color:${c};font-weight:600">${er.recPct}%</span>` : `<span style="color:var(--text2)">–</span>`;
+    const trained = er.lastTs ? `<span style="color:${_neonInk(c)};font-weight:600">${er.recPct}%</span>` : `<span style="color:var(--text2)">–</span>`;
     const lastDate = er.lastTs ? fmtLastTraining(er.lastTs) : 'Kein Training';
     return `<div class="mus-hist-row" onclick="openExRecoveryDetail('${ex.id}')" style="cursor:pointer">
       <span class="mus-hist-date">${esc(ex.name)}</span>
@@ -1912,7 +1973,7 @@ function openMuscleGroupRecoveryDetail(groupId) {
                   stroke-linecap="round" stroke-dasharray="${dash} ${C - dash}"/>
         </svg>
         <div class="mus-ring-val">
-          <div class="mus-ring-pct" style="color:${col}">${pct}%</div>
+          <div class="mus-ring-pct" style="color:${_neonInk(col)}">${pct}%</div>
           <div class="mus-ring-state">${state}</div>
         </div>
       </div>
@@ -1924,7 +1985,7 @@ function openMuscleGroupRecoveryDetail(groupId) {
       </div>
       <div class="mus-stat-box">
         <div class="mus-stat-l">Ready in</div>
-        <div class="mus-stat-v" style="color:${col}">${fmtRecovery(readyH)}</div>
+        <div class="mus-stat-v" style="color:${_neonInk(col)}">${fmtRecovery(readyH)}</div>
       </div>
     </div>
     <div class="s-title" style="margin-top:6px">Übungen in dieser Gruppe</div>
@@ -1985,7 +2046,7 @@ function openMuscleDetail(id) {
                   stroke-linecap="round" stroke-dasharray="${dash} ${C-dash}"/>
         </svg>
         <div class="mus-ring-val">
-          <div class="mus-ring-pct" style="color:${col}">${pct}%</div>
+          <div class="mus-ring-pct" style="color:${_neonInk(col)}">${pct}%</div>
           <div class="mus-ring-state">${state}</div>
         </div>
       </div>
@@ -2051,9 +2112,13 @@ function _glowDs(cv, acc, n, voll){
     // gleich grosser Punkte macht aus dem Verlauf wieder eine Tabelle.
     pointRadius: c => c.dataIndex === letzt ? (voll ? 5.5 : 4) : 0,
     pointHoverRadius: voll ? 8 : 6,
-    pointBackgroundColor:'#fff',
-    pointBorderColor:acc,
-    pointBorderWidth: voll ? 2.8 : 2.2
+    /* Weisser Kern mit farbigem Rand ist auf Schwarz ein leuchtender Punkt —
+       auf einer weissen Karte ist es ein hohler Kringel, weil die Fuellung im
+       Untergrund verschwindet. Hell dreht die Rollen um: Farbe innen, Weiss
+       als trennender Saum. */
+    pointBackgroundColor: _neonHell() ? acc : '#fff',
+    pointBorderColor:     _neonHell() ? '#fff' : acc,
+    pointBorderWidth: voll ? (_neonHell() ? 2.5 : 2.8) : (_neonHell() ? 2 : 2.2)
   };
 }
 /* Laesst die Linie wirklich leuchten statt nur hell zu sein: der Canvas-Schatten
@@ -2463,7 +2528,7 @@ function openKraftDetail(mgId) {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <span style="font-size:13px;color:var(--text2)">Gruppe gesamt</span>
-      <span style="font-size:16px;font-weight:800;color:${gUp ? '#41d869' : 'var(--text2)'}">${gUp ? '▲ +' + gPct.toFixed(0) + ' %' : '±0 %'}</span>
+      <span style="font-size:16px;font-weight:800;color:${gUp ? _neonInk('#41d869') : 'var(--text2)'}">${gUp ? '▲ +' + gPct.toFixed(0) + ' %' : '±0 %'}</span>
     </div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:6px">Start ${fmt1RM(start)} → jetzt <b style="color:var(--text)">${fmt1RM(now)}</b></div>
     ${rows.map(r => {
