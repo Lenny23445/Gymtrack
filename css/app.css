@@ -124,6 +124,10 @@
   --sep:rgba(60,60,67,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(120,120,128,.10); --g6:rgba(255,255,255,.60);
+  /* Dunkle Fassung des Akzents. Auf hellem Grund traegt WEISS kein Licht mehr —
+     Wellenkaemme, Aurora-Gegenlicht und Kanten der Coach-Karte holen sich ihren
+     Kontrast hier (siehe .aic). Dark braucht sie nicht, dort bleibt es Weiss. */
+  --aic-ink:0,52,120;
 }
 [data-theme="rosa"] {
   --acc:#E91E8C; --acc2:#F48FB1; --acc-rgb:233,30,140;
@@ -147,6 +151,7 @@
   --sep:rgba(90,50,70,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(150,110,130,.10); --g6:rgba(255,255,255,.60);
+  --aic-ink:112,8,64;
 }
 [data-theme="dark"] {
   --acc:#0A84FF; --acc2:#64D2FF; --acc-rgb:10,132,255;
@@ -210,6 +215,7 @@
   --sep:rgba(30,60,110,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(100,130,170,.10); --g6:rgba(255,255,255,.60);
+  --aic-ink:0,36,98;
 }
 [data-theme="grün"] {
   --acc:#28A745; --acc2:#48D368; --acc-rgb:40,167,69;
@@ -233,6 +239,7 @@
   --sep:rgba(45,90,60,.10);
   --inp-bg:rgba(255,255,255,.30); --inp-focus:rgba(255,255,255,.52);
   --g5:rgba(100,150,115,.10); --g6:rgba(255,255,255,.60);
+  --aic-ink:10,74,32;
 }
 
 /* ── NEON IN DEN HELLEN THEMES ──
@@ -6709,6 +6716,58 @@ textarea.pf-inp{height:auto;padding:12px 13px}
    der Karte legte sich als gleichmaessiger Schleier darueber und nahm dem Raster
    genau den Unterschied zwischen hell und dunkel, von dem die Vorlage lebt. */
 [data-theme="dark"] .aic{background:linear-gradient(152deg,rgba(var(--acc-rgb),.10),rgba(var(--acc-rgb),.02) 58%,transparent),var(--gl-bg-h)}
+/* ── DIE KARTE AUF DEN HELLEN THEMES ─────────────────────────────────────
+   Im Dunkeln lebt die Karte davon, dass WEISS Licht ist: die Kaemme des
+   Wellenfelds, das Gegenlicht der Aurora, die Haarlinie oben und der Rim sind
+   alle weiss, und alle vier stehen auf einer fast schwarzen Flaeche. Auf
+   light/rosa/blau/gruen liegt dieselbe Karte auf weissem Glas — dort ist jedes
+   dieser vier Signale weg. Uebrig blieb, was auf den Vergleichsbildern zu sehen
+   war: eine flaechig getoente Pastellkarte mit einem gleichmaessigen
+   Punktteppich darauf, ohne Wellen, ohne Kante, ohne Tiefe.
+   Der Ausweg ist NICHT mehr Farbe (rosa war schon zu satt), sondern ein zweiter
+   Pol: --aic-ink, die dunkle Fassung des Akzents. Damit bekommt die Karte
+   dieselbe Hell-Dunkel-Spanne wie im Dark Mode, nur andersherum — Licht bleibt
+   weiss, aber die Tiefe kommt jetzt aus der Tinte statt aus dem Grund.
+   Die Grundtoenung faellt dafuer auf rund die Haelfte: sie war der Schleier,
+   der die Flaeche flach gemacht hat. */
+[data-theme="light"] .aic,[data-theme="rosa"] .aic,
+[data-theme="blau"]  .aic,[data-theme="grün"] .aic{
+  background:linear-gradient(152deg,rgba(var(--acc-rgb),.11),rgba(var(--acc-rgb),.035) 54%,rgba(255,255,255,.10)),var(--gl-bg-h);
+  border-color:rgba(var(--aic-ink),.17);
+  box-shadow:0 10px 26px rgba(var(--aic-ink),.11),
+             inset 0 1px 0 rgba(255,255,255,.75),
+             inset 0 -1px 0 rgba(var(--aic-ink),.06)}
+/* Glas aus: kein Durchblick, also traegt die Karte die Toenung selbst — sonst
+   stuende die halbtransparente Fassung von oben auf dem nackten Grund. */
+[data-glass="off"][data-theme="light"] .aic,[data-glass="off"][data-theme="rosa"] .aic,
+[data-glass="off"][data-theme="blau"]  .aic,[data-glass="off"][data-theme="grün"] .aic{
+  background:linear-gradient(152deg,rgba(var(--acc-rgb),.13),rgba(var(--acc-rgb),.04) 54%,transparent),var(--card)}
+/* Aurora hell: die erste Lage stellt nur noch die Farbe (deutlich schwaecher,
+   sie war der Schleier), die zweite bringt das, was im Dunkeln der Grund liefert
+   — einen hellen und einen dunklen Pool, die gegeneinander driften. Ohne den
+   dunklen Pool bewegt sich Weiss auf Weiss und man sieht die Bewegung nicht. */
+[data-theme="light"] .aic-aur,[data-theme="rosa"] .aic-aur,
+[data-theme="blau"]  .aic-aur,[data-theme="grün"] .aic-aur{
+  background:radial-gradient(38% 55% at 20% 42%,rgba(var(--acc-rgb),.16),transparent 70%),
+             radial-gradient(30% 46% at 82% 66%,rgba(var(--acc-rgb),.10),transparent 72%),
+             radial-gradient(26% 40% at 52% 88%,rgba(var(--acc-rgb),.09),transparent 74%)}
+[data-theme="light"] .aic-aur::after,[data-theme="rosa"] .aic-aur::after,
+[data-theme="blau"]  .aic-aur::after,[data-theme="grün"] .aic-aur::after{
+  background:radial-gradient(22% 32% at 70% 26%,rgba(255,255,255,.60),transparent 72%),
+             radial-gradient(30% 44% at 72% 24%,rgba(var(--acc-rgb),.16),transparent 70%),
+             radial-gradient(18% 26% at 16% 74%,rgba(var(--aic-ink),.13),transparent 74%),
+             radial-gradient(24% 36% at 14% 78%,rgba(var(--acc-rgb),.14),transparent 72%)}
+/* Lichtstreif kraeftiger: auf getoentem Glas ist ein 20-%-Weiss nicht mehr als
+   ein Hauch, im Dunkeln war es der klar sichtbare Wisch. */
+[data-theme="light"] .aic-sheen,[data-theme="rosa"] .aic-sheen,
+[data-theme="blau"]  .aic-sheen,[data-theme="grün"] .aic-sheen{
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent)}
+/* Haarlinie oben: das Weiss traegt hier die Kante, der Akzent bleibt der
+   wandernde Teil — aber beide brauchen mehr Deckkraft als auf Schwarz. */
+[data-theme="light"] .aic::after,[data-theme="rosa"] .aic::after,
+[data-theme="blau"]  .aic::after,[data-theme="grün"] .aic::after{
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.90),rgba(var(--acc-rgb),.70),transparent);
+  background-size:230% 100%}
 /* ── Wellenfeld hinter der Karte (Halbton-Raster) ────────────────────────
    Vorlage: ein Punktraster, durch das langsam helle Wellen wandern. Gebaut in
    zwei Lagen und OHNE Maske — mask + backdrop-filter zerlegt WKWebView (an der
@@ -6883,6 +6942,13 @@ textarea.pf-inp{height:auto;padding:12px 13px}
 .aic-say{font-size:11.8px;line-height:1.38;color:var(--text);font-weight:650;margin-top:8px;
   padding:7px 10px;border-radius:12px;border-bottom-left-radius:5px;
   background:rgba(var(--acc-rgb),.10);border:1px solid rgba(var(--acc-rgb),.20)}
+/* Hell: die getoente Blase auf getoenter Karte war zweimal dieselbe Farbe
+   uebereinander — die Blase verschwand. Sie wird deshalb HELLER als die Karte
+   statt farbiger, und der Rand kommt aus der Tinte. Genau die Rollenverteilung
+   wie im Dunkeln, nur mit umgekehrtem Vorzeichen. */
+[data-theme="light"] .aic-say,[data-theme="rosa"] .aic-say,
+[data-theme="blau"]  .aic-say,[data-theme="grün"] .aic-say{
+  background:rgba(255,255,255,.52);border-color:rgba(var(--aic-ink),.11)}
 /* 62 px ist KEIN Zierwert: das SVG im Ring traegt feste Maße und skaliert nicht
    mit der Box. Kleiner gesetzt, ragt der Ring heraus und legt sich ueber den
    Text (gemessen bei 44 px: 'Legs' verschwand unter dem Bogen). Die Karte wird

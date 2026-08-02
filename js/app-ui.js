@@ -548,7 +548,25 @@ let heuteEditMode = false;
 function getHeuteLayout(){
   if (Array.isArray(S.heuteLayout) && S.heuteLayout.length)
     return S.heuteLayout.filter(w => w && WIDGET_DEFS[w.type]);
-  return DEFAULT_HEUTE_LAYOUT.map(w => ({...w}));
+  /* Standardraster: fuer Abonnenten steht der Coach GANZ OBEN — er ist der
+     sichtbare Gegenwert des Abos und soll nicht unter fuenf anderen Kacheln
+     liegen. Damit landet er an derselben Stelle wie bei Nutzern mit eigenem
+     Raster (_migCoachWidget schiebt ihn dort per unshift nach vorn) — vorher
+     hing die Position davon ab, ob jemand das Raster je angefasst hatte.
+     Ohne Abo bleibt die Reihenfolge unveraendert: die Coach-Kachel ist dann
+     leer und faellt per .hw-leer aus dem Raster — oben wuerde sie nur die
+     Luecke hinterlassen, wegen der sie urspruenglich nach unten gewandert ist.
+     isPremium() steht in einer spaeteren Datei — der Aufruf hier ist ok, weil
+     er erst zur Laufzeit passiert; try/catch, damit ein Fehler dort nie das
+     komplette Heute-Raster mitreisst. */
+  const def = DEFAULT_HEUTE_LAYOUT.map(w => ({...w}));
+  try {
+    if (isPremium()) {
+      const i = def.findIndex(w => w.type === 'coach');
+      if (i > 0) def.unshift(def.splice(i, 1)[0]);
+    }
+  } catch(_){}
+  return def;
 }
 /* Einmalige Nachruestung: wer schon ein eigenes Raster gespeichert hat, kennt
    das Coach-Widget nicht — die Karte stand frueher FEST ueber dem Raster. Ohne
@@ -1573,18 +1591,26 @@ function _aicWaveSize(f){
 }
 // Der Akzent als Zahlentripel. Einmal je Bild aus dem Stylesheet zu lesen wäre
 // ein erzwungenes Layout — deshalb gepuffert und nur bei Themenwechsel neu.
-let _aicWvRGB = null, _aicWvRGBKey = '';
-function _aicWaveRGB(){
+const _AIC_WV_CACHE = {};
+function _aicWaveVar(name, ersatz){
   try {
-    const key = document.documentElement.getAttribute('data-theme') || '';
-    if (_aicWvRGB && key === _aicWvRGBKey) return _aicWvRGB;
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--acc-rgb').trim();
+    const key = (document.documentElement.getAttribute('data-theme') || '') + '|' + name;
+    const c = _AIC_WV_CACHE[name];
+    if (c && c.key === key) return c.rgb;
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const p = v.split(',').map(x => parseInt(x, 10));
-    _aicWvRGB = (p.length === 3 && p.every(n => isFinite(n))) ? p : [0, 122, 255];
-    _aicWvRGBKey = key;
-    return _aicWvRGB;
-  } catch(_) { return [0, 122, 255]; }
+    const rgb = (p.length === 3 && p.every(n => isFinite(n))) ? p : ersatz;
+    _AIC_WV_CACHE[name] = { key: key, rgb: rgb };
+    return rgb;
+  } catch(_) { return ersatz; }
 }
+function _aicWaveRGB(){ return _aicWaveVar('--acc-rgb', [0, 122, 255]); }
+/* Wohin der Kamm laeuft. Im Dunkeln nach Weiss — dort IST Weiss das Licht. Auf
+   den hellen Themes waere das ein weisser Punkt auf weissem Glas, also nach
+   --aic-ink, der dunklen Fassung des Akzents: derselbe Kontrast, nur
+   andersherum. Ohne diese Umkehr lagen alle Punkte auf derselben blassen
+   Helligkeit und aus der Welle wurde ein gleichmaessiger Punktteppich. */
+function _aicWaveInk(){ return _aicWaveVar('--aic-ink', [0, 52, 120]); }
 const _AIC_ZEILEN = 20, _AIC_SPALTEN = 64;
 function _aicWaveDraw(f, t){
   const cv = f.cv, ctx = f.ctx;
@@ -1594,6 +1620,7 @@ function _aicWaveDraw(f, t){
   ctx.clearRect(0, 0, W, H);
   const rgb = _aicWaveRGB();
   const hell = document.documentElement.getAttribute('data-theme') !== 'dark';
+  const ziel = hell ? _aicWaveInk() : [255, 255, 255];
   const dicht = f.dicht;
   for (let r = 0; r < _AIC_ZEILEN; r++) {
     // d = Naehe zum Betrachter. Die Potenz staucht die hinteren Zeilen
@@ -1614,13 +1641,21 @@ function _aicWaveDraw(f, t){
       if (y < -3 || y > H + 3) continue;
       const kamm = Math.max(0, Math.min(1, (h + 1.93) / 3.86));
       const gr = (0.6 + 1.25 * d) * (0.72 + 0.55 * kamm);
-      // Auf dem Kamm wird der Punkt weiss, im Tal traegt er den Akzent — so
-      // bekommt die Welle eine Kante, statt gleichmaessig blau zu leuchten.
-      const weiss = Math.max(0, (kamm - 0.62) / 0.38);
-      const R = Math.round(rgb[0] + (255 - rgb[0]) * weiss);
-      const G = Math.round(rgb[1] + (255 - rgb[1]) * weiss);
-      const B = Math.round(rgb[2] + (255 - rgb[2]) * weiss);
-      const a = (0.14 + 0.78 * kamm) * (0.32 + 0.68 * d) * (hell ? 0.72 : 1) * dicht;
+      // Auf dem Kamm laeuft der Punkt in die Spitzenfarbe, im Tal traegt er den
+      // Akzent — so bekommt die Welle eine Kante, statt gleichmaessig zu leuchten.
+      /* Hell greift die Spitzenfarbe FRUEHER: die Tinte muss den Kamm allein
+         tragen (im Dunkeln hilft ihr der schwarze Grund dabei). Mit derselben
+         schmalen Rampe wie dort blieb vom Kamm nur ein Saum. */
+      const spitz = hell ? Math.max(0, (kamm - 0.42) / 0.58)
+                         : Math.max(0, (kamm - 0.62) / 0.38);
+      const R = Math.round(rgb[0] + (ziel[0] - rgb[0]) * spitz);
+      const G = Math.round(rgb[1] + (ziel[1] - rgb[1]) * spitz);
+      const B = Math.round(rgb[2] + (ziel[2] - rgb[2]) * spitz);
+      /* Die Taeler muessen auf hellem Grund WEG. Mit der alten Grundhelligkeit
+         (0.14) stand jeder Punkt gleich sichtbar da — das war der Punktteppich,
+         der die Welle zugedeckt hat. Jetzt traegt fast nur noch der Kamm. */
+      const a = (hell ? (0.015 + 0.66 * kamm) : (0.14 + 0.78 * kamm))
+              * (0.32 + 0.68 * d) * dicht;
       ctx.fillStyle = 'rgba(' + R + ',' + G + ',' + B + ',' + a.toFixed(3) + ')';
       ctx.fillRect(x - gr / 2, y - gr / 2, gr, gr);
     }
