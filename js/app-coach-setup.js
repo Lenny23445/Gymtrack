@@ -1242,6 +1242,10 @@ async function aicSend(){
     const pm = txt.match(/```gtplan\s*([\s\S]*?)```/);
     if (pm) {
       try { _aicPlanPending = JSON.parse(pm[1]); } catch(_){ _aicPlanPending = null; }
+      // Namensriegel auch im Plan: steht dort "Kreuzheben", waehrend die Uebung
+      // des Nutzers "Deadlift" heisst, legt der Import eine zweite Uebung mit
+      // leerer Historie an statt die vorhandene zu treffen.
+      if (_aicPlanPending) { try { _aiKeepExNamesDeep(_aicPlanPending); } catch(_) {} }
       txt = txt.replace(pm[0], '').trim();
     }
     const mm = txt.match(/```gtmem\s*([\s\S]*?)```/);
@@ -1252,7 +1256,10 @@ async function aicSend(){
       } catch(_) { /* kaputtes JSON still verwerfen, wie bei gtplan */ }
       txt = txt.replace(mm[0], '').trim();
     }
-    _aicPush('assistant', txt || tr('Hier ist dein Plan:'));
+    // Der Chattext nennt Uebungen beim Namen — und zwar bei DEM Namen, unter
+    // dem der Nutzer sie angelegt hat. Der Worker-Prompt verlangt das bereits,
+    // aber ein Prompt ist eine Bitte; das hier ist die Zusage.
+    _aicPush('assistant', _aiKeepExNames(txt) || tr('Hier ist dein Plan:'));
   } finally {
     _aicBusy = false;
     if (send) send.disabled = false;
@@ -1734,6 +1741,15 @@ async function _scnAnalyze(){
   _scnBusy = false;
   if (!res || !res.v) { _scnRenderStart(); return; }   // aiCall zeigt Fehler/Paywall selbst
   _scnResult = res.v; _scnSel = 0;
+  // Nur das Anzeige-/Anlege-Feld "name" laeuft durch den Namensriegel: hat der
+  // Nutzer die Uebung schon unter eigenem Namen, soll der Scanner keine zweite
+  // anlegen. "nameEn" bleibt unangetastet — damit sucht der Client die
+  // Animation in der offenen Datenbank, ein gedrehter Name findet dort nichts.
+  try {
+    (_scnResult.exercises || []).forEach(e => {
+      if (e && typeof e.name === 'string') e.name = _aiKeepExNames(e.name);
+    });
+  } catch(_) {}
   _scnRenderResult();
 }
 function _scnRenderResult(){
@@ -2217,7 +2233,10 @@ async function openAiAnalyze(mode, scope){
     el.innerHTML = `${local}<div style="text-align:center;padding:20px 12px;color:var(--text2);font-size:14px;line-height:1.6">${tr('Analyse gerade nicht möglich.')}</div>`;
     return;
   }
-  _aiaShow(res.a, local);
+  // Namensriegel ueber die ganze Antwort: summary/points/recos nennen Uebungen
+  // im Text, und actions[].exercise ist der Schluessel, mit dem _aiaApply die
+  // Uebung in S.exercises sucht — ein uebersetzter Name trifft dort nichts.
+  _aiaShow(_aiKeepExNamesDeep(res.a), local);
 }
 
 

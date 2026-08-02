@@ -96,6 +96,47 @@ function _coachKeepExName(c, ex) {
   return c;
 }
 
+/* Derselbe Riegel, aber fuer JEDEN Modelltext statt nur fuer die Live-Karte.
+   Der Live-Coach kennt die eine Uebung, um die es gerade geht; Chat, Analyse
+   und Wochenbericht reden dagegen ueber die ganze Liste — dort war der Prompt
+   bisher die einzige Absicherung, und die haelt nicht: heisst die Uebung des
+   Nutzers "Deadlift", schrieb das Modell im deutschen Text zuverlaessig
+   "Kreuzheben". Der laengste Name kommt zuerst dran, damit "Rumaenisches
+   Kreuzheben" nicht vom kuerzeren "Kreuzheben" zerlegt wird. */
+function _exNameGuardList() {
+  const out = [];
+  try {
+    (S.exercises || []).forEach(ex => {
+      const n = (ex && typeof ex.name === 'string') ? ex.name.trim() : '';
+      if (!n) return;
+      const al = _exNameAliases(n).filter(a => a && a.trim().toLowerCase() !== n.toLowerCase());
+      if (al.length) out.push({ name: n, aliases: al });
+    });
+  } catch(_) {}
+  return out.sort((a, b) => b.name.length - a.name.length);
+}
+function _aiKeepExNames(text) {
+  if (typeof text !== 'string' || !text) return text;
+  try {
+    if (!window.CoachCues || !window.CoachCues.keepName) return text;
+    let out = text;
+    _exNameGuardList().forEach(e => { out = window.CoachCues.keepName(out, e.name, e.aliases); });
+    return out;
+  } catch(e) { console.warn('[Coach] Namensriegel:', e); return text; }
+}
+/* Fuer strukturierte Modellantworten (Analyse, Plan): jede Zeichenkette im
+   Baum durchlaeuft den Riegel. Ein Feld einzeln aufzuzaehlen hiesse, ihn beim
+   naechsten neuen Feld im Schema wieder zu vergessen. Ersetzt wird nur, was
+   auf einen Alias einer echten Nutzer-Uebung passt — alles andere bleibt. */
+function _aiKeepExNamesDeep(v) {
+  try {
+    if (typeof v === 'string') return _aiKeepExNames(v);
+    if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) v[i] = _aiKeepExNamesDeep(v[i]); return v; }
+    if (v && typeof v === 'object') { for (const k in v) v[k] = _aiKeepExNamesDeep(v[k]); return v; }
+    return v;
+  } catch(e) { console.warn('[Coach] Namensriegel:', e); return v; }
+}
+
 /* ── EINE Entscheidungsflaeche ───────────────────────────────────────────────
    Frueher gab es zwei Wege, auf denen dasselbe passieren konnte: die App senkte
    das Gewicht selbst (Satz-Einschaetzung), und kurz darauf bot die KI-Karte an,
@@ -2172,7 +2213,10 @@ async function _crAskModel(n, forecast) {
       : 'Fasse diese Trainingswoche für den Nutzer zusammen. Genau drei Sätze, keine Emojis, keine Zusagen über die Zukunft. Nutze ausschließlich die genannten Zahlen und erfinde nichts. Alle Gewichtsangaben stehen bereits in der Einheit, die das Feld "unit" nennt — nenne genau diese Einheit und rechne nichts um. Mach keinen Vorschlag zur Änderung des Trainingsplans.';
     const inhalt = CoachPersona.personaLine(_persona(), _lang()) + '\n\n' + auftrag + '\n\n' + JSON.stringify(zahlen);
     const res = await aiCall('chat', { messages: [{ role: 'user', content: inhalt }] });
-    return _crClean(res && res.text);
+    // Namensriegel auch hier: der Wochentext nennt regelmaessig die Uebung
+    // hinter einem Bestwert, und er landet ueber _crNotifBody() zusaetzlich auf
+    // dem Sperrbildschirm — dort ist ein uebersetzter Name genauso falsch.
+    return _aiKeepExNames(_crClean(res && res.text));
   } catch(e) { console.warn('[Coach] Bericht einordnen:', e); return ''; }
 }
 
