@@ -2046,6 +2046,37 @@ const SHF_PALETTES = [
   { id:'gold',    name:'Gold',    accent:'#F5B301', bg:'#241a04' },
   { id:'mono',    name:'Mono',    accent:'#E5E7EB', bg:'#0a0a0c' },
 ];
+/* ── Stock-Motive fuer Posts OHNE eigenes Foto ──────────────────────
+   Vorher bekam jeder Post ohne Kamerabild dieselbe Verlaufs-Karte mit der
+   Vektor-Hantel. Im Community-Feed standen dadurch reihenweise identische
+   Kacheln. Stattdessen jetzt echte Gym-Fotos (Unsplash-Lizenz: kommerziell
+   frei, keine Namensnennung noetig), lokal im Bundle — Remote-URLs wuerden
+   den Canvas tainten (toDataURL wirft) und offline fehlen. */
+const SHF_STOCK = [
+  'img/stock/gym1.jpg', 'img/stock/gym2.jpg', 'img/stock/gym3.jpg',
+  'img/stock/gym4.jpg', 'img/stock/gym5.jpg', 'img/stock/gym6.jpg',
+];
+const _shfStockImgs = {};          // src → Image
+let _shfStockIdx = 0;              // gewaehltes Motiv
+function _shfStockCur() {
+  const im = _shfStockImgs[SHF_STOCK[_shfStockIdx]];
+  return (im && im.complete && im.naturalWidth) ? im : null;
+}
+function _shfStockLoad(i, cb) {
+  const src = SHF_STOCK[i];
+  if (!src) { cb && cb(null); return; }
+  const vorhanden = _shfStockImgs[src];
+  if (vorhanden) {
+    if (vorhanden.complete) { cb && cb(vorhanden.naturalWidth ? vorhanden : null); return; }
+    vorhanden.addEventListener('load', () => cb && cb(vorhanden), { once:true });
+    return;
+  }
+  const im = new Image();
+  _shfStockImgs[src] = im;
+  im.onload  = () => cb && cb(im);
+  im.onerror = () => cb && cb(null);      // fehlt die Datei → alte Verlaufs-Karte
+  im.src = src;
+}
 let _shfPalIdx = 0;
 let _shfCustomCol = null;   // frei per Farbrad gewählte Farbe (_shfPalIdx === -1 = Custom-Modus)
 let _shfUserPal = false;    // Nutzer hat selbst gewählt → Auto-Vorauswahl fasst nichts mehr an
@@ -2070,6 +2101,10 @@ function _shfAutoPal(img){
       const acc = p.accent || _shfAppAcc();
       if (!/^#[0-9a-f]{6}$/i.test(acc)) { scores[i] = 0; return; }
       const rgb = hex2rgb(acc);
+      // Fast-Weiss nie automatisch: Layouts setzen weissen Text auf die
+      // Akzentflaeche — auf weissem Grund war der Titel unlesbar. Manuelle
+      // Wahl bleibt moeglich.
+      if (lum(rgb) > .7) { scores[i] = 0; return; }
       const ratio = (Math.max(lum(rgb), Lb) + .05) / (Math.min(lum(rgb), Lb) + .05);
       const dist = Math.abs(rgb[0] - r) + Math.abs(rgb[1] - g) + Math.abs(rgb[2] - b);
       scores[i] = ratio * 100 + dist * .15;
@@ -2083,6 +2118,13 @@ function _shfAutoPal(img){
 function _shfAppAcc(){
   try { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF'; }
   catch(_) { return '#007AFF'; }
+}
+// Akzentfarbe als halbtransparenter Schleier (Hex → rgba)
+function _shfRgba(hex, a) {
+  const h = (hex || '').replace('#', '');
+  if (h.length < 6) return 'rgba(0,0,0,' + a + ')';
+  return 'rgba(' + parseInt(h.slice(0,2),16) + ',' + parseInt(h.slice(2,4),16) + ','
+    + parseInt(h.slice(4,6),16) + ',' + a + ')';
 }
 // Freifarbe → dunkler Karten-Hintergrund im selben Farbton
 function _shfDarken(hex, keep){
@@ -2371,9 +2413,25 @@ const SHARE_LAYOUTS = [
     id: 'stats', name: 'Stats',
     render(ctx, img, d, W, H) {
       const acc = _shfAccent();
-      const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, acc); g.addColorStop(1, _shfPalBg());
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // Als einziges Layout hatte Stats bisher IMMER nur den Farbverlauf. Mit
+      // Foto (eigenes oder Stock-Motiv) waere es die letzte langweilige Karte
+      // im Feed — deshalb Bild + Farbschleier, Zahlen bleiben lesbar.
+      if (img) {
+        _shfDrawBase(ctx, img, W, H);
+        // NEUTRAL abdunkeln, nicht einfaerben: das Foto soll seine eigenen
+        // Farben behalten. Die Akzentfarbe bleibt den Rahmen/Details vorbehalten.
+        const gi = ctx.createLinearGradient(0, 0, 0, H);
+        gi.addColorStop(0, 'rgba(0,0,0,.30)'); gi.addColorStop(0.45, 'rgba(0,0,0,.42)');
+        gi.addColorStop(1, 'rgba(0,0,0,.72)');
+        ctx.fillStyle = gi; ctx.fillRect(0, 0, W, H);
+        // duenner Akzentrahmen als einzige Farbflaeche
+        ctx.strokeStyle = _shfRgba(acc, .9); ctx.lineWidth = 10;
+        ctx.strokeRect(5, 5, W - 10, H - 10);
+      } else {
+        const g = ctx.createLinearGradient(0, 0, W, H);
+        g.addColorStop(0, acc); g.addColorStop(1, _shfPalBg());
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      }
       ctx.save(); ctx.globalAlpha = .08; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
       for (let r = W * 0.2; r < W * 1.1; r += W * 0.14) { ctx.beginPath(); ctx.arc(W * 0.85, H * 0.14, r, 0, Math.PI * 2); ctx.stroke(); }
       ctx.restore();
@@ -2402,7 +2460,9 @@ function _shfRender(li, w, h) {
   const ctx = c.getContext('2d');
   const sc = (w || SHF_W) / SHF_W;
   ctx.scale(sc, sc);
-  SHARE_LAYOUTS[li].render(ctx, _shfPhoto, _shfData, SHF_W, SHF_H);
+  // Ohne eigenes Foto uebernimmt das Stock-Motiv die Rolle des Bildes — so
+  // greift es in JEDEM Layout, auch im Rahmen-Layout mit eigenem drawImage.
+  SHARE_LAYOUTS[li].render(ctx, _shfPhoto || _shfStockCur(), _shfData, SHF_W, SHF_H);
   return c;
 }
 function _shfRenderAll() {
@@ -2421,8 +2481,19 @@ function startShareFlow(ses, prs, dayName) {
     im.onload = () => { _shfData._avaImg = im; };
     im.src = p;
   }
- openOv('ov-share');
-  _shfRattleStart();
+  // Motiv aus der Session ableiten statt zufaellig: derselbe Post sieht bei
+  // jedem Re-Render gleich aus, aufeinanderfolgende Trainings aber verschieden.
+  const saat = String(ses?.id || ses?.date || '');
+  let h = 0; for (let i = 0; i < saat.length; i++) h = (h * 31 + saat.charCodeAt(i)) >>> 0;
+  _shfStockIdx = h % SHF_STOCK.length;
+  openOv('ov-share');
+  // Erst das Motiv laden, dann das Layout-Rad starten — sonst zeigen die
+  // Vorschau-Karten im Rad noch den Verlauf und wechseln danach sichtbar.
+  let los = false;
+  const start = () => { if (los) return; los = true; _shfRattleStart(); };
+  _shfStockLoad(_shfStockIdx, start);
+  setTimeout(start, 700);                 // Netz/Cache haengt → trotzdem weiter
+  SHF_STOCK.forEach((_, i) => { if (i !== _shfStockIdx) _shfStockLoad(i); });
 }
 function _shfExit() {
   _shfRattleT.forEach(clearTimeout); _shfRattleT = [];
@@ -2606,12 +2677,29 @@ function _shfSetCustomCol(hex) {
   if (wb) { wb.classList.add('on'); wb.style.background = hex; }
 }
 
+// Motiv gewechselt (nur ohne eigenes Foto sichtbar)
+function _shfSetStock(i) {
+  _shfStockIdx = i; haptic(6);
+  _shfStockLoad(i, () => {
+    const bg = _shfStockCur();
+    if (bg && !_shfUserPal) { _shfPalIdx = _shfAutoPal(bg); _shfCustomCol = null; }
+    _shfRenderAll();
+    const sw = document.getElementById('shf-swipe');
+    if (sw) [...sw.children].forEach((el, idx) => { const im = el.querySelector('img'); if (im && _shfRendered[idx]) im.src = _shfRendered[idx]; });
+    document.querySelectorAll('#shf-stock .shf-stk').forEach((b, idx) => {
+      b.style.outline = idx === i ? '2px solid ' + _shfAppAcc() : 'none';
+    });
+    document.querySelectorAll('#shf-pal .shf-sw').forEach((b, idx) => b.classList.toggle('on', idx === _shfPalIdx));
+  });
+}
+
 /* ── Schritt 3: Layout-Swipe auf dem Foto ── */
 function _shfEditorStep() {
   _shfStopStream();
   // Standard-Layoutfarbe automatisch nach Foto-Kontrast — solange der Nutzer
   // noch nicht selbst in der Swatch-Reihe gewählt hat.
-  if (_shfPhoto && !_shfUserPal) { _shfPalIdx = _shfAutoPal(_shfPhoto); _shfCustomCol = null; }
+  const _bg = _shfPhoto || _shfStockCur();
+  if (_bg && !_shfUserPal) { _shfPalIdx = _shfAutoPal(_bg); _shfCustomCol = null; }
   _shfRenderAll();
   const body = document.getElementById('shf-body');
   body.innerHTML = `
@@ -2635,6 +2723,11 @@ function _shfEditorStep() {
         </div>`;
       })()}
     </div>
+    ${_shfPhoto ? '' : `<div class="shf-stock" id="shf-stock" style="position:absolute;bottom:calc(152px + var(--sab));left:0;right:0;z-index:30;display:flex;justify-content:center;gap:8px;overflow-x:auto;padding:0 18px;-webkit-overflow-scrolling:touch">
+      ${SHF_STOCK.map((s, i) => `<button class="shf-stk" onclick="_shfSetStock(${i})" aria-label="${tr('Motiv')} ${i+1}"
+        style="flex:0 0 auto;width:42px;height:56px;border:0;padding:0;border-radius:10px;overflow:hidden;background:#111;outline:${i === _shfStockIdx ? '2px solid ' + _shfAppAcc() : 'none'};outline-offset:1px">
+        <img src="${s}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></button>`).join('')}
+    </div>`}
     <div class="shf-pal" id="shf-pal">
       ${SHF_PALETTES.map((p, i) => `<button class="shf-sw${i === _shfPalIdx ? ' on' : ''}" onclick="_shfSetPal(${i})" style="background:${p.accent || _shfAppAcc()}" aria-label="${p.name}"></button>`).join('')}
       <label class="shf-sw shf-sw-wheel${_shfPalIdx === -1 ? ' on' : ''}" aria-label="${tr('Farbe wählen')}" style="${_shfCustomCol ? `background:${_shfCustomCol}` : 'background:conic-gradient(from 210deg,#FF2D78,#F5B301,#10B981,#06B6D4,#8B5CF6,#FF2D78)'};position:relative;overflow:hidden;display:inline-block">

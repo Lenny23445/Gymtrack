@@ -1,11 +1,19 @@
 /* GymTrack — Service Worker */
-const CACHE = 'gymtrack-v202608041210';
+const CACHE = 'gymtrack-v202608041930';
 const SHELL = [
   './index.html',
   './manifest.json',
   './css/app.css',
   './icon-192.png',
   './icon-512.png',
+  // Stock-Motive der Share-Card: muessen offline da sein, sonst faellt der
+  // Post ohne eigenes Foto auf die alte Verlaufs-Karte zurueck.
+  './img/stock/gym1.jpg',
+  './img/stock/gym2.jpg',
+  './img/stock/gym3.jpg',
+  './img/stock/gym4.jpg',
+  './img/stock/gym5.jpg',
+  './img/stock/gym6.jpg',
   './js/coach-memory.js',
   './js/coach-log.js',
   './js/coach-intent.js',

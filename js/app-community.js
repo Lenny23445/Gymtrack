@@ -1325,7 +1325,8 @@ function _seedDemoData() {
   // vollen Vorjahre den Slogan DON'T / SKIP / LEGS. Das laufende Jahr bleibt
   // bewusst normal Mo–Sa durchtrainiert — sonst waeren Streak, Wochenleiste
   // und Erholungs-Kachel im selben Screenshot kaputt.
-  const MX_WORDS = { 2025: "DON'T", 2024: 'SKIP', 2023: 'LEGS' };
+  const MX_JAHR  = today.getFullYear();
+  const MX_WORDS = { [MX_JAHR]: "DON'T", [MX_JAHR-1]: 'SKIP', [MX_JAHR-2]: 'LEGS' };
   const MX_FONT = {
     D:  ['####.','#...#','#...#','#...#','####.'],
     O:  ['.###.','#...#','#...#','#...#','.###.'],
@@ -1341,21 +1342,54 @@ function _seedDemoData() {
     G:  ['.####','#....','#..##','#...#','.####'],
   };
   const MX_ROW0 = 1;   // Buchstaben auf Di–Sa; Mo und So bleiben als Rand frei
+  // Eine Rasterzeile ist hoeher als eine Spalte breit ist. Unskaliert steht der
+  // 5x5-Buchstabe deshalb schmal und hoch da und zerfaellt in Punktrauschen.
+  // Jede Glyph-Spalte wird deshalb verdoppelt (Vertikalstriche 2 Zellen dick,
+  // Buchstabe breiter als hoch). Im LAUFENDEN Jahr reichen die Spalten bis heute
+  // aber nicht fuer das breite DON'T — deshalb pro Jahr die groesste Skalierung
+  // nehmen, die noch passt.
+  const MX_SCALES = [2, 1];
 
   // Liefert die Datums-Keys, die im Jahr `year` gefuellt sein muessen, damit
   // `word` im Raster steht. Spalte 0 beginnt am Montag der ersten Kalenderwoche
   // — exakt dieselbe Rechnung wie in _mxRenderYears (js/app-streak.js).
-  function _mxWordKeys(year, word) {
-    const glyphs = Array.from(word).map(ch => MX_FONT[ch]).filter(Boolean);
-    if (!glyphs.length) return null;
-    const breite = g => g[0].length;
-    const total  = glyphs.reduce((a, g) => a + breite(g), 0) + (glyphs.length - 1);
-    const jan1   = new Date(year, 0, 1);
-    const start  = new Date(jan1);
+  // Nutzbare Spalten eines Jahres (im laufenden Jahr nur bis heute — dahinter
+  // ist jede Zelle "future" und laesst sich nicht einfaerben).
+  function _mxFreieSpalten(year) {
+    const jan1  = new Date(year, 0, 1);
+    const start = new Date(jan1);
     start.setDate(jan1.getDate() - ((jan1.getDay()+6)%7));
-    const dec31  = new Date(year, 11, 31);
-    const weeks  = Math.ceil(((dec31 - start) / 86400000 + 1) / 7);
-    let col = Math.max(1, Math.floor((weeks - total) / 2));   // zentriert
+    const ende  = Math.min(new Date(year, 11, 31).getTime(), today.getTime());
+    return Math.floor((ende - start) / 86400000 / 7) + 1;
+  }
+  function _mxBreite(word, s) {
+    const g = Array.from(word).map(ch => MX_FONT[ch]).filter(Boolean);
+    return g.reduce((a, gl) => a + gl[0].length * s, 0) + (g.length - 1) * s;
+  }
+  // EINE Skalierung fuer alle Jahre: unterschiedlich grosse Schrift pro Zeile
+  // sieht nach Fehler aus. Also die groesste, die in JEDES Wortjahr passt.
+  const skalierung = MX_SCALES.find(s =>
+    Object.keys(MX_WORDS).every(y => _mxBreite(MX_WORDS[y], s) + 2 <= _mxFreieSpalten(+y))
+  ) || 1;
+
+  function _mxWordKeys(year, word) {
+    const jan1  = new Date(year, 0, 1);
+    const start = new Date(jan1);
+    start.setDate(jan1.getDate() - ((jan1.getDay()+6)%7));
+    const dec31 = new Date(year, 11, 31);
+    // Im laufenden Jahr endet das Raster bei heute — dahinter sind alle Zellen
+    // "future" und lassen sich nicht einfaerben.
+    const ende  = Math.min(dec31.getTime(), today.getTime());
+    const frei  = Math.floor((ende - start) / 86400000 / 7) + 1;   // nutzbare Spalten
+
+    const scale  = skalierung;
+    const breit  = zeile => Array.from(zeile).map(c => c.repeat(scale)).join('');
+    const glyphs = Array.from(word).map(ch => MX_FONT[ch]).filter(Boolean).map(g => g.map(breit));
+    if (!glyphs.length) return null;
+
+    const breite = g => g[0].length;
+    const total  = glyphs.reduce((a, g) => a + breite(g), 0) + (glyphs.length - 1) * scale;
+    let col = Math.max(1, Math.floor((frei - total) / 2));   // zentriert
     const keys = new Set();
     glyphs.forEach(g => {
       for (let r = 0; r < g.length; r++) {
@@ -1367,12 +1401,18 @@ function _seedDemoData() {
           if (d.getFullYear() === year) keys.add(_localDateKey(d));
         }
       }
-      col += breite(g) + 1;                                   // 1 Spalte Abstand
+      col += breite(g) + scale;
     });
-    return keys;
+    // Im laufenden Jahr bleibt die AKTUELLE Woche zusaetzlich durchtrainiert —
+    // sonst waeren Streak, Wochenleiste und Erholungs-Kachel im selben
+    // Screenshot leer. Mehr nicht, sonst steht ein Block neben dem Wort.
+    return { keys, normalAb: dec31 > today ? curMon.getTime() : Infinity };
   }
   const MX_WORD_KEYS = {};
-  Object.keys(MX_WORDS).forEach(y => { MX_WORD_KEYS[y] = _mxWordKeys(+y, MX_WORDS[y]); });
+  Object.keys(MX_WORDS).forEach(y => {
+    const w = _mxWordKeys(+y, MX_WORDS[y]);
+    if (w) MX_WORD_KEYS[y] = w;
+  });
 
   // Kandidaten-Tage: durchgehend Mo–Sa (6×), einziger Ruhetag ist der Sonntag.
   const days = [];
@@ -1385,7 +1425,8 @@ function _seedDemoData() {
       d.setHours(18, (di*7) % 40, 0, 0);
       const wort = MX_WORD_KEYS[d.getFullYear()];
       // Schriftzug-Jahre: nur Tage behalten, die einen Buchstaben-Pixel treffen.
-      if (wort && !wort.has(_localDateKey(d))) continue;
+      // Hinter normalAb (nur laufendes Jahr) wird wieder normal durchtrainiert.
+      if (wort && d.getTime() < wort.normalAb && !wort.keys.has(_localDateKey(d))) continue;
       days.push({ d, di });
     }
   }
