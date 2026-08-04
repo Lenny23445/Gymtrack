@@ -1319,58 +1319,119 @@ function _seedDemoData() {
   const curMon = new Date(today);
   curMon.setDate(today.getDate() - ((today.getDay()+6)%7)); // Montag dieser Woche
 
-  const sessions = [];
-  let tmplIdx = 0;
+  // ── Schriftzug im Matrix-Raster (Werbe-Screenshots) ───────────────
+  // Das Jahresraster der Matrix ist ein 53×7-Feld: Spalte = Kalenderwoche,
+  // Zeile 0..6 = Mo..So. Ein Trainingstag = ein Pixel. Damit "malen" die drei
+  // vollen Vorjahre den Slogan DON'T / SKIP / LEGS. Das laufende Jahr bleibt
+  // bewusst normal Mo–Sa durchtrainiert — sonst waeren Streak, Wochenleiste
+  // und Erholungs-Kachel im selben Screenshot kaputt.
+  const MX_WORDS = { 2025: "DON'T", 2024: 'SKIP', 2023: 'LEGS' };
+  const MX_FONT = {
+    D:  ['####.','#...#','#...#','#...#','####.'],
+    O:  ['.###.','#...#','#...#','#...#','.###.'],
+    N:  ['#...#','##..#','#.#.#','#..##','#...#'],
+    "'":['#','#','.','.','.'],
+    T:  ['#####','..#..','..#..','..#..','..#..'],
+    S:  ['.####','#....','.###.','....#','####.'],
+    K:  ['#...#','#..#.','###..','#..#.','#...#'],
+    I:  ['###','.#.','.#.','.#.','###'],
+    P:  ['####.','#...#','####.','#....','#....'],
+    L:  ['#....','#....','#....','#....','#####'],
+    E:  ['#####','#....','####.','#....','#####'],
+    G:  ['.####','#....','#..##','#...#','.####'],
+  };
+  const MX_ROW0 = 1;   // Buchstaben auf Di–Sa; Mo und So bleiben als Rand frei
+
+  // Liefert die Datums-Keys, die im Jahr `year` gefuellt sein muessen, damit
+  // `word` im Raster steht. Spalte 0 beginnt am Montag der ersten Kalenderwoche
+  // — exakt dieselbe Rechnung wie in _mxRenderYears (js/app-streak.js).
+  function _mxWordKeys(year, word) {
+    const glyphs = Array.from(word).map(ch => MX_FONT[ch]).filter(Boolean);
+    if (!glyphs.length) return null;
+    const breite = g => g[0].length;
+    const total  = glyphs.reduce((a, g) => a + breite(g), 0) + (glyphs.length - 1);
+    const jan1   = new Date(year, 0, 1);
+    const start  = new Date(jan1);
+    start.setDate(jan1.getDate() - ((jan1.getDay()+6)%7));
+    const dec31  = new Date(year, 11, 31);
+    const weeks  = Math.ceil(((dec31 - start) / 86400000 + 1) / 7);
+    let col = Math.max(1, Math.floor((weeks - total) / 2));   // zentriert
+    const keys = new Set();
+    glyphs.forEach(g => {
+      for (let r = 0; r < g.length; r++) {
+        for (let c = 0; c < breite(g); c++) {
+          if (g[r][c] !== '#') continue;
+          const d = new Date(start);
+          d.setDate(start.getDate() + (col + c) * 7 + (MX_ROW0 + r));
+          // Randspalten ragen ins Nachbarjahr — die Zellen sind dort "void".
+          if (d.getFullYear() === year) keys.add(_localDateKey(d));
+        }
+      }
+      col += breite(g) + 1;                                   // 1 Spalte Abstand
+    });
+    return keys;
+  }
+  const MX_WORD_KEYS = {};
+  Object.keys(MX_WORDS).forEach(y => { MX_WORD_KEYS[y] = _mxWordKeys(+y, MX_WORDS[y]); });
+
+  // Kandidaten-Tage: durchgehend Mo–Sa (6×), einziger Ruhetag ist der Sonntag.
+  const days = [];
   for (let w = 0; w < WEEKS; w++) {
-    // Durchgehend Mo–Sa (6×), einziger Ruhetag ist der Sonntag.
-    const dayIdx = [0,1,2,3,4,5];
     const weekMon = new Date(curMon);
     weekMon.setDate(curMon.getDate() - (WEEKS - 1 - w) * 7);
-    for (const di of dayIdx) {
+    for (let di = 0; di < 6; di++) {
       const d = new Date(weekMon);
       d.setDate(weekMon.getDate() + di);
       d.setHours(18, (di*7) % 40, 0, 0);
-      // Fortschritt 0..1 über die drei Jahre, pro EINHEIT (nicht pro Woche) — sonst
-      // liegen die sechs Trainings einer Woche exakt aufeinander und die Kurve
-      // steigt in Stufen statt stetig.
-      const idx  = w * dayIdx.length + di;
-      const prog = idx / (WEEKS * dayIdx.length - 1);
-      // 50 % → 100 % des Zielgewichts, leicht beschleunigend.
-      const factor = 0.5 + 0.5 * Math.pow(prog, 1.25);
-      // Zukunftstage der aktuellen Woche (Do–Sa liegen nach "jetzt"): als warmup
-      // taggen → volles Volumen fürs Chart, aber gedämpfte Ermüdung (sonst würde
-      // die negative Zeitdifferenz die Erholung überall auf 0% ziehen).
-      const isFuture = d.getTime() > Date.now();
-      const tpl = TEMPLATES[tmplIdx % TEMPLATES.length]; tmplIdx++;
-      const logs = tpl.ex.map(exId => {
-        const w0 = Math.max(2.5, r05(baseOf(exId) * factor));
-        const sets = [];
-        for (let s = 0; s < tpl.sets; s++) {
-          const wt = s === 0 ? r05(w0 * 0.9) : w0;        // 1. Satz etwas leichter
-          sets.push(isFuture ? { w: wt, r: repsOf(s), type:'warmup' } : { w: wt, r: repsOf(s) });
-        }
-        return { exerciseId: exId, sets };
-      });
-      // Volumen dieser Einheit exakt auf die Zielkurve ziehen. Zwei Schritte:
-      // (1) alle Saetze proportional (Faktor liegt zwischen 0,97 und 1,03),
-      // (2) die verbleibende Rundungsdifferenz auf den leichten Auftaktsatz.
-      // Ergebnis: benachbarte Einheiten unterscheiden sich um < 0,15 % statt um
-      // bis zu 8,7 % — im Chart eine durchgehende Linie statt Zickzack.
-      const ziel  = V_REF * factor;
-      const alle  = logs.flatMap(l => l.sets);
-      const volOf = () => alle.reduce((a, s) => a + s.w * s.r, 0);
-      const k = ziel / volOf();
-      alle.forEach(s => { s.w = Math.max(2.5, r05(s.w * k)); });
-      const auftakt = alle[0];
-      auftakt.w = Math.max(2.5, r05(auftakt.w + (ziel - volOf()) / auftakt.r));
-      sessions.push({
-        id: 'dm_' + w + '_' + di,
-        date: d.toISOString(),
-        duration: 3300 + (di % 3) * 600,
-        logs,
-      });
+      const wort = MX_WORD_KEYS[d.getFullYear()];
+      // Schriftzug-Jahre: nur Tage behalten, die einen Buchstaben-Pixel treffen.
+      if (wort && !wort.has(_localDateKey(d))) continue;
+      days.push({ d, di });
     }
   }
+
+  const sessions = [];
+  let tmplIdx = 0;
+  days.forEach(({ d, di }, idx) => {
+    // Fortschritt 0..1 über die drei Jahre, pro EINHEIT (nicht pro Woche) — sonst
+    // liegen die sechs Trainings einer Woche exakt aufeinander und die Kurve
+    // steigt in Stufen statt stetig.
+    const prog = days.length > 1 ? idx / (days.length - 1) : 1;
+    // 50 % → 100 % des Zielgewichts, leicht beschleunigend.
+    const factor = 0.5 + 0.5 * Math.pow(prog, 1.25);
+    // Zukunftstage der aktuellen Woche (Do–Sa liegen nach "jetzt"): als warmup
+    // taggen → volles Volumen fürs Chart, aber gedämpfte Ermüdung (sonst würde
+    // die negative Zeitdifferenz die Erholung überall auf 0% ziehen).
+    const isFuture = d.getTime() > Date.now();
+    const tpl = TEMPLATES[tmplIdx % TEMPLATES.length]; tmplIdx++;
+    const logs = tpl.ex.map(exId => {
+      const w0 = Math.max(2.5, r05(baseOf(exId) * factor));
+      const sets = [];
+      for (let s = 0; s < tpl.sets; s++) {
+        const wt = s === 0 ? r05(w0 * 0.9) : w0;        // 1. Satz etwas leichter
+        sets.push(isFuture ? { w: wt, r: repsOf(s), type:'warmup' } : { w: wt, r: repsOf(s) });
+      }
+      return { exerciseId: exId, sets };
+    });
+    // Volumen dieser Einheit exakt auf die Zielkurve ziehen. Zwei Schritte:
+    // (1) alle Saetze proportional (Faktor liegt zwischen 0,97 und 1,03),
+    // (2) die verbleibende Rundungsdifferenz auf den leichten Auftaktsatz.
+    // Ergebnis: benachbarte Einheiten unterscheiden sich um < 0,15 % statt um
+    // bis zu 8,7 % — im Chart eine durchgehende Linie statt Zickzack.
+    const ziel  = V_REF * factor;
+    const alle  = logs.flatMap(l => l.sets);
+    const volOf = () => alle.reduce((a, s) => a + s.w * s.r, 0);
+    const k = ziel / volOf();
+    alle.forEach(s => { s.w = Math.max(2.5, r05(s.w * k)); });
+    const auftakt = alle[0];
+    auftakt.w = Math.max(2.5, r05(auftakt.w + (ziel - volOf()) / auftakt.r));
+    sessions.push({
+      id: 'dm_' + idx,
+      date: d.toISOString(),
+      duration: 3300 + (di % 3) * 600,
+      logs,
+    });
+  });
   // Der Feinabgleich oben ist NICHT der alte, weggeworfene Normalisierungs-Durchgang:
   // der hat auf eine frei gesetzte Zielkurve bis 27 t skaliert und damit 245 kg
   // Bankdruecken erzeugt. Hier ist das Ziel aus den realen Basisgewichten abgeleitet
