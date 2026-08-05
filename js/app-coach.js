@@ -353,6 +353,55 @@ function _coachRepRangeAdjust(li) {
   }, 0);
 }
 
+/* ── BACKOFF-ERKENNUNG ──────────────────────────────────────────────────────
+   Ist der Satz an Position si ein geplanter Backoff-Satz?
+
+   Drei Bedingungen, und jede einzelne davon trennt ihn von etwas anderem:
+
+   1. Der VORIGE Satz war der schwerste der Uebung bis hierher. Ohne das waere
+      jeder leichtere Satz irgendwo in der Mitte ein Backoff — der Backoff
+      folgt aber dem Spitzensatz, das ist seine Definition.
+   2. Das Gewicht liegt 8 bis 20 % darunter. Weniger als 8 % ist Rauschen
+      (eine Hantelstufe), mehr als 20 % ist kein Backoff mehr, sondern ein
+      Drop-Satz oder ein Einbruch.
+   3. Die Wiederholungen sind GESTIEGEN. Das ist die eigentliche Unterschrift:
+      weniger Gewicht bei mehr Wiederholungen ist eine Entscheidung. Weniger
+      Gewicht bei gleichen oder weniger Wiederholungen ist ein Leistungsabfall,
+      und dazu soll der Coach weiterhin etwas sagen duerfen.
+
+   Bewusst ohne Zugriff auf S, wkLogs, Uhr oder Oberflaeche: hereingegeben wird
+   der Uebungs-Log, die Position und die eingetragenen Zahlen, heraus kommt ja
+   oder nein. Deshalb laesst sich die Regel nachrechnen statt nur nachsehen.
+
+   Aufwaermsaetze zaehlen beim Spitzenwert NICHT mit — sonst wuerde ein
+   schweres Aufwaermen (das es nicht geben sollte, aber gibt) den Vergleich
+   verschieben. */
+function _coachIsBackoff(log, si, w, r) {
+  const sets = (log && log.sets) || [];
+  if (!(si >= 1) || !(w > 0) || !(r > 0)) return false;
+
+  const vor = sets[si - 1];
+  if (!vor) return false;
+  if ((vor.type || 'normal').toLowerCase() === 'warmup') return false;
+  const vw = parseFloat(vor.w) || 0, vr = parseInt(vor.r) || 0;
+  if (!(vw > 0) || !(vr > 0)) return false;
+
+  // War der vorige Satz der schwerste der bisherigen Arbeitssaetze?
+  let spitze = 0;
+  for (let i = 0; i < si; i++) {
+    const s = sets[i]; if (!s) continue;
+    if ((s.type || 'normal').toLowerCase() === 'warmup') continue;
+    const sw = parseFloat(s.w) || 0;
+    if (sw > spitze) spitze = sw;
+  }
+  if (vw < spitze) return false;
+
+  const anteil = w / vw;
+  if (!(anteil >= 0.80 && anteil <= 0.92)) return false;
+
+  return r > vr;
+}
+
 function _coachEvalRun(li, si) {
   if (!isPremium() || _coachLevel() === 'off') return;
   // Solange eine Karte offen und unbeantwortet ist, wird NICHTS Neues
@@ -367,6 +416,27 @@ function _coachEvalRun(li, si) {
   if (!(w > 0) || !(r > 0)) return; // erst wenn BEIDES eingetragen ist
 
   if (!_coachState) _coachState = _coachDefaultState();
+
+  /* ── GEPLANTER BACKOFF-SATZ: ganz vorne, weil er alles Weitere ausschaltet.
+     Ein Satz mit weniger Gewicht und MEHR Wiederholungen direkt nach dem
+     schwersten Satz der Uebung ist kein Leistungsabfall, sondern die Absicht.
+     Liefe er weiter durch die Kette, meldete der Coach "Gewicht eingebrochen"
+     zu genau dem Satz, den der Nutzer bewusst so gefahren hat — das ist nicht
+     nur nutzlos, es widerspricht dem Plan.
+
+     Rein lokal, kostet also keinen Call und braucht kein Netz — dieselbe
+     Begruendung wie bei der Dropsatz-Chance direkt darunter.
+
+     Geflaggt wird nur, was noch keinen eigenen Typ traegt: eine manuelle
+     Auswahl des Nutzers ist die staerkere Aussage und bleibt stehen. */
+  if (_coachIsBackoff(log, si, w, r)) {
+    if ((set.type || 'normal').toLowerCase() === 'normal') {
+      set.type = 'backoff';
+      try { renderLogCards(); } catch(_) {}
+      try { _saveActiveWk(); } catch(_) {}
+    }
+    return;
+  }
 
   // ── DROPSATZ-CHANCE: lokal entschieden, deshalb VOR den Online-, Quota- und
   // Rate-Limits. Sie kostet keinen Call und funktioniert ohne Netz — dieselbe
@@ -1399,6 +1469,13 @@ function _chWeekDraw(){
           const _n = (cfg.data.datasets[0].data || []).length;
           Object.assign(cfg.data.datasets[0], _glowDs(cv, _acc, _n, false));
           cfg.options = cfg.options || {};
+        }
+        /* Dieselbe Behandlung fuer die Balken. Ohne sie stand in derselben
+           Kachel eine leuchtende Linie ueber zwei matten Balkenreihen — der
+           Bruch faellt genau deshalb auf, weil beide nebeneinander liegen. */
+        if (cfg && cfg.type === 'bar') {
+          const _accB = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+          cfg.plugins = (cfg.plugins || []).concat(_neonBarPlugin(_accB));
         }
       } catch(e) { console.warn('[Coach] Diagramm-Stil:', e); }
       try { _chWeekInst.push(new Chart(cv.getContext('2d'), cfg)); }

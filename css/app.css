@@ -3745,6 +3745,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .set-type.normal{}
 .set-type.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
 .set-type.top{background:rgba(175,82,222,.18);border-color:rgba(175,82,222,.45);color:#AF52DE}
+/* Backoff in Teal — der einzige freie Platz zwischen Aufwaermen (orange),
+   Top-Satz (lila), Drop-Satz (blau/Akzent) und Versagen (rot). Bewusst NICHT
+   gruen: gruen steht in dieser App durchgehend fuer "erholt/fertig" und wuerde
+   an einem Satztyp etwas anderes behaupten. */
+.set-type.backoff{background:rgba(46,211,198,.18);border-color:rgba(46,211,198,.45);color:#2ED3C6}
 .set-type.drop{background:rgba(0,122,255,.18);border-color:rgba(var(--acc-rgb),.45);color:var(--acc)}
 .set-type.fail{background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.45);color:var(--red)}
 .set-type:active{transform:scale(.86)}
@@ -3769,6 +3774,7 @@ body.wpick-open #heute-edit-bar{display:none!important}
 }
 .settype-badge.warmup{background:rgba(255,149,0,.20);border-color:rgba(255,149,0,.45);color:var(--orange)}
 .settype-badge.top   {background:rgba(175,82,222,.20);border-color:rgba(175,82,222,.45);color:#AF52DE}
+.settype-badge.backoff{background:rgba(46,211,198,.20);border-color:rgba(46,211,198,.45);color:#2ED3C6}
 .settype-badge.drop  {background:rgba(0,122,255,.18);border-color:rgba(var(--acc-rgb),.45);color:var(--acc)}
 .settype-badge.fail  {background:rgba(255,59,48,.18);border-color:rgba(255,59,48,.45);color:var(--red)}
 .settype-info{flex:1;min-width:0}
@@ -6443,20 +6449,52 @@ body.ai-hidden #ai-bubble,body.ai-hidden #ai-radial-backdrop,body.ai-hidden .ai-
 .aia-dot{width:6px;height:6px;border-radius:50%;background:var(--acc);margin-top:7px;flex-shrink:0}
 /* KI-Analyse: Daten-Kacheln + Mini-Charts (lokal berechnet, sofort sichtbar) */
 .aia-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
-.aia-stat{background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:14px;padding:10px 8px;text-align:center}
+/* Die Zahlenkacheln bekommen denselben haarfeinen Akzent-Innenrand wie die
+   uebrigen Neon-Kacheln der App — kein Schein nach aussen, sonst konkurrieren
+   drei leuchtende Kaesten mit den Balken darunter, die den eigentlichen Wert
+   tragen. */
+.aia-stat{background:var(--gl-bg-t);border:1px solid var(--gl-bdr);border-radius:14px;padding:10px 8px;text-align:center;
+  box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.14),var(--neon-edge)}
 .aia-stat-v{font-size:17px;font-weight:800;letter-spacing:-.3px}
 .aia-stat-v small{font-size:11px;font-weight:700;color:var(--text2)}
 .aia-stat-l{font-size:10.5px;font-weight:700;color:var(--text2);margin-top:2px;line-height:1.25}
 .aia-bars{display:flex;align-items:flex-end;gap:5px;height:64px;padding:4px 2px 0}
 .aia-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.aia-bar i{display:block;width:100%;max-width:26px;border-radius:6px 6px 3px 3px;background:rgba(var(--acc-rgb),.32);min-height:3px}
-.aia-bar.hi i{background:var(--acc)}
+/* Die Balken des KI-Menues (Trainingsanalyse, Workout optimieren, Fortschritt
+   analysieren) sprechen bis hierher eine andere Sprache als der Rest der App:
+   flache Flaechen neben leuchtenden Ringen, Segmentreihen und Kurven. Der
+   Schein kommt deshalb aus DERSELBEN zentralen Staffel (--gw-*, --gwa-*) wie
+   ueberall — keine eigenen Radien, keine eigenen Deckkraften, sonst laufen die
+   beiden Fassungen beim naechsten Feinschliff auseinander.
+
+   Die zurueckgenommenen Balken (die frueheren Wochen) bekommen KEINEN Schein.
+   Leuchten alle gleich, ist der Unterschied zwischen "diese Woche" und "war
+   mal" wieder weg — und der ist die ganze Aussage des Bildes. */
+.aia-bar i{display:block;width:100%;max-width:26px;border-radius:6px 6px 3px 3px;background:rgba(var(--acc-rgb),.32);min-height:3px;
+  transition:height .5s cubic-bezier(.2,.8,.3,1)}
+.aia-bar.hi i{background:var(--acc);
+  box-shadow:0 0 var(--gw-1) rgba(var(--acc-rgb),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--acc-rgb),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--acc-rgb),var(--gwa-3)),
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
 .aia-bar b{font-size:9px;font-weight:700;color:var(--text2);white-space:nowrap}
 .aia-hrow{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12.5px}
 .aia-hrow-l{width:74px;flex-shrink:0;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* position:relative trägt die Richtwert-Markierung (<i>) in _aiaBarsHTML */
 .aia-hrow-bar{position:relative;flex:1;height:8px;border-radius:5px;background:var(--inp-bg);overflow:hidden}
-.aia-hrow-fill{height:100%;border-radius:5px;background:var(--acc);transition:width .5s cubic-bezier(.2,.8,.3,1)}
+/* Dieselbe Staffel fuer die liegenden Balken. --sig-rgb traegt die Farbe: die
+   Volumen-Zeilen setzen sie auf ihre Ampelfarbe, alle anderen erben den
+   Akzent. Ein fest auf --acc verdrahteter Schein liesse eine Warnzeile in
+   Akzentblau leuchten und wuerde damit dem widersprechen, was der Balken
+   sagt. */
+.aia-hrow-fill{height:100%;border-radius:5px;background:var(--acc);
+  transition:width .5s cubic-bezier(.2,.8,.3,1);
+  box-shadow:0 0 var(--gw-1) rgba(var(--sig-rgb,var(--acc-rgb)),var(--gwa-1)),
+             0 0 var(--gw-2) rgba(var(--sig-rgb,var(--acc-rgb)),var(--gwa-2)),
+             0 0 var(--gw-3) rgba(var(--sig-rgb,var(--acc-rgb)),var(--gwa-3)),
+             var(--neon-edge),
+             inset 0 1px 3px rgba(255,255,255,var(--ng-hi))}
 .aia-hrow-v{width:52px;flex-shrink:0;text-align:right;font-weight:700}
 .aia-act{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;margin-top:8px;
   background:var(--gl-bg-t);border:1px solid var(--gl-bdr)}

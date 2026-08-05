@@ -1288,15 +1288,19 @@ function _planImportApply(){
 }
 
 // ── SET-TYPEN (normal / warmup / top / drop / fail) ─────────
-const SET_TYPES = ['normal','warmup','top','drop','fail'];
-const SET_TYPE_LABEL = { normal:'', warmup:'W', top:'T', drop:'D', fail:'F' };
+/* Reihenfolge = Reihenfolge im Picker und im Training: erst leichter werden
+   (Aufwärmen), dann der schwerste Satz, dann die beiden Wege danach — einen
+   Schritt zurück (Backoff) oder die Intensitätstechniken (Drop, Versagen). */
+const SET_TYPES = ['normal','warmup','top','backoff','drop','fail'];
+const SET_TYPE_LABEL = { normal:'', warmup:'W', top:'T', backoff:'B', drop:'D', fail:'F' };
 const SET_TYPE_TITLE = GT_LANG === 'en'
-  ? { normal:'Normal', warmup:'Warm-up', top:'Top set', drop:'Drop set', fail:'To failure' }
-  : { normal:'Normal', warmup:'Aufwärmen', top:'Top-Satz', drop:'Drop-Satz', fail:'Bis zum Versagen' };
+  ? { normal:'Normal', warmup:'Warm-up', top:'Top set', backoff:'Back-off set', drop:'Drop set', fail:'To failure' }
+  : { normal:'Normal', warmup:'Aufwärmen', top:'Top-Satz', backoff:'Backoff-Satz', drop:'Drop-Satz', fail:'Bis zum Versagen' };
 const SET_TYPE_DESC = {
   normal: 'Regulärer Arbeitssatz mit deinem normalen Trainingsgewicht. Zählt voll zum Trainingsvolumen.',
   warmup: 'Leichter Satz mit weniger Gewicht (ca. 40–60 %), um Muskeln, Gelenke und Nervensystem aufzuwärmen. Zählt nicht zum Trainingsvolumen.',
   top:    'Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.',
+  backoff:'Nach dem Top-Satz mit 10–20 % weniger Gewicht weitertrainieren, um Volumen zu sammeln, ohne noch einmal ans Maximum zu gehen. Volle Pause davor. Zählt voll zum Trainingsvolumen und belastet weniger als ein Drop- oder Versagens-Satz.',
   drop:   'Direkt nach dem Versagen Gewicht um 20–40 % reduzieren und ohne Pause weitermachen, bis du erneut versagst. Sehr hohe Intensität.',
   fail:   'Wiederholungen bis zur kompletten muskulären Erschöpfung — keine Reps in Reserve. Sparsam einsetzen wegen hoher Belastung.'
 };

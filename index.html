@@ -245,6 +245,11 @@
 <script src="./js/coach-charts.js"></script>
 <script src="./js/workout-focus.js"></script>
 <script src="./js/workout-bar.js"></script>
+<!-- gt-reveal laesst Balken, Fuellungen und Akkus beim Oeffnen einer Seite in
+     ihren Wert wachsen. Wird ausschliesslich aus Funktionskoerpern gerufen
+     (goTab/openOv/openSettingsPage in app-ui.js) — die Position hier haelt die
+     Abhaengigkeit nur sichtbar, noetig waere sie nicht. -->
+<script src="./js/gt-reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <div id="rotate-lock"><div class="rl-txt">Bitte halte dein Gerät im Hochformat.</div></div>
@@ -1548,6 +1553,13 @@
         <div class="settype-info">
           <div class="settype-name">Top-Satz</div>
           <div class="settype-desc">Dein schwerster Arbeitssatz des Tages mit maximalem Gewicht und hoher Intensität (RPE 8–10). Meist nur 1 Satz pro Übung.</div>
+        </div>
+      </button>
+      <button class="settype-card" data-type="backoff" onclick="pickSetType('backoff')">
+        <div class="settype-badge backoff">B</div>
+        <div class="settype-info">
+          <div class="settype-name">Backoff-Satz</div>
+          <div class="settype-desc">Nach dem Top-Satz mit 10–20 % weniger Gewicht weitertrainieren, um Volumen zu sammeln, ohne noch einmal ans Maximum zu gehen. Volle Pause davor. Zählt voll zum Trainingsvolumen und belastet weniger als ein Drop- oder Versagens-Satz.</div>
         </div>
       </button>
       <button class="settype-card" data-type="drop" onclick="pickSetType('drop')">

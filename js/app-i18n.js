@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608041930';
+const APP_VERSION = 'gymtrack-v202608052030';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der
@@ -281,7 +281,8 @@ const I18N_EN = {
   'Bereich speichern':'Save range','⇄ Durch andere Übung ersetzen':'⇄ Replace with another exercise',
   'Übung tauschen':'Swap exercise','Übung getauscht':'Exercise swapped','Name darf nicht leer sein.':'Name must not be empty.',
   'Verlauf & Diagramm':'History & chart','Vollbild-Diagramm':'Fullscreen chart','TYP':'TYPE','+ Satz':'+ Set','kg Vol.':'kg vol.',
-  'Satz-Typ wählen':'Choose set type','Aufwärmsatz':'Warm-up set','Top-Satz':'Top set','Drop-Satz':'Drop set',
+  'Satz-Typ wählen':'Choose set type','Aufwärmsatz':'Warm-up set','Top-Satz':'Top set','Backoff-Satz':'Back-off set','Drop-Satz':'Drop set',
+'Nach dem Top-Satz mit 10–20 % weniger Gewicht weitertrainieren, um Volumen zu sammeln, ohne noch einmal ans Maximum zu gehen. Volle Pause davor. Zählt voll zum Trainingsvolumen und belastet weniger als ein Drop- oder Versagens-Satz.':'After the top set, keep training with 10–20% less weight to accumulate volume without going to your maximum again. Full rest beforehand. Counts fully towards training volume and is less taxing than a drop or to-failure set.',
   'Bis zum Versagen':'To failure','Aufwärmen':'Warm-up',
   'Regulärer Arbeitssatz mit deinem normalen Trainingsgewicht. Zählt voll zum Trainingsvolumen.':'Regular working set with your normal training weight. Counts fully towards training volume.',
   'Leichter Satz mit weniger Gewicht (ca. 40–60 %), um Muskeln, Gelenke und Nervensystem aufzuwärmen. Zählt nicht zum Trainingsvolumen.':'Light set with less weight (approx. 40–60%) to warm up muscles, joints and the nervous system. Does not count towards training volume.',

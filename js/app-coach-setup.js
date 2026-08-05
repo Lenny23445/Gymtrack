@@ -2043,6 +2043,10 @@ function _aiaVolumeHTML(data){
     const rows = (data && data.weeklySetsByMuscle) || [];
     if (!rows.length) return '';
     const farbe = { low: '#ff9f0a', high: '#ff453a', ok: 'var(--text2)' };
+    /* Der Schein des Balkens liest --sig-rgb (s. .aia-hrow-fill). Ohne diese
+       Zeile leuchtete eine Warnzeile in Akzentblau und widerspraeche damit
+       ihrer eigenen Farbe. 'ok' bleibt ohne Eintrag und erbt den Akzent. */
+    const scheinRgb = { low: '255,159,10', high: '255,69,58' };
     const wort  = {
       low:  _cm('zu wenig', 'too little'),
       high: _cm('sehr viel', 'very high'),
@@ -2052,7 +2056,7 @@ function _aiaVolumeHTML(data){
       <div class="aia-sec-t">${tr('Wochensätze je Muskelgruppe')} <span style="opacity:.6;font-weight:400">${rows[0].landmark[0]}–${rows[0].landmark[1]}</span></div>
       ${rows.map(r => `<div class="aia-hrow">
         <span class="aia-hrow-l">${esc(muscleLabel(r.muscleGroup) || r.muscleGroup)}</span>
-        <div class="aia-hrow-bar"><div class="aia-hrow-fill" style="width:${Math.max(2, Math.min(100, Math.round(r.setsPerWeek / r.landmark[1] * 100)))}%;background:${r.verdict === 'ok' ? 'var(--acc)' : farbe[r.verdict]}"></div></div>
+        <div class="aia-hrow-bar"><div class="aia-hrow-fill" style="width:${Math.max(2, Math.min(100, Math.round(r.setsPerWeek / r.landmark[1] * 100)))}%;background:${r.verdict === 'ok' ? 'var(--acc)' : farbe[r.verdict]}${scheinRgb[r.verdict] ? `;--sig-rgb:${scheinRgb[r.verdict]}` : ''}"></div></div>
         <span class="aia-hrow-v" style="color:${farbe[r.verdict]}">${r.setsPerWeek}</span></div>
         <div style="font-size:12px;color:var(--text2);margin:-4px 0 8px 2px">${wort[r.verdict]} · ${r.daysPerWeek}× ${tr('pro Woche')}${r.frequencyLow ? ` · ${_cm('zweimal wöchentlich wirkt besser', 'twice a week works better')}` : ''}</div>`).join('')}
     </div>`;
@@ -2254,6 +2258,9 @@ function _aiaShow(a, localHTML){
       </div>`).join('')}</div>` : ''}
     ${(!hasScore && !a.summary && !hasPoints && !hasRecos && !(a.metrics||[]).length && !(a.bars||[]).length) ? `<div style="text-align:center;padding:24px 12px;color:var(--text2);font-size:14px">${tr('Keine Auswertung erhalten.')}</div>` : ''}
   `;
+  // Die KI-Antwort ersetzt den kompletten Blattinhalt — die Balken sind frisch
+  // im Dokument und muessen deshalb erneut aufgebaut werden.
+  try { if (typeof gtReveal === 'function') gtReveal(el); } catch(_){}
 }
 async function openAiAnalyze(mode, scope){
   const el = document.getElementById('aia-body'); if (!el) return;
@@ -2269,6 +2276,9 @@ async function openAiAnalyze(mode, scope){
   el.innerHTML = `${local}<div style="text-align:center;padding:${local ? 18 : 34}px 12px;color:var(--text2);font-size:14.5px">
     <div class="aic-typing" style="justify-content:center;display:flex;margin:0 auto 14px"><span></span><span></span><span></span></div>
     ${tr('Dein Coach bewertet die Zahlen…')}</div>`;
+  // Die lokalen Kacheln stehen sofort — sie bauen sich auf, waehrend die KI
+  // noch rechnet. Genau dafuer sind sie da.
+  try { if (typeof gtReveal === 'function') gtReveal(el); } catch(_){}
   const res = await aiCall('analyze', { mode, data });
   if (!res || !res.a) {
     el.innerHTML = `${local}<div style="text-align:center;padding:20px 12px;color:var(--text2);font-size:14px;line-height:1.6">${tr('Analyse gerade nicht möglich.')}</div>`;

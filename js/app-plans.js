@@ -881,6 +881,12 @@ function setTypeMul(t) {
   switch ((t || 'normal').toLowerCase()) {
     case 'warmup': return 0.20;   // kaum Ermüdung
     case 'top':    return 1.30;   // schwerster Satz
+    /* Backoff zwischen normalem Arbeitssatz und Drop-Satz. Er laeuft mit
+       deutlich weniger Gewicht, aber direkt nach dem schwersten Satz der
+       Uebung — die Vorermuedung ist der Aufschlag gegenueber 1.00. Weiter
+       oben hat er nichts zu suchen: sein Zweck ist gerade, Volumen zu
+       sammeln, OHNE die Zeche eines zweiten Maximalsatzes zu zahlen. */
+    case 'backoff':return 1.10;
     case 'drop':   return 1.20;   // Drop-Set zerrt mehr
     case 'fail':   return 1.35;   // bis zum Versagen
     default:       return 1.00;   // normaler Arbeitssatz
@@ -2202,6 +2208,40 @@ function _neonF(){
     const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--neon'));
     return isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
   } catch(_) { return 1; }
+}
+/* Derselbe Schein fuer Balken. Bis hierher leuchteten nur die Linien, und der
+   Unterschied fiel genau dort auf, wo beide nebeneinander stehen: im Coach-Hub
+   traegt die Wochenkachel eine leuchtende Bestwert-Linie ueber zwei matten
+   Balkenreihen.
+
+   Die Farbe kommt NICHT als eigener Begriff herein — sie ist die Balkenfarbe,
+   die der Aufrufer ohnehin setzt. Ein zweiter Farbwert waere eine zweite
+   Wahrheit: die Warnfarbe einer ueberzogenen Muskelgruppe wuerde in Akzentblau
+   leuchten und damit dem widersprechen, was der Balken sagt.
+
+   Ein Balken hat, anders als eine Linie, FLAECHE. Derselbe Blurwert wirkt an
+   ihm deshalb staerker; 10 statt der 12/16 der Linie ist der Ausgleich. */
+function _neonBarPlugin(acc){
+  return {
+    id:'neonbar',
+    beforeDatasetDraw(chart, args){
+      const ctx = chart.ctx;
+      ctx.save();
+      let farbe = acc;
+      /* Die eigene Farbe des Datensatzes schlaegt den Akzent. backgroundColor
+         ist bei den Wochenbalken ein ARRAY (nur der letzte Balken traegt den
+         Akzent) — daraus laesst sich kein einzelner Schein bilden, dann bleibt
+         es beim uebergebenen Akzent. */
+      try {
+        const ds = chart.data.datasets[(args && args.index) || 0] || {};
+        if (typeof ds.backgroundColor === 'string') farbe = ds.backgroundColor;
+      } catch(_) {}
+      ctx.shadowColor = _hexA(farbe, .75 * _neonF());
+      ctx.shadowBlur  = 10;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    },
+    afterDatasetDraw(chart){ chart.ctx.restore(); }
+  };
 }
 function _neonLinePlugin(acc, voll){
   return {

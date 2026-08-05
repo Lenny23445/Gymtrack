@@ -51,6 +51,12 @@ const SCHEME_DESC = {
   reverse:'Schwerster Satz zuerst, danach von Satz zu Satz leichter (Reverse Pyramid).'
 };
 const DROP_PCT   = 0.70;       // Drop-Satz = 70 % seines Schema-Gewichts
+/* Backoff-Satz = 85 % seines Schema-Gewichts. Deutlich naeher am Arbeitsgewicht
+   als der Drop-Satz, und das ist der ganze Unterschied: der Drop-Satz faellt
+   nach dem Versagen steil ab, der Backoff-Satz geht bewusst einen Schritt
+   zurueck, um noch Volumen zu sammeln. 85 % liegt in der Mitte der ueblichen
+   10–20 %, die nach einem Top-Satz zurueckgenommen werden. */
+const BACKOFF_PCT = 0.85;
 
 function repRange(ex){
   if(!ex) return { min:8, max:12 };
@@ -138,7 +144,8 @@ function buildPlannedSets(ex){
     } else if(baseW != null){
       const pos  = Math.max(0, workIdx.indexOf(i));
       let mult   = schemeMult(scheme, pos, nW);
-      if(t === 'drop') mult *= DROP_PCT;
+      if(t === 'drop')    mult *= DROP_PCT;
+      if(t === 'backoff') mult *= BACKOFF_PCT;
       // Voll-Gewicht-Satz (mult===1): baseW ist bereits das echte Arbeitsgewicht
       // vom Vorschlag – NICHT aufs 1,25er-Raster runden, sonst würde z. B. 93 kg
       // (per 0,25er-Wheel eingetragen) grundlos auf 92,5 verschoben. Nur die
@@ -305,6 +312,10 @@ function goTab(id, btn) {
   if (id === 'erfolge')   renderErfolge();
   if (id === 'settings')  renderSettings();
   if (id !== 'freunde')   _frStopLive();   // Live-Listener nur solange Freunde-Tab offen
+  /* Nach dem Rendern, nicht davor: gtReveal liest die Zielgroessen aus dem
+     style-Attribut, und das schreibt erst render*(). Davor gerufen faende es
+     die Balken der VORIGEN Seite. */
+  try { if (typeof gtReveal === 'function') gtReveal(pg); } catch(_){}
 }
 
 // ── ERFOLGE ↔ EINSTELLUNGEN (Sub-Page-Navigation, Tab bleibt "Erfolge") ──
@@ -317,6 +328,7 @@ function openSettingsPage() {
   document.querySelector('.app')?.scrollTo({top:0});
   window.scrollTo(0,0);
   renderSettings();
+  try { if (typeof gtReveal === 'function') gtReveal(pg); } catch(_){}
 }
 function closeSettingsPage() {
   haptic(6);
@@ -395,10 +407,18 @@ function openOv(id)  {
     const wk = document.getElementById('ov-wk');
     if (wk && wk.classList.contains('on')) { wk.classList.remove('on'); _wkHiddenBySub = true; }
   }
-  document.getElementById(id).classList.add('on');
+  const _ov = document.getElementById(id);
+  _ov.classList.add('on');
   if (id === 'ov-wk') _wkHiddenBySub = false;
   updateWkMiniVisibility();
   try { _aibSyncVisibility(); } catch(_){}
+  /* Sheets rendern ihren Inhalt zu unterschiedlichen Zeitpunkten — manche vor
+     openOv, manche danach. Ein Frame Abstand trifft beide: gerendert ist dann
+     in jedem Fall, und der Nutzer sieht den Aufbau waehrend das Blatt
+     hochfaehrt. */
+  try {
+    if (typeof gtReveal === 'function') requestAnimationFrame(() => gtReveal(_ov));
+  } catch(_){}
 }
 function closeOv(id) {
   document.getElementById(id).classList.remove('on');
