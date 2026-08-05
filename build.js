@@ -8,7 +8,7 @@ const files = ['index.html', 'sw.js', 'manifest.json', 'css/app.css', 'icon-192.
                'js/coach-persona.js', 'js/coach-voice.js', 'js/coach-session.js', 'js/coach-warmup.js',
                'js/coach-cues.js', 'js/coach-rpe.js', 'js/coach-analyze.js', 'js/coach-volume.js',
                'js/coach-notify.js', 'js/coach-report.js', 'js/coach-charts.js',
-               'js/workout-focus.js', 'js/workout-bar.js', 'js/gt-reveal.js',
+               'js/workout-focus.js', 'js/workout-bar.js', 'js/app-reveal.js',
                // App-Module (Reihenfolge = Ladereihenfolge in index.html).
                // Fehlt hier eines, startet die native App ohne diese Datei.
                'js/app-i18n.js', 'js/app-native.js', 'js/app-ui.js', 'js/app-session.js',

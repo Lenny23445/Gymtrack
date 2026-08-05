@@ -54,6 +54,32 @@
   var MAX_VERZUG = 240;   // Deckel: eine lange Liste soll nicht troepfeln
   var AUFRAEUMEN = 1000;  // ms bis der Versatz wieder abgeraeumt wird
 
+  /* Segmentreihen brauchen eine EIGENE Taktung, und das ist keine
+     Geschmacksfrage: die Striche wechseln nur die Farbe, und der Uebergang
+     dafuer steht im Stylesheet auf 450 ms. Mit 30 ms Versatz ueberlappen fuenf
+     Zellen zu ueber 90 % — dann faerbt sich die ganze Batterie auf einmal ein
+     und genau das war der Fehler: es sah nicht aus, als LADE sie sich.
+
+     Damit eine Reihe als Ladevorgang liest, muss jede Zelle sichtbar NACH der
+     vorigen kommen. Also: kurzer Uebergang je Zelle, dafuer deutlicher
+     Abstand. Der Abstand richtet sich nach der Anzahl, damit eine Batterie mit
+     fuenf Zellen und eine Leiste mit zwoelf beide in derselben Zeit fertig
+     sind — sonst tickerte die lange Reihe doppelt so lange wie die kurze,
+     obwohl beide dasselbe meinen. */
+  var SEG_MS      = 170;   // Uebergang je Strich (ueberschreibt das Stylesheet)
+  var SEG_GESAMT  = 520;   // so lange dauert eine Reihe, egal wie viele Striche
+  var SEG_MIN     = 28;    // darunter verschmelzen die Striche wieder
+  var SEG_MAX     = 95;    // darueber wirkt es zaeh statt zuegig
+
+  /* Der Abstand zwischen zwei Strichen einer Reihe. Ausgelagert und geprueft,
+     weil er der ganze Unterschied zwischen "laedt" und "ist halt da" ist. */
+  function segSchritt(anzahl) {
+    var n = (typeof anzahl === 'number' && isFinite(anzahl) && anzahl > 1)
+      ? Math.round(anzahl) : 1;
+    if (n <= 1) return 0;
+    return Math.max(SEG_MIN, Math.min(SEG_MAX, Math.round(SEG_GESAMT / (n - 1))));
+  }
+
   function reduziert() {
     try {
       return !!(root.matchMedia &&
@@ -76,9 +102,8 @@
      (neuer Satz eingetragen, Erholung neu gerechnet) traege ihn sonst mit und
      zoegerte grundlos. */
   function spaeterAufraeumen(el, ms) {
-    try {
-      root.setTimeout(function () { el.style.transitionDelay = ''; }, ms + AUFRAEUMEN);
-    } catch (_) { el.style.transitionDelay = ''; }
+    function frei() { el.style.transitionDelay = ''; el.style.transition = ''; }
+    try { root.setTimeout(frei, ms + AUFRAEUMEN); } catch (_) { frei(); }
   }
 
   function riseGroesse(el, achse, i) {
@@ -109,20 +134,26 @@
     if (!gefuellt.length) return;
     if (rueckwaerts) gefuellt.reverse();
 
+    var schritt = segSchritt(gefuellt.length);
     for (i = 0; i < gefuellt.length; i++) {
       el = gefuellt[i];
       var bg = el.style.background, sh = el.style.boxShadow;
-      var ms = verzug(i);
+      var ms = i * schritt;
       el.style.transition = 'none';
       el.style.transitionDelay = '0ms';
       el.style.background = '';
       el.style.boxShadow  = '';
       reflow(el);
-      el.style.transition = '';
+      /* Der kurze Uebergang wird hier gesetzt und nicht dem Stylesheet
+         ueberlassen: dort stehen 450 ms, und die sind fuer eine ECHTE
+         Wertaenderung richtig (die Erholung springt nicht, sie wandert). Fuer
+         den Aufbau waeren sie zu lang — die Striche liefen ineinander. */
+      el.style.transition = 'background ' + SEG_MS + 'ms linear, box-shadow ' + SEG_MS + 'ms linear';
       el.style.transitionDelay = ms + 'ms';
       el.style.background = bg;
       el.style.boxShadow  = sh;
-      spaeterAufraeumen(el, ms);
+      // Nach dem Aufbau zurueck auf den Uebergang aus dem Stylesheet.
+      spaeterAufraeumen(el, ms + SEG_MS);
     }
   }
 
@@ -149,7 +180,9 @@
     } catch (e) { console.warn('[Reveal]', e); }
   }
 
-  var API = { gtReveal: gtReveal, verzug: verzug, STUFE: STUFE, MAX_VERZUG: MAX_VERZUG };
+  var API = { gtReveal: gtReveal, verzug: verzug, segSchritt: segSchritt,
+              STUFE: STUFE, MAX_VERZUG: MAX_VERZUG,
+              SEG_MS: SEG_MS, SEG_GESAMT: SEG_GESAMT, SEG_MIN: SEG_MIN, SEG_MAX: SEG_MAX };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.GtReveal = API;
