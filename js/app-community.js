@@ -359,8 +359,8 @@ const CPG_FOOT = 60;
    im Kartenrahmen — dort sass er seit der schmaleren Karte eingerueckt und kollidierte
    mit dem Live-Zaehler. Leerer Text = Zeile zeigt nur die Zonenbeschriftung. */
 function _cpgSetCount(txt){
-  const el = document.getElementById('cpg-count');
-  if (el) el.textContent = txt || '';
+  // Auch den unsichtbaren Zwilling links mitschreiben — er haelt die Beschriftung mittig.
+  document.querySelectorAll('.cpg-count').forEach(el => { el.textContent = txt || ''; });
 }
 /* Resthoehe fuer den Rahmen im Feed-Vollbild: Hoehe des Elternblocks minus alles,
    was darueber liegt (Zonenzeile inkl. Abstand). 0 = kein Vollbild (Seite scrollt
