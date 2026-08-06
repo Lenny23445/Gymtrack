@@ -1,0 +1,29 @@
+{
+  // Deploy-Config fuer den APNs-Push-Worker. Enthaelt bewusst KEINE Secrets:
+  // APNS_KEY_ID, APNS_KEY_P8 und APNS_TEAM_ID liegen als Cloudflare-Secrets und
+  // ueberleben jeden Deploy — sie stehen hier nicht und duerfen es nicht.
+  //
+  // Bis 06.08.2026 hatte dieser Worker ueberhaupt keine Config und wurde von Hand
+  // hochgeladen. Folge: das KV-Binding fehlte, und pushQuota() faellt bei fehlendem
+  // Binding absichtlich offen aus (worker.js:197) — die Spam-Bremse lief also ins
+  // Leere, ohne dass etwas kaputt ausgesehen haette.
+  "name": "gymtrack-push",
+  "main": "worker.js",
+  // Gleiches Datum wie der zuletzt hochgeladene Stand: ein neueres Datum kann
+  // Laufzeitverhalten aendern, und dieser Deploy soll nur den Code aktualisieren.
+  "compatibility_date": "2026-07-21",
+  "kv_namespaces": [
+    // Derselbe Namespace wie im ai-worker. worker.js liest PUSH_QUOTA || AI_QUOTA,
+    // die Schluessel sind mit "p:" praefixiert und kollidieren nicht mit der
+    // KI-Quote. Ein eigener Namespace waere sauberer getrennt, aber die Zaehler
+    // sind kurzlebig (TTL 2 Tage) und ein zweiter Namespace waere eine weitere
+    // Stelle, die beim naechsten Deploy vergessen werden kann.
+    { "binding": "AI_QUOTA", "id": "4ea529992cc548eb852b7e3b0818a03b" }
+  ],
+  "vars": {
+    // Tageslimit je Absender und je Absender-Empfaenger-Paar. Die eigentliche
+    // Sperre ist die Beziehungspruefung im Worker; das hier ist die Spam-Bremse.
+    "PUSH_DAILY": "60",
+    "PUSH_DAILY_PER_RECIPIENT": "10"
+  }
+}
