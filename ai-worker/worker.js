@@ -672,7 +672,14 @@ export default {
       // jeder kaputte Analyse-Aufruf (siehe abgeschnittenes JSON) sowohl Tages-
       // als auch Monatskontingent gefressen — genau das Muster "Tageslimit
       // erreicht, obwohl ich kaum was gemacht habe".
-      try { await dailyRefund(uid, kind, env); await monthlyRefund(uid, env, weight); } catch (_) {}
+      /* Ausnahme: Hat der Anbieter geantwortet, aber ohne verwertbaren Text
+         (Sicherheitsfilter, RECITATION o.ae.), sind die Tokens trotzdem
+         berechnet worden. Wuerde hier erstattet, liesse sich genau so eine
+         Anfrage unbegrenzt wiederholen — echte Kosten, kein Zaehler, unsichtbar
+         fuer den Ausgabendeckel. */
+      if (!(e && e.verbraucht)) {
+        try { await dailyRefund(uid, kind, env); await monthlyRefund(uid, env, weight); } catch (_) {}
+      }
       // Founder-Konto bekommt den echten Grund im Klartext zurück (z. B.
       // "Gemini HTTP 400 …") — ohne den ist von außen nicht zu unterscheiden,
       // ob API-Key, Modellname oder Anbieter-Ausfall dahintersteckt.
@@ -753,7 +760,7 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
   // Client zeigt sonst seinen Fallback-Text, die Kontingent-Erstattung greift
   // nicht, und bei einer cachefaehigen Frage landet der Leerstring 30 Tage im
   // GETEILTEN Cache und trifft danach jeden Nutzer mit derselben Frage.
-  if (!text.trim()) throw new Error("leere Antwort (finishReason " + (cand.finishReason || "?") + ")");
+  if (!text.trim()) throw Object.assign(new Error("leere Antwort (finishReason " + (cand.finishReason || "?") + ")"), { verbraucht: true });
   const um = data.usageMetadata || {};
   // MAX_TOKENS bei erzwungenem JSON = mitten im String abgeschnitten. Das muss
   // sichtbar sein, sonst knallt es später als "Unterminated string in JSON".
@@ -784,7 +791,7 @@ async function llmClaude(env, { system, messages, maxTokens, schema }) {
   if (data.stop_reason === "refusal") throw new Error("refusal");
   const text = ((data.content || []).find((b) => b.type === "text") || {}).text || "";
   // Wie bei Gemini: leerer Text ist ein Fehler, kein Erfolg (siehe llmGemini).
-  if (!text.trim()) throw new Error("leere Antwort (stop_reason " + (data.stop_reason || "?") + ")");
+  if (!text.trim()) throw Object.assign(new Error("leere Antwort (stop_reason " + (data.stop_reason || "?") + ")"), { verbraucht: true });
   const u = data.usage || {};
   return { text, truncated: data.stop_reason === "max_tokens",
            usage: { inTok: u.input_tokens || 0, outTok: u.output_tokens || 0 } };

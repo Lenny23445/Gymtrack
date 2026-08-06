@@ -77,9 +77,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>GymTrack braucht die Kamera, um Fotos für deine Übungen aufzunehmen.</string>
+	<string>GymTrack braucht die Kamera für Übungsbilder, für Trainingsfotos, die du in der Community teilst, und um ein Gerät für den KI-Scanner aufzunehmen.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>GymTrack liest dein Körpergewicht aus Apple Health.</string>
+	<string>GymTrack liest dein Körpergewicht und deine Herzfrequenz aus Apple Health, um sie dir während des Trainings anzuzeigen.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>GymTrack speichert deine Workouts und dein Körpergewicht in Apple Health.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -87,7 +87,7 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>GymTrack speichert exportierte Workout-Bilder in deiner Fotomediathek.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GymTrack braucht Zugriff auf deine Fotos, um Bilder für deine Übungen auszuwählen.</string>
+	<string>GymTrack braucht Zugriff auf deine Fotos, um Bilder für deine Übungen, dein Profil oder einen Community-Beitrag auszuwählen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>GymTrack wandelt deine gesprochene Nachricht im KI-Chat in Text um.</string>
 	<key>NSSupportsLiveActivities</key>

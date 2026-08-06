@@ -2994,6 +2994,9 @@ function importData() {
       try {
         const parsed = JSON.parse(ev.target.result);
         if (parsed.exercises !== undefined || parsed.sessions !== undefined) {
+          // Ohne das schreibt der entprellte persist() beim reload den alten
+          // Stand aus S ueber das gerade eingespielte Backup.
+          try { _persistCancel(); } catch(_) {}
           localStorage.setItem('ft4', ev.target.result);
           alert('Daten wiederhergestellt! App wird neu geladen.');
           location.reload();

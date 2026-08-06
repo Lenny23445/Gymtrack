@@ -54,7 +54,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
   import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, deleteUser }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, collectionGroup, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp, increment }
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, deleteField, collection, collectionGroup, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp, increment }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
   import { getStorage, ref as stRef, uploadString, getDownloadURL, deleteObject }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
@@ -120,6 +120,7 @@
     window.FB.updateDoc          = updateDoc;
     window.FB.addDoc             = addDoc;
     window.FB.deleteDoc          = deleteDoc;
+    window.FB.deleteField        = deleteField;
     window.FB.deleteUser         = () => deleteUser(auth.currentUser);
     window.FB.collection         = (path) => collection(db, path);
     window.FB.doc                = (path, id) => doc(db, path, id);

@@ -1732,6 +1732,13 @@ async function doSignOut() {
   if (_socReady()) { try { await window.FB.updateDoc(window.FB.doc('profiles', _fbUser.uid), { pushToken: null }); } catch(_){} }
   _pushToken = null;
   try { await window.FB.signOut(); } catch(e) { console.warn(e); }
+  /* Flammen-Punkte sind kontogebunden und werden seit dem Cloud-Abgleich
+     zusammengefuehrt. Bleibt die Bank auf dem Geraet stehen, erbt sie das
+     naechste Konto ueber _flameBankMerge und traegt sie in DESSEN Cloud-Doc
+     ein — die Bank waechst monoton, das waere nicht mehr rueckgaengig zu
+     machen. Beim naechsten Login desselben Kontos kommt sie aus der Cloud. */
+  try { localStorage.removeItem('gt_flameBank'); } catch(_) {}
+  try { localStorage.removeItem('gt_flamesGiven'); } catch(_) {}
 }
 
 // ── Konto endgültig löschen (Apple App Store Guideline 5.1.1(v)) ──

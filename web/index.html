@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MyGymTrack – Dein smartes Trainingstagebuch</title>
-<meta name="description" content="MyGymTrack ist dein smartes Trainingstagebuch fürs iPhone: Workouts in Sekunden loggen, automatische Gewichtsvorschläge, 1RM-Statistiken, Erholungs-Tracking, Streaks & Community.">
+<title>MyGymTrack – Trainingstagebuch mit KI-Coach</title>
+<meta name="description" content="MyGymTrack ist dein Trainingstagebuch fürs iPhone – mit einem KI-Coach, der während der Einheit mitredet, sich über Wochen an dich erinnert und deine Gewichte an deinen Check-in anpasst. Jetzt im App Store.">
 <link rel="icon" href="../icon-192.png">
 <meta name="theme-color" content="#05060f">
 
 <!-- Social / Instagram Link-Preview -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="MyGymTrack – Dein smartes Trainingstagebuch">
-<meta property="og:description" content="Workouts loggen, Fortschritt sehen, stärker werden. Smarte Gewichtsvorschläge, 1RM-Analyse, Erholungs-Tracking & Community.">
+<meta property="og:title" content="MyGymTrack – Trainingstagebuch mit KI-Coach">
+<meta property="og:description" content="Dein Coach hebt mit: Hinweis vor dem schweren Satz, Rückfrage danach, Gedächtnis über Wochen. Plus Logging, 1RM-Analyse, Erholung & Community.">
 <meta property="og:image" content="https://lenny23445.github.io/Gymtrack/icon-1024.png">
 <meta property="og:url" content="https://lenny23445.github.io/Gymtrack/web/">
 <meta name="twitter:card" content="summary_large_image">
@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="../screenshots/tab_Heute.png">
+<link rel="preload" as="image" href="../screenshots/tab_Heute.jpg">
 
 <style>
 /* ═══════════════ TOKENS ═══════════════ */
@@ -90,17 +90,22 @@ nav.scrolled{
 .logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;color:var(--text)}
 .logo img{width:34px;height:34px;border-radius:9px;box-shadow:0 4px 14px rgba(10,132,255,.35)}
 .nav-links{display:flex;gap:26px;margin-left:auto}
-.nav-links a{color:var(--text2);font-weight:500;font-size:15px;transition:color .2s}
+.nav-links a{color:var(--text2);font-weight:500;font-size:15px;white-space:nowrap;transition:color .2s}
 .nav-links a:hover{color:var(--text)}
 .nav-cta{
   margin-left:auto;display:inline-flex;align-items:center;gap:8px;
   background:var(--acc);color:#fff;font-weight:600;font-size:14.5px;
   padding:10px 20px;border-radius:22px;transition:transform .15s var(--ease),box-shadow .2s,background .2s;
-  box-shadow:0 4px 18px rgba(10,132,255,.35);
+  box-shadow:0 4px 18px rgba(10,132,255,.35);white-space:nowrap;
 }
 .nav-links + .nav-cta{margin-left:0}
 .nav-cta:hover{background:#3b9bff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(10,132,255,.45)}
-@media(max-width:760px){.nav-links{display:none}}
+@media(max-width:880px){.nav-links{display:none}}   /* fuenf Links + Store-Knopf brauchen mehr Breite als vier */
+@media(max-width:400px){
+  .nav-in{gap:12px;padding:12px 16px}
+  .nav-cta{padding:9px 15px;font-size:13.5px}
+  .nc-long{display:none}
+}
 
 /* ═══════════════ HERO ═══════════════ */
 .hero{
@@ -140,6 +145,7 @@ nav.scrolled{
   min-height:52px;touch-action:manipulation;
 }
 .btn svg{width:19px;height:19px;flex:none}
+.btn .ap,.nav-cta .ap{width:17px;height:21px;flex:none}   /* Apple-Zeichen ist hoeher als breit */
 .btn:active{transform:scale(.97)}
 .btn-primary{
   background:var(--grad);background-size:200% 100%;color:#fff;
@@ -172,7 +178,18 @@ nav.scrolled{
   box-shadow:0 0 0 5px rgba(20,22,36,.9),0 30px 80px rgba(0,0,0,.65),0 8px 26px rgba(0,0,0,.5);
   transform-style:preserve-3d;will-change:transform;
 }
-.phone img{width:100%;height:100%;object-fit:cover;border-radius:11%/5.1%}
+.phone > img{width:100%;height:100%;object-fit:cover;border-radius:11%/5.1%}
+/* Auffangbild: fehlt ein Screenshot, zeigt der Rahmen eine Blende statt einer Luecke */
+.ph-fb{
+  position:absolute;inset:1.5%;border-radius:11%/5.1%;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:15px;
+  padding:14%;text-align:center;
+  background:linear-gradient(165deg,#101527 0%,#0a0c1a 55%,#141834 100%);
+}
+.ph-fb img{width:62px;height:62px;border-radius:17px;box-shadow:0 10px 30px rgba(10,132,255,.35)}
+.ph-fb span{font-size:13px;line-height:1.5;color:var(--text2);font-weight:500}
+.phone.noimg > img{display:none}
+.phone.noimg .ph-fb{display:flex}
 .phone .island{
   position:absolute;top:3.4%;left:50%;transform:translateX(-50%);
   width:26%;height:2.6%;background:#000;border-radius:100px;z-index:2;
@@ -297,6 +314,38 @@ h2{font-size:clamp(38px,5.5vw,58px);font-weight:800;line-height:1.02;margin-bott
 .checklist b{display:block;font-size:16.5px}
 .checklist span{color:var(--text2);font-size:14.5px;line-height:1.5}
 
+/* ── Coach-Leiste (Beispielverlauf) ── */
+.cdemo{
+  background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r-lg);
+  padding:26px 24px;display:grid;gap:11px;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+}
+@media(max-width:480px){.cdemo{padding:22px 18px}}
+.cdemo-h{display:flex;align-items:center;gap:12px;margin-bottom:7px}
+.cdemo-h .ic{
+  width:38px;height:38px;border-radius:12px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(10,132,255,.22),rgba(139,92,246,.16));
+  border:1px solid rgba(90,200,250,.25);color:var(--acc2);
+}
+.cdemo-h .ic svg{width:19px;height:19px}
+.cdemo-h b{font-size:15.5px;font-weight:700}
+.cdemo-h small{display:block;color:var(--text2);font-size:12.5px;font-weight:500}
+.cd-msg{
+  background:var(--glass-strong);border:1px solid var(--stroke);
+  border-radius:16px;padding:13px 16px;font-size:15px;line-height:1.5;
+}
+.cd-msg i{
+  display:block;font-style:normal;font-size:11px;font-weight:700;
+  letter-spacing:1.8px;text-transform:uppercase;color:var(--text2);margin-bottom:6px;
+}
+.cd-you{
+  justify-self:end;max-width:80%;font-weight:600;
+  background:rgba(10,132,255,.18);border-color:rgba(90,200,250,.3);
+}
+.cdemo-foot{margin-top:8px;color:var(--text2);font-size:13.5px;line-height:1.55}
+.prem-note{margin-top:34px;text-align:center;color:var(--text2);font-size:14.5px;line-height:1.6}
+
 /* ═══════════════ CTA ═══════════════ */
 .cta-card{
   position:relative;overflow:hidden;text-align:center;
@@ -356,14 +405,15 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       MyGymTrack
     </a>
     <div class="nav-links">
+      <a href="#coach">KI-Coach</a>
       <a href="#funktionen">Funktionen</a>
       <a href="#app">Die App</a>
       <a href="#motivation">Motivation</a>
       <a href="#support">Support</a>
     </div>
-    <a class="nav-cta" href="../" target="_blank" rel="noopener">
-      App öffnen
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px"><path d="M7 17 17 7M9 7h8v8"/></svg>
+    <a class="nav-cta" href="https://apps.apple.com/app/id6775434876" target="_blank" rel="noopener">
+      <svg class="ap" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      <span><span class="nc-long">Im </span>App Store</span>
     </a>
   </div>
 </nav>
@@ -372,15 +422,15 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
 <header class="hero" id="top">
   <div class="wrap hero-in">
     <div>
-      <span class="badge rv in"><span class="dot"></span>Bald im App Store · jetzt als Web-App testen</span>
-      <h1 class="rv in d1">Track dein<br>Training.<br><span class="grad">Sieh dich wachsen.</span></h1>
-      <p class="sub rv in d2">MyGymTrack ist dein smartes Trainingstagebuch: Workouts in Sekunden loggen, automatische Gewichtsvorschläge, 1RM-Analysen und Erholungs-Tracking – alles auf deinem iPhone.</p>
+      <span class="badge rv in"><span class="dot"></span>Jetzt im App Store · kostenlos laden</span>
+      <h1 class="rv in d1">Dein Coach<br>hebt mit.<br><span class="grad">Und kennt dich.</span></h1>
+      <p class="sub rv in d2">MyGymTrack ist dein Trainingstagebuch fürs iPhone – mit einem KI-Coach, der während der Einheit mitredet, sich über Wochen an dich erinnert und deine Gewichte zurücknimmt, wenn dein Check-in sagt, dass heute nicht dein Tag ist.</p>
       <div class="hero-ctas rv in d3">
-        <a class="btn btn-primary" href="../" target="_blank" rel="noopener">
-          Jetzt kostenlos testen
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        <a class="btn btn-primary" href="https://apps.apple.com/app/id6775434876" target="_blank" rel="noopener">
+          <svg class="ap" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          Im App Store laden
         </a>
-        <a class="btn btn-ghost" href="#funktionen">Funktionen ansehen</a>
+        <a class="btn btn-ghost" href="../" target="_blank" rel="noopener">Im Browser testen</a>
       </div>
       <div class="trust rv in d4">
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>Apple Health</span>
@@ -393,11 +443,12 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="phone-glow" aria-hidden="true"></div>
       <div class="phone tilt">
         <div class="island" aria-hidden="true"></div>
-        <img src="../screenshots/tab_Heute.png" alt="MyGymTrack Dashboard: Wochenübersicht, Streak, Erholung und Training-starten-Button" width="1170" height="2532" fetchpriority="high">
+        <img src="../screenshots/tab_Heute.jpg" alt="MyGymTrack Dashboard: Wochenübersicht, Streak, Erholung und Training-starten-Button" width="1170" height="2532" fetchpriority="high">
+        <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Heute-Tab: Streak, Wochenziele und Schnellstart</span></div>
       </div>
       <div class="float-card fc1" aria-hidden="true">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
-        <div>+32 % Beinkraft<small>seit Trainingsstart</small></div>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 17.5 4 14.2 4 10.5A4.5 4.5 0 0 1 8.5 6c1.4 0 2.6.6 3.5 1.7C12.9 6.6 14.1 6 15.5 6A4.5 4.5 0 0 1 20 10.5c0 3.7-3 7-8 10.5Z"/></svg></span>
+        <div>Deload aktiv<small>rund 8 % weniger Gewicht</small></div>
       </div>
       <div class="float-card fc2" aria-hidden="true">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3M16 2v3M3.5 9h17M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m9 14.5 2 2 4-4"/></svg></span>
@@ -411,10 +462,80 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
 <!-- ═══════════════ MARQUEE ═══════════════ -->
 <div class="marquee" aria-hidden="true">
   <div class="marquee-track">
-    <span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
-    <span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
+    <span>KI-Coach</span><span>Live-Feedback im Satz</span><span>Check-in</span><span>Wochenbericht</span><span>Aufwärmsätze</span><span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
+    <span>KI-Coach</span><span>Live-Feedback im Satz</span><span>Check-in</span><span>Wochenbericht</span><span>Aufwärmsätze</span><span>Training loggen</span><span>Gewichtsvorschläge</span><span>1RM-Analyse</span><span>Erholungs-Tracking</span><span>Streaks</span><span>Supersätze</span><span>Plate Calculator</span><span>Widgets</span><span>Apple Health</span><span>Cloud-Sync</span><span>Community</span><span>4 Designs</span>
   </div>
 </div>
+
+<!-- ═══════════════ KI-COACH ═══════════════ -->
+<section id="coach" aria-labelledby="coach-h">
+  <div class="wrap">
+    <div class="sec-head center rv">
+      <span class="eyebrow">Der Unterschied</span>
+      <h2 id="coach-h">Andere Apps speichern.<br>Deine redet mit dir.</h2>
+      <p class="sec-sub">Ein Trainingstagebuch merkt sich Zahlen. MyGymTrack merkt sich dich – und meldet sich zwischen den Sätzen, nicht erst in der Auswertung am Monatsende.</p>
+    </div>
+  </div>
+
+  <div class="wrap split">
+    <div class="rv">
+      <div class="cdemo">
+        <div class="cdemo-h">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span>
+          <div><b>Coach</b><small>Ton: sachlich · meldet sich: bei allem</small></div>
+        </div>
+        <div class="cd-msg"><i>Beim Öffnen der Übung</i>Bankdrücken: zuletzt 72,5 kg, 4 Sätze zu 8 Wiederholungen.</div>
+        <div class="cd-msg"><i>Vor dem schweren Satz</i>Schulterblätter zusammenziehen und unten halten, dann die Stange zur Brustmitte führen.</div>
+        <div class="cd-msg"><i>Nach dem Satz</i>Einschätzung zum Satz: leicht, passend oder schwer?</div>
+        <div class="cd-msg cd-you">Leicht</div>
+        <div class="cd-msg">Notiert. Nächster Vorschlag: 75 kg.</div>
+        <p class="cdemo-foot">Echte Sätze aus der App, kein Werbetext. Mehr als acht Wortmeldungen bekommst du pro Einheit nicht – danach ist Ruhe. Oder du stellst ihn ganz auf leise.</p>
+      </div>
+    </div>
+
+    <div class="rv d1">
+      <ul class="checklist" style="margin-top:0">
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Er sieht jeden Satz mit</b><span>Ein Technik-Hinweis vor dem schweren Satz, eine Rückfrage danach. Aus deiner Antwort leitet er das nächste Gewicht ab – gerechnet und erklärbar, nicht geraten.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Er merkt sich, was war</b><span>Ziel, Ton, Einschränkungen und was bei dir funktioniert – über alle Einheiten hinweg. Im Journal steht jeder einzelne Eintrag, und du löschst ihn mit einem Tipp.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Dein Check-in steuert die Gewichte</b><span>Zweimal schwer bei wenig Energie? Dann nimmt er rund 8 % Gewicht raus und verlängert die Pausen. Das rechnet die App selbst, auf dem Gerät, auch ohne Netz.</span></div>
+        </li>
+        <li>
+          <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+          <div><b>Er verspricht nur, was die Zahlen hergeben</b><span>Die Kraftprognose im Wochenbericht kommt erst ab vier Wochen Daten und nur bei klarem Trend. Reicht die Grundlage nicht, sagt er das – statt eine Zahl zu erfinden.</span></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wrap" style="margin-top:70px">
+    <div class="grid">
+      <div class="feat rv">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></div>
+        <h3>Persönlichkeit</h3>
+        <p>Gib ihm einen Namen und einen Ton – ruhig, sachlich, hart oder locker. Auf Wunsch spricht er dir die Ansage zwischen den Sätzen auch vor.</p>
+      </div>
+      <div class="feat rv d1">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
+        <h3>Wochenbericht</h3>
+        <p>Volumen, Trend und Kraftziel der vergangenen Woche – zu dem Termin, den du festlegst. Mit Prognose, wenn die Datenlage sie trägt.</p>
+      </div>
+      <div class="feat rv d2">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h4l3-8 4 12 3-9h4"/></svg></div>
+        <h3>Stillstand &amp; Volumen</h3>
+        <p>Erkennt, wenn eine Übung seit Wochen steht, und rechnet dein Wochenvolumen je Muskelgruppe gegen die Richtwerte: 10 bis 20 Arbeitssätze, mindestens zwei Reiztage.</p>
+      </div>
+    </div>
+    <p class="prem-note">Der Coach gehört zu MyGymTrack Premium. Training loggen, Statistiken, Pläne und Community bleiben kostenlos.</p>
+  </div>
+</section>
 
 <!-- ═══════════════ FEATURES ═══════════════ -->
 <section id="funktionen" aria-labelledby="funktionen-h">
@@ -434,7 +555,7 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="feat rv d1">
         <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
         <h3>Smarte Progression</h3>
-        <p>Die App schlägt dir automatisch dein nächstes Gewicht vor. Du fokussierst dich aufs Heben – MyGymTrack denkt mit.</p>
+        <p>Die App schlägt dir automatisch dein nächstes Gewicht vor – nach doppelter Progression, mit Aufwärmsätzen und Wiederholungsbereich statt starrer Vorgabe.</p>
       </div>
       <div class="feat rv d2">
         <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="1"/><rect x="12" y="6" width="3" height="12" rx="1"/><rect x="17" y="13" width="3" height="5" rx="1"/></svg></div>
@@ -443,8 +564,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       </div>
       <div class="feat rv">
         <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 17.5 4 14.2 4 10.5A4.5 4.5 0 0 1 8.5 6c1.4 0 2.6.6 3.5 1.7C12.9 6.6 14.1 6 15.5 6A4.5 4.5 0 0 1 20 10.5c0 3.7-3 7-8 10.5Z"/></svg></div>
-        <h3>Erholungs-Tracking</h3>
-        <p>Sieh auf einen Blick, welche Muskelgruppen bereit sind – und wann du wieder Vollgas geben kannst.</p>
+        <h3>Erholung &amp; Volumen</h3>
+        <p>Sieh auf einen Blick, welche Muskelgruppen bereit sind – und ob deine Wochensätze je Muskel im brauchbaren Bereich liegen.</p>
       </div>
       <div class="feat rv d1">
         <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8m-4-4v4M7 4h10v6a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg></div>
@@ -473,7 +594,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="shot rv">
         <div class="phone tilt">
           <div class="island" aria-hidden="true"></div>
-          <img src="../screenshots/tab_Heute.png" alt="Heute-Tab: Wochenübersicht, Streak und Wochenziele" width="1170" height="2532" loading="lazy">
+          <img src="../screenshots/tab_Heute.jpg" alt="Heute-Tab: Wochenübersicht, Streak und Wochenziele" width="1170" height="2532" loading="lazy">
+          <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Heute-Tab</span></div>
         </div>
         <h3>Dein Tag auf einen Blick</h3>
         <p>Streak, Wochenziele &amp; Schnellstart</p>
@@ -481,7 +603,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="shot rv d1">
         <div class="phone tilt">
           <div class="island" aria-hidden="true"></div>
-          <img src="../screenshots/tab_Uebungen.png" alt="Übungen-Tab: Wochenplan und Übungsliste mit Zielen" width="1170" height="2532" loading="lazy">
+          <img src="../screenshots/tab_Uebungen.jpg" alt="Übungen-Tab: Wochenplan und Übungsliste mit Zielen" width="1170" height="2532" loading="lazy">
+          <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Übungen-Tab</span></div>
         </div>
         <h3>Dein Plan, deine Übungen</h3>
         <p>Drag &amp; Drop Wochenplanung</p>
@@ -489,7 +612,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="shot rv d2">
         <div class="phone tilt">
           <div class="island" aria-hidden="true"></div>
-          <img src="../screenshots/tab_Statistik.png" alt="Statistik-Tab: Volumen-Chart und Erholungs-Status pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+          <img src="../screenshots/tab_Statistik.jpg" alt="Statistik-Tab: Volumen-Chart und Erholungs-Status pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+          <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Statistik-Tab</span></div>
         </div>
         <h3>Zahlen, die motivieren</h3>
         <p>Volumen, 1RM &amp; Erholung</p>
@@ -497,7 +621,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="shot rv d3">
         <div class="phone tilt">
           <div class="island" aria-hidden="true"></div>
-          <img src="../screenshots/tab_Erfolge.png" alt="Erfolge-Tab: Kraftsteigerung pro Muskel und Meilensteine" width="1170" height="2532" loading="lazy">
+          <img src="../screenshots/tab_Erfolge.jpg" alt="Erfolge-Tab: Kraftsteigerung pro Muskel und Meilensteine" width="1170" height="2532" loading="lazy">
+          <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Erfolge-Tab</span></div>
         </div>
         <h3>Erfolge, die bleiben</h3>
         <p>Kraftzuwachs &amp; Meilensteine</p>
@@ -513,7 +638,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
       <div class="phone-glow" aria-hidden="true"></div>
       <div class="phone tilt">
         <div class="island" aria-hidden="true"></div>
-        <img src="../screenshots/tab_Erfolge.png" alt="Erfolge-Übersicht mit Kraftsteigerung pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+        <img src="../screenshots/tab_Erfolge.jpg" alt="Erfolge-Übersicht mit Kraftsteigerung pro Muskelgruppe" width="1170" height="2532" loading="lazy">
+        <div class="ph-fb"><img src="../icon-192.png" alt="" width="62" height="62"><span>Kraftsteigerung pro Muskelgruppe</span></div>
       </div>
     </div>
     <div class="rv d1">
@@ -546,15 +672,15 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
 <section id="support" aria-labelledby="cta-h">
   <div class="wrap">
     <div class="cta-card rv">
-      <span class="badge"><span class="dot"></span>Bald im App Store</span>
+      <span class="badge"><span class="dot"></span>Jetzt im App Store</span>
       <h2 id="cta-h" style="margin-top:22px">Bereit, stärker<br>zu werden?</h2>
-      <p class="sec-sub">Teste MyGymTrack jetzt kostenlos als Web-App – die iOS-Version ist schon auf dem Weg in den App Store.</p>
+      <p class="sec-sub">MyGymTrack lädst du kostenlos im App Store. Training loggen, Statistiken, Pläne und Community sind drin – der KI-Coach ist Teil von Premium.</p>
       <div class="cta-btns">
-        <a class="btn btn-primary" href="../" target="_blank" rel="noopener">
-          Web-App öffnen
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        <a class="btn btn-primary" href="https://apps.apple.com/app/id6775434876" target="_blank" rel="noopener">
+          <svg class="ap" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          Im App Store laden
         </a>
-        <a class="btn btn-ghost" href="mailto:wolterlenny362@gmail.com">Kontakt aufnehmen</a>
+        <a class="btn btn-ghost" href="../" target="_blank" rel="noopener">Im Browser testen</a>
       </div>
       <p class="cta-note">Fragen, Bugs oder Wünsche? Schreib mir direkt: <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a></p>
     </div>
@@ -569,7 +695,8 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
         <img src="../icon-192.png" alt="" width="34" height="34">
         MyGymTrack
       </a>
-      <p>Dein smartes Trainingstagebuch. Workouts loggen, Fortschritt sehen, stärker werden – ohne Schnickschnack.</p>
+      <p>Dein Trainingstagebuch mit KI-Coach. Workouts loggen, Fortschritt sehen, stärker werden – ohne Schnickschnack.</p>
+      <a href="https://apps.apple.com/app/id6775434876" target="_blank" rel="noopener" style="display:inline-block;margin-top:14px;font-weight:600">Im App Store laden</a>
     </div>
     <div class="foot-col">
       <h4>Rechtliches</h4>
@@ -594,6 +721,13 @@ footer{margin-top:120px;border-top:1px solid var(--stroke);padding:54px 0 46px}
   var nav = document.getElementById('nav');
   function onScroll(){ nav.classList.toggle('scrolled', window.scrollY > 24); }
   addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  /* Fehlt ein Screenshot, zeigt der Rahmen die Blende statt eines leeren Kastens */
+  document.querySelectorAll('.phone > img').forEach(function(im){
+    var fb = function(){ im.parentElement.classList.add('noimg'); };
+    im.addEventListener('error', fb);
+    if(im.complete && im.naturalWidth === 0) fb();
+  });
 
   /* Scroll-Reveal */
   var io = new IntersectionObserver(function(entries){

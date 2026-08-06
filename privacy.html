@@ -3,90 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index,follow">
 <title>Datenschutzerklärung – MyGymTrack</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f4f9; --fg: #1c1c1e; --muted: #6b6b70; --card: #fff;
+    --acc: #0a68ff; --line: rgba(0,0,0,.08); --box: #e8f1ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0b0d; --fg: #f2f2f4; --muted: #9a9aa2; --card: #151518;
+      --acc: #4c9bff; --line: rgba(255,255,255,.09); --box: #12233d;
+    }
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #f4f4f9;
-    color: #1c1c1e;
-    line-height: 1.7;
-    padding: 40px 20px 80px;
-    max-width: 680px;
-    margin: 0 auto;
+    background: var(--bg); color: var(--fg); line-height: 1.65;
+    padding: 40px 20px 80px; max-width: 720px; margin: 0 auto;
+    -webkit-text-size-adjust: 100%;
   }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 32px;
-  }
-  .logo img {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-  }
-  .logo-name {
-    font-size: 20px;
-    font-weight: 700;
-    color: #007AFF;
-  }
-  h1 {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #1c1c1e;
-  }
-  .updated {
-    font-size: 13px;
-    color: #8e8e93;
-    margin-bottom: 36px;
-  }
-  h2 {
-    font-size: 17px;
-    font-weight: 600;
-    margin: 28px 0 10px;
-    color: #007AFF;
-  }
-  p { margin-bottom: 12px; color: #3a3a3c; font-size: 15px; }
-  ul {
-    padding-left: 20px;
-    margin-bottom: 12px;
-    color: #3a3a3c;
-    font-size: 15px;
-  }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+  .logo img { width: 44px; height: 44px; border-radius: 10px; }
+  .logo-name { font-size: 20px; font-weight: 700; color: var(--acc); }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.5px; }
+  .updated { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .intro { font-size: 15px; color: var(--muted); margin-bottom: 30px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 10px; color: var(--acc); }
+  h3 { font-size: 15px; font-weight: 600; margin: 18px 0 6px; }
+  p { margin-bottom: 12px; font-size: 15px; }
+  ul { padding-left: 20px; margin-bottom: 12px; font-size: 15px; }
   ul li { margin-bottom: 6px; }
   .card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    background: var(--card); border-radius: 14px; padding: 20px 20px 12px;
+    margin-bottom: 10px; border: 1px solid var(--line);
   }
-  a { color: #007AFF; text-decoration: none; }
-  .contact-box {
-    background: #e8f1ff;
-    border-radius: 14px;
-    padding: 20px;
-    margin-top: 8px;
+  a { color: var(--acc); }
+  .tbl-wrap { overflow-x: auto; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.wide { min-width: 520px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: 13px; }
+  .note {
+    background: var(--box); border-radius: 12px; padding: 16px 18px 6px;
+    margin: 14px 0; border: 1px solid var(--line);
   }
-  .contact-box p { color: #1c1c1e; }
+  footer { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
 
 <div class="logo">
-  <img src="icon-192.png" alt="MyGymTrack Icon">
+  <img src="icon-192.png" alt="">
   <span class="logo-name">MyGymTrack</span>
 </div>
 
 <h1>Datenschutzerklärung</h1>
-<p class="updated">Zuletzt aktualisiert: Juni 2026</p>
+<p class="updated">Stand: 6. August 2026</p>
+<p class="intro">
+  Diese Erklärung beschreibt, welche Daten MyGymTrack verarbeitet, wohin sie fließen und
+  wie du sie wieder loswirst. Sie gilt für die iOS-App und die Web-Version gleichermaßen.
+</p>
 
 <div class="card">
   <h2>1. Verantwortlicher</h2>
   <p>
-    Verantwortlich für die Datenverarbeitung in dieser App ist:<br><br>
     <strong>Lenny Wolter</strong><br>
     Lincolnstr. 27a<br>
     10315 Berlin<br>
@@ -95,95 +76,337 @@
 </div>
 
 <div class="card">
-  <h2>2. Welche Daten werden gespeichert?</h2>
-  <p><strong>Lokal auf deinem Gerät (localStorage):</strong></p>
+  <h2>2. Der Überblick in Kürze</h2>
   <ul>
-    <li>Übungen (Name, Muskelgruppe, Emoji)</li>
-    <li>Trainingseinheiten (Datum, Gewichte, Sätze, Wiederholungen)</li>
-    <li>App-Einstellungen (Theme, Begleiter, Darstellungsoptionen)</li>
-  </ul>
-  <p><strong>In der Cloud (Firebase, nur bei Google-Login):</strong></p>
-  <ul>
-    <li>Google-Konto: Name, E-Mail-Adresse, Profilbild</li>
-    <li>Dieselben Trainingsdaten wie oben – zur Synchronisation zwischen Geräten</li>
-    <li>Anonyme Nutzer-ID (auch ohne Google-Login, für interne Nutzungsstatistiken)</li>
-    <li>Nutzungsstatistiken: Sitzungsdauer, Anzahl der App-Starts (keine personenbezogenen Inhalte)</li>
+    <li>Deine Trainingsdaten liegen zuerst auf deinem Gerät. Meldest du dich an, werden sie zusätzlich mit der Cloud synchronisiert.</li>
+    <li>Wenn du den KI-Coach nutzt, werden Trainingsdaten und deine Eingaben an einen externen KI-Anbieter übertragen (siehe Abschnitt 5).</li>
+    <li>Community-Funktionen sind freiwillig. Ohne Freischaltung wird kein öffentliches Profil angelegt.</li>
+    <li>Es gibt keine Werbung, kein Werbe-Tracking und keine Weitergabe zu Werbezwecken.</li>
+    <li>Ein Konto lässt sich in der App löschen. Was dabei nicht automatisch verschwindet, steht offen in Abschnitt 12.</li>
   </ul>
 </div>
 
 <div class="card">
-  <h2>3. Wofür werden die Daten verwendet?</h2>
+  <h2>3. Anmeldung und Konto</h2>
+  <p>Zur Anmeldung stehen zur Verfügung:</p>
   <ul>
-    <li>Speicherung und Anzeige deiner Trainingsdaten</li>
-    <li>Geräteübergreifende Synchronisation (nur bei Google-Login)</li>
-    <li>Anonyme Nutzungsstatistiken zur App-Verbesserung</li>
-  </ul>
-  <p>Die Daten werden <strong>nicht</strong> verkauft, weitergegeben oder für Werbung genutzt.</p>
-</div>
-
-<div class="card">
-  <h2>4. Wo werden die Daten gespeichert?</h2>
-  <p>
-    Die lokalen Daten liegen ausschließlich auf deinem Gerät (Browser-localStorage) und werden nicht automatisch übertragen.
-  </p>
-  <p>
-    Bei aktiviertem Cloud-Sync werden die Daten in <strong>Google Firebase</strong> (Firestore & Realtime Database) in europäischen Rechenzentren (Region: <em>eur3</em>) gespeichert.
-    Informationen zur Datenschutzpraxis von Google Firebase findest du unter
-    <a href="https://firebase.google.com/support/privacy" target="_blank">firebase.google.com/support/privacy</a>.
-  </p>
-</div>
-
-<div class="card">
-  <h2>5. Wie lange werden Daten gespeichert?</h2>
-  <p>
-    Lokale Daten bleiben bis zur manuellen Löschung (App-Einstellungen → Daten löschen) oder bis zur Deinstallation gespeichert.
-  </p>
-  <p>
-    Cloud-Daten werden gespeichert, bis du dein Konto in der App löschst oder eine Löschanfrage stellst.
-  </p>
-</div>
-
-<div class="card">
-  <h2>6. Deine Rechte</h2>
-  <p>Du hast das Recht auf:</p>
-  <ul>
-    <li><strong>Auskunft</strong> – welche Daten über dich gespeichert sind</li>
-    <li><strong>Berichtigung</strong> – Korrektur unrichtiger Daten</li>
-    <li><strong>Löschung</strong> – Entfernung deiner Daten (jederzeit in der App oder per Kontaktanfrage)</li>
-    <li><strong>Datenportabilität</strong> – Export deiner Trainingsdaten</li>
-    <li><strong>Widerspruch</strong> – gegen die Verarbeitung</li>
+    <li><strong>Anmeldung mit Apple</strong> – wir erhalten ein Identitätstoken. Wenn du „E-Mail verbergen" wählst, bekommen wir nur die anonymisierte Weiterleitungsadresse von Apple, nicht deine echte.</li>
+    <li><strong>Anmeldung mit Google</strong> – wir erhalten Name, E-Mail-Adresse und, falls vorhanden, das Profilbild deines Google-Kontos.</li>
+    <li><strong>Anonyme Nutzung</strong> – die App meldet dich kurz nach dem Start automatisch anonym an, damit Synchronisation und Nutzungszählung funktionieren. Dabei entsteht eine zufällige Kennung ohne Bezug zu deiner Person. Ein Name oder eine E-Mail-Adresse wird dabei nicht erhoben.</li>
   </ul>
   <p>
-    Du kannst deine Daten jederzeit direkt in der App unter <em>Einstellungen → Daten löschen</em> entfernen.
-    Für Cloud-Daten genügt es, dich abzumelden und eine Löschanfrage per E-Mail zu stellen.
+    Zur Anzeige des Online-Status („gerade aktiv") speichern wir für angemeldete Nutzer
+    einen Präsenz-Eintrag mit Anzeigename und E-Mail-Adresse in der Realtime Database.
+    Meldest du dich ab oder löschst dein Konto, werden Name und E-Mail dort entfernt.
   </p>
 </div>
 
 <div class="card">
-  <h2>7. Google-Dienste & Drittanbieter</h2>
-  <p>Die App nutzt folgende externe Dienste:</p>
+  <h2>4. Welche Daten verarbeitet werden</h2>
+
+  <h3>Auf deinem Gerät</h3>
+  <p>
+    Der komplette App-Zustand liegt lokal im Speicher der App. Dazu gehören: deine Übungen
+    (inklusive selbst aufgenommener Übungsbilder), alle Trainingseinheiten mit Datum, Gewichten,
+    Sätzen und Wiederholungen, dein Körpergewichtsverlauf und Gewichtsziel, deine Pläne und
+    Splits, Einstellungen, dein Profilbild, deine Angaben im Profil (Erfahrung, Lieblingsübungen,
+    Kurzbeschreibung, Geburtsdatum) sowie die Aufzeichnungen des KI-Coachs.
+  </p>
+  <p>
+    Dein <strong>Geburtsdatum bleibt ausschließlich auf dem Gerät</strong> – in die Cloud geht
+    nur das daraus errechnete Alter, und auch das nur, wenn du die Community nutzt.
+  </p>
+
+  <h3>In der Cloud (bei Anmeldung)</h3>
+  <p>
+    Zur Synchronisation zwischen deinen Geräten werden Übungen, Trainingseinheiten,
+    Gewichtsverlauf, Pläne, Einstellungen, dein Vorname aus dem Onboarding, die Angaben zu
+    deinem Trainingsziel sowie – falls hinterlegt – Name und Koordinaten deines Studios
+    gespeichert.
+  </p>
+
+  <h3>Befinden und gesundheitsbezogene Angaben</h3>
+  <p>
+    Nach einem Training kannst du angeben, wie anstrengend es war und wie es dir geht.
+    Diese Einschätzungen werden gespeichert und fließen in die Trainingsempfehlungen ein.
+  </p>
+  <p>
+    Der KI-Coach führt außerdem ein Gedächtnis über dich. Darin können <strong>körperliche
+    Einschränkungen</strong> stehen, die du ihm mitteilst – etwa eine Verletzung oder ein
+    Gelenkproblem –, dazu dein Ziel, deine Vorlieben und was bei dir funktioniert.
+  </p>
+  <div class="note">
+    <p>
+      <strong>Besondere Kategorie personenbezogener Daten.</strong> Gesundheitsbezogene Angaben
+      genießen nach Artikel 9 DSGVO besonderen Schutz. Wir verarbeiten sie ausschließlich auf
+      Grundlage deiner ausdrücklichen Einwilligung, die du mit der Nutzung der jeweiligen
+      Funktion erteilst. Du kannst sie jederzeit widerrufen, indem du das Coach-Gedächtnis in
+      den Einstellungen leerst oder die Funktion nicht weiter nutzt. Dieses Gedächtnis ist so
+      abgesichert, dass ausschließlich du selbst darauf zugreifen kannst.
+    </p>
+  </div>
+
+  <h3>Apple Health (nur iOS, nur nach Freigabe)</h3>
+  <p>
+    Wenn du die Verbindung zu Apple Health aktivierst, liest die App dein
+    <strong>Körpergewicht</strong> und deine <strong>Herzfrequenz</strong> (letztere zur Anzeige
+    während des Trainings) und kann abgeschlossene Workouts, Körpergewicht und verbrauchte
+    Energie nach Apple Health zurückschreiben. Diese Daten verlassen dein Gerät durch die App
+    nicht; sie werden nicht in unsere Cloud übertragen. Die Freigabe kannst du jederzeit in den
+    iOS-Systemeinstellungen widerrufen.
+  </p>
+</div>
+
+<div class="card">
+  <h2>5. Der KI-Coach</h2>
+  <p>
+    Der KI-Coach ist eine Premium-Funktion. Nutzt du sie, werden die dafür nötigen Daten über
+    unseren Server bei <strong>Cloudflare</strong> an den KI-Anbieter
+    <strong>Google (Gemini)</strong> übertragen und dort verarbeitet.
+  </p>
+  <p>Übertragen werden, je nach Funktion:</p>
   <ul>
-    <li><strong>Google Firebase</strong> (Auth, Firestore, Realtime Database) – <a href="https://policies.google.com/privacy" target="_blank">Datenschutz von Google</a></li>
-    <li><strong>Google Identity Services</strong> (Google-Login) – <a href="https://policies.google.com/privacy" target="_blank">Datenschutz von Google</a></li>
-    <li><strong>Chart.js</strong> (Statistik-Grafiken, lädt von jsdelivr.net) – keine Datenweitergabe</li>
+    <li><strong>Chat:</strong> deine Nachrichten im Wortlaut, dein Trainingsziel, deine Erfahrung, Namen deiner Übungen, deine letzten Trainingseinheiten und der Inhalt des Coach-Gedächtnisses – <em>einschließlich der dort vermerkten körperlichen Einschränkungen</em>.</li>
+    <li><strong>Live-Coach im Training:</strong> die aktuelle Übung, Sätze, Gewichte, Wiederholungen, dein Ermüdungsgrad, deine Einschätzung aus dem letzten Check-in und die hinterlegten Einschränkungen.</li>
+    <li><strong>Analyse und Wochenbericht:</strong> Trainingsverlauf, Volumen, Kraftwerte und deine Check-in-Angaben der letzten Einheiten.</li>
+    <li><strong>Geräte-Scanner:</strong> das <strong>Foto, das du aufnimmst</strong>. Achte darauf, dass keine anderen Personen darauf zu sehen sind.</li>
+  </ul>
+  <p>
+    Dein Name wird dem KI-Anbieter nicht übermittelt. Auf die Speicherdauer und eine mögliche
+    Weiterverwendung der Daten beim Anbieter haben wir keinen Einfluss; es gelten dessen
+    Bedingungen, siehe
+    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Datenschutzerklärung von Google</a>.
+    Eine Übermittlung in Drittländer außerhalb der EU ist dabei möglich.
+  </p>
+  <p>
+    <strong>Antwort-Zwischenspeicher:</strong> Allgemeine Fragen ohne persönlichen Bezug
+    (etwa „Wie funktioniert progressive Überlastung?") werden serverseitig als solche erkannt,
+    <em>ohne</em> deine persönlichen Daten an die KI geschickt und die Antwort bis zu 30 Tage
+    zwischengespeichert, um Kosten zu sparen. Gespeichert wird dabei ausschließlich der
+    Antworttext – keine Kennung, keine Frage im Klartext. Antworten mit persönlichem Bezug
+    werden nie zwischengespeichert.
+  </p>
+  <p>
+    Zur Abrechnung und zur Einhaltung der Nutzungsgrenzen speichert unser Server pro Nutzerkennung
+    Zählerstände (Anfragen pro Tag und Monat, verbrauchtes Kontingent). Diese Zähler enthalten
+    keine Inhalte.
+  </p>
+</div>
+
+<div class="card">
+  <h2>6. Community – nur wenn du sie einschaltest</h2>
+  <p>
+    Die Community ist standardmäßig aus. Schaltest du sie ein, wird ein öffentliches Profil
+    angelegt mit: Anzeigename, Profilbild, Freundescode, Trainingsstatistik der Woche und des
+    Monats, Serie, Level, deinen Profilangaben (Erfahrung, Stärken, Lieblingsübungen,
+    Kurzbeschreibung, Alter) und – wenn du es hinterlegst und freigibst – Name und Position
+    deines Studios.
+  </p>
+  <p>
+    In den Privatsphäre-Einstellungen der App kannst du einzeln festlegen, was davon sichtbar ist
+    (Studio, Live-Status, letztes Training, Statistiken, Bestleistungen, Aktivitäten).
+  </p>
+  <div class="note">
+    <p>
+      <strong>Wichtig zur Reichweite:</strong> Ein Profil, das du freischaltest, ist für
+      <em>alle angemeldeten Nutzer</em> der App abrufbar – nicht nur für deine Freunde. Das gilt
+      auch für die Position deines Studios, wenn du sie freigibst. Beiträge, die du als
+      „öffentlich" teilst, sind für alle Nutzer sichtbar.
+    </p>
+  </div>
+  <p>
+    <strong>Beiträge und Fotos:</strong> Teilst du ein Training, wird das dazugehörige Bild
+    gespeichert – entweder die erzeugte Trainingskarte oder ein Foto, das du selbst auswählst.
+    Beiträge und Aktivitätseinträge werden nach <strong>sieben Tagen automatisch gelöscht</strong>,
+    solange du die App weiter benutzt.
+  </p>
+  <p>
+    <strong>Freundschaftsanfragen</strong> enthalten deine Kennung, deinen Anzeigenamen und
+    deinen Freundescode und sind für Absender und Empfänger sichtbar.
+    <strong>Meldungen</strong> von Beiträgen werden mit deiner Kennung gespeichert und nur vom
+    Betreiber eingesehen.
+  </p>
+</div>
+
+<div class="card">
+  <h2>7. Standortdaten</h2>
+  <p>
+    Die App fragt <strong>keinen</strong> laufenden Standortzugriff ab und zeichnet keine
+    Bewegungsdaten auf. Die Position deines Studios entsteht nur auf zwei Wegen, beide von dir
+    ausgelöst:
+  </p>
+  <ul>
+    <li>Du tippst den Ort auf der Karte an.</li>
+    <li>Du suchst dein Studio über die Namenssuche. Dabei wird dein <strong>Suchbegriff</strong> an den Kartendienst <strong>Nominatim</strong> der OpenStreetMap Foundation übermittelt.</li>
+  </ul>
+  <p>
+    In der Web-Version kannst du zusätzlich die Kartenansicht auf deinen aktuellen Standort
+    zentrieren. Der Browser fragt dich in diesem Fall um Erlaubnis; die Position wird nur zur
+    Anzeige verwendet und weder gespeichert noch übertragen.
+  </p>
+  <p>
+    Beim Anzeigen der Karte werden Kartenkacheln von <strong>CARTO</strong> geladen. Dabei
+    erfährt dieser Dienst deine IP-Adresse und welchen Kartenausschnitt du betrachtest.
+  </p>
+</div>
+
+<div class="card">
+  <h2>8. Benachrichtigungen</h2>
+  <p>
+    Erlaubst du Mitteilungen, wird ein Gerätekennzeichen von Apple (Push-Token) in deinem
+    Profil gespeichert und für den Versand an Apples Push-Dienst (APNs) verwendet. Übertragen
+    wird dabei der Anzeigename der Person, die reagiert hat.
+  </p>
+  <p>
+    Es können nur Personen aus deiner Freundesliste eine Mitteilung an dich auslösen; das prüft
+    unser Server. Zur Missbrauchsvermeidung speichert er dabei für 48 Stunden, welche Kennung
+    wie oft eine Mitteilung ausgelöst hat.
+  </p>
+  <p>
+    Trainingserinnerungen und Pausen-Hinweise werden ausschließlich lokal auf dem Gerät erzeugt.
+  </p>
+</div>
+
+<div class="card">
+  <h2>9. Nutzungsstatistik</h2>
+  <p>
+    Wir erfassen, wie häufig und wie lange die App genutzt wird: eine Nutzerkennung, Zeitpunkt
+    der ersten und letzten Nutzung, Anzahl und Dauer der Sitzungen sowie die Angabe, ob es sich
+    um ein anonymes Konto und um ein Abo handelt. Inhalte deiner Trainings fließen hier nicht ein.
+  </p>
+  <p>
+    Diese Erfassung läuft auch bei anonymer Nutzung. Es sind <strong>keine Analyse- oder
+    Werbedienste Dritter</strong> eingebunden – kein Google Analytics, kein Absturzberichts-Dienst,
+    keine Werbe-SDKs.
+  </p>
+</div>
+
+<div class="card">
+  <h2>10. Geräteberechtigungen</h2>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>Berechtigung</th><th>Wofür</th></tr>
+    <tr><td>Kamera</td><td>Übungsbilder aufnehmen, Trainingsfotos für Beiträge, Fotos für den Geräte-Scanner</td></tr>
+    <tr><td>Fotomediathek</td><td>vorhandene Bilder für Übungen, Profil oder Beiträge auswählen</td></tr>
+    <tr><td>Mikrofon und Spracherkennung</td><td>Diktieren im KI-Chat. Die Umwandlung in Text übernimmt die Spracherkennung des Betriebssystems; dabei können die Audiodaten an Apple übertragen werden.</td></tr>
+    <tr><td>Apple Health</td><td>Körpergewicht und Herzfrequenz lesen, Workouts zurückschreiben</td></tr>
+    <tr><td>Mitteilungen</td><td>Trainingserinnerungen, Pausen-Hinweise, Reaktionen von Freunden</td></tr>
+  </table>
+  </div>
+  <p>
+    Jede Berechtigung wird erst beim ersten Bedarf angefragt und kann in den
+    Systemeinstellungen widerrufen werden. Übungsnamen werden zur Suche in den
+    Spotlight-Index deines Geräts eingetragen; das bleibt lokal.
+  </p>
+</div>
+
+<div class="card">
+  <h2>11. Empfänger und eingesetzte Dienste</h2>
+  <p>
+    Jeder Abruf einer externen Adresse überträgt technisch bedingt deine IP-Adresse an den
+    jeweiligen Anbieter.
+  </p>
+  <div class="tbl-wrap">
+  <table class="wide">
+    <tr><th>Dienst</th><th>Zweck</th><th>Daten</th></tr>
+    <tr><td>Google Firebase (Auth, Firestore, Realtime Database)</td><td>Anmeldung, Synchronisation, Community</td><td>Kontodaten, Trainingsdaten, Profil</td></tr>
+    <tr><td>Google Gemini</td><td>KI-Coach</td><td>siehe Abschnitt 5</td></tr>
+    <tr><td>Google Identity Services</td><td>Anmeldung mit Google</td><td>IP-Adresse, Browserkennung</td></tr>
+    <tr><td>Cloudflare</td><td>Server für KI und Mitteilungen</td><td>Nutzerkennung, Anfrageinhalte, Zählerstände</td></tr>
+    <tr><td>Apple (APNs, App Store, Anmeldung, Spracherkennung)</td><td>Mitteilungen, Abo, Login, Diktat</td><td>Push-Token, Kaufbeleg, Identitätstoken, Audiodaten</td></tr>
+    <tr><td>OpenStreetMap Foundation (Nominatim)</td><td>Studio-Suche</td><td>dein Suchbegriff, IP-Adresse</td></tr>
+    <tr><td>CARTO</td><td>Kartenkacheln</td><td>IP-Adresse, Kartenausschnitt</td></tr>
+    <tr><td>jsDelivr, unpkg</td><td>Programmbibliotheken für Diagramme, Karte und QR-Code</td><td>IP-Adresse, Browserkennung</td></tr>
+    <tr><td>GitHub</td><td>Auslieferung der Web-Version und dieser Seite</td><td>IP-Adresse</td></tr>
+  </table>
+  </div>
+  <p>
+    Bei Diensten mit Sitz in den USA ist eine Übermittlung in ein Drittland nicht ausgeschlossen.
+    Die Realtime Database wird in der Region <em>europe-west1</em> betrieben.
+  </p>
+</div>
+
+<div class="card">
+  <h2>12. Speicherdauer und Löschung</h2>
+  <p>
+    Lokale Daten bleiben bis zur Deinstallation oder bis du sie in den Einstellungen löschst.
+    Cloud-Daten bleiben, bis du dein Konto löschst.
+  </p>
+  <p>
+    In der App findest du dafür <em>Einstellungen → Konto löschen</em>. Damit werden entfernt:
+    dein Synchronisationsdokument mit allen Trainingsdaten, das Gedächtnis des KI-Coachs, dein
+    Anmeldekonto sowie sämtliche lokal gespeicherten Daten.
+  </p>
+  <div class="note">
+    <p>
+      <strong>Was dabei nicht automatisch verschwindet.</strong> Aus technischen Gründen bleiben
+      derzeit dein öffentliches Community-Profil, bereits geteilte Beiträge und Aktivitäten,
+      offene Freundschaftsanfragen sowie die Einträge der Nutzungsstatistik bestehen. Ebenso
+      bleiben Reaktionen, die du unter Beiträgen anderer hinterlassen hast, und deine Kennung in
+      deren Freundeslisten. Geteilte Beiträge und Aktivitäten laufen nach sieben Tagen ohnehin ab.
+    </p>
+    <p>
+      <strong>Schreib mir in diesem Fall kurz eine E-Mail</strong> – ich entferne die restlichen
+      Daten dann von Hand. Das gilt auch, wenn du die App anonym genutzt hast: für anonyme Konten
+      gibt es in der App keine Löschfunktion.
+    </p>
+  </div>
+  <p>
+    Zählerstände unseres KI-Servers verfallen automatisch – Tageswerte nach zwei Tagen,
+    Monatswerte nach 45 Tagen, Verbrauchswerte zur Abrechnung nach etwa 13 Monaten.
+  </p>
+</div>
+
+<div class="card">
+  <h2>13. Rechtsgrundlagen</h2>
+  <ul>
+    <li><strong>Vertragserfüllung</strong> (Art. 6 Abs. 1 lit. b DSGVO) – Kernfunktionen: Trainingsdaten speichern, synchronisieren, Abo abwickeln.</li>
+    <li><strong>Einwilligung</strong> (Art. 6 Abs. 1 lit. a, bei Gesundheitsdaten Art. 9 Abs. 2 lit. a DSGVO) – Community, Standort des Studios, Apple Health, KI-Coach, Mitteilungen, gesundheitsbezogene Angaben. Jederzeit widerrufbar.</li>
+    <li><strong>Berechtigtes Interesse</strong> (Art. 6 Abs. 1 lit. f DSGVO) – Nutzungsstatistik zur Verbesserung der App, Missbrauchs- und Kostenschutz auf unseren Servern.</li>
   </ul>
 </div>
 
 <div class="card">
-  <h2>8. Kinder</h2>
+  <h2>14. Deine Rechte</h2>
+  <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung,
+     Datenübertragbarkeit und Widerspruch. Erteilte Einwilligungen kannst du jederzeit mit
+     Wirkung für die Zukunft widerrufen.</p>
   <p>
-    MyGymTrack richtet sich nicht bewusst an Kinder unter 13 Jahren.
-    Wir sammeln wissentlich keine Daten von Kindern.
+    Einen Export deiner Trainingsdaten erstellst du direkt in der App. Für alles Weitere
+    genügt eine E-Mail an
+    <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a>.
+  </p>
+  <p>
+    Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.
+    Zuständig ist die Berliner Beauftragte für Datenschutz und Informationsfreiheit.
   </p>
 </div>
 
-<div class="contact-box">
-  <h2 style="margin-top:0">9. Kontakt</h2>
+<div class="card">
+  <h2>15. Kinder</h2>
   <p>
-    Bei Fragen zum Datenschutz oder zur Datenlöschung erreichst du mich unter:<br><br>
+    MyGymTrack richtet sich nicht an Kinder unter 13 Jahren. Wir erheben wissentlich keine
+    Daten von Kindern. Erfahren wir davon, löschen wir die Daten.
+  </p>
+</div>
+
+<div class="card">
+  <h2>16. Änderungen</h2>
+  <p>
+    Kommen Funktionen hinzu, die neue Daten verarbeiten, wird diese Erklärung angepasst.
+    Das Datum oben zeigt den aktuellen Stand.
+  </p>
+</div>
+
+<div class="note">
+  <h2 style="margin-top:0">17. Kontakt</h2>
+  <p>
+    Bei Fragen zum Datenschutz, für eine Auskunft oder eine vollständige Löschung:<br><br>
     <a href="mailto:wolterlenny362@gmail.com">wolterlenny362@gmail.com</a>
   </p>
 </div>
+
+<footer>MyGymTrack · Lenny Wolter · Berlin</footer>
 
 </body>
 </html>

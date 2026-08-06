@@ -433,15 +433,24 @@ async function toggleFlame(i){
   }
   if (on) hapticSuccess(); else haptic(8);
   // Flammen GEBEN bringt Punkte (einmalig pro fremdem Post — Toggle farmt nichts)
-  if (on && it.uid && it.uid !== me) {
-    try { _flamesGivenAdd(it.uid + ':' + (it.id || it.ts || '')); } catch(_){}
-  }
+  /* NUR den eigenen Schluessel schreiben, nicht die ganze Map. Der Feed-Cache
+     haelt 60 s und wird bei fremden Reaktionen bewusst nicht neu geladen — eine
+     komplette Map von dort loeschte fremde Flammen mit und wird von den Rules
+     abgelehnt. */
+  const _del = (window.FB.deleteField ? window.FB.deleteField() : null);
   try {
     if (it.kind === 'post')
-      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/posts', it.id), { flames: it.flames });
+      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/posts', it.id),
+        { ['flames.' + me]: on ? (it.flames[me] || Date.now()) : _del });
     else
-      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/activities', it.id), { reactions: it.reactions });
-    if (on && it.uid && it.uid !== me) _notifyFlamePush(it.uid);   // echte APNs-Push an Post-Besitzer
+      await window.FB.updateDoc(window.FB.doc('profiles/' + it.uid + '/activities', it.id),
+        { ['reactions.' + me]: on ? '🔥' : _del });
+    // Punkte erst nach dem bestaetigten Schreibvorgang — sonst zaehlt auch ein
+    // abgelehnter Tap.
+    if (on && it.uid && it.uid !== me) {
+      try { _flamesGivenAdd(it.uid + ':' + (it.id || it.ts || '')); } catch(_){}
+      _notifyFlamePush(it.uid);   // echte APNs-Push an Post-Besitzer
+    }
   } catch(e) {
     // Server lehnte ab → optimistische Änderung zurückrollen
     if (it.kind === 'post') { if (on) delete it.flames[me]; else it.flames[me] = Date.now(); }
@@ -917,7 +926,12 @@ async function toggleReaction(uid, aid, emo){
   if (item) item.reactions = next;
   const host = document.getElementById('feed-list');
   if (host && _socTab === 'feed') host.innerHTML = (_feedCache?.items||[]).map(a => _feedItemHTML(a)).join('');
-  try { await window.FB.updateDoc(window.FB.doc('profiles/' + uid + '/activities', aid), { reactions: next }); } catch(_){}
+  // Nur den eigenen Schluessel schreiben — siehe Begruendung bei toggleFlame.
+  const me = _fbUser.uid;
+  const wert = (cur === emo)
+    ? (window.FB.deleteField ? window.FB.deleteField() : null)
+    : emo;
+  try { await window.FB.updateDoc(window.FB.doc('profiles/' + uid + '/activities', aid), { ['reactions.' + me]: wert }); } catch(_){}
 }
 /* ── Aktivitäten schreiben (nach Training) ── */
 async function _socLogActivity(sess, prs){

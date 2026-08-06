@@ -3,7 +3,7 @@ const path = require('path');
 
 if (!fs.existsSync('www')) fs.mkdirSync('www');
 
-const files = ['index.html', 'sw.js', 'manifest.json', 'css/app.css', 'icon-192.png', 'icon-512.png', 'icon-1024.png', 'icon-gold-192.png', 'icon-white-192.png',
+const files = ['index.html', 'sw.js', 'manifest.json', 'privacy.html', 'css/app.css', 'icon-192.png', 'icon-512.png', 'icon-1024.png', 'icon-gold-192.png', 'icon-white-192.png',
                'js/coach-memory.js', 'js/coach-log.js', 'js/coach-intent.js', 'js/coach-cache.js',
                'js/coach-persona.js', 'js/coach-voice.js', 'js/coach-session.js', 'js/coach-warmup.js',
                'js/coach-cues.js', 'js/coach-rpe.js', 'js/coach-analyze.js', 'js/coach-volume.js',

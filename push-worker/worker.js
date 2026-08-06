@@ -74,9 +74,12 @@ export default {
     //    erzeugt bewusst KEINE Push mehr).
     const to = await fsProfile(toUid, idToken);
     if (!to.doc) { console.log("[PUSH] Empfaenger-Profil nicht lesbar, status=", to.status); return json({ error: "recipient unavailable", status: to.status }, 404, cors); }
+    /* Nur die Liste des EMPFAENGERS zaehlt. Die eigene friends-Liste ist
+       client-kontrolliert (jeder darf sein Profil schreiben) — wer sich selbst
+       den Empfaenger eintraegt, haette sich sonst die Zustellung erlaubt.
+       Wer Mitteilungen bekommt, entscheidet damit selbst, von wem. */
     const related = fromUid === toUid
-                 || fsStringArray(from.doc, "friends").includes(toUid)
-                 || fsStringArray(to.doc,   "friends").includes(fromUid);
+                 || fsStringArray(to.doc, "friends").includes(fromUid);
     if (!related) { console.log("[PUSH] ABGELEHNT: ", fromUid, "und", toUid, "sind nicht befreundet"); return json({ error: "not friends" }, 403, cors); }
 
     const token = fsString(to.doc, "pushToken");
