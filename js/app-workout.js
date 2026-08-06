@@ -1873,10 +1873,14 @@ function detectPRs(newSession) {
     }
 
     // PR-Typen sammeln (max-weight hat Vorrang, dann 1RM, dann reps)
+    // newVal/prevVal bleiben KILOGRAMM — _csWeight() im Coach rechnet stromabwaerts
+    // selbst um. Fuer die Anzeige tragen die Gewichts-Zweige zusaetzlich dispVal/
+    // dispPrev, damit die Zahl zur Einheit aus unitLabel() passt.
     if (prevMaxW > 0 && bestNewW > prevMaxW) {
       prs.push({
         type: 'weight', exId: ex.id, exName: ex.name,
         newVal: bestNewW, prevVal: prevMaxW,
+        dispVal: kgToDisp(bestNewW), dispPrev: kgToDisp(prevMaxW),
         label: 'Neues Max-Gewicht', unit: unitLabel()
       });
     } else if (prevMax1RM > 0 && bestNew1RM > prevMax1RM + 0.5) {
@@ -1884,6 +1888,8 @@ function detectPRs(newSession) {
         type: '1rm', exId: ex.id, exName: ex.name,
         newVal: Math.round(bestNew1RM * 10) / 10,
         prevVal: Math.round(prevMax1RM * 10) / 10,
+        dispVal: Math.round(kgToDisp(bestNew1RM) * 10) / 10,
+        dispPrev: Math.round(kgToDisp(prevMax1RM) * 10) / 10,
         label: 'Neues 1RM (geschätzt)', unit: unitLabel()
       });
     } else if (repsPR) {
@@ -1913,10 +1919,12 @@ function celebratePRs(prs) {
     setTimeout(() => {
       const el = document.createElement('div');
       el.className = 'pr-burst';
+      const nv = (pr.dispVal != null ? pr.dispVal : pr.newVal);
+      const pv = (pr.dispPrev != null ? pr.dispPrev : pr.prevVal);
       el.innerHTML = '<div>NEUER PR</div>'
-        + '<div class="pr-burst-sub">' + pr.exName + '</div>'
-        + '<div class="pr-burst-sub">' + pr.label + ': <b>' + pr.newVal + ' ' + pr.unit + '</b></div>'
-        + (pr.prevVal ? '<div class="pr-burst-sub" style="opacity:.65;font-size:11px">vorher ' + pr.prevVal + ' ' + pr.unit + '</div>' : '');
+        + '<div class="pr-burst-sub">' + esc(pr.exName) + '</div>'
+        + '<div class="pr-burst-sub">' + pr.label + ': <b>' + nv + ' ' + pr.unit + '</b></div>'
+        + (pr.prevVal ? '<div class="pr-burst-sub" style="opacity:.65;font-size:11px">vorher ' + pv + ' ' + pr.unit + '</div>' : '');
       host.appendChild(el);
       try { fireConfetti(45); } catch(_) {}
       setTimeout(() => el.remove(), 1700);

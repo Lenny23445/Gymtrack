@@ -18,6 +18,13 @@
 //   2. jws       = StoreKit-2-Transaktion (bist du Premium) — ES256-Signatur
 //                  + komplette x5c-Kette bis zur gepinnten Apple Root CA G3,
 //                  bundleId, productId und Ablaufdatum werden geprüft.
+//   3. Kontobindung: payload.appAccountToken muss die aus der Firebase-uid
+//                  abgeleitete UUID sein (accountTokenFor(), Spiegel von
+//                  PremiumPlugin.accountToken(for:)) — sonst schaltet EIN
+//                  weitergegebener JWS beliebig viele Konten frei.
+//                  UEBERGANGSFRIST: Abos, die vor dem appAccountToken-Build
+//                  gekauft wurden, haben KEIN Token → werden durchgelassen
+//                  und mit "[AI] appAccountToken fehlt" protokolliert.
 //   Founder-UID darf ohne JWS durch (eigenes Konto).
 //
 // Secrets (Cloudflare-Dashboard → Settings → Variables, NICHT hier eintippen):
@@ -524,8 +531,20 @@ export default {
     // 2) Bist du Premium? — StoreKit-JWS prüfen (Founder darf ohne)
     if (!TEST_UIDS.has(uid)) {
       if (!jws) return json({ error: "Kein Abo-Nachweis" }, 402, cors);
-      try { await verifyStoreKitJws(jws); }
+      let skPayload;
+      try { skPayload = await verifyStoreKitJws(jws); }
       catch (e) { console.log("[AI] JWS abgelehnt:", e.message); return json({ error: "Abo-Nachweis ungültig: " + e.message }, 402, cors); }
+      // 2a) Kontobindung. Ohne sie ist der JWS ein uebertragbarer Schluessel:
+      // dasselbe Abo schaltet beliebig viele Firebase-Konten frei, jedes mit
+      // eigenem Monatskontingent, und hebt ueber premiumSeen() den Kostendeckel.
+      // Altabos ohne Token laufen in der Uebergangsfrist weiter durch.
+      const tok = String(skPayload && skPayload.appAccountToken || "").toLowerCase();
+      if (!tok) {
+        console.log("[AI] appAccountToken fehlt (Altabo, Uebergangsfrist):", uid, skPayload && skPayload.productId);
+      } else if (tok !== await accountTokenFor(uid)) {
+        console.log("[AI] JWS gehoert zu fremdem Konto:", uid);
+        return json({ error: "Abo-Nachweis gehört zu einem anderen Konto" }, 402, cors);
+      }
     }
 
     // 2b) Reiner Kontostand — verbraucht kein Tages-/Monatslimit, ändert die Antwort
@@ -662,6 +681,27 @@ export default {
 
 // ═══════════════ LLM-Provider-Abstraktion (Gemini Default, Claude als Fallback) ═══════════════
 
+// Ohne AbortSignal laeuft ein haengender Upstream bis zum Plattform-Limit: der
+// Nutzer bekommt nie eine Antwort und der Worker haelt die Verbindung. 45 s liegt
+// weit ueber dem, was ein Coach-Aufruf real braucht (< 20 s bei Flash-Lite), und
+// weit unter Cloudflares 524-Grenze. Der Abbruch wirft — landet damit im
+// normalen catch-Pfad des Handlers inklusive Kontingent-Erstattung.
+const LLM_TIMEOUT_MS = 45000;
+async function fetchLlm(url, init) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), LLM_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: ac.signal });
+  } catch (e) {
+    if (e && (e.name === "AbortError" || e.name === "TimeoutError")) {
+      throw new Error("Upstream-Timeout nach " + Math.round(LLM_TIMEOUT_MS / 1000) + " s");
+    }
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 async function llm(env, { system, messages, maxTokens, schema }) {
   const provider = env.PROVIDER || "gemini";
   return provider === "claude"
@@ -689,7 +729,7 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
     generationConfig.responseMimeType = "application/json";
     generationConfig.responseSchema = stripAdditionalProps(schema);
   }
-  const res = await fetch(
+  const res = await fetchLlm(
     "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
     {
       method: "POST",
@@ -1187,6 +1227,19 @@ async function verifyStoreKitJws(jws) {
   const exp = payload.expiresDate || 0;
   if (!exp || exp + GRACE_MS < Date.now()) throw new Error("abgelaufen");
   return payload;
+}
+
+// Deterministische Konto-UUID aus der Firebase-uid. MUSS Byte fuer Byte dasselbe
+// rechnen wie PremiumPlugin.accountToken(for:) in Swift, sonst wird jeder Neukauf
+// als fremdes Konto abgelehnt: SHA-256("gymtrack:" + uid), erste 16 Bytes,
+// Version-Nibble 8 + RFC-4122-Variante, klein geschrieben mit Bindestrichen.
+async function accountTokenFor(uid) {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("gymtrack:" + uid)));
+  const b = d.slice(0, 16);
+  b[6] = (b[6] & 0x0f) | 0x80;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = hex(b);
+  return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20, 32);
 }
 
 // ── Mini-DER/ASN.1 ──

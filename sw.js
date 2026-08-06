@@ -29,6 +29,8 @@ const SHELL = [
   './js/coach-notify.js',
   './js/coach-report.js',
   './js/coach-charts.js',
+  './js/workout-focus.js',
+  './js/workout-bar.js',
   './js/app-reveal.js',
   './js/app-i18n.js',
   './js/app-native.js',
@@ -47,9 +49,25 @@ const SHELL = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-/* ── Install ── */
+/* Kern der App: ohne diese Dateien startet die Web-/PWA-Version offline gar
+   nicht erst. Alles andere (Icons, Stock-Motive, Chart.js vom CDN) ist Beiwerk,
+   das notfalls beim ersten Online-Aufruf nachgecacht wird. */
+const isCore = u => /^\.\/(index\.html$|css\/|js\/)/.test(u);
+
+/* ── Install ──
+   Bewusst KEIN cache.addAll: das ist all-or-nothing. Ein Aussetzer des Chart.js-
+   CDN liess damit den kompletten Install scheitern — Ergebnis war GAR KEIN
+   Offline-Cache, obwohl alle eigenen Dateien erreichbar waren. Jede Datei wird
+   deshalb einzeln gecacht; nur ein fehlender Kern-Eintrag kippt den Install noch. */
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
+  e.waitUntil(caches.open(CACHE).then(c =>
+    Promise.allSettled(SHELL.map(u => c.add(u))).then(res => {
+      const failed = SHELL.filter((u, i) => res[i].status === 'rejected');
+      if (failed.length) console.warn('[SW] nicht gecacht:', failed.join(', '));
+      const fatal = failed.filter(isCore);
+      if (fatal.length) throw new Error('Kern-Dateien nicht cachebar: ' + fatal.join(', '));
+    })
+  ));
 });
 
 /* ── Activate: clean old caches ── */
@@ -97,7 +115,7 @@ self.addEventListener('message', e => {
 });
 
 /* ── Fetch-Strategien ──
-   - index.html + sw.js + ./js/coach-*.js + ./js/app-*.js: NETWORK-FIRST (immer
+   - index.html + sw.js + ./js/coach-*.js + ./js/workout-*.js + ./js/app-*.js: NETWORK-FIRST (immer
      neueste Version wenn online) → fixt das Problem, dass Updates hängen bleiben.
      Die Coach-Module sind Anwendungslogik (Dossier/Log/Intent-Router), keine
      unveraenderlichen Assets — sie muessen so aktuell bleiben wie index.html,
@@ -114,10 +132,10 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
 
-  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-') || url.includes('/js/app-') || url.includes('/css/app.css');
+  const isCriticalShell = url.includes('index.html') || url.endsWith('/') || url.includes('sw.js') || url.includes('manifest.json') || url.includes('/js/coach-') || url.includes('/js/workout-') || url.includes('/js/app-') || url.includes('/css/app.css');
   const isStaticShell   = SHELL.some(s => {
     const name = s.replace('./', '');
-    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && !name.startsWith('js/app-') && !name.startsWith('css/') && url.includes(name);
+    return name && !name.includes('index.html') && !name.includes('manifest.json') && !name.startsWith('js/coach-') && !name.startsWith('js/workout-') && !name.startsWith('js/app-') && !name.startsWith('css/') && url.includes(name);
   });
 
   if (isCriticalShell) {
