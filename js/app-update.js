@@ -2286,7 +2286,7 @@ function renderAccountSheet() {
     const syncHint = _isNative() && !hasLocalData
       ? `<div style="background:rgba(255,160,0,.12);border:1px solid rgba(255,160,0,.25);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.5">
           ℹ️ <b>Daten aus der Browser-Version übertragen?</b><br>
-          Öffne <b>gymtrack.app</b> im Browser, melde dich dort zuerst mit demselben Google-Konto an — dann werden deine Daten automatisch hier synchronisiert.
+          Öffne die Web-Version im Browser, melde dich dort zuerst mit demselben Konto an — dann werden deine Daten automatisch hier synchronisiert.
         </div>`
       : `<div style="background:var(--soft);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
           💡 Deine aktuellen Daten (<b>${cnt}</b>) bleiben erhalten und werden automatisch übernommen.
