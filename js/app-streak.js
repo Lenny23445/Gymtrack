@@ -1899,8 +1899,16 @@ function _demoRenderLayout(li, data, pal, bgPhoto){
   finally { _shfData = sv.d; _shfPhoto = sv.p; _shfPalIdx = sv.pal; _shfCustomCol = sv.cc; }
   return url;
 }
+// Feed-Vollbild an/aus: nur im Karten-Feed darf die Seite auf Viewport-Hoehe fixiert
+// werden (CSS #pg-freunde.soc-feed-full). Bei Gates, Rangliste, Karte und Freundesliste
+// muss die Seite normal scrollen — sonst waeren laengere Inhalte abgeschnitten.
+function _socFeedFull(on){
+  const pg = document.getElementById('pg-freunde');
+  if (pg) pg.classList.toggle('soc-feed-full', !!on);
+}
 function _renderDemoFriends(body){
   try { _frStopLive(); } catch(_){}
+  _socFeedFull(_socZone === 'community' || _socTab === 'feed');
   if (_socZone === 'community') return _renderDemoFeed(body);
   if (_socTab === 'feed')  return _renderDemoFeed(body);
   if (_socTab === 'board') return _renderDemoBoard(body);
@@ -2051,6 +2059,7 @@ function _initDemoMap(){
 
 function renderFriendsTab(){
   const body = document.getElementById('fr-body'); if (!body) return;
+  _socFeedFull(false);   // Standard: normal scrollende Seite; Feed-Pfade schalten unten wieder an
   document.querySelectorAll('#soc-zone-toggle .szt').forEach(b => b.classList.toggle('on', b.dataset.z === _socZone));
   document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
   const _seg = document.getElementById('fr-seg'); if (_seg) _seg.style.display = _socZone === 'friends' ? '' : 'none';
@@ -2111,8 +2120,7 @@ function renderFriendsTab(){
     const pend = sessionStorage.getItem('gt_addCode');
     if (pend) { sessionStorage.removeItem('gt_addCode'); setTimeout(()=>openFrAdd(pend), 250); }
   } catch(_){}
-  if (_socZone === 'community') return _renderFeed(body);
-  if (_socTab === 'feed')  return _renderFeed(body);
+  if (_socZone === 'community' || _socTab === 'feed') { _socFeedFull(true); return _renderFeed(body); }
   if (_socTab === 'board') return _renderSocBoard(body);
   if (_socTab === 'map')   return _renderSocMapTab(body);
   return _renderFrOverview(body);
