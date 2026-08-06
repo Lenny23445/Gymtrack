@@ -1951,7 +1951,7 @@ async function _renderDemoFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></div>
+    <div class="cpg-zone"><span class="cpg-zone-t">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap"></div>`;
   // Auf die Vorlade-Promises der Gym-Fotos warten, damit sie als echter
   // Bildhintergrund ins gebackene Layout einfließen (statt Akzent-Verlauf).
@@ -3305,7 +3305,7 @@ async function _renderFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-zone">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></div>
+    <div class="cpg-zone"><span class="cpg-zone-t">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap">
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
     </div>`;

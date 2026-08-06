@@ -265,6 +265,7 @@ function _cpgRenderStack(dir){
   if (!_cpgItems.length) {
     const isFr = _cpgMode === 'friends';
     w.style.width = ''; w.style.height = '';   // Sondermaße für Foto-Posts zurücknehmen
+    _cpgSetCount('');
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${isFr ? ICO.users({ s: 40 }) : ICO.globe({ s: 40 })}</div>
       <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
       <span style="font-size:13px">${isFr
@@ -275,6 +276,7 @@ function _cpgRenderStack(dir){
   }
   if (_cpgIdx >= _cpgItems.length) {
     w.style.width = ''; w.style.height = '';
+    _cpgSetCount('');
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.check({ s: 40 })}</div><b>${tr('Alles gesehen!')}</b>
       <button class="btn btn-acc" onclick="_cpgReload()">${tr('Neu laden')}</button></div>`;
     return;
@@ -305,7 +307,7 @@ function _cpgRenderStack(dir){
   } else {
     w.style.width = ''; w.style.height = '';
   }
-  const countHTML = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
+  _cpgSetCount((_cpgIdx + 1) + ' / ' + _cpgItems.length);
 
   /* Weiterblättern: die untere Karte steht bereits im DOM, mit fertigem Bild und
      fertigem Layout. Sie wird zur oberen BEFÖRDERT (nur Klassenwechsel) statt neu
@@ -324,9 +326,6 @@ function _cpgRenderStack(dir){
     promote.classList.remove('under'); promote.classList.add('top');
     void promote.offsetWidth;                    // Übergangssperre nur für dieses Bild
     promote.style.transition = '';
-    const ct = w.querySelector('.cpg-count');
-    if (ct) ct.textContent = (_cpgIdx + 1) + ' / ' + _cpgItems.length;
-    else w.insertAdjacentHTML('afterbegin', countHTML);
     _cpgBindSwipe(w);
     if (under) requestAnimationFrame(() => requestAnimationFrame(() => {
       // Zwischenzeitlich weitergewischt? Dann hat der nächste Lauf schon gebaut.
@@ -338,7 +337,7 @@ function _cpgRenderStack(dir){
     }));
     return;
   }
-  w.innerHTML = countHTML + (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
+  w.innerHTML = (under ? _cpgCardHTML(under, 'under') : '') + _cpgCardHTML(top, 'top');
   _cpgBindSwipe(w);
   _cpgPrime();
 }
@@ -356,6 +355,13 @@ function _cpgWidth(w){
 window.addEventListener('resize', () => { _cpgW = 0; });
 /* Hoehe der Flammen-Fussleiste unter dem Bild — muss zu .cpg-snap-foot im CSS passen. */
 const CPG_FOOT = 60;
+/* Bildzaehler „3 / 12". Er steht in der Zonenzeile (eigene Gitterspalte), NICHT mehr
+   im Kartenrahmen — dort sass er seit der schmaleren Karte eingerueckt und kollidierte
+   mit dem Live-Zaehler. Leerer Text = Zeile zeigt nur die Zonenbeschriftung. */
+function _cpgSetCount(txt){
+  const el = document.getElementById('cpg-count');
+  if (el) el.textContent = txt || '';
+}
 /* Resthoehe fuer den Rahmen im Feed-Vollbild: Hoehe des Elternblocks minus alles,
    was darueber liegt (Zonenzeile inkl. Abstand). 0 = kein Vollbild (Seite scrollt
    normal, dann entscheidet allein die Breite wie bisher). Die eigene Breite wird
