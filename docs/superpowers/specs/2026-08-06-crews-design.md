@@ -82,7 +82,7 @@ bei Treffer neu würfeln.
   owner:    'uid…',
   members:  ['uid…'],           // max 20
   goal:     20,                 // Workouts/Woche, 3–60, nur owner ändert
-  weekKey:  '2026-W32',         // Format von getWeekKey()
+  weekKey:  '2026-08-03',       // Montag der Woche, ISO-Datum — NICHT getWeekKey()
   wk:       { 'uid…': 4 },      // absolute Wochenzahl je Mitglied, <= 7
   streak:   3,                  // geschaffte Wochen in Folge
   hist:     [{ key, total, goal, done }],  // letzte 8, ältere abgeschnitten
@@ -92,10 +92,16 @@ bei Treffer neu würfeln.
 
 ### Lokal: `S.crewId`
 
-Ein neues Feld in `localStorage['ft4']`. **Muss zwingend in die `hasOnly`-Liste der
-`users`-Rules eingetragen werden** — fehlt der Key, schlägt nicht nur der Crew-Sync fehl,
-sondern der **komplette** `users`-Push mit permission-denied (dieser Fallstrick ist in
-CLAUDE.md dokumentiert).
+Ein neues Feld in `localStorage['ft4']`. Es muss an **zwei** Stellen eingetragen werden:
+
+1. `hasOnly`-Liste im `users`-Block von `firestore.rules`
+2. `CLOUD_NEUE_FELDER` in `js/app-update.js:698`
+
+Punkt 2 ist der Sicherheitsgurt: `_setDocCompat()` wiederholt einen mit permission-denied
+abgelehnten Push automatisch ohne die dort gelisteten Felder. Ohne den Eintrag würde ein
+noch nicht deployter Rules-Stand den **kompletten** `users`-Push kippen, nicht nur den
+Crew-Teil. Mit dem Eintrag degradiert es sauber: Crew-Zuordnung synct nicht, alles andere
+läuft weiter.
 
 Ein Nutzer ist in v1 in **genau einer** Crew.
 
@@ -110,6 +116,17 @@ inkrementiert. Dadurch heilt der Zähler sich nach Offline-Phasen, Cloud-Merges 
 nachträglich gelöschten Sessions selbst.
 
 Wochengrenze ist Montag 00:00 lokaler Zeit, identisch zu `_weekStats()`.
+
+**Der Wochenschlüssel ist eigener Code, nicht `getWeekKey()`.** Das bestehende
+`getWeekKey()` (`js/app-session.js:1192`) rechnet `ceil(((d - jan1)/86400000 + jan1.getDay() + 1)/7)`.
+Der Zählerstand springt dort an einem Wochentag, der vom Wochentag des 1. Januar abhängt —
+je nach Jahr also nicht am Montag. Zusätzlich verzerrt die Sommerzeit-Umstellung die
+Millisekunden-Differenz gegen den 1. Januar, was direkt vor der Grenze eine Woche
+vor- oder zurückspringen lässt. Für den Crew-Rollover muss der Schlüssel exakt dann
+wechseln, wenn auch das Zählfenster wechselt. Daher ein eigener Schlüssel:
+`weekKeyOf(ts)` = ISO-Datum des Montags der jeweiligen Woche, z.B. `'2026-08-03'`.
+Nebeneffekt: der Schlüssel sortiert lexikografisch korrekt und ist über den
+Jahreswechsel hinweg eindeutig.
 
 ### Wochen-Rollover
 
@@ -280,9 +297,15 @@ match /crews/{cid} {
 
 Zusätzlich `'crewId'` in die `hasOnly`-Liste des `users`-Blocks.
 
-**Deploy-Reihenfolge:** Beide Rules-Änderungen müssen in der Firebase-Konsole
-veröffentlicht sein, **bevor** der Client-Code live geht. Sonst läuft nicht nur der
-Crew-Sync auf permission-denied, sondern der gesamte `users`-Push.
+**Deploy-Reihenfolge:** Beide Rules-Änderungen gehören in die Firebase-Konsole,
+**bevor** der Client-Code live geht. Der `CLOUD_NEUE_FELDER`-Eintrag für `crewId`
+federt eine falsche Reihenfolge ab (siehe Abschnitt 3), die `crews`-Collection selbst
+ist ohne deployte Rules aber komplett gesperrt.
+
+**Fehlende FB-Methode:** `window.FB` (index.html) exportiert heute kein
+`runTransaction`. Für den Rollover muss `runTransaction` aus
+`firebase-firestore.js` importiert und als `window.FB.runTransaction = (fn) =>
+runTransaction(db, fn)` ergänzt werden.
 
 Kein Index nötig — alle Zugriffe laufen über die Doc-ID.
 
