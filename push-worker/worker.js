@@ -1,14 +1,34 @@
 // ── GymTrack Push-Absender (Cloudflare Worker) ─────────────────────────────
-// Nimmt {toUid, idToken, fromName} von der App entgegen, liest den APNs-Push-
-// Token des Empfängers aus Firestore (mit dem Firebase-Login des ABSENDERS,
-// darum kein Missbrauch möglich) und schickt eine Push über Apple APNs.
+// Nimmt {toUid, idToken} von der App entgegen, liest den APNs-Push-Token des
+// Empfängers aus Firestore und schickt eine Push über Apple APNs.
 // Dein geheimer .p8-Schlüssel bleibt NUR hier als Worker-Secret. Kein Blaze,
 // kein Firebase-SDK. Kosten: 0 €.
+//
+// Sicherheit — ein gueltiges idToken allein reicht NICHT. Drei Huerden:
+//   1. Identitaet: die UID kommt aus der idToken-Payload, die SIGNATUR prueft
+//      Firestore beim Profil-Read (401 => raus). Ein gebasteltes Token kommt
+//      also nicht durch, obwohl der Worker selbst nichts kryptografisch prueft.
+//   2. Beziehung: Absender und Empfaenger muessen einander als Freund fuehren
+//      (eine Richtung genuegt, Follow-Modell). Sonst 403 — vorher konnte jedes
+//      angemeldete (auch anonyme) Konto jeden Nutzer zuspammen.
+//   3. Menge: Tageslimit pro Absender-UID und pro Absender/Empfaenger-Paar (KV).
+//   Der Anzeigename kommt aus dem Absender-Profil in Firestore, NICHT aus dem
+//   Request-Body — sonst kann sich jeder als beliebige Person ausgeben.
 //
 // Secrets (im Cloudflare-Dashboard setzen, NICHT hier eintippen):
 //   APNS_KEY_P8   = kompletter Inhalt der .p8-Datei (mit BEGIN/END-Zeilen)
 //   APNS_KEY_ID   = 10-stellige Key-ID vom Apple-Push-Key
 //   APNS_TEAM_ID  = deine Apple Team-ID (10-stellig)
+//
+// Bindings:
+//   PUSH_QUOTA (KV Namespace) = Tageszaehler der Push-Absender (p:{uid}:{YYYY-MM-DD}).
+//                  Ersatzweise wird ein als AI_QUOTA gebundener Namespace benutzt
+//                  (anderes Praefix, kollidiert nicht mit dem KI-Worker).
+//                  OHNE Binding gibt es KEIN Mengenlimit — die Beziehungspruefung
+//                  greift trotzdem.
+// Optionale Vars (nicht geheim):
+//   PUSH_DAILY               = Pushes/Tag pro Absender insgesamt (Default 60)
+//   PUSH_DAILY_PER_RECIPIENT = Pushes/Tag pro Absender an EINEN Empfaenger (Default 10)
 
 const FIREBASE_PROJECT = "gymtrack-25d39";
 const BUNDLE_ID        = "com.wolter.gymtrack";

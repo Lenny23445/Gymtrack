@@ -744,6 +744,12 @@ async function llmGemini(env, { system, messages, maxTokens, schema }) {
   if (cand.finishReason === "SAFETY" || cand.finishReason === "PROHIBITED_CONTENT") throw new Error("refusal");
   const parts = (cand.content && cand.content.parts) || [];
   const text = parts.map((p) => p.text || "").join("");
+  // Gemini liefert bei RECITATION/SPII/BLOCKLIST/LANGUAGE/OTHER ein Kandidaten-
+  // Objekt OHNE parts. Ein leerer Text darf nicht als Erfolg durchgehen: der
+  // Client zeigt sonst seinen Fallback-Text, die Kontingent-Erstattung greift
+  // nicht, und bei einer cachefaehigen Frage landet der Leerstring 30 Tage im
+  // GETEILTEN Cache und trifft danach jeden Nutzer mit derselben Frage.
+  if (!text.trim()) throw new Error("leere Antwort (finishReason " + (cand.finishReason || "?") + ")");
   const um = data.usageMetadata || {};
   // MAX_TOKENS bei erzwungenem JSON = mitten im String abgeschnitten. Das muss
   // sichtbar sein, sonst knallt es später als "Unterminated string in JSON".
@@ -760,7 +766,7 @@ async function llmClaude(env, { system, messages, maxTokens, schema }) {
     : m);
   const payload = { max_tokens: maxTokens, system, messages: msgs };
   if (schema) payload.output_config = { format: { type: "json_schema", schema } };
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetchLlm("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "x-api-key": env.ANTHROPIC_API_KEY,
@@ -772,7 +778,9 @@ async function llmClaude(env, { system, messages, maxTokens, schema }) {
   if (!res.ok) throw new Error("Claude HTTP " + res.status + " " + (await res.text()).slice(0, 300));
   const data = await res.json();
   if (data.stop_reason === "refusal") throw new Error("refusal");
-  const text = (data.content.find((b) => b.type === "text") || {}).text || "";
+  const text = ((data.content || []).find((b) => b.type === "text") || {}).text || "";
+  // Wie bei Gemini: leerer Text ist ein Fehler, kein Erfolg (siehe llmGemini).
+  if (!text.trim()) throw new Error("leere Antwort (stop_reason " + (data.stop_reason || "?") + ")");
   const u = data.usage || {};
   return { text, truncated: data.stop_reason === "max_tokens",
            usage: { inTok: u.input_tokens || 0, outTok: u.output_tokens || 0 } };
