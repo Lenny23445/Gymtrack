@@ -1725,17 +1725,33 @@ function _premWatchEntitlement(){
 // aiCall('chat'|'coach'|'analyze', payload) → POST AI_WORKER_URL/<kind> mit
 // idToken (wer bist du) + jws (bist du Premium) + lang. 402 = kein Premium
 // (Paywall öffnen), 429 = Monatslimit erreicht (Toast, quota trotzdem übernehmen).
+// Zeitgrenze je Aufruf-Art. Ohne sie bleibt eine haengende Verbindung (Funkloch
+// im Studio, tote TCP-Verbindung) offen, bis das Betriebssystem sie irgendwann
+// kappt — die Coach-Leiste stuende so lange auf "denkt nach", und der Nutzer
+// kaeme nur ueber Training verlassen oder Neustart wieder heraus.
+// Die Werte sind nach oben grosszuegig: eine langsame, aber funktionierende
+// Mobilverbindung darf nicht faelschlich abgebrochen werden. 'coach' ist die
+// kuerzeste Runde (kleine Nutzlast, kurze Antwort) und blockiert als einzige
+// eine sichtbare Flaeche im Training; 'vision' laedt ein Foto hoch.
+const AI_TIMEOUT_MS = { coach: 25000, chat: 45000, analyze: 45000, vision: 60000, default: 45000 };
 async function aiCall(kind, payload){
   if (!(window.FB && window.FB.configured && _fbUser)) { _dndToast('Bitte zuerst anmelden.'); return null; }
   let idToken;
   try { idToken = await _fbUser.getIdToken(); }
   catch(_) { _dndToast('Bitte zuerst anmelden.'); return null; }
+  // Die Zeitgrenze laeuft ueber den GANZEN Aufruf, nicht nur bis zum Kopf der
+  // Antwort: ein Datenstrom, der mitten im Rumpf stehen bleibt, haengt genauso.
+  const ctrl = new AbortController();
+  let abgelaufen = false;
+  const frist = setTimeout(() => { abgelaufen = true; try { ctrl.abort(); } catch(_){} },
+                           AI_TIMEOUT_MS[kind] || AI_TIMEOUT_MS.default);
   try {
     // Bewusst OHNE Content-Type-Header: einfacher CORS-Request, kein Preflight
     // (WKWebView meldet sonst "Load failed" trotz erreichbarem Worker, s. Commit e5c1562).
     const res = await fetch(AI_WORKER_URL + '/' + kind, {
       method: 'POST',
       body: JSON.stringify({ idToken, jws: PREM.jws || null, lang: GT_LANG, ...payload }),
+      signal: ctrl.signal,
     });
     let j = null; try { j = await res.json(); } catch(_){}
     if (res.status === 402) {
@@ -1768,9 +1784,16 @@ async function aiCall(kind, payload){
     // Klartext statt Sammelmeldung: „Load failed" (WKWebView-Netzfehler) sieht
     // sonst genauso aus wie ein echter Ausfall des Workers.
     console.warn('[GymTrack] KI-Call fehlgeschlagen:', kind, e);
-    _dndToast('KI nicht erreichbar (' + (e?.message || e) + ')');
+    // Abgelaufene Frist und Netzfehler sind zwei verschiedene Auskuenfte: nach
+    // einer Zeitueberschreitung hilft ein zweiter Versuch, bei einem Netzfehler
+    // muss der Nutzer erst wieder Empfang haben. Zweisprachig direkt hier — der
+    // Woerterbuch-Weg (I18N_EN) erreicht nur unveraenderte Textknoten.
+    _dndToast(abgelaufen
+      ? _cm('Der Coach antwortet gerade nicht. Versuch es gleich noch einmal.',
+            'The coach is not responding right now. Please try again in a moment.')
+      : 'KI nicht erreichbar (' + (e?.message || e) + ')');
     return null;
-  }
+  } finally { clearTimeout(frist); }
 }
 
 // ── KI-Coach: LIVE-COACH IM TRAINING (Phase D) ─────────

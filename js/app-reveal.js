@@ -17,9 +17,16 @@
      schrumpfen waere falsch — die leeren Huelsen sind die Skala und muessen
      stehen bleiben. Sie leuchten stattdessen nacheinander auf.
 
-   Es entsteht keine einzige neue Keyframe. Beide Wege nutzen die CSS-Uebergaenge,
-   die an diesen Klassen ohnehin schon haengen (transition:width .5s bzw.
-   transition:background .45s) — angestossen wird nur ihr Startwert.
+   Es entsteht keine einzige neue Keyframe. Gewachsen wird ueber transform
+   (scaleX/scaleY um den Rand, der stehen bleibt) und NICHT ueber width/height:
+   eine Groessenanimation zwingt den WebView bei jedem einzelnen Bild zu einem
+   neuen Layout, und auf aelteren iPhones ruckelt dann die ganze Seite mit. Die
+   Layout-Groesse steht deshalb die ganze Zeit auf dem Zielwert; sichtbar
+   waechst nur die Skalierung von 0 auf 1, der Endzustand ist damit exakt der
+   ungerechnete. Dauer und Kurve stehen je Traeger in GROESSE, weil das
+   Stylesheet nur width/height taktet — transform muss inline mitgetaktet
+   werden, sonst gaebe es gar keinen Uebergang. Die Segmentreihen nutzen weiter
+   ihren Farbuebergang (transition:background .45s).
 
    Der Versatz zaehlt INNERHALB einer Gruppe, nicht ueber die ganze Seite. Auf
    einem Statistik-Tab mit acht Muskelzeilen liefe ein durchgehender Zaehler
@@ -33,13 +40,26 @@
 
   /* Werttraeger, deren GROESSE der Wert ist. achse = die Eigenschaft, die der
      Renderer als inline-Stil setzt; ohne inline-Wert wird das Element
-     uebersprungen (dann gibt es kein Ziel, auf das zurueckgestellt werden
-     koennte, und ein aus dem Stylesheet geratenes waere schlechter als keine
-     Bewegung). */
+     uebersprungen (dann hat der Renderer ihm keinen Wert gegeben, und was aus
+     dem Stylesheet kommt ist Grundgeruest, kein Messwert).
+
+     skala/ursprung = dieselbe Achse als transform, verankert an dem Rand, der
+     beim Wachsen stehen bleibt: Fuellungen wachsen nach rechts, die Saeulen des
+     Volumen-Trends nach oben (ihre Beschriftung sitzt unter ihnen und darf sich
+     nicht bewegen). takt = Dauer und Kurve, wie sie fuer die Achse im
+     Stylesheet stehen — beides muss zusammen bleiben, sonst laeuft der Aufbau
+     anders als jede spaetere echte Wertaenderung.
+
+     Alle drei Traeger sind LEER (die Beschriftungen sind Geschwister, nicht
+     Kinder). Deshalb geht scale hier ohne Gegen-Transform; ein Traeger mit
+     Inhalt duerfte so nicht animiert werden, der Inhalt wuerde mitverzerren. */
   var GROESSE = [
-    { sel: '.aia-hrow-fill', achse: 'width'  },
-    { sel: '.aia-bar i',     achse: 'height' },
-    { sel: '.lvl-fill',      achse: 'width'  }
+    { sel: '.aia-hrow-fill', achse: 'width',  skala: 'scaleX',
+      ursprung: 'left center',   takt: '.5s cubic-bezier(.2,.8,.3,1)' },
+    { sel: '.aia-bar i',     achse: 'height', skala: 'scaleY',
+      ursprung: 'center bottom', takt: '.5s cubic-bezier(.2,.8,.3,1)' },
+    { sel: '.lvl-fill',      achse: 'width',  skala: 'scaleX',
+      ursprung: 'left center',   takt: '.55s cubic-bezier(.32,1,.32,1)' }
   ];
 
   /* Segmentreihen. rueckwaerts = die gefuellten Striche stehen am ENDE der
@@ -95,65 +115,91 @@
   }
 
   /* Ohne diesen Lesezugriff fasst der Browser Startwert und Zielwert zu einem
-     einzigen Stilwechsel zusammen und es gibt keinen Uebergang zu sehen. */
+     einzigen Stilwechsel zusammen und es gibt keinen Uebergang zu sehen.
+
+     Er faellt EINMAL fuer den ganzen Durchlauf an, nicht je Element: ein
+     Lesezugriff zwingt den WebView zum vollstaendigen Layout, und wer zwischen
+     zwei Schreibvorgaengen liest, bezahlt das je Balken erneut. Auf einem
+     Statistik-Tab mit Zeilen, Saeulen und Akkus waren das ueber vierzig
+     erzwungene Layouts in einem Frame. Deshalb: erst alle Startzustaende
+     schreiben, dann einmal lesen, dann alle Ziele schreiben. */
   function reflow(el) { return el.offsetWidth; }
 
   /* Der Versatz darf nicht liegen bleiben: die naechste ECHTE Wertaenderung
      (neuer Satz eingetragen, Erholung neu gerechnet) traege ihn sonst mit und
-     zoegerte grundlos. */
-  function spaeterAufraeumen(el, ms) {
-    function frei() { el.style.transitionDelay = ''; el.style.transition = ''; }
+     zoegerte grundlos. Bei den Groessen faellt zugleich das transform weg — es
+     steht dann auf 1 und ist damit dasselbe wie keins, aber ein liegen
+     gebliebener Stapelkontext waere trotzdem einer zu viel. */
+  function spaeterAufraeumen(el, ms, mitTransform) {
+    function frei() {
+      el.style.transitionDelay = ''; el.style.transition = '';
+      if (mitTransform) { el.style.transform = ''; el.style.transformOrigin = ''; }
+    }
     try { root.setTimeout(frei, ms + AUFRAEUMEN); } catch (_) { frei(); }
   }
 
-  function riseGroesse(el, achse, i) {
-    var ziel = el.style[achse];
-    if (!ziel) return;
-    var ms = verzug(i);
+  function startGroesse(el, g) {
+    if (!el.style[g.achse]) return false;
     el.style.transition = 'none';
     el.style.transitionDelay = '0ms';
-    el.style[achse] = '0';
-    reflow(el);
-    el.style.transition = '';
+    el.style.transformOrigin = g.ursprung;
+    el.style.transform = g.skala + '(0)';
+    return true;
+  }
+
+  /* Die Achse bleibt im Uebergang stehen, obwohl hier nur transform wandert:
+     waehrend des Aufbaus haengt der Versatz am Element, und eine echte
+     Wertaenderung, die in dieses Fenster faellt, soll so laufen wie sonst
+     auch — ohne die Zeile spraenge sie hart. */
+  function zielGroesse(el, g, i) {
+    var ms = verzug(i);
+    el.style.transition = 'transform ' + g.takt + ', ' + g.achse + ' ' + g.takt;
     el.style.transitionDelay = ms + 'ms';
-    el.style[achse] = ziel;
-    spaeterAufraeumen(el, ms);
+    el.style.transform = g.skala + '(1)';
+    spaeterAufraeumen(el, ms, true);
   }
 
   /* Ein Strich gilt als gefuellt, wenn der Renderer ihm eine eigene Farbe
      gegeben hat. Die leeren tragen keine — sie kommen aus dem Stylesheet
      (--ng-well). Genau das macht den Weg hier so einfach: die Farbe kurz
      wegnehmen heisst "leere Huelse", zurueckgeben heisst "leuchtet". */
-  function riseSegmente(bar, rueckwaerts) {
+  function startSegmente(bar, rueckwaerts) {
     var kinder, gefuellt = [], i, el;
-    try { kinder = bar.children || []; } catch (_) { return; }
+    try { kinder = bar.children || []; } catch (_) { return null; }
     for (i = 0; i < kinder.length; i++) {
       el = kinder[i];
-      if (el && el.style && el.style.background) gefuellt.push(el);
+      if (el && el.style && el.style.background) {
+        gefuellt.push({ el: el, bg: el.style.background, sh: el.style.boxShadow });
+      }
     }
-    if (!gefuellt.length) return;
+    if (!gefuellt.length) return null;
     if (rueckwaerts) gefuellt.reverse();
 
-    var schritt = segSchritt(gefuellt.length);
     for (i = 0; i < gefuellt.length; i++) {
-      el = gefuellt[i];
-      var bg = el.style.background, sh = el.style.boxShadow;
-      var ms = i * schritt;
+      el = gefuellt[i].el;
       el.style.transition = 'none';
       el.style.transitionDelay = '0ms';
       el.style.background = '';
       el.style.boxShadow  = '';
-      reflow(el);
+    }
+    return gefuellt;
+  }
+
+  function zielSegmente(gefuellt) {
+    var schritt = segSchritt(gefuellt.length), i, s, ms;
+    for (i = 0; i < gefuellt.length; i++) {
+      s = gefuellt[i];
+      ms = i * schritt;
       /* Der kurze Uebergang wird hier gesetzt und nicht dem Stylesheet
          ueberlassen: dort stehen 450 ms, und die sind fuer eine ECHTE
          Wertaenderung richtig (die Erholung springt nicht, sie wandert). Fuer
          den Aufbau waeren sie zu lang — die Striche liefen ineinander. */
-      el.style.transition = 'background ' + SEG_MS + 'ms linear, box-shadow ' + SEG_MS + 'ms linear';
-      el.style.transitionDelay = ms + 'ms';
-      el.style.background = bg;
-      el.style.boxShadow  = sh;
+      s.el.style.transition = 'background ' + SEG_MS + 'ms linear, box-shadow ' + SEG_MS + 'ms linear';
+      s.el.style.transitionDelay = ms + 'ms';
+      s.el.style.background = s.bg;
+      s.el.style.boxShadow  = s.sh;
       // Nach dem Aufbau zurueck auf den Uebergang aus dem Stylesheet.
-      spaeterAufraeumen(el, ms + SEG_MS);
+      spaeterAufraeumen(s.el, ms + SEG_MS);
     }
   }
 
@@ -168,15 +214,37 @@
       var w = wurzel || (root.document || null);
       if (!w || typeof w.querySelectorAll !== 'function') return;
 
+      var groessen = [], reihen = [], k;
+
+      // Erster Durchgang: nur schreiben, nichts lesen.
       GROESSE.forEach(function (g) {
         var els = w.querySelectorAll(g.sel);
-        for (var i = 0; i < els.length; i++) riseGroesse(els[i], g.achse, i);
+        for (var i = 0; i < els.length; i++) {
+          // Der Versatz zaehlt die Position in der Gruppe, auch uebersprungene:
+          // sonst rueckte eine Zeile ohne Wert die folgenden mit auf.
+          if (startGroesse(els[i], g)) groessen.push({ el: els[i], g: g, i: i });
+        }
       });
 
       SEGMENTE.forEach(function (s) {
         var bars = w.querySelectorAll(s.sel);
-        for (var i = 0; i < bars.length; i++) riseSegmente(bars[i], s.rueckwaerts);
+        for (var i = 0; i < bars.length; i++) {
+          var reihe = startSegmente(bars[i], s.rueckwaerts);
+          if (reihe) reihen.push(reihe);
+        }
       });
+
+      var erstes = (groessen[0] && groessen[0].el) ||
+                   (reihen[0] && reihen[0][0] && reihen[0][0].el) || null;
+      if (!erstes) return;
+      reflow(erstes);
+
+      // Zweiter Durchgang: wieder nur schreiben. Dazwischen kein Lesezugriff,
+      // sonst kostet jeder Balken sein eigenes Layout.
+      for (k = 0; k < groessen.length; k++) {
+        zielGroesse(groessen[k].el, groessen[k].g, groessen[k].i);
+      }
+      for (k = 0; k < reihen.length; k++) zielSegmente(reihen[k]);
     } catch (e) { console.warn('[Reveal]', e); }
   }
 

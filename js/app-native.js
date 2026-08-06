@@ -321,8 +321,51 @@ if (!S.coachReportAt || typeof S.coachReportAt !== 'object' || Array.isArray(S.c
 S.coachReportAt.day  = (Math.floor(Number(S.coachReportAt.day))  >= 0 && Math.floor(Number(S.coachReportAt.day))  <= 6)  ? Math.floor(Number(S.coachReportAt.day))  : 0;
 S.coachReportAt.hour = (Math.floor(Number(S.coachReportAt.hour)) >= 0 && Math.floor(Number(S.coachReportAt.hour)) <= 23) ? Math.floor(Number(S.coachReportAt.hour)) : 18;
 
+/* Geschrieben wird ENTPRELLT. JSON.stringify(S) laeuft synchron und umfasst bei
+   langem Verlauf ein Megabyte; an den ueber hundert Aufrufstellen (jeder
+   Schalter, jeder Satz-Haken) lief das bei jedem Klick komplett durch.
+   Dasselbe Muster wie _saveActiveWkSoon in js/app-workout.js: der Timer wird
+   NICHT zurueckgesetzt, die Wartezeit ist also nach oben begrenzt.
+   Der Preis waere ein Verlust beim App-Kill — dagegen steht _persistFlush(),
+   das bei jedem Hintergrundwechsel sofort durchschreibt (Web:
+   visibilitychange/pagehide/beforeunload in js/app-update.js; nativ zusaetzlich
+   der App-State von iOS, s. _persistBindAppState weiter unten). */
+const PERSIST_DEBOUNCE_MS = 400;
+let _persistT     = null;
+let _persistOffen = false;
+let _persistWarnTs = 0;
+
+function _persistWrite() {
+  if (_persistT) { clearTimeout(_persistT); _persistT = null; }
+  try {
+    localStorage.setItem('ft4', JSON.stringify(S));
+    _persistOffen = false;   // erst JETZT gesichert — ein Fehlschlag bleibt offen
+  } catch (e) {
+    /* Voller Speicher: der Zustand steht weiter im Arbeitsspeicher, ist aber
+       nicht gesichert. Ungefangen riss der QuotaExceededError bisher die
+       Aufrufstelle mit — mitten im Training heisst das Abbruch. Hinweis
+       hoechstens einmal pro Minute, sonst kaeme er an jeder Aufrufstelle neu. */
+    console.warn('[GymTrack] Speichern fehlgeschlagen:', e);
+    const jetzt = Date.now();
+    if (jetzt - _persistWarnTs > 60000) {
+      _persistWarnTs = jetzt;
+      try { showUpdateToast('Speicher voll — Änderungen lassen sich gerade nicht sichern.', { autoHide: 6000 }); } catch(_) {}
+    }
+  }
+}
+// Ausstehenden Schreibvorgang sofort durchdruecken (App geht in den Hintergrund).
+function _persistFlush() { if (_persistOffen) _persistWrite(); }
+/* Ausstehenden Schreibvorgang VERWERFEN. Pflicht ueberall dort, wo 'ft4' hinter
+   dem Ruecken von S ersetzt oder geloescht wird (Konto-Loeschung, Backup-
+   Import): der Timer schriebe den alten Stand sonst direkt wieder darueber. */
+function _persistCancel() {
+  if (_persistT) { clearTimeout(_persistT); _persistT = null; }
+  _persistOffen = false;
+}
+
 let persist = () => {
-  localStorage.setItem('ft4', JSON.stringify(S));
+  _persistOffen = true;
+  if (!_persistT) _persistT = setTimeout(() => { _persistT = null; _persistWrite(); }, PERSIST_DEBOUNCE_MS);
   _updateWidgetData();
 };
 
@@ -460,6 +503,21 @@ function _updateWidgetData(immediate) {
   if (immediate) { _pushWidgetData(); return; }
   _widgetDebounce = setTimeout(_pushWidgetData, 800);
 }
+
+/* Nativ ist der App-State des Systems der verlaessliche Moment zum
+   Durchschreiben: iOS friert die WebView beim Wechsel in den Hintergrund ein,
+   pagehide und visibilitychange kommen dort nicht in jedem Fall an. Die
+   Plugin-Bruecke steht beim Auswerten dieser Datei noch nicht zwingend bereit —
+   deshalb dieselbe Wiederhol-Schleife wie bei _premWatchEntitlement. */
+let _persistLifeTries = 0;
+function _persistBindAppState() {
+  if (!_isNative()) return;
+  const A = window.Capacitor?.Plugins?.App;
+  if (!A || !A.addListener) { if (_persistLifeTries++ < 12) setTimeout(_persistBindAppState, 800); return; }
+  try { A.addListener('appStateChange', (st) => { if (!st || st.isActive === false) _persistFlush(); }); } catch(_) {}
+  try { A.addListener('pause', () => _persistFlush()); } catch(_) {}
+}
+_persistBindAppState();
 // Plan-Label für einen Wochentag ('mon'…'sun') — wie die Heute-Anzeige
 function _planLabelFor(dayKey) {
   const p = typeof planFor === 'function' ? planFor(dayKey) : null;

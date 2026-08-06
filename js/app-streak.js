@@ -48,22 +48,32 @@ function calcStreak(){
   };
   const weeks = new Set(S.sessions.map(s => mondayOf(s.date)));
   const thisMon = mondayOf(new Date());
+  // Ueber eine Zeitumstellung hinweg hat eine Woche 167 bzw. 169 Stunden. Feste
+  // 7*86400000 ms landen dann eine Stunde neben dem gespeicherten Montag, der
+  // Set-Vergleich schlaegt fehl und die Serie reisst scheinbar ab. Deshalb
+  // kalenderbasiert versetzen und das Ergebnis durch dieselbe mondayOf-Normierung
+  // schicken, aus der auch die Werte im Set stammen.
+  const shiftWeeks = (ts, n) => {
+    const d = new Date(ts);
+    d.setDate(d.getDate() + n * 7);
+    return mondayOf(d);
+  };
   // Aktueller Streak
   let count = 0, cursor = thisMon;
-  if (!weeks.has(cursor)) cursor = cursor - 7*86400000;
-  while (weeks.has(cursor)) { count++; cursor -= 7*86400000; }
+  if (!weeks.has(cursor)) cursor = shiftWeeks(cursor, -1);
+  while (weeks.has(cursor)) { count++; cursor = shiftWeeks(cursor, -1); }
   // Bester Streak (über alle Wochen)
   const sortedWeeks = [...weeks].sort((a,b) => a-b);
   let best = 0, run = 0, prev = null;
   for (const w of sortedWeeks) {
-    run = (prev !== null && w - prev === 7*86400000) ? run + 1 : 1;
+    run = (prev !== null && shiftWeeks(prev, 1) === w) ? run + 1 : 1;
     if (run > best) best = run;
     prev = w;
   }
   // Verlauf der letzten 12 Wochen
   const weekHistory = [];
   for (let i = 11; i >= 0; i--) {
-    const wMon = thisMon - i * 7 * 86400000;
+    const wMon = shiftWeeks(thisMon, -i);
     weekHistory.push({ ts: wMon, trained: weeks.has(wMon), isCurrent: wMon === thisMon });
   }
   return {
@@ -446,7 +456,9 @@ function _mxRenderYears(wrap, today, map, level){
     const start = new Date(jan1);
     start.setDate(jan1.getDate() - _DOW_MON0(jan1));   // Montag der 1. Kalenderwoche
     const dec31 = new Date(year, 11, 31);
-    const weeks = Math.ceil(((dec31 - start) / 86400000 + 1) / 7);
+    // Tage erst runden: faellt eine Zeitumstellung dazwischen, ist die Differenz
+    // um eine Stunde daneben und Math.ceil haengt eine leere 54. Spalte an.
+    const weeks = Math.ceil((Math.round((dec31 - start) / 86400000) + 1) / 7);
 
     // Monatszeile: 12 gleich breite Spalten über die volle Jahresbreite.
     // (Wochen-genaue Positionen würden DEZ über den rechten Rand schieben.)
@@ -2324,7 +2336,11 @@ function openProfileEdit(){
   const birth = document.getElementById('pf-birth');
   if (birth) {
     birth.value = ab.birth || '';
-    birth.max = new Date(Date.now() - 10 * 365.25 * 864e5).toISOString().slice(0, 10);   // mind. 10 Jahre alt
+    // mind. 10 Jahre alt — kalenderbasiert: 10*365,25 Tage verfehlen den Stichtag
+    // je nach Schaltjahren, und toISOString haette zusaetzlich in UTC gerechnet.
+    const maxBirth = new Date(); maxBirth.setHours(0,0,0,0);
+    maxBirth.setFullYear(maxBirth.getFullYear() - 10);
+    birth.max = _localDateKey(maxBirth);
   }
   _pfBirthChanged();
   const bio = document.getElementById('pf-bio');

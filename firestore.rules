@@ -1,6 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Plausibilitaets-Helfer fuer Zahlen, die in Level/Rangliste einfliessen.
+    // get(key, default) faengt Felder ab, die der Privatsphaere-Filter gar nicht
+    // erst schreibt; null ist erlaubt, weil das Profil stats/week bewusst leert.
+    function okNum(v, max) { return v is number && v >= 0 && v <= max; }
+    function okPeriod(p, maxSes, maxVol) {
+      return p == null || (okNum(p.get('ses', 0), maxSes) && okNum(p.get('vol', 0), maxVol));
+    }
+    function okStats(s) {
+      return s == null || (okNum(s.get('total', 0), 5000) && okNum(s.get('avgDur', 0), 1440));
+    }
+    // Post-Foto: base64-JPEG im Doc (kein Storage). Der Client drueckt die
+    // Qualitaet bis unter 0,9 MB — darueber ist es kein App-Upload mehr.
+    function okImg(v) { return v == null || (v is string && v.size() <= 1000000); }
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1");
       allow write: if request.auth != null
@@ -41,7 +54,15 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == userId && docId == 'dossier';
     }
     match /profiles/{userId} {
-      allow read: if request.auth != null;
+      // Einzelabruf fuer jeden Angemeldeten (Freundesprofil, Feed-Autor, Karte).
+      // Listen NUR mit Limit: Code-Suche fragt limit(1), Namenssuche limit(8),
+      // Live-Zaehler limit(100). Eine Query ohne Limit waere ein Vollabzug der
+      // Nutzerbasis inkl. gymLat/gymLng. Ausnahme: das Admin-Dashboard liest
+      // profiles bewusst komplett (dashboard/index.html).
+      allow get: if request.auth != null;
+      allow list: if request.auth != null
+        && (request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1"
+            || request.query.limit <= 100);
       allow create, update: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly([
@@ -51,14 +72,34 @@ service cloud.firestore {
            ])
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 30
-        && (!('friends' in request.resource.data) || request.resource.data.friends.size() <= 100);
+        && (!('friends' in request.resource.data) || request.resource.data.friends.size() <= 100)
+        && okNum(request.resource.data.get('streak', 0), 1000)
+        && okPeriod(request.resource.data.get('week',  null), 60,  5000000)
+        && okPeriod(request.resource.data.get('month', null), 250, 20000000)
+        && okStats(request.resource.data.get('stats', null));
       allow delete: if request.auth != null && request.auth.uid == userId;
 
       match /activities/{aid} {
         allow read: if request.auth != null;
-        allow create, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly([
+               'type','name','ts','dur','mg','prs','week','streak','reactions'
+             ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 30
+          && request.resource.data.ts is number
+          && okNum(request.resource.data.get('dur', 0), 1440)
+          && (!('prs' in request.resource.data) || request.resource.data.prs.size() <= 3)
+          && (!('reactions' in request.resource.data) || request.resource.data.reactions.size() == 0);
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        // Fremd-Update nur auf reactions UND darin nur auf den eigenen Schluessel
+        // (sonst liesse sich die ganze Map fremder Eintraege ueberschreiben).
         allow update: if request.auth != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          && ('reactions' in resource.data
+                ? request.resource.data.reactions.diff(resource.data.reactions)
+                    .affectedKeys().hasOnly([request.auth.uid])
+                : request.resource.data.reactions.keys().hasOnly([request.auth.uid]));
       }
 
       match /posts/{pid} {
@@ -72,10 +113,22 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly([
                'ts','visibility','img','imgPath','layout','dayName','dur','mgs','gym','name','photo','flames'
              ])
-          && request.resource.data.dayName is string && request.resource.data.dayName.size() <= 60;
+          && request.resource.data.dayName is string && request.resource.data.dayName.size() <= 60
+          && request.resource.data.ts is number
+          && okImg(request.resource.data.get('img', ''))
+          && okNum(request.resource.data.get('dur', 0), 1440)
+          && (!('mgs' in request.resource.data) || request.resource.data.mgs.size() <= 8)
+          // Flammen sind die Punkte-Basis (_flameBankAdd) — ein Post startet bei 0,
+          // sonst schreibt sich der Autor beim Anlegen selbst Reaktionen gut.
+          && (!('flames' in request.resource.data) || request.resource.data.flames.size() == 0);
         allow delete: if request.auth != null && request.auth.uid == userId;
+        // Fremd-Update nur auf flames UND darin nur auf den eigenen Schluessel.
         allow update: if request.auth != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flames']);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['flames'])
+          && ('flames' in resource.data
+                ? request.resource.data.flames.diff(resource.data.flames)
+                    .affectedKeys().hasOnly([request.auth.uid])
+                : request.resource.data.flames.keys().hasOnly([request.auth.uid]));
       }
     }
     // Community-Feed: collectionGroup('posts')-Query ueber ALLE Nutzer.
@@ -101,7 +154,14 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.from == request.auth.uid
         && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasOnly(['from','to','fromName','fromCode','ts','status']);
+        && request.resource.data.keys().hasOnly(['from','to','fromName','fromCode','ts','status'])
+        // Doc-ID ist fest 'from__to' (_reqId): pro Empfaenger genau ein Doc,
+        // damit niemand die Collection mit Anfragen vollschreibt.
+        && rid == request.resource.data.from + '__' + request.resource.data.to
+        && request.resource.data.to is string
+        && request.resource.data.ts is number
+        && request.resource.data.fromName is string
+        && request.resource.data.fromName.size() <= 30;
       allow update: if request.auth != null
         && resource.data.to == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
@@ -130,10 +190,13 @@ service cloud.firestore {
       allow read:   if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid','start','lastBeat','duration','isAnon']);
+        && request.resource.data.keys().hasOnly(['uid','start','lastBeat','duration','isAnon'])
+        && request.resource.data.duration is number
+        && request.resource.data.isAnon is bool;
       allow update: if request.auth != null
         && resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid','start','lastBeat','duration','isAnon']);
+        && request.resource.data.keys().hasOnly(['uid','start','lastBeat','duration','isAnon'])
+        && request.resource.data.duration is number;
     }
   }
 }

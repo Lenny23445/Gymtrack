@@ -47,22 +47,43 @@ export default {
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, cors); }
-    const { toUid, idToken, fromName } = body || {};
-    console.log("[PUSH] Anfrage rein: toUid=", toUid, "fromName=", fromName, "hatIdToken=", !!idToken);
-    if (!toUid || !idToken) return json({ error: "toUid+idToken required" }, 400, cors);
+    const { toUid, idToken } = body || {};
+    if (!toUid || !idToken || typeof toUid !== "string" || typeof idToken !== "string" || toUid.length > 128)
+      return json({ error: "toUid+idToken required" }, 400, cors);
 
-    // 1) Empfänger-Profil aus Firestore lesen — MIT dem Login des Absenders.
-    //    Ungültiger idToken => 401 hier => keine Push, kein Missbrauch.
-    const fsUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}` +
-                  `/databases/(default)/documents/profiles/${encodeURIComponent(toUid)}`;
-    const fsRes = await fetch(fsUrl, { headers: { Authorization: `Bearer ${idToken}` } });
-    if (!fsRes.ok) { console.log("[PUSH] FEHLER: Profil-Lesen/Auth fehlgeschlagen, status=", fsRes.status); return json({ error: "auth/profile read failed", status: fsRes.status }, 401, cors); }
-    const doc   = await fsRes.json();
-    const token = doc && doc.fields && doc.fields.pushToken && doc.fields.pushToken.stringValue;
+    // 1) Wer schickt? UID aus der Token-Payload; Gueltigkeit prueft Schritt 2.
+    const fromUid = uidFromIdToken(idToken);
+    if (!fromUid) { console.log("[PUSH] idToken unlesbar oder fremdes Projekt"); return json({ error: "bad idToken" }, 401, cors); }
+    console.log("[PUSH] Anfrage rein: from=", fromUid, "toUid=", toUid);
+
+    // 2) Absender-Profil lesen. Erfuellt zwei Zwecke: Firestore verifiziert dabei
+    //    die Token-Signatur (ungueltig => 401), und wir bekommen Anzeigename +
+    //    Freundesliste vom Server statt vom Client.
+    const from = await fsProfile(fromUid, idToken);
+    if (from.status === 401 || from.status === 403) { console.log("[PUSH] FEHLER: Auth fehlgeschlagen, status=", from.status); return json({ error: "auth failed", status: from.status }, 401, cors); }
+    if (!from.doc) { console.log("[PUSH] Absender hat kein Community-Profil, status=", from.status); return json({ error: "sender profile required", status: from.status }, 403, cors); }
+    const fromName = sanitize(fsString(from.doc, "name"));
+
+    // 3) Mengenlimit pro Absender — auch fehlgeschlagene Zustellversuche zaehlen,
+    //    damit Durchprobieren teuer bleibt.
+    const quota = await pushQuota(env, fromUid, toUid);
+    if (!quota.ok) { console.log("[PUSH] Rate-Limit", quota.scope, quota.used, "/", quota.limit, "fuer", fromUid); return json({ error: "rate limit", scope: quota.scope, limit: quota.limit }, 429, cors); }
+
+    // 4) Empfaenger-Profil lesen und Beziehung pruefen. Follow-Modell: eine
+    //    Richtung genuegt (Flamme auf einen oeffentlichen Post eines Fremden
+    //    erzeugt bewusst KEINE Push mehr).
+    const to = await fsProfile(toUid, idToken);
+    if (!to.doc) { console.log("[PUSH] Empfaenger-Profil nicht lesbar, status=", to.status); return json({ error: "recipient unavailable", status: to.status }, 404, cors); }
+    const related = fromUid === toUid
+                 || fsStringArray(from.doc, "friends").includes(toUid)
+                 || fsStringArray(to.doc,   "friends").includes(fromUid);
+    if (!related) { console.log("[PUSH] ABGELEHNT: ", fromUid, "und", toUid, "sind nicht befreundet"); return json({ error: "not friends" }, 403, cors); }
+
+    const token = fsString(to.doc, "pushToken");
     if (!token) { console.log("[PUSH] KEIN pushToken im Profil des Empfaengers", toUid, "-> Empfaenger hat nie registriert"); return json({ ok: true, skipped: "no pushToken" }, 200, cors); }
     console.log("[PUSH] Empfaenger-Token gefunden, laenge=", token.length);
 
-    // 2) APNs-JWT signieren + 3) Push senden — beides abgesichert: ein kaputtes
+    // 5) APNs-JWT signieren + 6) Push senden — beides abgesichert: ein kaputtes
     // APNS_KEY_P8-Secret (z.B. ungueltiges Base64) wuerde sonst als uncaught
     // Exception ohne CORS-Header rausgehen -> Client sieht nur "Load failed"
     // statt des echten Grunds.
@@ -72,7 +93,7 @@ export default {
       const payload = JSON.stringify({
         aps: {
           alert: { title: "MyGymTrack",
-                   body: `${sanitize(fromName) || "Jemand"} hat mit einer Flamme reagiert` },
+                   body: `${fromName || "Jemand"} hat mit einer Flamme reagiert` },
           sound: "default",
           // Kein hardcodiertes badge:1 mehr — der Worker kennt die echte Unread-Zahl
           // nicht (stateless) und hätte bei jeder Push den Badge wieder auf 1 gesetzt,
@@ -122,6 +143,76 @@ function sanitize(s) {
   let out = "";
   for (const ch of s) { if (ch.charCodeAt(0) >= 32) out += ch; }
   return out.slice(0, 40);
+}
+
+// ── Absender-Identitaet ────────────────────────────────────────────────────
+// Liest NUR die Payload (kein Signaturcheck) — das erledigt Firestore beim
+// anschliessenden Profil-Read mit demselben Token. Der aud-Vergleich haelt
+// Tokens fremder Firebase-Projekte fern.
+function uidFromIdToken(tok) {
+  try {
+    const parts = String(tok).split(".");
+    if (parts.length !== 3) return null;
+    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const claims = JSON.parse(new TextDecoder().decode(bytes));
+    if (claims.aud !== FIREBASE_PROJECT) return null;
+    const uid = claims.user_id || claims.sub;
+    return typeof uid === "string" && uid ? uid : null;
+  } catch (e) { return null; }
+}
+
+// ── Firestore-Profile (REST, mit dem Login des Absenders) ──────────────────
+async function fsProfile(uid, idToken) {
+  const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}` +
+              `/databases/(default)/documents/profiles/${encodeURIComponent(uid)}`;
+  let res;
+  try { res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } }); }
+  catch (e) { return { status: 0, doc: null }; }
+  if (!res.ok) return { status: res.status, doc: null };
+  try { return { status: 200, doc: await res.json() }; }
+  catch (e) { return { status: 0, doc: null }; }
+}
+function fsString(doc, key) {
+  const f = doc && doc.fields && doc.fields[key];
+  return (f && typeof f.stringValue === "string") ? f.stringValue : "";
+}
+function fsStringArray(doc, key) {
+  const f = doc && doc.fields && doc.fields[key];
+  const vals = (f && f.arrayValue && f.arrayValue.values) || [];
+  return vals.map((v) => v && v.stringValue).filter((s) => typeof s === "string");
+}
+
+// ── Tageslimit pro Absender (Cloudflare KV) ────────────────────────────────
+// Zwei Zaehler: Gesamtmenge pro Tag und Menge an EINEN Empfaenger pro Tag.
+// Faellt bei fehlendem Binding oder KV-Stoerung offen aus (wie im ai-worker) —
+// die Beziehungspruefung bleibt die eigentliche Sperre, das Limit ist die
+// Spam-Bremse und darf den Normalbetrieb nicht abschiessen.
+async function pushQuota(env, fromUid, toUid) {
+  const kv = env.PUSH_QUOTA || env.AI_QUOTA;
+  if (!kv) return { ok: true, counted: false };
+  const dayLimit  = parseInt(env.PUSH_DAILY) || 60;
+  const pairLimit = parseInt(env.PUSH_DAILY_PER_RECIPIENT) || 10;
+  const day   = new Date().toISOString().slice(0, 10);
+  const kDay  = `p:${fromUid}:${day}`;
+  const kPair = `p:${fromUid}>${toUid}:${day}`;
+  const ttl   = { expirationTtl: 2 * 86400 };
+  try {
+    const [dayRaw, pairRaw] = await Promise.all([kv.get(kDay), kv.get(kPair)]);
+    const dayUsed  = parseFloat(dayRaw)  || 0;
+    const pairUsed = parseFloat(pairRaw) || 0;
+    if (dayUsed  >= dayLimit)  return { ok: false, scope: "day",  used: dayUsed,  limit: dayLimit };
+    if (pairUsed >= pairLimit) return { ok: false, scope: "pair", used: pairUsed, limit: pairLimit };
+    await Promise.all([
+      kv.put(kDay,  String(dayUsed  + 1), ttl),
+      kv.put(kPair, String(pairUsed + 1), ttl),
+    ]);
+    return { ok: true, counted: true };
+  } catch (e) {
+    console.log("[PUSH] KV-Stoerung, Limit uebersprungen:", e && e.message || e);
+    return { ok: true, counted: false };
+  }
 }
 
 // ── APNs JWT (ES256) ───────────────────────────────────────────────────────

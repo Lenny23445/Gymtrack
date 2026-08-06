@@ -267,6 +267,31 @@ let _initialMergeDone = false;
 let _loginInProgress = false; // verhindert, dass die anonyme Auto-Anmeldung einen laufenden Google-Login stört
 let _onLoginUid = null;       // UID, für die _onLogin bereits läuft/lief (gegen Doppelausführung)
 
+/* ── SCHEMA-STAND DES CLOUD-DOKUMENTS ────────────────────────────────────
+   Web (immer aktuell) und native App (aktualisiert der Nutzer irgendwann)
+   teilen sich DASSELBE users-Dokument. Der Push schrieb bisher eine feste
+   Feldliste mit merge:false — ein aelterer Build loeschte damit jedes Feld
+   serverseitig, das er selbst noch nicht kennt (zuletzt 'checkins' und
+   'aiCoach' waeren so verschwunden). Zwei Sicherungen dagegen:
+     1. mergeFields statt merge:false, s. _pushToCloud.
+     2. dieser Stand. Hochzaehlen, sobald ein Feld dazukommt oder seine
+        Bedeutung wechselt. Ein Client mit NIEDRIGEREM Stand pusht gar nicht
+        mehr und bittet stattdessen ums App-Update. */
+const CLOUD_SCHEMA_V = 2;
+let _cloudSchemaV = 0;        // hoechster im Cloud-Dokument gesehener Stand
+let _schemaWarned  = false;
+function _cloudSchemaSeen(cloud) {
+  const v = Number(cloud && cloud._schemaV) || 0;
+  if (v > _cloudSchemaV) _cloudSchemaV = v;
+}
+function _schemaZuAlt() {
+  if (_schemaWarned) return;
+  _schemaWarned = true;
+  console.warn('[GymTrack] Cloud-Schema ' + _cloudSchemaV + ' > lokal ' + CLOUD_SCHEMA_V + ' — Push verweigert');
+  try { _dndToast('Ein anderes Gerät hat neuere Daten gespeichert. Bitte aktualisiere MyGymTrack — bis dahin bleibt dieser Stand nur auf diesem Gerät.'); } catch(_) {}
+  try { if (_isNative()) _showNativeUpdateBar({ notes: 'Update nötig — ein anderes Gerät nutzt bereits eine neuere Version.' }); } catch(_) {}
+}
+
 // Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
 const _origPersist = persist;
 persist = function() {
@@ -287,6 +312,10 @@ async function _pushToCloud() {
   if (!_fbUser || !window.FB || !window.FB.configured) return;
   // Demo-/Marketing-Modus (Simulator-Seeds) synct NIE in die Cloud
   if (_demoModeAny() || (typeof DEMO_SEED !== 'undefined' && DEMO_SEED)) return;
+  /* Das Dokument stammt von einem NEUEREN Build. Dieser hier kennt dessen
+     Felder nicht und wuerde sie mit seiner eigenen Lesart ueberschreiben. Der
+     Vermerk bleibt gesetzt, damit der Merge den lokalen Stand weiter schuetzt. */
+  if (_cloudSchemaV > CLOUD_SCHEMA_V) { _cloudDirtySet(true); _schemaZuAlt(); return; }
   try {
     const ref = window.FB.userDocRef(_fbUser.uid);
     // WICHTIG: Jedes Feld hier muss auch im hasOnly() der Firestore-Rules stehen,
@@ -341,10 +370,27 @@ async function _pushToCloud() {
          abweisen — und zwar still im catch unten. stringify wirft solche
          Schluessel weg, statt das ganze Dokument zu verlieren. */
       aiCoach:    _coachCloudPersona(),
+      _schemaV:   CLOUD_SCHEMA_V,
       updatedAt: S.updatedAt || Date.now(),
       _serverTime: window.FB.serverTimestamp()
     };
-    await window.FB.setDoc(ref, payload, { merge: false });
+    /* Flammen-Bank (localStorage 'gt_flameBank', s. js/app-streak.js). Sie lag
+       bisher NUR auf dem Geraet: Posts verfallen nach sieben Tagen und die
+       Flamme wird beim Loeschen lokal gebucht, also startete ein neues Geraet
+       bei 0 — Level und Punkte fielen dauerhaft, nachladbar war nichts mehr.
+       Fehlt der Wert, bleibt der Schluessel WEG statt null zu schreiben:
+       mergeFields laesst ihn dann unberuehrt, statt den Cloud-Stand zu leeren. */
+    const _fb = _flameBankCloud();
+    if (_fb) payload.flameBank = _fb;
+    /* mergeFields statt merge:false — beides zugleich:
+       - Felder, die dieser Build NICHT kennt (neuerer Client), bleiben stehen,
+         statt serverseitig geloescht zu werden.
+       - jedes AUFGEZAEHLTE Feld wird trotzdem VOLLSTAENDIG ersetzt. Mit einem
+         schlichten merge:true waere das falsch: Firestore mischt Maps dann
+         tief, und ein geleertes trackerCounts / ein auf 'none' gestellter
+         Wochenplan-Tag brachte seine alten Unterschluessel aus der Cloud
+         zurueck. Leere Arrays und null schreibt der Payload ohnehin explizit. */
+    await _setDocCompat(ref, payload);
     _cloudDirtySet(false);   // bestaetigt: die Cloud kennt diesen Stand
   } catch (e) {
     /* Ein abgelehnter Push war bisher eine Konsolenzeile — und damit der
@@ -365,6 +411,63 @@ async function _pushToCloud() {
     }
   }
 }
+/* Felder, die firestore.rules erst nach dem naechsten Publish im hasOnly()
+   fuehrt. Steht die Konsole noch auf dem alten Stand, lehnt Firestore den
+   KOMPLETTEN Push ab (permission-denied) — die App verloere jede Sicherung,
+   nicht nur die neuen Felder. Deshalb geht der Push dann EINMAL ohne sie erneut
+   hinaus. Nur fuer diese Sitzung gemerkt: nach einem Neustart wird wieder mit
+   den vollen Feldern probiert, der Rueckfall verschwindet also von selbst,
+   sobald die Rules veroeffentlicht sind. */
+const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank'];
+let _cloudFeldRueckfall = false;
+async function _setDocCompat(ref, payload) {
+  if (_cloudFeldRueckfall) CLOUD_NEUE_FELDER.forEach(k => { delete payload[k]; });
+  try {
+    await window.FB.setDoc(ref, payload, { mergeFields: Object.keys(payload) });
+  } catch (e) {
+    if (_cloudFeldRueckfall || !String(e?.code || e).includes('permission')) throw e;
+    _cloudFeldRueckfall = true;
+    CLOUD_NEUE_FELDER.forEach(k => { delete payload[k]; });
+    console.warn('[GymTrack] Cloud-Rules kennen die neuen Felder noch nicht — Push ohne sie');
+    await window.FB.setDoc(ref, payload, { mergeFields: Object.keys(payload) });
+  }
+}
+
+/* Die Bank in der Form, die in die Cloud geht. null heisst „nicht ermittelbar" —
+   der Aufrufer laesst den Schluessel dann weg. */
+function _flameBankCloud() {
+  try {
+    if (typeof _flameBank !== 'function') return null;
+    const b = _flameBank();
+    if (!b) return null;
+    return { t: Number(b.t) || 0, k: (b.k && typeof b.k === 'object') ? b.k : {} };
+  } catch(_) { return null; }
+}
+
+/* Zusammenfuehren der Bank. Sie waechst monoton: 't' zaehlt alle je
+   gutgeschriebenen Flammen, 'k' merkt sich die bereits gezaehlten
+   (postId:reactorUid) und ist damit der Schutz gegen doppeltes Zaehlen.
+   Deshalb gewinnt beim Zaehler das Maximum, und die Schluesselmengen werden
+   VEREINIGT — was ein Geraet schon gebucht hat, darf das andere nicht ein
+   zweites Mal buchen. Haben beide Seiten auf eigenen Posts gezaehlt, ist die
+   Vereinigung groesser als jeder einzelne Zaehler und damit die bessere
+   Untergrenze; kleiner als ein Zaehler kann sie nur sein, wenn Schluessel
+   geloeschter Posts entfernt wurden (_flameBankPrunePost laesst 't' bewusst
+   stehen) — dann traegt das Maximum.
+   Geschrieben wird direkt nach localStorage: die Bank steht bewusst NICHT in S,
+   sonst liefe sie gegen das hasOnly() der users-Rules. */
+function _flameBankMerge(cloudBank) {
+  try {
+    if (!cloudBank || typeof cloudBank !== 'object') return;
+    const lokal = (typeof _flameBank === 'function') ? _flameBank() : { t: 0, k: {} };
+    const ck = (cloudBank.k && typeof cloudBank.k === 'object') ? cloudBank.k : {};
+    const k  = Object.assign({}, ck, lokal.k || {});
+    const t  = Math.max(Number(cloudBank.t) || 0, Number(lokal.t) || 0, Object.keys(k).length);
+    localStorage.setItem('gt_flameBank', JSON.stringify({ t: t, k: k }));
+    if (t !== (Number(lokal.t) || 0)) { try { _renderLevelBadge(); } catch(_) {} }
+  } catch(_) {}
+}
+
 /* Gibt es lokale Aenderungen, die die Cloud nie bestaetigt hat? Der Zeitstempel
    liegt in localStorage und NICHT in S: er beschreibt den Zustand DIESES
    Geraets gegenueber der Cloud und haette in einem Feld, das selbst gesynct
@@ -409,6 +512,20 @@ function _mergeData(local, cloud) {
   // Demo-Altlasten aus BEIDEN Quellen filtern, bevor gemergt wird — sonst
   // schleust ein kontaminiertes Cloud-Doc/Gerät die dm_-Daten wieder ein.
   try { _purgeDemoData(local); _purgeDemoData(cloud); } catch(_){}
+  _cloudSchemaSeen(cloud);
+  try { _flameBankMerge(cloud.flameBank); } catch(_){}
+  /* Ein Stand, den die Cloud nie bestaetigt hat, darf nicht von ihr
+     ueberschrieben werden. Genau das passierte, wenn ein Push abgelehnt wurde
+     (Rules aelter als firestore.rules) oder das Netz fehlte: lokal geaendert,
+     nie hochgekommen, und der naechste Merge zog den alten Cloud-Stand
+     herein — Coach-Name, Ton und die uebrigen Einstellungen waren wieder die
+     von vorher. Solange der Vermerk steht, gewinnt in JEDEM Feld die lokale
+     Seite; Uebungen werden ohnehin vereinigt und nicht gewaehlt, da geht dabei
+     nichts verloren.
+     Steht bewusst VOR den Listen: die Einheiten unten richten sich seit dem
+     id-Abgleich ebenfalls danach. */
+  const nichtGesichert = (typeof _cloudDirty === 'function') && _cloudDirty();
+  const cloudNewer = !nichtGesichert && (cloud.updatedAt || 0) >= (local.updatedAt || 0);
   const exMap = new Map();
   [...(cloud.exercises || []), ...(local.exercises || [])].forEach(ex => {
     if (!ex || !ex.id) return;
@@ -417,29 +534,37 @@ function _mergeData(local, cloud) {
       exMap.set(ex.id, ex);
     }
   });
+  /* Einheiten werden ueber ihre stabile id abgeglichen (vergeben beim Beenden
+     des Trainings, js/app-workout.js). Der fruehere Schluessel aus
+     Datum + Uebungsliste war blind gegen genau die Aenderung, die er schuetzen
+     sollte: eine NEUE Einheit ueberlebte, eine nachtraeglich BEARBEITETE wurde
+     still auf den Cloud-Stand zurueckgesetzt — auch dann, wenn der Push nie
+     durchgegangen war. Ausserdem verschmolz er zwei echte Einheiten desselben
+     Tages mit derselben Uebungsliste zu einer.
+     Alt-Einheiten ohne id behalten den bisherigen Schluessel. Taucht dieselbe
+     Einheit auf der einen Seite mit und auf der anderen ohne id auf, gewinnt
+     der id-Eintrag, statt zweimal im Verlauf zu stehen. */
   const sesMap = new Map();
-  [...(cloud.sessions || []), ...(local.sessions || [])].forEach(s => {
+  const sesAlt = new Map();          // Datum|Uebungen -> tatsaechlich benutzter Schluessel
+  const sesPut = (s) => {
     if (!s) return;
-    const exIds = (s.logs || []).map(l => l.exerciseId).sort().join(',');
-    const key = (s.date || '') + '|' + exIds;
-    if (!sesMap.has(key)) sesMap.set(key, s);
-  });
+    const alt = (s.date || '') + '|' + (s.logs || []).map(l => l.exerciseId).sort().join(',');
+    const key = s.id ? 'id:' + s.id : (sesAlt.get(alt) || alt);
+    if (s.id && sesAlt.get(alt) === alt) sesMap.delete(alt);
+    sesMap.set(key, s);
+    sesAlt.set(alt, key);
+  };
+  // Verlierer zuerst, Gewinner danach — der zweite Durchlauf ueberschreibt.
+  // Bei ungesicherten lokalen Aenderungen ist der Gewinner die lokale Seite.
+  (cloudNewer ? (local.sessions || []) : (cloud.sessions || [])).forEach(sesPut);
+  (cloudNewer ? (cloud.sessions || []) : (local.sessions || [])).forEach(sesPut);
   // Gewichtsverlauf: Union per Datum (Cloud gewinnt bei gleichem Tag)
   const wlMap = new Map();
   [...(local.weightLog || []), ...(cloud.weightLog || [])].forEach(e => {
     if (e && e.date) wlMap.set(e.date, e);
   });
-  // Strukturierte Felder (Plan, Splits, Tracker): neuerer Stand gewinnt
-  /* Ein Stand, den die Cloud nie bestaetigt hat, darf nicht von ihr
-     ueberschrieben werden. Genau das passierte, wenn ein Push abgelehnt wurde
-     (Rules aelter als firestore.rules) oder das Netz fehlte: lokal geaendert,
-     nie hochgekommen, und der naechste Merge zog den alten Cloud-Stand
-     herein — Coach-Name, Ton und die uebrigen Einstellungen waren wieder die
-     von vorher. Solange der Vermerk steht, gewinnt in JEDEM Feld die lokale
-     Seite; Uebungen und Einheiten werden ohnehin vereinigt und nicht gewaehlt,
-     da geht dabei nichts verloren. */
-  const nichtGesichert = (typeof _cloudDirty === 'function') && _cloudDirty();
-  const cloudNewer = !nichtGesichert && (cloud.updatedAt || 0) >= (local.updatedAt || 0);
+  // Strukturierte Felder (Plan, Splits, Tracker): neuerer Stand gewinnt.
+  // nichtGesichert/cloudNewer stehen weiter oben — s. Begruendung dort.
   const pick = (a, b) => cloudNewer ? (a ?? b) : (b ?? a); // a=cloud, b=local
   return {
     exercises: [...exMap.values()],
@@ -599,6 +724,9 @@ async function _onLogin(user) {
     _fbUnsub = window.FB.onSnapshot(ref, (snap2) => {
       if (!snap2.exists() || _syncing) return;
       const cloud = snap2.data();
+      // Auch am Merge vorbei mitlesen: ein neuerer Build kann das Dokument
+      // geschrieben haben, ohne dass sich fuer diesen hier etwas aendert.
+      _cloudSchemaSeen(cloud);
       if ((cloud.updatedAt || 0) <= (S.updatedAt || 0)) return;
       _syncing = true;
       const sig = _dataSig();
@@ -910,6 +1038,9 @@ document.addEventListener('visibilitychange', () => {
     // (z. B. gerade erst eingetragene Einschraenkung) wuerde sonst nie
     // pushen, bevor iOS die App einfriert (Review Wichtig 2).
     try { _dossierFlush(); } catch(_) {}
+    // Zum SCHLUSS: der entprellte State-Schreiber (js/app-native.js). Zuletzt,
+    // weil die Flushes darueber selbst noch persist() aufrufen koennen.
+    try { _persistFlush(); } catch(_) {}
   }
   else if (document.visibilityState === 'visible') {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
@@ -921,8 +1052,8 @@ document.addEventListener('visibilitychange', () => {
     try { _dossierRetryIfDirty(); } catch(_) {}
   }
 });
-window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} try { _dossierFlush(); } catch(_) {} });
-window.addEventListener('beforeunload', () => _analyticsBeat(true));
+window.addEventListener('pagehide',     () => { _analyticsBeat(true); _updateWidgetData(true); try { _flushActiveWk(); } catch(_) {} try { _dossierFlush(); } catch(_) {} try { _persistFlush(); } catch(_) {} });
+window.addEventListener('beforeunload', () => { _analyticsBeat(true); try { _persistFlush(); } catch(_) {} });
 
 // ── ADMIN-MODUS ───────────────────────────────────────
 // 5× tap auf Version-Zeile (binnen 3s) → Admin-Modus aktivieren
@@ -1666,6 +1797,9 @@ async function _runAccountDeletion() {
 }
 
 function _finishAccountWipe(dossierDeleteFailed) {
+  // Erst den entprellten Schreiber stoppen, sonst legt sein Timer den geloeschten
+  // Stand zwischen removeItem und reload wieder an.
+  try { _persistCancel(); } catch(_) {}
   try {
     localStorage.removeItem('ft4');
     Object.keys(localStorage).filter(k => k.indexOf('gt_') === 0).forEach(k => localStorage.removeItem(k));

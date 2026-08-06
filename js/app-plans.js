@@ -1317,8 +1317,10 @@ function recoveryState(pct) {
   return 'Bereit';
 }
 
-/* Stub für Kompatibilität (frühere Aufrufer) */
-function invalidateRecovery() { /* personalNormLoad ist on-the-fly */ }
+/* Verwirft den Sessions-Index von _recIdxAll() (Deklaration hier oben, damit
+   der Aufrufer nicht in der TDZ des let steht). */
+let _recIdx = null, _recIdxKey = '';
+function invalidateRecovery() { _recIdx = null; _recIdxKey = ''; }
 
 /* Übungstyp-Schadensfaktor:
    bestimmt wie schnell sich eine Übung erholt (hoher Wert = langsamer).
@@ -1350,10 +1352,56 @@ function sessionDamageMul(sets) {
    Damit erscheinen NUR Übungen, die der Nutzer selbst angelegt hat
    – keine Muskel-Pseudo-Einträge wie "Quadrizeps".
    ──────────────────────────────────────────────────────────────── */
+/* Sessions-Index fuer die Erholungsrechnung: exerciseId → die je Session schon
+   fertig summierten Beitraege. Ohne ihn lief die Schleife unten fuer JEDE Uebung
+   ueber ALLE Sessions inkl. Date-Parsing und einem find() ueber deren Logs — und
+   sie haengt an smartRestSecs(), laeuft also nach jedem abgehakten Satz.
+
+   Die Liste bleibt in S.sessions-REIHENFOLGE. Die Summe unten ist eine
+   Gleitkomma-Addition; eine andere Reihenfolge waere ein anderes Ergebnis.
+
+   Schluessel wie bei _exIdxAll(): Anzahl Sessions + updatedAt. persist() setzt
+   updatedAt bei jeder Aenderung neu (der Cloud-Merge uebernimmt es aus dem
+   Remote-Doc), damit greift der Cache auch bei bearbeiteten Sessions ohne
+   Laengenaenderung. setFatigueLoad() haengt ueber _impliedBodyweight() am
+   weightLog — auch das laeuft durch persist(). */
+function _recIdxAll() {
+  const key = (S.sessions ? S.sessions.length : 0) + '|' + (S.updatedAt || 0);
+  if (_recIdx && _recIdxKey === key) return _recIdx;
+  const idx = Object.create(null);
+  for (const ses of (S.sessions || [])) {
+    const ts = new Date(ses.date).getTime();
+    if (!ts) continue;
+    const seen = Object.create(null);
+    for (const log of (ses.logs || [])) {
+      // Wie bisher ses.logs.find(): pro Session zaehlt nur der ERSTE Log je Uebung.
+      if (!log || !log.exerciseId || seen[log.exerciseId]) continue;
+      seen[log.exerciseId] = 1;
+      const load = (log.sets || []).reduce((s, set) => s + setFatigueLoad(set), 0);
+      if (load <= 0) continue;
+      const e = idx[log.exerciseId] || (idx[log.exerciseId] = { list: [], asc: true });
+      const prev = e.list[e.list.length - 1];
+      if (prev && ts < prev.ts) e.asc = false;
+      e.list.push({ ts, load, mul: sessionDamageMul(log.sets) });
+    }
+  }
+  _recIdx = idx; _recIdxKey = key;
+  return _recIdx;
+}
+/* Erster Eintrag ab cutoff. Alles davor liegt ausserhalb BEIDER Fenster (90 Tage
+   ist das weitere) und traegt weder zur Last noch zum Peak bei. Nur bei
+   chronologischer Liste — sonst waere die Grenze nicht eindeutig. */
+function _recIdxStart(e, cutoff) {
+  if (!e.asc) return 0;
+  let lo = 0, hi = e.list.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (e.list[mid].ts < cutoff) lo = mid + 1; else hi = mid; }
+  return lo;
+}
 function getExerciseRecovery() {
   const now = Date.now();
   const cutoff = now - FAT_WINDOW_H * 3600 * 1000;
   const cutoff90 = now - 90 * 24 * 3600 * 1000;
+  const idx = _recIdxAll();
   const out = {};
 
   for (const ex of (S.exercises || [])) {
@@ -1363,13 +1411,9 @@ function getExerciseRecovery() {
     let lastTs = null;
     let peakSession = 0;
 
-    for (const ses of (S.sessions || [])) {
-      const ts = new Date(ses.date).getTime();
-      if (!ts) continue;
-      const log = (ses.logs || []).find(l => l.exerciseId === ex.id);
-      if (!log) continue;
-      const sesLoad = (log.sets || []).reduce((s, set) => s + setFatigueLoad(set), 0);
-      if (sesLoad <= 0) continue;
+    const e = idx[ex.id];
+    if (e) for (let i = _recIdxStart(e, cutoff90); i < e.list.length; i++) {
+      const ts = e.list[i].ts, sesLoad = e.list[i].load;
 
       // Peak für persönliche Norm (ohne set-type-Bonus → roher Volume-Peak)
       if (ts >= cutoff90 && sesLoad > peakSession) peakSession = sesLoad;
@@ -1378,7 +1422,7 @@ function getExerciseRecovery() {
       if (ts >= cutoff) {
         const hoursAgo = (now - ts) / 3600000;
         const decay = Math.pow(0.5, hoursAgo / halflife);
-        load += sesLoad * sessionDamageMul(log.sets) * decay;
+        load += sesLoad * e.list[i].mul * decay;
         if (!lastTs || ts > lastTs) lastTs = ts;
       }
     }
@@ -1513,8 +1557,12 @@ function _perfScore() {
       const woche = (t) => Math.floor(t / (7 * 864e5));
       const jetztW = woche(jetzt);
       const vol = {};
+      // Gelesen werden nur die Wochen jetztW-3 … jetztW. Alles davor landet in
+      // Eimern, die niemand anfasst — sessionVolume() dafuer zu rechnen ist bei
+      // langer Historie der teuerste Teil der ganzen Funktion.
+      const minT = (jetztW - 3) * 7 * 864e5;
       ses.forEach(sn => {
-        const t = new Date(sn.date).getTime(); if (!isFinite(t)) return;
+        const t = new Date(sn.date).getTime(); if (!isFinite(t) || t < minT) return;
         vol[woche(t)] = (vol[woche(t)] || 0) + (sessionVolume(sn) || 0);
       });
       const vor = [1, 2, 3].map(k => vol[jetztW - k] || 0).filter(v => v > 0);

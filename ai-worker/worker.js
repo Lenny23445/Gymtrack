@@ -538,7 +538,7 @@ export default {
       // dasselbe Abo schaltet beliebig viele Firebase-Konten frei, jedes mit
       // eigenem Monatskontingent, und hebt ueber premiumSeen() den Kostendeckel.
       // Altabos ohne Token laufen in der Uebergangsfrist weiter durch.
-      const tok = String(skPayload && skPayload.appAccountToken || "").toLowerCase();
+      const tok = String((skPayload && skPayload.appAccountToken) || "").trim().toLowerCase();
       if (!tok) {
         console.log("[AI] appAccountToken fehlt (Altabo, Uebergangsfrist):", uid, skPayload && skPayload.productId);
       } else if (tok !== await accountTokenFor(uid)) {
@@ -648,7 +648,11 @@ export default {
       // des Erst-Nutzers dauerhaft ins Dossier JEDES Empfaengers schreiben —
       // Schreibrichtung, nicht nur Lesen.
       const hasPersonalBlock = typeof result.text === "string" && /```(gtplan|gtmem)\b/.test(result.text);
-      if (mayCache && env.AI_QUOTA && !hasPersonalBlock) {
+      // Zweite Sperre gegen einen vergifteten Cache: nur echter Text wird
+      // geschrieben. Ein Leerstring wuerde 30 Tage lang jedem Nutzer mit
+      // derselben normalisierten Frage als "Antwort" ausgeliefert.
+      const hasText = typeof result.text === "string" && result.text.trim().length > 0;
+      if (mayCache && env.AI_QUOTA && !hasPersonalBlock && hasText) {
         // 30 Tage. Kein await auf den Antwortpfad legen — der Nutzer soll nicht
         // auf den Cache-Schreibvorgang warten. Ein Fehler hier darf /chat nicht
         // zum Absturz bringen: das try/catch faengt nur synchrone Wuerfe, ein

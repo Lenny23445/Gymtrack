@@ -595,6 +595,10 @@ function _coachEvalRun(li, si) {
       try { _coachKeepExName(res.c, ex); } catch(e) { console.warn('[Coach] Name:', e); }
       _coachCard = { exId: log.exerciseId, c: res.c, applied:false, baseW: w, timer:null };
       renderLogCards();
+      /* Waehrend des Calls (1-3 s Netzrunde) kann die Uebung aus dem Training
+         geflogen sein — renderLogCards() raeumt die Karte dann selbst weg. Zu
+         einer Uebung, die nicht mehr da ist, gehoert auch keine Nachricht. */
+      if (!_coachCard) { try { _coachBarSet('idle'); } catch(_) {} return; }
       try { _coachBarSet('msg', res.c.title || res.c.text || '', 6000); } catch(_) {}
       // Auto-Dismiss nach 45s, wenn unangetastet
       _coachCard.timer = setTimeout(() => {

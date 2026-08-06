@@ -1,5 +1,6 @@
 import Foundation
 import Capacitor
+import CryptoKit
 import StoreKit
 import UIKit
 
@@ -67,7 +68,17 @@ public class PremiumPlugin: CAPPlugin, CAPBridgedPlugin {
                 guard let product = try await Product.products(for: [pid]).first else {
                     call.reject("Produkt nicht gefunden — Abo in App Store Connect angelegt?"); return
                 }
-                let result = try await product.purchase()
+                // Kontobindung: die Transaktion bekommt ein appAccountToken, das der
+                // KI-Worker aus derselben Firebase-uid nachrechnet. Ohne das ist der
+                // JWS ein uebertragbarer Schluessel — ein Abo schaltet beliebig viele
+                // Konten frei. Fehlt die uid (nicht angemeldet), wird ohne Token
+                // gekauft; der Worker laesst solche Transaktionen in der
+                // Uebergangsfrist noch durch.
+                var opts = Set<Product.PurchaseOption>()
+                if let uid = call.getString("uid"), let tok = Self.accountToken(for: uid) {
+                    opts.insert(.appAccountToken(tok))
+                }
+                let result = try await product.purchase(options: opts)
                 switch result {
                 case .success(let verification):
                     switch verification {
@@ -126,6 +137,24 @@ public class PremiumPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     // ── Helpers ──
+    /// Deterministische Konto-UUID aus der Firebase-uid: gleiche uid → immer dieselbe
+    /// UUID, damit der KI-Worker sie nachrechnen kann. MUSS Byte fuer Byte dasselbe
+    /// rechnen wie accountTokenFor() in ai-worker/worker.js — SHA-256("gymtrack:" + uid),
+    /// erste 16 Bytes, Version-Nibble 8 + RFC-4122-Variante, klein mit Bindestrichen.
+    /// Referenzwert: uid "testuid123" → ed671e2d-409f-87a1-862b-efda550b5d08.
+    static func accountToken(for uid: String) -> UUID? {
+        guard !uid.isEmpty else { return nil }
+        var b: [UInt8] = Array(SHA256.hash(data: Data(("gymtrack:" + uid).utf8)).prefix(16))
+        b[6] = (b[6] & 0x0F) | 0x80
+        b[8] = (b[8] & 0x3F) | 0x80
+        var s = ""
+        for (i, byte) in b.enumerated() {
+            if i == 4 || i == 6 || i == 8 || i == 10 { s += "-" }
+            s += String(format: "%02x", byte)
+        }
+        return UUID(uuidString: s)
+    }
+
     @available(iOS 15.0, *)
     private func entitlementDict(justBought: String?) async -> [String: Any] {
         var best: Transaction? = nil
