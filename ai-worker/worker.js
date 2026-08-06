@@ -18,13 +18,15 @@
 //   2. jws       = StoreKit-2-Transaktion (bist du Premium) — ES256-Signatur
 //                  + komplette x5c-Kette bis zur gepinnten Apple Root CA G3,
 //                  bundleId, productId und Ablaufdatum werden geprüft.
-//   3. Kontobindung: payload.appAccountToken muss die aus der Firebase-uid
-//                  abgeleitete UUID sein (accountTokenFor(), Spiegel von
+//   3. Kontobindung: payload.appAccountToken ist die aus der Firebase-uid
+//                  abgeleitete UUID (accountTokenFor(), Spiegel von
 //                  PremiumPlugin.accountToken(for:)) — sonst schaltet EIN
 //                  weitergegebener JWS beliebig viele Konten frei.
-//                  UEBERGANGSFRIST: Abos, die vor dem appAccountToken-Build
-//                  gekauft wurden, haben KEIN Token → werden durchgelassen
-//                  und mit "[AI] appAccountToken fehlt" protokolliert.
+//                  Passt das Token zur uid, ist die Anfrage immer erlaubt.
+//                  Passt es NICHT oder fehlt es, entscheidet der Beleg-Deckel
+//                  (receiptSeatOk(), SHARE_MAX_UIDS Konten je Kaufbeleg) —
+//                  eine harte Ablehnung wuerde zahlende Kunden aussperren,
+//                  siehe Kommentar bei receiptSeatOk().
 //   Founder-UID darf ohne JWS durch (eigenes Konto).
 //
 // Secrets (Cloudflare-Dashboard → Settings → Variables, NICHT hier eintippen):
@@ -69,7 +71,8 @@
 //                  429, bis der Monat wechselt — auch für das Founder-Konto, beim Testen im
 //                  Blick behalten.
 // Bindings:
-//   AI_QUOTA (KV Namespace) = führt Monatslimit (q:{uid}:{YYYY-MM}) UND globale Kosten-Stats (stats:{YYYY-MM}) fort
+//   AI_QUOTA (KV Namespace) = führt Monatslimit (q:{uid}:{YYYY-MM}), globale Kosten-Stats
+//                  (stats:{YYYY-MM}) UND den Beleg-Deckel (sk:{Hash der originalTransactionId}) fort
 
 const FOUNDER_UID = "GMm3AlNn1pVRL6cc76opBgnM9sr1";
 // Zusaetzliche Tester-UIDs: kommen wie Founder ohne Abo-Nachweis + ohne Monatslimit
@@ -537,13 +540,22 @@ export default {
       // 2a) Kontobindung. Ohne sie ist der JWS ein uebertragbarer Schluessel:
       // dasselbe Abo schaltet beliebig viele Firebase-Konten frei, jedes mit
       // eigenem Monatskontingent, und hebt ueber premiumSeen() den Kostendeckel.
-      // Altabos ohne Token laufen in der Uebergangsfrist weiter durch.
+      // Passendes Token = Normalfall, immer erlaubt und ohne KV-Zugriff. Alles
+      // andere (kein Token / Token einer anderen uid) laeuft ueber den
+      // Beleg-Deckel statt in eine harte Ablehnung — Begruendung bei
+      // receiptSeatOk().
       const tok = String((skPayload && skPayload.appAccountToken) || "").trim().toLowerCase();
-      if (!tok) {
-        console.log("[AI] appAccountToken fehlt (Altabo, Uebergangsfrist):", uid, skPayload && skPayload.productId);
-      } else if (tok !== await accountTokenFor(uid)) {
-        console.log("[AI] JWS gehoert zu fremdem Konto:", uid);
-        return json({ error: "Abo-Nachweis gehört zu einem anderen Konto" }, 402, cors);
+      if (!tok || tok !== await accountTokenFor(uid)) {
+        let seat = true;
+        try { seat = await receiptSeatOk(skPayload, uid, env); }
+        catch (e) { console.log("[AI] Beleg-Deckel-Fehler:", e.message); } // fail-open wie monthlyUse()
+        if (!seat) {
+          console.log("[AI] Beleg auf zu vielen Konten:", uid);
+          return json({ error: "Dieser Abo-Nachweis wird bereits von mehreren Konten genutzt. Melde dich mit dem Konto an, mit dem du das Abo gekauft hast." }, 402, cors);
+        }
+        console.log(tok ? "[AI] appAccountToken zeigt auf andere uid (Kontowechsel?), Beleg-Deckel zaehlt mit:"
+                        : "[AI] appAccountToken fehlt (Altabo/Promo-Code/Re-Abo im Store/Family Sharing), Beleg-Deckel zaehlt mit:",
+                    uid, skPayload && skPayload.productId);
       }
     }
 
@@ -1259,6 +1271,54 @@ async function accountTokenFor(uid) {
   b[8] = (b[8] & 0x3f) | 0x80;
   const h = hex(b);
   return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20, 32);
+}
+
+// ── Missbrauchs-Deckel je Kaufbeleg (KV) ──
+// WARUM kein hartes "appAccountToken muss passen": das Token kann bei ECHTEN
+// Kunden fehlen oder auf eine andere uid zeigen, und zwar dauerhaft, nicht nur
+// in einer Uebergangsfrist.
+//   - Die App kennt kein Account-Linking (signInWithCredential, nicht
+//     linkWithCredential). Jeder Wechsel Google->Apple und jede Konto-Neuanlage
+//     erzeugt eine neue Firebase-uid; der JWS traegt weiter das Token der alten.
+//     Hart abgelehnt haette der Kunde permanent 402 — und Apple laesst ihn nicht
+//     einfach nochmal kaufen ("bereits abonniert"). Nur ein Refund holt ihn raus.
+//   - Transaktionen ausserhalb des In-App-purchase() koennen konstruktionsbedingt
+//     NIE ein Token haben: Promo-/Offer-Code im App Store, Re-Abo ueber die
+//     App-Store-Abo-Einstellungen (das Sheet aus PremiumPlugin.manageSubs),
+//     Plan-Wechsel ausserhalb der App, Family Sharing.
+// Stattdessen: je Kaufbeleg duerfen sich hoechstens SHARE_MAX_UIDS verschiedene
+// Konten OHNE passendes Token bedienen. Passt das Token, laeuft die Anfrage gar
+// nicht erst hier durch und belegt keinen Platz — der Normalfall wird nie
+// gebremst. 3 Plaetze deckt Kontowechsel und Neuanlage bequem ab (Geraetewechsel
+// aendert die uid ohnehin nicht), stoppt aber Weitergabe an einen Freundeskreis.
+// Schluessel = SHA-256 der originalTransactionId (bleibt ueber Verlaengerungen
+// stabil, anders als transactionId) — gehasht wie der Antwort-Cache seinen
+// Schluessel hasht, damit in KV keine Kaufbeleg-Kennung im Klartext steht.
+// TTL wandert mit: sie wird nur beim Eintragen eines neuen Kontos neu gesetzt,
+// eine ruhende Liste verfaellt also und gibt die Plaetze nach SHARE_TTL_DAYS
+// wieder frei — Kontowechsel ueber Jahre summieren sich nicht auf.
+const SHARE_MAX_UIDS = 3;
+const SHARE_TTL_DAYS = 90;
+
+async function receiptKey(txId) {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("gymtrack:tx:" + txId)));
+  return "sk:" + hex(d).slice(0, 32);
+}
+
+async function receiptSeatOk(payload, uid, env) {
+  const kv = env.AI_QUOTA;
+  const txId = String((payload && (payload.originalTransactionId || payload.transactionId)) || "").trim();
+  if (!kv || !txId || !uid) return true; // ohne KV/Kennung nicht deckeln (fail-open)
+  const key = await receiptKey(txId);
+  let list = [];
+  try { const raw = await kv.get(key); if (raw) list = JSON.parse(raw); } catch (_) { list = []; }
+  if (!Array.isArray(list)) list = [];
+  list = list.filter((u) => typeof u === "string");
+  if (list.includes(uid)) return true;
+  if (list.length >= SHARE_MAX_UIDS) return false;
+  list.push(uid);
+  await kv.put(key, JSON.stringify(list.slice(0, SHARE_MAX_UIDS)), { expirationTtl: SHARE_TTL_DAYS * 86400 });
+  return true;
 }
 
 // ── Mini-DER/ASN.1 ──

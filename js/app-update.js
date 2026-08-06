@@ -292,6 +292,242 @@ function _schemaZuAlt() {
   try { if (_isNative()) _showNativeUpdateBar({ notes: 'Update nötig — ein anderes Gerät nutzt bereits eine neuere Version.' }); } catch(_) {}
 }
 
+/* ── ARCHIV DER EINHEITEN (Subcollection users/{uid}/sessions) ────────────
+   Das Nutzerdokument trug den kompletten Verlauf in EINEM Array. Firestore
+   laesst ein Dokument nur 1 MiB gross werden — bei rund 650 Byte je Einheit ist
+   irgendwo zwischen 1000 und 1400 Trainings Schluss, und danach geht GAR KEIN
+   Push mehr durch: der Nutzer synct nie wieder und merkt es nicht. Die Regel
+   `sessions.size() <= 5000` greift dafuer viel zu spaet.
+
+   Der Ausweg ist ein Dokument je Einheit in einer Subcollection. Umgestellt
+   wird ohne harten Schnitt, weil die native App aus dem Store und die
+   Web-Version DASSELBE Dokument teilen:
+
+     1. Doppelt schreiben. Jede Einheit geht ins Archiv UND bleibt im Array.
+     2. Gekuerzt wird das Array erst, wenn es die Groessenschwelle reisst — und
+        auch dann nur um Einheiten, deren Archiv-Dokument die Cloud BESTAETIGT
+        hat. Nie andersherum, nie ohne Bestaetigung.
+     3. Gelesen wird mit Rueckfall: Archiv und Array werden ueber die stabile
+        session.id vereinigt (s. _mergeData). Fehlt das Archiv, ist es leer oder
+        nicht lesbar, laeuft alles unveraendert aus dem Array.
+
+   Ein Client, der das Archiv nicht kennt, sieht schlimmstenfalls einen
+   gekuerzten Verlauf. Loeschen kann er nichts: mergeFields laesst ihm fremde
+   Felder stehen, und die Subcollection fasst er gar nicht erst an. Nach dem
+   App-Update ist der Verlauf wieder vollstaendig da.
+
+   WICHTIG fuer den Rollout: solange users/{uid}/sessions in der Firebase-
+   Konsole keine Regel hat, scheitert der erste Archiv-Schreibvorgang mit
+   permission-denied. Genau dann passiert nichts weiter — ohne Bestaetigung wird
+   nicht gekuerzt, der Push laeuft exakt wie bisher. Die Umstellung wird erst
+   mit dem Rules-Publish wirksam. */
+
+/* Ab dieser Groesse des Array-JSON wird ueberhaupt erst archiviert. Bewusst
+   weit unter dem Dokumentlimit und weit ueber dem, was normale Konten je
+   erreichen: wer darunter liegt, merkt von der ganzen Umstellung nichts —
+   kein zusaetzlicher Schreibvorgang, keine zusaetzlichen Lesekosten. */
+const SES_ARC_START    = 420000;   // ~640 Einheiten
+/* Ab hier wird der Array-Anteil des Push gekuerzt. Der Abstand zu SES_ARC_START
+   ist Absicht: das Archiv ist vollstaendig, bevor die erste Einheit das Array
+   verlaesst. */
+const SES_PUSH_BUDGET  = 520000;   // ~800 Einheiten
+const SES_KEEP_MIN     = 100;      // so viele juengste Einheiten bleiben IMMER im Array
+const SES_ARC_MAX_DOC  = 190000;   // eine einzelne Einheit groesser als das bleibt im Array
+const SES_ARC_PARALLEL = 8;        // gleichzeitige Schreibvorgaenge
+const SES_ARC_PRO_LAUF = 120;      // Deckel je Push — der Rest folgt beim naechsten
+const SES_ARC_V        = 1;        // Format des Archiv-Dokuments
+
+let _sesArcGesperrt = false;   // Rechte fehlen (Rules nicht veroeffentlicht) — bis Neustart nicht weiter versuchen
+let _sesArcWeiter   = false;   // Archiv noch nicht durch, ein Folgelauf ist faellig
+
+function _hashStr(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36) + '.' + s.length;
+}
+
+/* Der Dokumentname ist ein reiner SPEICHERSCHLUESSEL — die Einheit selbst wird
+   nirgends veraendert. Bevorzugt die stabile session.id (vergeben beim Beenden
+   des Trainings, js/app-workout.js). Aeltere Einheiten ohne id bekommen ihren
+   Zeitstempel: der ist millisekundengenau und bleibt auch dann gleich, wenn die
+   Einheit spaeter bearbeitet wird (etwa weil eine Uebung geloescht wurde). Ein
+   aus dem INHALT abgeleiteter Schluessel wuerde bei jeder Bearbeitung wandern
+   und Karteileichen hinterlassen, die beim Lesen als Doppel auftauchten. */
+function _sesDocId(s) {
+  if (!s) return null;
+  const roh = s.id ? ('i' + s.id) : (s.date ? ('d' + s.date) : null);
+  if (!roh) return null;
+  const sicher = String(roh).replace(/[^A-Za-z0-9_-]/g, '-');
+  return sicher.length > 200 ? sicher.slice(0, 200) : sicher;
+}
+
+/* Einmal je Push: jede Einheit serialisieren und daraus Schluessel, Fingerabdruck
+   und Groesse ableiten. Ein Durchlauf statt drei — die Zeichenkette wird gleich
+   dreifach gebraucht (Vergleich mit dem Merkzettel, Groessenrechnung, Upload). */
+function _sesIndex(sessions) {
+  return (sessions || []).map(s => {
+    let j = null;
+    try { j = JSON.stringify(s); } catch (_) { j = null; }
+    const t = Date.parse(s && s.date);
+    return { s: s, id: _sesDocId(s), j: j, h: j ? _hashStr(j) : null, ts: isFinite(t) ? t : 0 };
+  });
+}
+
+/* Merkzettel: welche Fassung welcher Einheit hat die Cloud bestaetigt? Liegt in
+   localStorage und NICHT in S — er beschreibt den Zustand DIESES Geraets
+   gegenueber der Cloud, genau wie gt_cloud_dirty. Er wird nach JEDEM Block
+   gesichert, damit ein Abbruch mitten in der Migration (App-Kill, Netz weg)
+   beim naechsten Start genau dort weitermacht und nichts doppelt schreibt. */
+function _sesArcKey(uid) { return 'gt_sesArc_' + uid; }
+function _sesArcLedger(uid) {
+  try {
+    const roh = localStorage.getItem(_sesArcKey(uid));
+    const o = roh ? JSON.parse(roh) : null;
+    if (o && o.v === 1 && o.m && typeof o.m === 'object') return o;
+  } catch (_) {}
+  return { v: 1, m: {} };
+}
+function _sesArcLedgerSave(uid, led) {
+  try { localStorage.setItem(_sesArcKey(uid), JSON.stringify(led)); } catch (_) {}
+}
+
+/* Archiv vollstaendig lesen. Nur beim Login und nur, wenn das Dokument ueber
+   sesArc meldet, dass es ueberhaupt eines gibt — sonst waeren es Lesekosten
+   fuer jeden Nutzer, obwohl das Array bei fast allen alles enthaelt. */
+async function _sesArcLoad(uid) {
+  const out = [];
+  const led = { v: 1, m: {} };
+  const snap = await window.FB.getDocs(window.FB.collection('users/' + uid + '/sessions'));
+  snap.forEach(d => {
+    try {
+      const roh = d.data();
+      if (!roh || typeof roh.j !== 'string') return;
+      const s = JSON.parse(roh.j);
+      if (!s || typeof s !== 'object' || Array.isArray(s)) return;
+      out.push(s);
+      led.m[d.id] = _hashStr(roh.j);
+    } catch (_) {}
+  });
+  /* Der Merkzettel beschreibt danach den TATSAECHLICHEN Cloud-Stand. Eintraege,
+     die dieses Geraet einmal geschrieben hat, die es aber nicht mehr gibt,
+     fallen heraus — sonst wollte _sesArcPurge Dokumente loeschen, die schon
+     weg sind. */
+  _sesArcLedgerSave(uid, led);
+  return out;
+}
+
+/* Schreibt alle Einheiten, deren Inhalt seit der letzten Bestaetigung anders
+   ist. Idempotent: gleicher Fingerabdruck = kein Schreibvorgang. Der Deckel
+   SES_ARC_PRO_LAUF haelt den ersten Lauf eines riesigen Kontos kurz; der Rest
+   folgt beim naechsten Push. */
+async function _sesArcSchreiben(uid, idx, led) {
+  const sicher = new Set();
+  const offen  = [];
+  idx.forEach(e => {
+    if (!e.id || !e.j) return;
+    if (e.j.length > SES_ARC_MAX_DOC) return;      // pathologisch gross — bleibt im Array
+    if (led.m[e.id] === e.h) { sicher.add(e.id); return; }
+    offen.push(e);
+  });
+  if (!offen.length) return { ok: true, sicher: sicher, weiter: false };
+  const teil = offen.slice(0, SES_ARC_PRO_LAUF);
+  let ok = true;
+  for (let i = 0; i < teil.length && ok; i += SES_ARC_PARALLEL) {
+    const block = teil.slice(i, i + SES_ARC_PARALLEL);
+    const res = await Promise.all(block.map(async e => {
+      try {
+        await window.FB.setDoc(window.FB.doc('users/' + uid + '/sessions', e.id),
+          { id: e.id, ts: e.ts, j: e.j, v: SES_ARC_V, u: Date.now() });
+        return e;
+      } catch (err) {
+        if (String(err?.code || err).includes('permission')) _sesArcGesperrt = true;
+        console.warn('[GymTrack] Archiv-Schreibvorgang fehlgeschlagen:', err);
+        return null;
+      }
+    }));
+    res.forEach(e => { if (e) { led.m[e.id] = e.h; sicher.add(e.id); } else ok = false; });
+    _sesArcLedgerSave(uid, led);   // nach JEDEM Block — der naechste Start setzt hier an
+  }
+  return { ok: ok, sicher: sicher, weiter: ok && offen.length > teil.length };
+}
+
+/* Loeschen im Archiv. Betroffen sind ausschliesslich Dokumente, die im
+   Merkzettel DIESES Geraets stehen (also nachweislich zum eigenen Cloud-Stand
+   gehoeren) und die es lokal nicht mehr gibt — der Nutzer hat sie geloescht.
+   Sicherung dagegen, dass ein kaputter oder verkuerzter lokaler Stand das
+   Archiv leerraeumt: verschwindet auf einmal ein grosser Teil, wird gar nichts
+   geloescht. Eine Einheit, die wieder auftaucht, laesst sich von Hand
+   entfernen — eine geloeschte ist weg. */
+async function _sesArcPurge(uid, idx, led) {
+  const da = new Set();
+  idx.forEach(e => { if (e.id) da.add(e.id); });
+  const weg = Object.keys(led.m).filter(id => !da.has(id));
+  if (!weg.length) return;
+  /* Die Grenze ist bewusst grosszuegig: eine geloeschte Uebung raeumt alle
+     Einheiten mit weg, in denen sie die einzige war — das koennen dutzende
+     sein und ist eine echte Nutzerentscheidung. Verschwindet dagegen mehr als
+     die Haelfte des Archivs auf einmal, ist der lokale Stand kaputt und nicht
+     der Nutzer entschlossen. */
+  const grenze = Math.max(50, Math.floor(Object.keys(led.m).length * 0.5));
+  if (weg.length > grenze) {
+    console.warn('[GymTrack] Archiv: ' + weg.length + ' Einheiten fehlen lokal — Loeschen uebersprungen');
+    return;
+  }
+  for (const id of weg) {
+    try {
+      await window.FB.deleteDoc(window.FB.doc('users/' + uid + '/sessions', id));
+      delete led.m[id];
+    } catch (err) {
+      if (String(err?.code || err).includes('permission')) _sesArcGesperrt = true;
+      console.warn('[GymTrack] Archiv-Loeschen fehlgeschlagen:', err);
+      break;
+    }
+  }
+  _sesArcLedgerSave(uid, led);
+}
+
+/* Klammer um Schreiben und Loeschen. Rueckgabe: welche Einheiten JETZT sicher
+   in der Cloud stehen (nur die duerfen aus dem Array) und wie gross das Archiv
+   danach ist (0 = es gibt keines). */
+async function _sesArcPflegen(uid, idx) {
+  const leer = { sicher: new Set(), n: 0 };
+  if (!uid || !window.FB || !window.FB.doc || !window.FB.setDoc) return leer;
+  let bytes = 2;
+  idx.forEach(e => { bytes += (e.j ? e.j.length : 0) + 1; });
+  const led   = _sesArcLedger(uid);
+  const schon = Object.keys(led.m).length;
+  /* Unterhalb der Schwelle und ohne bestehendes Archiv passiert nichts. Wer
+     schon eines hat, pflegt es weiter — sonst fiele der Verlauf beim naechsten
+     Login auf zwei Staende auseinander. */
+  if (bytes < SES_ARC_START && !schon) return leer;
+  if (_sesArcGesperrt) return { sicher: new Set(), n: schon };
+  const r = await _sesArcSchreiben(uid, idx, led);
+  _sesArcWeiter = r.weiter;
+  if (r.ok) { try { await _sesArcPurge(uid, idx, led); } catch (_) {} }
+  return { sicher: r.sicher, n: Object.keys(led.m).length };
+}
+
+/* Kuerzt NUR den Array-Anteil des Push — S.sessions bleibt auf dem Geraet
+   vollstaendig. Weggenommen wird von hinten nach vorne (aelteste zuerst) und
+   ausschliesslich, was `sicher` als bestaetigt meldet. */
+function _sesTrimForPush(idx, sicher) {
+  const alle = () => idx.map(e => e.s);
+  let bytes = 2;
+  idx.forEach(e => { bytes += (e.j ? e.j.length : 0) + 1; });
+  if (bytes <= SES_PUSH_BUDGET) return alle();
+  const nachDatum = idx.slice().sort((a, b) => a.ts - b.ts);
+  const raus = new Set();
+  for (const e of nachDatum) {
+    if (bytes <= SES_PUSH_BUDGET) break;
+    if (idx.length - raus.size <= SES_KEEP_MIN) break;
+    if (!e.id || !sicher.has(e.id)) continue;      // nicht bestaetigt -> bleibt im Array
+    raus.add(e);
+    bytes -= (e.j ? e.j.length : 0) + 1;
+  }
+  if (!raus.size) return alle();
+  return idx.filter(e => !raus.has(e)).map(e => e.s);
+}
+
 // Wrap persist(): auch in die Cloud schicken, wenn eingeloggt
 const _origPersist = persist;
 persist = function() {
@@ -308,7 +544,7 @@ persist = function() {
 };
 window.persist = persist;
 
-async function _pushToCloud() {
+async function _pushToCloud(voll) {
   if (!_fbUser || !window.FB || !window.FB.configured) return;
   // Demo-/Marketing-Modus (Simulator-Seeds) synct NIE in die Cloud
   if (_demoModeAny() || (typeof DEMO_SEED !== 'undefined' && DEMO_SEED)) return;
@@ -318,11 +554,26 @@ async function _pushToCloud() {
   if (_cloudSchemaV > CLOUD_SCHEMA_V) { _cloudDirtySet(true); _schemaZuAlt(); return; }
   try {
     const ref = window.FB.userDocRef(_fbUser.uid);
+    /* Erst das Archiv pflegen, DANN das Dokument schreiben. Nur so steht vor
+       dem Kuerzen fest, welche Einheiten die Cloud bestaetigt hat. Scheitert
+       hier etwas, bleibt `sicher` leer und das Array geht ungekuerzt hinaus —
+       also genau der bisherige Ablauf. */
+    const _sesVoll = S.sessions || [];
+    const _sesIdx  = _sesIndex(_sesVoll);
+    let _sesArcRes = { sicher: new Set(), n: 0 };
+    try { _sesArcRes = await _sesArcPflegen(_fbUser.uid, _sesIdx); }
+    catch (e) { console.warn('[GymTrack] Archiv-Pflege fehlgeschlagen:', e); }
+    /* Im Feld-Rueckfall (die Rules kennen sesArc noch nicht) darf NICHT gekuerzt
+       werden: ohne den Marker im Dokument wuesste kein Client, dass er das
+       Archiv dazulesen muss. */
+    const _sesPush = (_sesArcRes.sicher.size && !_cloudFeldRueckfall)
+      ? _sesTrimForPush(_sesIdx, _sesArcRes.sicher)
+      : _sesVoll;
     // WICHTIG: Jedes Feld hier muss auch im hasOnly() der Firestore-Rules stehen,
     // sonst lehnt Firestore den KOMPLETTEN Push ab (permission-denied).
     const payload = {
       exercises: S.exercises || [],
-      sessions:  S.sessions  || [],
+      sessions:  _sesPush,
       theme:     S.theme,
       companion: S.companion,
       companionOn: S.companionOn,
@@ -382,6 +633,12 @@ async function _pushToCloud() {
        mergeFields laesst ihn dann unberuehrt, statt den Cloud-Stand zu leeren. */
     const _fb = _flameBankCloud();
     if (_fb) payload.flameBank = _fb;
+    /* Marker fuer die Leser: es gibt ein Archiv, das Array allein ist
+       moeglicherweise nicht der ganze Verlauf. Wird NUR gesetzt, nie auf 0
+       zurueckgeschrieben — ein Geraet, dessen Archiv-Lesevorgang scheiterte,
+       koennte den Marker sonst loeschen und die ausgelagerten Einheiten fuer
+       alle anderen unsichtbar machen. */
+    if (_sesArcRes.n > 0) payload.sesArc = _sesArcRes.n;
     /* mergeFields statt merge:false — beides zugleich:
        - Felder, die dieser Build NICHT kennt (neuerer Client), bleiben stehen,
          statt serverseitig geloescht zu werden.
@@ -390,9 +647,29 @@ async function _pushToCloud() {
          tief, und ein geleertes trackerCounts / ein auf 'none' gestellter
          Wochenplan-Tag brachte seine alten Unterschluessel aus der Cloud
          zurueck. Leere Arrays und null schreibt der Payload ohnehin explizit. */
-    await _setDocCompat(ref, payload);
+    /* Nur geaenderte Felder hinausschicken. Bisher lud JEDE Aenderung das
+       komplette Dokument hoch — ein Tap auf einen Tracker-Zaehler schob die
+       gesamte Trainingshistorie durchs Netz. mergeFields laesst weggelassene
+       Felder in der Cloud unberuehrt, der Rest des Ablaufs bleibt gleich. */
+    const _sigNeu  = _pushSigBauen(payload);
+    const _sigVor  = voll ? null : _pushSig;
+    const _raus    = _sigVor ? _pushDelta(payload, _sigNeu, _sigVor) : payload;
+    await _setDocCompat(ref, _raus, { sessions: _sesVoll, sig: _sigNeu });
+    /* Signatur NACH _setDocCompat bilden: der Feld-Rueckfall entfernt dort
+       gegebenenfalls Schluessel aus dem Objekt. Was nicht hinausging, bekommt
+       damit auch keinen Eintrag und wird beim naechsten Push erneut versucht. */
+    _pushSig = Object.assign({}, _sigVor || {}, _pushSigBauen(_raus, _sigNeu));
     _cloudDirtySet(false);   // bestaetigt: die Cloud kennt diesen Stand
+    /* Grosses Konto, erster Lauf: das Archiv ist noch nicht durch. Nachfassen,
+       statt bis zur naechsten Aenderung zu warten — sonst bliebe das Array
+       ungekuerzt und der Nutzer weiter am Limit. */
+    if (_sesArcWeiter && !_sesArcGesperrt) {
+      _sesArcWeiter = false;
+      if (_pushTimer) clearTimeout(_pushTimer);
+      _pushTimer = setTimeout(() => _pushToCloud(true), 2500);
+    }
   } catch (e) {
+    _pushSig = null;   // Stand der Cloud ist unklar — der naechste Push geht wieder vollstaendig hinaus
     /* Ein abgelehnter Push war bisher eine Konsolenzeile — und damit der
        Anfang eines stillen Datenverlusts: die Cloud bleibt auf dem alten
        Stand, der naechste Merge zieht ihn herein und ueberschreibt die
@@ -418,19 +695,56 @@ async function _pushToCloud() {
    hinaus. Nur fuer diese Sitzung gemerkt: nach einem Neustart wird wieder mit
    den vollen Feldern probiert, der Rueckfall verschwindet also von selbst,
    sobald die Rules veroeffentlicht sind. */
-const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank'];
+const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank', 'sesArc'];
 let _cloudFeldRueckfall = false;
-async function _setDocCompat(ref, payload) {
-  if (_cloudFeldRueckfall) CLOUD_NEUE_FELDER.forEach(k => { delete payload[k]; });
+async function _setDocCompat(ref, payload, opts) {
+  /* Ohne den Marker sesArc weiss kein Client, dass er das Archiv dazulesen
+     muss. Faellt der Marker weg, muss deshalb das VOLLE Array hinaus — lieber
+     ein grosser Push (der schlimmstenfalls scheitert, also der Zustand von
+     vorher) als ein Dokument mit stillschweigend gekuerztem Verlauf. */
+  const rueckbau = () => {
+    CLOUD_NEUE_FELDER.forEach(k => { delete payload[k]; });
+    if (opts && opts.sessions && payload.sessions && payload.sessions !== opts.sessions) {
+      payload.sessions = opts.sessions;
+      if (opts.sig) delete opts.sig.sessions;   // Signatur waere sonst die des gekuerzten Arrays
+    }
+  };
+  if (_cloudFeldRueckfall) rueckbau();
   try {
     await window.FB.setDoc(ref, payload, { mergeFields: Object.keys(payload) });
   } catch (e) {
     if (_cloudFeldRueckfall || !String(e?.code || e).includes('permission')) throw e;
     _cloudFeldRueckfall = true;
-    CLOUD_NEUE_FELDER.forEach(k => { delete payload[k]; });
+    rueckbau();
     console.warn('[GymTrack] Cloud-Rules kennen die neuen Felder noch nicht — Push ohne sie');
     await window.FB.setDoc(ref, payload, { mergeFields: Object.keys(payload) });
   }
+}
+
+/* ── NUR GEAENDERTE FELDER HOCHLADEN ─────────────────────────────────────
+   _pushSig haelt je Feld den Fingerabdruck des zuletzt BESTAETIGTEN Werts.
+   Nach einem Fehler wird die Tabelle geleert, der naechste Push geht also
+   wieder vollstaendig hinaus — im Zweifel lieber zu viel schicken als ein Feld
+   verlieren. Beim Login laeuft der Push ohnehin mit voll=true. */
+let _pushSig = null;
+const PUSH_IMMER = ['updatedAt', '_serverTime', '_schemaV'];
+function _pushSigBauen(payload, cache) {
+  const o = {};
+  Object.keys(payload).forEach(k => {
+    if (k === '_serverTime') return;          // Sentinel des Servers, nicht vergleichbar
+    if (cache && cache[k] !== undefined) { o[k] = cache[k]; return; }
+    let j = null;
+    try { j = JSON.stringify(payload[k]); } catch (_) { j = null; }
+    o[k] = (j == null) ? ('x' + Math.random()) : _hashStr(j);
+  });
+  return o;
+}
+function _pushDelta(payload, sigNeu, sigVor) {
+  const out = {};
+  Object.keys(payload).forEach(k => {
+    if (PUSH_IMMER.indexOf(k) >= 0 || sigNeu[k] !== sigVor[k]) out[k] = payload[k];
+  });
+  return out;
 }
 
 /* Die Bank in der Form, die in die Cloud geht. null heisst „nicht ermittelbar" —
@@ -508,10 +822,21 @@ function _dataSig() {
             (S.trackerItems || []).length, JSON.stringify(S.trackerCounts || null)].join('|');
   } catch(_) { return String(Math.random()); }   // im Zweifel lieber rendern
 }
-function _mergeData(local, cloud) {
+function _mergeData(local, cloud, arc) {
   // Demo-Altlasten aus BEIDEN Quellen filtern, bevor gemergt wird — sonst
   // schleust ein kontaminiertes Cloud-Doc/Gerät die dm_-Daten wieder ein.
   try { _purgeDemoData(local); _purgeDemoData(cloud); } catch(_){}
+  /* Einheiten aus dem Archiv (Subcollection users/{uid}/sessions). Sie sind die
+     Kopie dessen, was frueher komplett im Array stand, und werden deshalb als
+     UNTERSTE Schicht eingespeist: was Array oder lokaler Stand noch fuehren,
+     ueberschreibt sie gleich danach. Fehlt das Archiv — alter Client, nie
+     angelegt, nicht lesbar — bleibt hier alles beim Alten. */
+  let arcSes = [];
+  if (Array.isArray(arc) && arc.length) {
+    const huelle = { sessions: arc.slice() };
+    try { _purgeDemoData(huelle); } catch(_){}
+    arcSes = huelle.sessions || [];
+  }
   _cloudSchemaSeen(cloud);
   try { _flameBankMerge(cloud.flameBank); } catch(_){}
   /* Ein Stand, den die Cloud nie bestaetigt hat, darf nicht von ihr
@@ -556,6 +881,8 @@ function _mergeData(local, cloud) {
   };
   // Verlierer zuerst, Gewinner danach — der zweite Durchlauf ueberschreibt.
   // Bei ungesicherten lokalen Aenderungen ist der Gewinner die lokale Seite.
+  // Das Archiv laeuft VOR beiden: es liefert nur, was sonst niemand mehr hat.
+  arcSes.forEach(sesPut);
   (cloudNewer ? (local.sessions || []) : (cloud.sessions || [])).forEach(sesPut);
   (cloudNewer ? (cloud.sessions || []) : (local.sessions || [])).forEach(sesPut);
   // Gewichtsverlauf: Union per Datum (Cloud gewinnt bei gleichem Tag)
@@ -678,8 +1005,26 @@ async function _onLogin(user) {
       const cloud  = snap.data();
       _cloudHadData = (cloud.exercises||[]).length > 0 || (cloud.sessions||[]).length > 0;
       console.log('[GymTrack] ☁️ Cloud-Daten gefunden — merge mit lokal');
+      /* Ausgelagerte Einheiten dazuholen — aber nur, wenn das Dokument ueber
+         sesArc meldet, dass es ueberhaupt ein Archiv gibt. Sonst waere es ein
+         Lesevorgang je Einheit fuer jeden Nutzer, obwohl bei fast allen das
+         Array den ganzen Verlauf enthaelt.
+         Scheitert das Lesen (Rechte, Netz), wird NICHT abgebrochen: der Merge
+         laeuft dann ohne Archiv weiter, also genau wie bisher aus dem Array.
+         Verloren geht dabei nichts — geschrieben wird erst danach, und gekuerzt
+         wird nur, was das Archiv bestaetigt hat. */
+      let _arc = null;
+      if (cloud.sesArc) {
+        try {
+          _arc = await _sesArcLoad(user.uid);
+          console.log('[GymTrack] ☁️ Archiv gelesen: ' + _arc.length + ' Einheiten');
+        } catch (e) {
+          _arc = null;
+          console.warn('[GymTrack] Archiv nicht lesbar — Verlauf kommt aus dem Dokument:', e);
+        }
+      }
       const personaVorher = _coachPersonaSig();
-      const merged = _mergeData(S, cloud);
+      const merged = _mergeData(S, cloud, _arc);
       Object.assign(S, merged);
       _origPersist();
       /* Die Persona kommt seit Block 5 aus der Cloud zurueck — genau hier, beim
@@ -688,13 +1033,14 @@ async function _onLogin(user) {
          Heute-Karte, Hub und Chat-Kopf sonst bis zum naechsten Start auf
          "Coach" stehen. */
       if (_coachPersonaSig() !== personaVorher) { try { _coachOptRender(); } catch(_) {} }
-      // Geänderte Daten zurückschreiben
-      await _pushToCloud();
+      // Geänderte Daten zurückschreiben — nach dem Login immer vollstaendig,
+      // die Feld-Signaturen aus einer frueheren Sitzung gelten hier nicht.
+      await _pushToCloud(true);
       console.log('[GymTrack] ☁️ Cloud-Push (nach Merge) ok');
     } else {
       // Cloud leer → lokale Daten hochladen
       console.log('[GymTrack] ☁️ Cloud leer — pushe lokale Daten');
-      await _pushToCloud();
+      await _pushToCloud(true);
       console.log('[GymTrack] ☁️ Initial-Push ok');
     }
     // UI nur neu rendern, wenn der Cloud-Merge WIRKLICH etwas geändert hat.
@@ -772,6 +1118,12 @@ function _onLogout() {
   _onLoginUid = null;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   _initialMergeDone = false;
+  /* Feld-Signaturen und Archiv-Sperre gehoeren zum Konto, nicht zum Geraet.
+     Der Merkzettel in localStorage bleibt bewusst liegen: er haengt an der uid
+     und ist beim naechsten Login desselben Kontos wieder korrekt. */
+  _pushSig = null;
+  _sesArcGesperrt = false;
+  _sesArcWeiter   = false;
   updateAccountUI();
   _refreshFriendsIfVisible();
   _maybeAuthGate();
@@ -1745,10 +2097,45 @@ async function doSignOut() {
 let _pendingDelete = false;
 
 async function doDeleteAccount() {
-  if (!window.FB || !window.FB.configured || !_fbUser || _fbUser.isAnonymous) return;
+  /* Auch anonyme Konten muessen loeschen koennen: fuer sie werden ebenfalls
+     analytics_users/analytics_sessions angelegt (der automatische anonyme Login
+     existiert genau dafuer). Guideline 5.1.1(v) macht da keine Ausnahme. */
+  if (!window.FB || !window.FB.configured || !_fbUser) return;
   if (!confirm('Konto und alle Cloud-Daten endgültig löschen?\n\nDeine Trainings, Übungen und Einstellungen in der Cloud werden unwiderruflich entfernt. Das kann NICHT rückgängig gemacht werden.')) return;
   if (!confirm('Letzte Warnung — dein Konto wird jetzt gelöscht. Fortfahren?')) return;
   await _runAccountDeletion();
+}
+
+/* Alle Spuren ausserhalb des users-Dokuments entfernen. Jeder Schritt einzeln
+   abgesichert: ein Fehlschlag darf die restliche Loeschung nicht aufhalten,
+   sonst bleibt mehr stehen als noetig. Fehler werden gezaehlt und gemeldet. */
+async function _wipeCommunityData(uid) {
+  const FB = window.FB;
+  if (!FB || !FB.configured) return 0;
+  let fehler = 0;
+  const weg = async (ref) => { try { await FB.deleteDoc(ref); } catch(e) { fehler++; console.warn('[GymTrack] Loeschen fehlgeschlagen:', e?.code || e); } };
+  // Subcollections zuerst — Firestore loescht sie NICHT mit dem Elterndokument.
+  for (const sub of ['posts', 'activities']) {
+    try {
+      const snap = await FB.getDocs(FB.collection('profiles/' + uid + '/' + sub));
+      for (const d of snap.docs) await weg(FB.doc('profiles/' + uid + '/' + sub, d.id));
+    } catch(e) { fehler++; console.warn('[GymTrack] ' + sub + ' nicht lesbar:', e?.code || e); }
+  }
+  await weg(FB.doc('profiles', uid));
+  // Freundschaftsanfragen in beide Richtungen.
+  for (const feld of ['from', 'to']) {
+    try {
+      const snap = await FB.getDocs(FB.query(FB.collection('requests'), FB.where(feld, '==', uid)));
+      for (const d of snap.docs) await weg(FB.doc('requests', d.id));
+    } catch(e) { fehler++; console.warn('[GymTrack] requests/' + feld + ':', e?.code || e); }
+  }
+  // Nutzungsstatistik.
+  await weg(FB.doc('analytics_users', uid));
+  try {
+    const snap = await FB.getDocs(FB.query(FB.collection('analytics_sessions'), FB.where('uid', '==', uid)));
+    for (const d of snap.docs) await weg(FB.doc('analytics_sessions', d.id));
+  } catch(e) { fehler++; console.warn('[GymTrack] analytics_sessions:', e?.code || e); }
+  return fehler;
 }
 
 async function _runAccountDeletion() {
@@ -1778,13 +2165,34 @@ async function _runAccountDeletion() {
     // einbindet — bis dahin ist window.CoachMemory undefined und der catch
     // schluckt es.
     try { window.CoachMemory.dossierClear(localStorage, user.uid); } catch(_) {}
+    // Community-Spuren VOR dem Auth-Delete: danach fehlen die Rechte, und die
+    // Rules kennen fuer profiles/posts/activities keine Admin-Ausnahme — was
+    // hier stehen bleibt, ist unwiderruflich verwaist. Apple Guideline
+    // 5.1.1(v) verlangt, dass die Loeschung wirklich alles erfasst.
+    let wipeFehler = await _wipeCommunityData(user.uid);
+    /* Einheiten-Archiv (users/{uid}/sessions). Dieselbe Falle wie beim Dossier:
+       Firestore loescht Subcollections NICHT mit dem Elterndokument, und nach
+       dem Auth-Delete fehlen die Rechte fuer immer — die Rule kennt hier
+       bewusst keine Admin-Ausnahme. Also VOR dem Auth-Delete raeumen. */
+    try {
+      const arcSnap = await window.FB.getDocs(window.FB.collection('users/' + user.uid + '/sessions'));
+      const arcIds = [];
+      arcSnap.forEach(d => arcIds.push(d.id));
+      for (let i = 0; i < arcIds.length; i += 8) {
+        const res = await Promise.all(arcIds.slice(i, i + 8).map(async id => {
+          try { await window.FB.deleteDoc(window.FB.doc('users/' + user.uid + '/sessions', id)); return true; }
+          catch (err) { console.warn('[GymTrack] Archiv-Delete:', err); return false; }
+        }));
+        res.forEach(ok => { if (!ok) wipeFehler++; });
+      }
+    } catch(e) { console.warn('[GymTrack] Archiv-Liste:', e); }
     try { await window.FB.deleteDoc(window.FB.userDocRef(user.uid)); } catch(e) { console.warn('[GymTrack] Doc-Delete:', e); }
     try { if (window.FB.stopPresence) window.FB.stopPresence(user.uid); } catch(e) {}
     // 2. Auth-User löschen
     await window.FB.deleteUser();
     // 3. Lokale Daten löschen + Neustart
     _pendingDelete = false;
-    _finishAccountWipe(dossierDeleteFailed);
+    _finishAccountWipe(dossierDeleteFailed, wipeFehler);
   } catch(e) {
     if (e && e.code === 'auth/requires-recent-login') {
       // Firebase verlangt frische Anmeldung → Re-Auth, danach automatisch löschen
@@ -1803,7 +2211,7 @@ async function _runAccountDeletion() {
   }
 }
 
-function _finishAccountWipe(dossierDeleteFailed) {
+function _finishAccountWipe(dossierDeleteFailed, wipeFehler) {
   // Erst den entprellten Schreiber stoppen, sonst legt sein Timer den geloeschten
   // Stand zwischen removeItem und reload wieder an.
   try { _persistCancel(); } catch(_) {}
@@ -1813,6 +2221,8 @@ function _finishAccountWipe(dossierDeleteFailed) {
   } catch(e) {}
   if (dossierDeleteFailed) {
     alert('Dein Konto und alle Daten wurden gelöscht. Ein einzelner Eintrag mit deinen Angaben beim KI-Coach (z. B. Einschränkungen) konnte dabei nicht entfernt werden und ist für niemanden mehr erreichbar. Melde dich über „Feedback senden" in den Einstellungen, falls du möchtest, dass wir ihn entfernen.');
+  } else if (wipeFehler > 0) {
+    alert('Dein Konto und alle Daten wurden gelöscht. Einzelne Einträge aus der Community konnten nicht entfernt werden. Melde dich über „Feedback senden" in den Einstellungen, dann entfernen wir sie von Hand.');
   } else {
     alert('Dein Konto und alle Daten wurden gelöscht.');
   }

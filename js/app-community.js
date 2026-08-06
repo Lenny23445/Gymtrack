@@ -1650,7 +1650,12 @@ async function premBuy(productId){
   const origText = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Kauf läuft…'; }
   try {
-    const res = await P.purchase({ productId });
+    // uid mitgeben: StoreKit haengt daraus ein appAccountToken an die Transaktion
+    // (PremiumPlugin.accountToken(for:)), der KI-Worker rechnet es nach. Ohne das
+    // ist der Kaufbeleg ein uebertragbarer Schluessel. Nicht angemeldet -> leer,
+    // dann kauft der Plugin-Code ohne Token (der Worker laesst das durch).
+    let _pbUid = ''; try { _pbUid = (_fbUser && _fbUser.uid) || ''; } catch(_) {}
+    const res = await P.purchase({ productId, uid: _pbUid });
     if (res && res.active) {
       _premApply(res);
       await _syncPremiumProfile();

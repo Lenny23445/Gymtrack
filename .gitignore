@@ -35,3 +35,4 @@ tiktok/
 
 # Laufzeitdateien des Brainstorm-Servers (Sitzungstoken, PID, Port) — nie ins Repo
 .superpowers/brainstorm/
+dist/

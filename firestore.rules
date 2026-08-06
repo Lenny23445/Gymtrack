@@ -30,10 +30,43 @@ service cloud.firestore {
              'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs',
              'onboarded','userName','obGoal','obExp','obFreq',
              'socialOn','friendCode','friends','gymName','gymLat','gymLng',
-             'checkins','aiCoach'
+             'checkins','aiCoach',
+             // _schemaV/flameBank schreibt der Client seit laengerem, standen aber
+             // nie hier — er faengt die Ablehnung ueber CLOUD_NEUE_FELDER ab und
+             // pusht dann OHNE sie (js/app-update.js, _setDocCompat). 'sesArc' ist
+             // der Marker fuer das Einheiten-Archiv unten und laeuft ueber denselben
+             // Rueckfall. Vor dem Publish also kein harter Schnitt, danach greifen
+             // alle drei automatisch.
+             '_schemaV','flameBank','sesArc'
            ])
         && (!('sessions'  in request.resource.data) || request.resource.data.sessions.size()  <= 5000)
         && (!('exercises' in request.resource.data) || request.resource.data.exercises.size() <= 500);
+    }
+    /* Einheiten-Archiv. Das Array 'sessions' oben liegt IM Nutzerdokument und
+       damit unter dem 1-MiB-Limit von Firestore — bei rund 650 Byte je Einheit
+       ist zwischen 1000 und 1400 Trainings Schluss, und danach geht gar kein
+       Push mehr durch. Der Deckel von 5000 oben greift dafuer viel zu spaet.
+       Hier steht deshalb ein Dokument je Einheit, ausgelagert aus dem Array.
+       Die Einheit selbst liegt als JSON-Zeichenkette in 'j' und nicht als Map:
+       so braucht ein neues Feld in der Einheit (Notiz, Satztyp, Herzfrequenz)
+       KEINEN neuen Rules-Publish. Genau daran ist der Push am Eltern-Dokument
+       schon mehrfach mit permission-denied gestorben — und ein abgelehnter
+       Schreibvorgang heisst hier: die Einheit bleibt nur auf dem Geraet.
+       Bewusst OHNE Founder-Ausnahme beim Lesen: das Eltern-Dokument oeffnet sich
+       fuers Dashboard, der komplette Trainingsverlauf muss das nicht.
+       Loeschen braucht der Eigentuemer selbst — fuer geloeschte Einheiten und
+       fuer die Konto-Loeschung (Apple 5.1.1(v), Subcollections gehen beim
+       Loeschen des Elterndokuments NICHT mit). */
+    match /users/{userId}/sessions/{sid} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['id','ts','j','v','u'])
+        && request.resource.data.j is string
+        && request.resource.data.j.size() <= 200000
+        && request.resource.data.id == sid
+        && okNum(request.resource.data.get('ts', 0), 99999999999999)
+        && okNum(request.resource.data.get('v',  0), 1000);
     }
     // Coach-Dossier. BEWUSST OHNE Founder-Ausnahme, anders als das Eltern-Doc:
     // hier stehen gemeldete Einschraenkungen, also Gesundheitsangaben. Rules
@@ -171,11 +204,16 @@ service cloud.firestore {
     match /admin/{docId} {
       allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
     }
+    /* Lesen und Loeschen der EIGENEN Eintraege ist Pflicht, nicht Komfort:
+       Apple Guideline 5.1.1(v) verlangt, dass die Konto-Loeschung wirklich alle
+       Daten entfernt — dafuer muss der Client seine Eintraege erst finden. */
     match /analytics_users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
+      allow read: if request.auth != null
+        && (request.auth.uid == userId || request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1");
       allow create, update: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly(['uid','firstSeen','lastSeen','totalSessions','totalSec','isAnon','isPremium','premPlan']);
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
     // Marketing-Content-Studio (gymtrack-marketing): geteilte Screenshot-Bibliothek
     // + geteilte Post-Datenbank. Jeder angemeldete (auch anonyme) Nutzer des Tools
@@ -187,7 +225,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /analytics_sessions/{sid} {
-      allow read:   if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";
+      allow read:   if request.auth != null
+        && (resource.data.uid == request.auth.uid || request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1");
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid','start','lastBeat','duration','isAnon'])
