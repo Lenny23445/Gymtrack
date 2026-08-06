@@ -264,7 +264,7 @@ function _cpgRenderStack(dir){
   _cpgItems.forEach((it, i) => it._i = i);
   if (!_cpgItems.length) {
     const isFr = _cpgMode === 'friends';
-    w.style.height = '';                 // Sonderhöhe für Foto-Posts zurücknehmen
+    w.style.width = ''; w.style.height = '';   // Sondermaße für Foto-Posts zurücknehmen
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${isFr ? ICO.users({ s: 40 }) : ICO.globe({ s: 40 })}</div>
       <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
       <span style="font-size:13px">${isFr
@@ -274,7 +274,7 @@ function _cpgRenderStack(dir){
     return;
   }
   if (_cpgIdx >= _cpgItems.length) {
-    w.style.height = '';
+    w.style.width = ''; w.style.height = '';
     w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.check({ s: 40 })}</div><b>${tr('Alles gesehen!')}</b>
       <button class="btn btn-acc" onclick="_cpgReload()">${tr('Neu laden')}</button></div>`;
     return;
@@ -287,8 +287,24 @@ function _cpgRenderStack(dir){
   // randlos rein, nichts wird beschnitten. Ohne Snap-Foto: normales 3:4 (CSS).
   // Höhe VOR dem Umbau setzen: sonst liest die Breitenabfrage das Layout zurück,
   // während der neue Inhalt schon steht (erzwungenes Zwischenlayout pro Wechsel).
+  // Im Feed-Vollbild (kein Scrollen) begrenzt nicht mehr die Breite, sondern die
+  // Resthoehe unter Header/Umschalter/Zonenzeile. Die Breite muss dann so klein
+  // gewaehlt werden, dass Bild (3:4) + Fussleiste komplett hineinpassen — sonst
+  // waere die Karte unten abgeschnitten.
   const _bw = _cpgWidth(w);
-  w.style.height = (_bw && top.kind === 'post' && top.img) ? (_bw * 4 / 3 + 60) + 'px' : '';
+  const _ah = _cpgAvailH(w);
+  if (_bw && top.kind === 'post' && top.img) {
+    const bw = _ah ? Math.min(_bw, Math.floor((_ah - CPG_FOOT) * 3 / 4)) : _bw;
+    w.style.width  = _ah ? bw + 'px' : '';
+    w.style.height = Math.round(bw * 4 / 3 + CPG_FOOT) + 'px';
+  } else if (_ah && _bw) {
+    // Karte ohne Foto (Gradient/Text): weiter 3:4, so gross wie der Platz zulaesst.
+    const h = Math.min(_ah, _bw * 4 / 3);
+    w.style.width  = Math.round(h * 3 / 4) + 'px';
+    w.style.height = Math.round(h) + 'px';
+  } else {
+    w.style.width = ''; w.style.height = '';
+  }
   const countHTML = `<div class="cpg-count">${_cpgIdx + 1} / ${_cpgItems.length}</div>`;
 
   /* Weiterblättern: die untere Karte steht bereits im DOM, mit fertigem Bild und
@@ -338,6 +354,25 @@ function _cpgWidth(w){
   return x;
 }
 window.addEventListener('resize', () => { _cpgW = 0; });
+/* Hoehe der Flammen-Fussleiste unter dem Bild — muss zu .cpg-snap-foot im CSS passen. */
+const CPG_FOOT = 60;
+/* Resthoehe fuer den Rahmen im Feed-Vollbild: Hoehe des Elternblocks minus alles,
+   was darueber liegt (Zonenzeile inkl. Abstand). 0 = kein Vollbild (Seite scrollt
+   normal, dann entscheidet allein die Breite wie bisher). Die eigene Breite wird
+   NICHT mitgezaehlt — sie steht ja gerade zur Disposition. */
+function _cpgAvailH(w){
+  const pg = document.getElementById('pg-freunde');
+  if (!pg || !pg.classList.contains('soc-feed-full')) return 0;
+  const par = w.parentElement; if (!par) return 0;
+  let belegt = 0;
+  for (const el of par.children) {
+    if (el === w) continue;
+    const cs = getComputedStyle(el);
+    belegt += el.getBoundingClientRect().height
+            + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+  }
+  return Math.max(0, par.clientHeight - belegt);
+}
 function _cpgBindSwipe(w){
   const card = w.querySelector('.cpg-card.top');
   const under = w.querySelector('.cpg-card.under');

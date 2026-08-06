@@ -5684,8 +5684,11 @@ html:not([data-glass="off"]) #tab-indicator{
 #pg-freunde.soc-feed-full.on{display:flex}
 #pg-freunde.soc-feed-full>.pad{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:calc(86px + var(--sab))}
 #pg-freunde.soc-feed-full #fr-body{flex:1;min-height:0;display:flex;flex-direction:column}
-#pg-freunde.soc-feed-full .cpg-wrap{flex:1 1 0;min-height:0;width:auto;height:auto;
-  max-width:100%;max-height:calc((100vw - 40px) * 4 / 3);margin:auto}
+/* NICHT flex:1 — die exakten Masse setzt _cpgRenderStack() inline (Bild 3:4 PLUS
+   60px Flammenleiste, sonst schneidet object-fit:cover das Foto unten ab). Ein
+   flex-basis wuerde diese Hoehe ueberstimmen. margin:auto zentriert den Rest. */
+#pg-freunde.soc-feed-full .cpg-wrap{flex:0 1 auto;min-height:0;width:100%;height:auto;
+  max-width:100%;max-height:100%;margin:auto}
 .cpg-card{position:absolute;inset:0;border-radius:22px;overflow:hidden;background:#111;box-shadow:0 14px 44px rgba(0,0,0,.35);will-change:transform,opacity}
 .cpg-card.under{transform:scale(.9);opacity:0;z-index:1}
 .cpg-card.top{z-index:2}
