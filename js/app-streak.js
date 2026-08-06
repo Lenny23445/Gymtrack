@@ -2840,7 +2840,7 @@ async function showFrQR(){
   host.innerHTML = '<div class="soc-empty" style="padding:8px">QR lädt…</div>';
   try { await _loadQRLib(); } catch(_) { host.innerHTML = '<div class="soc-empty" style="padding:8px">QR offline nicht verfügbar</div>'; return; }
   host.innerHTML = '<div id="fr-qr"></div><div class="soc-empty" style="padding:8px 0 0;font-size:12.5px">Mit der iPhone-Kamera scannen — öffnet MyGymTrack mit deinem Code.</div>';
-  new QRCode(document.getElementById('fr-qr'), { text:'https://lenny23445.github.io/Gymtrack/?add=' + _socCode(), width:150, height:150, correctLevel:QRCode.CorrectLevel.M });
+  new QRCode(document.getElementById('fr-qr'), { text: GT_WEB + '/?add=' + _socCode(), width:150, height:150, correctLevel:QRCode.CorrectLevel.M });
 }
 /* ── Gamification: Level & Punkte ──────────────────────────
    Punkte komplett client-seitig aus vorhandenen Daten (kein Firestore-Feld,

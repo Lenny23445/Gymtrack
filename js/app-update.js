@@ -1201,7 +1201,7 @@ function _showAuthGate(){
     <div class="ag-foot">
       ${_isNative() ? `<button class="ag-btn ag-apple" onclick="doAppleSignIn()">${svgApple} Mit Apple fortfahren</button>` : ''}
       <button class="ag-btn ag-google" onclick="doGoogleSignIn()">${svgG} Mit Google fortfahren</button>
-      <div class="ag-legal">Mit der Anmeldung akzeptierst du unsere <a href="https://lenny23445.github.io/Gymtrack/privacy.html" target="_blank" rel="noopener">Datenschutzerklärung</a>. Wir posten nichts ohne dich.</div>
+      <div class="ag-legal">Mit der Anmeldung akzeptierst du unsere <a href="${GT_WEB}/privacy.html" target="_blank" rel="noopener">Datenschutzerklärung</a>. Wir posten nichts ohne dich.</div>
     </div>`;
  el.classList.add('on');
 }

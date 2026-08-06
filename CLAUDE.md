@@ -9,7 +9,8 @@
 > `reactions[uid]='🔥'` ist ein Firestore-**Datenwert/Sentinel** (nicht anfassen), nur die Anzeige ist SVG.
 
 **Was:** NATIVE iOS-App (Capacitor, App Store) — **die native App steht IMMER im Vordergrund**. Die Web-/PWA-Version (gleiche single index.html, GitHub Pages) läuft nur parallel als Zweitkanal/Fallback. Features und Links immer zuerst für die native App denken (Deep-Links via gymtrack://, https-Links nur als klickbarer Träger mit Auto-Sprung in die App).
-**Live:** https://lenny23445.github.io/Gymtrack/ · **Repo:** https://github.com/Lenny23445/Gymtrack (`main`, GitHub Pages ~1 Min nach Push)
+**Live:** https://gymtrack-9q9.pages.dev (Cloudflare Pages, seit 06.08.2026 — baut `dist/` via `node build-pages.js`, ~1 Min nach Push auf `main`) · **Repo:** https://github.com/Lenny23445/Gymtrack
+Die alte Adresse https://lenny23445.github.io/Gymtrack/ läuft absichtlich weiter: bereits geteilte QR-Codes und der bei Apple hinterlegte Datenschutz-Link zeigen dorthin. Im App-Code steht die Adresse nur noch **einmal** als `GT_WEB` in `js/app-i18n.js`.
 
 ## Dateien
 - `index.html` — HTML-Geruest + `<script src>`-Tags (~2.100 Zeilen, **nicht** mehr die ganze App)

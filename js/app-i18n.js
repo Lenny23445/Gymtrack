@@ -16,7 +16,20 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608060746';
+const APP_VERSION = 'gymtrack-v202608061031';
+
+/* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
+   GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
+   Konstante hier oben, weil die Adresse an mehreren Stellen nach aussen geht:
+   Datenschutz-Links, Freundes-QR-Code, Vorschaubild der Landing-Page. Beim
+   naechsten Umzug (eigene Domain) ist nur diese Zeile zu aendern — vorher lag
+   die Adresse viermal fest verdrahtet im Code, und genau eine davon wird beim
+   Umstellen vergessen. Ohne Schraegstrich am Ende, die Verwendungsstellen
+   haengen ihren Pfad an.
+   ACHTUNG: Eine neue Adresse muss in der Firebase-Konsole unter Authentication →
+   Settings → Authorized domains stehen, sonst schlaegt der Google-/Apple-Login
+   dort mit auth/unauthorized-domain fehl. */
+const GT_WEB = 'https://gymtrack-9q9.pages.dev';
 
 /* Der eingeloggte Firebase-Nutzer. Die Deklaration steht HIER und nicht unten im
    Konto-Block, obwohl sie dorthin gehoert: `let` liegt bis zu seiner Zeile in der

@@ -859,7 +859,7 @@ function _pwBotHTML(){
       <span class="tk">${tk} ${abo}</span>
       <span class="pw2-legal-links">
         <button onclick="_openExternal('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')">Nutzungsbedingungen</button>
-        <button onclick="_openExternal('https://lenny23445.github.io/Gymtrack/privacy.html')">Datenschutz</button>
+        <button onclick="_openExternal(GT_WEB + '/privacy.html')">Datenschutz</button>
         <button onclick="premRestore()">Käufe wiederherstellen</button>
       </span>
     </div>`;
