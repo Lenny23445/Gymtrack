@@ -32,18 +32,18 @@
    akzent    = die beiden Boegen, einziger Farbtraeger */
 const PLATE_MATS = [
   { key: 'gold',   name: 'Gold',     ab: 100, metall: true,
-    glanz: '#fff8dd', mitte: '#d8ab3c', tief: '#6d4a0e',
-    innenGlanz: '#f7e3a4', innenMitte: '#c1922c', innenTief: '#5c3d0a',
+    glanz: '#fffbea', mitte: '#c99a2c', tief: '#4a3106',
+    innenGlanz: '#fff3c4', innenMitte: '#b88922', innenTief: '#3d2705',
     ring: '#7d5a17', schrift: '#6b4c12', schriftTief: '#432f08', akzent: '#fff0b8',
     korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
   { key: 'silber', name: 'Silber',   ab: 50, metall: true,
-    glanz: '#ffffff', mitte: '#b3bbc3', tief: '#565d65',
-    innenGlanz: '#f2f5f8', innenMitte: '#a2aab2', innenTief: '#4a5158',
+    glanz: '#ffffff', mitte: '#a4adb6', tief: '#3c4249',
+    innenGlanz: '#fbfcfd', innenMitte: '#98a1aa', innenTief: '#343a40',
     ring: '#5a626a', schrift: '#464d54', schriftTief: '#2b3036', akzent: '#ffffff',
     korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
   { key: 'bronze', name: 'Bronze',   ab: 30, metall: true,
-    glanz: '#ffe9cd', mitte: '#b8763a', tief: '#5e330f',
-    innenGlanz: '#f4d1a8', innenMitte: '#a5652f', innenTief: '#4e2a0c',
+    glanz: '#fff0dc', mitte: '#a96329', tief: '#3f2007',
+    innenGlanz: '#f9ddbb', innenMitte: '#9a5824', innenTief: '#351b06',
     ring: '#6b4020', schrift: '#5a3418', schriftTief: '#38200d', akzent: '#ffe2ba',
     korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
   { key: 'standard', name: 'Standard', ab: 0,
@@ -83,48 +83,62 @@ function _plateAkzent(){
 }
 
 /* ── Metall ──────────────────────────────────────────────────────────────
-   Ein Streifenverlauf quer ueber die Scheibe sah nach Holzmaserung aus: die
-   Baender liefen alle in dieselbe Richtung, wie eine Faserung. Metall
-   reflektiert dagegen ringsum — eine gedrehte Scheibe hat Glanzachsen, die
-   sternfoermig um die Mitte laufen. Deshalb wird die Flaeche aus schmalen
-   Keilen gebaut, deren Helligkeit mit dem Winkel schwingt: zwei kraeftige
-   Achsen (Hauptlicht) und vier schwaechere (Streulicht). Genau das liest das
-   Auge als poliertes Metall. */
-const PL_KEILE = 72;
+   Vorlage ist eine polierte Metallkugel: kein gleichmaessiger Verlauf und
+   keine Strahlen, sondern wenige weiche Lichtflecken auf einem dunkleren
+   Grund — das Bild der Umgebung, das sich in der Oberflaeche spiegelt.
 
+   Zwei Anlaeufe davor lagen daneben. Ein Baenderverlauf quer ueber die
+   Scheibe sah nach Holzmaserung aus (alle Baender in derselben Richtung), ein
+   Faecher aus Keilen nach Speichenrad (Strahlen, die in der Mitte spitz
+   zusammenlaufen). Poliertes Metall hat weder das eine noch das andere.
+
+   Jeder Reflex ist ein eigener Radialverlauf, der als voller Kreis gemalt
+   wird — die Form macht der Verlauf, nicht die Geometrie. Damit bleibt alles
+   ohne Ausschnitt innerhalb der Scheibe. */
 function _plateMix(a, b, t){
   const h = (c) => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
   const A = h(a), B = h(b);
   return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
 }
 
-/* Helligkeit an einem Winkel: 0 = tiefster Ton, 1 = Glanz. Der Versatz legt
-   die Hauptachse schraeg (oben links), passend zum Licht der ganzen Scheibe. */
-function _plateGlanz(grad){
-  const r = (grad - 35) * Math.PI / 180;
-  return Math.min(1, Math.max(0, .44 + .34 * Math.pow(Math.abs(Math.cos(r)), 2.4)
-                                  + .12 * Math.pow(Math.abs(Math.cos(2 * r)), 3)));
+/* Lage der Reflexe, gemeinsam fuer SVG und Canvas. cx/cy/r sind Anteile der
+   Scheibenbreite, `ton` waehlt Glanz oder Tiefe, `a` die Deckkraft. */
+const PL_REFLEXE = [
+  { cx: .33, cy: .22, r: .36, ton: 'glanz', a: .95 },  // Hauptlicht oben links
+  { cx: .29, cy: .19, r: .12, ton: 'glanz', a: 1 },    // sein harter Kern
+  { cx: .70, cy: .15, r: .20, ton: 'glanz', a: .85 },  // zweites Licht oben rechts
+  { cx: .18, cy: .62, r: .26, ton: 'tief',  a: .6 },   // Schattenzone links unten
+  { cx: .78, cy: .70, r: .30, ton: 'tief',  a: .55 },  // Schattenzone rechts unten
+  { cx: .52, cy: .95, r: .28, ton: 'glanz', a: .5 }    // Rueckwurf vom Untergrund
+];
+
+/* Verlaufs-Definitionen eines Metallstuecks. `pre` haelt Koerper und
+   Innenflaeche auseinander, sonst teilten sie sich dieselben IDs. */
+function _plateSpiegelDefs(id, pre, glanz, mitte, tief){
+  const basis = `<linearGradient id="${id}${pre}b" x1="0.2" y1="0" x2="0.78" y2="1">
+      <stop offset="0%"   stop-color="${_plateMix(glanz, mitte, .35)}"/>
+      <stop offset="30%"  stop-color="${mitte}"/>
+      <stop offset="62%"  stop-color="${_plateMix(mitte, tief, .5)}"/>
+      <stop offset="100%" stop-color="${tief}"/>
+    </linearGradient>`;
+  return basis + PL_REFLEXE.map((f, i) => `<radialGradient id="${id}${pre}${i}" cx="${f.cx}" cy="${f.cy}" r="${f.r}">
+      <stop offset="0%"   stop-color="${f.ton === 'glanz' ? glanz : tief}" stop-opacity="${f.a}"/>
+      <stop offset="42%"  stop-color="${f.ton === 'glanz' ? glanz : tief}" stop-opacity="${(f.a * .38).toFixed(2)}"/>
+      <stop offset="100%" stop-color="${f.ton === 'glanz' ? glanz : tief}" stop-opacity="0"/>
+    </radialGradient>`).join('');
 }
 
-/* Keilfaecher als SVG-Pfade. `rInnen` > 0 laesst die Mitte frei, damit die
-   eingelassene Flaeche ihren eigenen Faecher bekommen kann. */
-function _plateFaecher(s, rAussen, rInnen, glanz, mitte, tief){
-  const st = 360 / PL_KEILE, out = [];
-  for (let i = 0; i < PL_KEILE; i++){
-    const a0 = i * st, a1 = a0 + st + .35;          // Ueberlappung gegen Haarlinien
-    const g  = _plateGlanz(a0 + st / 2);
-    const f  = g > .5 ? _plateMix(mitte, glanz, (g - .5) * 2) : _plateMix(tief, mitte, g * 2);
-    const p  = (a, r) => [(50 + r * Math.cos(a * Math.PI / 180)).toFixed(2),
-                          (50 + r * Math.sin(a * Math.PI / 180)).toFixed(2)];
-    const [x0, y0] = p(a0, rAussen), [x1, y1] = p(a1, rAussen);
-    if (rInnen > 0){
-      const [x2, y2] = p(a1, rInnen), [x3, y3] = p(a0, rInnen);
-      out.push(`<path d="M ${x0} ${y0} A ${rAussen} ${rAussen} 0 0 1 ${x1} ${y1} L ${x2} ${y2} A ${rInnen} ${rInnen} 0 0 0 ${x3} ${y3} Z" fill="${f}"/>`);
-    } else {
-      out.push(`<path d="M 50 50 L ${x0} ${y0} A ${rAussen} ${rAussen} 0 0 1 ${x1} ${y1} Z" fill="${f}"/>`);
-    }
-  }
-  return out.join('');
+/* Hexfarbe mit Deckkraft. Canvas-Verlaeufe brauchen rgba(); ein Hex mit
+   Alpha-Suffix versteht nicht jede WebView. */
+function _plateRgba(hex, a){
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16));
+  return `rgba(${r},${g},${b},${(+a).toFixed(3)})`;
+}
+
+/* Die Kreise dazu — Grundton zuerst, dann die Reflexe uebereinander. */
+function _plateSpiegel(id, pre, r){
+  return `<circle cx="50" cy="50" r="${r}" fill="url(#${id}${pre}b)"/>`
+    + PL_REFLEXE.map((f, i) => `<circle cx="50" cy="50" r="${r}" fill="url(#${id}${pre}${i})"/>`).join('');
 }
 
 /* Jede Scheibe braucht eigene Verlaufs-IDs — zwei SVGs mit derselben ID auf
@@ -225,6 +239,8 @@ function _lvlPlateSVG(level, px, opts){
   return `<svg class="lvl-plate" viewBox="0 0 100 100" width="${px}" height="${px}" role="img"
     aria-label="Level ${n}" style="display:block">
     <defs>
+      ${s.metall ? _plateSpiegelDefs(id, 'k', s.glanz, s.mitte, s.tief)
+                 + _plateSpiegelDefs(id, 'f', s.innenGlanz, s.innenMitte, s.innenTief) : ''}
       <!-- Koerper. Gummi: breiter weicher Schein oben links, matt auslaufend.
            Metall: schmale Baender quer ueber die Scheibe — die abrupten
            Wechsel hell/dunkel sind das, was ein Auge als Metall liest, ein
@@ -239,12 +255,12 @@ function _lvlPlateSVG(level, px, opts){
       <radialGradient id="${id}v" cx="0.5" cy="0.5" r="0.5">
         <stop offset="0%"   stop-color="#000" stop-opacity="0"/>
         <stop offset="84%"  stop-color="#000" stop-opacity="0"/>
-        <stop offset="95%"  stop-color="#000" stop-opacity="${hell ? .08 : .2}"/>
+        <stop offset="93%"  stop-color="#000" stop-opacity="${hell ? .1 : .26}"/>
         <stop offset="100%" stop-color="#000" stop-opacity="${hell ? .34 : .58}"/>
       </radialGradient>
       <!-- Rueckwurf unten rechts -->
-      <radialGradient id="${id}b" cx="0.72" cy="0.86" r="0.5">
-        <stop offset="0%"   stop-color="#fff" stop-opacity="${hell ? .2 : .13}"/>
+      <radialGradient id="${id}b" cx="0.74" cy="0.92" r="0.42">
+        <stop offset="0%"   stop-color="#fff" stop-opacity="${hell ? .16 : .07}"/>
         <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
       </radialGradient>
       <!-- Eingelassene Flaeche. Beim Metall laufen die Baender andersherum als
@@ -329,11 +345,11 @@ function _lvlPlateSVG(level, px, opts){
          Koernungsfilter — Ring, Schrift und Zahl bleiben glatt, gekoernt ist
          nur das Gummi. -->
     <g${fein ? ` filter="url(#${id}n)"` : ''}>
-      ${s.metall ? _plateFaecher(s, PL.rand, 0, s.glanz, s.mitte, s.tief)
+      ${s.metall ? _plateSpiegel(id, 'k', PL.rand)
                  : `<circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>`}
       <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}b)"/>
       <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}v)"/>
-      ${s.metall ? _plateFaecher(s, PL.innen, 0, s.innenGlanz, s.innenMitte, s.innenTief)
+      ${s.metall ? _plateSpiegel(id, 'f', PL.innen)
                  : `<circle cx="50" cy="50" r="${PL.innen}" fill="url(#${id}f)"/>`}
       <circle cx="50" cy="50" r="${PL.innen + .35}" fill="none" stroke="#000"
         stroke-width="1.1" opacity="${hell ? .3 : .5}"/>
@@ -440,30 +456,38 @@ function _lvlPlateCanvas(level, size, mat){
     return g;
   };
 
-  /* Keilfaecher wie im SVG: Helligkeit schwingt mit dem Winkel. */
-  const faecher = (r, glanz, mitteF, tief) => {
-    const st = 360 / PL_KEILE;
-    for (let i = 0; i < PL_KEILE; i++){
-      const a0 = i * st, g = _plateGlanz(a0 + st / 2);
-      c.fillStyle = g > .5 ? _plateMix(mitteF, glanz, (g - .5) * 2) : _plateMix(tief, mitteF, g * 2);
-      c.beginPath(); c.moveTo(mitte, mitte);
-      c.arc(mitte, mitte, M(r), a0 * Math.PI / 180, (a0 + st + .4) * Math.PI / 180);
-      c.closePath(); c.fill();
-    }
+  /* Spiegelnde Metallflaeche wie im SVG: Grundton plus weiche Lichtflecken. */
+  const spiegel = (r, glanz, mitteF, tief) => {
+    const d = M(r * 2);
+    const g0 = c.createLinearGradient(X(50 - r) + d * .2, X(50 - r), X(50 - r) + d * .78, X(50 + r));
+    g0.addColorStop(0, _plateMix(glanz, mitteF, .35));
+    g0.addColorStop(.3, mitteF);
+    g0.addColorStop(.62, _plateMix(mitteF, tief, .5));
+    g0.addColorStop(1, tief);
+    kreis(r, g0);
+    PL_REFLEXE.forEach(f => {
+      const col = f.ton === 'glanz' ? glanz : tief;
+      const cx = X(50 - r) + d * f.cx, cy = X(50 - r) + d * f.cy;
+      const g = c.createRadialGradient(cx, cy, 0, cx, cy, d * f.r);
+      g.addColorStop(0, _plateRgba(col, f.a));
+      g.addColorStop(.42, _plateRgba(col, f.a * .38));
+      g.addColorStop(1, _plateRgba(col, 0));
+      kreis(r, g);
+    });
   };
 
-  // Koerper: Gummi mit weichem Schein, Metall mit Reflexfaecher
-  if (s.metall) faecher(PL.rand, s.glanz, s.mitte, s.tief);
+  // Koerper: Gummi mit weichem Schein, Metall mit Spiegelungen
+  if (s.metall) spiegel(PL.rand, s.glanz, s.mitte, s.tief);
   else kreis(PL.rand, strahl(.33, .24, .82, [[0, s.koerperHell], [.34, s.koerper], [1, s.koerperTief]]));
   kreis(PL.rand, strahl(.72, .86, .5, [
-    [0, 'rgba(255,255,255,' + (hell ? .2 : .13) + ')'], [1, 'rgba(255,255,255,0)']]));
+    [0, 'rgba(255,255,255,' + (hell ? .16 : .07) + ')'], [1, 'rgba(255,255,255,0)']]));
   kreis(PL.rand, strahl(.5, .5, .5, [
     [0, 'rgba(0,0,0,0)'], [.84, 'rgba(0,0,0,0)'],
     [.95, 'rgba(0,0,0,' + (hell ? .08 : .2) + ')'],
     [1,   'rgba(0,0,0,' + (hell ? .34 : .58) + ')']]));
 
   // Eingelassene Flaeche mit Stufe zum Reifen
-  if (s.metall) faecher(PL.innen, s.innenGlanz, s.innenMitte, s.innenTief);
+  if (s.metall) spiegel(PL.innen, s.innenGlanz, s.innenMitte, s.innenTief);
   else kreis(PL.innen, strahl(.36, .28, .9, [[0, s.innenHell], [.45, s.innen], [1, s.innenTief]]));
   kreis(PL.innen + .35, null, '#000', 1.1, hell ? .3 : .5);
   const kante = c.createLinearGradient(X(50 - PL.innen), X(50 - PL.innen),
