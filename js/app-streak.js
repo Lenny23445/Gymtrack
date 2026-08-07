@@ -1481,10 +1481,31 @@ function _obTplSchemeLbl(t){
 // Bewusst KEIN Auto-Weiter mehr nach der Auswahl: das sprang gefühlt „von
 // alleine" weiter und bestätigte Dinge, die der Nutzer nur antippen wollte.
 // Weiter geht es ausschließlich über den Weiter-Button.
-function obPickGoal(id){ _ob.goal = id; haptic(8); renderOb(); }
-function obPickExp(id){ _ob.exp = id; haptic(8); renderOb(); }
-function obPickFreq(n){ _ob.freq = n; haptic(8); _ob.tpl = null; _ob.showAll = false; renderOb(); }
-function obPickTpl(id){ _ob.tpl = id; haptic(8); renderOb(); }
+//
+// Und bewusst KEIN renderOb() beim Antippen: das ersetzt das komplette
+// Step-Markup und startet damit die Einblend-Animation (.ob-step, .38s) neu —
+// jeder Tap sah aus wie kurzes Nachladen, und ein schneller Folge-Tap landete
+// auf einem Button, den es in dem Moment gar nicht mehr gab. Die Auswahl wird
+// deshalb nur noch im DOM umgeschaltet: sofort sichtbar, sofort weiter tippbar.
+function _obMark(sel, val){
+  document.querySelectorAll('#ob-screen ' + sel).forEach(b =>
+    b.classList.toggle('on', b.dataset.v === String(val)));
+  _obSyncFoot();
+}
+// Der Weiter-Button ist bis zur Auswahl deaktiviert — ohne Neu-Rendern muss
+// sein Zustand hier nachgezogen werden (renderOb setzt opacity inline).
+function _obSyncFoot(){
+  const b = document.querySelector('#ob-screen .ob-foot .btn-acc');
+  if (!b || !_ob) return;
+  const s = _ob.step;
+  const can = !(s===2 && !_ob.goal) && !(s===3 && !_ob.exp) && !(s===4 && !_ob.freq);
+  b.disabled = !can;
+  b.style.opacity = can ? '' : '.45';
+}
+function obPickGoal(id){ if (!_ob) return; _ob.goal = id; haptic(8); _obMark('.ob-opt', id); }
+function obPickExp(id){ if (!_ob) return; _ob.exp = id; haptic(8); _obMark('.ob-opt', id); }
+function obPickFreq(n){ if (!_ob) return; _ob.freq = n; haptic(8); _ob.tpl = null; _ob.showAll = false; _obMark('.ob-freq button', n); }
+function obPickTpl(id){ if (!_ob) return; _ob.tpl = id; haptic(8); _obMark('.ob-tpl', id); }
 function obShowAllTpls(){ if (!_ob) return; _ob.showAll = true; haptic(6); renderOb(); }
 function obBack(){ if(!_ob || _ob.step===0) return; haptic(6); _ob.step--; renderOb(); }
 function obNext(){
@@ -1530,7 +1551,7 @@ function _obStepHTML(s){
   if (s === 2) return `<div class="ob-q">Was ist dein Ziel?</div>
     <div class="ob-qsub">Hilft uns, dir die richtigen Vorschläge zu machen.</div>
     <div class="ob-opts">${OB_GOALS.map(g => `
-      <button class="ob-opt${_ob.goal===g.id?' on':''}" onclick="obPickGoal('${g.id}')">
+      <button class="ob-opt${_ob.goal===g.id?' on':''}" data-v="${g.id}" onclick="obPickGoal('${g.id}')">
         <div class="ob-opt-ico">${g.ico}</div>
         <div><div class="ob-opt-title">${g.t}</div><div class="ob-opt-sub">${g.s}</div></div>
       </button>`).join('')}</div>`;
