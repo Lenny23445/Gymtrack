@@ -227,13 +227,20 @@ function _refRender(){
     ${REF.usedCode ? '' : `<button class="ref-link" onclick="refAskCode()">${tr('Ich habe einen Einladungscode')}</button>`}`;
 }
 
-/* Der https-Link ist nur der klickbare TRÄGER (in iMessage/WhatsApp/QR anklickbar,
-   gymtrack:// waere es nicht). Er landet NICHT in der Web-App: js/app-boot.js
-   springt beim ?ref-Aufruf erst per Deep-Link in eine installierte App und
-   schickt den Rest in den App Store — die native App ist das Ziel. */
+/* Der Einladungslink zeigt DIREKT in den App Store (Umbau 07.08.2026).
+   Vorher stand hier GT_WEB + '?ref=CODE'. Der Empfänger sah damit erst die
+   komplette Web-App laden und bekam danach den Safari-Dialog „In App Store
+   öffnen?" — zwei Umwege vor dem eigentlichen Ziel. Ein apps.apple.com-Link
+   wird von iOS direkt an die App-Store-App gereicht: kein Browser, kein
+   Dialog, kein Aufblitzen der Web-App. Der QR-Code nutzt denselben Link.
+   Der Code geht dabei nicht verloren: er steht im Einladungstext und wird
+   nach der Installation von Hand eingegeben — automatisch übernehmen konnte
+   ihn iOS ohnehin nie (kein Install-Referrer wie bei Android).
+   Bereits verschickte ?ref=-Links funktionieren weiter: js/app-boot.js liest
+   den Parameter unverändert und springt von dort in den Store. */
 function refLink(){
-  const web = (typeof GT_WEB === 'string' && GT_WEB) ? GT_WEB : '';
-  return web ? web.replace(/\/?$/, '/') + '?ref=' + (REF.code || '') : 'gymtrack://ref/' + (REF.code || '');
+  return (typeof APP_STORE_URL === 'string' && APP_STORE_URL)
+    ? APP_STORE_URL : 'https://apps.apple.com/app/id6775434876';
 }
 function refCopyCode(btn){
   if (!REF.code) return;
