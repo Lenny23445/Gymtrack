@@ -58,16 +58,20 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 - Worker prüft pro Anfrage: Firebase-Login **und** Apples signierten Abo-Beweis (StoreKit-2-JWS: Signatur + Zertifikatskette bis zur gepinnten Apple Root CA, Produkt-ID, Ablaufdatum). Ohne aktives Abo keine KI — auch nicht mit manipulierter App.
 - Dein Founder-Account (Admin-UID) ist immer Premium, ohne Kauf.
 
-## 4. Cloudflare — Einladungen freischalten (Gratis-Premium, ~3 Min)
+## 4. Cloudflare — Einladungen freischalten (Gratis-Premium) — ERLEDIGT 07.08.2026
 
-Ohne diesen Schritt läuft die App normal weiter, aber **jede Einlösung schlägt fehl**
-("Einladungen sind gerade nicht verfügbar") und niemand bekommt eine Gratis-Woche —
-bewusst so gebaut: ein fehlendes Binding darf keine KI verschenken.
+KV-Namespace `gymtrack-ref` (ID `c8f17210493c4760984c97e5ab9dc6aa") ist angelegt, als
+`REF` gebunden und der Worker deployt. Alles steht reproduzierbar in
+`ai-worker/wrangler.jsonc` — ein Wiederholen oder Umziehen geht seitdem mit:
 
-1. dash.cloudflare.com → Workers & Pages → **KV** → Create Namespace, Name `gymtrack-ref`.
-2. Worker `gymtrack-ai` → Settings → Bindings → KV Namespace binden,
-   Variablenname exakt **`REF`**, Namespace `gymtrack-ref`.
-3. Worker neu deployen (Inhalt von `ai-worker/worker.js` reinkopieren → Deploy).
+```
+cd ai-worker && npx wrangler deploy
+```
+
+Das ersetzt den laufenden Worker inklusive Bindings und Vars. Secrets
+(`GEMINI_API_KEY`, `FIREBASE_API_KEY`, …) liegen getrennt und überleben den Deploy.
+Fehlt das `REF`-Binding, schlägt jede Einlösung fehl ("Einladungen sind gerade nicht
+verfügbar") — bewusst so: ein fehlendes Binding darf keine KI verschenken.
 
 **Optionale Variablen** (Vars, keine Secrets — alle mit brauchbaren Defaults):
 

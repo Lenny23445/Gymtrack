@@ -8,11 +8,28 @@
   "main": "worker.js",
   "compatibility_date": "2026-07-23",
   "kv_namespaces": [
-    { "binding": "AI_QUOTA", "id": "4ea529992cc548eb852b7e3b0818a03b" }
+    { "binding": "AI_QUOTA", "id": "4ea529992cc548eb852b7e3b0818a03b" },
+    // Referral (Einladungscodes, geschenkte Wochen, Trial-Kontingent). FEHLT das
+    // Binding, gibt es keinen Trial — bewusst fail-closed, damit ein
+    // Konfigurationsfehler nicht die KI für alle freischaltet.
+    { "binding": "REF", "id": "c8f17210493c4760984c97e5ab9dc6aa" }
   ],
   "vars": {
     "MODEL": "gemini-3.5-flash-lite",
     "MONTHLY_LIMIT": "150",
+    // ── Referral ──────────────────────────────────────────────────────────
+    // Einlösungen JE CODE. Danach ist der Code tot, auch für Fremde: sonst
+    // verschafft ein einziger öffentlich geposteter Code beliebig vielen
+    // Fremden Gratis-Premium samt KI.
+    "REF_MAX_REDEEMS": "2",
+    // KI-Anfragen für die GESAMTE Gratiszeit (nicht pro Monat). Zahler haben
+    // MONTHLY_LIMIT oben — die App stellt beide Zahlen im KI-Menü gegenüber.
+    "TRIAL_LIMIT": "15",
+    // Gemeinsamer Monatstopf ALLER Trial-Nutzer, getrennt vom Deckel der Zahler.
+    // Eine Anfrage kostet 0,4–1 Cent, 15 Anfragen also 6–9 Cent je Testnutzer:
+    // 20 $ reichen für rund 250–600 Trial-Nutzer im Monat. Ist der Topf leer,
+    // bekommen nur Trials 429 — zahlende Nutzer merken davon nichts.
+    "TRIAL_MONTHLY_USD": "20",
     // Kostendeckel wächst mit der Nutzerzahl mit: Deckel = Premium-Köpfe des
     // Monats × USD_PER_USER, mindestens MIN_MONTHLY_USD. Rechnung dahinter:
     // 2,99 € − 15 % Apple = 2,54 € ≈ 2,75 $ netto; 0,30 $ sind 11 % davon.
