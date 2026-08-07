@@ -70,11 +70,25 @@ function _plateZahlGroesse(text, mitText){
   return text.length >= 3 ? 26 : text.length === 2 ? 34 : 40;
 }
 
+/* Die Zahl steht nicht mehr mittig — dort sitzt die Bohrung. Sie wird auf
+   beide Seiten verteilt, wie das Gewicht um das Loch einer echten Scheibe:
+   37 wird zu 3 | 7.
+
+   Einstellige Level bekommen eine fuehrende Null (7 -> 0 | 7). Ohne sie
+   stuende auf einer Seite nichts und die Scheibe waere sichtbar schief.
+   Dreistellige teilen 2 | 1 (103 -> 10 | 3). */
+function _plateZahlTeilen(n){
+  const t = n.length === 1 ? '0' + n : n;
+  const links = Math.ceil(t.length / 2);
+  return [t.slice(0, links), t.slice(links)];
+}
+
 /* Masse der Vorlage, alle in den 100 Einheiten des viewBox.
    Von aussen nach innen: Gummireifen bis 49.5, eingelassene Flaeche ab 40,
    duenner heller Ring bei 35.8, darin auf 30 die gebogene Schrift und die
    beiden Akzentboegen, mittig die Zahl. */
-const PL = { rand: 49.5, innen: 40, ring: 35.8, bogen: 31, txtO: 28.5, txtU: 27.6, txtGr: 7.4 };
+const PL = { rand: 49.5, innen: 40, ring: 35.8, bogen: 31, txtO: 28.5, txtU: 27.6, txtGr: 7.4,
+             loch: 8.2, buchse: 10.8, zahlX: 21.5 };
 /* Halbe Laenge der Akzentboegen in Grad. Sie stehen in der Luecke zwischen den
    beiden Schriftzeilen — laenger, und ihre Enden liegen unter dem „K" von
    MYGYMTRACK. */
@@ -108,11 +122,20 @@ function _lvlPlateSVG(level, px, opts){
   const id    = 'pl' + (++_plateNr);
   const gross = px >= 120;
   const text  = gross && o.label !== false;
-  const zg    = _plateZahlGroesse(n, text);
+  const zg    = _plateZahlGroesse(n, text);   // mit Bohrung unten neu gesetzt
   /* Koernung und weiche Schatten kosten Rechenzeit je Scheibe. In der Liste
      stehen bis zu 20 Pillen nebeneinander und bei 22 px saehe man davon
      ohnehin nichts. */
   const fein  = px >= 90;
+  /* Bohrung und die auf beide Seiten verteilte Zahl gibt es nur in der grossen
+     Ansicht. In der 22-px-Pille stuenden links und rechts eines Lochs zwei
+     Ziffern von je 4 px — dort bleibt die Zahl gross in der Mitte. */
+  const loch  = fein;
+  const [zLinks, zRechts] = _plateZahlTeilen(n);
+  /* Neben der Bohrung steht je Seite nur eine Ziffer — die darf groesser sein
+     als die ganze Zahl in der Mitte. Erst ab zwei Ziffern je Seite (Level ab
+     1000) muss sie zurueck. */
+  const zgr = loch ? (Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23) : zg;
   // Endpunkte der beiden Akzentboegen, symmetrisch zur Waagerechten
   const bog = PL_BOGEN_GRAD * Math.PI / 180;
   const bx  = (50 - PL.bogen * Math.cos(bog)).toFixed(2);
@@ -157,7 +180,24 @@ function _lvlPlateSVG(level, px, opts){
       <linearGradient id="${id}z" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%"   stop-color="${s.hell ? '#2b3138' : '#ffffff'}"/>
         <stop offset="100%" stop-color="${s.schrift}"/>
-      </linearGradient>${fein ? `
+      </linearGradient>
+      <!-- Metallbuchse in der Bohrung: harte Wechsel hell/dunkel, das macht
+           den Chromeindruck. Ein weicher Verlauf saehe nach grauem Lack aus. -->
+      <linearGradient id="${id}m" x1="0.1" y1="0" x2="0.9" y2="1">
+        <stop offset="0%"   stop-color="#fdfefe"/>
+        <stop offset="18%"  stop-color="#aeb6be"/>
+        <stop offset="34%"  stop-color="#f0f3f6"/>
+        <stop offset="52%"  stop-color="#7c848d"/>
+        <stop offset="70%"  stop-color="#dde2e7"/>
+        <stop offset="86%"  stop-color="#69707a"/>
+        <stop offset="100%" stop-color="#c3cad1"/>
+      </linearGradient>
+      <!-- Bohrung: der Blick in den Kanal, unten heller als oben -->
+      <radialGradient id="${id}l" cx="0.5" cy="0.72" r="0.75">
+        <stop offset="0%"   stop-color="#2a2f35"/>
+        <stop offset="60%"  stop-color="#14171a"/>
+        <stop offset="100%" stop-color="#050607"/>
+      </radialGradient>${fein ? `
       <!-- Koernung. Sie liegt NICHT als eigenes Element mit
            mix-blend-mode darueber — das ignoriert die WKWebView, in der App
            war davon nichts zu sehen. Statt dessen mischt der Filter das
@@ -219,13 +259,31 @@ function _lvlPlateSVG(level, px, opts){
       <textPath href="#${id}u" startOffset="50%">LEVEL</textPath>
     </text>` : ''}
 
+    ${loch ? `
+    <!-- Bohrung mit Metallbuchse -->
+    <circle cx="50" cy="50" r="${PL.buchse}" fill="url(#${id}m)"/>
+    <circle cx="50" cy="50" r="${PL.buchse}" fill="none" stroke="#000" stroke-width=".9" opacity=".45"/>
+    <circle cx="50" cy="50" r="${PL.loch}" fill="url(#${id}l)"/>
+    <!-- Schattenkante oben im Kanal: ohne sie sieht das Loch aus wie ein
+         schwarzer Punkt statt wie eine Oeffnung. -->
+    <path d="M ${50 - PL.loch} 50 A ${PL.loch} ${PL.loch} 0 0 1 ${50 + PL.loch} 50" fill="none"
+      stroke="#000" stroke-width="1.6" opacity=".55"/>` : ''}
+
     <!-- Zahl: heller Koerper mit duenner dunkler Kontur, wie das Gewicht auf
-         der Vorlage. Die Kontur setzt sie von der Flaeche ab, ohne dass sie
-         nach Aufkleber aussieht. -->
+         der Vorlage. Bei Bohrung steht sie links und rechts davon. -->
+    ${loch ? `
+    <text x="${50 - PL.zahlX}" y="50" text-anchor="middle" dominant-baseline="central"
+      font-size="${zgr}" font-weight="800" fill="url(#${id}z)"
+      stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zgr * .03}"
+      style="font-family:inherit;letter-spacing:-.5px;paint-order:stroke fill">${zLinks}</text>
+    <text x="${50 + PL.zahlX}" y="50" text-anchor="middle" dominant-baseline="central"
+      font-size="${zgr}" font-weight="800" fill="url(#${id}z)"
+      stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zgr * .03}"
+      style="font-family:inherit;letter-spacing:-.5px;paint-order:stroke fill">${zRechts}</text>` : `
     <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
       font-size="${zg}" font-weight="800" fill="url(#${id}z)"
       stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zg * .03}"
-      style="font-family:inherit;letter-spacing:${text ? '-.5' : '-1'}px;paint-order:stroke fill">${n}</text>
+      style="font-family:inherit;letter-spacing:-1px;paint-order:stroke fill">${n}</text>`}
   </svg>`;
 }
 
@@ -333,18 +391,37 @@ function _lvlPlateCanvas(level, size){
   bogen('MYGYMTRACK', PL.txtO, PL.txtGr, 1, false);
   bogen('LEVEL',      PL.txtU, PL.txtGr, 3.2, true);
 
-  // Zahl mittig: heller Koerper mit dunkler Kontur
-  const zg = _plateZahlGroesse(n, true);
+  // Bohrung mit Metallbuchse
+  const met = c.createLinearGradient(X(50 - PL.buchse), X(50 - PL.buchse),
+                                     X(50 + PL.buchse), X(50 + PL.buchse));
+  [[0, '#fdfefe'], [.18, '#aeb6be'], [.34, '#f0f3f6'], [.52, '#7c848d'],
+   [.7, '#dde2e7'], [.86, '#69707a'], [1, '#c3cad1']].forEach(([o, col]) => met.addColorStop(o, col));
+  kreis(PL.buchse, met);
+  kreis(PL.buchse, null, '#000', .9, .45);
+  const kanal = c.createRadialGradient(mitte, mitte + M(PL.loch * .44), 0,
+                                       mitte, mitte + M(PL.loch * .44), M(PL.loch * 1.5));
+  kanal.addColorStop(0, '#2a2f35'); kanal.addColorStop(.6, '#14171a'); kanal.addColorStop(1, '#050607');
+  kreis(PL.loch, kanal);
+  c.strokeStyle = '#000'; c.lineWidth = M(1.6); c.globalAlpha = .55; c.lineCap = 'butt';
+  c.beginPath(); c.arc(mitte, mitte, M(PL.loch), Math.PI, 0); c.stroke();
+  c.globalAlpha = 1;
+
+  // Zahl links und rechts der Bohrung
+  const [zLinks, zRechts] = _plateZahlTeilen(n);
+  const zg = Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23;
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.font = '800 ' + Math.round(M(zg)) + 'px -apple-system, system-ui, sans-serif';
   c.lineWidth = M(zg * .03); c.lineJoin = 'round';
   c.strokeStyle = s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)';
-  c.strokeText(n, mitte, mitte);
   const zf = c.createLinearGradient(0, mitte - M(zg / 2), 0, mitte + M(zg / 2));
   zf.addColorStop(0, s.hell ? '#2b3138' : '#ffffff');
   zf.addColorStop(1, s.schrift);
-  c.fillStyle = zf;
-  c.fillText(n, mitte, mitte);
+  [[zLinks, -PL.zahlX], [zRechts, PL.zahlX]].forEach(([txt, dx]) => {
+    c.strokeStyle = s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)';
+    c.strokeText(txt, X(50 + dx), mitte);
+    c.fillStyle = zf;
+    c.fillText(txt, X(50 + dx), mitte);
+  });
 
   /* Koernung zum Schluss: bricht die Verlaeufe, sonst wirkt alles nach
      Kunststoff. Gekachelt, nicht gestreckt — auf 1080 px hochgezogen waere aus
