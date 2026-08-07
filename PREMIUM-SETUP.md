@@ -49,7 +49,7 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 | KI-Bubble, Paywall, Premium-Settings | ✅ sichtbar | ✅ |
 | Kauf/Restore (App Store Connect) | ❌ „Produkt nicht gefunden" | ✅ |
 | KI-Chat, Live-Coach, Trainingsanalyse, AI Insights (Cloudflare Worker) | ❌ (Worker fehlt) | ✅ |
-| Monatslimit 50 KI-Anfragen (KV-Namespace) | ⚠️ nicht durchgesetzt (nur Tageslimits) | ✅ |
+| Monatslimit KI-Anfragen (KV-Namespace, MONTHLY_LIMIT=150) | ⚠️ nicht durchgesetzt (nur Tageslimits) | ✅ |
 | Post-Workout-Check-In, Community-Premium-Badge | ✅ (unabhängig vom Worker) | ✅ |
 
 ## Sicherheit (Kurzfassung)
@@ -90,3 +90,9 @@ Konto B: Code eingeben → beide müssen sofort Premium haben.
 curl -s -X POST https://gymtrack-ai.wolterlenny362.workers.dev/ref/me \
   -H 'content-type: application/json' -d '{"idToken":"<idToken>"}'
 ```
+
+**Achtung bei `MONTHLY_LIMIT`:** die Zahl steht zusätzlich als `_AI_PREM_LIMIT` in
+`js/app-coach-setup.js` (aktuell 150). Der Worker liefert das Abo-Kontingent nur an
+Zahler aus — ein Trial-Nutzer sähe sonst nie, was ihm entgeht. Änderst du die
+Worker-Variable, muss die Konstante mit, sonst verspricht die Paywall eine andere
+Zahl, als der Nutzer nach dem Kauf bekommt.
