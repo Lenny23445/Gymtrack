@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608072010';
+const APP_VERSION = 'gymtrack-v202608072030';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -124,7 +124,13 @@ const I18N_EN = {
   'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
 'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
   'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
-  'Silber':'Silver','Erreicht':'Reached','Standard':'Default',   // Materialwahl der Level-Scheibe; Standard/Bronze/Gold sind gleich
+  'Silber':'Silver','Erreicht':'Reached','Standard':'Default',
+  // Privatsphaere-Blatt (Schild oben in der Community) und Profil-Bearbeitung
+  'Mitteilungen, die du bekommst.':'Notifications you receive.',
+  'Wenn jemand trainiert':'When someone works out',
+  'Kurze Mitteilung, wenn ein Freund oder jemand aus deiner Gruppe ein Training startet — höchstens eine pro Person und Tag.':'A short notice when a friend or someone from your group starts a workout — at most one per person and day.',
+  'Du bestimmst, was Freunde sehen. Name, Wochen-Trainingszahl und Streak sind Teil der Rangliste, solange die Community aktiv ist.':'You decide what friends see. Name, weekly workout count and streak are part of the leaderboard as long as the community is on.',
+  'Lieblingsübungen':'Favourite exercises','Lieblings-Muskelgruppen':'Favourite muscle groups','(max. 3)':'(max. 3)',   // Materialwahl der Level-Scheibe; Standard/Bronze/Gold sind gleich
   'Wochenziel geschafft — der Streak wächst am Montag.':'Weekly goal reached — the streak grows on Monday.',
   'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
