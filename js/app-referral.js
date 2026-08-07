@@ -28,6 +28,17 @@ let REF = (() => {
 function _refSave(){ try { localStorage.setItem('gt_ref', JSON.stringify(REF)); } catch(_){} }
 
 function refTrialActive(){ return !!(REF.trialExp && REF.trialExp > Date.now()); }
+/* Läuft gerade ein GEKAUFTES Abo? Dann darf nicht eingelöst werden: die
+   geschenkte Woche liefe parallel zum Abo ab (refApplyTrial lässt 'store'
+   immer vorgehen) und wäre verschenkt — schlimmer noch, eingelöst wird genau
+   einmal im Leben, der Anspruch ist danach unwiederbringlich weg. Der Code
+   bleibt stattdessen liegen, bis das Abo endet.
+   Bewusst NUR src==='store': Founder-Konto und gt_premiumDev sind Testwege
+   ohne echten Kauf und müssen weiter einlösen können. */
+function refPaidPremium(){
+  try { return !!(PREM && PREM.active && PREM.src === 'store' && (!PREM.exp || PREM.exp > Date.now())); }
+  catch(_) { return false; }
+}
 function refDaysLeft(){ return Math.max(0, Math.ceil((REF.trialExp - Date.now()) / 864e5)); }
 function refCanEarn(){ return (REF.invited || 0) < (REF.maxRedeems || 2); }
 
@@ -108,6 +119,7 @@ const _REF_REASON = {
   unknown:          'Diesen Code gibt es nicht.',
   self:             'Das ist dein eigener Code.',
   already_redeemed: 'Du hast schon einen Einladungscode eingelöst.',
+  has_premium:      'Du hast schon Premium. Heb den Code auf — er wartet, bis dein Abo endet.',
   code_exhausted:   'Dieser Code wurde schon zweimal eingelöst.',
   unavailable:      'Einladungen sind gerade nicht verfügbar. Später nochmal versuchen.',
 };
@@ -115,7 +127,11 @@ const _REF_REASON = {
 async function refRedeemCode(code, opts){
   const c = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!c) return false;
-  const d = await _refCall('/ref/redeem', { code: c });
+  // Zahler gehen hier raus, BEVOR der Worker etwas bucht: sonst wäre die
+  // einmalige Einlösung verbraucht und die sieben Tage liefen ungenutzt neben
+  // dem Abo ab. Der Worker prüft dasselbe nochmal (JWS unten).
+  if (refPaidPremium()) { _dndToast(tr(_REF_REASON.has_premium)); return false; }
+  const d = await _refCall('/ref/redeem', { code: c, jws: (PREM && PREM.jws) || null });
   if (d && d.error) {
     if (d.error === 'anon') { _dndToast(tr(_REF_REASON.anonymous)); return false; }
     _dndToast(tr('Einlösen fehlgeschlagen: ') + d.error);
@@ -140,6 +156,11 @@ async function refRedeemPending(){
   if (!c) return false;
   let u = null; try { u = _fbUser; } catch(_) {}
   if (!u || u.isAnonymous) return false;          // später erneut versuchen
+  // Mit laufendem Abo NICHT einlösen und den Code ausdrücklich liegen lassen:
+  // er ist dann nach dem Abo-Ende noch da. Bewusst ohne Toast — dieser Zweig
+  // läuft bei JEDEM Start (js/app-boot.js), ein Hinweis würde zur Dauerschleife.
+  // Sichtbar wird der wartende Code stattdessen im Einladen-Sheet (_refRender).
+  if (refPaidPremium()) return false;
   try { localStorage.removeItem('gt_refPending'); } catch(_){}
   return await refRedeemCode(c);
 }
@@ -224,7 +245,23 @@ function _refRender(){
         ? tr('Dein Code funktioniert noch für') + ' ' + rest + ' ' + tr(rest === 1 ? 'Einlösung' : 'Einlösungen') + '.'
         : tr('Dein Code ist aufgebraucht.'))}</small>
     </div>
-    ${REF.usedCode ? '' : `<button class="ref-link" onclick="refAskCode()">${tr('Ich habe einen Einladungscode')}</button>`}`;
+    ${_refCodeZeile()}`;
+}
+
+/* Unterste Zeile im Sheet: Einlösen anbieten, sperren oder weglassen.
+   Der Zahler sieht bewusst KEINEN toten Button, sondern den Grund — und, falls
+   über einen Link schon ein Code gemerkt wurde (gt_refPending), dass der auf
+   ihn wartet. Ohne diesen Text bliebe der liegengebliebene Code unsichtbar. */
+function _refCodeZeile(){
+  if (REF.usedCode) return '';
+  if (refPaidPremium()) {
+    let wartet = null;
+    try { wartet = localStorage.getItem('gt_refPending'); } catch(_){}
+    return `<div class="ref-status ref-status-hold"><small>${esc(wartet
+      ? tr('Du hast Premium — dein Einladungscode') + ' ' + wartet + ' ' + tr('wartet, bis dein Abo endet.')
+      : tr('Einen Code einlösen geht erst wieder, wenn dein Abo endet.'))}</small></div>`;
+  }
+  return `<button class="ref-link" onclick="refAskCode()">${tr('Ich habe einen Einladungscode')}</button>`;
 }
 
 /* Der Einladungslink zeigt DIREKT in den App Store (Umbau 07.08.2026).

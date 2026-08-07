@@ -431,3 +431,74 @@ test('Kaltstart-Doppellieferung meldet keinen Fehler (Sperre auf den letzten Cod
     'ohne die Sperre bekaeme der frisch beschenkte Nutzer "schon eingeloest" als Fehler: '
     + 'getLaunchUrl UND appUrlOpen liefern beim Kaltstart dieselbe Adresse');
 });
+
+/* ── Zahler duerfen nicht einloesen ──────────────────────────────────────────
+   Ein laufendes Abo hat in refApplyTrial() immer Vorrang: die geschenkte Woche
+   liefe daneben ab, ohne dass jemand etwas davon haette. Weil nur EINMAL im
+   Leben eingeloest wird, waere der Anspruch danach endgueltig verbrannt.
+   Genau das ist am 07.08.2026 beim Test mit einem echten Abo passiert. */
+
+test('Mit laufendem Abo wird nicht eingeloest — und der Werber bekommt auch nichts', async () => {
+  const S = sandbox();
+  const e = env();
+  const a = await mitCode(S, e, 'uid_a');
+  const r = await S.refRedeem(e, 'uid_b', GOOGLE, a.code, true);
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'has_premium');
+  const b   = await S.refRead(e, 'uid_b');
+  const ref = await S.refRead(e, 'uid_a');
+  assert.equal(b.usedCode, null, 'die einmalige Einloesung darf NICHT verbraucht sein');
+  assert.equal(b.trialExp, 0, 'kein Trial neben dem Abo');
+  assert.equal(ref.invited || 0, 0, 'ohne Einloesung auch keine Woche fuer den Werber');
+  assert.equal(ref.trialExp, 0);
+});
+
+test('Derselbe Code laesst sich nach dem Abo-Ende noch einloesen', async () => {
+  const S = sandbox();
+  const e = env();
+  const a = await mitCode(S, e, 'uid_a');
+  assert.equal((await S.refRedeem(e, 'uid_b', GOOGLE, a.code, true)).reason, 'has_premium');
+  const spaeter = await S.refRedeem(e, 'uid_b', GOOGLE, a.code, false);
+  assert.equal(spaeter.ok, true, 'der aufgehobene Code muss spaeter noch ziehen');
+  assert.ok((await S.refRead(e, 'uid_a')).trialExp > Date.now(), 'jetzt bekommt auch der Werber seine Woche');
+});
+
+test('Ohne Abo-Kennzeichen bleibt alles wie bisher', async () => {
+  const S = sandbox();
+  const e = env();
+  const a = await mitCode(S, e, 'uid_a');
+  // vierstellig aufgerufen wie im gesamten uebrigen Test: hatAbo ist undefined
+  assert.equal((await S.refRedeem(e, 'uid_b', GOOGLE, a.code)).ok, true);
+});
+
+test('refPaidPremium erkennt nur das GEKAUFTE Abo, nicht Trial oder Dev-Unlock', () => {
+  const src = lies('js', 'app-referral.js');
+  const stueck = src.match(/function refPaidPremium\(\)\{[\s\S]*?\n\}/);
+  assert.ok(stueck, 'refPaidPremium nicht gefunden — umbenannt?');
+  const f = (PREM) => new Function('PREM', stueck[0] + '\nreturn refPaidPremium();')(PREM);
+
+  const inZukunft = Date.now() + 30 * TAG;
+  const vergangen = Date.now() - TAG;
+  assert.equal(f({ active:true,  src:'store', exp: inZukunft }), true);
+  assert.equal(f({ active:true,  src:'store', exp: 0 }), true, 'Abo ohne Ablaufdatum gilt als laufend');
+  assert.equal(f({ active:true,  src:'store', exp: vergangen }), false, 'abgelaufenes Abo darf wieder einloesen');
+  assert.equal(f({ active:true,  src:'trial', exp: inZukunft }), false, 'geschenkte Woche ist kein Kauf');
+  assert.equal(f({ active:false, src:null,    exp:null }), false);
+  assert.equal(f(null), false);
+  assert.equal(f(undefined), false, 'PREM noch nicht geladen darf nicht sperren');
+});
+
+test('Client haelt Zahler VOR dem Worker-Aufruf an und wirft den Link-Code nicht weg', () => {
+  const src = lies('js', 'app-referral.js');
+  const redeem = src.match(/async function refRedeemCode\([\s\S]*?\n\}/)[0];
+  const vorher = redeem.indexOf('refPaidPremium()');
+  const call   = redeem.indexOf("_refCall('/ref/redeem'");
+  assert.ok(vorher > 0 && vorher < call,
+    'die Sperre muss VOR dem Worker-Aufruf stehen, sonst ist die Einloesung schon gebucht');
+
+  const pending = src.match(/async function refRedeemPending\(\)\{[\s\S]*?\n\}/)[0];
+  const sperre  = pending.indexOf('refPaidPremium()');
+  const loesch  = pending.indexOf("removeItem('gt_refPending')");
+  assert.ok(sperre > 0 && sperre < loesch,
+    'mit Abo muss der gemerkte Code liegen bleiben — sonst ist er nach dem Abo-Ende weg');
+});

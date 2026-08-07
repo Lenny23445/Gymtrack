@@ -475,9 +475,16 @@ async function refEnsureCode(env, uid, rec) {
 }
 function refTrialOn(rec) { return !!(rec && rec.trialExp && rec.trialExp > Date.now()); }
 
-async function refRedeem(env, uid, providers, code) {
+// hatAbo: der Aufrufer hat einen GUELTIGEN StoreKit-JWS gesehen. Dann gibt es
+// nichts zu schenken — die Woche liefe neben dem Abo ab und die einmalige
+// Einloesung waere verbrannt. Kein Sicherheitsnetz (wer den JWS weglaesst,
+// kommt hier vorbei), sondern der zweite Halt fuer den ehrlichen Fall: die App
+// prueft dasselbe schon in refRedeemCode(). Frueh, damit der Werber-Zaehler
+// unberuehrt bleibt: keine Einloesung, also auch keine Woche fuer den Werber.
+async function refRedeem(env, uid, providers, code, hatAbo) {
   if (!env.REF)                   return { ok: false, reason: "unavailable" };
   if (!refRealAccount(providers)) return { ok: false, reason: "anonymous" };
+  if (hatAbo)                     return { ok: false, reason: "has_premium" };
   const c = String(code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (c.length !== 7)             return { ok: false, reason: "unknown" };
   const owner = await env.REF.get("code:" + c);
@@ -705,7 +712,17 @@ export default {
 
       if (path === "/ref/redeem") {
         if (isGet) return json({ error: "POST only" }, 405, cors);
-        const r = await refRedeem(env, ruid, who.providers, payload.code);
+        // Der JWS ist optional: Trial-Nutzer und Web haben keinen. Nur ein
+        // vollstaendig gueltiger Beleg (Kette bis Apple Root, nicht abgelaufen,
+        // nicht widerrufen — verifyStoreKitJws wirft sonst) sperrt die
+        // Einloesung. Jeder Fehler faellt bewusst auf "kein Abo" zurueck: ein
+        // kaputter Beleg darf niemandem die geschenkte Woche wegnehmen.
+        let hatAbo = false;
+        if (payload.jws) {
+          try { await verifyStoreKitJws(payload.jws); hatAbo = true; }
+          catch (e) { console.log("[REF] JWS ignoriert:", e.message); }
+        }
+        const r = await refRedeem(env, ruid, who.providers, payload.code, hatAbo);
         return json(r, 200, cors);
       }
 

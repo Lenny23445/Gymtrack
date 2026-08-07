@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080012';
+const APP_VERSION = 'gymtrack-v202608080013';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -806,6 +806,9 @@ const I18N_EN = {
   'Diesen Code gibt es nicht.':'That code does not exist.','Das ist dein eigener Code.':'That is your own code.',
   'Du hast schon einen Einladungscode eingelöst.':'You have already redeemed an invite code.',
   'Dieser Code wurde schon zweimal eingelöst.':'That code has already been redeemed twice.',
+  'Du hast schon Premium. Heb den Code auf — er wartet, bis dein Abo endet.':'You already have Premium. Keep the code — it waits until your subscription ends.',
+  'Du hast Premium — dein Einladungscode':'You have Premium — your invite code','wartet, bis dein Abo endet.':'waits until your subscription ends.',
+  'Einen Code einlösen geht erst wieder, wenn dein Abo endet.':'Redeeming a code works again once your subscription ends.',
   'Einladungen sind gerade nicht verfügbar. Später nochmal versuchen.':'Invites are unavailable right now. Please try again later.',
   'Einlösen fehlgeschlagen: ':'Could not redeem: ',
   'Gratis-Test':'Free trial','übrig in deiner Gratis-Woche':'left in your free week','Gratis-Anfragen aufgebraucht':'Free requests used up','Mit Premium sind es':'With Premium you get','Anfragen — jeden Monat neu':'requests — renewed every month',
