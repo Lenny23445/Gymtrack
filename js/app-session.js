@@ -106,7 +106,7 @@ function _buildGoalHtml(start, goal, cur, unit) {
     return `<div class="weight-goal-section">
       <div class="wgt-goal-done">
         <div class="wgt-goal-done-title">Ziel erreicht!</div>
-        <div class="wgt-goal-done-sub">${done} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${goal} ${unit}</div>
+        <div class="wgt-goal-done-sub">${_wFmt(done)} ${unit} ${isLoss?'abgenommen':'zugenommen'} · Ziel: ${_wFmt(goal)} ${unit}</div>
       </div>
       <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
     </div>`;
@@ -117,13 +117,13 @@ function _buildGoalHtml(start, goal, cur, unit) {
       <div class="wgt-track-dot${gainCls}" style="left:${pct}%"></div>
     </div>
     <div class="wgt-track-labels">
-      <div class="wgt-track-lbl"><span class="wgt-track-lbl-val">${start} ${unit}</span><span class="wgt-track-lbl-sub">Start</span></div>
-      <div class="wgt-track-lbl right"><span class="wgt-track-lbl-val">${goal} ${unit}</span><span class="wgt-track-lbl-sub">Ziel</span></div>
+      <div class="wgt-track-lbl"><span class="wgt-track-lbl-val">${_wFmt(start)} ${unit}</span><span class="wgt-track-lbl-sub">Start</span></div>
+      <div class="wgt-track-lbl right"><span class="wgt-track-lbl-val">${_wFmt(goal)} ${unit}</span><span class="wgt-track-lbl-sub">Ziel</span></div>
     </div>
     <div class="wgt-stats-row">
-      <div class="wgt-stat"><div class="wgt-stat-val">${arrow} ${done} ${unit}</div><div class="wgt-stat-lbl">${isLoss?'abgenommen':'zugenommen'}</div></div>
+      <div class="wgt-stat"><div class="wgt-stat-val">${arrow} ${_wFmt(done)} ${unit}</div><div class="wgt-stat-lbl">${isLoss?'abgenommen':'zugenommen'}</div></div>
       <div class="wgt-pct-badge${gainCls}">${pct} %</div>
-      <div class="wgt-stat right"><div class="wgt-stat-val">${remaining} ${unit}</div><div class="wgt-stat-lbl">noch bis Ziel</div></div>
+      <div class="wgt-stat right"><div class="wgt-stat-val">${_wFmt(remaining)} ${unit}</div><div class="wgt-stat-lbl">noch bis Ziel</div></div>
     </div>
     <span class="wgt-edit-link" onclick="openWeightGoal()">✎ Ziel anpassen</span>
   </div>`;
@@ -192,7 +192,12 @@ function _wdLerp(d, stops, vals) {
 
 function _wdSnap(v)  { return Math.round(v / WD_STEP) * WD_STEP; }
 function _wdClamp(v) { return _wd ? Math.max(_wd.min, Math.min(_wd.max, v)) : v; }
+/* Ablesewert des Dials: immer mit Zehntel, damit die Zahl beim Drehen nicht
+   in der Breite springt. */
 function _wdFmt(v)   { return v.toFixed(1).replace('.', GT_DEC); }
+/* Alle uebrigen Gewichtsangaben: Zehntel nur, wenn vorhanden. Wichtig ist der
+   Trenner — ohne ihn stuende „3.3 kg" direkt unter „80,7 kg". */
+function _wFmt(v)    { return String(v).replace('.', GT_DEC); }
 
 /* Sinnvoller Bereich je Einheit. Der Log speichert den Wert so, wie er
    angezeigt wird (bestehendes Verhalten), deshalb haengt die Skala an
@@ -384,7 +389,7 @@ function _weightRestHtml(log, unit, start, goal, cur) {
   if (last && prev) {
     const diff = +(last.weight - prev.weight).toFixed(1);
     const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
-    deltaHtml  = `<span class="weight-delta ${cls}">${diff > 0 ? '+' : ''}${_wdFmt(diff)} ${unit}</span>`;
+    deltaHtml  = `<span class="weight-delta ${cls}">${diff > 0 ? '+' : ''}${_wFmt(diff)} ${unit}</span>`;
   }
   const miniContent = log.length >= 2
     ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
