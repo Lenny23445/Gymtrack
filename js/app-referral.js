@@ -79,6 +79,23 @@ function _refAdopt(d){
 function refApplyTrial(){
   try {
     if (PREM.active && PREM.src === 'store') return;
+    // Founder-/Tester-Konto ist DAUERHAFT Premium (isPremium() prueft TEST_UIDS
+    // vor allem anderen). Ein Trial daneben schreibt ein Ablaufdatum in PREM,
+    // und die Einstellungen zeigen daraufhin "laeuft ab am …" statt unbegrenzt.
+    // Ein schon gesetztes Trial-PREM wird deshalb hier wieder ausgeraeumt.
+    // Der Cache-Zweig ist Pflicht: beim Kaltstart ist _fbUser noch nicht da
+    // (isPremium() nutzt dieselbe Kruecke), sonst blitzt genau der falsche
+    // Ablauf-Text auf, bevor die Anmeldung durch ist.
+    let founder = false;
+    try { founder = !!(_fbUser && TEST_UIDS.has(_fbUser.uid)); } catch(_){}
+    if (!founder) { try { founder = localStorage.getItem('gt_founderCache') === '1'; } catch(_){} }
+    if (founder) {
+      if (PREM.src === 'trial') {
+        PREM = { active:false, plan:null, exp:null, jws:null, src:null };
+        _premSave(); premRefreshUI();
+      }
+      return;
+    }
     if (refTrialActive()) {
       if (PREM.src !== 'trial' || PREM.exp !== REF.trialExp) {
         PREM = { active:true, plan:'trial', exp: REF.trialExp, jws:null, src:'trial' };

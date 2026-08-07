@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080014';
+const APP_VERSION = 'gymtrack-v202608080015';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -785,6 +785,7 @@ const I18N_EN = {
   'Freunde einladen':'Invite friends','1 Woche Premium gratis':'1 week of Premium free',
   'Freund einladen — ihr bekommt beide eine Woche.':'Invite a friend — you both get a week.',
   'Gratis-Premium noch':'Free Premium for','Deine Gratis-Wochen laufen noch':'Your free weeks run for another',
+  'Founder-Konto':'Founder account','unbegrenzt':'unlimited','Gratis-Woche':'Free week',
   'Tag':'day','Tage':'days','Einlösung':'redemption','Einlösungen':'redemptions',
   'Noch eine Woche ist drin — lade einen Freund ein.':'One more week is available — invite a friend.',
   'Danach geht es mit Premium weiter.':'After that, Premium takes over.',
@@ -1108,6 +1109,10 @@ const I18N_RX = [
   // Level-Vollbild: Zeilen mit Zahlen darin. Ohne diese Regeln blieben sie
   // deutsch stehen, waehrend der Rest der Ansicht englisch war.
   [/^Noch ([\d.,]+) Punkte bis Level (\d+)$/, 'Reach $1 more points for level $2'],
+  // Premium-Zeile bei laufender Gratis-Woche: "Gratis-Woche · noch 5 Tage".
+  // tr() zerlegt an "·", uebrig bleibt dieses Fragment mit der Zahl darin.
+  [/^noch (\d+) Tage$/, '$1 days left'],
+  [/^noch (\d+) Tag$/, '$1 day left'],
   [/^Ab ([\d.,]+) Punkten$/, 'From $1 points'],
   [/^(\d+) \/ (\d+) · ([\d.,]+) Punkte$/, '$1 / $2 · $3 points'],
   // Gruppen-Belohnung: die Punktzahl steht mitten im Satz

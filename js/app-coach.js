@@ -939,7 +939,17 @@ function _pwCarInit(start){
 }
 
 // ── Settings-Sektion "MyGymTrack Premium" ─────────────
+/* Untertitel der Premium-Zeile. Die Reihenfolge ist die der Wahrheit: erst das
+   dauerhafte Founder-/Testkonto, dann die geschenkte Woche, dann das gekaufte
+   Abo. Ohne die ersten beiden Zweige stand bei jedem gesetzten PREM.exp
+   "Monatsabo · läuft ab am …" — beim Founder schlicht falsch, beim Trial
+   verkaufte es die Gratis-Woche als Abo. */
 function _premStatusSub(){
+  try { if (_fbUser && TEST_UIDS.has(_fbUser.uid)) return 'Founder-Konto · unbegrenzt'; } catch(_){}
+  if (PREM.src === 'trial' && PREM.exp) {
+    const tage = Math.max(0, Math.ceil((PREM.exp - Date.now()) / 864e5));
+    return 'Gratis-Woche · noch ' + tage + (tage === 1 ? ' Tag' : ' Tage');
+  }
   if (PREM.exp) return (PREM.plan==='yearly'?'Jahresabo':'Monatsabo') + ' · läuft ab am ' + new Date(PREM.exp).toLocaleDateString(GT_LOCALE);
   return 'Premium aktiv';
 }
