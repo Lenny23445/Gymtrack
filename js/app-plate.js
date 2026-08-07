@@ -224,12 +224,16 @@ function _lvlPlateSVG(level, px, opts){
   /* Bohrung und die auf beide Seiten verteilte Zahl gibt es nur in der grossen
      Ansicht. In der 22-px-Pille stuenden links und rechts eines Lochs zwei
      Ziffern von je 4 px — dort bleibt die Zahl gross in der Mitte. */
-  const loch  = fein;
+  /* Ab Level 100 keine Bohrung: dreistellig ginge nur als 1 | 00, und das
+     stand schief. Die hoechste Stufe traegt ihre Zahl mittig — sie ist ohnehin
+     der Bruch nach oben. */
+  const loch  = fein && +n < 100;
   const [zLinks, zRechts] = _plateZahlTeilen(n);
   /* Neben der Bohrung steht je Seite nur eine Ziffer — die darf groesser sein
      als die ganze Zahl in der Mitte. Erst ab zwei Ziffern je Seite (Level ab
      1000) muss sie zurueck. */
-  const zgr = loch ? (Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23) : zg;
+  const zgr = loch ? (Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23)
+                   : (text ? _plateZahlGroesse(n, true) : zg);
   // Endpunkte der beiden Akzentboegen, symmetrisch zur Waagerechten
   const bog = PL_BOGEN_GRAD * Math.PI / 180;
   const bx  = (50 - PL.bogen * Math.cos(bog)).toFixed(2);
@@ -538,11 +542,13 @@ function _lvlPlateCanvas(level, size, mat){
   bogen('MYGYMTRACK', PL.txtO, PL.txtGr, 1, false);
   bogen('LEVEL',      PL.txtU, PL.txtGr, 3.2, true);
 
-  // Bohrung mit Metallbuchse
+  // Bohrung mit Metallbuchse — ab Level 100 entfaellt sie, die Zahl steht mittig
+  const cLoch = +n < 100;
   const met = c.createLinearGradient(X(50 - PL.buchse), X(50 - PL.buchse),
                                      X(50 + PL.buchse), X(50 + PL.buchse));
   [[0, '#fdfefe'], [.18, '#aeb6be'], [.34, '#f0f3f6'], [.52, '#7c848d'],
    [.7, '#dde2e7'], [.86, '#69707a'], [1, '#c3cad1']].forEach(([o, col]) => met.addColorStop(o, col));
+  if (cLoch){
   kreis(PL.buchse, met);
   kreis(PL.buchse, null, '#000', .9, .45);
   const kanal = c.createRadialGradient(mitte, mitte + M(PL.loch * .44), 0,
@@ -552,10 +558,12 @@ function _lvlPlateCanvas(level, size, mat){
   c.strokeStyle = '#000'; c.lineWidth = M(1.6); c.globalAlpha = .55; c.lineCap = 'butt';
   c.beginPath(); c.arc(mitte, mitte, M(PL.loch), Math.PI, 0); c.stroke();
   c.globalAlpha = 1;
+  }
 
   // Zahl links und rechts der Bohrung
   const [zLinks, zRechts] = _plateZahlTeilen(n);
-  const zg = Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23;
+  const zg = !cLoch ? _plateZahlGroesse(n, true)
+                    : (Math.max(zLinks.length, zRechts.length) > 1 ? 16 : 23);
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.font = '800 ' + Math.round(M(zg)) + 'px -apple-system, system-ui, sans-serif';
   c.lineWidth = M(zg * .03); c.lineJoin = 'round';
@@ -563,7 +571,7 @@ function _lvlPlateCanvas(level, size, mat){
   const zf = c.createLinearGradient(0, mitte - M(zg / 2), 0, mitte + M(zg / 2));
   zf.addColorStop(0, s.metall ? s.schrift : '#ffffff');
   zf.addColorStop(1, s.metall ? s.schriftTief : s.schrift);
-  [[zLinks, -PL.zahlX], [zRechts, PL.zahlX]].forEach(([txt, dx]) => {
+  (cLoch ? [[zLinks, -PL.zahlX], [zRechts, PL.zahlX]] : [[n, 0]]).forEach(([txt, dx]) => {
     c.strokeStyle = hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)';
     c.strokeText(txt, X(50 + dx), mitte);
     c.fillStyle = zf;
