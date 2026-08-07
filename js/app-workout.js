@@ -2787,7 +2787,7 @@ function _shfShareStep() {
       <div class="shf-dest" onclick="_shfTgl('public')">
         <div class="ico">${ICO.globe({ s: 20 })}</div>
         <div class="t"><b>Community</b><span>${tr('Öffentlich für alle MyGymTrack-Nutzer')}</span></div>
-        <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-public"><span class="tgl-track"></span></label>
+        <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-public" checked><span class="tgl-track"></span></label>
       </div>` : `
       <div class="shf-dest"><div class="ico">${ICO.users({ s: 20 })}</div>
         <div class="t"><b>${tr('Community aus')}</b><span>${tr('Aktiviere die Community im Community-Tab, um Beiträge zu posten.')}</span></div></div>`}

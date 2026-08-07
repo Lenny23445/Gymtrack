@@ -3304,13 +3304,25 @@ async function _socLiveRefresh(){
 async function _renderFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
   const isPub = _cpgMode === 'public';
+  // Zuletzt geladener Stand (egal wie alt) wird SOFORT gezeigt — dadurch steht der Feed
+  // beim Öffnen des Tabs fertig da, statt erst den Lade-Spinner zu zeigen und sich dann
+  // sichtbar aufzubauen. Ist er veraltet, läuft die Aktualisierung still im Hintergrund
+  // (_cpgRevalidate) und tauscht die Karten nur, wenn sich wirklich etwas geändert hat.
+  const cached = _cpgCached();
   body.innerHTML = `
     <div class="cpg-zone"><span class="cpg-zone-t">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
-    <div class="cpg-wrap" id="cpg-wrap">
-      <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>
+    <div class="cpg-wrap" id="cpg-wrap">${cached.length ? '' : `
+      <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>`}
     </div>`;
   try { _socLiveRefresh(); } catch(_){}
   try { _purgeOldPosts(); } catch(_){}   // eigene abgelaufene Posts abräumen (3h-Throttle)
+  if (cached.length) {
+    _cpgItems = cached; _cpgIdx = 0;
+    _cpgRenderStack();
+    _flamesRefreshBadge();
+    if (!_cpgFresh()) _cpgRevalidate();
+    return;
+  }
   let items = [];
   try { items = await _cpgLoad(); }
   catch(e) {

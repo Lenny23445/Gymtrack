@@ -1,13 +1,19 @@
 function _cpgReload(){
-  // Der Zwischenspeicher wird verworfen, also auch die Blob-URLs seiner Bilder —
-  // sonst hielte jeder Neuladevorgang den alten Bildspeicher fest.
-  _cpgCache = {}; _cpgFreeBlobs();
+  // Zwischenspeicher NUR entwerten (ts=0), nicht wegwerfen: der alte Stand bleibt
+  // sichtbar, während im Hintergrund neu geladen wird (_renderFeed → _cpgRevalidate).
+  // Früher wurde hier geleert — dann blitzte bei jedem Neuladen der Lade-Spinner auf.
+  // Blob-URLs bleiben ebenfalls gültig, sonst zeigten die noch stehenden Karten ins Leere.
+  Object.values(_cpgCache).forEach(c => { if (c) c.ts = 0; });
   const b = document.getElementById('fr-body');
   if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
 }
-/* Frisch geposteten eigenen Post optimistisch oben in den passenden Feed-Cache
-   setzen (friends/public je nach Zielauswahl). Falls der Feed gerade offen ist,
-   sofort neu rendern — so erscheint der Post ohne Server-Roundtrip in Echtzeit. */
+/* Frisch geposteten eigenen Post optimistisch oben in den Feed setzen (friends/public
+   je nach Zielauswahl). Er liegt in einer SEPARATEN Warteliste, NICHT im Feed-Cache:
+   ein Cache-Eintrag mit nur diesem einen Post galt 60 s als „frischer Feed" und
+   verdrängte damit alle echten Community-Posts (sie kamen erst nach Ablauf zurück).
+   Die Warteliste wird bei jedem Laden vorangestellt und fällt weg, sobald der Server
+   denselben Post liefert (gleiche uid+ts) bzw. nach 10 Minuten. */
+let _cpgPending = { friends: [], public: [] };
 function _cpgInjectOwnPost(base, dest){
   const me = _fbUser?.uid; if (!me) return;
   const keys = [];
@@ -15,12 +21,63 @@ function _cpgInjectOwnPost(base, dest){
   if (dest.public)  keys.push('public');
   keys.forEach(key => {
     const it = { id: 'local-' + uid(), uid: me, kind: 'post', visibility: key, ...base };
-    const c = _cpgCache[key];
-    if (c) { c.items = [it, ...c.items.filter(x => x.id !== it.id)].slice(0, 40); c.ts = Date.now(); }
-    else   { _cpgCache[key] = { ts: Date.now(), items: [it] }; }
+    _cpgPending[key] = [it, ...(_cpgPending[key] || [])].slice(0, 5);
   });
   const b = document.getElementById('fr-body');
   if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
+}
+/* Eigene, noch nicht vom Server zurückgelieferte Posts vor die geladene Liste hängen.
+   Abgelaufene (>10 Min) und serverseitig bestätigte (gleiche uid+ts) fallen raus. */
+const _CPG_PEND_MS = 600000;
+function _cpgApplyPending(key, items){
+  const me = _fbUser?.uid;
+  const list = items || [];
+  const pend = (_cpgPending[key] || []).filter(p => Date.now() - (p.ts || 0) < _CPG_PEND_MS);
+  if (!pend.length || !me) { _cpgPending[key] = pend; return list; }
+  const live = pend.filter(p => !list.some(x => x.uid === me && x.ts === p.ts && x.id !== p.id));
+  _cpgPending[key] = live;
+  if (!live.length) return list;
+  return live.concat(list).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 40);
+}
+/* Zuletzt geladener Stand der aktuellen Zone — egal wie alt (für sofortiges Rendern). */
+function _cpgCached(){
+  const key = _cpgMode;
+  return _cpgApplyPending(key, _cpgCache[key] ? _cpgCache[key].items : []);
+}
+function _cpgFresh(){
+  const c = _cpgCache[_cpgMode];
+  return !!(c && Date.now() - (c.ts || 0) < 60000);
+}
+/* Still nachladen und den sichtbaren Stapel nur ersetzen, wenn sich wirklich etwas
+   geändert hat und der Nutzer noch auf der ersten Karte steht (sonst spränge ihm der
+   Feed unter dem Finger weg). */
+async function _cpgRevalidate(){
+  const key = _cpgMode;
+  let items;
+  try { items = await _cpgLoad(key, true); }
+  catch(e) { console.warn('[GymTrack] Feed-Aktualisierung:', e?.code || e); return; }
+  if (_cpgMode !== key) return;                          // Zone inzwischen gewechselt
+  if (!document.getElementById('cpg-wrap')) return;      // Feed nicht mehr offen
+  if (_cpgIdx > 0) return;                               // Nutzer blättert gerade
+  const same = items.length === _cpgItems.length
+    && items.every((it, i) => it.id === _cpgItems[i]?.id && it.uid === _cpgItems[i]?.uid);
+  if (same) return;
+  _cpgItems = items; _cpgIdx = 0;
+  _cpgRenderStack();
+  _cpgFreeBlobs(items);                                  // Bilder verschwundener Posts freigeben
+  try { _flamesRefreshBadge(); } catch(_){}
+}
+/* Feed im Hintergrund vorwärmen (App-Start nach Cloud-Sync + Rückkehr aus dem
+   Hintergrund), damit der Community-Tab beim Öffnen sofort aktuell dasteht statt
+   erst den Spinner zu zeigen. Gedrosselt, damit es keine Read-Lawine gibt. */
+let _cpgPrefetchTs = 0;
+async function _cpgPrefetch(){
+  if (!_socReady() || !S.socialOn) return;
+  const key = (_socZone === 'community') ? 'public' : 'friends';
+  if (_cpgCache[key] && Date.now() - (_cpgCache[key].ts || 0) < 60000) return;   // frisch genug
+  if (Date.now() - _cpgPrefetchTs < 90000) return;
+  _cpgPrefetchTs = Date.now();
+  try { await _cpgLoad(key, true); } catch(e) { console.warn('[GymTrack] Feed-Vorabladen:', e?.code || e); }
 }
 function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
 
@@ -42,12 +99,17 @@ async function _loadPostsFor(uid, onlyFriends){
     return out;
   } catch(_) { return []; }
 }
-async function _cpgLoad(){
-  const key = _cpgMode;
-  if (_cpgCache[key] && Date.now() - _cpgCache[key].ts < 60000) return _cpgCache[key].items;
+/* mode: 'friends'|'public' (Standard: aktuelle Zone) · force: Cache-Frist ignorieren.
+   Der Modus ist ein Parameter, damit das Vorabladen im Hintergrund laufen kann, ohne
+   die sichtbare Zone (_cpgMode) umzuschalten. */
+async function _cpgLoad(mode, force){
+  const key = mode || _cpgMode;
+  if (!force && _cpgCache[key] && Date.now() - _cpgCache[key].ts < 60000) return _cpgApplyPending(key, _cpgCache[key].items);
   let items = [];
-  if (!_socReady()) return [];
-  if (_cpgMode === 'friends') {
+  // Auth noch nicht wiederhergestellt → den zuletzt geladenen Stand behalten statt
+  // einen leeren Feed („Noch keine Community-Posts") zu zeigen.
+  if (!_socReady()) return _cpgApplyPending(key, _cpgCache[key] ? _cpgCache[key].items : []);
+  if (key === 'friends') {
     const ids = [...(S.friends||[])];
     if (_fbUser) ids.unshift(_fbUser.uid);
     await Promise.all(ids.slice(0,30).map(async uid => {
@@ -94,7 +156,7 @@ async function _cpgLoad(){
     .slice(0, 40);
   await _cpgEnrichProfiles(items);   // Autor-Profile laden → Level-Tag hinter JEDEM Namen
   _cpgCache[key] = { ts: Date.now(), items };
-  return items;
+  return _cpgApplyPending(key, items);
 }
 /* Profile der Feed-Autoren best-effort in den _socCache laden, damit _lvlTagForUid()
    das Level auch für fremde Community-Nutzer (nicht nur Freunde/self) anzeigt.
@@ -142,9 +204,18 @@ function _cpgImgSrc(it){
     return url;
   } catch(_) { return it.img; }                            // defekte Daten: unverändert
 }
-function _cpgFreeBlobs(){
-  _cpgBlobs.forEach(u => { try { URL.revokeObjectURL(u); } catch(_){} });
-  _cpgBlobs.clear();
+/* Blob-URLs freigeben, die zu keinem noch gehaltenen Post mehr gehören. Früher wurde
+   beim Neuladen pauschal ALLES freigegeben — das geht nicht mehr, seit der alte Stand
+   während des Nachladens sichtbar bleibt (revoke → tote Bild-URLs in stehenden Karten). */
+function _cpgFreeBlobs(keep){
+  const alive = new Set();
+  (keep || []).forEach(it => alive.add(it.uid + '/' + it.id));
+  Object.values(_cpgCache).forEach(c => (c?.items || []).forEach(it => alive.add(it.uid + '/' + it.id)));
+  _cpgBlobs.forEach((u, k) => {
+    if (alive.has(k)) return;
+    try { URL.revokeObjectURL(u); } catch(_){}
+    _cpgBlobs.delete(k);
+  });
 }
 /* Die beiden nächsten Fotos vorab dekodieren. Ohne das trifft die erste
    Dekodierung eines Bildes den Moment, in dem seine Karte auftaucht — gemessen

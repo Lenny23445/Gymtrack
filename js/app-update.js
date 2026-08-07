@@ -1101,7 +1101,7 @@ async function _onLogin(user) {
     _postLoginFlow();   // Cloud-Stand steht → Onboarding (falls nötig), danach Soft-Paywall
     updateAccountUI();
     try { if (isPremium()) aiQuotaRefresh(true); } catch(_){}   // Kontingent-Anzeige vorwärmen
-    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + TTL-Aufräumen
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _purgeOldPosts(); } catch(_){} try { _cpgPrefetch(); } catch(_){} }   // Flammen- + Freundes-Post- + Community-Feed-Listener aktivieren + TTL-Aufräumen + Feed vorwärmen
   }
 }
 
@@ -1398,7 +1398,7 @@ document.addEventListener('visibilitychange', () => {
     if (_fbUser && !_anaSessionRef) analyticsStart(_fbUser);
     _consumeWidgetDeltas(); // im Widget getätigte +1-Taps übernehmen
     _updateWidgetData();    // z. B. Tages-/Wochenwechsel während App im Hintergrund
-    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live
+    if (S.socialOn) { _pushRegister(); _flameNotifStart(); _friendPostNotifStart(); _communityNotifStart(); _reqNotifStart(); try { _cpgPrefetch(); } catch(_){} }   // Listener binden: Flammen + Freundes-Posts + Community-Feed live; Feed vorwärmen (steht beim Tab-Öffnen sofort)
     // Review Fix 1: falls der letzte Dossier-Push nie bestaetigt wurde (App-Kill
     // waehrend des vorigen Backgroundings), jetzt erneut versuchen.
     try { _dossierRetryIfDirty(); } catch(_) {}
