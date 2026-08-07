@@ -1,7 +1,9 @@
 # Crews — gemeinsames Wochenziel im Community-Tab
 
 **Datum:** 2026-08-06
-**Status:** Design abgestimmt, Umsetzung offen
+**Status:** v1 umgesetzt am 07.08.2026 (`js/app-crew.js`, Tests in `test/crew.test.js`).
+Offen bleibt nur der Rules-Deploy in der Firebase-Konsole — ohne ihn ist die
+`crews`-Collection komplett gesperrt.
 **Betrifft:** Community-Tab (`#pg-freunde`), neues Modul `js/app-crew.js`, neue Firestore-Collection `crews`
 
 ---

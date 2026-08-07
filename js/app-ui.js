@@ -311,7 +311,7 @@ function goTab(id, btn) {
   if (id === 'freunde') { _socZone = 'community'; renderFriendsTab(); }   // Standard: Community-Feed
   if (id === 'erfolge')   renderErfolge();
   if (id === 'settings')  renderSettings();
-  if (id !== 'freunde')   _frStopLive();   // Live-Listener nur solange Freunde-Tab offen
+  if (id !== 'freunde') { _frStopLive(); try { _crewStopLive(); } catch(_){} }   // Live-Listener nur solange Community-Tab offen
   /* Nach dem Rendern, nicht davor: gtReveal liest die Zielgroessen aus dem
      style-Attribut, und das schreibt erst render*(). Davor gerufen faende es
      die Balken der VORIGEN Seite. */

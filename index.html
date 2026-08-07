@@ -54,7 +54,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
   import { initializeAuth, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signInWithCredential, getRedirectResult, signOut, onAuthStateChanged, signInAnonymously, browserLocalPersistence, deleteUser }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, deleteField, collection, collectionGroup, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp, Timestamp, increment }
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, deleteField, collection, collectionGroup, query, where, orderBy, limit, getDocs, onSnapshot, runTransaction, serverTimestamp, Timestamp, increment }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
   import { getStorage, ref as stRef, uploadString, getDownloadURL, deleteObject }
     from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
@@ -130,6 +130,9 @@
     window.FB.limit              = limit;
     window.FB.getDocs            = getDocs;
     window.FB.onSnapshot         = onSnapshot;
+    // Crews: Wochen-Rollover (Streak + Historie) muss atomar laufen, sonst
+    // haengen zwei gleichzeitig geoeffnete Apps dieselbe Woche zweimal an.
+    window.FB.runTransaction     = (fn) => runTransaction(db, fn);
     window.FB.serverTimestamp    = serverTimestamp;
     window.FB.Timestamp          = Timestamp;
     window.FB.increment          = increment;
@@ -463,12 +466,10 @@
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.1"/><path d="M2.6 19c0-3.4 2.9-5.3 6.4-5.3s6.4 1.9 6.4 5.3"/><path d="M16.8 5.2a3 3 0 0 1 0 5.7M18.4 19c0-2.5-1-4.2-2.6-5.1"/></svg><span>Freunde</span>
       </button>
     </div>
-    <div class="soc-chips" id="fr-seg" style="display:none;margin-top:12px">
-      <button class="soc-chip on" data-t="friends" onclick="setSocTab('friends')">Freunde</button>
-      <button class="soc-chip" data-t="feed" onclick="setSocTab('feed')">Feed</button>
-      <button class="soc-chip" data-t="board" onclick="setSocTab('board')">Rangliste</button>
-      <button class="soc-chip" data-t="map" onclick="setSocTab('map')">Karte</button>
-    </div>
+    <!-- Die Chip-Leiste (Freunde/Feed/Crew/Rangliste/Karte) ist am 07.08.2026
+         entfallen: fuenf Ansichten hinter fuenf Klicks, keine davon beim
+         Oeffnen sichtbar. Die Freunde-Zone ist jetzt EINE scrollende Seite
+         (_renderFrHome), die vollen Ansichten haengen an „alle anzeigen". -->
     <div id="fr-body" style="margin-top:14px"></div>
   </div>
 </div>
@@ -1928,6 +1929,18 @@
   </div>
 </div>
 
+<!-- Crew: Gründen · Beitreten · Verwalten (ein Blatt, Inhalt setzt _crewSheet) -->
+<div class="ov" id="ov-crew" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-crew')">
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));display:flex;flex-direction:column">
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h2 id="crew-sh-title">Crew</h2>
+      <button class="x-btn" onclick="closeOv('ov-crew')">✕</button>
+    </div>
+    <div id="crew-sh-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(56px + var(--sab))"></div>
+  </div>
+</div>
+
 <div class="ov" id="ov-frprofile" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-frprofile')">
   <div class="sheet" style="max-height:92vh;max-height:min(92vh,var(--sheet-cap))">
     <div class="sh-handle"></div>
@@ -2137,6 +2150,7 @@
 <script src="./js/app-exdb.js"></script>
 <script src="./js/app-streak.js"></script>
 <script src="./js/app-community.js"></script>
+<script src="./js/app-crew.js"></script>
 <script src="./js/app-coach.js"></script>
 <script src="./js/app-coach-setup.js"></script>
 <script src="./js/app-update.js"></script>

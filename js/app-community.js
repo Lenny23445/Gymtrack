@@ -5,7 +5,7 @@ function _cpgReload(){
   // Blob-URLs bleiben ebenfalls gültig, sonst zeigten die noch stehenden Karten ins Leere.
   Object.values(_cpgCache).forEach(c => { if (c) c.ts = 0; });
   const b = document.getElementById('fr-body');
-  if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
+  if (b && (_socZone === 'community')) _renderFeed(b);
 }
 /* Frisch geposteten eigenen Post optimistisch oben in den Feed setzen (friends/public
    je nach Zielauswahl). Er liegt in einer SEPARATEN Warteliste, NICHT im Feed-Cache:
@@ -24,7 +24,7 @@ function _cpgInjectOwnPost(base, dest){
     _cpgPending[key] = [it, ...(_cpgPending[key] || [])].slice(0, 5);
   });
   const b = document.getElementById('fr-body');
-  if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b);
+  if (b && (_socZone === 'community')) _renderFeed(b);
 }
 /* Eigene, noch nicht vom Server zurückgelieferte Posts vor die geladene Liste hängen.
    Abgelaufene (>10 Min) und serverseitig bestätigte (gleiche uid+ts) fallen raus. */
@@ -73,13 +73,15 @@ async function _cpgRevalidate(){
 let _cpgPrefetchTs = 0;
 async function _cpgPrefetch(){
   if (!_socReady() || !S.socialOn) return;
-  const key = (_socZone === 'community') ? 'public' : 'friends';
+  // Vorgewärmt wird die Stellung, die der Nutzer zuletzt gewählt hat — nicht
+  // mehr die Zone: der Freundes-Feed ist seit dem Umbau kein eigener Tab mehr.
+  const key = (_cpgMode === 'friends') ? 'friends' : 'public';
   if (_cpgCache[key] && Date.now() - (_cpgCache[key].ts || 0) < 60000) return;   // frisch genug
   if (Date.now() - _cpgPrefetchTs < 90000) return;
   _cpgPrefetchTs = Date.now();
   try { await _cpgLoad(key, true); } catch(e) { console.warn('[GymTrack] Feed-Vorabladen:', e?.code || e); }
 }
-function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && (_socZone === 'community' || _socTab === 'feed')) _renderFeed(b); }
+function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && _socZone === 'community') _renderFeed(b); }
 
 async function _loadPostsFor(uid, onlyFriends){
   try {
@@ -1037,7 +1039,7 @@ async function toggleReaction(uid, aid, emo){
   if (cur === emo) delete next[_fbUser.uid]; else next[_fbUser.uid] = emo;
   if (item) item.reactions = next;
   const host = document.getElementById('feed-list');
-  if (host && _socTab === 'feed') host.innerHTML = (_feedCache?.items||[]).map(a => _feedItemHTML(a)).join('');
+  if (host) host.innerHTML = (_feedCache?.items||[]).map(a => _feedItemHTML(a)).join('');
   // Nur den eigenen Schluessel schreiben — siehe Begruendung bei toggleFlame.
   const me = _fbUser.uid;
   const wert = (cur === emo)
@@ -1136,7 +1138,7 @@ function _loadLeaflet(){
   return _leafP;
 }
 async function _renderSocMapTab(body){
-  body.innerHTML = `<div class="soc-map-wrap">
+  body.innerHTML = `${_socBackBar('Karte')}<div class="soc-map-wrap">
       <div id="social-map"><div class="soc-empty" style="height:100%;display:flex;align-items:center;justify-content:center">Karte lädt…</div></div>
       <div class="soc-map-search" id="soc-map-search"></div>
       <button class="soc-map-loc" id="soc-map-loc" onclick="socLocateMe()" aria-label="Mein Standort">

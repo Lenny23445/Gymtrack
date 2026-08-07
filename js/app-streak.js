@@ -1608,7 +1608,10 @@ function renderOb(){
 // Firestore-Collection profiles/{uid} (öffentliches Opt-in-Profil).
 // Follow-Modell: Wessen Code du eingibst, den siehst du.
 // ═══════════════════════════════════════════════════════
-let _socTab = 'friends', _socMetric = 'vol', _socPushT = null;
+/* 'home' = die eine scrollende Freunde-Seite (Crew · Freunde · Rangliste · Karte).
+   'friends'/'crew'/'board'/'map' sind die VOLLEN Ansichten dahinter, erreichbar
+   ueber „alle anzeigen" und jeweils mit Zurueck-Zeile. */
+let _socTab = 'home', _socMetric = 'vol', _socPushT = null;
 let _socZone = 'community';   // Oberste Ebene: 'community' (Standard, öffentlicher Feed) | 'friends'
 let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null, _frListDrawn = false;
 let _socCache = null, _socCacheTs = 0;
@@ -1799,13 +1802,18 @@ function openSocial(){
   haptic(8);
   goTabId('freunde');
 }
-function setSocTab(t){ _socTab = t; haptic(6); if (t !== 'friends') _frStopLive(); renderFriendsTab(); }
+function setSocTab(t){
+  _socTab = t; haptic(6);
+  if (t !== 'friends') _frStopLive();
+  if (t !== 'crew') { try { _crewStopLive(); } catch(_){} }   // Listener nie ueber den Chip hinaus laufen lassen
+  renderFriendsTab();
+}
 /* Oberste Umschaltung Community (öffentlich) ↔ Freunde (privat: Feed/Rangliste/Karte) */
 function setSocZone(z){
   if (_socZone === z) return;
   _socZone = z; haptic(6);
-  if (z === 'community') { _frStopLive(); }
-  else if (!['friends','feed','board','map'].includes(_socTab)) { _socTab = 'friends'; }
+  if (z === 'community') { _frStopLive(); try { _crewStopLive(); } catch(_){} }
+  else _socTab = 'home';   // Freunde-Zone startet immer auf der Uebersicht
   renderFriendsTab();
 }
 function setSocMetric(m){ _socMetric = m; haptic(6); renderFriendsTab(); }
@@ -1908,12 +1916,11 @@ function _socFeedFull(on){
 }
 function _renderDemoFriends(body){
   try { _frStopLive(); } catch(_){}
-  _socFeedFull(_socZone === 'community' || _socTab === 'feed');
+  _socFeedFull(_socZone === 'community');
   if (_socZone === 'community') return _renderDemoFeed(body);
-  if (_socTab === 'feed')  return _renderDemoFeed(body);
   if (_socTab === 'board') return _renderDemoBoard(body);
   if (_socTab === 'map')   return _renderDemoMap(body);
-  return _renderDemoOverview(body);
+  return _renderDemoOverview(body);   // 'home' und 'friends' zeigen dieselbe Demo-Liste
 }
 function _demoCard(p){
   const wk = getWeekKey();
@@ -2061,8 +2068,6 @@ function renderFriendsTab(){
   const body = document.getElementById('fr-body'); if (!body) return;
   _socFeedFull(false);   // Standard: normal scrollende Seite; Feed-Pfade schalten unten wieder an
   document.querySelectorAll('#soc-zone-toggle .szt').forEach(b => b.classList.toggle('on', b.dataset.z === _socZone));
-  document.querySelectorAll('#fr-seg .soc-chip').forEach(b => b.classList.toggle('on', b.dataset.t === _socTab));
-  const _seg = document.getElementById('fr-seg'); if (_seg) _seg.style.display = _socZone === 'friends' ? '' : 'none';
   // Community/Freunde geöffnet → ALLES „Passive" als gesehen markieren, damit die
   // Zahl unten am Community-Tab zuverlässig verschwindet: neue Freundes-Posts UND
   // Flammen auf eigene Posts. (Freundschaftsanfragen bleiben separat am +-Button.)
@@ -2120,10 +2125,12 @@ function renderFriendsTab(){
     const pend = sessionStorage.getItem('gt_addCode');
     if (pend) { sessionStorage.removeItem('gt_addCode'); setTimeout(()=>openFrAdd(pend), 250); }
   } catch(_){}
-  if (_socZone === 'community' || _socTab === 'feed') { _socFeedFull(true); return _renderFeed(body); }
-  if (_socTab === 'board') return _renderSocBoard(body);
-  if (_socTab === 'map')   return _renderSocMapTab(body);
-  return _renderFrOverview(body);
+  if (_socZone === 'community') { _socFeedFull(true); return _renderFeed(body); }
+  if (_socTab === 'crew')    return _renderSocCrew(body);
+  if (_socTab === 'board')   return _renderSocBoard(body);
+  if (_socTab === 'map')     return _renderSocMapTab(body);
+  if (_socTab === 'friends') return _renderFrOverview(body);
+  return _renderFrHome(body);
 }
 
 // Freunde-Tab neu aufbauen, sobald der Auth-Zustand feststeht — aber nur wenn
@@ -2438,7 +2445,7 @@ function _socFmtVal(v){
   return v + ' Wo.';
 }
 async function _renderSocBoard(body){
-  body.innerHTML = `<div class="soc-chips" style="flex-wrap:wrap">
+  body.innerHTML = `${_socBackBar('Rangliste')}<div class="soc-chips" style="flex-wrap:wrap">
       <button class="soc-chip${_socMetric==='vol'?' on':''}" onclick="setSocMetric('vol')">Volumen</button>
       <button class="soc-chip${_socMetric==='ses'?' on':''}" onclick="setSocMetric('ses')">Trainings</button>
       <button class="soc-chip${_socMetric==='monat'?' on':''}" onclick="setSocMetric('monat')">Monat</button>
@@ -2493,9 +2500,87 @@ function _updateFrBadges(){
   setB('fr-tab-badge', tabN);   // unten am Community-Tab
   setB('fr-add-badge', req);    // nur Freundschaftsanfragen am +-Button
 }
+/* Zurueck-Zeile der vollen Ansichten. Seit die Chip-Leiste weg ist, ist sie der
+   einzige Weg zurueck auf die Uebersicht — ohne sie waere man in Rangliste oder
+   Karte gefangen. */
+function _socBackBar(titel){
+  return `<div class="soc-back"><button onclick="setSocTab('home')" aria-label="Zurück">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button><span>${esc(titel)}</span></div>`;
+}
+/* Abschnitts-Kopf der Uebersicht: Titel links, Sprung in die volle Ansicht rechts. */
+function _socSec(titel, mehr, ziel){
+  return `<div class="soc-sec"><span>${esc(titel)}</span>${
+    mehr ? `<button class="soc-more" onclick="setSocTab('${ziel}')">${esc(mehr)}</button>` : ''}</div>`;
+}
+
+/* ── Freunde-Zone: EINE scrollende Seite ──────────────────────────────────
+   Vorher lagen Freunde, Feed, Crew, Rangliste und Karte hinter fuenf Chips.
+   Jetzt steht alles untereinander: erst die eigene Karte und offene Anfragen,
+   dann die Crew (mit gemeinsamem Wochenbalken), dann die Freundesliste, dann
+   die Rangliste, unten der Einstieg in die Karte. Die vollen Ansichten sind
+   weiter da — nur nicht mehr als Pflicht-Klick, sondern als „alle anzeigen". */
+async function _renderFrHome(body){
+  try { _checkLevelUp(true); } catch(_){}
+  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>${_selfLevelCardHTML()}
+    <div id="fr-req-host"></div>
+    <div id="fr-crew-host"></div>
+    ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
+    <div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>
+    ${_socSec('Rangliste · diese Woche', 'Ganze Rangliste', 'board')}
+    <div id="fr-board-mini"></div>
+    ${_socSec('Karte', 'Große Karte', 'map')}
+    <div id="fr-map-mini"></div>`;
+  _frListDrawn = false;
+  _initFrPull(body);
+  _loadRequests().then(r => _renderFrReqs(r.inc));
+  // Crew-Block asynchron nachziehen — er haengt an einem eigenen Dokument und
+  // darf die Freundesliste nicht aufhalten.
+  try { if (typeof _crewHomeBlock === 'function') _crewHomeBlock(); } catch(_){}
+  _frLimit = 4;
+  await _loadProfiles();
+  _renderFrList();
+  _renderFrBoardMini();
+  _renderFrMapMini();
+  _frStartLive();
+}
+/* Kurz-Rangliste: dieselbe Kennzahl wie die volle Ansicht (_socVal), nur die
+   ersten drei. Steht keiner zum Vergleichen da, bleibt der Abschnitt leer statt
+   eine Rangliste mit einem einzigen Namen zu zeigen. */
+function _renderFrBoardMini(){
+  const el = document.getElementById('fr-board-mini'); if (!el) return;
+  const profs = (_socCache || []).filter(p => !(S.blocked || []).includes(p.uid));
+  if (profs.length <= 1) { el.innerHTML = `<div class="soc-empty" style="padding:14px 16px">Noch niemand zum Vergleichen.</div>`; return; }
+  const wk = getWeekKey();
+  const rows = profs.map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a, b) => b._v - a._v).slice(0, 3);
+  el.innerHTML = rows.map((p, i) => `
+    <div class="soc-row${p.uid === _fbUser?.uid ? ' me' : ''}">
+      <span class="soc-rank${i === 0 ? ' top' : ''}">${i + 1}</span>
+      <div class="soc-ava">${p.photo ? `<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">` : _socInitials(p.name)}</div>
+      <div style="flex:1;min-width:0"><div class="soc-name">${esc(p.name || '')}${_founderTag(p.uid)}${p.uid === _fbUser?.uid ? ' (du)' : ''}</div></div>
+      <span class="soc-val">${_socFmtVal(p._v)}</span>
+    </div>`).join('');
+}
+/* Karten-Einstieg. Bewusst KEINE zweite Leaflet-Instanz: die grosse Karte misst
+   sich an der Bildschirmhoehe (_sizeSocMap) und wuerde in einem 160-px-Kasten
+   gegen ihre eigene Groessenrechnung arbeiten. */
+function _renderFrMapMini(){
+  const el = document.getElementById('fr-map-mini'); if (!el) return;
+  const mit = (_socCache || []).filter(p => p.gymLat != null && p.gymLng != null && p.uid !== _fbUser?.uid).length;
+  el.innerHTML = `<div class="fr-map-card" onclick="setSocTab('map')">
+    <div class="fr-map-ico">${_OB_SVG.users}</div>
+    <div style="flex:1;min-width:0">
+      <div class="fr-name"><span>Gyms in deiner Nähe</span></div>
+      <div class="fr-sub">${mit ? mit + (mit === 1 ? ' Freund trainiert' : ' Freunde trainieren') + ' in eingetragenen Gyms' : 'Trag dein Gym ein und finde Leute in der Nähe'}</div>
+    </div>
+    <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </div>`;
+}
+
 async function _renderFrOverview(body){
   try { _checkLevelUp(true); } catch(_){}   // Rang-Index seeden (kein Fake-Level-Up beim ersten Öffnen)
-  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>${_selfLevelCardHTML()}<div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
+  _frLimit = 0;
+  body.innerHTML = `${_socBackBar('Freunde')}<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
   _frListDrawn = false;   /* Einblend-Animation nur beim ersten Aufbau, nicht bei Live-Updates */
   _initFrPull(body);
   _loadRequests().then(r => _renderFrReqs(r.inc));
@@ -2567,6 +2652,7 @@ function _frCardHTML(p){
     <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
   </div>`;
 }
+let _frLimit = 0;   // 0 = ganze Liste; auf der Uebersicht nur die ersten paar
 function _renderFrList(){
   const el = document.getElementById('fr-list'); if (!el) return;
   const friends = (_socCache||[]).filter(p => p.uid !== _fbUser?.uid && !(S.blocked||[]).includes(p.uid));
@@ -2582,8 +2668,11 @@ function _renderFrList(){
   const rank = p => (p.live && p.live.on ? 2 : 0) + (_frPresence[p.uid] ? 1 : 0);
   friends.sort((a,b) => rank(b) - rank(a) || (b.lastWk||0) - (a.lastWk||0));
   const anim = !_frListDrawn; _frListDrawn = true;
-  el.innerHTML = friends.map((p,i) => _frCardHTML(p).replace('class="fr-card',
-    anim ? `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card` : 'class="fr-card noanim')).join('');
+  const sicht = _frLimit ? friends.slice(0, _frLimit) : friends;
+  el.innerHTML = sicht.map((p,i) => _frCardHTML(p).replace('class="fr-card',
+    anim ? `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card` : 'class="fr-card noanim')).join('')
+    + (friends.length > sicht.length
+        ? `<button class="soc-rest" onclick="setSocTab('friends')">Noch ${friends.length - sicht.length} weitere anzeigen</button>` : '');
 }
 /* Pull-to-Refresh */
 let _ptrY = null, _ptrOn = false;
@@ -2614,7 +2703,7 @@ function _frStartLive(){
         const d = { uid, ...snap.data() };
         const i = (_socCache||[]).findIndex(p => p.uid === uid);
         if (i >= 0) _socCache[i] = d; else (_socCache = _socCache||[]).push(d);
-        if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+        if ((_socTab === 'friends' || _socTab === 'home') && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
       });
       _frSubs.push(un);
     } catch(_){}
@@ -2622,13 +2711,13 @@ function _frStartLive(){
       const un2 = window.FB.rtdbWatch('presence/' + uid, snap => {
         const v = snap && snap.val();
         _frPresence[uid] = !!(v && v.online);
-        if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+        if ((_socTab === 'friends' || _socTab === 'home') && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
       });
       _frSubs.push(un2);
     } catch(_){}
   });
   _frTimer = setInterval(() => {   // „seit X Min." / „vor X Min." aktuell halten
-    if (_socTab === 'friends' && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
+    if ((_socTab === 'friends' || _socTab === 'home') && document.getElementById('pg-freunde')?.classList.contains('on')) _renderFrList();
   }, 60000);
 }
 function _frStopLive(){
@@ -3302,7 +3391,10 @@ async function _socLiveRefresh(){
   });
 }
 async function _renderFeed(body){
-  _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
+  // Seit dem Umbau vom 07.08.2026 ist der Feed NUR noch in der Community-Zone.
+  // Der Freundes-Feed ist damit kein eigener Chip mehr, sondern die zweite
+  // Stellung dieses Umschalters — ein Griff statt zwei Ebenen.
+  if (_cpgMode !== 'friends') _cpgMode = 'public';
   const isPub = _cpgMode === 'public';
   // Zuletzt geladener Stand (egal wie alt) wird SOFORT gezeigt — dadurch steht der Feed
   // beim Öffnen des Tabs fertig da, statt erst den Lade-Spinner zu zeigen und sich dann
@@ -3310,7 +3402,11 @@ async function _renderFeed(body){
   // (_cpgRevalidate) und tauscht die Karten nur, wenn sich wirklich etwas geändert hat.
   const cached = _cpgCached();
   body.innerHTML = `
-    <div class="cpg-zone"><span class="cpg-zone-t">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
+    <div class="cpg-seg">
+      <button class="${isPub ? 'on' : ''}" onclick="setCpgMode('public')">${ICO.globe({ s: 15 })}<span>Alle</span></button>
+      <button class="${isPub ? '' : 'on'}" onclick="setCpgMode('friends')">${ICO.users({ s: 15 })}<span>Nur Freunde</span></button>
+    </div>
+    <div class="cpg-zone"><span class="cpg-zone-t"><span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap">${cached.length ? '' : `
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>`}
     </div>`;

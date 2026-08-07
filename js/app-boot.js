@@ -102,6 +102,11 @@ try {
     history.replaceState(null, '', location.pathname);
   }
 } catch(_){}
+// Crew-Einladung (?crew=CODE) merken — eingelöst beim Öffnen des Crew-Bereichs
+try {
+  const _crewCode = new URLSearchParams(location.search).get('crew');
+  if (_crewCode && _crewStashCode(_crewCode)) history.replaceState(null, '', location.pathname);
+} catch(_){}
 // Plan/Split-Import-Link (?import=…): der https-Link ist nur der klickbare TRÄGER.
 // NATIVE APP ZUERST: Im Browser sofort per Deep-Link in die installierte App
 // springen (iOS fragt „In ‚MyGymTrack' öffnen?" → App zeigt die Import-Vorschau

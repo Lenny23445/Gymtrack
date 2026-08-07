@@ -695,7 +695,7 @@ async function _pushToCloud(voll) {
    hinaus. Nur fuer diese Sitzung gemerkt: nach einem Neustart wird wieder mit
    den vollen Feldern probiert, der Rueckfall verschwindet also von selbst,
    sobald die Rules veroeffentlicht sind. */
-const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank', 'sesArc'];
+const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank', 'sesArc', 'crewId'];
 let _cloudFeldRueckfall = false;
 async function _setDocCompat(ref, payload, opts) {
   /* Ohne den Marker sesArc weiss kein Client, dass er das Archiv dazulesen
@@ -1974,6 +1974,15 @@ function _handleWidgetDeepLink(url) {
         resumeWorkout();
       }
       return; // sonst aktuellen Zustand/Tab unverändert lassen
+    }
+    // Crew-Einladung (gymtrack://crew/ABC123) → Beitritts-Sheet im Community-Tab
+    const c = url.match(/^gymtrack:\/\/crew\/([A-Za-z0-9]{6})/);
+    if (c) {
+      if (typeof _crewStashCode === 'function' && _crewStashCode(c[1])) {
+        goTabId('freunde');
+        setTimeout(() => { try { setSocZone('friends'); setSocTab('crew'); } catch(_){} }, 120);
+      }
+      return;
     }
     // Tracker-Ring im Widget angetippt (iOS-16-Fallback) → +1 in der App
     const t = url.match(/^gymtrack:\/\/track\/([^/?#]+)/);

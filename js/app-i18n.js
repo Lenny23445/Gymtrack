@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608070833';
+const APP_VERSION = 'gymtrack-v202608071020';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -76,6 +76,38 @@ function setAppLang(v) {
 
 /* Exakte Phrasen (getrimmter Textknoten → Übersetzung) */
 const I18N_EN = {
+  /* Freunde-Uebersicht (eine Seite statt Chip-Leiste, 07.08.2026) */
+  'Alle anzeigen':'Show all','Ganze Rangliste':'Full leaderboard','Große Karte':'Full map',
+  'Rangliste · diese Woche':'Leaderboard · this week','Karte':'Map','Zurück':'Back',
+  'Gyms in deiner Nähe':'Gyms near you',
+  'Trag dein Gym ein und finde Leute in der Nähe':'Add your gym and find people nearby',
+  'Noch niemand zum Vergleichen.':'Nobody to compare with yet.',
+  'Alle':'All','Nur Freunde':'Friends only',
+  'Crew starten':'Start a crew','Code':'Code',
+  'Gemeinsames Wochenziel mit deinen Leuten — jedes Training zählt für alle.':'A shared weekly goal with your people — every workout counts for everyone.',
+  'Gemeinsames Wochenziel':'Shared weekly goal','Ziel geschafft':'Goal reached',
+  /* Crews — gemeinsames Wochenziel (js/app-crew.js) */
+  'Crew':'Crew','Noch keine Crew':'No crew yet','Crew gründen':'Start a crew','Mit Code beitreten':'Join with a code',
+  'Crew beitreten':'Join a crew','Crew verwalten':'Manage crew','Crew verlassen':'Leave crew','Crew auflösen':'Disband crew',
+  'Eine Crew ist eine feste Gruppe mit einem gemeinsamen Wochenziel. Jedes Training zählt für alle — und der Crew-Streak zählt, wie viele Wochen ihr das Ziel in Folge geschafft habt.':'A crew is a fixed group with one shared weekly goal. Every workout counts for everyone — and the crew streak counts how many weeks in a row you hit it.',
+  'Wochenziel · Trainings der ganzen Crew':'Weekly goal · workouts for the whole crew',
+  'z.B. Eisenpark Crew':'e.g. Iron Park Crew',
+  'Alle zahlen auf denselben Balken ein. Schafft ihr das Ziel, wächst der Crew-Streak um eine Woche.':'Everyone feeds the same bar. Hit the goal and the crew streak grows by one week.',
+  'Den Code bekommst du von jemandem aus der Crew. Crews sind nicht durchsuchbar.':'Ask someone in the crew for the code. Crews cannot be searched for.',
+  'Crew-Code':'Crew code','Beitreten':'Join','Mitglieder':'Members','Entfernen':'Remove','Gründer':'Founder',
+  'Dein Beitrag':'Your share','Woche in Folge':'week in a row','Wochen in Folge':'weeks in a row',
+  'Letzter Tag der Woche':'Last day of the week','Letzte Woche':'Last week',
+  'Wochenziel geschafft — der Streak wächst am Montag.':'Weekly goal reached — the streak grows on Monday.',
+  'Lade Crew…':'Loading crew…','Crew konnte nicht geladen werden.':'Crew could not be loaded.',
+  'Kopiert':'Copied','Einladung kopiert':'Invite copied',
+  'Gib deiner Crew einen Namen.':'Give your crew a name.',
+  'Der Crew-Code besteht aus 6 Zeichen.':'A crew code is 6 characters long.',
+  'Keine Crew mit diesem Code gefunden.':'No crew found for this code.',
+  'Crew konnte nicht angelegt werden.':'The crew could not be created.',
+  'Beitritt fehlgeschlagen.':'Joining failed.',
+  'Du bist bereits in einer Crew. Verlasse sie zuerst, um einer anderen beizutreten.':'You are already in a crew. Leave it first to join another one.',
+  'Dafür musst du angemeldet sein und die Community aktiviert haben.':'You need to be signed in with the community enabled.',
+  'QR-Code nicht verfügbar':'QR code unavailable','Lade QR-Code…':'Loading QR code…',
   /* Workout-Share-Flow + Community-Pager */
   'Dein Look':'Your look','Tippen zum Festlegen':'Tap to lock in','Foto':'Photo','Foto aufnehmen':'Take photo',
   'Kein Kamera-Zugriff':'No camera access',
@@ -1005,6 +1037,17 @@ const I18N_EN = {
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
  damit englische Ergebnisse Fixpunkte bleiben) */
 const I18N_RX = [
+ /* Crews (js/app-crew.js) — Zahlen mitten im Satz, als feste Phrase nicht greifbar. */
+ [/Noch (\d+) Trainings? bis Sonntag/g, '$1 more workouts to go by Sunday'],
+ [/^Noch (\d+) Trainings?$/g, '$1 workouts to go'],
+ [/Noch (\d+) weitere anzeigen/g, 'Show $1 more'],
+ [/^(\d+) Freunde trainieren in eingetragenen Gyms$/g, '$1 friends train at listed gyms'],
+ [/^(\d+) Freund trainiert in eingetragenen Gyms$/g, '$1 friend trains at a listed gym'],
+ [/^Noch (\d+) Tage?$/g, '$1 days left'],
+ [/(\d+) Mitglieder? · Code ([A-Z0-9]{6})/g, '$1 members · code $2'],
+ [/^Letzte (\d+) Wochen$/g, 'Last $1 weeks'],
+ [/Crew wird für alle (\d+) Mitglieder? aufgelöst\. Fortfahren\?/g, 'The crew will be disbanded for all $1 members. Continue?'],
+ [/Diese Crew ist voll \((\d+) Mitglieder\)\./g, 'This crew is full ($1 members).'],
  /* „Nächstes Mal: 21 kg ausprobieren." — die Zahl steht in der Mitte, deshalb
     blieb nach den übrigen Regeln ein halb deutscher Satz stehen („next time
     21 kg ausprobieren"). Muss VOR den Teilregeln laufen. */

@@ -1689,6 +1689,10 @@ function _finishWkContinue(sess, dayName) {
   }
   renderHome();
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
+  // Crew: eigenen Wochenstand nachziehen. Absolut gerechnet, also unschaedlich,
+  // wenn der Aufruf mehrfach kommt oder offline verloren geht — beim naechsten
+  // Oeffnen des Crew-Bereichs holt _renderSocCrew ihn nach.
+  try { if (typeof _crewPush === 'function') _crewPush(); } catch(_){}
 }
 
 /* ── POST-WORKOUT CHECK-IN (Phase E, Premium+KI-exklusiv seit Phase H) ──
