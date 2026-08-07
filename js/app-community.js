@@ -1730,6 +1730,10 @@ function isPremium(){
   }
   if (localStorage.getItem('gt_premiumDev') === '1') return true;             // Dev-Unlock (nur UI, kein echtes Abo)
   if (!PREM.active) return false;
+  // Geschenkte Woche (Referral): KEINE Kulanz — aus 7 Tagen würden sonst 10.
+  // Die Kulanz unten fängt verspätete StoreKit-Verlängerungen ab, ein Trial
+  // verlängert sich aber nie von selbst.
+  if (PREM.src === 'trial') return !!PREM.exp && PREM.exp > Date.now();
   return !PREM.exp || (PREM.exp + 3*864e5) > Date.now();  // 3 Tage Kulanz bei Ablauf
 }
 
@@ -1746,7 +1750,11 @@ function _premApply(res){
     PREM = { active:true, plan: res.productId === PREM_YEARLY ? 'yearly' : 'monthly',
              exp: res.expiresMs || 0, jws: res.jws || PREM.jws || null, src:'store' };
   } else if (res.status === 'none') {
-    PREM = { active:false, plan:null, exp:null, jws:null, src:null };
+    // Kein Abo im Store — eine laufende geschenkte Woche (Referral) darf das
+    // NICHT löschen: sie hat naturgemäß kein StoreKit-Entitlement, würde hier
+    // aber bei jedem Entitlement-Check mitgerissen.
+    if (PREM.src === 'trial' && PREM.exp && PREM.exp > Date.now()) { /* Trial behalten */ }
+    else PREM = { active:false, plan:null, exp:null, jws:null, src:null };
   }
   _premSave();
   try { premRefreshUI(); } catch(_){}

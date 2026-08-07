@@ -102,6 +102,21 @@ try {
     history.replaceState(null, '', location.pathname);
   }
 } catch(_){}
+// Einladung fürs Gratis-Premium (?ref=CODE) merken. Eingelöst wird erst nach dem
+// Login (refRedeemPending) — ohne angemeldetes Konto kann der Worker die Woche
+// niemandem gutschreiben. Anonyme Konten sind bewusst ausgeschlossen.
+try {
+  const _refCode = new URLSearchParams(location.search).get('ref');
+  if (_refCode && /^[A-Za-z0-9]{7}$/.test(_refCode)) {
+    localStorage.setItem('gt_refPending', _refCode.toUpperCase());
+    history.replaceState(null, '', location.pathname);
+  }
+} catch(_){}
+// Gratis-Premium: gemerkten Code einlösen + Stand vom Worker holen. Nach dem
+// Auth-Settle, gleiche Verzögerung wie beim Community-Profil oben.
+setTimeout(() => {
+  try { refRedeemPending().then(ok => { if (!ok) refSync(false); }); } catch(_){}
+}, 5200);
 // Crew-Einladung (?crew=CODE) merken — eingelöst beim Öffnen des Crew-Bereichs
 try {
   const _crewCode = new URLSearchParams(location.search).get('crew');

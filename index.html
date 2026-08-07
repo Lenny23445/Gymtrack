@@ -1600,6 +1600,15 @@
   </div>
 </div>
 
+<!-- OVERLAY: FREUNDE EINLADEN (Gratis-Premium, js/app-referral.js) -->
+<div class="ov" id="ov-invite" onclick="if(event.target===this)closeOv('ov-invite')">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-head"><h2>Freunde einladen</h2><button class="x-btn" onclick="closeOv('ov-invite')">✕</button></div>
+    <div id="inv-body" style="padding:0 20px 26px"></div>
+  </div>
+</div>
+
 <!-- OVERLAY: SATZ-TYP ERKLÄRUNG -->
 <div class="ov" id="ov-settype" onclick="if(event.target===this)closeOv('ov-settype')">
   <div class="sheet">
@@ -2240,6 +2249,7 @@
 <script src="./js/app-coach.js"></script>
 <script src="./js/app-coach-setup.js"></script>
 <script src="./js/app-update.js"></script>
+<script src="./js/app-referral.js"></script>
 <script src="./js/app-boot.js"></script>
 <script src="./js/app-tabbar.js"></script>
 </body>

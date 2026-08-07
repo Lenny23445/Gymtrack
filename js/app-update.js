@@ -1975,6 +1975,16 @@ function _handleWidgetDeepLink(url) {
       }
       return; // sonst aktuellen Zustand/Tab unverändert lassen
     }
+    // Einladung fürs Gratis-Premium (gymtrack://ref/K7M2QX9). Der Code wird nur
+    // GEMERKT, nicht sofort eingelöst: ohne angemeldetes Konto hat der Worker
+    // kein idToken, mit dem er die Gutschrift verbuchen könnte.
+    const r = url.match(/^gymtrack:\/\/ref\/([A-Za-z0-9]{7})/);
+    if (r) {
+      try { localStorage.setItem('gt_refPending', r[1].toUpperCase()); } catch(_){}
+      try { if (typeof refRedeemPending === 'function') refRedeemPending(); } catch(_){}
+      try { if (typeof openInviteSheet === 'function') openInviteSheet(); } catch(_){}
+      return;
+    }
     // Crew-Einladung (gymtrack://crew/ABC123) → Beitritts-Sheet im Community-Tab
     const c = url.match(/^gymtrack:\/\/crew\/([A-Za-z0-9]{6})/);
     if (c) {
@@ -2197,6 +2207,10 @@ async function _runAccountDeletion() {
     } catch(e) { console.warn('[GymTrack] Archiv-Liste:', e); }
     try { await window.FB.deleteDoc(window.FB.userDocRef(user.uid)); } catch(e) { console.warn('[GymTrack] Doc-Delete:', e); }
     try { if (window.FB.stopPresence) window.FB.stopPresence(user.uid); } catch(e) {}
+    // Einladungsdaten im Worker-KV (Code, Werbebeziehung, Gratis-Woche) löschen.
+    // MUSS hier stehen, VOR dem Auth-Delete: danach gibt es kein gültiges idToken
+    // mehr, mit dem der Worker den Eintrag noch zuordnen könnte — er bliebe liegen.
+    try { if (typeof refForget === 'function') await refForget(); } catch(e) { console.warn('[GymTrack] Referral-Delete:', e); }
     // 2. Auth-User löschen
     await window.FB.deleteUser();
     // 3. Lokale Daten löschen + Neustart
