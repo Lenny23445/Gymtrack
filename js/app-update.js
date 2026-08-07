@@ -1949,6 +1949,12 @@ function _setupAppUrlListener() {
     // Eine zweite Behandlung hier würde nur einen falschen "State verloren"-Fehler auslösen.
     if (url.startsWith('gymtrack://import') || /[?&]import=/.test(url)) {
       _handlePlanImportUrl(url);
+    } else if (_refCodeFromUrl(url)) {
+      // Universal Link https://…/?ref=CODE. iOS gibt ihn der installierten App,
+      // statt Safari zu öffnen — dafür sorgen das Entitlement
+      // com.apple.developer.associated-domains und die Datei
+      // .well-known/apple-app-site-association auf derselben Domain.
+      _handleRefUrl(_refCodeFromUrl(url));
     } else if (url.startsWith('gymtrack://')) {
       _handleWidgetDeepLink(url);
     }
@@ -1958,9 +1964,49 @@ function _setupAppUrlListener() {
     App.getLaunchUrl?.().then(res => {
       const u = res && res.url;
       if (u && (u.startsWith('gymtrack://import') || /[?&]import=/.test(u))) setTimeout(() => { try { _handlePlanImportUrl(u); } catch(_){} }, 900);
+      else if (u && _refCodeFromUrl(u)) setTimeout(() => { try { _handleRefUrl(_refCodeFromUrl(u)); } catch(_){} }, 900);
     }).catch(()=>{});
   } catch(_){}
   console.log('[GymTrack] 📱 appUrlOpen-Listener registriert');
+}
+
+/* ── Einladung fürs Gratis-Premium aus einem Link ──────────────────────────────
+   Zwei Träger führen hierher: der Universal Link https://…/?ref=CODE (die
+   installierte App fängt ihn ab) und der Deep-Link gymtrack://ref/CODE. Der Code
+   wird gemerkt und sofort eingelöst — ohne angemeldetes Konto hat der Worker
+   kein idToken und kann niemandem etwas gutschreiben.
+
+   Der Kaltstart liefert dieselbe Adresse ZWEIMAL (getLaunchUrl UND appUrlOpen).
+   Ohne die Sperre auf den zuletzt behandelten Code würde der zweite Durchlauf
+   dem gerade beschenkten Nutzer „Du hast schon einen Einladungscode eingelöst"
+   als Fehler vorsetzen. */
+let _refUrlLast = '';
+function _refCodeFromUrl(url) {
+  const m = String(url || '').match(/[?&]ref=([A-Za-z0-9]{7})(?:&|$)/);
+  return m ? m[1] : null;
+}
+function _handleRefUrl(code) {
+  const c = String(code || '').toUpperCase();
+  if (!/^[A-Z0-9]{7}$/.test(c)) return false;
+  if (c === _refUrlLast) return true;
+  _refUrlLast = c;
+  try { localStorage.setItem('gt_refPending', c); } catch(_){}
+  try {
+    Promise.resolve(refRedeemPending()).then(ok => {
+      if (ok) return;   // eingelöst — der Toast sagt es bereits
+      /* Fehlschlag heisst hier fast immer: das Login ist noch nicht durch
+         (refRedeemPending lässt den Code dann liegen). js/app-boot.js versucht
+         es nach dem Auth-Settle erneut. Das Sheet erst danach zeigen — sonst
+         stünde „Erst anmelden" vor einem längst angemeldeten Nutzer. */
+      setTimeout(() => {
+        try {
+          if (localStorage.getItem('gt_refPending') !== c) return;   // inzwischen erledigt
+          if (typeof openInviteSheet === 'function') openInviteSheet();
+        } catch(_){}
+      }, 6000);
+    }).catch(() => {});
+  } catch(_){}
+  return true;
 }
 
 // Deep-Link aus dem Home-Screen-Widget (z.B. gymtrack://day/2 = Mittwoch)
@@ -1975,16 +2021,10 @@ function _handleWidgetDeepLink(url) {
       }
       return; // sonst aktuellen Zustand/Tab unverändert lassen
     }
-    // Einladung fürs Gratis-Premium (gymtrack://ref/K7M2QX9). Der Code wird nur
-    // GEMERKT, nicht sofort eingelöst: ohne angemeldetes Konto hat der Worker
-    // kein idToken, mit dem er die Gutschrift verbuchen könnte.
+    // Einladung fürs Gratis-Premium (gymtrack://ref/K7M2QX9) — gleicher Weg wie
+    // beim Universal Link, deshalb derselbe Handler.
     const r = url.match(/^gymtrack:\/\/ref\/([A-Za-z0-9]{7})/);
-    if (r) {
-      try { localStorage.setItem('gt_refPending', r[1].toUpperCase()); } catch(_){}
-      try { if (typeof refRedeemPending === 'function') refRedeemPending(); } catch(_){}
-      try { if (typeof openInviteSheet === 'function') openInviteSheet(); } catch(_){}
-      return;
-    }
+    if (r) { _handleRefUrl(r[1]); return; }
     // Crew-Einladung (gymtrack://crew/ABC123) → Beitritts-Sheet im Community-Tab
     const c = url.match(/^gymtrack:\/\/crew\/([A-Za-z0-9]{6})/);
     if (c) {

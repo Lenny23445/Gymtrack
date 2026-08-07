@@ -12,6 +12,15 @@
     </array>
     <key>aps-environment</key>
     <string>production</string>
+    <!-- Universal Links: https://gymtrack-9q9.pages.dev/?ref=CODE oeffnet direkt
+         die installierte App statt Safari. Welche Adressen die App uebernimmt,
+         steht in .well-known/apple-app-site-association (nur der Referral-Link).
+         Die App-ID braucht dafuer im Developer-Portal die Capability
+         "Associated Domains" — sonst scheitert der Export beim Signieren. -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:gymtrack-9q9.pages.dev</string>
+    </array>
     <key>com.apple.security.application-groups</key>
     <array>
         <string>group.com.wolter.gymtrack</string>

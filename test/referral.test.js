@@ -353,3 +353,81 @@ test('Alle Schreibvorgaenge tragen eine Verfallszeit', async () => {
     assert.ok(g.ttl <= 400 * 86400, 'TTL laenger als 400 Tage');
   }
 });
+
+/* ── Universal Links ─────────────────────────────────────────────────────────
+   Der Einladungslink oeffnet auf iOS nur dann direkt die installierte App, wenn
+   DREI Dinge zusammenpassen: die Datei .well-known/apple-app-site-association
+   auf der Domain, das Entitlement in der App und dieselbe Domain in beiden.
+   Passt eines nicht, faellt NICHTS aus — der Link landet still wieder in Safari
+   und von dort im App Store. Genau deshalb steht das hier als Test. */
+
+const lies = (...p) => fs.readFileSync(path.join(WURZEL, ...p), 'utf8');
+const AASA_PFAD = ['.well-known', 'apple-app-site-association'];
+
+test('apple-app-site-association traegt die echte App-ID aus dem Xcode-Projekt', () => {
+  const aasa = JSON.parse(lies(...AASA_PFAD));
+  const pbx  = lies('ios', 'App', 'App.xcodeproj', 'project.pbxproj');
+  const team   = pbx.match(/DEVELOPMENT_TEAM = (\w+);/)[1];
+  const bundle = pbx.match(/PRODUCT_BUNDLE_IDENTIFIER = ([\w.]+);/)[1];
+  const ids = aasa.applinks.details.flatMap(d => d.appIDs || []);
+  assert.ok(ids.includes(team + '.' + bundle),
+    'appIDs ' + JSON.stringify(ids) + ' passt nicht zu ' + team + '.' + bundle);
+});
+
+test('Universal Link greift NUR beim Referral-Link, nicht auf der ganzen Domain', () => {
+  const aasa = JSON.parse(lies(...AASA_PFAD));
+  const komp = aasa.applinks.details.flatMap(d => d.components || []);
+  assert.ok(komp.length > 0, 'components fehlt — ohne sie laesst sich die Query nicht pruefen');
+  for (const k of komp) {
+    assert.ok(k['?'] && k['?'].ref,
+      'Eintrag ohne ?ref-Bedingung: die App wuerde jeden Link auf die Domain schlucken, '
+      + 'auch privacy.html und das Dashboard');
+  }
+  // paths ist das alte Format und kennt keine Query — ein "/*" darin haette
+  // denselben Effekt wie eine fehlende Bedingung.
+  for (const d of aasa.applinks.details) {
+    assert.ok(!(d.paths || []).includes('/*'), 'paths /* faengt die ganze Domain ab');
+  }
+});
+
+test('Entitlement, Web-Adresse und Auslieferung zeigen auf dieselbe Domain', () => {
+  const host = lies('js', 'app-i18n.js').match(/GT_WEB = '(https?:\/\/[^']+)'/)[1]
+                 .replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const ent  = lies('ios', 'App', 'App', 'App.entitlements');
+  assert.match(ent, /com\.apple\.developer\.associated-domains/,
+    'ohne das Entitlement ignoriert iOS die apple-app-site-association komplett');
+  assert.ok(ent.includes('applinks:' + host),
+    'Entitlement nennt nicht die Domain aus GT_WEB (' + host + ')');
+
+  const build = lies('build-pages.js');
+  assert.match(build, /'\.well-known'/,
+    '.well-known fehlt in der Kopierliste — die Datei kaeme nie ins Netz');
+  assert.match(build, /apple-app-site-association[\s\S]{0,160}Content-Type: application\/json/,
+    'ohne Content-Type application/json verwirft iOS die Datei stillschweigend');
+});
+
+test('Referral-Code wird aus der Link-Adresse gelesen, aber nur als 7-Zeichen-Code', () => {
+  // Die Funktion aus dem echten Quelltext ziehen statt nachzubauen — sie haengt
+  // an nichts, laesst sich also allein ausfuehren.
+  const src = lies('js', 'app-update.js');
+  const stueck = src.match(/function _refCodeFromUrl\(url\) \{[\s\S]*?\n\}/);
+  assert.ok(stueck, '_refCodeFromUrl nicht gefunden — umbenannt?');
+  const f = new Function(stueck[0] + '\nreturn _refCodeFromUrl;')();
+
+  assert.equal(f('https://gymtrack-9q9.pages.dev/?ref=K7M2QX9'), 'K7M2QX9');
+  assert.equal(f('https://gymtrack-9q9.pages.dev/?utm=x&ref=K7M2QX9'), 'K7M2QX9');
+  assert.equal(f('https://gymtrack-9q9.pages.dev/?ref=K7M2QX9&x=1'), 'K7M2QX9');
+  assert.equal(f('https://gymtrack-9q9.pages.dev/'), null);
+  assert.equal(f('https://gymtrack-9q9.pages.dev/?ref=ZUKURZ'), null);
+  assert.equal(f('https://gymtrack-9q9.pages.dev/?ref=VIELZULANG'), null);
+  assert.equal(f('gymtrack://import?d=abc'), null, 'Import-Link darf nicht als Einladung gelten');
+  assert.equal(f(''), null);
+  assert.equal(f(null), null);
+});
+
+test('Kaltstart-Doppellieferung meldet keinen Fehler (Sperre auf den letzten Code)', () => {
+  const src = lies('js', 'app-update.js');
+  assert.match(src, /if \(c === _refUrlLast\) return true;/,
+    'ohne die Sperre bekaeme der frisch beschenkte Nutzer "schon eingeloest" als Fehler: '
+    + 'getLaunchUrl UND appUrlOpen liefern beim Kaltstart dieselbe Adresse');
+});

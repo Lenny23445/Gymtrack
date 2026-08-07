@@ -18,7 +18,11 @@ const OUT = 'dist';
 const DATEIEN = ['index.html', 'sw.js', 'manifest.json', 'privacy.html'];
 
 // Komplette Ordner. Alles, was nicht hier steht, geht NICHT ins Netz.
-const ORDNER = ['js', 'css', 'img', 'screenshots', 'web', 'dashboard'];
+// .well-known traegt die apple-app-site-association (Universal Links). Cloudflare
+// Pages ueberspringt sonst jeden Ordner, der mit einem Punkt beginnt — .well-known
+// ist die einzige Ausnahme, deshalb darf die Datei genau dort und nirgends sonst
+// liegen. Ohne sie oeffnet ein ?ref=-Link auf iOS wieder Safari statt der App.
+const ORDNER = ['js', 'css', 'img', 'screenshots', 'web', 'dashboard', '.well-known'];
 
 // Icons liegen im Wurzelverzeichnis und heissen alle icon-*.png.
 const ICON_MUSTER = /^icon-[\w-]+\.png$/;
@@ -83,6 +87,13 @@ const HEADERS = [
   '',
   '/screenshots/*',
   '  Cache-Control: public, max-age=604800',
+  '',
+  // Apple laedt die Datei ohne Endung — ohne diesen Content-Type liefert Pages
+  // sie als octet-stream aus und iOS verwirft sie stillschweigend (der Link
+  // oeffnet dann wieder Safari, ohne jede Fehlermeldung).
+  '/.well-known/apple-app-site-association',
+  '  Content-Type: application/json',
+  '  Cache-Control: public, max-age=3600',
   '',
 ].join('\n');
 fs.writeFileSync(path.join(OUT, '_headers'), HEADERS);

@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["4XU2X547J2.com.wolter.gymtrack"],
+        "components": [
+          {
+            "/": "/",
+            "?": { "ref": "?*" },
+            "comment": "Einladung fuers Gratis-Premium: NUR https://<domain>/?ref=CODE springt in die App. Alles andere (privacy.html, dashboard, die Web-App selbst) bleibt bewusst im Browser."
+          }
+        ]
+      }
+    ]
+  }
+}
