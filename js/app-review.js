@@ -24,19 +24,19 @@
 
    Ausloeser: der Abschluss einer Trainingseinheit. `_revArm()` merkt sich das
    in finishWk() vor, `_revAfterWorkout()` loest erst aus, wenn der Bildschirm
-   wieder ruhig ist (Share-Flow zu, Punkte-Ticker durch). Beim ERSTEN
-   abgeschlossenen Training kommt die Frage — danach erst wieder weit spaeter
-   (REV_SCHWELLEN) und nie oefter als alle REV_SPERRE_TAGE Tage.
+   wieder ruhig ist (Share-Flow zu, Punkte-Ticker durch). Gefragt wird beim
+   naechsten abgeschlossenen Training — auch bei Bestandsnutzern, die ihre
+   erste Einheit laengst hinter sich haben — und danach alle REV_INTERVALL
+   Einheiten erneut, bis bewertet wurde. Dann nie wieder.
 
    Zustand liegt in localStorage['gt_review'], NICHT in S: der users-Doc-Push
    hat eine hasOnly-Feldliste in den Firestore-Rules, ein neuer Schluessel dort
    wuerde den kompletten Sync mit permission-denied abwuergen (s. CLAUDE.md).
    ══════════════════════════════════════════════════════════════════════════ */
 
-const REV_KEY         = 'gt_review';
-const REV_SCHWELLEN   = [1, 12, 45];   // nach der wievielten Einheit gefragt wird
-const REV_SPERRE_TAGE = 120;           // Mindestabstand zwischen zwei Fragen
-const REV_WRITE_URL   = 'https://apps.apple.com/app/id6775434876?action=write-review';
+const REV_KEY       = 'gt_review';
+const REV_INTERVALL = 3;   // Einheiten zwischen zwei Fragen
+const REV_WRITE_URL = 'https://apps.apple.com/app/id6775434876?action=write-review';
 
 function _revState() {
   try {
@@ -49,20 +49,25 @@ function _revSave(patch) {
   catch(_) {}
 }
 
-/* Ist die Frage jetzt faellig? Die Schwelle wird ueber die Anzahl bereits
-   gestellter Fragen (count) ausgewaehlt, nicht ueber die Session-Zahl allein:
-   loescht jemand alte Einheiten, faellt er sonst auf eine Schwelle zurueck,
-   die er laengst passiert hat, und wird ein zweites Mal gefragt. */
+/* Ist die Frage jetzt faellig?
+   - Noch nie gefragt → beim naechsten abgeschlossenen Training. Bewusst OHNE
+     Mindestzahl an Einheiten: Bestandsnutzer haben ihre erste Einheit laengst
+     hinter sich und sollen nicht erst wieder bei null anfangen muessen.
+   - Danach alle REV_INTERVALL Einheiten erneut, gemessen am Stand BEI DER
+     LETZTEN FRAGE (`atSessions`), nicht per Modulo auf die Gesamtzahl: wer
+     alte Einheiten loescht, wuerde sonst sofort wieder gefragt.
+   - `done` beendet alles endgueltig. Gesetzt wird es nur, wenn wir eine
+     Entscheidung wirklich SEHEN — beim Web-Nachbau und beim Weg ueber die
+     Einstellungen. Der native Dialog meldet nichts zurueck; dort uebernimmt
+     iOS die Sperre selbst (wer bewertet hat, sieht ihn nie wieder, und mehr
+     als drei Anzeigen pro Jahr laesst das System ohnehin nicht zu — weitere
+     Aufrufe sind stille No-Ops und kosten nichts). */
 function _revFaellig() {
   const st = _revState();
-  if (st.done) return false;                                   // hat bereits bewertet
-  const gestellt = +st.count || 0;
-  if (gestellt >= REV_SCHWELLEN.length) return false;          // Kontingent aufgebraucht
-  const naechste = REV_SCHWELLEN[gestellt];
+  if (st.done) return false;
   const einheiten = (typeof S === 'object' && S && Array.isArray(S.sessions)) ? S.sessions.length : 0;
-  if (einheiten < naechste) return false;
-  if (st.asked && (Date.now() - st.asked) < REV_SPERRE_TAGE * 864e5) return false;
-  return true;
+  if (!st.asked) return true;
+  return (einheiten - (+st.atSessions || 0)) >= REV_INTERVALL;
 }
 
 /* ── Vormerken + ausloesen ─────────────────────────────────────────────────
@@ -82,12 +87,13 @@ function _revAfterWorkout() {
   setTimeout(() => { try { _revAsk(); } catch(e) { console.warn('[Review]', e); } }, 1800);
 }
 
-/* Stellt die Frage — nativ oder als Nachbau. `asked`/`count` steigen in beiden
-   Faellen, auch wenn iOS den Dialog verschluckt: sonst fragt die App nach jedem
-   Training erneut an und verbrennt das Jahreskontingent von drei Anzeigen. */
+/* Stellt die Frage — nativ oder als Nachbau. Der Stand wird in beiden Faellen
+   fortgeschrieben, auch wenn iOS den Dialog verschluckt: sonst haengt die App
+   nach jedem Training erneut eine Anfrage an, ohne dass sich je etwas aendert. */
 function _revAsk() {
   const P = (typeof _cap === 'function') ? _cap('ReviewPlugin') : null;
-  _revSave({ asked: Date.now(), count: (+_revState().count || 0) + 1 });
+  const einheiten = (typeof S === 'object' && S && Array.isArray(S.sessions)) ? S.sessions.length : 0;
+  _revSave({ asked: Date.now(), atSessions: einheiten, count: (+_revState().count || 0) + 1 });
   if (P && P.requestReview) { P.requestReview().catch(e => console.warn('[Review] nativ:', e)); return; }
   _revSheetOpen();
 }
