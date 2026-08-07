@@ -511,8 +511,12 @@ function _crewHomeBlock(){
   _crewStartLive();
   if (S.crewId) _crewPush().then(() => _crewLoad(true)).then(zeichnen).catch(() => {});
 }
-function _crewHomeHTML(){
-  if (!S.crewId) {
+/* doc = optionales Crew-Dokument. Der Demo-Modus (Marketing-Screenshots) reicht
+   hier seine erfundene Crew herein, statt die Markierung ein zweites Mal in
+   eigener Handschrift nachzubauen. */
+function _crewHomeHTML(doc){
+  const c = doc || _crew;
+  if (!doc && !S.crewId) {
     return `<div class="crew-teaser" onclick="crewOpenCreate()">
       <div class="crew-teaser-ico">${_CREW_SVG.users}</div>
       <div style="flex:1;min-width:0">
@@ -522,16 +526,16 @@ function _crewHomeHTML(){
       <button class="soc-more" onclick="event.stopPropagation();crewOpenJoin()">Code</button>
     </div>`;
   }
-  if (!_crew) return `<div class="soc-empty" style="padding:14px 16px"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Crew…</div>`;
-  const aktuell = _crew.weekKey === crewWeekKey();
-  const total   = aktuell ? crewTotal(_crew) : 0;
-  const goal    = Math.max(1, +_crew.goal || 1);
+  if (!c) return `<div class="soc-empty" style="padding:14px 16px"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Crew…</div>`;
+  const aktuell = c.weekKey === crewWeekKey();
+  const total   = aktuell ? crewTotal(c) : 0;
+  const goal    = Math.max(1, +c.goal || 1);
   const rest    = Math.max(0, goal - total);
-  const streak  = +_crew.streak || 0;
+  const streak  = +c.streak || 0;
   return `<div class="crew-card crew-card-mini" onclick="setSocTab('crew')">
     <div class="crew-head">
       <div style="flex:1;min-width:0">
-        <div class="crew-name">${esc(_crew.name || 'Crew')}</div>
+        <div class="crew-name">${esc(c.name || 'Crew')}</div>
         <div class="crew-sub">${streak ? streak + (streak === 1 ? ' Woche in Folge' : ' Wochen in Folge') : 'Gemeinsames Wochenziel'}</div>
       </div>
       <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>

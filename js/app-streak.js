@@ -1920,7 +1920,8 @@ function _renderDemoFriends(body){
   if (_socZone === 'community') return _renderDemoFeed(body);
   if (_socTab === 'board') return _renderDemoBoard(body);
   if (_socTab === 'map')   return _renderDemoMap(body);
-  return _renderDemoOverview(body);   // 'home' und 'friends' zeigen dieselbe Demo-Liste
+  if (_socTab === 'crew')  return _renderDemoCrew(body);
+  return _renderDemoOverview(body);   // 'home' = Uebersicht, 'friends' = ganze Liste
 }
 function _demoCard(p){
   const wk = getWeekKey();
@@ -1935,7 +1936,11 @@ function _demoCard(p){
   }
   const wses = (p.week && p.week.key === wk) ? p.week.ses : 0;
   const ava = p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name);
-  return `<div class="fr-card${online?' live':''}">
+  // Antippbar wie die echte Karte. Fehlte bisher komplett: im Demo-Modus liess
+  // sich kein Freundesprofil oeffnen, was beim Pruefen im Simulator wie ein
+  // toter Bildschirm wirkt. openFrProfile liest nur _socCache (kein Firestore),
+  // deshalb reicht es, den Zwischenspeicher mit den Demo-Profilen zu fuellen.
+  return `<div class="fr-card${online?' live':''}" onclick="openFrProfile('${p.uid}')">
     <div class="fr-ava-wrap"><div class="fr-ava">${ava}</div><div class="fr-dot${online?' on':''}"></div></div>
     <div style="flex:1;min-width:0">
       <div class="fr-name"><span>${esc(p.name)}</span>${_modTag(p.uid)}${_lvlPillFor(p)}</div>
@@ -1948,11 +1953,73 @@ function _demoCard(p){
     <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
   </div>`;
 }
+/* Erfundene Crew fuer den Demo-Modus. Rein lokal — _crewReady() ist im Demo
+   false, es geht also nie ein Schreibvorgang in die echte Datenbank. */
+const _DEMO_CREW = {
+  id: 'EPK7QM', name: 'Eisenpark Crew', owner: 'demo-me', goal: 20, streak: 3,
+  members: ['demo-me', 'demo1', 'demo2', 'demo3', 'demo4', 'demo5'],
+  wk: { 'demo-me': 5, demo1: 4, demo2: 3, demo3: 3, demo4: 2, demo5: 0 },
+  hist: [
+    { key: '2026-06-15', total: 22, goal: 20, done: true },
+    { key: '2026-06-22', total: 17, goal: 20, done: false },
+    { key: '2026-06-29', total: 21, goal: 20, done: true },
+    { key: '2026-07-06', total: 24, goal: 20, done: true },
+    { key: '2026-07-13', total: 20, goal: 20, done: true },
+    { key: '2026-07-20', total: 18, goal: 20, done: false },
+    { key: '2026-07-27', total: 23, goal: 20, done: true },
+    { key: '2026-08-03', total: 21, goal: 20, done: true }
+  ]
+};
+function _demoCrewDoc(){ return { ..._DEMO_CREW, weekKey: crewWeekKey() }; }
+function _demoCrewProfs(){
+  const o = { 'demo-me': { name: S.userName || 'Lenny', photo: 'https://i.pravatar.cc/150?img=68' } };
+  _DEMO_ROSTER.forEach(d => { o[d.uid] = { name: d.name, photo: d.photo }; });
+  return o;
+}
+/* Demo-Uebersicht in derselben Gliederung wie die echte Seite — sonst zeigen
+   Marketing-Screenshots eine App, die es so nicht mehr gibt. */
 function _renderDemoOverview(body){
-  try { _checkLevelUp(true); } catch(_){}
   const profs = _DEMO_ROSTER.map(_demoProfile);
   profs.sort((a,b)=> (b.live&&b.live.on?2:0)-(a.live&&a.live.on?2:0) || (b.lastWk||0)-(a.lastWk||0));
-  body.innerHTML = `${_selfLevelCardHTML()}<div id="fr-list">${profs.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')}</div>`;
+  _socCache = profs; _socCacheTs = Date.now();   // damit openFrProfile die Demo-Leute findet
+  const voll  = _socTab === 'friends';
+  const sicht = voll ? profs : profs.slice(0, 4);
+  const wk    = getWeekKey();
+  const board = profs.concat([{ uid:'demo-me', name:S.userName||'Lenny', photo:'https://i.pravatar.cc/150?img=68', week:{key:wk,vol:24200,ses:5} }])
+    .map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a,b) => b._v - a._v).slice(0, 3);
+  const liste = sicht.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')
+    + (voll ? '' : `<button class="soc-rest" onclick="setSocTab('friends')">Noch ${profs.length - sicht.length} weitere anzeigen</button>`);
+  if (voll) { body.innerHTML = `${_socBackBar('Freunde')}<div id="fr-list">${liste}</div>`; return; }
+  body.innerHTML = `
+    <div id="fr-crew-host">${_crewHomeHTML(_demoCrewDoc())}</div>
+    ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
+    <div id="fr-list">${liste}</div>
+    ${_socSec('Rangliste · diese Woche', 'Ganze Rangliste', 'board')}
+    <div id="fr-board-mini">${board.map((p,i) => `
+      <div class="soc-row${p.uid==='demo-me'?' me':''}">
+        <span class="soc-rank${i===0?' top':''}">${i+1}</span>
+        <div class="soc-ava"><img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt=""></div>
+        <div style="flex:1;min-width:0"><div class="soc-name">${esc(p.name||'')}${p.uid==='demo-me'?' (du)':''}</div></div>
+        <span class="soc-val">${_socFmtVal(p._v)}</span>
+      </div>`).join('')}</div>
+    ${_socSec('Karte', 'Große Karte', 'map')}
+    <div id="fr-map-mini"><div class="fr-map-card" onclick="setSocTab('map')">
+      <div class="fr-map-ico">${_OB_SVG.users}</div>
+      <div style="flex:1;min-width:0">
+        <div class="fr-name"><span>Gyms in deiner Nähe</span></div>
+        <div class="fr-sub">${_DEMO_ROSTER.length} Freunde trainieren in eingetragenen Gyms</div>
+      </div>
+      <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div></div>`;
+}
+/* Volle Crew-Ansicht im Demo: dasselbe Markup wie echt, nur mit erfundenem
+   Dokument. Wird danach sofort zurueckgesetzt, damit kein Demo-Stand haengen
+   bleibt, wenn jemand den Demo-Modus abschaltet. */
+function _renderDemoCrew(body){
+  const svc = _crew, svp = _crewProfs;
+  _crew = _demoCrewDoc(); _crewProfs = _demoCrewProfs();
+  body.innerHTML = `${_socBackBar('Crew')}<div id="crew-host">${_crewCardHTML()}</div>`;
+  _crew = svc; _crewProfs = svp;
 }
 async function _renderDemoFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
@@ -2522,7 +2589,9 @@ function _socSec(titel, mehr, ziel){
    weiter da — nur nicht mehr als Pflicht-Klick, sondern als „alle anzeigen". */
 async function _renderFrHome(body){
   try { _checkLevelUp(true); } catch(_){}
-  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>${_selfLevelCardHTML()}
+  // Die eigene Level-Karte steht hier NICHT mehr: Level und Punkte zeigt schon
+  // die Kopfzeile — zweimal dieselbe Zahl kostet nur den halben Bildschirm.
+  body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>
     <div id="fr-req-host"></div>
     <div id="fr-crew-host"></div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
