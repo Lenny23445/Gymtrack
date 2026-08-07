@@ -98,7 +98,10 @@ function _revAsk() {
   _revSheetOpen();
 }
 
-/* ── App Store direkt (Einstellungs-Zeile + 4-5-Sterne-Zweig im Nachbau) ──── */
+/* ── App Store direkt (Einstellungs-Zeile + 4-5-Sterne-Zweig im Nachbau) ────
+   Setzt `done` — ab hier fragt die App von sich aus nie wieder. Wer den Weg
+   ins Bewertungsformular gegangen ist, hat seine Entscheidung getroffen;
+   ihn beim naechsten Training erneut anzustupsen waere Belaestigung. */
 function _revOpenStore() {
   _revSave({ done: true, doneAt: Date.now() });
   const P = (typeof _cap === 'function') ? _cap('ReviewPlugin') : null;

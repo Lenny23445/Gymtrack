@@ -1537,13 +1537,13 @@ function _obStepHTML(s){
   if (s === 3) return `<div class="ob-q">Wie viel Erfahrung hast du?</div>
     <div class="ob-qsub">Bestimmt, welcher Trainingsplan zu dir passt.</div>
     <div class="ob-opts">${OB_EXPS.map(e => `
-      <button class="ob-opt${_ob.exp===e.id?' on':''}" onclick="obPickExp('${e.id}')">
+      <button class="ob-opt${_ob.exp===e.id?' on':''}" data-v="${e.id}" onclick="obPickExp('${e.id}')">
         <div><div class="ob-opt-title">${e.t}</div><div class="ob-opt-sub">${e.s}</div></div>
       </button>`).join('')}</div>`;
   if (s === 4) return `<div class="ob-q">Wie oft pro Woche willst du trainieren?</div>
     <div class="ob-qsub">Realistisch bleiben — lieber konstant 3× als geplant 6×.</div>
     <div class="ob-freq">${[2,3,4,5,6].map(n => `
-      <button class="${_ob.freq===n?'on':''}" onclick="obPickFreq(${n})">${n}</button>`).join('')}</div>
+      <button class="${_ob.freq===n?'on':''}" data-v="${n}" onclick="obPickFreq(${n})">${n}</button>`).join('')}</div>
     <div class="ob-freq-lbl">Tage pro Woche</div>`;
   if (s === 5) {
     const rec = _obRecTpl();
@@ -1560,7 +1560,7 @@ function _obStepHTML(s){
     const cards = shown.map(t => {
       const days = Object.entries(t.days).filter(([_,v])=>v.type!=='none').map(([k]) => dayByKey(k).short);
       const sch  = _obTplSchemeLbl(t);
-      return `<button class="ob-tpl${t.id===_ob.tpl?' on':''}" onclick="obPickTpl('${t.id}')">
+      return `<button class="ob-tpl${t.id===_ob.tpl?' on':''}" data-v="${t.id}" onclick="obPickTpl('${t.id}')">
           ${t.id===rec?'<span class="ob-tpl-badge">Empfohlen für dich</span>':''}
           <div class="ob-tpl-title">${t.title}</div>
           <div class="ob-tpl-desc">${t.desc}</div>
