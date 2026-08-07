@@ -14,7 +14,8 @@ const files = ['index.html', 'sw.js', 'manifest.json', 'privacy.html', 'css/app.
                'js/app-i18n.js', 'js/app-native.js', 'js/app-ui.js', 'js/app-session.js',
                'js/app-plans.js', 'js/app-workout.js', 'js/app-exdb.js', 'js/app-streak.js', 'js/app-community.js',
                'js/app-crew.js', 'js/app-plate.js',
-               'js/app-coach.js', 'js/app-coach-setup.js', 'js/app-referral.js', 'js/app-update.js', 'js/app-boot.js',
+               'js/app-coach.js', 'js/app-coach-setup.js', 'js/app-referral.js', 'js/app-review.js',
+               'js/app-update.js', 'js/app-boot.js',
                'js/app-tabbar.js',
                // Stock-Motive der Share-Card (Post ohne eigenes Foto)
                'img/stock/gym1.jpg', 'img/stock/gym2.jpg', 'img/stock/gym3.jpg',

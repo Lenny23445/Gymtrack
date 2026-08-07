@@ -227,6 +227,10 @@ function _refRender(){
     ${REF.usedCode ? '' : `<button class="ref-link" onclick="refAskCode()">${tr('Ich habe einen Einladungscode')}</button>`}`;
 }
 
+/* Der https-Link ist nur der klickbare TRÄGER (in iMessage/WhatsApp/QR anklickbar,
+   gymtrack:// waere es nicht). Er landet NICHT in der Web-App: js/app-boot.js
+   springt beim ?ref-Aufruf erst per Deep-Link in eine installierte App und
+   schickt den Rest in den App Store — die native App ist das Ziel. */
 function refLink(){
   const web = (typeof GT_WEB === 'string' && GT_WEB) ? GT_WEB : '';
   return web ? web.replace(/\/?$/, '/') + '?ref=' + (REF.code || '') : 'gymtrack://ref/' + (REF.code || '');
@@ -240,8 +244,13 @@ function refCopyCode(btn){
 async function refShare(){
   if (!REF.code) return;
   try { haptic(8); } catch(_){}
+  // Der Code steht bewusst IM Text: nach dem Umweg über den App Store kennt die
+  // frisch installierte App ihn nicht (iOS hat keinen Install-Referrer), er muss
+  // also lesbar bleiben und wird in der App unter „Ich habe einen
+  // Einladungscode" eingegeben.
   const txt = tr('Hol dir MyGymTrack — mit meinem Code bekommen wir beide eine Woche Premium gratis. Code: ')
-            + REF.code + '\n' + refLink();
+            + REF.code + '\n' + refLink()
+            + '\n' + tr('Link öffnen, App laden, Code eingeben.');
   try {
     if (navigator.share) { await navigator.share({ text: txt }); return; }
   } catch(_) { return; }   // Teilen-Dialog abgebrochen

@@ -1641,6 +1641,11 @@ function finishWk() {
   // hinter dem Share-/Snap-Flow. Nur vormerken; ausgelöst wird er, sobald der
   // Share-Flow geschlossen ist (_shfExit).
   _xpGainPending = true;
+  // App-Bewertung: hier nur vormerken. Gefragt wird erst, wenn der Bildschirm
+  // wieder ruhig ist (js/app-review.js, ausgelöst aus _shfExit) — und auch dann
+  // nur, wenn die Schwelle passt. Ohne diese Vormerkung würde ein später ohne
+  // frisches Training geöffneter Share-Flow die Frage auslösen.
+  try { _revArm(); } catch(_) {}
   // Trainingstag-Name für die Share-Card sichern, BEVOR die Plan-Quelle genullt wird
   let _shareDayName = null;
   try {
@@ -1690,6 +1695,9 @@ function _finishWkContinue(sess, dayName) {
   catch(e) {
     console.warn('[GymTrack] Share-Flow-Fehler:', e);
     if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 600); }
+    // Ohne Share-Flow läuft _shfExit nie — die Bewertungsfrage bräuchte sonst
+    // erst das übernächste Training, um überhaupt gestellt zu werden.
+    try { _revAfterWorkout(); } catch(_) {}
   }
   renderHome();
   _pushSocialSoon();         // Stats-Push + Live-Status aus; Activity loggt der Share-Flow beim Beenden
@@ -2521,6 +2529,10 @@ function _shfExit() {
   // Punkte-Ticker jetzt zeigen (Share-Flow ist geschlossen). Kurz warten, bis
   // das Sheet weg-animiert ist, damit der Ticker frei nach oben fliegt.
   if (_xpGainPending) { _xpGainPending = false; setTimeout(() => { try { _xpGainOnFinish(); } catch(_){} }, 420); }
+  // Letzter Halt der Kette: erst jetzt liegt kein Sheet mehr über der App, also
+  // erst jetzt darf die Bewertungsfrage kommen (sie wartet selbst noch, bis der
+  // Punkte-Ticker durch ist).
+  try { _revAfterWorkout(); } catch(_) {}
 }
 
 /* ── Schritt 1: Layout-Rattle (Glücksrad-Auslauf + Haptik-Ticks) ── */

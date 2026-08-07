@@ -3237,10 +3237,13 @@ function _renderLevelBadge(){
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelPlate()">
     ${_lvlPlate(L.level, 32)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
-  // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht mehr in der Level-Pille).
+  // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht
+  // mehr in der Level-Pille). Durchmesser 40 px wie Level- und Streak-Pille (CSS
+  // .prem-tag-solo) — vorher war es eine kleine 25-px-Marke und wirkte neben den
+  // beiden Pillen wie versehentlich hineingerutscht.
   const ph = document.getElementById('prem-badge-host');
   if (ph) ph.innerHTML = isPremium()
-    ? `<span class="prem-tag prem-tag-solo" title="Premium" aria-label="Premium" onclick="openPremHub()">${_premBadgeSVG(17)}</span>`
+    ? `<span class="prem-tag prem-tag-solo" title="Premium" aria-label="Premium" onclick="openPremHub()">${_premBadgeSVG(22)}</span>`
     : '';
 }
 /* Eigene Level-Karte (Community-Übersicht). */

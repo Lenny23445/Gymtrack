@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080006';
+const APP_VERSION = 'gymtrack-v202608080008';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -545,6 +545,12 @@ const I18N_EN = {
   'Glaseffekt':'Glass effect','Transparenter Milchglas-Look':'Translucent frosted-glass look',
   'Gewicht in':'Weight in','Wird überall in der App verwendet':'Used everywhere in the app',
   'Feedback senden':'Send feedback','Wünsche, Bugs oder Ideen — direkt an den Entwickler':'Requests, bugs or ideas — straight to the developer',
+  /* App-Bewertung (js/app-review.js). Der native iOS-Dialog übersetzt sich
+     selbst — hier stehen nur die Einstellungs-Zeile und der Web-Nachbau. */
+  'App bewerten':'Rate app','Im App Store eine Rezension schreiben':'Write a review on the App Store',
+  'Gefällt dir MyGymTrack?':'Enjoying MyGymTrack?',
+  'Tippe auf einen Stern, um die App zu bewerten.':'Tap a star to rate the app.',
+  'Nicht jetzt':'Not now',
   'Daten':'Data','Daten exportieren':'Export data','Sicherheitskopie als Datei speichern':'Save a backup file',
   'Daten importieren':'Import data','Backup wiederherstellen':'Restore a backup','Rechtliches':'Legal',
   'Datenschutzerklärung':'Privacy policy','Wie deine Daten verwendet werden':'How your data is used',
@@ -806,6 +812,8 @@ const I18N_EN = {
   'Einladungscode gemerkt: ':'Invite code saved: ','anmelden und Gratis-Woche kassieren.':'sign in to claim your free week.',
   'Lade QR-Code…':'Loading QR code…','QR-Code nicht verfügbar':'QR code unavailable',
   'Hol dir MyGymTrack — mit meinem Code bekommen wir beide eine Woche Premium gratis. Code: ':'Get MyGymTrack — with my code we both get a free week of Premium. Code: ',
+  'Link öffnen, App laden, Code eingeben.':'Open the link, install the app, enter the code.',
+  'Gruppe hinzufügen':'Add group',
   'Ihr bekommt beide eine Woche Premium geschenkt':'You both get a free week of Premium',
   'Noch eine Gratis-Woche ist drin':'One more free week is available',
   'Deine 15 Gratis-Anfragen sind aufgebraucht — mit Premium geht es weiter.':'Your 15 free requests are used up — Premium continues from here.',

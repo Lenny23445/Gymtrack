@@ -105,19 +105,41 @@ try {
 // Einladung fürs Gratis-Premium (?ref=CODE) merken. Eingelöst wird erst nach dem
 // Login (refRedeemPending) — ohne angemeldetes Konto kann der Worker die Woche
 // niemandem gutschreiben. Anonyme Konten sind bewusst ausgeschlossen.
+//
+// NATIVE APP ZUERST: der https-Link ist nur der klickbare TRÄGER (Universal
+// Links gibt es nicht). Wer auf iOS im Browser landet, soll NICHT in der
+// Web-App hängen bleiben, sondern in den App Store — dort holt er die native
+// App. Der Code bleibt gemerkt; Desktop-/Android-Nutzer lösen ihn hier ein.
 try {
   const _refCode = new URLSearchParams(location.search).get('ref');
   if (_refCode && /^[A-Za-z0-9]{7}$/.test(_refCode)) {
-    localStorage.setItem('gt_refPending', _refCode.toUpperCase());
+    const _rc = _refCode.toUpperCase();
+    localStorage.setItem('gt_refPending', _rc);
     history.replaceState(null, '', location.pathname);
-    // Im Browser (kein Install-Referrer unter iOS) muss der Code sichtbar
-    // bleiben, sonst weiss der Empfaenger nach der Installation nicht mehr,
-    // was er eingeben soll.
-    if (typeof _isNative === 'function' && !_isNative()) {
+    const _refNative = typeof _isNative === 'function' && _isNative();
+    const _refPwa = !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                 || navigator.standalone === true;
+    const _refIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                 || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (_refIos && !_refNative && !_refPwa) {
+      // iOS → geradewegs in den App Store. KEIN gymtrack://-Versuch davor:
+      // im Simulator geprüft (07.08.2026) — ohne installierte App wirft Safari
+      // „Safari kann die Seite nicht öffnen, da die Adresse ungültig ist" und
+      // der modale Dialog haelt den nachfolgenden Store-Sprung auf. Genau die
+      // Empfaenger OHNE App sind aber die Zielgruppe der Einladung. Wer die App
+      // schon hat, sieht im Store „Öffnen" — auch das führt in die native App.
       setTimeout(() => {
-        try { _dndToast(tr('Einladungscode gemerkt: ') + _refCode.toUpperCase() + ' — ' + tr('anmelden und Gratis-Woche kassieren.')); } catch(_){}
-      }, 2600);
+        try {
+          const store = (typeof APP_STORE_URL === 'string' && APP_STORE_URL)
+            ? APP_STORE_URL : 'https://apps.apple.com/app/id6775434876';
+          location.href = store;
+        } catch(_){}
+      }, 300);
     }
+    // Kein Hinweis-Balken mehr: der blaue Streifen am oberen Rand sah aus wie
+    // eine Fehlermeldung und stand vor dem Anmelde-Bildschirm — auf iOS ist die
+    // Seite ohnehin nach 300 ms weg. Der Code liegt in gt_refPending und wird
+    // nach dem Login automatisch eingelöst (refRedeemPending).
   }
 } catch(_){}
 // Gratis-Premium: gemerkten Code einlösen + Stand vom Worker holen. Nach dem

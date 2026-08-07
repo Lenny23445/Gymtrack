@@ -1324,11 +1324,17 @@ body{
 [data-theme="dark"] .ov{ background:rgba(0,0,0,.5); }
 .ov.on{display:flex}
 /* Offenes Sheet = modal: Tabbar (z 1000) und KI-Bubble (z 1060) liegen über dem
-   Scrim (z 900) und blieben klickbar → Taps am unteren Rand wechselten im
-   Hintergrund den Tab / öffneten das KI-Menü. Klasse setzt _aibSyncVisibility()
-   (openOv/closeOv) — :has() griff in der WKWebView nicht zuverlässig.
-   Ausnahme ov-wk (aktives Training): Tab-Wechsel ist da gewollt. */
-body.sheet-modal .tabbar,
+   Scrim (z 900). Klasse setzt _aibSyncVisibility() (openOv/closeOv) — :has()
+   griff in der WKWebView nicht zuverlässig.
+   Ausnahme ov-wk (aktives Training): Tab-Wechsel ist da gewollt.
+
+   Die LEISTE bleibt bedienbar. Sie war hier eine Zeit lang mit
+   pointer-events:none stillgelegt, um versehentliche Taps am unteren Rand zu
+   verhindern — sichtbar über dem Sheet, aber tot: aus den Einstellungs-Sheets
+   kam man ohne Griff zum ✕ oder Wischen nicht mehr weg. Der Tipp auf einen Tab
+   schliesst jetzt wieder alle offenen Sheets und wechselt (goTab in
+   js/app-ui.js macht genau das, sein Kommentar setzt es sogar voraus). Nur die
+   KI-Bubble bleibt tot — der Coach über einem offenen Sheet ergibt keinen Sinn. */
 body.sheet-modal #ai-bubble{pointer-events:none}
 .sheet{
   /* Deckende Basis UNTER dem Glas-Verlauf. --gl-bg-h ist im Dark Mode nur
@@ -4820,8 +4826,20 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .crew-add{width:30px;height:30px;flex:none;border-radius:10px;background:var(--soft);border:1px solid var(--gl-bdr);color:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit}
 .crew-add:active{transform:scale(.92)}
 /* Ohne Gruppe: grosses Einstiegsfeld statt schmaler Zeile */
-.crew-empty{text-align:center;padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));border:1.5px dashed rgba(var(--acc-rgb),.4);border-radius:22px;cursor:pointer}
-[data-glass="off"] .crew-empty{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+/* Ohne Gruppe steht hier eine schmale Zeile statt eines Kastens: der alte
+   Leerzustand (Symbol, Erklärtext, zwei Knöpfe) war so hoch, dass Freundes-
+   liste, Rangliste und Karte darunter aus dem Bild rutschten. */
+.crew-slim{display:flex;align-items:center;gap:11px;padding:12px 14px;min-height:54px;
+  background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  -webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));
+  border:1px dashed rgba(var(--acc-rgb),.42);border-radius:16px;cursor:pointer}
+[data-glass="off"] .crew-slim{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+.crew-slim-ico{flex:none;width:22px;height:22px;color:var(--acc);display:inline-flex;align-items:center;justify-content:center}
+.crew-slim-ico svg{width:20px;height:20px}
+.crew-slim-txt{flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crew-slim-join{flex:none;padding:7px 13px;border-radius:999px;border:1px solid rgba(var(--acc-rgb),.34);
+  background:rgba(var(--acc-rgb),.12);color:var(--acc);font-size:13px;font-weight:700;cursor:pointer}
 .crew-inv{display:flex;align-items:center;gap:12px;background:rgba(var(--acc-rgb),.09);border:1px solid rgba(var(--acc-rgb),.35);border-radius:18px;padding:12px 14px;margin-bottom:12px}
 /* Freundes-Auswahl beim Gruenden */
 .crew-pick{display:flex;align-items:center;gap:11px;background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:9px 12px;margin-bottom:8px;cursor:pointer}
@@ -5904,8 +5922,11 @@ html:not([data-glass="off"]) #tab-indicator{
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.85),transparent);
   transform:skewX(-18deg);animation:premShine 3.4s ease-in-out infinite}
 .cpg-head .prem-tag{border-color:rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.28),inset 0 0 6px rgba(255,246,216,.4)}
-/* Solo-Variante im Startseiten-Header: eigenständig zwischen Level und Streak, klickbar. */
-.prem-tag-solo{margin-left:0;vertical-align:baseline;padding:4px;cursor:pointer}
+/* Solo-Variante im Startseiten-Header: eigenständig zwischen Level und Streak,
+   klickbar. Durchmesser 40 px — exakt die Höhe von .lvl-badge und .streak-badge,
+   sonst sitzt zwischen zwei Pillen eine halb so hohe Marke. */
+.prem-tag-solo{margin-left:0;vertical-align:baseline;padding:0;cursor:pointer;
+  width:40px;height:40px;flex:none;box-sizing:border-box}
 @keyframes premPulse{0%,100%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 2px 7px rgba(217,165,52,.30),inset 0 0 6px rgba(255,246,216,.35)}
   50%{box-shadow:0 0 0 1px rgba(0,0,0,.04),0 3px 12px rgba(246,210,104,.60),inset 0 0 8px rgba(255,246,216,.55)}}
 @keyframes premShine{0%{left:-60%}55%,100%{left:130%}}
@@ -7617,3 +7638,42 @@ html[data-neon="1"][data-theme="blau"]  .split-card,html[data-neon="1"][data-the
   border-radius:10px;background:rgba(var(--acc-rgb),.10);color:var(--acc);
   font:inherit;font-size:11.5px;font-weight:600;line-height:1.35;text-align:center;cursor:pointer;
   -webkit-tap-highlight-color:transparent}
+
+/* ── APP-BEWERTUNG: Nachbau des System-Dialogs (nur Web/PWA) ───────────────
+   Auf dem iPhone zeigt js/app-review.js Apples echten Dialog, davon ist hier
+   nichts noetig. Die Masse sind deshalb bewusst die eines UIAlertControllers
+   (270 px breit, Radius 14, Hairline von 0,5 px, 44 px hohe Aktionszeile) —
+   ein Dialog, der daneben liegt, faellt neben dem echten sofort auf.
+   Kein `.ov`: das ist kein Bottom Sheet, es swiped nicht und wird nicht von
+   openOv/closeOv verwaltet. z-index ueber der KI-Bubble (1060). */
+.rev-ov{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(0,0,0,.30);opacity:0;pointer-events:none;transition:opacity .2s ease;
+  -webkit-tap-highlight-color:transparent}
+.rev-ov.on{opacity:1;pointer-events:auto}
+.rev-alert{width:270px;max-width:100%;border-radius:14px;overflow:hidden;text-align:center;
+  color:var(--text);background:var(--rev-bg,rgba(250,250,252,.82));
+  backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+  box-shadow:0 12px 44px rgba(0,0,0,.28);
+  transform:scale(1.14);opacity:0;transition:transform .22s cubic-bezier(.2,.9,.3,1),opacity .18s ease}
+.rev-ov.on .rev-alert{transform:scale(1);opacity:1}
+[data-theme="dark"],[data-theme="mitternacht"]{--rev-bg:rgba(44,44,46,.86)}
+[data-glass="off"] .rev-alert{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+.rev-head{padding:19px 16px 16px}
+.rev-title{font-size:17px;font-weight:600;line-height:1.3}
+.rev-sub{margin-top:3px;font-size:13px;line-height:1.35;color:var(--text2)}
+/* Ein Stern faerbt sich samt aller links von ihm — die Richtung, in der eine
+   Sternleiste gelesen wird. `~` wirkt nur nach rechts, deshalb laeuft die Reihe
+   per row-reverse rueckwaerts (Stern 1 steht im Markup zuerst, im Bild links)
+   und der Nachbar-Selektor trifft genau die optisch davorliegenden Sterne. */
+.rev-stars{display:flex;flex-direction:row-reverse;justify-content:center;gap:2px;margin-top:14px}
+.rev-star{width:40px;height:40px;flex:none;padding:6px;border:none;background:none;cursor:pointer;
+  color:var(--text2);fill:none;font-family:inherit;-webkit-tap-highlight-color:transparent;
+  transition:color .14s ease,fill .14s ease,transform .14s ease}
+.rev-star svg{width:100%;height:100%;display:block}
+.rev-star:hover,.rev-star:active,.rev-star:hover ~ .rev-star,.rev-star:active ~ .rev-star{
+  color:#FFB300;fill:#FFB300}
+.rev-star:active{transform:scale(.88)}
+.rev-btn{display:block;width:100%;height:44px;border:none;border-top:.5px solid rgba(128,128,132,.42);
+  background:none;color:var(--acc);font-family:inherit;font-size:17px;font-weight:400;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.rev-btn:active{background:rgba(128,128,132,.18)}

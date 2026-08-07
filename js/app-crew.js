@@ -686,12 +686,13 @@ function _crewHomeHTML(demoDoc){
       </div>
     </div>`).join('');
   if (!crews.length) {
-    return kopf + einladungen + `<div class="crew-empty" onclick="crewOpenCreate()">
-      <div class="soc-gate-ico">${_CREW_SVG.users}</div>
-      <div style="font-size:17px;font-weight:700">Gruppe erstellen</div>
-      <div class="soc-empty" style="padding:0">Ein gemeinsames Wochenziel mit deinen Leuten — jedes Training zählt für alle. Wähl die Leute aus, setz das Ziel, fertig.</div>
-      <button class="btn btn-acc" style="max-width:240px" onclick="event.stopPropagation();crewOpenCreate()">Gruppe erstellen</button>
-      <button class="btn" style="max-width:240px;margin-top:8px" onclick="event.stopPropagation();crewOpenJoin()">Mit Code beitreten</button>
+    // Eine schmale Zeile, kein Werbeblock: der Kasten mit Erklärtext und zwei
+    // Knöpfen fuellte ohne Gruppe die halbe Freunde-Seite und schob Freundes-
+    // liste, Rangliste und Karte aus dem Bild.
+    return kopf + einladungen + `<div class="crew-slim" onclick="crewOpenCreate()">
+      <span class="crew-slim-ico">${_CREW_SVG.users}</span>
+      <span class="crew-slim-txt">Gruppe hinzufügen</span>
+      <button class="crew-slim-join" onclick="event.stopPropagation();crewOpenJoin()">Code</button>
     </div>`;
   }
   return kopf + einladungen + crews.map(c => _crewMiniHTML(c)).join('');
