@@ -4,9 +4,9 @@
    - noch nie gefragt  → beim naechsten abgeschlossenen Training fragen,
      unabhaengig davon, wie viele Einheiten schon in S.sessions stehen
      (Bestandsnutzer sollen nicht bei null anfangen muessen),
-   - danach alle drei Einheiten erneut, gemessen am Stand BEI DER LETZTEN
-     FRAGE — nicht per Modulo auf die Gesamtzahl, sonst wird nach dem Loeschen
-     alter Einheiten sofort wieder gefragt,
+   - danach nach jedem weiteren Training erneut, gemessen am Stand BEI DER
+     LETZTEN FRAGE — nicht per Modulo auf die Gesamtzahl, sonst wird nach dem
+     Loeschen alter Einheiten sofort wieder gefragt,
    - `done` beendet alles endgueltig.
 
    Geprueft wird der echte Quelltext, in einem Sandkasten ausgefuehrt. */
@@ -46,14 +46,12 @@ test('Bestandsnutzer wird beim naechsten Training gefragt, nicht erst ab Einheit
   assert.equal(laden(240)._revFaellig(), true, 'Nutzer mit 240 Einheiten');
 });
 
-test('nach der Frage erst wieder nach drei weiteren Einheiten', () => {
+test('nach der Frage erst wieder beim naechsten Training', () => {
   const m = laden(10);
   m._revSave({ asked: 1, atSessions: 10 });
-  assert.equal(m._revFaellig(), false, 'direkt danach');
-  m.S.sessions.push({ id: 'a' }, { id: 'b' });
-  assert.equal(m._revFaellig(), false, 'nach zwei weiteren');
-  m.S.sessions.push({ id: 'c' });
-  assert.equal(m._revFaellig(), true,  'nach drei weiteren');
+  assert.equal(m._revFaellig(), false, 'ohne neue Einheit');
+  m.S.sessions.push({ id: 'a' });
+  assert.equal(m._revFaellig(), true,  'nach der naechsten Einheit');
 });
 
 test('geloeschte Einheiten loesen keine sofortige Zweitfrage aus', () => {

@@ -26,8 +26,8 @@
    in finishWk() vor, `_revAfterWorkout()` loest erst aus, wenn der Bildschirm
    wieder ruhig ist (Share-Flow zu, Punkte-Ticker durch). Gefragt wird beim
    naechsten abgeschlossenen Training — auch bei Bestandsnutzern, die ihre
-   erste Einheit laengst hinter sich haben — und danach alle REV_INTERVALL
-   Einheiten erneut, bis bewertet wurde. Dann nie wieder.
+   erste Einheit laengst hinter sich haben — und danach nach jedem weiteren
+   Training erneut, bis bewertet wurde. Dann nie wieder.
 
    Zustand liegt in localStorage['gt_review'], NICHT in S: der users-Doc-Push
    hat eine hasOnly-Feldliste in den Firestore-Rules, ein neuer Schluessel dort
@@ -35,7 +35,7 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 const REV_KEY       = 'gt_review';
-const REV_INTERVALL = 3;   // Einheiten zwischen zwei Fragen
+const REV_INTERVALL = 1;   // Einheiten zwischen zwei Fragen (1 = nach jedem Training)
 const REV_WRITE_URL = 'https://apps.apple.com/app/id6775434876?action=write-review';
 
 function _revState() {
@@ -53,9 +53,12 @@ function _revSave(patch) {
    - Noch nie gefragt → beim naechsten abgeschlossenen Training. Bewusst OHNE
      Mindestzahl an Einheiten: Bestandsnutzer haben ihre erste Einheit laengst
      hinter sich und sollen nicht erst wieder bei null anfangen muessen.
-   - Danach alle REV_INTERVALL Einheiten erneut, gemessen am Stand BEI DER
-     LETZTEN FRAGE (`atSessions`), nicht per Modulo auf die Gesamtzahl: wer
-     alte Einheiten loescht, wuerde sonst sofort wieder gefragt.
+   - Danach nach jedem weiteren Training erneut (REV_INTERVALL), gemessen am
+     Stand BEI DER LETZTEN FRAGE (`atSessions`), nicht per Modulo auf die
+     Gesamtzahl: wer alte Einheiten loescht, wuerde sonst sofort wieder
+     gefragt. Dass die Frage in der nativen App trotzdem nicht nach jedem
+     Training auf dem Bildschirm steht, ist Absicht — den Takt gibt iOS vor
+     (s. unten), die App fragt nur an.
    - `done` beendet alles endgueltig. Gesetzt wird es nur, wenn wir eine
      Entscheidung wirklich SEHEN — beim Web-Nachbau und beim Weg ueber die
      Einstellungen. Der native Dialog meldet nichts zurueck; dort uebernimmt
