@@ -763,6 +763,34 @@ async function lvlPlateShare(level){
   } catch(e) {
     if (String(e && e.name) === 'AbortError') return;   // Teilen abgebrochen
     console.warn('[GymTrack] Level teilen:', e);
-    alert('Bild konnte nicht erstellt werden.');
+    alert('DIAG ' + (e && e.name) + ': ' + (e && e.message));
   }
 }
+
+/* TEMP-DIAGNOSE — wieder entfernen! */
+let _diagFile = null;
+setTimeout(async () => {
+  const cv = _lvlPlateCanvas(5, 1080);
+  const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+  _diagFile = new File([blob], 'level-5.png', { type: 'image/png' });
+
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;color:#0f0;'
+    + 'font:14px monospace;padding:60px 12px;white-space:pre-wrap;overflow:auto';
+  d.innerHTML = '<div id="diag-log">DIAG bereit — A, B, C nacheinander tippen</div>'
+    + '<button id="diag-a" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">A: Text sofort</button>'
+    + '<button id="diag-b" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">B: Datei NACH await (heutiger Weg)</button>'
+    + '<button id="diag-c" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">C: Datei SOFORT (vorab erzeugt)</button>';
+  document.body.appendChild(d);
+  const log = (s) => { document.getElementById('diag-log').textContent += '\n' + s; };
+  const erg = (tag, p) => p.then(() => log(tag + ': OK')).catch(e => log(tag + ': ' + e.name + ' — ' + e.message));
+
+  document.getElementById('diag-a').onclick = () => erg('A', navigator.share({ text: 'Level 5' }));
+  document.getElementById('diag-b').onclick = async () => {
+    const cv2 = _lvlPlateCanvas(5, 1080);
+    const b2 = await new Promise(r => cv2.toBlob(r, 'image/png'));
+    const f2 = new File([b2], 'level-5.png', { type: 'image/png' });
+    erg('B', navigator.share({ files: [f2], text: 'Level 5' }));
+  };
+  document.getElementById('diag-c').onclick = () => erg('C', navigator.share({ files: [_diagFile], text: 'Level 5' }));
+}, 3000);
