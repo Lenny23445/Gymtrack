@@ -30,7 +30,7 @@ service cloud.firestore {
              'heuteLayout','weekPlan','weightLog','weightStart','restTimerSecs',
              'onboarded','userName','obGoal','obExp','obFreq',
              'socialOn','friendCode','friends','gymName','gymLat','gymLng',
-             'checkins','aiCoach','crewId',
+             'checkins','aiCoach','crewId','crewIds',
              // _schemaV/flameBank schreibt der Client seit laengerem, standen aber
              // nie hier — er faengt die Ablehnung ueber CLOUD_NEUE_FELDER ab und
              // pusht dann OHNE sie (js/app-update.js, _setDocCompat). 'sesArc' ist
@@ -100,7 +100,7 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly([
              'name','code','photo','gymName','gymLat','gymLng',
-             'week','month','streak','lastWk','live','stats','friends','updatedAt',
+             'week','month','streak','lastWk','live','stats','friends','notifLive','updatedAt',
              'pushToken','premium','about'
            ])
         && request.resource.data.name is string
@@ -216,15 +216,21 @@ service cloud.firestore {
 
       allow read: if request.auth != null;
 
+      // Deckel je Person und Woche, abhaengig von der Zielart. Bei Trainings
+      // folgt die 7 direkt aus „max. 1 pro Kalendertag"; Volumen und Zeit
+      // brauchen groessere, aber weiterhin endliche Grenzen.
+      function maxWk(t) { return t == 'vol' ? 200000 : (t == 'min' ? 1500 : 7); }
+
       allow create: if request.auth != null
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.members == [request.auth.uid]
         && request.resource.data.keys().hasOnly([
-             'name','owner','members','goal','weekKey','wk','streak','hist','createdAt','updatedAt'
+             'name','owner','members','goal','goalType','weekKey','wk','streak','hist','createdAt','updatedAt'
            ])
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
+        && request.resource.data.goalType in ['ses','vol','min','each']
         && request.resource.data.goal is int
-        && request.resource.data.goal >= 3 && request.resource.data.goal <= 60;
+        && request.resource.data.goal >= 1 && request.resource.data.goal <= 500000;
 
       allow update: if request.auth != null && (
         // beitreten: genau die eigene uid dazu, max. 20 Mitglieder
@@ -241,16 +247,18 @@ service cloud.firestore {
         || (ch().hasOnly(['wk','weekKey','updatedAt']) && isMember()
           && request.resource.data.wk.diff(resource.data.wk).affectedKeys().hasOnly([request.auth.uid])
           && request.resource.data.wk[request.auth.uid] is int
-          && request.resource.data.wk[request.auth.uid] <= 7)
+          && request.resource.data.wk[request.auth.uid] <= maxWk(resource.data.get('goalType','ses')))
         // Rollover: nur bei echtem Wochenwechsel
         || (ch().hasOnly(['wk','weekKey','streak','hist','updatedAt']) && isMember()
           && request.resource.data.weekKey != resource.data.weekKey
           && request.resource.data.hist.size() <= 8)
-        // Gruender: Name, Ziel, Mitglied entfernen
+        // Gruender: Name, Ziel, Mitglied entfernen. Die ZIELART bleibt bewusst
+        // aussen vor — sie nachtraeglich zu drehen wuerde die Historie in zwei
+        // Einheiten nebeneinander stellen (kg neben Trainings).
         || (ch().hasOnly(['name','goal','members','updatedAt'])
           && resource.data.owner == request.auth.uid
           && request.resource.data.name is string && request.resource.data.name.size() <= 24
-          && request.resource.data.goal >= 3 && request.resource.data.goal <= 60)
+          && request.resource.data.goal >= 1 && request.resource.data.goal <= 500000)
       );
 
       // Aufloesen: der Gruender immer, das letzte verbleibende Mitglied auch
@@ -258,6 +266,26 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && (resource.data.owner == request.auth.uid
             || (isMember() && resource.data.members.size() == 1));
+    }
+    /* Einladungen in eine Gruppe. Niemand landet ungefragt in einer Gruppe —
+       die Rules oben erlauben ohnehin nur, die EIGENE uid in members zu
+       schreiben. Doc-ID ist fest '<cid>__<uid>': pro Gruppe und Empfaenger
+       genau ein Dokument, damit niemand die Collection vollschreibt. */
+    match /crew_invites/{iid} {
+      allow read: if request.auth != null
+        && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.keys().hasOnly(['cid','to','from','fromName','crewName','ts'])
+        && iid == request.resource.data.cid + '__' + request.resource.data.to
+        && request.resource.data.to is string
+        && request.resource.data.ts is number
+        && request.resource.data.fromName is string && request.resource.data.fromName.size() <= 30
+        && request.resource.data.crewName is string && request.resource.data.crewName.size() <= 24
+        // Nur Mitglieder der Gruppe duerfen einladen.
+        && get(/databases/$(database)/documents/crews/$(request.resource.data.cid)).data.members.hasAny([request.auth.uid]);
+      allow delete: if request.auth != null
+        && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
     }
     match /admin/{docId} {
       allow read: if request.auth != null && request.auth.uid == "GMm3AlNn1pVRL6cc76opBgnM9sr1";

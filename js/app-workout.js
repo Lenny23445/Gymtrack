@@ -580,6 +580,10 @@ function startActive() {
   }
   _startWkTimer();
   _pushSocialSoon();   // Community: Live-Status „trainiert gerade" für Freunde
+  // Kurze Mitteilung an Freunde und Gruppenleute. Eigene Bremsen (siehe
+  // _notifyLivePush): nur wenn der Live-Status geteilt wird, höchstens eine je
+  // Empfänger und Tag, und der Empfänger kann sie ganz abschalten.
+  try { if (typeof _notifyLivePush === 'function') _notifyLivePush(); } catch(_){}
   document.getElementById('wk-step1').style.display = 'none';
   document.getElementById('wk-step2').style.display = '';
   document.getElementById('wk-title').textContent = 'Aktives Training';

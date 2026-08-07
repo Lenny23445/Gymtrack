@@ -1084,6 +1084,15 @@ const PRIV_DEFS = [
   { k:'prs',    t:'Persönliche Rekorde anzeigen',   s:'Deine Top-3-1RM-Werte' },
   { k:'feed',   t:'Aktivitätsfeed anzeigen',        s:'Beendete Trainings im Feed der Freunde' },
 ];
+/* Trainings-Mitteilungen sind KEINE Privatsphäre-Einstellung (die regelt, was
+   andere sehen), sondern eine Empfangs-Einstellung — deshalb ein eigener
+   Schalter mit eigenem Feld. Der Push-Worker liest ihn aus dem Profil und
+   stellt bei false gar nicht erst zu. */
+function setNotifLive(on){
+  S.notifLive = !!on;
+  persist();
+  try { _pushSocialSoon(); } catch(_){}
+}
 function openPrivacySheet(){
   haptic(8);
   const body = document.getElementById('priv-body'); if (!body) return;
@@ -1099,6 +1108,19 @@ function openPrivacySheet(){
           <span class="tgl-track"></span>
         </label>
       </div>`).join('')}
+    </div>
+    <div class="priv-hint" style="margin-top:18px">Mitteilungen, die du bekommst.</div>
+    <div class="card">
+      <div class="row">
+        <div class="row-body">
+          <div class="row-title">Wenn jemand trainiert</div>
+          <div class="row-sub" style="white-space:normal;line-height:1.4">Kurze Mitteilung, wenn ein Freund oder jemand aus deiner Gruppe ein Training startet — höchstens eine pro Person und Tag.</div>
+        </div>
+        <label class="tgl" onclick="event.stopPropagation()">
+          <input type="checkbox" ${S.notifLive !== false ? 'checked' : ''} onchange="setNotifLive(this.checked)">
+          <span class="tgl-track"></span>
+        </label>
+      </div>
     </div>`;
   openOv('ov-privacy');
 }

@@ -36,11 +36,21 @@ function konstante(quelle, name) {
   return m[0];
 }
 
+/* CREW_GOALS ist ein mehrzeiliges Objekt — die Konstanten-Regel oben schneidet
+   bis zum ersten Semikolon und trifft es deshalb nicht. */
+function zielTabelle(quelle) {
+  const m = quelle.match(/const CREW_GOALS = \{[\s\S]*?\n\};/);
+  if (!m) throw new Error('CREW_GOALS nicht gefunden — umgebaut?');
+  return m[0];
+}
+
 const H = new Function(`
   ${['CREW_MIN_SEC', 'CREW_MIN_SETS', 'CREW_HIST'].map(k => konstante(CREW, k)).join('\n')}
-  ${['crewWeekKeyOf', 'crewCountWeek', 'crewTotal', 'crewRolloverData', 'crewDaysLeft']
+  ${zielTabelle(CREW)}
+  ${funktion(CREW, 'crewGoalDef')}
+  ${['crewWeekKeyOf', 'crewCountWeek', 'crewMetricWeek', 'crewTotal', 'crewDone', 'crewRolloverData', 'crewDaysLeft']
       .map(n => funktion(CREW, n)).join('\n')}
-  return { crewWeekKeyOf, crewCountWeek, crewTotal, crewRolloverData, crewDaysLeft };
+  return { crewWeekKeyOf, crewCountWeek, crewMetricWeek, crewTotal, crewDone, crewRolloverData, crewDaysLeft, CREW_GOALS };
 `)();
 
 /* Bequemer Sitzungs-Bauer: Datum als lokale Zeit, Dauer in Sekunden, Saetze als Anzahl. */
@@ -115,7 +125,41 @@ test('Zaehler ist bei 7 gedeckelt und ignoriert Einheiten aus der Zukunft', () =
 /* ── Rollover ── */
 
 const basis = (ueber) => ({
-  goal: 10, weekKey: '2026-08-03', wk: { a: 4, b: 3 }, streak: 2, hist: [], ...ueber
+  goal: 10, goalType: 'ses', members: ['a','b'], weekKey: '2026-08-03',
+  wk: { a: 4, b: 3 }, streak: 2, hist: [], ...ueber
+});
+
+/* ── Zielarten ── */
+
+test('Volumen zaehlt alle Einheiten der Woche, gedeckelt', () => {
+  const vol = s => (s.logs || []).length * 1000;
+  const s = [sitzung(2026, 8, 4, 18, 300, 3), sitzung(2026, 8, 5, 18, 1800, 8)];
+  assert.strictEqual(H.crewMetricWeek(s, jetzt(2026, 8, 6), 'vol', vol), 2000);
+  // Der Deckel aus CREW_GOALS greift auch bei absurden Werten
+  const viel = [sitzung(2026, 8, 4, 18, 1800, 8)];
+  assert.strictEqual(H.crewMetricWeek(viel, jetzt(2026, 8, 6), 'vol', () => 9e9), H.CREW_GOALS.vol.deckel);
+});
+
+test('Trainingszeit summiert Minuten der Woche', () => {
+  const s = [sitzung(2026, 8, 4, 18, 1800, 8), sitzung(2026, 8, 5, 18, 900, 2)];
+  assert.strictEqual(H.crewMetricWeek(s, jetzt(2026, 8, 6), 'min'), 45);
+});
+
+test('„jeder X-mal" faellt auf die Trainings-Zaehlweise zurueck', () => {
+  const s = [sitzung(2026, 8, 4, 18, 120, 2), sitzung(2026, 8, 5, 18, 1800, 8)];
+  assert.strictEqual(H.crewMetricWeek(s, jetzt(2026, 8, 6), 'each'), 1, 'Kurz-Einheit darf auch hier nicht zaehlen');
+});
+
+test('„jeder X-mal" ist erst geschafft, wenn ALLE liefern', () => {
+  const d = { goalType:'each', goal:3, members:['a','b','c'], wk:{ a:3, b:5, c:2 } };
+  assert.strictEqual(H.crewDone(d), false, 'c fehlt noch — darf nicht als geschafft gelten');
+  assert.strictEqual(H.crewDone({ ...d, wk:{ a:3, b:5, c:3 } }), true);
+  // Summenziel wuerde hier laengst „geschafft" sagen (10 >= 3) — genau der Unterschied
+  assert.strictEqual(H.crewDone({ ...d, goalType:'ses' }), true);
+});
+
+test('Gruppe ohne Mitglieder gilt nie als geschafft', () => {
+  assert.strictEqual(H.crewDone({ goalType:'each', goal:1, members:[], wk:{} }), false);
 });
 
 test('Summe des Balkens ist die Summe aller Beitraege', () => {
@@ -184,8 +228,16 @@ test('Beitritt ist bei 20 Mitgliedern dicht — im Client UND in den Rules', () 
   const rules = fs.readFileSync(path.join(WURZEL, 'firestore.rules'), 'utf8');
   assert.match(rules, /match \/crews\/\{cid\}/, 'crews-Block fehlt in den Rules');
   assert.match(rules, /members\.size\(\) <= 20/, 'Mitglieder-Deckel fehlt in den Rules');
-  assert.match(rules, /wk\[request\.auth\.uid\] <= 7/, 'Deckel fuer den eigenen Zaehler fehlt');
-  assert.match(rules, /'crewId'/, 'crewId fehlt in der hasOnly-Liste des users-Blocks');
+  // Deckel je Person und Woche haengt an der Zielart — die Werte muessen in
+  // Client und Rules dieselben sein, sonst laufen Schreibvorgaenge auf
+  // permission-denied, die der Client fuer erlaubt haelt.
+  assert.match(rules, /wk\[request\.auth\.uid\] <= maxWk\(/, 'zielart-abhaengiger Deckel fehlt');
+  assert.match(rules, /function maxWk\(t\) \{ return t == 'vol' \? 200000 : \(t == 'min' \? 1500 : 7\); \}/, 'maxWk-Werte weichen ab');
+  assert.strictEqual(H.CREW_GOALS.vol.deckel, 200000);
+  assert.strictEqual(H.CREW_GOALS.min.deckel, 1500);
+  assert.strictEqual(H.CREW_GOALS.ses.deckel, 7);
+  assert.match(rules, /'crewId','crewIds'/, 'crewId/crewIds fehlen in der hasOnly-Liste des users-Blocks');
+  assert.match(rules, /match \/crew_invites\/\{iid\}/, 'Einladungen fehlen in den Rules');
 });
 
 test('Crew-Modul ist an allen drei Pflichtstellen registriert', () => {

@@ -695,7 +695,7 @@ async function _pushToCloud(voll) {
    hinaus. Nur fuer diese Sitzung gemerkt: nach einem Neustart wird wieder mit
    den vollen Feldern probiert, der Rueckfall verschwindet also von selbst,
    sobald die Rules veroeffentlicht sind. */
-const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank', 'sesArc', 'crewId'];
+const CLOUD_NEUE_FELDER = ['_schemaV', 'flameBank', 'sesArc', 'crewId', 'crewIds'];
 let _cloudFeldRueckfall = false;
 async function _setDocCompat(ref, payload, opts) {
   /* Ohne den Marker sesArc weiss kein Client, dass er das Archiv dazulesen

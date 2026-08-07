@@ -4819,6 +4819,19 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* ── Crews (js/app-crew.js): gemeinsames Wochenziel ───────────────────── */
 .crew-card-mini{cursor:pointer}
 .crew-card-mini:active{transform:scale(.985)}
+/* +-Knopf in der Kopfzeile „Gruppen" — eine weitere Gruppe ist ein Griff weit weg */
+.crew-add{width:30px;height:30px;flex:none;border-radius:10px;background:var(--soft);border:1px solid var(--gl-bdr);color:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit}
+.crew-add:active{transform:scale(.92)}
+/* Ohne Gruppe: grosses Einstiegsfeld statt schmaler Zeile */
+.crew-empty{text-align:center;padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));border:1.5px dashed rgba(var(--acc-rgb),.4);border-radius:22px;cursor:pointer}
+[data-glass="off"] .crew-empty{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
+.crew-inv{display:flex;align-items:center;gap:12px;background:rgba(var(--acc-rgb),.09);border:1px solid rgba(var(--acc-rgb),.35);border-radius:18px;padding:12px 14px;margin-bottom:12px}
+/* Freundes-Auswahl beim Gruenden */
+.crew-pick{display:flex;align-items:center;gap:11px;background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:14px;padding:9px 12px;margin-bottom:8px;cursor:pointer}
+.crew-pick.on{border-color:var(--acc);background:rgba(var(--acc-rgb),.08)}
+.crew-tick{width:24px;height:24px;flex:none;border-radius:50%;border:1.6px solid var(--gl-bdr);color:transparent;display:flex;align-items:center;justify-content:center}
+.crew-pick.on .crew-tick{background:var(--acc);border-color:var(--acc);color:#fff}
+.crew-tick svg{width:13px;height:13px}
 .crew-card{background:var(--gl-bg,var(--card));backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));-webkit-backdrop-filter:blur(var(--gl-blur)) saturate(var(--gl-sat));border:1px solid var(--gl-bdr);border-radius:22px;padding:17px 17px 15px;margin-bottom:14px}
 [data-glass="off"] .crew-card{background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none}
 .crew-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}

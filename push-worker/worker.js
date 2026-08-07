@@ -47,9 +47,15 @@ export default {
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, cors); }
-    const { toUid, idToken } = body || {};
+    const { toUid, idToken, cid } = body || {};
     if (!toUid || !idToken || typeof toUid !== "string" || typeof idToken !== "string" || toUid.length > 128)
       return json({ error: "toUid+idToken required" }, 400, cors);
+    /* Anlass. 'flame' ist der Altbestand (Reaktion auf einen Post) und bleibt
+       der Standard, damit aeltere App-Staende ohne kind-Feld weiterlaufen.
+       'live'/'crewlive' melden ein gerade gestartetes Training. */
+    const kind = ["flame", "live", "crewlive"].includes(body && body.kind) ? body.kind : "flame";
+    if (kind === "crewlive" && (typeof cid !== "string" || !/^[A-Z0-9]{6}$/.test(cid)))
+      return json({ error: "cid required" }, 400, cors);
 
     // 1) Wer schickt? UID aus der Token-Payload; Gueltigkeit prueft Schritt 2.
     const fromUid = uidFromIdToken(idToken);
@@ -78,9 +84,26 @@ export default {
        client-kontrolliert (jeder darf sein Profil schreiben) — wer sich selbst
        den Empfaenger eintraegt, haette sich sonst die Zustellung erlaubt.
        Wer Mitteilungen bekommt, entscheidet damit selbst, von wem. */
-    const related = fromUid === toUid
-                 || fsStringArray(to.doc, "friends").includes(fromUid);
+    let related = fromUid === toUid
+               || fsStringArray(to.doc, "friends").includes(fromUid);
+    /* Gruppen-Mitteilung: Gruppenleute muessen nicht befreundet sein. Die
+       Berechtigung kommt dann aus dem Gruppendokument — und zwar SERVERSEITIG
+       gelesen, nicht aus dem Client-Body: beide muessen dort in members stehen. */
+    if (!related && kind === "crewlive") {
+      const crew = await fsDoc(`crews/${cid}`, idToken);
+      const mem  = crew.doc ? fsStringArray(crew.doc, "members") : [];
+      related = mem.includes(fromUid) && mem.includes(toUid);
+      if (!related) console.log("[PUSH] ABGELEHNT: ", fromUid, "und", toUid, "nicht in derselben Gruppe", cid);
+    }
     if (!related) { console.log("[PUSH] ABGELEHNT: ", fromUid, "und", toUid, "sind nicht befreundet"); return json({ error: "not friends" }, 403, cors); }
+
+    /* Der EMPFAENGER entscheidet, ob er Trainings-Meldungen will. Steht das
+       Feld auf false, wird nicht zugestellt — die Flammen-Mitteilung bleibt
+       davon unberuehrt, sie ist eine direkte Reaktion auf seinen eigenen Post. */
+    if (kind !== "flame" && fsBool(to.doc, "notifLive") === false) {
+      console.log("[PUSH] Empfaenger will keine Trainings-Mitteilungen:", toUid);
+      return json({ ok: true, skipped: "opted out" }, 200, cors);
+    }
 
     const token = fsString(to.doc, "pushToken");
     if (!token) { console.log("[PUSH] KEIN pushToken im Profil des Empfaengers", toUid, "-> Empfaenger hat nie registriert"); return json({ ok: true, skipped: "no pushToken" }, 200, cors); }
@@ -95,8 +118,7 @@ export default {
 
       const payload = JSON.stringify({
         aps: {
-          alert: { title: "MyGymTrack",
-                   body: `${fromName || "Jemand"} hat mit einer Flamme reagiert` },
+          alert: { title: "MyGymTrack", body: alertText(kind, fromName) },
           sound: "default",
           // Kein hardcodiertes badge:1 mehr — der Worker kennt die echte Unread-Zahl
           // nicht (stateless) und hätte bei jeder Push den Badge wieder auf 1 gesetzt,
@@ -180,6 +202,30 @@ async function fsProfile(uid, idToken) {
 function fsString(doc, key) {
   const f = doc && doc.fields && doc.fields[key];
   return (f && typeof f.stringValue === "string") ? f.stringValue : "";
+}
+function fsBool(doc, key) {
+  const f = doc && doc.fields && doc.fields[key];
+  return (f && typeof f.booleanValue === "boolean") ? f.booleanValue : null;
+}
+/* Beliebiges Dokument mit dem Login des Absenders lesen. Die Rules entscheiden,
+   ob er es sehen darf — der Worker umgeht nichts. */
+async function fsDoc(pfad, idToken) {
+  const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}` +
+              `/databases/(default)/documents/${pfad}`;
+  let res;
+  try { res = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } }); }
+  catch (e) { return { status: 0, doc: null }; }
+  if (!res.ok) return { status: res.status, doc: null };
+  try { return { status: 200, doc: await res.json() }; }
+  catch (e) { return { status: 0, doc: null }; }
+}
+/* Meldungstext je Anlass. Bewusst zweisprachig-neutral gehalten: der Worker
+   kennt die Geraetesprache nicht, deshalb kurze deutsche Saetze wie bisher. */
+function alertText(kind, fromName) {
+  const wer = fromName || "Jemand";
+  if (kind === "live")     return `${wer} trainiert gerade`;
+  if (kind === "crewlive") return `${wer} trainiert gerade — zieh mit`;
+  return `${wer} hat mit einer Flamme reagiert`;
 }
 function fsStringArray(doc, key) {
   const f = doc && doc.fields && doc.fields[key];

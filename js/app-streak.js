@@ -1703,6 +1703,7 @@ async function _pushSocialProfile(){
     live: liveOn ? { on:true, start:timerTs, gym: P.gym ? (S.gymName || null) : null } : null,
     stats: P.stats ? _socOwnStats() : null,
     friends: S.friends || [],
+    notifLive: S.notifLive !== false,   // Empfangs-Schalter: der Push-Worker liest ihn hier
     premium: (typeof isPremium === 'function') ? isPremium() : false,
     about: _socAboutPayload(),   // Erfahrung/Alter/Stärken/Lieblingsübungen/Bio fürs Freundesprofil
     updatedAt: Date.now()
@@ -1764,6 +1765,51 @@ async function _notifyFlamePush(toUid){
       method: 'POST',
       body: JSON.stringify({ toUid, idToken, fromName: (S.userName || _fbUser.displayName || 'Jemand').slice(0,40) })
     }).catch(()=>{});
+  } catch(_){}
+}
+
+/* ── „Jemand trainiert gerade" ───────────────────────────────────────────
+   Beim Trainingsstart bekommen Freunde und Gruppenleute eine kurze Mitteilung.
+   Drei Bremsen, damit daraus kein Dauerbrummen wird:
+   - Wer seinen Live-Status nicht teilt (S.privacy.live), sendet auch nichts.
+     Es wäre widersprüchlich, den Status zu verbergen und ihn zu pushen.
+   - Höchstens EINE Mitteilung je Empfänger und Tag (lokal gemerkt).
+   - Der Empfänger kann sie ganz abschalten (S.notifLive → profiles.notifLive);
+     das prüft der Worker, nicht der Absender — sonst könnte man es umgehen.
+   Fire-and-forget: blockiert den Trainingsstart nie. */
+function _livePushSeen(){
+  try { return JSON.parse(localStorage.getItem('gt_livePush') || '{}'); } catch(_) { return {}; }
+}
+async function _notifyLivePush(){
+  try {
+    if (!PUSH_WORKER_URL || !_fbUser || !S.socialOn) return;
+    if (!(S.privacy && S.privacy.live)) return;
+    try { if (_demoModeAny() || (typeof DEMO_SEED !== 'undefined' && DEMO_SEED)) return; } catch(_){}
+    const heute = new Date().toDateString();
+    const seen  = _livePushSeen();
+    // Empfänger sammeln: Freunde + alle Gruppenmitglieder. Die Gruppen-uid trägt
+    // ihre cid mit, damit der Worker die Berechtigung am Gruppendokument prüfen
+    // kann (Gruppenleute sind nicht zwingend befreundet).
+    const ziele = new Map();
+    (S.friends || []).forEach(u => ziele.set(u, { kind: 'live' }));
+    try {
+      (typeof _crewMine === 'function' ? _crewMine() : []).forEach(c =>
+        (c.members || []).forEach(u => { if (u !== _fbUser.uid && !ziele.has(u)) ziele.set(u, { kind: 'crewlive', cid: c.id }); }));
+    } catch(_){}
+    const offen = [...ziele.entries()].filter(([u]) => seen[u] !== heute).slice(0, 25);
+    if (!offen.length) return;
+    const idToken = await _fbUser.getIdToken();
+    const name = (S.userName || _fbUser.displayName || 'Jemand').slice(0, 40);
+    offen.forEach(([toUid, o]) => {
+      seen[toUid] = heute;
+      // Bewusst OHNE Content-Type-Header: einfacher CORS-Request, kein Preflight
+      // (WKWebView meldet sonst "Load failed" trotz erreichbarem Worker).
+      fetch(PUSH_WORKER_URL, {
+        method: 'POST',
+        body: JSON.stringify({ toUid, idToken, fromName: name, kind: o.kind, cid: o.cid })
+      }).catch(()=>{});
+    });
+    try { localStorage.setItem('gt_livePush', JSON.stringify(seen)); } catch(_){}
   } catch(_){}
 }
 
@@ -1956,7 +2002,7 @@ function _demoCard(p){
 /* Erfundene Crew fuer den Demo-Modus. Rein lokal — _crewReady() ist im Demo
    false, es geht also nie ein Schreibvorgang in die echte Datenbank. */
 const _DEMO_CREW = {
-  id: 'EPK7QM', name: 'Eisenpark Crew', owner: 'demo-me', goal: 20, streak: 3,
+  id: 'EPK7QM', name: 'Eisenpark Crew', owner: 'demo-me', goal: 20, goalType: 'ses', streak: 3,
   members: ['demo-me', 'demo1', 'demo2', 'demo3', 'demo4', 'demo5'],
   wk: { 'demo-me': 5, demo1: 4, demo2: 3, demo3: 3, demo4: 2, demo5: 0 },
   hist: [
@@ -2016,10 +2062,11 @@ function _renderDemoOverview(body){
    Dokument. Wird danach sofort zurueckgesetzt, damit kein Demo-Stand haengen
    bleibt, wenn jemand den Demo-Modus abschaltet. */
 function _renderDemoCrew(body){
-  const svc = _crew, svp = _crewProfs;
-  _crew = _demoCrewDoc(); _crewProfs = _demoCrewProfs();
-  body.innerHTML = `${_socBackBar('Crew')}<div id="crew-host">${_crewCardHTML()}</div>`;
-  _crew = svc; _crewProfs = svp;
+  const svc = _crews, svo = _crewOpen, svp = _crewProfs;
+  const d = _demoCrewDoc();
+  _crews = { [d.id]: d }; _crewOpen = d.id; _crewProfs = _demoCrewProfs();
+  body.innerHTML = `${_socBackBar('Gruppe')}<div id="crew-host">${_crewCardHTML(d)}</div>`;
+  _crews = svc; _crewOpen = svo; _crewProfs = svp;
 }
 async function _renderDemoFeed(body){
   _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
