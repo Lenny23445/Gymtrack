@@ -251,8 +251,10 @@ function _aibRender(){
 // nachdem sie eine Anfrage ausgegeben hat.
 // Monatskontingent eines ECHTEN Abos. Steht hier als Zahl, weil der Worker sie
 // nur an Zahler ausliefert — ein Trial-Nutzer sähe sonst nie, was ihm entgeht.
-// Muss zu MONTHLY_LIMIT im Worker passen (Default 50).
-const _AI_PREM_LIMIT = 50;
+// MUSS zur Worker-Variable MONTHLY_LIMIT passen (im Code steht 50 nur als
+// Rückfallwert, gesetzt ist 150). Ändert sich die Variable, muss diese Zahl mit —
+// sonst verspricht die Paywall etwas anderes, als der Nutzer nach dem Kauf bekommt.
+const _AI_PREM_LIMIT = 150;
 let _aiQuotaTs = 0;
 function _aiQuotaGet(){
   try {
