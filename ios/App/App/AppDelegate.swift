@@ -140,6 +140,10 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(CameraPlugin())
         bridge?.registerPluginInstance(PremiumPlugin())
         bridge?.registerPluginInstance(SplashOverlayPlugin())
+        // App-Store-Bewertung. Ohne diese Zeile existiert ReviewPlugin fuer JS
+        // nicht — _revAsk() faellt dann still auf den Web-Nachbau zurueck, und
+        // in der nativen App erschiene nie Apples eigener Dialog.
+        bridge?.registerPluginInstance(ReviewPlugin())
         // Stimme des Coaches (Block 2): ohne diese zwei Zeilen existieren die
         // Plugins fuer JS nicht — der Sprech-Knopf in der Coach-Leiste wird dann
         // nie gerendert (_cvCaps.stt bleibt false). Genau so war er "tot".
