@@ -302,7 +302,18 @@ function _lvlPlateSVG(level, px, opts){
         <stop offset="0%"   stop-color="#2a2f35"/>
         <stop offset="60%"  stop-color="#14171a"/>
         <stop offset="100%" stop-color="#050607"/>
-      </radialGradient>${fein ? `
+      </radialGradient>
+      <!-- Schattenkante im Kanal. Frueher war das ein Halbkreis-Pfad von links
+           nach rechts: seine beiden stumpfen Enden sassen genau auf der
+           Waagerechten und waren als deutlicher Absatz zu sehen — die Bohrung
+           zerfiel optisch in zwei Halbkreise. Jetzt laeuft der Schatten als
+           voller Ring rundum und verliert sich nach unten im Verlauf. -->
+      <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#000" stop-opacity=".62"/>
+        <stop offset="34%"  stop-color="#000" stop-opacity=".38"/>
+        <stop offset="66%"  stop-color="#000" stop-opacity=".14"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+      </linearGradient>${fein ? `
       <!-- Koernung. Sie liegt NICHT als eigenes Element mit
            mix-blend-mode darueber — das ignoriert die WKWebView, in der App
            war davon nichts zu sehen. Statt dessen mischt der Filter das
@@ -398,9 +409,9 @@ function _lvlPlateSVG(level, px, opts){
     <circle cx="50" cy="50" r="${PL.buchse}" fill="none" stroke="#000" stroke-width=".9" opacity=".45"/>
     <circle cx="50" cy="50" r="${PL.loch}" fill="url(#${id}l)"/>
     <!-- Schattenkante oben im Kanal: ohne sie sieht das Loch aus wie ein
-         schwarzer Punkt statt wie eine Oeffnung. -->
-    <path d="M ${50 - PL.loch} 50 A ${PL.loch} ${PL.loch} 0 0 1 ${50 + PL.loch} 50" fill="none"
-      stroke="#000" stroke-width="1.6" opacity=".55"/>` : ''}
+         schwarzer Punkt statt wie eine Oeffnung. Voller Ring mit auslaufendem
+         Verlauf (s. ${id}s) — kein abgehacktes Bogenende mehr. -->
+    <circle cx="50" cy="50" r="${PL.loch}" fill="none" stroke="url(#${id}s)" stroke-width="1.9"/>` : ''}
 
     <!-- Zahl: heller Koerper mit duenner dunkler Kontur, wie das Gewicht auf
          der Vorlage. Bei Bohrung steht sie links und rechts davon. -->
@@ -563,9 +574,15 @@ function _lvlPlateCanvas(level, size, mat){
                                        mitte, mitte + M(PL.loch * .44), M(PL.loch * 1.5));
   kanal.addColorStop(0, '#2a2f35'); kanal.addColorStop(.6, '#14171a'); kanal.addColorStop(1, '#050607');
   kreis(PL.loch, kanal);
-  c.strokeStyle = '#000'; c.lineWidth = M(1.6); c.globalAlpha = .55; c.lineCap = 'butt';
-  c.beginPath(); c.arc(mitte, mitte, M(PL.loch), Math.PI, 0); c.stroke();
-  c.globalAlpha = 1;
+  /* Schattenkante wie im SVG: voller Ring mit nach unten auslaufendem Verlauf.
+     Der frühere Halbkreis (arc PI..0) endete stumpf auf der Waagerechten und
+     teilte die Bohrung sichtbar in zwei Hälften. */
+  const kanalKante = c.createLinearGradient(0, mitte - M(PL.loch), 0, mitte + M(PL.loch));
+  kanalKante.addColorStop(0,   'rgba(0,0,0,.62)');
+  kanalKante.addColorStop(.34, 'rgba(0,0,0,.38)');
+  kanalKante.addColorStop(.66, 'rgba(0,0,0,.14)');
+  kanalKante.addColorStop(1,   'rgba(0,0,0,0)');
+  kreis(PL.loch, null, kanalKante, 1.9);
   }
 
   // Zahl links und rechts der Bohrung
