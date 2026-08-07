@@ -158,25 +158,44 @@ function _lvlPlateSVG(level, px, opts){
         <stop offset="0%"   stop-color="${s.hell ? '#2b3138' : '#ffffff'}"/>
         <stop offset="100%" stop-color="${s.schrift}"/>
       </linearGradient>${fein ? `
-      <filter id="${id}n" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="3" seed="7" result="t"/>
-        <feColorMatrix type="saturate" values="0"/>
-      </filter>
-      <!-- Der Filter fuellt das Rechteck um die Scheibe, nicht die Scheibe.
-           Ohne diesen Ausschnitt liegt die Koernung auch in den Ecken. -->
-      <clipPath id="${id}c"><circle cx="50" cy="50" r="${PL.rand}"/></clipPath>` : ''}
+      <!-- Koernung. Sie liegt NICHT als eigenes Element mit
+           mix-blend-mode darueber — das ignoriert die WKWebView, in der App
+           war davon nichts zu sehen. Statt dessen mischt der Filter das
+           Rauschen selbst ueber den Koerper (feBlend), und feComposite
+           schneidet das Ergebnis wieder auf die Scheibe zurecht; ohne das
+           bliebe das Rauschquadrat des Filterbereichs stehen. -->
+      <!-- color-interpolation-filters="sRGB" ist Pflicht: per Vorgabe rechnen
+           SVG-Filter in linearRGB, und dort uebersteuert der Overlay auf dem
+           dunklen Gummi so sehr, dass die Scheibe wie Schleifpapier aussieht. -->
+      <filter id="${id}n" x="-1%" y="-1%" width="102%" height="102%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="2" seed="7" result="t"/>
+        <feColorMatrix in="t" type="saturate" values="0" result="g"/>
+        <!-- Rauschen um Mittelgrau zusammenstauchen: overlay laesst 0.5
+             unveraendert, der Rest hellt auf oder dunkelt ab. Voller Umfang
+             saehe aus wie Bildrauschen, nicht wie Gummi. -->
+        <feComponentTransfer in="g" result="k">
+          <feFuncR type="linear" slope=".3" intercept=".35"/>
+          <feFuncG type="linear" slope=".3" intercept=".35"/>
+          <feFuncB type="linear" slope=".3" intercept=".35"/>
+          <feFuncA type="linear" slope="0" intercept="1"/>
+        </feComponentTransfer>
+        <feBlend in="SourceGraphic" in2="k" mode="overlay" result="b"/>
+        <feComposite in="b" in2="SourceGraphic" operator="in"/>
+      </filter>` : ''}
     </defs>
 
-    <!-- Koerper -->
-    <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>
-    <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}b)"/>
-    <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}v)"/>
-
-    <!-- Eingelassene Flaeche mit Stufe zum Reifen -->
-    <circle cx="50" cy="50" r="${PL.innen}" fill="url(#${id}f)"/>
-    <circle cx="50" cy="50" r="${PL.innen + .35}" fill="none" stroke="#000"
-      stroke-width="1.1" opacity="${s.hell ? .22 : .5}"/>
-    <circle cx="50" cy="50" r="${PL.innen - .6}" fill="none" stroke="url(#${id}e)" stroke-width="1.6"/>
+    <!-- Koerper und eingelassene Flaeche. Beides zusammen durch den
+         Koernungsfilter — Ring, Schrift und Zahl bleiben glatt, gekoernt ist
+         nur das Gummi. -->
+    <g${fein ? ` filter="url(#${id}n)"` : ''}>
+      <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>
+      <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}b)"/>
+      <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}v)"/>
+      <circle cx="50" cy="50" r="${PL.innen}" fill="url(#${id}f)"/>
+      <circle cx="50" cy="50" r="${PL.innen + .35}" fill="none" stroke="#000"
+        stroke-width="1.1" opacity="${s.hell ? .22 : .5}"/>
+      <circle cx="50" cy="50" r="${PL.innen - .6}" fill="none" stroke="url(#${id}e)" stroke-width="1.6"/>
+    </g>
 
     <!-- Umlaufende Linie -->
     <circle cx="50" cy="50" r="${PL.ring}" fill="none" stroke="${s.ring}" stroke-width="1.25" opacity=".95"/>
@@ -207,10 +226,6 @@ function _lvlPlateSVG(level, px, opts){
       font-size="${zg}" font-weight="800" fill="url(#${id}z)"
       stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zg * .03}"
       style="font-family:inherit;letter-spacing:${text ? '-.5' : '-1'}px;paint-order:stroke fill">${n}</text>
-    ${fein ? `<g clip-path="url(#${id}c)" pointer-events="none">
-      <rect x="0" y="0" width="100" height="100" filter="url(#${id}n)"
-        opacity="${s.hell ? .1 : .085}" style="mix-blend-mode:overlay"/>
-    </g>` : ''}
   </svg>`;
 }
 
