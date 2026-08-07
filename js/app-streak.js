@@ -1636,6 +1636,42 @@ let _socTab = 'home', _socMetric = 'vol', _socPushT = null;
 let _socZone = 'community';   // Oberste Ebene: 'community' (Standard, öffentlicher Feed) | 'friends'
 let _frSubs = [], _frTimer = null, _frPresence = {}, _frReqCount = 0, _feedCache = null, _frListDrawn = false;
 let _socCache = null, _socCacheTs = 0;
+/* Freundes-Profile ueberleben den App-Neustart in localStorage. Ohne das stand
+   beim ersten Oeffnen der Freunde-Zone jedes Mal „Lade Freunde…", obwohl sich
+   an Namen und Bildern seit gestern nichts geaendert hat: der Kaltstart begann
+   mit leerem _socCache und musste erst Firestore fragen. Jetzt wird der letzte
+   Stand sofort gezeichnet und beim Eintreffen der frischen Daten ersetzt
+   (stale-while-revalidate).
+
+   Gespeichert wird NUR, was die Liste zum Zeichnen braucht — kein zweiter
+   Datenspeicher neben S, keine Firestore-Felder, kein Cloud-Sync. Der Deckel
+   von 60 Profilen haelt den Eintrag klein: `photo` kann eine lange URL sein,
+   und localStorage ist bei manchen Nutzern schon von den Koerperfotos belegt. */
+const SOC_CACHE_KEY = 'gt_socCache';
+function _socCacheLaden(){
+  try {
+    const o = JSON.parse(localStorage.getItem(SOC_CACHE_KEY) || 'null');
+    if (o && Array.isArray(o.v) && o.v.length) { _socCache = o.v; _socCacheTs = 0; }
+  } catch(_) {}
+}
+function _socCacheSpeichern(){
+  try {
+    if (!Array.isArray(_socCache) || !_socCache.length) { localStorage.removeItem(SOC_CACHE_KEY); return; }
+    localStorage.setItem(SOC_CACHE_KEY, JSON.stringify({ ts: Date.now(), v: _socCache.slice(0, 60) }));
+  } catch(_) {}
+}
+/* Steht genug fuer eine erste Zeichnung bereit? `_socCacheTs` bleibt beim Laden
+   aus localStorage bewusst 0 — der Stand ist gut genug zum Anzeigen, aber nie
+   frisch genug, um die Netzabfrage zu ueberspringen. */
+function _socHatStand(){ return Array.isArray(_socCache) && _socCache.length > 0; }
+/* Der Platzhalter fuer #fr-list: nur wenn wirklich nichts da ist, wird geladen
+   angezeigt. Sonst bleibt der Kasten leer und _renderFrList() fuellt ihn im
+   selben Tick — so blitzt der Spinner nicht zwischen zwei Frames auf. */
+function _frListPlatzhalter(){
+  return _socHatStand() ? ''
+    : `<div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div>`;
+}
+_socCacheLaden();
 let _socMap = null, _socMarkers = [], _leafP = null;
 let _socEditing = false, _socTmp = null, _socSearchT = null, _socHits = [];
 
@@ -1926,6 +1962,7 @@ async function _loadProfiles(force){
     } catch(_){}
   }));
   _socCache = out; _socCacheTs = Date.now();
+  _socCacheSpeichern();
   return out;
 }
 
@@ -2697,9 +2734,7 @@ async function _renderFrHome(body){
     ${(typeof refBannerHTML === 'function') ? refBannerHTML() : ''}
     <div id="fr-crew-host"></div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
-    <div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>
-    ${_socSec('Rangliste · diese Woche', 'Ganze Rangliste', 'board')}
-    <div id="fr-board-mini"></div>
+    <div id="fr-list">${_frListPlatzhalter()}</div>
     ${_socSec('Karte', 'Große Karte', 'map')}
     <div id="fr-map-mini"></div>`;
   _frListDrawn = false;
@@ -2709,28 +2744,14 @@ async function _renderFrHome(body){
   // darf die Freundesliste nicht aufhalten.
   try { if (typeof _crewHomeBlock === 'function') _crewHomeBlock(); } catch(_){}
   _frLimit = 4;
+  // Liegt ein Stand vor, steht er SOFORT da — die Netzabfrage laeuft darunter
+  // weiter und zeichnet gleich neu. Vorher blitzte hier jedes Mal „Lade
+  // Freunde…" auf, obwohl die Namen laengst bekannt waren.
+  if (_socHatStand()) { _renderFrList(); _renderFrMapMini(); }
   await _loadProfiles();
   _renderFrList();
-  _renderFrBoardMini();
   _renderFrMapMini();
   _frStartLive();
-}
-/* Kurz-Rangliste: dieselbe Kennzahl wie die volle Ansicht (_socVal), nur die
-   ersten drei. Steht keiner zum Vergleichen da, bleibt der Abschnitt leer statt
-   eine Rangliste mit einem einzigen Namen zu zeigen. */
-function _renderFrBoardMini(){
-  const el = document.getElementById('fr-board-mini'); if (!el) return;
-  const profs = (_socCache || []).filter(p => !(S.blocked || []).includes(p.uid));
-  if (profs.length <= 1) { el.innerHTML = `<div class="soc-empty" style="padding:14px 16px">Noch niemand zum Vergleichen.</div>`; return; }
-  const wk = getWeekKey();
-  const rows = profs.map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a, b) => b._v - a._v).slice(0, 3);
-  el.innerHTML = rows.map((p, i) => `
-    <div class="soc-row${p.uid === _fbUser?.uid ? ' me' : ''}">
-      <span class="soc-rank${i === 0 ? ' top' : ''}">${i + 1}</span>
-      <div class="soc-ava">${p.photo ? `<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">` : _socInitials(p.name)}</div>
-      <div style="flex:1;min-width:0"><div class="soc-name">${esc(p.name || '')}${_founderTag(p.uid)}${p.uid === _fbUser?.uid ? ' (du)' : ''}</div></div>
-      <span class="soc-val">${_socFmtVal(p._v)}</span>
-    </div>`).join('');
 }
 /* Karten-Einstieg. Bewusst KEINE zweite Leaflet-Instanz: die grosse Karte misst
    sich an der Bildschirmhoehe (_sizeSocMap) und wuerde in einem 160-px-Kasten
@@ -2751,10 +2772,11 @@ function _renderFrMapMini(){
 async function _renderFrOverview(body){
   try { _checkLevelUp(true); } catch(_){}   // Rang-Index seeden (kein Fake-Level-Up beim ersten Öffnen)
   _frLimit = 0;
-  body.innerHTML = `${_socBackBar('Freunde')}<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>`;
+  body.innerHTML = `${_socBackBar('Freunde')}<div class="fr-ptr" id="fr-ptr"></div><div id="fr-req-host"></div><div id="fr-list">${_frListPlatzhalter()}</div>`;
   _frListDrawn = false;   /* Einblend-Animation nur beim ersten Aufbau, nicht bei Live-Updates */
   _initFrPull(body);
   _loadRequests().then(r => _renderFrReqs(r.inc));
+  if (_socHatStand()) _renderFrList();   // gemerkter Stand sofort, Netz zeichnet gleich neu
   await _loadProfiles();
   _renderFrList();
   _frStartLive();
