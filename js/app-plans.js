@@ -2473,17 +2473,45 @@ function _erfRadarDraw(kraft){
         // Zwei Zeilen je Achse: Name und darunter "jetzt / Start" — dieselbe
         // Anordnung wie in der Vorlage, nur mit echten Kilo statt Spielwerten.
         labels: kraft.map(k => [tr(k.mg.label), fmt1RM(k.now) + ' / ' + fmt1RM(k.start)]),
+        /* Beide Reihen starten auf 0 und werden gleich nach dem ersten Bild auf
+           die echten Werte gesetzt (siehe unten). Grund: Chart.js animiert beim
+           ERSTEN Aufbau die Punktkoordinaten aus dem Nullpunkt der Zeichen-
+           flaeche — also aus der linken oberen Ecke. Das war der Sprung: die
+           Flaeche flog von schraeg oben herein, statt zu wachsen. Aus einer
+           Wertaenderung 0 → Wert macht dieselbe Animation dagegen genau das,
+           was die Balken darunter auch tun: sie waechst aus der Mitte nach
+           aussen, jede Achse in ihre eigene Laenge. */
         datasets:[
-          { label:tr('Jetzt'), data:kraft.map(k => skal(k.now)),
+          { label:tr('Jetzt'), data:kraft.map(() => 0),
             borderColor:acc, backgroundColor:_hexA(acc,.16), borderWidth:2.4,
             pointRadius:3.2, pointBackgroundColor:acc, pointBorderColor:'#fff', pointBorderWidth:1.4 },
-          { label:tr('Start'), data:kraft.map(k => skal(k.start)),
+          { label:tr('Start'), data:kraft.map(() => 0),
             borderColor:'#41d869', backgroundColor:'rgba(65,216,105,.09)', borderWidth:1.8,
             pointRadius:0, pointHoverRadius:5 }
         ]
       },
       options:{
         responsive:true, maintainAspectRatio:false,
+        /* Ruckelfrei in der WKWebView — drei Stellschrauben, alle drei noetig:
+
+           1. Aufloesung deckeln. Chart.js zeichnet per Vorgabe in Geraete-
+              pixeln; auf dem iPhone sind das 3x, bei 330 px Kantenlaenge also
+              knapp eine Million Pixel, die JEDES Bild neu gefuellt werden —
+              Flaeche, Linien und zwoelf Beschriftungszeilen. Bei 2x ist es
+              weniger als die Haelfte, und auf einer Netzflaeche mit weichen
+              Kanten sieht man den Unterschied nicht.
+           2. Dieselbe Taktung wie die uebrigen Aufbauten der Seite: die Balken
+              darunter wachsen in 550 ms mit derselben ausklingenden Kurve. Das
+              Netz laeuft MIT ihnen los, nicht danach — verzoegert gestartet
+              wirkte es wie nachgereicht, obwohl die Seite laengst steht.
+           3. resizeDelay: die Einblendung skaliert die Karte, und jeder
+              Zwischenschritt meldet dem ResizeObserver eine neue Groesse. Ohne
+              Sperrzeit baut Chart.js waehrend der Einblendung mehrfach die
+              ganze Flaeche neu auf. */
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        resizeDelay: 180,
+        animation:{ duration:560, easing:'easeOutQuart' },
+        animations:{ colors:false },
         // Die Ecken-Beschriftung steht AUSSERHALB der Netzflaeche und wurde links
         // und rechts abgeschnitten: Chart.js rechnet den Platz dafuer nicht in
         // die Flaeche ein. Seitlich deshalb deutlich mehr Luft als oben.
@@ -2513,6 +2541,20 @@ function _erfRadarDraw(kraft){
         events:[]
       }
     });
+    /* Jetzt die echten Werte nachreichen: das Netz waechst aus der Mitte in
+       seine Form. Ein Bild abwarten, sonst faellt Chart.js beides in denselben
+       Aufbau zusammen und der Sprung aus der Ecke waere zurueck. Bei
+       „Bewegung reduzieren" stehen die Werte sofort — wie ueberall in der App. */
+    const zJetzt = kraft.map(k => skal(k.now));
+    const zStart = kraft.map(k => skal(k.start));
+    const ruhig = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const setzen = () => {
+      if (!erfRadarChart) return;
+      erfRadarChart.data.datasets[0].data = zJetzt;
+      erfRadarChart.data.datasets[1].data = zStart;
+      erfRadarChart.update(ruhig ? 'none' : undefined);
+    };
+    if (ruhig) setzen(); else requestAnimationFrame(setzen);
   } catch(e) { console.warn('[Erfolge] Netzdiagramm:', e); }
 }
 function renderErfolge() {

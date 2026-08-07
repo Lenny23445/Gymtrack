@@ -1848,6 +1848,34 @@ function openSocial(){
   haptic(8);
   goTabId('freunde');
 }
+/* Auswahlleiste der Freunde-Zone.
+
+   Die Uebersicht bleibt der Einstieg — sie zeigt alles untereinander. Aber
+   „alles untereinander" heisst auch: Rangliste und Karte stehen ganz unten und
+   sind nur ueber „alle anzeigen" zu erreichen. Die Leiste nennt beide gleich
+   beim Oeffnen und bringt einen mit EINEM Tipp hin. Sie ersetzt die
+   Zurueck-Zeile der vollen Ansichten (_socBackBar): die aktive Stellung sagt
+   dasselbe wie deren Titel, und man kommt von jeder Ansicht direkt in jede
+   andere, statt erst zurueck auf die Uebersicht zu muessen.
+
+   Alle fuenf Stellungen teilen sich die Breite zu gleichen Teilen und stehen
+   damit mittig unter dem Zonen-Umschalter (siehe .soc-tab-seg im Stylesheet).
+   Waagerecht scrollend sah die Reihe aus, als haenge sie nach rechts heraus. */
+const SOC_TABS = [
+  ['home',    'Übersicht'],
+  ['friends', 'Freunde'],
+  ['crew',    'Gruppe'],
+  ['board',   'Rangliste'],
+  ['map',     'Karte']
+];
+function _socTabSeg(zeigen){
+  const host = document.getElementById('soc-tab-seg');
+  if (!host) return;
+  if (!zeigen) { host.style.display = 'none'; host.innerHTML = ''; return; }
+  host.style.display = '';
+  host.innerHTML = SOC_TABS.map(([k, l]) =>
+    `<button class="sts${k === _socTab ? ' on' : ''}" onclick="setSocTab('${k}')">${esc(tr(l))}</button>`).join('');
+}
 function setSocTab(t){
   _socTab = t; haptic(6);
   if (t !== 'friends') _frStopLive();
@@ -1963,6 +1991,7 @@ function _socFeedFull(on){
 function _renderDemoFriends(body){
   try { _frStopLive(); } catch(_){}
   _socFeedFull(_socZone === 'community');
+  _socTabSeg(_socZone === 'friends');   // Screenshots sollen dieselbe Leiste zeigen wie die App
   if (_socZone === 'community') return _renderDemoFeed(body);
   if (_socTab === 'board') return _renderDemoBoard(body);
   if (_socTab === 'map')   return _renderDemoMap(body);
@@ -2182,6 +2211,10 @@ function renderFriendsTab(){
   const body = document.getElementById('fr-body'); if (!body) return;
   _socFeedFull(false);   // Standard: normal scrollende Seite; Feed-Pfade schalten unten wieder an
   document.querySelectorAll('#soc-zone-toggle .szt').forEach(b => b.classList.toggle('on', b.dataset.z === _socZone));
+  /* Erst ausblenden, unten wieder an: die Abbruchpfade darunter (Cloud fehlt,
+     „Verbinde…", Anmelde-Gate, Community aus) zeigen eine leere Seite — eine
+     Auswahlleiste darueber fuehrte ins Nichts. */
+  _socTabSeg(false);
   // Community/Freunde geöffnet → ALLES „Passive" als gesehen markieren, damit die
   // Zahl unten am Community-Tab zuverlässig verschwindet: neue Freundes-Posts UND
   // Flammen auf eigene Posts. (Freundschaftsanfragen bleiben separat am +-Button.)
@@ -2240,6 +2273,7 @@ function renderFriendsTab(){
     if (pend) { sessionStorage.removeItem('gt_addCode'); setTimeout(()=>openFrAdd(pend), 250); }
   } catch(_){}
   if (_socZone === 'community') { _socFeedFull(true); return _renderFeed(body); }
+  _socTabSeg(true);
   if (_socTab === 'crew')    return _renderSocCrew(body);
   if (_socTab === 'board')   return _renderSocBoard(body);
   if (_socTab === 'map')     return _renderSocMapTab(body);
@@ -2617,11 +2651,12 @@ function _updateFrBadges(){
 /* Zurueck-Zeile der vollen Ansichten. Seit die Chip-Leiste weg ist, ist sie der
    einzige Weg zurueck auf die Uebersicht — ohne sie waere man in Rangliste oder
    Karte gefangen. */
-function _socBackBar(titel){
-  return `<div class="soc-back"><button onclick="setSocTab('home')" aria-label="Zurück">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    </button><span>${esc(titel)}</span></div>`;
-}
+/* Seit die Auswahlleiste (_socTabSeg) ueber allen Ansichten steht, ist die
+   Zurueck-Zeile doppelt: die aktive Stellung sagt, wo man ist, und jede andere
+   Ansicht ist von hier aus einen Tipp entfernt — der Umweg ueber die Uebersicht
+   entfaellt. Die Funktion bleibt als leere Huelse, damit die vier Aufrufstellen
+   unveraendert bleiben. */
+function _socBackBar(_titel){ return ''; }
 /* Abschnitts-Kopf der Uebersicht: Titel links, Sprung in die volle Ansicht rechts. */
 function _socSec(titel, mehr, ziel){
   return `<div class="soc-sec"><span>${esc(titel)}</span>${

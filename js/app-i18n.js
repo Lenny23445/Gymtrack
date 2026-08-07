@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608072200';
+const APP_VERSION = 'gymtrack-v202608072300';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -583,6 +583,7 @@ const I18N_EN = {
   '✓ Bereits aktuell':'✓ Already up to date','Kein Netz – bitte verbinden':'❌ No connection – please go online',
   'Updates · aktuell':'Updates · up to date',
   'Freund hinzufügen':'Add friend','Freunde hinzufügen':'Add friends','Aktivität':'Activity','Rangliste':'Leaderboard','Karte':'Map',
+  'Übersicht':'Overview',
   'Community entdecken':'Discover the community','Dein persönlicher Fitness-Tracker':'Your personal fitness tracker',
   'Cloud nicht eingerichtet':'Cloud not set up',
   'Für die Community wird Firebase benötigt — Anleitung in der CLAUDE.md.':'The community requires Firebase — see CLAUDE.md for instructions.',

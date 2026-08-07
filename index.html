@@ -466,10 +466,12 @@
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.1"/><path d="M2.6 19c0-3.4 2.9-5.3 6.4-5.3s6.4 1.9 6.4 5.3"/><path d="M16.8 5.2a3 3 0 0 1 0 5.7M18.4 19c0-2.5-1-4.2-2.6-5.1"/></svg><span>Freunde</span>
       </button>
     </div>
-    <!-- Die Chip-Leiste (Freunde/Feed/Crew/Rangliste/Karte) ist am 07.08.2026
-         entfallen: fuenf Ansichten hinter fuenf Klicks, keine davon beim
-         Oeffnen sichtbar. Die Freunde-Zone ist jetzt EINE scrollende Seite
-         (_renderFrHome), die vollen Ansichten haengen an „alle anzeigen". -->
+    <!-- Auswahlleiste der Freunde-Zone. Die Uebersicht bleibt der Einstieg
+         (_renderFrHome, alles untereinander) — aber Rangliste und Karte lagen
+         dort ganz unten und waren nur ueber „alle anzeigen" erreichbar. Die
+         Leiste zeigt beide beim Oeffnen und macht sie mit EINEM Tipp
+         erreichbar. Gefuellt von _socTabSeg(), nur in der Freunde-Zone. -->
+    <div class="soc-tab-seg" id="soc-tab-seg" style="display:none"></div>
     <div id="fr-body" style="margin-top:14px"></div>
   </div>
 </div>

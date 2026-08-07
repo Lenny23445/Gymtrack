@@ -342,13 +342,21 @@ function _lvlPlateSVG(level, px, opts){
              denselben Betrag nach oben und unten. -->
         <feComposite in="SourceGraphic" in2="k" operator="arithmetic" k1="2" k2="0" k3="0" k4="0" result="b"/>
         <feComposite in="b" in2="SourceGraphic" operator="in"/>
-      </filter>` : ''}
+      </filter>
+      <!-- Der Filterbereich ist ein RECHTECK, und die WKWebView gibt ihn auch
+           als solches zurueck: das Ergebnis kam dort mit voller Deckkraft ueber
+           die ganze Kachel, statt nur ueber der Scheibe. Auf der Scheibe selbst
+           faellt das nicht auf (darueber liegen Ring, Schrift, Zahl), wohl aber
+           im Schlagschatten — der rechnet aus dem Alphakanal, und so lag hinter
+           der runden Scheibe ein schwarzes Viereck. clip-path greift NACH dem
+           Filter und schneidet dessen Ergebnis wieder rund. -->
+      <clipPath id="${id}c"><circle cx="50" cy="50" r="${PL.rand}"/></clipPath>` : ''}
     </defs>
 
     <!-- Koerper und eingelassene Flaeche. Beides zusammen durch den
          Koernungsfilter — Ring, Schrift und Zahl bleiben glatt, gekoernt ist
          nur das Gummi. -->
-    <g${fein ? ` filter="url(#${id}n)"` : ''}>
+    <g${fein ? ` filter="url(#${id}n)" clip-path="url(#${id}c)"` : ''}>
       ${s.metall ? _plateSpiegel(id, 'k', PL.rand)
                  : `<circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>`}
       <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}b)"/>

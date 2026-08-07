@@ -5064,8 +5064,17 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   animation:lvlpWink 2.2s ease-in-out infinite}
 @keyframes lvlpWink{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(4px);opacity:1}}
 @media (prefers-reduced-motion:reduce){.lvlp-next{animation:none}}
-.lvlp-plate{line-height:0;filter:drop-shadow(0 18px 44px rgba(0,0,0,.6));animation:lvlpIn .5s var(--ease) both}
-.lvlp-plate.locked{opacity:.32;filter:grayscale(.85) drop-shadow(0 10px 26px rgba(0,0,0,.5))}
+/* Der Schatten ist bewusst KEIN drop-shadow mehr: die grosse Scheibe traegt
+   innen einen SVG-Koernungsfilter, und drop-shadow rechnet aus dessen
+   Alphakanal. Die WKWebView gibt den Filter ueber seinem RECHTECKIGEN Bereich
+   aus — daraus wurde ein schwarzes Viereck hinter der runden Scheibe. Eine
+   eigene Ellipse unter der Scheibe haengt an keinem Filter und kostet auch
+   keine zweite Filterkachel je Bild. */
+.lvlp-plate{position:relative;line-height:0;animation:lvlpIn .5s var(--ease) both}
+.lvlp-plate::before{content:'';position:absolute;z-index:-1;left:6%;right:6%;bottom:-5%;height:17%;
+  border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,0))}
+.lvlp-plate.locked{opacity:.32;filter:grayscale(.85)}
+.lvlp-plate.locked::before{background:radial-gradient(closest-side,rgba(0,0,0,.45),rgba(0,0,0,0))}
 @keyframes lvlpIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
 .lvlp-name{font-size:15px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.62)}
 .lvlp-sub{font-size:15px;font-weight:600;color:rgba(255,255,255,.82);text-align:center;max-width:280px}
@@ -5966,6 +5975,21 @@ html:not([data-glass="off"]) #tab-indicator{
 .szt svg{opacity:.8}
 .szt.on{background:var(--acc);color:#fff}
 .szt.on svg{opacity:1}
+/* Auswahlleiste der Freunde-Zone (Uebersicht/Freunde/Gruppe/Rangliste/Karte).
+   Alle fuenf Stellungen teilen sich die Breite zu gleichen Teilen (flex:1) und
+   stehen damit symmetrisch unter dem Zonen-Umschalter darueber. Waagerecht
+   scrollend war es vorher, und das sah aus, als haenge die Reihe nach rechts
+   heraus — die fuenfte Stellung lag ausserhalb, die Reihe stand aus der Mitte.
+   Dafuer muss die Schrift kleiner sein als beim Umschalter; „Uebersicht" ist
+   das laengste Wort und gibt die Groesse vor. */
+.soc-tab-seg{display:flex;gap:5px;margin:10px 0 0}
+.sts{flex:1 1 0;min-width:0;background:var(--card);border:1.5px solid var(--gl-bdr);border-radius:20px;
+  padding:8px 2px;font-size:11.5px;font-weight:700;color:var(--text2);font-family:inherit;
+  text-align:center;letter-spacing:-.2px;cursor:pointer;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;
+  transition:background .16s var(--ease),color .16s var(--ease),border-color .16s var(--ease)}
+.sts.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.sts:active{transform:scale(.96)}
 /* Zonenzeile = drei Spalten: leer | zentrierter Text (+ Live-Zaehler) | Bildzaehler.
    Der Zaehler hing frueher absolut am Kartenrahmen (top:-30px) — seit die Karte
    schmaler ist als die Spalte, sass er eingerueckt statt auf einer Linie, und der
