@@ -2150,7 +2150,7 @@ function _renderDemoBoard(body){
       <div class="soc-ava">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : _socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
         <div class="soc-name">${esc(p.name)}${_founderTag(p.uid)}${_modTag(p.uid)}${_lvlPillFor(p)}${p.uid==='demo-me'?' (du)':''}</div>
-        <div class="soc-sub">${_socMetric==='xp'?tr('Level')+' '+_levelOf(p._v).level:(p.gymName?esc(p.gymName):(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
+        <div class="soc-sub">${p.gymName?esc(p.gymName):(_socMetric==='xp'?'Punkte gesamt':(_socMetric==='streak'?'Wochen in Folge':'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
     </div>`).join('') + `<div class="soc-empty" style="padding:12px 16px 8px;font-size:12.5px">${hint}</div>`;
@@ -2617,7 +2617,7 @@ async function _renderSocBoard(body){
       <div class="soc-ava">${p.photo?`<img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt="">`:_socInitials(p.name)}</div>
       <div style="flex:1;min-width:0">
         <div class="soc-name">${esc(p.name||'')}${_founderTag(p.uid)}${_lvlPillFor(p)}${p.uid===_fbUser.uid?' (du)':''}</div>
-        <div class="soc-sub">${_socMetric==='xp' ? tr('Level')+' '+_levelOf(p._v).level : (p.gymName ? esc(p.gymName) : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum'))}</div>
+        <div class="soc-sub">${p.gymName ? esc(p.gymName) : (_socMetric==='xp' ? 'Punkte gesamt' : (_socMetric==='streak' ? 'Wochen in Folge' : 'aktueller Zeitraum'))}</div>
       </div>
       <span class="soc-val">${_socFmtVal(p._v)}</span>
     </div>`).join('') +
@@ -3401,7 +3401,7 @@ async function openFrProfile(uid){
       <div class="ob-h1" style="font-size:22px;margin:12px 0 2px">${esc(p.name||'')}${_founderTag(uid, 18)}${_premTagForUid(uid, 16)}</div>
       ${p.gymName ? `<div class="fr-sub" style="justify-content:center">${esc(p.gymName)}</div>` : ''}
       ${uid === FOUNDER_UID ? `<div class="frp-founder"><span>${tr('Gründer von MyGymTrack')}</span></div>` : ''}
-      <div class="frp-level" onclick="event.stopPropagation()">${tr('Level')} ${_socLevel(p)}<span class="frp-xp">${_fmtXP(_xpOf(p))} ${tr('Punkte')}</span></div>
+      <div class="frp-level" onclick="event.stopPropagation();openLevelPlate(${_socLevel(p)})">${_lvlPlate(_socLevel(p), 34)}<span class="frp-xp">${_fmtXP(_xpOf(p))} ${tr('Punkte')}</span></div>
       ${live ? `<div style="margin-top:10px"><span class="fr-live-badge"><span class="fr-live-dot"></span>Trainiert gerade${p.live.gym?' · '+esc(p.live.gym):''}</span></div>` : ''}
     </div>
     <div class="frp-grid">${stats.map(s => `<div class="frp-stat"><div class="frp-stat-v">${s[0]}</div><div class="frp-stat-l">${s[1]}</div></div>`).join('')}</div>

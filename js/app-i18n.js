@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080002';
+const APP_VERSION = 'gymtrack-v202608080003';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -121,7 +121,7 @@ const I18N_EN = {
   'Aktiviere die Community im Community-Tab, um Beiträge zu posten.':'Enable the community in the Community tab to post.',
   'Extern teilen':'Share externally','Posten':'Post','Wird gepostet…':'Posting…','Gründer':'Founder',
   'Gründer von MyGymTrack':'Founder of MyGymTrack',
-  'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
+  'Dein Level':'Your level','Level':'Level','Punkte':'points','Punkte gesamt':'total points','So sammelst du Punkte':'How you earn points',
 'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
   'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
   'Silber':'Silver','Erreicht':'Reached','Standard':'Default',
