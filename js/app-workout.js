@@ -2817,7 +2817,7 @@ function _shfTgl(k) {
   const el = document.getElementById('shf-tg-' + k);
   if (el) { el.checked = !el.checked; haptic(6); }
 }
-async function _shfFinalJpeg() {
+function _shfFinalJpeg() {
   return _shfRender(_shfLayout).toDataURL('image/jpeg', 0.82);
 }
 // Kompakte base64-Variante fürs Firestore-Dokument (kein Storage nötig): kleinere
@@ -2831,19 +2831,38 @@ async function _shfFeedJpeg() {
   }
   return cv.toDataURL('image/jpeg', 0.3);
 }
-async function _shfExtern() {
+/* Extern teilen — ALLES SYNCHRON bis navigator.share. WebKit haengt die
+   Erlaubnis fuers Teilen an die Geste des Taps und verwirft sie, sobald davor
+   ein eigener Task laeuft: `await fetch(dataUrl)` war so einer, danach warf
+   share NotAllowedError und der catch schluckte ihn — das Teilen-Blatt ging
+   auf dem iPhone nie auf, ohne dass die App etwas sagte. Gleiche Ursache wie
+   beim Teilen der Level-Scheibe (lvlPlateShare in js/app-plate.js), deshalb
+   auch derselbe Weg: toDataURL statt fetch, Bytes ueber _dataUrlBytes. */
+function _shfExtern() {
   haptic(10);
+  let dataUrl, file;
   try {
-    const dataUrl = await _shfFinalJpeg();
-    const blob = await (await fetch(dataUrl)).blob();
-    const file = new File([blob], 'mygymtrack-workout.jpg', { type: 'image/jpeg' });
+    dataUrl = _shfFinalJpeg();
+    file = new File([_dataUrlBytes(dataUrl)], 'mygymtrack-workout.jpg', { type: 'image/jpeg' });
+  } catch (e) { console.warn('[GymTrack] Extern teilen:', e); return; }
+  const laden = () => {
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = 'mygymtrack-workout.jpg'; a.click();
+  };
+  try {
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'MyGymTrack' });
-    } else {
-      const a = document.createElement('a');
-      a.href = dataUrl; a.download = 'mygymtrack-workout.jpg'; a.click();
+      navigator.share({ files: [file], title: 'MyGymTrack' }).catch(e => {
+        if (e?.name === 'AbortError') return;
+        console.warn('[GymTrack] Extern teilen:', e);
+        laden();
+      });
+      return;
     }
-  } catch (e) { if (e?.name !== 'AbortError') console.warn('[GymTrack] Extern teilen:', e); }
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
+    console.warn('[GymTrack] Extern teilen:', e);
+  }
+  laden();
 }
 async function _shfPublish() {
   const pb = document.getElementById('shf-tg-public')?.checked;

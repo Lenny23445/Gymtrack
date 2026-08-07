@@ -743,7 +743,7 @@ function setPlateMat(key){
 
 /* data-URL in Bytes, ohne fetch. fetch waere ein eigener Task — und genau der
    kostet beim Teilen die Nutzer-Geste (s. lvlPlateShare). */
-function _plateDataBytes(url){
+function _dataUrlBytes(url){
   const roh = atob(url.slice(url.indexOf(',') + 1));
   const arr = new Uint8Array(roh.length);
   for (let i = 0; i < roh.length; i++) arr[i] = roh.charCodeAt(i);
@@ -777,7 +777,7 @@ function lvlPlateShare(level){
   try {
     const cv  = _lvlPlateCanvas(level, 1080);   // Material folgt der lokalen Wahl
     const url = cv.toDataURL('image/png');
-    datei = new File([_plateDataBytes(url)], 'level-' + level + '.png', { type: 'image/png' });
+    datei = new File([_dataUrlBytes(url)], 'level-' + level + '.png', { type: 'image/png' });
   } catch(e) {
     console.warn('[GymTrack] Level-Bild:', e);
     alert('Bild konnte nicht erstellt werden.');
