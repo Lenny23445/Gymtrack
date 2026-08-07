@@ -18,13 +18,17 @@
    zu zeichnen faerbt es je nach Schriftart/Filter als „tainted" ein, und
    toDataURL wirft dann. Der Canvas-Zwilling ist deshalb Absicht. */
 
+/* Der Grundkoerper ist in allen Stufen dunkel wie die Hantel-Vorlage; die
+   Stufe zeigt sich an den Akzentboegen (`akzent`), am umlaufenden Ring
+   (`ring`) und am Ton der Zahl (`schrift`). Ab der obersten Stufe wird die
+   Innenflaeche hell — die Chromscheibe ist der sichtbare Bruch nach oben. */
 const PLATE_STUFEN = [
-  { ab: 50, name: 'Chrom',     rand: '#e8edf2', flaeche: '#c9d2da', tief: '#8e99a4', text: '#2b3138', glanz: .55 },
-  { ab: 40, name: 'Rot',       rand: '#e0483c', flaeche: '#b8322a', tief: '#7d1f1a', text: '#ffffff', glanz: .30 },
-  { ab: 30, name: 'Blau',      rand: '#3d7fe0', flaeche: '#2a5fb8', tief: '#1b3f7d', text: '#ffffff', glanz: .30 },
-  { ab: 20, name: 'Gelb',      rand: '#e8c141', flaeche: '#c99f22', tief: '#8a6c12', text: '#3a2f08', glanz: .34 },
-  { ab: 10, name: 'Grün',      rand: '#3fb45e', flaeche: '#2a8c46', tief: '#1a5c2d', text: '#ffffff', glanz: .30 },
-  { ab: 0,  name: 'Gusseisen', rand: '#4a4f55', flaeche: '#2e3237', tief: '#17191c', text: '#f2f5f8', glanz: .22 }
+  { ab: 50, name: 'Chrom',     innenHell: '#eef2f6', innen: '#ccd4dc', innenTief: '#9aa4ae', ring: '#9aa4ae', akzent: '#ffffff', schrift: '#1c2126', glanz: .5 },
+  { ab: 40, name: 'Rot',       innenHell: '#3a4048', innen: '#262b31', innenTief: '#15181c', ring: '#6b7480', akzent: '#e0483c', schrift: '#f4f7fa', glanz: .26 },
+  { ab: 30, name: 'Blau',      innenHell: '#3a4048', innen: '#262b31', innenTief: '#15181c', ring: '#6b7480', akzent: '#3d7fe0', schrift: '#f4f7fa', glanz: .26 },
+  { ab: 20, name: 'Gelb',      innenHell: '#3a4048', innen: '#262b31', innenTief: '#15181c', ring: '#6b7480', akzent: '#e8c141', schrift: '#f4f7fa', glanz: .26 },
+  { ab: 10, name: 'Grün',      innenHell: '#3a4048', innen: '#262b31', innenTief: '#15181c', ring: '#6b7480', akzent: '#3fb45e', schrift: '#f4f7fa', glanz: .26 },
+  { ab: 0,  name: 'Gusseisen', innenHell: '#3a4048', innen: '#262b31', innenTief: '#15181c', ring: '#6b7480', akzent: '#aeb7c1', schrift: '#e6ebf0', glanz: .22 }
 ];
 function plateStufe(level){
   const L = Math.max(1, Math.round(+level || 1));
@@ -40,71 +44,88 @@ let _plateNr = 0;
    Einzige, was gelesen werden muss — dreistellige Level muessen deshalb in
    denselben Kreis passen wie einstellige. */
 function _plateZahlGroesse(text){
-  return text.length >= 3 ? 30 : text.length === 2 ? 38 : 44;
+  return text.length >= 3 ? 26 : text.length === 2 ? 34 : 40;
 }
 
-/* Aufbau: eine geschlossene Scheibe von der Seite, wie die Scheibe einer
-   Kurzhantel — aussen ein schmaler Ring, in der Mitte die Zahl (dort, wo auf
-   einer echten Scheibe die Kilogramm stehen). Kein Loch, keine Speichen: der
-   erste Entwurf hatte beides, und die Zahl musste sich den Platz mit Nabe und
-   Kreuz teilen — bei 22 px war sie damit nicht mehr zu lesen. Jetzt sieht die
-   Scheibe in jeder Groesse gleich aus, von der Liste bis zum Vollbild.
+/* Aufbau nach der Endscheibe einer Kurzhantel (Vorlage: ATLETICA-Hantel):
+   ein dicker, matter Reifen aussen, darin eine erhabene Innenflaeche mit
+   umlaufendem hellem Ring, oben und unten gebogene Schrift, links und rechts
+   je ein kurzer Akzentbogen — und mittig gross die Zahl, dort wo auf der
+   Hantel das Gewicht steht.
+
+   Der Grundkoerper bleibt in allen Stufen dunkel wie die Vorlage; die Stufe
+   zeigt sich an den beiden Akzentboegen und am Ton der Zahl. Eine komplett
+   eingefaerbte Scheibe sah nach Spielmarke aus, nicht nach Hantel.
 
    level      = anzuzeigende Zahl
    px         = Kantenlaenge in Pixeln
-   opts.label = kleines „LEVEL" ueber der Zahl (erst ab ~120 px lesbar) */
+   opts.label = gebogene Schrift oben/unten (erst ab ~120 px lesbar) */
 function _lvlPlateSVG(level, px, opts){
   const o     = opts || {};
   const s     = plateStufe(level);
   const n     = String(Math.max(1, Math.round(+level || 1)));
   const id    = 'pl' + (++_plateNr);
   const gross = px >= 120;
-  const zeigeLabel = gross && o.label !== false;
+  const text  = gross && o.label !== false;
 
   return `<svg class="lvl-plate" viewBox="0 0 100 100" width="${px}" height="${px}" role="img"
     aria-label="Level ${n}" style="display:block">
     <defs>
-      <!-- Flaeche LINEAR beleuchtet, nicht radial: ein radialer Verlauf macht
-           aus der flachen Scheibe eine Kugel. -->
-      <linearGradient id="${id}f" x1="0.15" y1="0" x2="0.85" y2="1">
-        <stop offset="0%"   stop-color="${s.rand}"/>
-        <stop offset="48%"  stop-color="${s.flaeche}"/>
-        <stop offset="100%" stop-color="${s.tief}"/>
+      <!-- Reifen: matter Gummi, Licht von oben links -->
+      <linearGradient id="${id}r" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%"   stop-color="#3c4149"/>
+        <stop offset="42%"  stop-color="#22262b"/>
+        <stop offset="100%" stop-color="#101317"/>
       </linearGradient>
-      <!-- Der schmale Ring aussen: Licht oben links, Schatten unten rechts,
-           dazwischen ein heller Streifen — das laesst die Kante gedreht wirken. -->
-      <linearGradient id="${id}r" x1="0.1" y1="0" x2="0.9" y2="1">
-        <stop offset="0%"   stop-color="${s.rand}"/>
-        <stop offset="30%"  stop-color="${s.tief}"/>
-        <stop offset="62%"  stop-color="${s.flaeche}"/>
-        <stop offset="100%" stop-color="${s.tief}"/>
+      <!-- Innenflaeche, eine Spur heller als der Reifen -->
+      <linearGradient id="${id}f" x1="0.15" y1="0" x2="0.85" y2="1">
+        <stop offset="0%"   stop-color="${s.innenHell}"/>
+        <stop offset="55%"  stop-color="${s.innen}"/>
+        <stop offset="100%" stop-color="${s.innenTief}"/>
       </linearGradient>
       <linearGradient id="${id}g" x1="0.1" y1="0" x2="0.9" y2="1">
         <stop offset="0%"   stop-color="#fff" stop-opacity="${s.glanz}"/>
-        <stop offset="42%"  stop-color="#fff" stop-opacity="0"/>
-        <stop offset="100%" stop-color="#fff" stop-opacity="${s.glanz * .4}"/>
+        <stop offset="45%"  stop-color="#fff" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#fff" stop-opacity="${s.glanz * .35}"/>
       </linearGradient>
     </defs>
 
-    <!-- Scheibe -->
-    <circle cx="50" cy="50" r="49" fill="url(#${id}f)"/>
-    <!-- Schmaler Ring aussen -->
-    <circle cx="50" cy="50" r="46" fill="none" stroke="url(#${id}r)" stroke-width="6"/>
-    <circle cx="50" cy="50" r="49" fill="none" stroke="#000" stroke-width="1.2" opacity=".45"/>
-    <circle cx="50" cy="50" r="43" fill="none" stroke="#000" stroke-width="1" opacity=".3"/>
-    <circle cx="50" cy="50" r="42.2" fill="none" stroke="#fff" stroke-width=".7" opacity=".14"/>
-    <circle cx="50" cy="50" r="49" fill="url(#${id}g)" pointer-events="none"/>
+    <!-- Reifen -->
+    <circle cx="50" cy="50" r="49.5" fill="url(#${id}r)"/>
+    <circle cx="50" cy="50" r="49" fill="none" stroke="#000" stroke-width="1.4" opacity=".55"/>
+    <!-- Erhabene Innenflaeche mit umlaufendem Ring -->
+    <circle cx="50" cy="50" r="40" fill="url(#${id}f)"/>
+    <circle cx="50" cy="50" r="40" fill="none" stroke="#000" stroke-width="2" opacity=".45"/>
+    <circle cx="50" cy="50" r="36.5" fill="none" stroke="${s.ring}" stroke-width="1.5" opacity=".85"/>
 
-    ${zeigeLabel ? `<text x="50" y="30" text-anchor="middle" font-size="9" font-weight="800"
-      letter-spacing="3.4" fill="${s.text}" opacity=".72" style="font-family:inherit">LEVEL</text>` : ''}
-    <!-- Zahl: zwei Kopien, die dunkle um 0,8 versetzt — der billigste
-         ueberzeugende Praege-Effekt, und er ueberlebt jede Schriftart. -->
-    <text x="50" y="${zeigeLabel ? 58 : 50}" text-anchor="middle" dominant-baseline="central"
-      font-size="${_plateZahlGroesse(n)}" font-weight="800" fill="#000" opacity=".38"
-      style="font-family:inherit;letter-spacing:-1px" transform="translate(0 .8)">${n}</text>
-    <text x="50" y="${zeigeLabel ? 58 : 50}" text-anchor="middle" dominant-baseline="central"
-      font-size="${_plateZahlGroesse(n)}" font-weight="800" fill="${s.text}"
+    <!-- Akzentboegen links und rechts: das Erkennungszeichen der Vorlage,
+         hier traegt es die Stufenfarbe. -->
+    <path d="M 15.5 62 A 36.5 36.5 0 0 1 15.5 38" fill="none" stroke="${s.akzent}"
+      stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M 84.5 38 A 36.5 36.5 0 0 1 84.5 62" fill="none" stroke="${s.akzent}"
+      stroke-width="3.2" stroke-linecap="round"/>
+
+    ${text ? `
+    <path id="${id}o" d="M 20.5 50 A 29.5 29.5 0 0 1 79.5 50" fill="none"/>
+    <path id="${id}u" d="M 21.5 50 A 28.5 28.5 0 0 0 78.5 50" fill="none"/>
+    <text font-size="7" font-weight="800" letter-spacing="1.9" text-anchor="middle"
+      fill="${s.schrift}" opacity=".88" style="font-family:inherit">
+      <textPath href="#${id}o" startOffset="50%">MYGYMTRACK</textPath>
+    </text>
+    <text font-size="6.4" font-weight="800" letter-spacing="2.4" text-anchor="middle"
+      fill="${s.schrift}" opacity=".72" style="font-family:inherit">
+      <textPath href="#${id}u" startOffset="50%">LEVEL</textPath>
+    </text>` : ''}
+
+    <!-- Zahl: dunkle Kopie leicht versetzt darunter, das gibt die Praegung -->
+    <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+      font-size="${_plateZahlGroesse(n)}" font-weight="800" fill="#000" opacity=".45"
+      style="font-family:inherit;letter-spacing:-1px" transform="translate(0 1)">${n}</text>
+    <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+      font-size="${_plateZahlGroesse(n)}" font-weight="800" fill="${s.schrift}"
       style="font-family:inherit;letter-spacing:-1px">${n}</text>
+
+    <circle cx="50" cy="50" r="49.5" fill="url(#${id}g)" pointer-events="none"/>
   </svg>`;
 }
 
@@ -141,50 +162,71 @@ function _lvlPlateCanvas(level, size){
     c.globalAlpha = 1;
   };
 
-  const flaeche = c.createLinearGradient(M(15), 0, M(85), px);
-  flaeche.addColorStop(0, s.rand);
-  flaeche.addColorStop(.48, s.flaeche);
-  flaeche.addColorStop(1, s.tief);
-  kreis(46, flaeche);
+  // Reifen
+  const reifen = c.createLinearGradient(M(20), 0, M(80), px);
+  reifen.addColorStop(0, '#3c4149');
+  reifen.addColorStop(.42, '#22262b');
+  reifen.addColorStop(1, '#101317');
+  kreis(46, reifen);
+  kreis(45.6, null, '#000', 1.4, .55);
 
-  // Schmaler Ring aussen — dieselbe Kante wie im SVG.
-  const ring = c.createLinearGradient(M(10), 0, M(90), px);
-  ring.addColorStop(0, s.rand);
-  ring.addColorStop(.3, s.tief);
-  ring.addColorStop(.62, s.flaeche);
-  ring.addColorStop(1, s.tief);
-  kreis(43.5, null, ring, 5.6);
-  kreis(46, null, '#000', 1.2, .45);
-  kreis(40.5, null, '#000', 1, .3);
-  kreis(39.7, null, '#fff', .7, .14);
+  // Erhabene Innenflaeche mit umlaufendem Ring
+  const innen = c.createLinearGradient(M(15), 0, M(85), px);
+  innen.addColorStop(0, s.innenHell);
+  innen.addColorStop(.55, s.innen);
+  innen.addColorStop(1, s.innenTief);
+  kreis(37, innen);
+  kreis(37, null, '#000', 2, .45);
+  kreis(33.8, null, s.ring, 1.5, .85);
 
-  // Streiflicht ueber die ganze Scheibe
-  const gl = c.createLinearGradient(M(10), 0, M(90), px);
-  gl.addColorStop(0, 'rgba(255,255,255,' + s.glanz + ')');
-  gl.addColorStop(.42, 'rgba(255,255,255,0)');
-  gl.addColorStop(1, 'rgba(255,255,255,' + (s.glanz * .4) + ')');
-  c.fillStyle = gl;
-  c.beginPath(); c.arc(M(50), M(50), M(46), 0, Math.PI * 2); c.fill();
-
-  // „LEVEL" ueber der Zahl, gerade gesetzt wie im SVG
-  c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillStyle = s.text; c.globalAlpha = .72;
-  c.font = '800 ' + Math.round(M(8.4)) + 'px -apple-system, system-ui, sans-serif';
-  const sperr = M(3.2);
-  'LEVEL'.split('').forEach((ch, i, a) => {
-    const b = (i - (a.length - 1) / 2) * (M(6.4) + sperr);
-    c.fillText(ch, M(50) + b, M(30));
+  // Akzentboegen links und rechts
+  c.strokeStyle = s.akzent; c.lineWidth = M(3.2); c.lineCap = 'round';
+  [[Math.PI * .72, Math.PI * 1.28], [Math.PI * -.28, Math.PI * .28]].forEach(([a, b]) => {
+    c.beginPath(); c.arc(M(50), M(50), M(33.8), a, b); c.stroke();
   });
-  c.globalAlpha = 1;
+
+  // Gebogene Schrift oben und unten — Buchstabe fuer Buchstabe gedreht
+  const bogen = (txt, radius, groesse, sperrung, unten, alpha) => {
+    c.save();
+    c.translate(M(50), M(50));
+    c.fillStyle = s.schrift; c.globalAlpha = alpha;
+    c.font = '800 ' + Math.round(M(groesse)) + 'px -apple-system, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const schritt = (groesse * .72 + sperrung) / radius;   // Bogenmass je Zeichen
+    txt.split('').forEach((ch, i) => {
+      const t = (i - (txt.length - 1) / 2) * schritt;
+      c.save();
+      c.rotate(unten ? -t : t);
+      c.translate(0, unten ? M(radius) : -M(radius));
+      if (unten) c.rotate(Math.PI);
+      c.fillText(ch, 0, 0);
+      c.restore();
+    });
+    c.restore();
+    c.globalAlpha = 1;
+  };
+  bogen('MYGYMTRACK', 27.5, 6.6, 1.9, false, .88);
+  bogen('LEVEL',      26.5, 6.0, 2.4, true,  .72);
 
   // Zahl mittig, mit dunklem Versatz als Praegung
-  const gr = n.length >= 3 ? 30 : n.length === 2 ? 38 : 44;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  const gr = n.length >= 3 ? 26 : n.length === 2 ? 34 : 40;
   c.font = '800 ' + Math.round(M(gr)) + 'px -apple-system, system-ui, sans-serif';
-  c.fillStyle = '#000'; c.globalAlpha = .38;
-  c.fillText(n, M(50), M(58.8));
+  c.fillStyle = '#000'; c.globalAlpha = .45;
+  c.fillText(n, M(50), M(51));
   c.globalAlpha = 1;
-  c.fillStyle = s.text;
-  c.fillText(n, M(50), M(58));
+  c.fillStyle = s.schrift;
+  c.fillText(n, M(50), M(50));
+
+  // Streiflicht zum Schluss ueber alles
+  const gl = c.createLinearGradient(M(10), 0, M(90), px);
+  gl.addColorStop(0, 'rgba(255,255,255,' + s.glanz + ')');
+  gl.addColorStop(.45, 'rgba(255,255,255,0)');
+  gl.addColorStop(1, 'rgba(255,255,255,' + (s.glanz * .35) + ')');
+  c.save();
+  c.beginPath(); c.arc(M(50), M(50), M(46), 0, Math.PI * 2); c.clip();
+  c.fillStyle = gl; c.fillRect(0, 0, px, px);
+  c.restore();
 
   return cv;
 }
@@ -206,7 +248,7 @@ function openLevelPlate(start){
   const von = Math.max(1, mitte - LVLP_UM);
   const bis = Math.min(max, mitte + LVLP_UM);
   const seiten = [];
-  for (let L = von; L <= bis; L++) seiten.push(_lvlPlatePage(L, eigen));
+  for (let L = von; L <= bis; L++) seiten.push(_lvlPlatePage(L, eigen, max));
   host.innerHTML = seiten.join('');
   openOv('ov-lvlplate');
   // Ohne Animation auf die eigene Stufe springen — sonst zieht das Blatt
@@ -216,7 +258,7 @@ function openLevelPlate(start){
     if (el) host.scrollTop = el.offsetTop;
   });
 }
-function _lvlPlatePage(L, eigen){
+function _lvlPlatePage(L, eigen, max){
   const s        = plateStufe(L);
   const erreicht = L <= eigen.level;
   const jetzt    = L === eigen.level;
@@ -226,11 +268,18 @@ function _lvlPlatePage(L, eigen){
   if (jetzt) sub = eigen.max ? 'Maximales Level erreicht' : 'Noch ' + fmt(eigen.toGo) + ' Punkte bis Level ' + (L + 1);
   else if (erreicht) sub = 'Erreicht';
   else sub = schwelle != null ? 'Ab ' + fmt(schwelle) + ' Punkten' : '';
+  /* Einordnung auf jeder Seite: wievielte Stufe von wie vielen, und was sie
+     kostet. Ohne die Zeile blaettert man durch Scheiben, ohne zu wissen, wo
+     man steht oder wie weit es noch geht. */
+  const einordnung = `${L} / ${max}` + (schwelle != null ? ' · ' + fmt(schwelle) + ' Punkte' : '');
   return `<section class="lvlp-page" id="lvlp-${L}">
     <div class="lvlp-plate${erreicht ? '' : ' locked'}">${_lvlPlateSVG(L, 300, { label: true })}</div>
     <div class="lvlp-name">${esc(s.name)}</div>
     <div class="lvlp-sub">${esc(sub)}</div>
-    ${jetzt ? `<button class="btn btn-acc lvlp-share" onclick="lvlPlateShare(${L})">Teilen</button>` : ''}
+    <div class="lvlp-meta">${esc(einordnung)}</div>
+    <button class="lvlp-share" onclick="lvlPlateShare(${L})" aria-label="Teilen" title="Teilen">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 12.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-5.5"/></svg>
+    </button>
   </section>`;
 }
 
