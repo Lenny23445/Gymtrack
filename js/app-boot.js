@@ -110,6 +110,14 @@ try {
   if (_refCode && /^[A-Za-z0-9]{7}$/.test(_refCode)) {
     localStorage.setItem('gt_refPending', _refCode.toUpperCase());
     history.replaceState(null, '', location.pathname);
+    // Im Browser (kein Install-Referrer unter iOS) muss der Code sichtbar
+    // bleiben, sonst weiss der Empfaenger nach der Installation nicht mehr,
+    // was er eingeben soll.
+    if (typeof _isNative === 'function' && !_isNative()) {
+      setTimeout(() => {
+        try { _dndToast(tr('Einladungscode gemerkt: ') + _refCode.toUpperCase() + ' — ' + tr('anmelden und Gratis-Woche kassieren.')); } catch(_){}
+      }, 2600);
+    }
   }
 } catch(_){}
 // Gratis-Premium: gemerkten Code einlösen + Stand vom Worker holen. Nach dem

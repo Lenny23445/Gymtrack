@@ -864,11 +864,23 @@ function _pwBotHTML(){
       </span>
     </div>`;
 }
-function _pwRenderBot(){ const b = document.getElementById('pw2-bot'); if (b) b.innerHTML = _pwBotHTML(); }
+function _pwRenderBot(){
+  const b = document.getElementById('pw2-bot'); if (b) b.innerHTML = _pwBotHTML();
+  _pwRefRender();
+}
+/* Einladungs-Banner nachzeichnen. Eigene Funktion, weil sich der Zustand
+   (Gratis-Woche aktiv, Deckel erreicht) ändern kann, während die Paywall offen
+   ist — ohne das zeigte sie bis zum Neuöffnen den alten Stand. */
+function _pwRefRender(){
+  const r = document.getElementById('pw2-ref');
+  if (r && typeof refBannerHTML === 'function') r.innerHTML = refBannerHTML();
+}
 function openPaywall(feature){
   _pwRender(feature);
   openOv('ov-paywall');
   if (_isNative() && !_pwProducts) _premLoadProducts().then(() => _pwRenderBot());
+  // Stand der Gratis-Wochen frisch holen (legt beim ersten Mal auch den Code an)
+  try { if (typeof refSync === 'function') refSync(false, true).then(_pwRefRender); } catch(_){}
 }
 // Aufrufer-Kürzel → Showcase-Slide. premGate/aiCall reichen ihre eigenen Namen
 // durch ('ai', 'vision', …); ohne das Mapping startet die Paywall immer auf
@@ -935,6 +947,12 @@ function _premQuotaText(){
   let q = null; try { q = JSON.parse(localStorage.getItem('gt_aiQuota') || 'null'); } catch(_){}
   if (!q || typeof q.limit !== 'number') return null;
   const left = Math.max(0, (q.limit||0) - (q.used||0));
+  // Gratis-Woche: der Unterschied zum Abo gehört in dieselbe Zeile, sonst liest
+  // sich die kleine Zahl wie das, was Premium bietet.
+  if (q.trial) {
+    const abo = (typeof _AI_PREM_LIMIT === 'number') ? _AI_PREM_LIMIT : 50;
+    return `Gratis-Test: noch ${left} von ${q.limit} Anfragen · mit Premium ${abo} jeden Monat`;
+  }
   return `Noch ${left} von ${q.limit} KI-Anfragen diesen Monat`;
 }
 // Felder, die als Text gespeichert werden. Alles andere bleibt ein Boolean.

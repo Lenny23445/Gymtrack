@@ -170,6 +170,22 @@ function renderPremiumSettings(){
       </div>
       ${prem ? '' : chev}
     </div>`);
+  // Einladen — bewusst über allen Abo-Zeilen und unabhängig davon, ob schon
+  // Premium läuft: wer zahlt, kann trotzdem einen Freund einladen.
+  if (typeof refCanEarn === 'function' && refCanEarn()) {
+    const refSub = (typeof refTrialActive === 'function' && refTrialActive())
+      ? 'Noch eine Gratis-Woche ist drin'
+      : 'Ihr bekommt beide eine Woche Premium geschenkt';
+    rows.push(`
+    <div class="row" onclick="openInviteSheet()" style="cursor:pointer">
+      <div class="ico">${ICO.users({s:20})}</div>
+      <div class="row-body">
+        <div class="row-title">Freunde einladen</div>
+        <div class="row-sub" style="white-space:normal;line-height:1.5;margin-top:2px">${refSub}</div>
+      </div>
+      ${chev}
+    </div>`);
+  }
   if (prem) {
     rows.push(`
     <div class="row" onclick="premManage()" style="cursor:pointer">
@@ -233,6 +249,10 @@ function _aibRender(){
 // Der Worker liefert den Stand bei jeder KI-Antwort mit (aiCall speichert ihn),
 // zusätzlich holt /quota ihn ohne Verbrauch — sonst wüsste die App den Stand erst,
 // nachdem sie eine Anfrage ausgegeben hat.
+// Monatskontingent eines ECHTEN Abos. Steht hier als Zahl, weil der Worker sie
+// nur an Zahler ausliefert — ein Trial-Nutzer sähe sonst nie, was ihm entgeht.
+// Muss zu MONTHLY_LIMIT im Worker passen (Default 50).
+const _AI_PREM_LIMIT = 50;
 let _aiQuotaTs = 0;
 function _aiQuotaGet(){
   try {
@@ -280,6 +300,23 @@ function _aiQuotaRenderHead(){
   const left = Math.max(0, q.limit - q.used);
   const pct  = q.limit > 0 ? Math.max(0, Math.min(100, (left / q.limit) * 100)) : 0;
   el.classList.toggle('low', left <= Math.max(3, q.limit * 0.15));
+  // Gratis-Woche: das Kontingent ist ein ANDERES als im Abo (15 einmalig statt 50
+  // im Monat). Das muss hier unübersehbar stehen — sonst hält der Testnutzer die
+  // kleine Zahl für das, was er nach dem Kauf bekommt, und kauft deshalb nicht.
+  if (q.trial) {
+    el.classList.add('trial');
+    const abo = _AI_PREM_LIMIT;
+    el.innerHTML = `<div class="ai-r-q-top">${spark}<span class="ai-r-q-lbl">${esc(tr('Gratis-Test'))}</span>
+        <span class="ai-r-q-val">${left}<i> / ${q.limit}</i></span></div>
+      <div class="ai-r-q-bar"><div class="ai-r-q-fill" id="ai-r-q-fill"></div></div>
+      <div class="ai-r-q-sub">${esc(left > 0 ? tr('übrig in deiner Gratis-Woche') : tr('Gratis-Anfragen aufgebraucht'))}</div>
+      <button class="ai-r-q-hint" onclick="event.stopPropagation();openPaywall('ai')">
+        ${esc(tr('Mit Premium sind es') + ' ' + abo + ' ' + tr('Anfragen — jeden Monat neu'))}
+      </button>`;
+    requestAnimationFrame(() => { const f = document.getElementById('ai-r-q-fill'); if (f) f.style.width = pct + '%'; });
+    return;
+  }
+  el.classList.remove('trial');
   el.innerHTML = `<div class="ai-r-q-top">${spark}<span class="ai-r-q-lbl">${esc(tr('KI-Anfragen'))}</span>
       <span class="ai-r-q-val">${left}<i> / ${q.limit}</i></span></div>
     <div class="ai-r-q-bar"><div class="ai-r-q-fill" id="ai-r-q-fill"></div></div>

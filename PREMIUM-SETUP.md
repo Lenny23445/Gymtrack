@@ -57,3 +57,36 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 - Anthropic-Key liegt NUR im Cloudflare-Worker (wie APNs-Key beim Push-Worker).
 - Worker prüft pro Anfrage: Firebase-Login **und** Apples signierten Abo-Beweis (StoreKit-2-JWS: Signatur + Zertifikatskette bis zur gepinnten Apple Root CA, Produkt-ID, Ablaufdatum). Ohne aktives Abo keine KI — auch nicht mit manipulierter App.
 - Dein Founder-Account (Admin-UID) ist immer Premium, ohne Kauf.
+
+## 4. Cloudflare — Einladungen freischalten (Gratis-Premium, ~3 Min)
+
+Ohne diesen Schritt läuft die App normal weiter, aber **jede Einlösung schlägt fehl**
+("Einladungen sind gerade nicht verfügbar") und niemand bekommt eine Gratis-Woche —
+bewusst so gebaut: ein fehlendes Binding darf keine KI verschenken.
+
+1. dash.cloudflare.com → Workers & Pages → **KV** → Create Namespace, Name `gymtrack-ref`.
+2. Worker `gymtrack-ai` → Settings → Bindings → KV Namespace binden,
+   Variablenname exakt **`REF`**, Namespace `gymtrack-ref`.
+3. Worker neu deployen (Inhalt von `ai-worker/worker.js` reinkopieren → Deploy).
+
+**Optionale Variablen** (Vars, keine Secrets — alle mit brauchbaren Defaults):
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `REF_MAX_REDEEMS` | 2 | Einlösungen je Code. Danach ist der Code tot, auch für Fremde. |
+| `TRIAL_LIMIT` | 15 | KI-Anfragen für die gesamte Gratiszeit (nicht pro Monat). |
+| `TRIAL_MONTHLY_USD` | 20 | Gemeinsamer Monatstopf **aller** Trial-Nutzer, getrennt vom Budget der Zahler. |
+
+**Kosten:** eine KI-Anfrage kostet rund 0,4 Cent (Chat/Coach) bis 1 Cent (Scanner).
+15 Anfragen sind also 6–9 Cent je Trial-Nutzer; 20 USD reichen für etwa 250–600
+Trial-Nutzer im Monat. Danach bekommen Trials `Die Gratis-KI ist diesen Monat
+ausgelastet` — zahlende Nutzer merken davon nichts, sie rechnen gegen ihren eigenen
+Deckel.
+
+**Test:** zwei Konten (beide mit Apple oder Google angemeldet — anonyme Konten sind
+ausgeschlossen). Konto A: Einstellungen → Freunde einladen → Code merken.
+Konto B: Code eingeben → beide müssen sofort Premium haben.
+```
+curl -s -X POST https://gymtrack-ai.wolterlenny362.workers.dev/ref/me \
+  -H 'content-type: application/json' -d '{"idToken":"<idToken>"}'
+```

@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080003';
+const APP_VERSION = 'gymtrack-v202608080004';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -775,6 +775,41 @@ const I18N_EN = {
   'Diagnose läuft…':'Running diagnostics…','Diagnose-Element nicht da — alte Version aktiv':'Diagnostics element missing — old version active',
   'Nicht eingeloggt (currentUser ist null)':'Not signed in (currentUser is null)',
   'UID stimmt mit Admin-UID überein':'UID matches admin UID','UID stimmt NICHT mit Admin-UID überein':'UID does NOT match admin UID',
+  /* Referral — Gratis-Premium durch Einladung (js/app-referral.js) */
+  'Freunde einladen':'Invite friends','1 Woche Premium gratis':'1 week of Premium free',
+  'Freund einladen — ihr bekommt beide eine Woche.':'Invite a friend — you both get a week.',
+  'Gratis-Premium noch':'Free Premium for','Deine Gratis-Wochen laufen noch':'Your free weeks run for another',
+  'Tag':'day','Tage':'days','Einlösung':'redemption','Einlösungen':'redemptions',
+  'Noch eine Woche ist drin — lade einen Freund ein.':'One more week is available — invite a friend.',
+  'Danach geht es mit Premium weiter.':'After that, Premium takes over.',
+  'Beide bekommen eine Woche':'You both get a week',
+  'Löst ein Freund deinen Code ein, bekommt ihr beide 7 Tage Premium geschenkt.':'When a friend redeems your code, you both get 7 days of Premium.',
+  'Code oder Link teilen':'Share your code or link',
+  'Freund lädt die App und gibt den Code ein':'Friend installs the app and enters the code',
+  'Premium läuft bei euch beiden sofort':'Premium starts for both of you right away',
+  'Einladung teilen':'Share invite','QR-Code anzeigen':'Show QR code','Einladung kopiert':'Invite copied',
+  'Code kopieren':'Copy code','Kopiert':'Copied','von':'of','Gratis-Wochen geholt':'free weeks claimed',
+  'Aktiv bis':'Active until','Noch keine Gratis-Woche eingelöst.':'No free week redeemed yet.',
+  'Dein Code funktioniert noch für':'Your code still works for','Dein Code ist aufgebraucht.':'Your code is used up.',
+  'Ich habe einen Einladungscode':'I have an invite code','Einladungscode eingeben:':'Enter invite code:',
+  'Premium freigeschaltet — 7 Tage geschenkt!':'Premium unlocked — 7 days on us!',
+  'Dein Gratis-Premium ist vorbei.':'Your free Premium has ended.',
+  'Erst anmelden':'Sign in first',
+  'Gratis-Wochen gibt es nur für angemeldete Konten (Apple oder Google) — sonst könnte man sie beliebig oft neu holen.':'Free weeks require a signed-in account (Apple or Google) — otherwise they could be claimed over and over.',
+  'Melde dich mit Apple oder Google an, dann klappt es.':'Sign in with Apple or Google and it will work.',
+  'Diesen Code gibt es nicht.':'That code does not exist.','Das ist dein eigener Code.':'That is your own code.',
+  'Du hast schon einen Einladungscode eingelöst.':'You have already redeemed an invite code.',
+  'Dieser Code wurde schon zweimal eingelöst.':'That code has already been redeemed twice.',
+  'Einladungen sind gerade nicht verfügbar. Später nochmal versuchen.':'Invites are unavailable right now. Please try again later.',
+  'Einlösen fehlgeschlagen: ':'Could not redeem: ',
+  'Gratis-Test':'Free trial','übrig in deiner Gratis-Woche':'left in your free week','Gratis-Anfragen aufgebraucht':'Free requests used up','Mit Premium sind es':'With Premium you get','Anfragen — jeden Monat neu':'requests — renewed every month',
+  'Einladungscode gemerkt: ':'Invite code saved: ','anmelden und Gratis-Woche kassieren.':'sign in to claim your free week.',
+  'Lade QR-Code…':'Loading QR code…','QR-Code nicht verfügbar':'QR code unavailable',
+  'Hol dir MyGymTrack — mit meinem Code bekommen wir beide eine Woche Premium gratis. Code: ':'Get MyGymTrack — with my code we both get a free week of Premium. Code: ',
+  'Ihr bekommt beide eine Woche Premium geschenkt':'You both get a free week of Premium',
+  'Noch eine Gratis-Woche ist drin':'One more free week is available',
+  'Deine 15 Gratis-Anfragen sind aufgebraucht — mit Premium geht es weiter.':'Your 15 free requests are used up — Premium continues from here.',
+  'Die Gratis-KI ist diesen Monat ausgelastet — mit Premium geht es sofort weiter.':'Free AI is at capacity this month — Premium continues right away.',
   /* Premium / KI-Coach — Paywall */
   'MyGymTrack Premium':'MyGymTrack Premium','Dein KI-Coach für MyGymTrack':'Your AI coach for MyGymTrack',
   'Chat, Live-Tipps im Training und automatische Trainingsanalyse — für weniger als einen Proteinriegel im Monat.':'Chat, live tips during training, and automatic workout analysis — for less than a protein bar a month.',

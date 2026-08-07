@@ -809,7 +809,10 @@ export default {
                                    : "Du hast dein monatliches KI-Limit erreicht.",
                     quota: { used: Math.ceil(q.used), limit: q.limit, month: q.month, trial: isTrial } }, 429, cors);
     }
-    const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month };
+    // trial muss mit: die App zeigt fuer Gratis-Nutzer einen anderen Kopf im
+    // KI-Menue (15 einmalig statt 50 im Monat) — ohne das Kennzeichen sieht ein
+    // Testnutzer die kleine Zahl und haelt sie fuer das Abo-Kontingent.
+    const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month, trial: isTrial };
 
     // 5) Globales Monatsbudget (Kostendeckel über ALLE Nutzer zusammen, Hard-Stop) —
     // wächst mit der Premium-Kopfzahl: budgetCapUsd() = Köpfe × USD_PER_USER, mind.

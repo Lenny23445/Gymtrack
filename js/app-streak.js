@@ -2673,6 +2673,7 @@ async function _renderFrHome(body){
   // die Kopfzeile — zweimal dieselbe Zahl kostet nur den halben Bildschirm.
   body.innerHTML = `<div class="fr-ptr" id="fr-ptr"></div>
     <div id="fr-req-host"></div>
+    ${(typeof refBannerHTML === 'function') ? refBannerHTML() : ''}
     <div id="fr-crew-host"></div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
     <div id="fr-list"><div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div></div>
