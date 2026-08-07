@@ -5085,7 +5085,14 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Kein Kasten um die Scheibe: der dunkle Knopfgrund legte sich als Rechteck
    hinter die runde Scheibe und nahm ihr die freistehende Wirkung. Die Wahl
    zeigt sich an der helleren Schrift und der vollen Deckkraft. */
-.lvlp-mat.on{background:none;color:#fff}
+/* Alle Knopf-Zustaende ohne Flaeche: WebKit legt beim Antippen von selbst
+   einen dunklen Block hinter das Element (tap-highlight) und laesst ihn
+   nachlaufen — das war die Box, die verzoegert hinter der Scheibe auftauchte.
+   appearance:none nimmt zusaetzlich den Systemhintergrund des <button>. */
+.lvlp-mat,.lvlp-mat:hover,.lvlp-mat:focus,.lvlp-mat:active,.lvlp-mat.on{
+  background:transparent;-webkit-appearance:none;appearance:none;
+  -webkit-tap-highlight-color:transparent;outline:none;box-shadow:none}
+.lvlp-mat.on{color:#fff}
 .lvlp-mat:not(.on) .lvl-plate{opacity:.6}
 .lvlp-mat.locked{opacity:.4;filter:grayscale(.9)}
 .lvlp-mat:active{transform:scale(.94)}
