@@ -2787,11 +2787,6 @@ function _shfShareStep() {
     <div class="shf-share">
       <div class="shf-preview"><img src="${_shfRendered[_shfLayout]}"></div>
       ${canPost ? `
-      <div class="shf-dest" onclick="_shfTgl('friends')">
-        <div class="ico">${ICO.users({ s: 20 })}</div>
-        <div class="t"><b>${tr('Freunde')}</b><span>${tr('Nur dein Freundeskreis')}</span></div>
-        <label class="tgl" onclick="event.stopPropagation()"><input type="checkbox" id="shf-tg-friends" checked><span class="tgl-track"></span></label>
-      </div>
       <div class="shf-dest" onclick="_shfTgl('public')">
         <div class="ico">${ICO.globe({ s: 20 })}</div>
         <div class="t"><b>Community</b><span>${tr('Öffentlich für alle MyGymTrack-Nutzer')}</span></div>
@@ -2839,9 +2834,8 @@ async function _shfExtern() {
   } catch (e) { if (e?.name !== 'AbortError') console.warn('[GymTrack] Extern teilen:', e); }
 }
 async function _shfPublish() {
-  const fr = document.getElementById('shf-tg-friends')?.checked;
   const pb = document.getElementById('shf-tg-public')?.checked;
-  if (!fr && !pb) { _shfExit(); return; }           // nichts gewählt → einfach fertig
+  if (!pb) { _shfExit(); return; }                  // nichts gewählt → einfach fertig
   if (!_socReady()) { _shfExit(); return; }
   const btn = document.getElementById('shf-postbtn');
   btn.disabled = true; btn.textContent = tr('Wird gepostet…');
@@ -2862,16 +2856,14 @@ async function _shfPublish() {
       name: d.username, photo: d.photo && d.photo.startsWith('http') ? d.photo : null,
       flames: {}
     };
-    // Jede ausgewählte Zielgruppe bekommt ein EIGENES Post-Doc mit exakt EINEM
-    // visibility-Wert — Freunde-Feed zeigt nur 'friends'-Docs, Community-Feed nur
-    // 'public'-Docs (siehe _loadPostsFor-Filter). So landet der Post NUR dort, wo
-    // er ausgewählt wurde, statt automatisch auch beim jeweils anderen Ziel.
-    const writes = [];
-    if (fr) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'friends' }));
-    if (pb) writes.push(window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'public' }));
+    // Seit dem Umbau vom 07.08.2026 gibt es nur noch EIN Ziel: die Community.
+    // Jeder Post traegt deshalb fest visibility:'public' — der frueher zweite
+    // Wert 'friends' wird nicht mehr geschrieben (die Firestore-Rule erlaubt ihn
+    // weiterhin, damit alte Clients nichts brechen).
+    const writes = [window.FB.setDoc(window.FB.doc('profiles/' + _fbUser.uid + '/posts', uid()), { ...base, visibility: 'public' })];
     // Eigenen Post SOFORT in den Feed-Cache einspeisen, damit er beim nächsten
     // Öffnen ohne Warten (60s-Cache/Neuladen) ganz oben steht — „Echtzeit"-Gefühl.
-    try { _cpgInjectOwnPost(base, { friends: fr, public: pb }); } catch(_) {}
+    try { _cpgInjectOwnPost(base); } catch(_) {}
     await Promise.all(writes);
     _shfPosted = true;
     hapticSuccess();

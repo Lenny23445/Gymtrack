@@ -13,16 +13,11 @@ function _cpgReload(){
    verdrängte damit alle echten Community-Posts (sie kamen erst nach Ablauf zurück).
    Die Warteliste wird bei jedem Laden vorangestellt und fällt weg, sobald der Server
    denselben Post liefert (gleiche uid+ts) bzw. nach 10 Minuten. */
-let _cpgPending = { friends: [], public: [] };
-function _cpgInjectOwnPost(base, dest){
+let _cpgPending = { public: [] };
+function _cpgInjectOwnPost(base){
   const me = _fbUser?.uid; if (!me) return;
-  const keys = [];
-  if (dest.friends) keys.push('friends');
-  if (dest.public)  keys.push('public');
-  keys.forEach(key => {
-    const it = { id: 'local-' + uid(), uid: me, kind: 'post', visibility: key, ...base };
-    _cpgPending[key] = [it, ...(_cpgPending[key] || [])].slice(0, 5);
-  });
+  const it = { id: 'local-' + uid(), uid: me, kind: 'post', visibility: 'public', ...base };
+  _cpgPending.public = [it, ..._cpgPending.public].slice(0, 5);
   const b = document.getElementById('fr-body');
   if (b && (_socZone === 'community')) _renderFeed(b);
 }
@@ -39,24 +34,21 @@ function _cpgApplyPending(key, items){
   if (!live.length) return list;
   return live.concat(list).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 40);
 }
-/* Zuletzt geladener Stand der aktuellen Zone — egal wie alt (für sofortiges Rendern). */
+/* Zuletzt geladener Stand — egal wie alt (für sofortiges Rendern). */
 function _cpgCached(){
-  const key = _cpgMode;
-  return _cpgApplyPending(key, _cpgCache[key] ? _cpgCache[key].items : []);
+  return _cpgApplyPending('public', _cpgCache.public ? _cpgCache.public.items : []);
 }
 function _cpgFresh(){
-  const c = _cpgCache[_cpgMode];
+  const c = _cpgCache.public;
   return !!(c && Date.now() - (c.ts || 0) < 60000);
 }
 /* Still nachladen und den sichtbaren Stapel nur ersetzen, wenn sich wirklich etwas
    geändert hat und der Nutzer noch auf der ersten Karte steht (sonst spränge ihm der
    Feed unter dem Finger weg). */
 async function _cpgRevalidate(){
-  const key = _cpgMode;
   let items;
-  try { items = await _cpgLoad(key, true); }
+  try { items = await _cpgLoad(true); }
   catch(e) { console.warn('[GymTrack] Feed-Aktualisierung:', e?.code || e); return; }
-  if (_cpgMode !== key) return;                          // Zone inzwischen gewechselt
   if (!document.getElementById('cpg-wrap')) return;      // Feed nicht mehr offen
   if (_cpgIdx > 0) return;                               // Nutzer blättert gerade
   const same = items.length === _cpgItems.length
@@ -73,17 +65,15 @@ async function _cpgRevalidate(){
 let _cpgPrefetchTs = 0;
 async function _cpgPrefetch(){
   if (!_socReady() || !S.socialOn) return;
-  // Vorgewärmt wird die Stellung, die der Nutzer zuletzt gewählt hat — nicht
-  // mehr die Zone: der Freundes-Feed ist seit dem Umbau kein eigener Tab mehr.
-  const key = (_cpgMode === 'friends') ? 'friends' : 'public';
-  if (_cpgCache[key] && Date.now() - (_cpgCache[key].ts || 0) < 60000) return;   // frisch genug
+  if (_cpgCache.public && Date.now() - (_cpgCache.public.ts || 0) < 60000) return;   // frisch genug
   if (Date.now() - _cpgPrefetchTs < 90000) return;
   _cpgPrefetchTs = Date.now();
-  try { await _cpgLoad(key, true); } catch(e) { console.warn('[GymTrack] Feed-Vorabladen:', e?.code || e); }
+  try { await _cpgLoad(true); } catch(e) { console.warn('[GymTrack] Feed-Vorabladen:', e?.code || e); }
 }
-function setCpgMode(m){ if (_cpgMode === m) return; _cpgMode = m; haptic(6); const b = document.getElementById('fr-body'); if (b && _socZone === 'community') _renderFeed(b); }
 
-async function _loadPostsFor(uid, onlyFriends){
+/* Eigene Posts (fuer Flammen-Uebersicht/Aufraeumen) — der Feed selbst laedt
+   ueber die collectionGroup-Abfrage in _cpgLoad. */
+async function _loadPostsFor(uid){
   try {
     const q = window.FB.query(window.FB.collection('profiles/' + uid + '/posts'),
       window.FB.orderBy('ts','desc'), window.FB.limit(6));
@@ -91,35 +81,23 @@ async function _loadPostsFor(uid, onlyFriends){
     const out = [];
     snap.forEach(d => {
       const data = d.data();
-      // Freunde-Feed zeigt NUR 'friends'-Posts — ein rein für Community gepostetes
-      // Training (visibility:'public') soll nicht zusätzlich hier auftauchen (der
- // Nutzer hat es nur für Community ausgewählt, nicht für Freunde).
-      if (onlyFriends && data.visibility !== 'friends') return;
       if ((data.ts || 0) < _postCutoffTs()) return;   // 7-Tage-TTL: Abgelaufenes ausblenden
       out.push({ id:d.id, uid, kind:'post', ...data });
     });
     return out;
   } catch(_) { return []; }
 }
-/* mode: 'friends'|'public' (Standard: aktuelle Zone) · force: Cache-Frist ignorieren.
-   Der Modus ist ein Parameter, damit das Vorabladen im Hintergrund laufen kann, ohne
-   die sichtbare Zone (_cpgMode) umzuschalten. */
-async function _cpgLoad(mode, force){
-  const key = mode || _cpgMode;
+/* force: Cache-Frist ignorieren. Seit dem Umbau vom 07.08.2026 gibt es nur noch
+   EINEN Feed — den oeffentlichen. Der frueher zweite Zweig („nur Freunde") ist
+   weg, weil ein Post nur noch an die Community geht. */
+async function _cpgLoad(force){
+  const key = 'public';
   if (!force && _cpgCache[key] && Date.now() - _cpgCache[key].ts < 60000) return _cpgApplyPending(key, _cpgCache[key].items);
   let items = [];
   // Auth noch nicht wiederhergestellt → den zuletzt geladenen Stand behalten statt
   // einen leeren Feed („Noch keine Community-Posts") zu zeigen.
   if (!_socReady()) return _cpgApplyPending(key, _cpgCache[key] ? _cpgCache[key].items : []);
-  if (key === 'friends') {
-    const ids = [...(S.friends||[])];
-    if (_fbUser) ids.unshift(_fbUser.uid);
-    await Promise.all(ids.slice(0,30).map(async uid => {
-      const [posts, acts] = await Promise.all([_loadPostsFor(uid, true), _loadFeedFor(uid)]);
-      posts.forEach(p => items.push(p));
-      acts.forEach(a => items.push({ ...a, kind:'act' }));
-    }));
-  } else {
+  {
     // Öffentlicher Community-Feed über alle Nutzer. BEWUSST OHNE orderBy('ts') —
     // where+orderBy auf verschiedenen Feldern bräuchte einen Firestore-Composite-Index;
     // ohne den warf die Abfrage failed-precondition → fälschlich "offline". Nur der
@@ -336,15 +314,11 @@ function _cpgRenderStack(dir){
   const w = document.getElementById('cpg-wrap'); if (!w) return;
   _cpgItems.forEach((it, i) => it._i = i);
   if (!_cpgItems.length) {
-    const isFr = _cpgMode === 'friends';
     w.style.width = ''; w.style.height = '';   // Sondermaße für Foto-Posts zurücknehmen
     _cpgSetCount('');
-    w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${isFr ? ICO.users({ s: 40 }) : ICO.globe({ s: 40 })}</div>
-      <b>${isFr ? tr('Noch nichts von deinen Freunden') : tr('Noch keine Community-Posts')}</b>
-      <span style="font-size:13px">${isFr
-        ? ((S.friends||[]).length ? tr('Beende ein Training und teile es — es landet hier.') : tr('Füge zuerst Freunde hinzu — oben rechts über das +.'))
-        : tr('Teile dein nächstes Training mit der Community!')}</span>
-      ${isFr && !(S.friends||[]).length ? `<button class="btn btn-acc" onclick="openFrAdd()">${tr('Freund hinzufügen')}</button>` : ''}</div>`;
+    w.innerHTML = `<div class="cpg-empty"><div style="color:var(--acc)">${ICO.globe({ s: 40 })}</div>
+      <b>${tr('Noch keine Community-Posts')}</b>
+      <span style="font-size:13px">${tr('Teile dein nächstes Training mit der Community!')}</span></div>`;
     return;
   }
   if (_cpgIdx >= _cpgItems.length) {
@@ -809,10 +783,11 @@ function _friendPostNotifStart(){
           const key = fuid + ':' + d.id;
           if (_friendPostSeen.has(key)) return;
           _friendPostSeen.add(key);
-          // NUR echte „Freunde"-Posts lösen die Freunde-Benachrichtigung aus. Ein öffentlicher
-          // Post (visibility 'public') ist ein Community-Post — auch wenn ein Freund ihn teilt —
-          // und läuft LEISE über den Community-Listener (nur Zahl, kein Push, kein Banner).
-          if (p.visibility !== 'friends') return;
+          // Seit dem Umbau vom 07.08.2026 hat JEDER Post visibility:'public' — es gibt
+          // keine reinen Freundes-Posts mehr. Der Push haengt deshalb nicht mehr am
+          // visibility-Wert, sondern nur noch daran, dass der Autor ein Freund ist.
+          // Der Community-Listener ueberspringt Freunde dafuer (sonst zaehlt eine
+          // Nachricht doppelt: einmal hier mit Push, einmal dort leise).
           if (ts > (S.friendPostTs || 0)) { fresh.push({ ts, name: p.name || tr('Ein Freund') }); if (ts > maxTs) maxTs = ts; }
         });
         if (fresh.length) {
@@ -857,6 +832,7 @@ function _communityNotifStart(){
    Fehlt der noch → failed-precondition → Fallback ohne orderBy (unzuverlässig, aber kein Absturz). */
 function _communitySub(ordered){
   const me = _fbUser?.uid;
+  const freundeSet = new Set(S.friends || []);   // die laufen ueber _friendPostNotifStart (mit Push)
   const onSnap = snap => {
     // Nur neue/gelöschte Posts laden den offenen Feed live nach — reine Feld-Updates
     // (Flamme/Reaktion auf einen bereits gerenderten Post, auch die eigene) würden sonst
@@ -866,7 +842,8 @@ function _communitySub(ordered){
     let maxTs = S.communityPostTs || 0, freshN = 0;
     snap.forEach(d => {
       const uid = d.ref.parent.parent.id;
-      if (uid === me) return;                         // nur eigene aus; öffentliche Freundes-Posts zählen leise mit
+      if (uid === me) return;                         // eigene Posts nie zaehlen
+      if (freundeSet.has(uid)) return;                // Freunde: Push kommt vom Freundes-Listener
       const p = d.data();
       let ts = typeof p.ts === 'number' ? p.ts : 0;
       if (ts > Date.now()) ts = Date.now();           // Poster-Uhr-Skew deckeln (Badge klebt sonst)

@@ -2098,10 +2098,8 @@ function _renderDemoCrew(body){
   _crews = svc; _crewOpen = svo; _crewProfs = svp;
 }
 async function _renderDemoFeed(body){
-  _cpgMode = (_socZone === 'community') ? 'public' : 'friends';
-  const isPub = _cpgMode === 'public';
   body.innerHTML = `
-    <div class="cpg-zone"><span class="cpg-zone-t">${isPub ? ICO.globe({ s: 16 }) + `<span>${tr('Alle MyGymTrack-Nutzer')}</span>` : ICO.users({ s: 16 }) + `<span>${tr('Nur deine Freunde')}</span>`}<span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
+    <div class="cpg-zone"><span class="cpg-zone-t">${ICO.globe({ s: 16 })}<span>${tr('Alle MyGymTrack-Nutzer')}</span><span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap"></div>`;
   // Auf die Vorlade-Promises der Gym-Fotos warten, damit sie als echter
   // Bildhintergrund ins gebackene Layout einfließen (statt Akzent-Verlauf).
@@ -3581,7 +3579,9 @@ function _feedItemHTML(a, compact){
 /* ── CARD-PAGER-FEED: ein Post pro Bildschirm, eigene Swipe-Transition
    (Card schrumpft raus, nächste wächst von hinten nach). Quellen:
    Foto-Posts (profiles/{uid}/posts) + alte Text-Activities als Gradient-Cards. ── */
-let _cpgMode = 'friends';        // 'friends' | 'public'
+/* Es gibt nur noch EINEN Feed: den oeffentlichen. Der Umschalter
+   „Alle · Nur Freunde" ist am 07.08.2026 entfallen, weil ein Post
+   ausschliesslich an die Community geht (kein 'friends'-Ziel mehr). */
 let _cpgItems = [], _cpgIdx = 0, _cpgCache = {};
 let _flMyPosts = null, _flMyPostsTs = 0;
 
@@ -3613,19 +3613,13 @@ async function _renderFeed(body){
   // Seit dem Umbau vom 07.08.2026 ist der Feed NUR noch in der Community-Zone.
   // Der Freundes-Feed ist damit kein eigener Chip mehr, sondern die zweite
   // Stellung dieses Umschalters — ein Griff statt zwei Ebenen.
-  if (_cpgMode !== 'friends') _cpgMode = 'public';
-  const isPub = _cpgMode === 'public';
   // Zuletzt geladener Stand (egal wie alt) wird SOFORT gezeigt — dadurch steht der Feed
   // beim Öffnen des Tabs fertig da, statt erst den Lade-Spinner zu zeigen und sich dann
   // sichtbar aufzubauen. Ist er veraltet, läuft die Aktualisierung still im Hintergrund
   // (_cpgRevalidate) und tauscht die Karten nur, wenn sich wirklich etwas geändert hat.
   const cached = _cpgCached();
   body.innerHTML = `
-    <div class="cpg-seg">
-      <button class="${isPub ? 'on' : ''}" onclick="setCpgMode('public')">${ICO.globe({ s: 15 })}<span>Alle</span></button>
-      <button class="${isPub ? '' : 'on'}" onclick="setCpgMode('friends')">${ICO.users({ s: 15 })}<span>Nur Freunde</span></button>
-    </div>
-    <div class="cpg-zone"><span class="cpg-zone-t"><span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
+    <div class="cpg-zone"><span class="cpg-zone-t">${ICO.globe({ s: 16 })}<span>${tr('Alle MyGymTrack-Nutzer')}</span><span class="cpg-live js-live-count"></span></span><span class="cpg-count" id="cpg-count"></span></div>
     <div class="cpg-wrap" id="cpg-wrap">${cached.length ? '' : `
       <div class="cpg-empty"><span class="fr-spin" style="display:inline-block"></span>${tr('Lade Feed…')}</div>`}
     </div>`;
