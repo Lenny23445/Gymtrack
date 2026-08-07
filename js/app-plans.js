@@ -2504,12 +2504,13 @@ function _erfRadarDraw(kraft){
               darunter wachsen in 550 ms mit derselben ausklingenden Kurve. Das
               Netz laeuft MIT ihnen los, nicht danach — verzoegert gestartet
               wirkte es wie nachgereicht, obwohl die Seite laengst steht.
-           3. resizeDelay: die Einblendung skaliert die Karte, und jeder
-              Zwischenschritt meldet dem ResizeObserver eine neue Groesse. Ohne
-              Sperrzeit baut Chart.js waehrend der Einblendung mehrfach die
-              ganze Flaeche neu auf. */
+           3. KEIN resizeDelay. Es stand hier und war genau der Ruck: Chart.js
+              zeichnet dann einmal in der Groesse, die es beim Erzeugen
+              vorfindet, und springt eine Sperrzeit spaeter auf die
+              tatsaechliche — sichtbar als einmaliges Verrutschen des ganzen
+              Diagramms mitten im Aufbau. Statt dessen wird erst gezeichnet,
+              wenn die Seite steht (zwei Bilder Vorlauf, s. renderErfolge). */
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-        resizeDelay: 180,
         animation:{ duration:560, easing:'easeOutQuart' },
         animations:{ colors:false },
         // Die Ecken-Beschriftung steht AUSSERHALB der Netzflaeche und wurde links
@@ -2545,6 +2546,28 @@ function _erfRadarDraw(kraft){
        seine Form. Ein Bild abwarten, sonst faellt Chart.js beides in denselben
        Aufbau zusammen und der Sprung aus der Ecke waere zurueck. Bei
        „Bewegung reduzieren" stehen die Werte sofort — wie ueberall in der App. */
+    /* Netz mittig ruecken. Chart.js legt den Mittelpunkt NICHT in die Mitte der
+       Flaeche, sondern in die Mitte dessen, was nach Abzug der Eckentexte uebrig
+       bleibt — und die sind links und rechts verschieden breit („Rücken 355,8 kg
+       / 160,8 kg" gegen „Arme 64,4 kg / 28,0 kg"). Das Netz sass dadurch sichtbar
+       aus der Mitte. Hier wird der Versatz gemessen und mit Aussenabstand
+       ausgeglichen: eine Seite um 2x den Versatz breiter macht den Mittelpunkt
+       um genau den Versatz wandern. Das laeuft OHNE Animation und solange alle
+       Werte noch auf 0 stehen — sichtbar ist da nur ein Punkt in der Mitte, also
+       ruckt nichts. */
+    const zentrieren = () => {
+      const c = erfRadarChart, r = c && c.scales && c.scales.r;
+      if (!r) return;
+      const p = c.options.layout.padding;
+      const dx = Math.round(c.width  / 2 - r.xCenter);
+      const dy = Math.round(c.height / 2 - r.yCenter);
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      if (dx > 0) p.left = (p.left || 0) + 2 * dx; else if (dx < 0) p.right = (p.right || 0) - 2 * dx;
+      if (dy > 0) p.top  = (p.top  || 0) + 2 * dy; else if (dy < 0) p.bottom = (p.bottom || 0) - 2 * dy;
+      c.update('none');
+    };
+    zentrieren();
+    zentrieren();   // zweiter Durchlauf: der Abstand verkleinert den Radius leicht
     const zJetzt = kraft.map(k => skal(k.now));
     const zStart = kraft.map(k => skal(k.start));
     const ruhig = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2654,9 +2677,12 @@ function renderErfolge() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     body.querySelectorAll('.erf-kraft-base,.erf-kraft-gain').forEach(f => { f.style.width = (f.dataset.w || 0) + '%'; });
   }));
-  // Das Netz erst NACH dem Einhaengen zeichnen: Chart.js misst die Flaeche, und
-  // ein Canvas, das noch nicht im Dokument steht, misst 0.
-  requestAnimationFrame(() => _erfRadarDraw(kraft));
+  /* Das Netz erst NACH dem Einhaengen zeichnen: Chart.js misst die Flaeche, und
+     ein Canvas, das noch nicht im Dokument steht, misst 0. Zwei Bilder Vorlauf,
+     nicht eines — beim ersten steht das Seitenlayout noch nicht endgueltig, und
+     dann zeichnet Chart.js in einer Groesse, die es kurz darauf korrigiert. Das
+     war der Ruck, bei dem das ganze Diagramm einmal versprang. */
+  requestAnimationFrame(() => requestAnimationFrame(() => _erfRadarDraw(kraft)));
 }
 
 // Bester Satz (höchstes geschätztes 1RM) innerhalb einer Satz-Liste.
