@@ -7,7 +7,7 @@
 
 Reichweite über Weiterempfehlung. Wer MyGymTrack an einen Freund weitergibt und
 dessen Einlösung auslöst, bekommt 7 Tage Premium geschenkt — der geworbene Freund
-ebenfalls. Einmalig pro Konto, nicht stapelbar.
+ebenfalls. Als Werber bis zu zweimal, also höchstens 2 Wochen insgesamt.
 
 ## Entscheidungen
 
@@ -15,13 +15,12 @@ ebenfalls. Einmalig pro Konto, nicht stapelbar.
 |---|---|
 | Auslöser | Freund löst den Code des Werbers ein (nicht: Antippen von „Teilen") |
 | Belohnung | Beidseitig, je 7 Tage |
-| Deckel | Einmalig pro Konto, lebenslang, für beide Rollen |
+| Deckel | Werber: 2 Einlösungen, zusammen 2 Wochen. Geworbener: einmalig 1 Woche |
+| Stapeln | Läuft schon eine Gratiswoche, hängen die 7 Tage hinten dran |
 | Ort des Anspruchs | Cloudflare Worker `gymtrack-ai`, neuer KV-Namespace `gymtrack-ref` |
 
-Bewusst offen gelassen: der Werber hat nach seiner einen Gratiswoche keinen
-Anreiz mehr, weiter zu teilen. Bewusste Entscheidung des Auftraggebers; ein
-Multiplikator (z. B. je Einlösung eine Woche bis max. 4) lässt sich später allein
-im Worker nachziehen, ohne App-Update.
+Der Deckel steht allein im Worker (`REF_MAX_REWARDS`, Default 2) und lässt sich
+später ohne App-Update verschieben.
 
 ## Architektur
 
@@ -41,7 +40,7 @@ bereits Firebase-idTokens und nutzt KV — kein zweiter Deploy, kein neues Secre
 
 ```
 code:<CODE>  -> "<uid>"
-u:<uid>      -> { code, trialExp, gotReward, usedCode, invited }
+u:<uid>      -> { code, trialExp, rewards, usedCode, invited }
 ```
 
 Beispiel mit erfundenen Werten:
@@ -49,13 +48,14 @@ Beispiel mit erfundenen Werten:
 ```
 code:A7K2QM          -> "uid_beispiel_123"
 u:uid_beispiel_123   -> { "code":"A7K2QM", "trialExp":1786000000000,
-                          "gotReward":true, "usedCode":null, "invited":2 }
+                          "rewards":1, "usedCode":null, "invited":1 }
 ```
 
 - `code` — 6 Zeichen, Großbuchstaben und Ziffern
 - `trialExp` — Millisekunden seit Epoch (gleiches Format wie `PREM.exp` im
   Bestand), 0 oder fehlend = kein Trial
-- `gotReward` — true, sobald der Nutzer als Werber belohnt wurde
+- `rewards` — Anzahl bereits gutgeschriebener Gratiswochen als Werber, Deckel
+  `REF_MAX_REWARDS` (Worker-Variable, Default 2)
 - `usedCode` — der eingelöste Code, sobald er als Geworbener eingelöst hat
 - `invited` — Zähler eingelöster Einladungen (nur Anzeige)
 
@@ -64,7 +64,7 @@ u:uid_beispiel_123   -> { "code":"A7K2QM", "trialExp":1786000000000,
 Alle Routen verlangen ein gültiges Firebase-idToken (bestehende Verifikation im
 Worker wiederverwenden).
 
-**`GET /ref/me`** → `{ code, trialExp, gotReward, usedCode, invited }`
+**`GET /ref/me`** → `{ code, trialExp, rewards, maxRewards, usedCode, invited }`
 Legt beim ersten Aufruf einen Code an. Bevorzugt den vom Client mitgeschickten
 `friendCode` (6 Zeichen, existiert bereits im Nutzerdokument), falls
 `code:<CODE>` noch frei ist — dann hat der Nutzer nur einen Code für Freunde und
@@ -76,16 +76,23 @@ Einladung. Sonst zufälliger Code mit Kollisionsprüfung.
 1. `code:<CODE>` existiert → sonst `reason:'unknown'`
 2. Werber-uid ≠ eigene uid → sonst `reason:'self'`
 3. eigener Datensatz hat kein `usedCode` → sonst `reason:'already_redeemed'`
-4. Werber hat kein `gotReward` → sonst `ok:true, referrerRewarded:false`
-   (Einlösung gilt trotzdem: der Geworbene bekommt seine Woche, nur der Werber
-   nicht noch eine.)
+4. `rewards < REF_MAX_REWARDS` beim Werber → sonst `ok:true,
+   referrerRewarded:false` (Einlösung gilt trotzdem: der Geworbene bekommt seine
+   Woche, nur der Werber ist am Deckel)
 
-Danach schreibt der Worker beiden Seiten `trialExp = now + 7*864e5`, setzt beim
-Geworbenen `usedCode`, beim Werber `gotReward` und erhöht dessen `invited`.
-Reihenfolge: erst `usedCode` des Geworbenen setzen (Sperre), dann gutschreiben —
-so kann ein Doppelklick oder ein zweites Gerät nicht zweimal gutschreiben.
+Danach schreibt der Worker beiden Seiten sieben Tage gut, gestapelt an eine
+eventuell noch laufende Gratiswoche:
 
-**`GET /ref/status`** → `{ trialExp, gotReward, usedCode, invited }`
+```js
+trialExp = Math.max(Date.now(), rec.trialExp || 0) + 7 * 864e5
+```
+
+Beim Geworbenen wird zusätzlich `usedCode` gesetzt, beim Werber `rewards` und
+`invited` erhöht. Reihenfolge: erst `usedCode` des Geworbenen setzen (Sperre),
+dann gutschreiben — so kann ein Doppelklick oder ein zweites Gerät nicht zweimal
+gutschreiben.
+
+**`GET /ref/status`** → `{ trialExp, rewards, maxRewards, usedCode, invited }`
 Wird beim Login und beim App-Start geholt, höchstens einmal pro Stunde.
 
 ### KI-Worker
@@ -121,9 +128,10 @@ drei Zustände:
 
 | Zustand | Inhalt |
 |---|---|
-| Belohnung offen | „🎁 1 Woche Premium gratis — Freund einladen, beide bekommen sie" → öffnet `ov-invite` |
-| Trial läuft | „Deine Gratis-Woche läuft noch X Tage" (Kauf-CTA bleibt sichtbar) |
-| Belohnung verbraucht | Banner entfällt |
+| `rewards == 0` | „🎁 1 Woche Premium gratis — Freund einladen, beide bekommen sie" → öffnet `ov-invite` |
+| `rewards == 1`, Trial läuft | „Gratis-Premium noch X Tage — eine weitere Woche ist drin" → öffnet `ov-invite` |
+| Deckel erreicht, Trial läuft | „Deine Gratis-Wochen laufen noch X Tage" (Kauf-CTA bleibt sichtbar) |
+| Deckel erreicht, Trial vorbei | Banner entfällt |
 
 Der Banner wird in `_pwRender` und `_pwRenderBot` mitgezeichnet, damit er nach
 einer Statusänderung ohne Neuöffnen stimmt.
@@ -137,7 +145,8 @@ Aufbau nach dem Muster des Crew-Teilens (`js/app-crew.js`):
   `GT_WEB + '/?ref=' + code`, Fallback Zwischenablage + Toast
 - QR-Toggle über den bestehenden Lazy-Loader für `qrcodejs`
 - Drei-Schritte-Erklärung
-- Statuszeile: Anzahl Einladungen, Ablaufdatum des Trials
+- Statuszeile: „X von 2 Gratis-Wochen geholt · aktiv bis TT.MM." plus Anzahl
+  eingelöster Einladungen
 
 ### Einstiegspunkte
 
@@ -169,13 +178,17 @@ Landeseite ihn sichtbar machen statt nur weiterzuleiten.
 
 ## Randfälle
 
-- **Werber hat ein aktives Abo:** Gutschrift läuft trotzdem 7 Tage ab jetzt und
+- **Werber hat ein aktives Abo:** Gutschrift läuft trotzdem ab jetzt und
   verpufft. Aufheben für später wäre zusätzlicher Zustand und ist nicht gebaut.
 - **Geworbener hat ein aktives Abo:** Einlösung zählt für den Werber, der
   Geworbene sieht „Du hast bereits Premium".
 - **Eigener Code:** Ablehnung mit `reason:'self'`.
+- **Zweite Einlösung während laufender Woche:** die 7 Tage hängen sich hinten an
+  (`max(now, trialExp) + 7 Tage`), es geht keine Zeit verloren.
+- **Zweite Einlösung nach Ablauf:** `trialExp` liegt in der Vergangenheit,
+  gerechnet wird ab jetzt — daher `max(now, …)`.
 - **Trial abgelaufen:** `isPremium()` liefert false; beim ersten Start danach
-  einmalig ein Hinweis „Deine Gratis-Woche ist vorbei" mit Paywall-Zugang.
+  einmalig ein Hinweis „Dein Gratis-Premium ist vorbei" mit Paywall-Zugang.
 - **Offline:** der lokale Cache trägt den Trial bis `exp`.
 - **Zweitgerät:** `/ref/status` beim Login holt den Trial nach, kein erneutes
   Einlösen nötig.
@@ -185,8 +198,9 @@ Landeseite ihn sichtbar machen statt nur weiterzuleiten.
 - Jede `/ref/*`-Route verlangt ein gültiges idToken.
 - Der Client kann `trialExp` nicht setzen; der KI-Worker liest immer KV.
 - Einlösen ist gegen Doppelausführung gesperrt (Sperrfeld vor Gutschrift).
-- Der Deckel selbst ist der Missbrauchsschutz: eine Woche pro Konto, lebenslang.
-  Fake-Accounts bringen dem Werber nach der ersten Woche nichts.
+- Der Deckel selbst ist der Missbrauchsschutz: höchstens 2 Wochen pro Konto,
+  lebenslang. Wer Fake-Accounts anlegt, holt sich damit zwei Wochen und danach
+  nichts mehr — der Aufwand lohnt nicht.
 - App-Store-Regeln: geschenkter Serverzugang umgeht kein IAP; die Paywall
   verweist weiterhin auf keinen externen Kaufweg.
 
@@ -194,10 +208,12 @@ Landeseite ihn sichtbar machen statt nur weiterzuleiten.
 
 **Worker** (`curl` mit echtem idToken): `/ref/me` legt einen Code an und ist
 idempotent; `/ref/redeem` mit unbekanntem Code, eigenem Code, zweimal
-hintereinander, mit bereits belohntem Werber; `/ref/status` nach Ablauf.
+hintereinander; zweite Einlösung bei laufendem Trial (Ergebnis muss 14 Tage ab
+Start sein, nicht 7); dritte Einlösung am Deckel (`referrerRewarded:false`,
+`trialExp` unverändert); `/ref/status` nach Ablauf.
 
-**App** (zwei Konten im Simulator, `~/.claude/sim-native.sh gymtrack`):
-Link-Weg und Tipp-Weg, Paywall-Banner in allen drei Zuständen, KI-Anfrage
+**App** (drei Konten im Simulator, `~/.claude/sim-native.sh gymtrack`):
+Link-Weg und Tipp-Weg, Paywall-Banner in allen vier Zuständen, KI-Anfrage
 während des Trials, Verhalten nach Ablauf.
 
 ## Einmaliges Setup (Lenny)
@@ -206,5 +222,8 @@ während des Trials, Verhalten nach Ablauf.
 2. Am Worker `gymtrack-ai`: Settings → Bindings → KV-Namespace binden,
    Variablenname exakt `REF`.
 3. Worker neu deployen.
+
+Optional: Variable `REF_MAX_REWARDS` am Worker setzen, um den Deckel später ohne
+App-Update zu verschieben (Default 2).
 
 Kein neues Secret, kein neuer Account. Nachtragen in `PREMIUM-SETUP.md`.
