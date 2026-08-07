@@ -536,7 +536,10 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
 /* Disable text selection & bounce in native app */
-*{-webkit-touch-callout:none}
+/* Kein grauer Block beim Antippen — WebKit legt ihn sonst hinter jedes
+   angetippte Element und blendet ihn verzoegert aus. An 43 Stellen stand das
+   schon einzeln; hier gilt es fuer alles, damit keine Stelle uebrig bleibt. */
+*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 body *:not(input):not(textarea):not([contenteditable]){-webkit-user-select:none;user-select:none}
 /* Gradient NUR in #bg (position:fixed) – html/body nur Farb-Fallback für Overscroll */
 html{background-color:#f2f2f6;scrollbar-width:none;-ms-overflow-style:none}
