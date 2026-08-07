@@ -741,56 +741,62 @@ function setPlateMat(key){
   if (typeof renderFriendsTab === 'function' && document.getElementById('pg-freunde')?.classList.contains('on')) renderFriendsTab();
 }
 
-/* Teilen: PNG aus dem Canvas-Zwilling. navigator.share mit Datei, wo es geht
-   (iOS-Teilen-Blatt), sonst Download — beides ohne Serverweg. */
-async function lvlPlateShare(level){
-  haptic(10);
-  try {
-    const cv = _lvlPlateCanvas(level, 1080);   // Material folgt der lokalen Wahl
-    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
-    if (!blob) throw new Error('kein Bild');
-    const datei = new File([blob], 'level-' + level + '.png', { type: 'image/png' });
-    const text  = 'Level ' + level + ' bei MyGymTrack';
-    if (navigator.canShare && navigator.canShare({ files: [datei] })) {
-      await navigator.share({ files: [datei], text });
-      return;
-    }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = datei.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  } catch(e) {
-    if (String(e && e.name) === 'AbortError') return;   // Teilen abgebrochen
-    console.warn('[GymTrack] Level teilen:', e);
-    alert('DIAG ' + (e && e.name) + ': ' + (e && e.message));
-  }
+/* data-URL in Bytes, ohne fetch. fetch waere ein eigener Task — und genau der
+   kostet beim Teilen die Nutzer-Geste (s. lvlPlateShare). */
+function _plateDataBytes(url){
+  const roh = atob(url.slice(url.indexOf(',') + 1));
+  const arr = new Uint8Array(roh.length);
+  for (let i = 0; i < roh.length; i++) arr[i] = roh.charCodeAt(i);
+  return arr;
 }
 
-/* TEMP-DIAGNOSE — wieder entfernen! */
-let _diagFile = null;
-setTimeout(async () => {
-  const cv = _lvlPlateCanvas(5, 1080);
-  const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-  _diagFile = new File([blob], 'level-5.png', { type: 'image/png' });
+/* Rueckfallweg ohne Teilen-Blatt: Bild herunterladen (Web/Desktop). */
+function _platePngDownload(datei){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(datei);
+  a.download = datei.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
 
-  const d = document.createElement('div');
-  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;color:#0f0;'
-    + 'font:14px monospace;padding:60px 12px;white-space:pre-wrap;overflow:auto';
-  d.innerHTML = '<div id="diag-log">DIAG bereit — A, B, C nacheinander tippen</div>'
-    + '<button id="diag-a" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">A: Text sofort</button>'
-    + '<button id="diag-b" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">B: Datei NACH await (heutiger Weg)</button>'
-    + '<button id="diag-c" style="display:block;width:100%;padding:18px;margin:14px 0;font-size:17px">C: Datei SOFORT (vorab erzeugt)</button>';
-  document.body.appendChild(d);
-  const log = (s) => { document.getElementById('diag-log').textContent += '\n' + s; };
-  const erg = (tag, p) => p.then(() => log(tag + ': OK')).catch(e => log(tag + ': ' + e.name + ' — ' + e.message));
+/* Teilen: PNG aus dem Canvas-Zwilling. navigator.share mit Datei, wo es geht
+   (iOS-Teilen-Blatt), sonst Download — beides ohne Serverweg.
 
-  document.getElementById('diag-a').onclick = () => erg('A', navigator.share({ text: 'Level 5' }));
-  document.getElementById('diag-b').onclick = async () => {
-    const cv2 = _lvlPlateCanvas(5, 1080);
-    const b2 = await new Promise(r => cv2.toBlob(r, 'image/png'));
-    const f2 = new File([b2], 'level-5.png', { type: 'image/png' });
-    erg('B', navigator.share({ files: [f2], text: 'Level 5' }));
-  };
-  document.getElementById('diag-c').onclick = () => erg('C', navigator.share({ files: [_diagFile], text: 'Level 5' }));
-}, 3000);
+   ALLES SYNCHRON bis zum share-Aufruf, und das ist kein Schoenheitsfehler:
+   WebKit haengt die Erlaubnis fuers Teilen an die Geste des Taps und verwirft
+   sie, sobald davor ein eigener Task laeuft. `await cv.toBlob(...)` war so
+   einer — danach warf navigator.share NotAllowedError, das Blatt ging nie auf,
+   und weil alles in einem catch landete, log die App den Nutzer mit "Bild
+   konnte nicht erstellt werden" an, obwohl das PNG fertig dalag.
+   Deshalb toDataURL (synchron) statt toBlob, Bytes von Hand statt fetch, und
+   getrennte Meldungen fuer Bildaufbau und Teilen. Bewacht von
+   test/plate-share.test.js. */
+function lvlPlateShare(level){
+  haptic(10);
+  let datei;
+  try {
+    const cv  = _lvlPlateCanvas(level, 1080);   // Material folgt der lokalen Wahl
+    const url = cv.toDataURL('image/png');
+    datei = new File([_plateDataBytes(url)], 'level-' + level + '.png', { type: 'image/png' });
+  } catch(e) {
+    console.warn('[GymTrack] Level-Bild:', e);
+    alert('Bild konnte nicht erstellt werden.');
+    return;
+  }
+  const text = 'Level ' + level + ' bei MyGymTrack';
+  try {
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [datei] })) {
+      navigator.share({ files: [datei], text }).catch(e => {
+        if (String(e && e.name) === 'AbortError') return;   // Teilen abgebrochen
+        console.warn('[GymTrack] Level teilen:', e);
+        _platePngDownload(datei);                            // lieber sichern als nichts
+      });
+      return;
+    }
+  } catch(e) {
+    /* Aeltere WebKits werfen hier synchron statt das Promise abzulehnen. */
+    if (String(e && e.name) !== 'AbortError') console.warn('[GymTrack] Level teilen:', e);
+    else return;
+  }
+  _platePngDownload(datei);
+}
