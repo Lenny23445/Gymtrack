@@ -3118,16 +3118,18 @@ function _socLevel(p){
   const pts = (p && typeof p === 'object') ? _xpOf(p) : (+p || 0);
   return _levelOf(pts).level;
 }
-/* „Lv N"-Tag neben Namen — Level aus Cache/eigenen Daten (nach uid). */
+/* Level-Zeichen neben Namen — als Hantelscheibe mit der Zahl darin
+   (js/app-plate.js). Die alte Wort-Pille „LVL 37" gibt es nicht mehr; die
+   Scheibe ist auf einen Blick erkennbar und trägt die Stufe in der Farbe. */
 function _lvlTagForUid(uid){
-  if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">LVL ${_levelOf(_xpSelf()).level}</span>`;
+  if (uid && uid === _fbUser?.uid) return `<span class="lvl-tag">${_lvlPlate(_levelOf(_xpSelf()).level, 22)}</span>`;
   const p = (_socCache || []).find ? (_socCache || []).find(x => x.uid === uid) : null;
-  return p ? `<span class="lvl-tag">LVL ${_socLevel(p)}</span>` : '';
+  return p ? `<span class="lvl-tag">${_lvlPlate(_socLevel(p), 22)}</span>` : '';
 }
-/* „Lv N"-Tag aus einem Profil-Objekt (für Freunde-/Rang-Listen; self exakt). */
+/* Level-Zeichen aus einem Profil-Objekt (für Freunde-/Rang-Listen; self exakt). */
 function _lvlPillFor(p){
   const lv = (p && p.uid && p.uid === _fbUser?.uid) ? _levelOf(_xpSelf()).level : _socLevel(p);
-  return `<span class="lvl-tag">LVL ${lv}</span>`;
+  return `<span class="lvl-tag">${_lvlPlate(lv, 22)}</span>`;
 }
 /* Header-Badge (Startseite, neben der Flamme). */
 function _renderLevelBadge(){
@@ -3135,8 +3137,10 @@ function _renderLevelBadge(){
   if (!host) return;
   if (!S.sessions || !S.sessions.length) { host.innerHTML = ''; return; }
   const L = _levelOf(_xpSelf());
-  host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelInfo()">
-    <span class="lvl-badge-n">LVL ${L.level}</span><span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+  // Tippen öffnet die große Scheibe (openLevelPlate) statt des Info-Blatts —
+  // dort stehen dieselben Angaben, nur sichtbar statt in Textzeilen.
+  host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelPlate()">
+    ${_lvlPlate(L.level, 26)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
   // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht mehr in der Level-Pille).
   const ph = document.getElementById('prem-badge-host');
@@ -3151,13 +3155,16 @@ function _selfLevelCardHTML(){
     : (GT_LANG === 'en'
       ? _fmtXP(L.toGo) + ' points → Level ' + (L.level + 1)
       : 'Noch ' + _fmtXP(L.toGo) + ' Punkte → Level ' + (L.level + 1));
-  return `<div class="lvl-card" onclick="openLevelInfo()">
-    <div class="lvl-top">
-      <span class="lvl-rank">${tr('Level')} ${L.level}</span>
-      <span class="lvl-xp">${_fmtXP(L.pts)} ${tr('Punkte')}</span>
+  return `<div class="lvl-card" onclick="openLevelPlate()">
+    <div class="lvl-card-plate">${_lvlPlate(L.level, 54)}</div>
+    <div style="flex:1;min-width:0">
+      <div class="lvl-top">
+        <span class="lvl-rank">${tr('Level')} ${L.level}</span>
+        <span class="lvl-xp">${_fmtXP(L.pts)} ${tr('Punkte')}</span>
+      </div>
+      <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
+      <div class="lvl-sub">${sub}</div>
     </div>
-    <div class="lvl-bar"><div class="lvl-fill" style="width:${L.pct}%"></div></div>
-    <div class="lvl-sub">${sub}</div>
   </div>`;
 }
 /* Level-Info-Sheet: aktuelle Stufe + kommende Level + Punkte-Regeln. */

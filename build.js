@@ -13,7 +13,7 @@ const files = ['index.html', 'sw.js', 'manifest.json', 'privacy.html', 'css/app.
                // Fehlt hier eines, startet die native App ohne diese Datei.
                'js/app-i18n.js', 'js/app-native.js', 'js/app-ui.js', 'js/app-session.js',
                'js/app-plans.js', 'js/app-workout.js', 'js/app-exdb.js', 'js/app-streak.js', 'js/app-community.js',
-               'js/app-crew.js',
+               'js/app-crew.js', 'js/app-plate.js',
                'js/app-coach.js', 'js/app-coach-setup.js', 'js/app-update.js', 'js/app-boot.js',
                'js/app-tabbar.js',
                // Stock-Motive der Share-Card (Post ohne eigenes Foto)
