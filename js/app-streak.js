@@ -3140,7 +3140,7 @@ function _renderLevelBadge(){
   // Tippen öffnet die große Scheibe (openLevelPlate) statt des Info-Blatts —
   // dort stehen dieselben Angaben, nur sichtbar statt in Textzeilen.
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelPlate()">
-    ${_lvlPlate(L.level, 26)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+    ${_lvlPlate(L.level, 24)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
   // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht mehr in der Level-Pille).
   const ph = document.getElementById('prem-badge-host');

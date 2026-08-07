@@ -4995,7 +4995,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvl-xp-rules{margin-top:16px;font-size:12.5px;color:var(--text2);line-height:1.7}
 .lvl-xp-rules b{color:var(--text)}
 /* Header-Level-Badge (Startseite, neben der Flamme) — Stil analog Streak-Badge */
-.lvl-badge{display:inline-flex;align-items:center;gap:4px;height:28px;box-sizing:border-box;padding:0 10px 0 7px;border-radius:999px;
+/* Die Pille sitzt seit dem Umbau um die Scheibe herum: links nur 3 px Luft,
+   damit die Scheibe buendig in der Rundung liegt statt gequetscht zu wirken. */
+.lvl-badge{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 11px 0 3px;border-radius:999px;
   background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.09));
   border:1px solid rgba(var(--acc-rgb),.34);box-shadow:0 2px 10px rgba(var(--acc-rgb),.16);
   font-size:13px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
@@ -5019,7 +5021,15 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvlp-x{position:absolute;top:calc(12px + var(--sat,0px));right:14px;z-index:2;width:38px;height:38px;border-radius:50%;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:17px;font-family:inherit;cursor:pointer}
 .lvlp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:y mandatory;overscroll-behavior:contain}
-.lvlp-page{position:relative;height:100%;min-height:100%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px}
+/* Bewusst NICHT bildschirmfuellend: bei 88 % ragt die naechste Scheibe unten
+   ins Bild, und damit sieht man ohne Erklaerung, dass es weitergeht. */
+.lvlp-page{position:relative;height:88%;min-height:88%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px 24px 46px}
+/* Hinweis auf die naechste Stufe — wippt langsam, damit die Geste auffaellt */
+.lvlp-next{position:absolute;left:0;right:0;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  color:rgba(255,255,255,.4);font-size:11.5px;font-weight:700;letter-spacing:.6px;pointer-events:none;
+  animation:lvlpWink 2.2s ease-in-out infinite}
+@keyframes lvlpWink{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(4px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.lvlp-next{animation:none}}
 .lvlp-plate{line-height:0;filter:drop-shadow(0 18px 44px rgba(0,0,0,.6));animation:lvlpIn .5s var(--ease) both}
 .lvlp-plate.locked{opacity:.32;filter:grayscale(.85) drop-shadow(0 10px 26px rgba(0,0,0,.5))}
 @keyframes lvlpIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}

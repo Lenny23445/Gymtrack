@@ -277,6 +277,10 @@ function _lvlPlatePage(L, eigen, max){
     <div class="lvlp-name">${esc(s.name)}</div>
     <div class="lvlp-sub">${esc(sub)}</div>
     <div class="lvlp-meta">${esc(einordnung)}</div>
+    ${L < max ? `<div class="lvlp-next">
+      <span>Level ${L + 1}</span>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </div>` : ''}
     <button class="lvlp-share" onclick="lvlPlateShare(${L})" aria-label="Teilen" title="Teilen">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5"/><path d="M5 12.5V18a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18v-5.5"/></svg>
     </button>
