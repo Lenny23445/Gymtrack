@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608071835';
+const APP_VERSION = 'gymtrack-v202608071910';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -125,6 +125,7 @@ const I18N_EN = {
 'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
   'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
   'Silber':'Silver',   // Materialwahl der Level-Scheibe; Standard/Bronze/Gold sind gleich
+  'Wochenziel geschafft — der Streak wächst am Montag.':'Weekly goal reached — the streak grows on Monday.',
   'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',
@@ -1038,6 +1039,9 @@ const I18N_EN = {
 /* Regex-Regeln für zusammengesetzte Texte (nur deutsch-spezifische Muster,
  damit englische Ergebnisse Fixpunkte bleiben) */
 const I18N_RX = [
+  // Gruppen-Belohnung: die Punktzahl steht mitten im Satz
+  [/^Wochenziel geschafft — jeder mit Beitrag bekommt (\d+) Punkte, der Streak wächst am Montag\.$/,
+   'Weekly goal reached — everyone who contributed gets $1 points, the streak grows on Monday.'],
  /* Crews (js/app-crew.js) — Zahlen mitten im Satz, als feste Phrase nicht greifbar. */
  [/Noch (\d+) Trainings? bis Sonntag/g, '$1 more workouts to go by Sunday'],
  [/^Noch (\d+) Trainings?$/g, '$1 workouts to go'],

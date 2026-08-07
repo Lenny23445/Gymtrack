@@ -3060,7 +3060,66 @@ async function showFrQR(){
    keine Rules-Änderung). Bewusst clean: numerische Level, keine Spiel-Symbole.
    Zuletzt erreichtes Level in separatem localStorage-Key 'gt_level'
    (nicht in S → umgeht die users-hasOnly-Regel). */
-const PTS_PER = { workout:100, streakWk:50, flame:20, flameGiven:10 };
+const PTS_PER = { workout:100, streakWk:50, flame:20, flameGiven:10, crewWeek:120 };
+
+/* ── Schutz gegen Punkte-Farmen ──────────────────────────────────────────
+   Bisher zaehlte jede beendete Einheit 100 Punkte, und beendet war sie, sobald
+   EIN Satz eingetragen war. Training starten, eine Zahl tippen, beenden,
+   wiederholen: in zehn Minuten waren so ueber tausend Punkte drin, also mehr
+   als eine echte Trainingswoche. Diese vier Riegel schliessen das, ohne
+   jemanden zu treffen, der wirklich trainiert:
+
+   - Substanz: mindestens 3 gefuellte Saetze ODER 5 Minuten Dauer. Eine kurze
+     harte Einheit zaehlt, ein einzelner Tippsatz nicht.
+   - Abstand: 30 Minuten zur zuletzt gezaehlten Einheit. Start/Stop im Wechsel
+     bringt damit nichts.
+   - Zwei pro Kalendertag: Doppeleinheiten gibt es wirklich, zehn nicht.
+   - Zehn pro Woche: Deckel fuer den Ausnahmefall.
+
+   Die Regel gilt rueckwirkend fuer alle Einheiten, nicht erst ab heute — sonst
+   bliebe die Luecke fuer alles offen, was schon in der Datenbank steht. Wer
+   normal trainiert (3-5 Einheiten die Woche), merkt keinen Unterschied. */
+const XP_REGEL = { saetze:3, sek:300, proTag:2, proWoche:10, abstandSek:1800 };
+
+/* Zahl der Einheiten, die Punkte geben. Fehlen Daten (alte Eintraege ohne
+   Dauer und ohne Saetze), zaehlt die Einheit — im Zweifel fuer den Nutzer. */
+function _xpWorkouts(){
+  const ses = (S.sessions || []).slice()
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  let zaehlt = 0, letzte = 0;
+  const proTag = {}, proWoche = {};
+  for (const s of ses){
+    const t = new Date(s.date || 0).getTime();
+    if (!t) { zaehlt++; continue; }
+    const saetze = (s.logs || []).reduce((n, l) =>
+      n + (l.sets || []).filter(x => x && (x.w || x.r || x.tElapsed > 0)).length, 0);
+    const dauer = +s.duration || 0;
+    const kennt = saetze > 0 || dauer > 0;
+    if (kennt && saetze < XP_REGEL.saetze && dauer < XP_REGEL.sek) continue;
+    if (letzte && (t - letzte) < XP_REGEL.abstandSek * 1000) continue;
+    const d = new Date(t);
+    const tag = d.toISOString().slice(0, 10);
+    const wo  = (typeof crewWeekKeyOf === 'function') ? crewWeekKeyOf(d) : tag.slice(0, 7);
+    if ((proTag[tag] || 0) >= XP_REGEL.proTag) continue;
+    if ((proWoche[wo] || 0) >= XP_REGEL.proWoche) continue;
+    proTag[tag] = (proTag[tag] || 0) + 1;
+    proWoche[wo] = (proWoche[wo] || 0) + 1;
+    letzte = t; zaehlt++;
+  }
+  return zaehlt;
+}
+
+/* Gruppen-Belohnung: fuer jede Woche, in der die eigene Crew ihr Ziel
+   erreicht hat UND man selbst etwas beigetragen hat, gibt es 120 Punkte —
+   gut eine Einheit. Wer jede einzelne Woche mitzieht, ist damit rund ein
+   halbes Jahr frueher auf Level 100 (156 Wochen x 120 = 18 720 von 54 180
+   noetigen Punkten); wer gelegentlich mitzieht, merkt einen Schubs, keine
+   Abkuerzung. Die Wochen liegen lokal — ein Cloud-Feld muesste erst in die
+   hasOnly-Liste der Firestore-Rules. */
+function _crewBonusWochen(){
+  try { const b = JSON.parse(localStorage.getItem('gt_crewBonus') || '{}'); return Array.isArray(b.w) ? b.w : []; }
+  catch(e){ return []; }
+}
 /* Gegebene Flammen (localStorage 'gt_flamesGiven', gleiche Mechanik wie die
    Flame-Bank): jede Flamme an einen fremden Post zählt genau EINMAL Punkte —
    An/Aus-Getoggle farmt nichts, Zähler t bleibt monoton. Animiert zum Reagieren. */
@@ -3082,7 +3141,7 @@ function _xpOf(p){   // Punkte eines fremden Profils (nur öffentlich sichtbare 
   return total*PTS_PER.workout + streak*PTS_PER.streakWk;
 }
 function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Freigabe)
-  const total = (S.sessions || []).length;
+  const total = _xpWorkouts();
   let streak = 0; try { streak = calcStreak().weeks || 0; } catch(_){}
   // Flammen aus der dauerhaften Flame-Bank (monoton wachsend) statt aus dem
   // flüchtigen Post-Cache: Der war nach jedem Post/Reload kurz null → Punkte
@@ -3090,7 +3149,9 @@ function _xpSelf(){   // eigene Punkte aus lokalen Daten (auch ohne Statistik-Fr
   // Außerdem überleben die Punkte so das wöchentliche Post-Löschen.
   let flames = 0; try { flames = _flameBank().t || 0; } catch(_){}
   let given = 0; try { given = _flamesGiven().t || 0; } catch(_){}
-  return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame + given*PTS_PER.flameGiven;
+  const crew = _crewBonusWochen().length;
+  return total*PTS_PER.workout + streak*PTS_PER.streakWk + flames*PTS_PER.flame
+       + given*PTS_PER.flameGiven + crew*PTS_PER.crewWeek;
 }
 /* Punkte-Schwelle für ein Level. Kalibriert auf „Level 100 nach ~3 Jahren, 3× pro Woche":
    3 Workouts/Woche · 156 Wochen ≈ 468 Workouts × 100 Pkt = 46 800 + Streak (~156 Wo × 50

@@ -705,6 +705,7 @@ function _crewMiniHTML(c){
   const soll    = each ? Math.max(1, (c.members || []).length) : goal;
   const rest    = Math.max(0, soll - total);
   const streak  = +c.streak || 0;
+  crewBonusPruefen(c);
   return `<div class="crew-card crew-card-mini" onclick="crewOpenFull('${esc(c.id)}')">
     <div class="crew-head">
       <div style="flex:1;min-width:0">
@@ -719,6 +720,35 @@ function _crewMiniHTML(c){
       <span class="crew-days">${rest === 0 ? 'Ziel geschafft' : (each ? rest + (rest === 1 ? ' fehlt noch' : ' fehlen noch') : 'Noch ' + _crewVal(rest, typ))}</span>
     </div>
   </div>`;
+}
+
+/* ── Gruppen-Belohnung ───────────────────────────────────────────────────
+   Schafft die Gruppe ihr Wochenziel, bekommt jedes Mitglied 120 Punkte fuers
+   eigene Level (PTS_PER.crewWeek). Zwei Bedingungen halten das sauber:
+
+   - Nur mit eigenem Beitrag. Sonst zoege ein Trittbrettfahrer jede Woche
+     Punkte aus der Arbeit der anderen.
+   - Nur einmal je Woche, erkannt am Wochenschluessel des Gruppendokuments.
+     Der Eintrag liegt lokal; mehrfaches Oeffnen der Ansicht zahlt nicht
+     mehrfach aus. */
+function crewBonusPruefen(c){
+  if (!c || c.weekKey !== crewWeekKey()) return;
+  const uid = _fbUser?.uid;
+  if (!uid || !(+(c.wk || {})[uid] > 0)) return;      // ohne eigenen Beitrag nichts
+  const typ  = c.goalType || 'ses';
+  const each = typ === 'each';
+  const goal = Math.max(1, +c.goal || 1);
+  const total = each ? (c.members || []).filter(u => (+(c.wk || {})[u] || 0) >= goal).length : crewTotal(c);
+  const soll  = each ? Math.max(1, (c.members || []).length) : goal;
+  if (total < soll) return;
+  let b; try { b = JSON.parse(localStorage.getItem('gt_crewBonus') || '{}'); } catch(e){ b = {}; }
+  if (!Array.isArray(b.w)) b.w = [];
+  const k = c.id + '|' + c.weekKey;                  // je Gruppe und Woche einmal
+  if (b.w.includes(k)) return;
+  b.w.push(k);
+  if (b.w.length > 300) b.w = b.w.slice(-300);       // Deckel gegen unbegrenztes Wachsen
+  try { localStorage.setItem('gt_crewBonus', JSON.stringify(b)); } catch(e){}
+  if (typeof _renderLevelBadge === 'function') _renderLevelBadge();
 }
 
 /* Volle Ansicht einer Gruppe (setSocTab('crew') zeigt die zuletzt geoeffnete). */
@@ -792,7 +822,7 @@ function _crewCardHTML(c){
       <span class="crew-days">${tage === 0 ? 'Letzter Tag der Woche' : 'Noch ' + tage + (tage === 1 ? ' Tag' : ' Tage')}</span>
     </div>
     <div class="crew-hint">${rest === 0
-      ? 'Wochenziel geschafft — der Streak wächst am Montag.'
+      ? 'Wochenziel geschafft — jeder mit Beitrag bekommt ' + PTS_PER.crewWeek + ' Punkte, der Streak wächst am Montag.'
       : (each ? rest + (rest === 1 ? ' Mitglied hat sein Ziel noch nicht' : ' Mitglieder haben ihr Ziel noch nicht')
               : 'Noch ' + _crewVal(rest, typ) + ' bis Sonntag')}</div>
 
