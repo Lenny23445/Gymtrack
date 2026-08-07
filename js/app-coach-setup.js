@@ -174,8 +174,8 @@ function renderPremiumSettings(){
   // Premium läuft: wer zahlt, kann trotzdem einen Freund einladen.
   if (typeof refCanEarn === 'function' && refCanEarn()) {
     const refSub = (typeof refTrialActive === 'function' && refTrialActive())
-      ? 'Noch eine Gratis-Woche ist drin'
-      : 'Ihr bekommt beide eine Woche Premium geschenkt';
+      ? 'Du kannst dir noch eine Gratis-Woche holen.'
+      : 'Löst dein Freund den Code ein, bekommt ihr beide eine Woche Premium geschenkt.';
     rows.push(`
     <div class="row" onclick="openInviteSheet()" style="cursor:pointer">
       <div class="ico">${ICO.users({s:20})}</div>

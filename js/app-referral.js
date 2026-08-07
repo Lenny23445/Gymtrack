@@ -154,8 +154,8 @@ function refBannerHTML(){
       ? tr('Gratis-Premium noch') + ' ' + tage + ' ' + tr(tage === 1 ? 'Tag' : 'Tage')
       : tr('1 Woche Premium gratis');
     const sub = aktiv
-      ? tr('Noch eine Woche ist drin — lade einen Freund ein.')
-      : tr('Freund einladen — ihr bekommt beide eine Woche.');
+      ? tr('Du kannst dir noch eine Woche holen: lade einen Freund ein.')
+      : tr('Lade einen Freund ein — löst er deinen Code ein, bekommt ihr beide eine Woche Premium geschenkt.');
     return `<button class="ref-banner" onclick="openInviteSheet()">
       <span class="ref-banner-ico">${ICO.users({s:20})}</span>
       <span class="ref-banner-txt"><b>${esc(titel)}</b><small>${esc(sub)}</small></span>

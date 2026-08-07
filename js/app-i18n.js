@@ -816,6 +816,10 @@ const I18N_EN = {
   'Gruppe hinzufügen':'Add group',
   'Ihr bekommt beide eine Woche Premium geschenkt':'You both get a free week of Premium',
   'Noch eine Gratis-Woche ist drin':'One more free week is available',
+  'Löst dein Freund den Code ein, bekommt ihr beide eine Woche Premium geschenkt.':'When your friend redeems the code, you both get a free week of Premium.',
+  'Du kannst dir noch eine Gratis-Woche holen.':'You can still claim one more free week.',
+  'Du kannst dir noch eine Woche holen: lade einen Freund ein.':'You can still claim one more week: invite a friend.',
+  'Lade einen Freund ein — löst er deinen Code ein, bekommt ihr beide eine Woche Premium geschenkt.':'Invite a friend — when they redeem your code, you both get a free week of Premium.',
   'Deine 15 Gratis-Anfragen sind aufgebraucht — mit Premium geht es weiter.':'Your 15 free requests are used up — Premium continues from here.',
   'Die Gratis-KI ist diesen Monat ausgelastet — mit Premium geht es sofort weiter.':'Free AI is at capacity this month — Premium continues right away.',
   /* Premium / KI-Coach — Paywall */
