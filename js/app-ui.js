@@ -552,15 +552,9 @@ const DEFAULT_HEUTE_LAYOUT = [
      sichtbar, ohne Abo faellt seine Kachel hier heraus, ohne dass die obere
      Haelfte der Seite darunter leidet. */
   {type:'coach',   size:'lg'},
-  /* Koerpergewicht steht als lg im Standardraster, weil erst diese Groesse das
-     Zahlenrad zeigt (s. renderWeightCard) — auf einer md-Kachel waere es nicht
-     bedienbar. Das kostet 'volume' seinen Partner in der Zeile, deshalb rutscht
-     es ans Ende: die halbe Leerstelle liegt so am Seitenende statt mitten im
-     Raster. Wer sein Raster schon angepasst hat, behaelt seine Groessen —
-     getHeuteLayout() liest dann S.heuteLayout und diese Liste greift nicht. */
-  {type:'weight',  size:'lg'},
-  {type:'history', size:'lg'},
+  {type:'weight',  size:'md'},
   {type:'volume',  size:'md'},
+  {type:'history', size:'lg'},
 ];
 
 /* Größen-Reihenfolge: sm (quadratisch) < md (kleine rechteckig) < lg (groß).
@@ -573,10 +567,7 @@ const WIDGET_DEFS = {
      Bearbeiten-Modus dazu. */
   weekcal: {title:'Diese Woche',     icon:'📅', label:'Diese Woche',      desc:'Wochenübersicht Mo–So',       sizes:['sm','md','lg'], lgRows:2, build:hwWeekcal},
   woche:   {title:'Wochenziele',     icon:'🎯', label:'Wochenziele',      desc:'Wochen-Tracker-Ringe',        sizes:['sm','md','lg'], lgRows:()=>((S.trackerItems||[]).length>2?2:1), build:()=>`<div class="tracker-row" id="tracker-row"></div>`, fill:(...a)=>renderTrackers(...a)},
-  /* lgRows haengt am Ziel-Block: ohne Start/Ziel steht dort nur ein Knopf,
-     mit Ziel kommen Balken, Beschriftung und Kennzahlen dazu. Vier Zeilen
-     reichen dann nicht mehr — das Zahlenrad wuerde gequetscht. */
-  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht eintragen & Verlauf', sizes:['sm','md','lg'], lgRows:()=>((S.weightStart!=null&&S.weightGoal!=null)?5:4), build:()=>`<div class="card" id="weight-card"></div>`, fill:(...a)=>renderWeightCard(...a)},
+  weight:  {title:'Körpergewicht',   icon:'⚖️', label:'Körpergewicht',    desc:'Gewicht & Verlauf',           sizes:['sm','md','lg'], lgRows:3, build:()=>`<div class="card" id="weight-card"></div>`, fill:(...a)=>renderWeightCard(...a)},
   history: {title:'Letzte Trainings',icon:'🏋️', label:'Letzte Trainings', desc:'Deine letzten Einheiten',     sizes:['lg'],           lgRows:3, build:()=>`<div class="card" id="history-card"></div>`, fill:renderCompactHistory},
   train:   {title:'',                icon:'▶️', label:'Training starten',  desc:'Schnellstart-Button',         sizes:['sm','md','lg'], lgRows:1, build:(size)=>`<button class="btn btn-acc heute-train-btn" onclick="openWorkout()">▶&nbsp; ${size==='sm'?'Start':'Training starten'}</button>`},
   streak:  {title:'Streak',          icon:'🔥', label:'Streak',            desc:'Wochen in Folge',             sizes:['sm','md','lg'], lgRows:2, build:hwStreak},

@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080004';
+const APP_VERSION = 'gymtrack-v202608080005';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -758,7 +758,7 @@ const I18N_EN = {
   '📱 Homescreen-Widget und Live-Activity folgen der Systemsprache':'📱 Home screen widget and Live Activity follow the system language',
   // ── Heute-Widgets: Titel · Label · Beschreibung ──
   'Wochenziele':'Weekly goals','1RM-Bestwerte':'1RM bests','Trainingswoche · 7 Tage':'Training week · 7 days',
-  'Wochen-Tracker-Ringe':'Weekly tracker rings','Wochenübersicht Mo–So':'Week overview Mon–Sun','Gewicht eintragen & Verlauf':'Log weight & history','Ziehen zum Einstellen':'Drag to adjust','Deine letzten Einheiten':'Your recent sessions',
+  'Wochen-Tracker-Ringe':'Weekly tracker rings','Wochenübersicht Mo–So':'Week overview Mon–Sun','Gewicht & Verlauf':'Weight & history','Deine letzten Einheiten':'Your recent sessions',
   'Schnellstart-Button':'Quick-start button','Wochen in Folge':'Weeks in a row','Muskel-Erholung':'Muscle recovery',
   'Trainings-Heatmap':'Workout heatmap','Volumen-Verteilung':'Volume distribution','Schnellzugriff':'Quick access',
   'Wochen-Streak':'Week streak','Gesamt-Volumen':'Total volume','Trainings-Streak':'Workout streak',
