@@ -971,6 +971,19 @@ async function _ensureSocialNotifPermission(){
   } catch(_){}
 }
 async function _notifyFlames(fresh){
+  /* Flammen von FREUNDEN nicht lokal melden: das Gerät des Gebenden ruft beim
+     Tap _notifyFlamePush() und APNs stellt sofort zu. Dieser Listener sieht
+     dieselbe Flamme später noch einmal (beim nächsten Öffnen der App) und
+     meldete sie dann ein zweites Mal — genau die doppelten Meldungen.
+     Von Nicht-Freunden lehnt der Push-Worker die Zustellung ab (Beziehungs-
+     prüfung in push-worker/worker.js), da ist die lokale Meldung der EINZIGE
+     Weg und bleibt deshalb.
+     Preis: schlägt die APNs-Zustellung fehl (Tageslimit pro Paar, kein
+     pushToken, Absender offline), bleibt die Freundes-Flamme stumm — sie
+     steht weiter im Flammen-Badge und in der Flammen-Liste. */
+  const freunde = new Set(S.friends || []);
+  fresh = fresh.filter(f => !freunde.has(f.fuid));
+  if (!fresh.length) return;
   // Namen der Reagierenden best-effort nachladen (profiles für alle Angemeldeten lesbar)
   for (const f of fresh) {
     if (!(_socCache||[]).find?.(x => x.uid === f.fuid)) {

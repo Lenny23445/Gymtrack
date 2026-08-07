@@ -225,7 +225,13 @@ function alertText(kind, fromName) {
   const wer = fromName || "Jemand";
   if (kind === "live")     return `${wer} trainiert gerade`;
   if (kind === "crewlive") return `${wer} trainiert gerade — zieh mit`;
-  return `${wer} hat mit einer Flamme reagiert`;
+  /* „auf deinen Post" gehoert in den Text. Vorher stand hier nur „… hat mit
+     einer Flamme reagiert" — der Empfaenger konnte daraus nicht erkennen, dass
+     es um SEINEN Post geht, und las es als Meldung ueber fremde Likes. Die
+     Zustellung war immer schon auf den Post-Besitzer beschraenkt (toUid ist der
+     Autor), nur die Formulierung verschwieg es. Gleicher Wortlaut wie die
+     lokale Meldung in js/app-community.js (_notifyFlames). */
+  return `${wer} hat mit einer Flamme auf deinen Post reagiert`;
 }
 function fsStringArray(doc, key) {
   const f = doc && doc.fields && doc.fields[key];
