@@ -30,29 +30,101 @@
    ring      = umlaufende duenne Linie
    schrift   = gebogene Schrift + Zahl
    akzent    = die beiden Boegen, einziger Farbtraeger */
-const PLATE_STUFEN = [
-  { ab: 50, name: 'Chrom',     hell: true,
-    koerperHell: '#fbfdff', koerper: '#d3dae1', koerperTief: '#8e98a3',
-    innenHell: '#eef2f6', innen: '#d2d9e0', innenTief: '#aab3bd', ring: '#4b545f', schrift: '#1b2026', akzent: '#6f7a86' },
-  { ab: 40, name: 'Rot',
+const PLATE_MATS = [
+  { key: 'gold',   name: 'Gold',     ab: 100, metall: true,
+    glanz: '#fff8dd', mitte: '#d8ab3c', tief: '#6d4a0e',
+    innenGlanz: '#f7e3a4', innenMitte: '#c1922c', innenTief: '#5c3d0a',
+    ring: '#7d5a17', schrift: '#6b4c12', schriftTief: '#432f08', akzent: '#fff0b8',
+    korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
+  { key: 'silber', name: 'Silber',   ab: 50, metall: true,
+    glanz: '#ffffff', mitte: '#b3bbc3', tief: '#565d65',
+    innenGlanz: '#f2f5f8', innenMitte: '#a2aab2', innenTief: '#4a5158',
+    ring: '#5a626a', schrift: '#464d54', schriftTief: '#2b3036', akzent: '#ffffff',
+    korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
+  { key: 'bronze', name: 'Bronze',   ab: 30, metall: true,
+    glanz: '#ffe9cd', mitte: '#b8763a', tief: '#5e330f',
+    innenGlanz: '#f4d1a8', innenMitte: '#a5652f', innenTief: '#4e2a0c',
+    ring: '#6b4020', schrift: '#5a3418', schriftTief: '#38200d', akzent: '#ffe2ba',
+    korn: { bf: '2.6', okt: 2, tiefe: .7, staerke: .12 } },
+  { key: 'standard', name: 'Standard', ab: 0,
     koerperHell: '#3d4147', koerper: '#212429', koerperTief: '#0c0e11',
-    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619', ring: '#e2e7ec', schrift: '#f2f5f8', akzent: '#d8453a' },
-  { ab: 30, name: 'Blau',
-    koerperHell: '#3d4147', koerper: '#212429', koerperTief: '#0c0e11',
-    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619', ring: '#e2e7ec', schrift: '#f2f5f8', akzent: '#2a6fd6' },
-  { ab: 20, name: 'Gelb',
-    koerperHell: '#3d4147', koerper: '#212429', koerperTief: '#0c0e11',
-    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619', ring: '#e2e7ec', schrift: '#f2f5f8', akzent: '#e3bb35' },
-  { ab: 10, name: 'Grün',
-    koerperHell: '#3d4147', koerper: '#212429', koerperTief: '#0c0e11',
-    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619', ring: '#e2e7ec', schrift: '#f2f5f8', akzent: '#33a558' },
-  { ab: 0,  name: 'Gusseisen',
-    koerperHell: '#3d4147', koerper: '#212429', koerperTief: '#0c0e11',
-    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619', ring: '#e2e7ec', schrift: '#f2f5f8', akzent: '#9aa3ad' }
+    innenHell: '#34383e', innen: '#23262b', innenTief: '#141619',
+    ring: '#e2e7ec', schrift: '#f2f5f8', schriftTief: '#aeb6bf', akzent: null,
+    korn: { bf: '3.4', okt: 2, tiefe: 1.2, staerke: .3 } }
 ];
-function plateStufe(level){
+const PLATE_MAT_WAHL = 'gt_plateMat';
+
+/* Welche Materialien hat dieses Level freigeschaltet — von unten nach oben. */
+function plateMatsFrei(level){
   const L = Math.max(1, Math.round(+level || 1));
-  return PLATE_STUFEN.find(s => L >= s.ab) || PLATE_STUFEN[PLATE_STUFEN.length - 1];
+  return PLATE_MATS.filter(m => L >= m.ab).sort((a, b) => a.ab - b.ab);
+}
+
+/* Gewaehltes Material. Die Wahl liegt bewusst nur lokal (localStorage), nicht
+   im users-Doc: ein neues Cloud-Feld muesste erst in die hasOnly-Liste der
+   Firestore-Rules, sonst schlaegt der KOMPLETTE users-Push mit
+   permission-denied fehl. Vorgabe ist das hoechste freigeschaltete Material —
+   wer Bronze erreicht, soll es auch sehen, ohne es erst zu suchen. */
+function plateMat(level, wahl){
+  const frei = plateMatsFrei(level);
+  const k = wahl || (() => { try { return localStorage.getItem(PLATE_MAT_WAHL); } catch(e){ return null; } })();
+  return frei.find(m => m.key === k) || frei[frei.length - 1];
+}
+
+/* Akzentfarbe des Standardmaterials: die Akzentfarbe der App. Damit traegt die
+   Scheibe das Thema mit (hell, rosa, dunkel, blau, Premium-Themes) statt einer
+   eigenen, zweiten Farbwelt. Metallscheiben faerben ihren Akzent selbst. */
+function _plateAkzent(){
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim();
+    if (v) return v;
+  } catch(e){}
+  return '#2a6fd6';
+}
+
+/* ── Metall ──────────────────────────────────────────────────────────────
+   Ein Streifenverlauf quer ueber die Scheibe sah nach Holzmaserung aus: die
+   Baender liefen alle in dieselbe Richtung, wie eine Faserung. Metall
+   reflektiert dagegen ringsum — eine gedrehte Scheibe hat Glanzachsen, die
+   sternfoermig um die Mitte laufen. Deshalb wird die Flaeche aus schmalen
+   Keilen gebaut, deren Helligkeit mit dem Winkel schwingt: zwei kraeftige
+   Achsen (Hauptlicht) und vier schwaechere (Streulicht). Genau das liest das
+   Auge als poliertes Metall. */
+const PL_KEILE = 72;
+
+function _plateMix(a, b, t){
+  const h = (c) => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
+  const A = h(a), B = h(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
+/* Helligkeit an einem Winkel: 0 = tiefster Ton, 1 = Glanz. Der Versatz legt
+   die Hauptachse schraeg (oben links), passend zum Licht der ganzen Scheibe. */
+function _plateGlanz(grad){
+  const r = (grad - 35) * Math.PI / 180;
+  return Math.min(1, Math.max(0, .44 + .34 * Math.pow(Math.abs(Math.cos(r)), 2.4)
+                                  + .12 * Math.pow(Math.abs(Math.cos(2 * r)), 3)));
+}
+
+/* Keilfaecher als SVG-Pfade. `rInnen` > 0 laesst die Mitte frei, damit die
+   eingelassene Flaeche ihren eigenen Faecher bekommen kann. */
+function _plateFaecher(s, rAussen, rInnen, glanz, mitte, tief){
+  const st = 360 / PL_KEILE, out = [];
+  for (let i = 0; i < PL_KEILE; i++){
+    const a0 = i * st, a1 = a0 + st + .35;          // Ueberlappung gegen Haarlinien
+    const g  = _plateGlanz(a0 + st / 2);
+    const f  = g > .5 ? _plateMix(mitte, glanz, (g - .5) * 2) : _plateMix(tief, mitte, g * 2);
+    const p  = (a, r) => [(50 + r * Math.cos(a * Math.PI / 180)).toFixed(2),
+                          (50 + r * Math.sin(a * Math.PI / 180)).toFixed(2)];
+    const [x0, y0] = p(a0, rAussen), [x1, y1] = p(a1, rAussen);
+    if (rInnen > 0){
+      const [x2, y2] = p(a1, rInnen), [x3, y3] = p(a0, rInnen);
+      out.push(`<path d="M ${x0} ${y0} A ${rAussen} ${rAussen} 0 0 1 ${x1} ${y1} L ${x2} ${y2} A ${rInnen} ${rInnen} 0 0 0 ${x3} ${y3} Z" fill="${f}"/>`);
+    } else {
+      out.push(`<path d="M 50 50 L ${x0} ${y0} A ${rAussen} ${rAussen} 0 0 1 ${x1} ${y1} Z" fill="${f}"/>`);
+    }
+  }
+  return out.join('');
 }
 
 /* Jede Scheibe braucht eigene Verlaufs-IDs — zwei SVGs mit derselben ID auf
@@ -76,10 +148,14 @@ function _plateZahlGroesse(text, mitText){
 
    Einstellige Level bekommen eine fuehrende Null (7 -> 0 | 7). Ohne sie
    stuende auf einer Seite nichts und die Scheibe waere sichtbar schief.
-   Dreistellige teilen 2 | 1 (103 -> 10 | 3). */
+
+   Dreistellige teilen 1 | 2 (100 -> 1 | 00). Andersherum (10 | 3) stand der
+   breite Block links und der schmale rechts — die Scheibe kippte sichtbar zur
+   Seite, und die Ziffern links wurden so schmal, dass sie nicht mehr zu den
+   anderen Stufen passten. */
 function _plateZahlTeilen(n){
   const t = n.length === 1 ? '0' + n : n;
-  const links = Math.ceil(t.length / 2);
+  const links = Math.floor(t.length / 2);
   return [t.slice(0, links), t.slice(links)];
 }
 
@@ -117,7 +193,11 @@ const PL_BOGEN_GRAD = 24;
    opts.label = gebogene Schrift oben/unten (erst ab ~120 px lesbar) */
 function _lvlPlateSVG(level, px, opts){
   const o     = opts || {};
-  const s     = plateStufe(level);
+  const s     = plateMat(level, o.mat);
+  const akz   = s.akzent || _plateAkzent();
+  // Metall ist ein heller Untergrund — Schatten, Kanten und Konturen brauchen
+  // dort andere Staerken als das schwarze Gummi.
+  const hell  = !!s.metall;
   const n     = String(Math.max(1, Math.round(+level || 1)));
   const id    = 'pl' + (++_plateNr);
   const gross = px >= 120;
@@ -145,41 +225,46 @@ function _lvlPlateSVG(level, px, opts){
   return `<svg class="lvl-plate" viewBox="0 0 100 100" width="${px}" height="${px}" role="img"
     aria-label="Level ${n}" style="display:block">
     <defs>
-      <!-- Gummikoerper: breiter weicher Schein oben links, matt auslaufend -->
-      <radialGradient id="${id}k" cx="0.33" cy="0.24" r="0.82">
+      <!-- Koerper. Gummi: breiter weicher Schein oben links, matt auslaufend.
+           Metall: schmale Baender quer ueber die Scheibe — die abrupten
+           Wechsel hell/dunkel sind das, was ein Auge als Metall liest, ein
+           weicher Verlauf bliebe farbiger Lack. -->
+      ${s.metall ? '' : `<radialGradient id="${id}k" cx="0.33" cy="0.24" r="0.82">
         <stop offset="0%"   stop-color="${s.koerperHell}"/>
         <stop offset="34%"  stop-color="${s.koerper}"/>
         <stop offset="100%" stop-color="${s.koerperTief}"/>
-      </radialGradient>
+      </radialGradient>`}
       <!-- Kante: die Woelbung. Innen nichts, ganz aussen ein schmaler dunkler
            Saum — breit abgedunkelt saehe die Scheibe aus wie ein Reifen. -->
       <radialGradient id="${id}v" cx="0.5" cy="0.5" r="0.5">
         <stop offset="0%"   stop-color="#000" stop-opacity="0"/>
         <stop offset="84%"  stop-color="#000" stop-opacity="0"/>
-        <stop offset="95%"  stop-color="#000" stop-opacity="${s.hell ? .1 : .2}"/>
-        <stop offset="100%" stop-color="#000" stop-opacity="${s.hell ? .3 : .58}"/>
+        <stop offset="95%"  stop-color="#000" stop-opacity="${hell ? .08 : .2}"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="${hell ? .34 : .58}"/>
       </radialGradient>
       <!-- Rueckwurf unten rechts -->
       <radialGradient id="${id}b" cx="0.72" cy="0.86" r="0.5">
-        <stop offset="0%"   stop-color="#fff" stop-opacity="${s.hell ? .5 : .13}"/>
+        <stop offset="0%"   stop-color="#fff" stop-opacity="${hell ? .2 : .13}"/>
         <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
       </radialGradient>
-      <!-- Eingelassene Flaeche -->
-      <radialGradient id="${id}f" cx="0.36" cy="0.28" r="0.9">
+      <!-- Eingelassene Flaeche. Beim Metall laufen die Baender andersherum als
+           auf dem Koerper — dieselbe Richtung liesse Reifen und Flaeche zu
+           einem Stueck verschmelzen. -->
+      ${s.metall ? '' : `<radialGradient id="${id}f" cx="0.36" cy="0.28" r="0.9">
         <stop offset="0%"   stop-color="${s.innenHell}"/>
         <stop offset="45%"  stop-color="${s.innen}"/>
         <stop offset="100%" stop-color="${s.innenTief}"/>
-      </radialGradient>
+      </radialGradient>`}
       <!-- Innenkante der Vertiefung: oben Schatten, unten Licht -->
       <linearGradient id="${id}e" x1="0" y1="0" x2="0.25" y2="1">
         <stop offset="0%"   stop-color="#000" stop-opacity=".55"/>
         <stop offset="55%"  stop-color="#000" stop-opacity=".12"/>
-        <stop offset="100%" stop-color="#fff" stop-opacity="${s.hell ? .7 : .16}"/>
+        <stop offset="100%" stop-color="#fff" stop-opacity="${hell ? .45 : .16}"/>
       </linearGradient>
       <!-- Zahl: oben eine Spur heller, das gibt ihr Tiefe ohne Schlagschatten -->
       <linearGradient id="${id}z" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"   stop-color="${s.hell ? '#2b3138' : '#ffffff'}"/>
-        <stop offset="100%" stop-color="${s.schrift}"/>
+        <stop offset="0%"   stop-color="${s.metall ? s.schrift : '#ffffff'}"/>
+        <stop offset="100%" stop-color="${s.metall ? s.schriftTief : s.schrift}"/>
       </linearGradient>
       <!-- Metallbuchse in der Bohrung: harte Wechsel hell/dunkel, das macht
            den Chromeindruck. Ein weicher Verlauf saehe nach grauem Lack aus. -->
@@ -207,19 +292,35 @@ function _lvlPlateSVG(level, px, opts){
       <!-- color-interpolation-filters="sRGB" ist Pflicht: per Vorgabe rechnen
            SVG-Filter in linearRGB, und dort uebersteuert der Overlay auf dem
            dunklen Gummi so sehr, dass die Scheibe wie Schleifpapier aussieht. -->
+      <!-- Das Rauschen wird nicht direkt eingefaerbt, sondern als Hoehenkarte
+           beleuchtet (feDiffuseLighting). Flach eingeblendetes Rauschen bleibt
+           Bildrauschen; erst Licht aus derselben Richtung wie auf der ganzen
+           Scheibe (oben links) macht daraus Poren, die man als Oberflaeche
+           liest. Beim Metall ist das Rauschen quer gestreckt
+           (baseFrequency "0.012 2.6") — das ergibt den feinen Schliff. -->
       <filter id="${id}n" x="-1%" y="-1%" width="102%" height="102%" color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="2" seed="7" result="t"/>
-        <feColorMatrix in="t" type="saturate" values="0" result="g"/>
-        <!-- Rauschen um Mittelgrau zusammenstauchen: overlay laesst 0.5
+        <feTurbulence type="fractalNoise" baseFrequency="${s.korn.bf}" numOctaves="${s.korn.okt}" seed="7" result="t"/>
+        <feDiffuseLighting in="t" surfaceScale="${s.korn.tiefe}" diffuseConstant="1"
+          lighting-color="#ffffff" result="li">
+          <feDistantLight azimuth="135" elevation="55"/>
+        </feDiffuseLighting>
+        <feColorMatrix in="li" type="saturate" values="0" result="lg"/>
+        <!-- Relief um Mittelgrau zusammenstauchen: overlay laesst 0.5
              unveraendert, der Rest hellt auf oder dunkelt ab. Voller Umfang
-             saehe aus wie Bildrauschen, nicht wie Gummi. -->
-        <feComponentTransfer in="g" result="k">
-          <feFuncR type="linear" slope=".3" intercept=".35"/>
-          <feFuncG type="linear" slope=".3" intercept=".35"/>
-          <feFuncB type="linear" slope=".3" intercept=".35"/>
+             waere eine Mondlandschaft, kein Gummi. -->
+        <feComponentTransfer in="lg" result="k">
+          <feFuncR type="linear" slope="${s.korn.staerke}" intercept="${(.5 - s.korn.staerke / 2).toFixed(3)}"/>
+          <feFuncG type="linear" slope="${s.korn.staerke}" intercept="${(.5 - s.korn.staerke / 2).toFixed(3)}"/>
+          <feFuncB type="linear" slope="${s.korn.staerke}" intercept="${(.5 - s.korn.staerke / 2).toFixed(3)}"/>
           <feFuncA type="linear" slope="0" intercept="1"/>
         </feComponentTransfer>
-        <feBlend in="SourceGraphic" in2="k" mode="overlay" result="b"/>
+        <!-- Multiplikativ statt feBlend mode="overlay": overlay hellte in der
+             WKWebView so stark auf, dass aus dem schwarzen Gummi ein
+             mittelgrauer Reifen wurde (in Chrome sah dieselbe Datei richtig
+             aus). arithmetic mit k1=2 rechnet Farbe x 2 x Relief — Relief 0.5
+             laesst die Farbe unveraendert, hell und dunkel modulieren sie um
+             denselben Betrag nach oben und unten. -->
+        <feComposite in="SourceGraphic" in2="k" operator="arithmetic" k1="2" k2="0" k3="0" k4="0" result="b"/>
         <feComposite in="b" in2="SourceGraphic" operator="in"/>
       </filter>` : ''}
     </defs>
@@ -228,12 +329,14 @@ function _lvlPlateSVG(level, px, opts){
          Koernungsfilter — Ring, Schrift und Zahl bleiben glatt, gekoernt ist
          nur das Gummi. -->
     <g${fein ? ` filter="url(#${id}n)"` : ''}>
-      <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>
+      ${s.metall ? _plateFaecher(s, PL.rand, 0, s.glanz, s.mitte, s.tief)
+                 : `<circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}k)"/>`}
       <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}b)"/>
       <circle cx="50" cy="50" r="${PL.rand}" fill="url(#${id}v)"/>
-      <circle cx="50" cy="50" r="${PL.innen}" fill="url(#${id}f)"/>
+      ${s.metall ? _plateFaecher(s, PL.innen, 0, s.innenGlanz, s.innenMitte, s.innenTief)
+                 : `<circle cx="50" cy="50" r="${PL.innen}" fill="url(#${id}f)"/>`}
       <circle cx="50" cy="50" r="${PL.innen + .35}" fill="none" stroke="#000"
-        stroke-width="1.1" opacity="${s.hell ? .22 : .5}"/>
+        stroke-width="1.1" opacity="${hell ? .3 : .5}"/>
       <circle cx="50" cy="50" r="${PL.innen - .6}" fill="none" stroke="url(#${id}e)" stroke-width="1.6"/>
     </g>
 
@@ -242,20 +345,22 @@ function _lvlPlateSVG(level, px, opts){
 
     <!-- Akzentboegen links und rechts: das Erkennungszeichen der Vorlage,
          hier traegt es die Stufenfarbe. -->
-    <path d="M ${bx} ${by2} A ${PL.bogen} ${PL.bogen} 0 0 1 ${bx} ${by1}" fill="none" stroke="${s.akzent}"
+    <path d="M ${bx} ${by2} A ${PL.bogen} ${PL.bogen} 0 0 1 ${bx} ${by1}" fill="none" stroke="${akz}"
       stroke-width="2.6" stroke-linecap="round"/>
-    <path d="M ${100 - bx} ${by1} A ${PL.bogen} ${PL.bogen} 0 0 1 ${100 - bx} ${by2}" fill="none" stroke="${s.akzent}"
+    <path d="M ${100 - bx} ${by1} A ${PL.bogen} ${PL.bogen} 0 0 1 ${100 - bx} ${by2}" fill="none" stroke="${akz}"
       stroke-width="2.6" stroke-linecap="round"/>
 
     ${text ? `
     <path id="${id}o" d="M ${50 - PL.txtO} 50 A ${PL.txtO} ${PL.txtO} 0 0 1 ${50 + PL.txtO} 50" fill="none"/>
     <path id="${id}u" d="M ${50 - PL.txtU} 50 A ${PL.txtU} ${PL.txtU} 0 0 0 ${50 + PL.txtU} 50" fill="none"/>
     <text font-size="${PL.txtGr}" font-weight="700" letter-spacing="1" text-anchor="middle"
-      fill="${s.schrift}" style="font-family:inherit">
+      fill="${s.metall ? `url(#${id}z)` : s.schrift}"${s.metall ? ` stroke="rgba(255,255,255,.5)" stroke-width=".55"` : ''}
+      style="font-family:inherit;paint-order:stroke fill">
       <textPath href="#${id}o" startOffset="50%">MYGYMTRACK</textPath>
     </text>
     <text font-size="${PL.txtGr}" font-weight="700" letter-spacing="3.2" text-anchor="middle"
-      fill="${s.schrift}" style="font-family:inherit">
+      fill="${s.metall ? `url(#${id}z)` : s.schrift}"${s.metall ? ` stroke="rgba(255,255,255,.5)" stroke-width=".55"` : ''}
+      style="font-family:inherit;paint-order:stroke fill">
       <textPath href="#${id}u" startOffset="50%">LEVEL</textPath>
     </text>` : ''}
 
@@ -274,15 +379,15 @@ function _lvlPlateSVG(level, px, opts){
     ${loch ? `
     <text x="${50 - PL.zahlX}" y="50" text-anchor="middle" dominant-baseline="central"
       font-size="${zgr}" font-weight="800" fill="url(#${id}z)"
-      stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zgr * .03}"
+      stroke="${hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)'}" stroke-width="${zgr * .03}"
       style="font-family:inherit;letter-spacing:-.5px;paint-order:stroke fill">${zLinks}</text>
     <text x="${50 + PL.zahlX}" y="50" text-anchor="middle" dominant-baseline="central"
       font-size="${zgr}" font-weight="800" fill="url(#${id}z)"
-      stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zgr * .03}"
+      stroke="${hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)'}" stroke-width="${zgr * .03}"
       style="font-family:inherit;letter-spacing:-.5px;paint-order:stroke fill">${zRechts}</text>` : `
     <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
       font-size="${zg}" font-weight="800" fill="url(#${id}z)"
-      stroke="${s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)'}" stroke-width="${zg * .03}"
+      stroke="${hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)'}" stroke-width="${zg * .03}"
       style="font-family:inherit;letter-spacing:-1px;paint-order:stroke fill">${n}</text>`}
   </svg>`;
 }
@@ -296,9 +401,11 @@ function _lvlPlate(level, px){
 /* ── Canvas-Zwilling fuers Teilen ────────────────────────────────────────
    Dieselbe Scheibe mit der 2D-API, damit ein echtes PNG entsteht. Groesse in
    Bildpunkten; die Vollbild-Ansicht teilt mit 1080. */
-function _lvlPlateCanvas(level, size){
+function _lvlPlateCanvas(level, size, mat){
   const px = size || 1080;
-  const s  = plateStufe(level);
+  const s  = plateMat(level, mat);
+  const akz = s.akzent || _plateAkzent();
+  const hell = !!s.metall;
   const n  = String(Math.max(1, Math.round(+level || 1)));
   const cv = document.createElement('canvas');
   cv.width = cv.height = px;
@@ -333,23 +440,37 @@ function _lvlPlateCanvas(level, size){
     return g;
   };
 
-  // Gummikoerper: weicher Schein oben links, Rueckwurf unten rechts, dunkle Kante
-  kreis(PL.rand, strahl(.33, .24, .82, [[0, s.koerperHell], [.34, s.koerper], [1, s.koerperTief]]));
+  /* Keilfaecher wie im SVG: Helligkeit schwingt mit dem Winkel. */
+  const faecher = (r, glanz, mitteF, tief) => {
+    const st = 360 / PL_KEILE;
+    for (let i = 0; i < PL_KEILE; i++){
+      const a0 = i * st, g = _plateGlanz(a0 + st / 2);
+      c.fillStyle = g > .5 ? _plateMix(mitteF, glanz, (g - .5) * 2) : _plateMix(tief, mitteF, g * 2);
+      c.beginPath(); c.moveTo(mitte, mitte);
+      c.arc(mitte, mitte, M(r), a0 * Math.PI / 180, (a0 + st + .4) * Math.PI / 180);
+      c.closePath(); c.fill();
+    }
+  };
+
+  // Koerper: Gummi mit weichem Schein, Metall mit Reflexfaecher
+  if (s.metall) faecher(PL.rand, s.glanz, s.mitte, s.tief);
+  else kreis(PL.rand, strahl(.33, .24, .82, [[0, s.koerperHell], [.34, s.koerper], [1, s.koerperTief]]));
   kreis(PL.rand, strahl(.72, .86, .5, [
-    [0, 'rgba(255,255,255,' + (s.hell ? .5 : .13) + ')'], [1, 'rgba(255,255,255,0)']]));
+    [0, 'rgba(255,255,255,' + (hell ? .2 : .13) + ')'], [1, 'rgba(255,255,255,0)']]));
   kreis(PL.rand, strahl(.5, .5, .5, [
     [0, 'rgba(0,0,0,0)'], [.84, 'rgba(0,0,0,0)'],
-    [.95, 'rgba(0,0,0,' + (s.hell ? .1 : .2) + ')'],
-    [1,   'rgba(0,0,0,' + (s.hell ? .3 : .58) + ')']]));
+    [.95, 'rgba(0,0,0,' + (hell ? .08 : .2) + ')'],
+    [1,   'rgba(0,0,0,' + (hell ? .34 : .58) + ')']]));
 
   // Eingelassene Flaeche mit Stufe zum Reifen
-  kreis(PL.innen, strahl(.36, .28, .9, [[0, s.innenHell], [.45, s.innen], [1, s.innenTief]]));
-  kreis(PL.innen + .35, null, '#000', 1.1, s.hell ? .22 : .5);
+  if (s.metall) faecher(PL.innen, s.innenGlanz, s.innenMitte, s.innenTief);
+  else kreis(PL.innen, strahl(.36, .28, .9, [[0, s.innenHell], [.45, s.innen], [1, s.innenTief]]));
+  kreis(PL.innen + .35, null, '#000', 1.1, hell ? .3 : .5);
   const kante = c.createLinearGradient(X(50 - PL.innen), X(50 - PL.innen),
                                        X(50 - PL.innen) + M(PL.innen * .5), X(50 + PL.innen));
   kante.addColorStop(0, 'rgba(0,0,0,.55)');
   kante.addColorStop(.55, 'rgba(0,0,0,.12)');
-  kante.addColorStop(1, 'rgba(255,255,255,' + (s.hell ? .7 : .16) + ')');
+  kante.addColorStop(1, 'rgba(255,255,255,' + (hell ? .45 : .16) + ')');
   kreis(PL.innen - .6, null, kante, 1.6);
 
   // Umlaufende Linie
@@ -357,7 +478,7 @@ function _lvlPlateCanvas(level, size){
 
   // Akzentboegen links und rechts
   const bog = PL_BOGEN_GRAD / 180;
-  c.strokeStyle = s.akzent; c.lineWidth = M(2.6); c.lineCap = 'round';
+  c.strokeStyle = akz; c.lineWidth = M(2.6); c.lineCap = 'round';
   [[Math.PI * (1 - bog), Math.PI * (1 + bog)], [Math.PI * -bog, Math.PI * bog]].forEach(([a, b]) => {
     c.beginPath(); c.arc(mitte, mitte, M(PL.bogen), a, b); c.stroke();
   });
@@ -367,6 +488,7 @@ function _lvlPlateCanvas(level, size){
     c.save();
     c.translate(mitte, mitte);
     c.fillStyle = s.schrift;
+    c.strokeStyle = 'rgba(255,255,255,.5)';
     c.font = '700 ' + Math.round(M(groesse)) + 'px -apple-system, system-ui, sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'middle';
     /* Schrittweite je Zeichen aus der tatsaechlichen Breite — bei fester
@@ -383,6 +505,7 @@ function _lvlPlateCanvas(level, size){
       c.save();
       c.rotate(unten ? -t : t);
       c.translate(0, unten ? M(radius) : -M(radius));
+      if (s.metall){ c.lineWidth = M(.7); c.strokeText(ch, 0, 0); }
       c.fillText(ch, 0, 0);
       c.restore();
     });
@@ -412,12 +535,12 @@ function _lvlPlateCanvas(level, size){
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.font = '800 ' + Math.round(M(zg)) + 'px -apple-system, system-ui, sans-serif';
   c.lineWidth = M(zg * .03); c.lineJoin = 'round';
-  c.strokeStyle = s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)';
+  c.strokeStyle = hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)';
   const zf = c.createLinearGradient(0, mitte - M(zg / 2), 0, mitte + M(zg / 2));
-  zf.addColorStop(0, s.hell ? '#2b3138' : '#ffffff');
-  zf.addColorStop(1, s.schrift);
+  zf.addColorStop(0, s.metall ? s.schrift : '#ffffff');
+  zf.addColorStop(1, s.metall ? s.schriftTief : s.schrift);
   [[zLinks, -PL.zahlX], [zRechts, PL.zahlX]].forEach(([txt, dx]) => {
-    c.strokeStyle = s.hell ? 'rgba(255,255,255,.5)' : 'rgba(0,0,0,.42)';
+    c.strokeStyle = hell ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)';
     c.strokeText(txt, X(50 + dx), mitte);
     c.fillStyle = zf;
     c.fillText(txt, X(50 + dx), mitte);
@@ -465,6 +588,7 @@ function _plateKorn(){
    Eine Seite je Level, senkrecht durchblaetterbar (Scroll-Snap). Startet auf
    dem eigenen Level; darunter die naechsten Stufen, darueber die erreichten. */
 const LVLP_UM = 12;   // Stufen um das eigene Level herum
+let _lvlpMitte = 0;   // Stufe, auf der das Vollbild zuletzt stand
 
 function openLevelPlate(start){
   haptic(8);
@@ -472,6 +596,7 @@ function openLevelPlate(start){
     ? _levelOf(_xpSelf()) : { level: 1, pts: 0, toGo: 0, max: false };
   const max   = (typeof MAX_LEVEL === 'number') ? MAX_LEVEL : 99;
   const mitte = Math.max(1, Math.min(max, Math.round(+start || eigen.level)));
+  _lvlpMitte = mitte;
 
   const host = document.getElementById('lvlp-scroll');
   if (!host) return;
@@ -480,6 +605,7 @@ function openLevelPlate(start){
   const seiten = [];
   for (let L = von; L <= bis; L++) seiten.push(_lvlPlatePage(L, eigen, max));
   host.innerHTML = seiten.join('');
+  _lvlPlateMatBar(eigen.level);
   openOv('ov-lvlplate');
   // Ohne Animation auf die eigene Stufe springen — sonst zieht das Blatt
   // sichtbar an allen Stufen vorbei.
@@ -489,7 +615,7 @@ function openLevelPlate(start){
   });
 }
 function _lvlPlatePage(L, eigen, max){
-  const s        = plateStufe(L);
+  const s        = plateMat(L);
   const erreicht = L <= eigen.level;
   const jetzt    = L === eigen.level;
   const schwelle = (typeof _lvlMin === 'function') ? _lvlMin(L) : null;
@@ -517,12 +643,53 @@ function _lvlPlatePage(L, eigen, max){
   </section>`;
 }
 
+/* ── Materialwahl ────────────────────────────────────────────────────────
+   Die Meilensteine schalten Materialien frei (Bronze ab 30, Silber ab 50,
+   Gold ab 100), ersetzen einander aber nicht: wer Bronze hat, darf weiter das
+   Standarddesign tragen. Deshalb eine Leiste statt einer festen Zuordnung.
+
+   Gesperrte Materialien bleiben sichtbar und zeigen die noetige Stufe — ein
+   Ziel, das man sieht, zieht besser als eines, von dem man nichts weiss. */
+function _lvlPlateMatBar(level){
+  const host = document.getElementById('lvlp-mats');
+  if (!host) return;
+  const aktiv = plateMat(level).key;
+  const L = Math.max(1, Math.round(+level || 1));
+  // Von unten nach oben, damit Standard links steht und Gold rechts
+  const mats = PLATE_MATS.slice().sort((a, b) => a.ab - b.ab);
+  host.innerHTML = mats.map(m => {
+    const frei = L >= m.ab;
+    return `<button class="lvlp-mat${m.key === aktiv ? ' on' : ''}${frei ? '' : ' locked'}"
+      ${frei ? `onclick="setPlateMat('${m.key}')"` : 'disabled'}
+      title="${esc(m.name)}${frei ? '' : ' · ab Level ' + m.ab}">
+      ${_lvlPlateSVG(Math.max(L, m.ab), 34, { label: false, mat: m.key })}
+      <span>${esc(frei ? m.name : 'Lvl ' + m.ab)}</span>
+    </button>`;
+  }).join('');
+}
+
+/* Wahl uebernehmen: speichern, Vollbild neu aufbauen und die Pillen in der
+   App nachziehen — sonst traegt die Kopfzeile bis zum naechsten Neuaufbau
+   noch das alte Material. */
+function setPlateMat(key){
+  haptic(8);
+  try { localStorage.setItem(PLATE_MAT_WAHL, key); } catch(e){}
+  const eigen = (typeof _levelOf === 'function' && typeof _xpSelf === 'function')
+    ? _levelOf(_xpSelf()) : { level: 1 };
+  const host = document.getElementById('lvlp-scroll');
+  const oben = host ? host.scrollTop : 0;
+  openLevelPlate(_lvlpMitte || eigen.level);
+  if (host) requestAnimationFrame(() => { host.scrollTop = oben; });
+  if (typeof _renderLevelBadge === 'function') _renderLevelBadge();
+  if (typeof renderFriendsTab === 'function' && document.getElementById('pg-freunde')?.classList.contains('on')) renderFriendsTab();
+}
+
 /* Teilen: PNG aus dem Canvas-Zwilling. navigator.share mit Datei, wo es geht
    (iOS-Teilen-Blatt), sonst Download — beides ohne Serverweg. */
 async function lvlPlateShare(level){
   haptic(10);
   try {
-    const cv = _lvlPlateCanvas(level, 1080);
+    const cv = _lvlPlateCanvas(level, 1080);   // Material folgt der lokalen Wahl
     const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
     if (!blob) throw new Error('kein Bild');
     const datei = new File([blob], 'level-' + level + '.png', { type: 'image/png' });

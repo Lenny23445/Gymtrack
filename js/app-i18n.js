@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608071455';
+const APP_VERSION = 'gymtrack-v202608071725';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -124,6 +124,7 @@ const I18N_EN = {
   'Dein Level':'Your level','Level':'Level','Punkte':'points','So sammelst du Punkte':'How you earn points',
 'pro Training':'per workout','pro Streak-Woche':'per streak week','pro erhaltener Flamme':'per flame received',
   'Aktuell':'Current','Level up! Du bist jetzt':'Level up! You are now','Maximales Level erreicht':'Maximum level reached',
+  'Silber':'Silver',   // Materialwahl der Level-Scheibe; Standard/Bronze/Gold sind gleich
   'Level steigt mit Trainings, Streak & Flammen.':'Level rises with workouts, streak & flames.',
   'Posten fehlgeschlagen — bist du offline?':'Posting failed — are you offline?',
   'gerade eben':'just now','vor':'ago',

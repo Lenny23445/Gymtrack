@@ -5025,7 +5025,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
    ins Bild, und damit sieht man ohne Erklaerung, dass es weitergeht. */
 .lvlp-page{position:relative;height:88%;min-height:88%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px 24px 46px}
 /* Hinweis auf die naechste Stufe — wippt langsam, damit die Geste auffaellt */
-.lvlp-next{position:absolute;left:0;right:0;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:1px;
+.lvlp-next{position:absolute;left:0;right:0;bottom:calc(84px + var(--sab));display:flex;flex-direction:column;align-items:center;gap:1px;
   color:rgba(255,255,255,.4);font-size:11.5px;font-weight:700;letter-spacing:.6px;pointer-events:none;
   animation:lvlpWink 2.2s ease-in-out infinite}
 @keyframes lvlpWink{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(4px);opacity:1}}
@@ -5040,6 +5040,20 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Teilen sitzt klein in der Ecke, nicht als Balken unter der Scheibe. LINKS
    unten, weil rechts unten die Coach-Blase der App schwebt — dort waere der
    Knopf verdeckt. */
+/* Materialwahl unter den Seiten: fest am unteren Rand, damit sie beim
+   Blättern durch die Stufen stehen bleibt. */
+.lvlp-mats{position:absolute;left:0;right:0;bottom:calc(14px + var(--sab));z-index:3;
+  display:flex;gap:10px;align-items:stretch;justify-content:center;padding:0 84px;pointer-events:auto}
+/* white-space:nowrap ist Pflicht: „Lvl 100" brach sonst um, der Knopf wurde
+   eine Zeile höher als die anderen und die Reihe stand schief. */
+.lvlp-mat{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;
+  white-space:nowrap;min-width:62px;padding:7px 9px 6px;border:0;
+  border-radius:14px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);
+  font-size:10.5px;font-weight:700;letter-spacing:.3px;line-height:1;cursor:pointer;
+  transition:background .18s var(--ease),color .18s var(--ease),transform .18s var(--ease)}
+.lvlp-mat.on{background:rgba(255,255,255,.14);color:#fff}
+.lvlp-mat.locked{opacity:.4;filter:grayscale(.9)}
+.lvlp-mat:active{transform:scale(.94)}
 .lvlp-share{position:absolute;left:20px;bottom:calc(24px + var(--sab));width:44px;height:44px;border-radius:50%;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;
   display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit}
