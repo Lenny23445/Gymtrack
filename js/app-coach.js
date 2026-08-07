@@ -888,6 +888,7 @@ function _pwRender(feature){
         <div class="pw2-track" id="pw2-track">${_pw2CardsHTML(keys)}</div>
         <div class="pw2-dots" id="pw2-dots">${keys.map((_,i)=>`<span class="pw2-dot${i===start?' on':''}" onclick="pwGo(${i})"></span>`).join('')}</div>
       </div>
+      <div id="pw2-ref">${typeof refBannerHTML === 'function' ? refBannerHTML() : ''}</div>
       <div class="pw2-bot" id="pw2-bot">${_pwBotHTML()}</div>
     </div>`;
   _pwCarInit(start);
