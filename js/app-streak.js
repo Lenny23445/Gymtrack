@@ -1648,10 +1648,18 @@ let _socCache = null, _socCacheTs = 0;
    von 60 Profilen haelt den Eintrag klein: `photo` kann eine lange URL sein,
    und localStorage ist bei manchen Nutzern schon von den Koerperfotos belegt. */
 const SOC_CACHE_KEY = 'gt_socCache';
+/* Gefiltert gegen die AKTUELLE Freundesliste. Ohne diesen Filter zeigte der
+   gemerkte Stand nach „Freund entfernen", „Blockieren" oder einem Konto-Wechsel
+   noch Leute, die gar nicht mehr dazugehoeren — und nach dem Abmelden fremde
+   Namen. So braucht keine der neun Stellen, die _socCache nullen, eine
+   zusaetzliche Zeile: was nicht mehr in S.friends steht, kommt nicht zurueck. */
 function _socCacheLaden(){
   try {
     const o = JSON.parse(localStorage.getItem(SOC_CACHE_KEY) || 'null');
-    if (o && Array.isArray(o.v) && o.v.length) { _socCache = o.v; _socCacheTs = 0; }
+    if (!o || !Array.isArray(o.v) || !o.v.length) return;
+    const erlaubt = new Set([...(S.friends || []), _fbUser?.uid].filter(Boolean));
+    const v = o.v.filter(p => p && erlaubt.has(p.uid));
+    if (v.length) { _socCache = v; _socCacheTs = 0; }   // ts 0: anzeigbar, nie frisch genug
   } catch(_) {}
 }
 function _socCacheSpeichern(){
@@ -1660,10 +1668,15 @@ function _socCacheSpeichern(){
     localStorage.setItem(SOC_CACHE_KEY, JSON.stringify({ ts: Date.now(), v: _socCache.slice(0, 60) }));
   } catch(_) {}
 }
-/* Steht genug fuer eine erste Zeichnung bereit? `_socCacheTs` bleibt beim Laden
-   aus localStorage bewusst 0 — der Stand ist gut genug zum Anzeigen, aber nie
-   frisch genug, um die Netzabfrage zu ueberspringen. */
-function _socHatStand(){ return Array.isArray(_socCache) && _socCache.length > 0; }
+/* Steht genug fuer eine erste Zeichnung bereit? Der Spiegel wird beim ersten
+   Bedarf geholt, nicht auf oberster Ebene: dort waeren S.friends und _fbUser
+   noch leer und der Filter oben wuerde alles verwerfen. Danach gilt allein
+   _socCache — wer ihn nullt, will bewusst neu laden. */
+let _socCacheGeholt = false;
+function _socHatStand(){
+  if (!_socCacheGeholt) { _socCacheGeholt = true; _socCacheLaden(); }
+  return Array.isArray(_socCache) && _socCache.length > 0;
+}
 /* Der Platzhalter fuer #fr-list: nur wenn wirklich nichts da ist, wird geladen
    angezeigt. Sonst bleibt der Kasten leer und _renderFrList() fuellt ihn im
    selben Tick — so blitzt der Spinner nicht zwischen zwei Frames auf. */
@@ -1671,7 +1684,6 @@ function _frListPlatzhalter(){
   return _socHatStand() ? ''
     : `<div class="soc-empty"><span class="fr-spin" style="display:inline-block;vertical-align:-3px"></span>Lade Freunde…</div>`;
 }
-_socCacheLaden();
 let _socMap = null, _socMarkers = [], _leafP = null;
 let _socEditing = false, _socTmp = null, _socSearchT = null, _socHits = [];
 
@@ -2117,9 +2129,6 @@ function _renderDemoOverview(body){
   _socCache = profs; _socCacheTs = Date.now();   // damit openFrProfile die Demo-Leute findet
   const voll  = _socTab === 'friends';
   const sicht = voll ? profs : profs.slice(0, 4);
-  const wk    = getWeekKey();
-  const board = profs.concat([{ uid:'demo-me', name:S.userName||'Lenny', photo:'https://i.pravatar.cc/150?img=68', week:{key:wk,vol:24200,ses:5} }])
-    .map(p => ({ ...p, _v: _socVal(p, wk) })).sort((a,b) => b._v - a._v).slice(0, 3);
   const liste = sicht.map((p,i)=>_demoCard(p).replace('class="fr-card', `style="animation-delay:${Math.min(i*40,240)}ms" class="fr-card`)).join('')
     + (voll ? '' : `<button class="soc-rest" onclick="setSocTab('friends')">Noch ${profs.length - sicht.length} weitere anzeigen</button>`);
   if (voll) { body.innerHTML = `${_socBackBar('Freunde')}<div id="fr-list">${liste}</div>`; return; }
@@ -2127,14 +2136,6 @@ function _renderDemoOverview(body){
     <div id="fr-crew-host">${_crewHomeHTML(_demoCrewDoc())}</div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
     <div id="fr-list">${liste}</div>
-    ${_socSec('Rangliste · diese Woche', 'Ganze Rangliste', 'board')}
-    <div id="fr-board-mini">${board.map((p,i) => `
-      <div class="soc-row${p.uid==='demo-me'?' me':''}">
-        <span class="soc-rank${i===0?' top':''}">${i+1}</span>
-        <div class="soc-ava"><img src="${esc(p.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" alt=""></div>
-        <div style="flex:1;min-width:0"><div class="soc-name">${esc(p.name||'')}${p.uid==='demo-me'?' (du)':''}</div></div>
-        <span class="soc-val">${_socFmtVal(p._v)}</span>
-      </div>`).join('')}</div>
     ${_socSec('Karte', 'Große Karte', 'map')}
     <div id="fr-map-mini"><div class="fr-map-card" onclick="setSocTab('map')">
       <div class="fr-map-ico">${_OB_SVG.users}</div>
