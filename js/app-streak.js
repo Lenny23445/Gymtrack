@@ -2135,16 +2135,7 @@ function _renderDemoOverview(body){
   body.innerHTML = `
     <div id="fr-crew-host">${_crewHomeHTML(_demoCrewDoc())}</div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
-    <div id="fr-list">${liste}</div>
-    ${_socSec('Karte', 'Große Karte', 'map')}
-    <div id="fr-map-mini"><div class="fr-map-card" onclick="setSocTab('map')">
-      <div class="fr-map-ico">${_OB_SVG.users}</div>
-      <div style="flex:1;min-width:0">
-        <div class="fr-name"><span>Gyms in deiner Nähe</span></div>
-        <div class="fr-sub">${_DEMO_ROSTER.length} Freunde trainieren in eingetragenen Gyms</div>
-      </div>
-      <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </div></div>`;
+    <div id="fr-list">${liste}</div>`;
 }
 /* Volle Crew-Ansicht im Demo: dasselbe Markup wie echt, nur mit erfundenem
    Dokument. Wird danach sofort zurueckgesetzt, damit kein Demo-Stand haengen
@@ -2722,10 +2713,13 @@ function _socSec(titel, mehr, ziel){
 
 /* ── Freunde-Zone: EINE scrollende Seite ──────────────────────────────────
    Vorher lagen Freunde, Feed, Crew, Rangliste und Karte hinter fuenf Chips.
-   Jetzt steht alles untereinander: erst die eigene Karte und offene Anfragen,
-   dann die Crew (mit gemeinsamem Wochenbalken), dann die Freundesliste, dann
-   die Rangliste, unten der Einstieg in die Karte. Die vollen Ansichten sind
-   weiter da — nur nicht mehr als Pflicht-Klick, sondern als „alle anzeigen". */
+   Jetzt steht das Wichtige untereinander: offene Anfragen, die Gratis-Woche,
+   die Crew (mit gemeinsamem Wochenbalken) und die Freundesliste.
+
+   Rangliste und Karte stehen hier bewusst NICHT: beide haben oben in der
+   Auswahlleiste (SOC_TABS) eine eigene Stellung und sind damit mit einem Tipp
+   erreichbar. Ein zweiter Einstieg unten bot dieselbe Ansicht ein zweites Mal
+   an und blaehte die Uebersicht nach unten auf. */
 async function _renderFrHome(body){
   try { _checkLevelUp(true); } catch(_){}
   // Die eigene Level-Karte steht hier NICHT mehr: Level und Punkte zeigt schon
@@ -2735,9 +2729,7 @@ async function _renderFrHome(body){
     ${(typeof refBannerHTML === 'function') ? refBannerHTML() : ''}
     <div id="fr-crew-host"></div>
     ${_socSec('Freunde', 'Alle anzeigen', 'friends')}
-    <div id="fr-list">${_frListPlatzhalter()}</div>
-    ${_socSec('Karte', 'Große Karte', 'map')}
-    <div id="fr-map-mini"></div>`;
+    <div id="fr-list">${_frListPlatzhalter()}</div>`;
   _frListDrawn = false;
   _initFrPull(body);
   _loadRequests().then(r => _renderFrReqs(r.inc));
@@ -2748,26 +2740,10 @@ async function _renderFrHome(body){
   // Liegt ein Stand vor, steht er SOFORT da — die Netzabfrage laeuft darunter
   // weiter und zeichnet gleich neu. Vorher blitzte hier jedes Mal „Lade
   // Freunde…" auf, obwohl die Namen laengst bekannt waren.
-  if (_socHatStand()) { _renderFrList(); _renderFrMapMini(); }
+  if (_socHatStand()) _renderFrList();
   await _loadProfiles();
   _renderFrList();
-  _renderFrMapMini();
   _frStartLive();
-}
-/* Karten-Einstieg. Bewusst KEINE zweite Leaflet-Instanz: die grosse Karte misst
-   sich an der Bildschirmhoehe (_sizeSocMap) und wuerde in einem 160-px-Kasten
-   gegen ihre eigene Groessenrechnung arbeiten. */
-function _renderFrMapMini(){
-  const el = document.getElementById('fr-map-mini'); if (!el) return;
-  const mit = (_socCache || []).filter(p => p.gymLat != null && p.gymLng != null && p.uid !== _fbUser?.uid).length;
-  el.innerHTML = `<div class="fr-map-card" onclick="setSocTab('map')">
-    <div class="fr-map-ico">${_OB_SVG.users}</div>
-    <div style="flex:1;min-width:0">
-      <div class="fr-name"><span>Gyms in deiner Nähe</span></div>
-      <div class="fr-sub">${mit ? mit + (mit === 1 ? ' Freund trainiert' : ' Freunde trainieren') + ' in eingetragenen Gyms' : 'Trag dein Gym ein und finde Leute in der Nähe'}</div>
-    </div>
-    <svg class="fr-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-  </div>`;
 }
 
 async function _renderFrOverview(body){
