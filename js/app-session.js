@@ -158,9 +158,266 @@ function _buildMiniChart(log, goal, acc) {
   });
 }
 
+/* ── GEWICHTS-DIAL ────────────────────────────────────────────────────────
+   Zahlenrad zum Eintragen des Koerpergewichts direkt auf der Startseite
+   (Widget 'weight' in Groesse lg). Portierung eines React/motion-Widgets.
+
+   Abweichung zur Vorlage: dort zieht ein Wisch genau EINE Einheit weiter
+   (Flick-Picker). Bei der hier gewaehlten Rastung von 0,1 waeren das zehn
+   Wischer pro Kilo — der Streifen folgt deshalb 1:1 dem Finger und rastet
+   beim Loslassen ein. Optik (Bogen, Rotation, Ausblenden) bleibt gleich.
+
+   Spec: docs/superpowers/specs/2026-08-07-gewichts-dial-design.md */
+const WD_STEP      = 0.1;  // Rastung
+const WD_PPU       = 80;   // Pixel pro Einheit → 8 px pro Rastpunkt
+const WD_BUF       = 3;    // aufgebautes Fenster: ± 3 Einheiten um den Ursprung
+const WD_COMMIT_MS = 600;  // Ruhezeit nach dem Einrasten, bevor geschrieben wird
+/* Stuetzstellen des Bogens (Abstand zur Mitte in Einheiten → y-Versatz in px),
+   uebernommen aus der useTransform-Kette der Vorlage. */
+const WD_Y_D = [0, .5, 1, 1.5, 2, 2.5, 3];
+const WD_Y_V = [0,  2, 7,  17, 32,  54, 88];
+
+let _wd = null;  // Zustand des aktiven Dials (es gibt immer hoechstens eines)
+
+function _wdLerp(d, stops, vals) {
+  if (d <= stops[0]) return vals[0];
+  for (let i = 1; i < stops.length; i++) {
+    if (d <= stops[i]) {
+      const t = (d - stops[i-1]) / (stops[i] - stops[i-1]);
+      return vals[i-1] + (vals[i] - vals[i-1]) * t;
+    }
+  }
+  return vals[vals.length - 1];
+}
+
+function _wdSnap(v)  { return Math.round(v / WD_STEP) * WD_STEP; }
+function _wdClamp(v) { return _wd ? Math.max(_wd.min, Math.min(_wd.max, v)) : v; }
+function _wdFmt(v)   { return v.toFixed(1).replace('.', GT_DEC); }
+
+/* Sinnvoller Bereich je Einheit. Der Log speichert den Wert so, wie er
+   angezeigt wird (bestehendes Verhalten), deshalb haengt die Skala an
+   S.unitMode und nicht an einer internen kg-Groesse. */
+function _wdRange() {
+  return S.unitMode === 'lbs' ? { min: 66, max: 550 } : { min: 30, max: 250 };
+}
+
+/* Startwert: letzter Eintrag → Startgewicht → neutraler Vorgabewert.
+   Dieser Wert wird NIE geschrieben (s. _wdCommit / w.touched) — sonst legte
+   jeder App-Start bei Nutzern ohne Gewichts-Tracking einen Eintrag an. */
+function _wdStartValue() {
+  const log = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  if (log.length) return +log[log.length - 1].weight;
+  if (S.weightStart != null) return +S.weightStart;
+  return S.unitMode === 'lbs' ? 165 : 75;
+}
+
+/* Knoten fuer das Fenster um w.origin aufbauen. Jeder Rastpunkt bekommt einen
+   Strich, nur ganze Einheiten zusaetzlich eine Zahl — die leere Zahlen-Zeile
+   der Zwischenschritte haelt alle Striche auf gleicher Hoehe. */
+function _wdBuild() {
+  const w = _wd; if (!w) return;
+  const n = Math.round(WD_BUF / WD_STEP);
+  let html = '';
+  for (let i = -n; i <= n; i++) {
+    const v = +(w.origin + i * WD_STEP).toFixed(1);
+    if (v < w.min - 1e-6 || v > w.max + 1e-6) continue;
+    const whole = Math.abs(v - Math.round(v)) < 1e-6;
+    html += `<div class="wdial-t${whole ? ' is-num' : ''}" style="left:${(i * WD_STEP * WD_PPU).toFixed(1)}px">`
+          + `<span class="wdial-n">${whole ? Math.round(v) : ''}</span><i></i></div>`;
+  }
+  w.track.innerHTML = html;
+  w.nodes = Array.from(w.track.children);
+  w.nodes.forEach(node => { node._left = parseFloat(node.style.left); });
+}
+
+/* Neu aufbauen, sobald der Wert mehr als eine Einheit vom Ursprung weg ist.
+   Ein Fenster von ± 3 Einheiten reicht dann immer bis ueber den Rand hinaus. */
+function _wdReframe() {
+  const w = _wd; if (!w) return;
+  if (Math.abs(w.val - w.origin) <= 1) return;
+  w.origin = Math.round(w.val);
+  _wdBuild();
+}
+
+function _wdPaint() {
+  const w = _wd; if (!w) return;
+  w.x = -(w.val - w.origin) * WD_PPU;
+  for (const node of w.nodes) {
+    const dSig = (w.x + node._left) / WD_PPU;   // Abstand zur Mitte in Einheiten
+    const d    = Math.abs(dSig);
+    if (d > 3) { if (node.style.opacity !== '0') node.style.opacity = '0'; continue; }
+    node.style.opacity   = _wdLerp(d, [0, 2, 3], [1, .4, 0]).toFixed(3);
+    node.style.transform = `translateX(-50%) translateY(${_wdLerp(d, WD_Y_D, WD_Y_V).toFixed(1)}px)`
+                         + ` rotate(${(dSig * 12).toFixed(2)}deg)`
+                         + ` scale(${_wdLerp(d, [0, 2], [1, .85]).toFixed(3)})`;
+  }
+  w.track.style.transform = `translateX(${w.x.toFixed(1)}px)`;
+}
+
+/* Anzeige des exakten Werts. Der Haptik-Tick haengt an w.touched, damit das
+   Aufbauen der Karte nicht klackt. */
+function _wdReadout() {
+  const w = _wd; if (!w) return;
+  const snapped = +_wdSnap(w.val).toFixed(1);
+  if (w.shown === snapped) return;
+  w.shown = snapped;
+  if (w.valEl) w.valEl.textContent = _wdFmt(snapped);
+  if (!w.touched) return;
+  const now = Date.now();
+  if (now - w.lastTick > 45) { w.lastTick = now; try { hapticTick(); } catch(e) {} }
+}
+
+/* Feder statt CSS-Transition: die Bogen-Berechnung braucht den Zwischenwert
+   jedes Frames, den eine Transition nicht herausgibt. */
+function _wdSpring() {
+  const w = _wd; if (!w) return;
+  const K = 260, C = 26;
+  let last = performance.now();
+  const step = t => {
+    if (_wd !== w) return;
+    const dt = Math.min((t - last) / 1000, .033); last = t;
+    const tx = -(w.target - w.origin) * WD_PPU;
+    w.velPx += (K * (tx - w.x) - C * w.velPx) * dt;
+    w.x     += w.velPx * dt;
+    w.val    = w.origin - w.x / WD_PPU;
+    if (Math.abs(tx - w.x) < .3 && Math.abs(w.velPx) < 8) {
+      w.val = w.target; w.velPx = 0; w.raf = 0;
+      _wdReframe(); _wdPaint(); _wdReadout();
+      return;
+    }
+    _wdReframe(); _wdPaint(); _wdReadout();
+    w.raf = requestAnimationFrame(step);
+  };
+  cancelAnimationFrame(w.raf);
+  w.raf = requestAnimationFrame(step);
+}
+
+function _wdDown(e) {
+  const w = _wd; if (!w) return;
+  w.dragging = true; w.touched = true;
+  w.startX   = e.clientX; w.startVal = w.val;
+  w.velPx    = 0; w.samples = [];
+  cancelAnimationFrame(w.raf); w.raf = 0;
+  clearTimeout(w.commitT); w.commitT = 0;
+  try { w.wheel.setPointerCapture(e.pointerId); } catch(err) {}
+  try { hapticSelStart(); } catch(err) {}
+}
+
+function _wdMove(e) {
+  const w = _wd; if (!w || !w.dragging) return;
+  w.val = _wdClamp(w.startVal - (e.clientX - w.startX) / WD_PPU);
+  w.samples.push({ t: Date.now(), x: e.clientX });
+  if (w.samples.length > 5) w.samples.shift();
+  _wdReframe(); _wdPaint(); _wdReadout();
+}
+
+function _wdUp() {
+  const w = _wd; if (!w || !w.dragging) return;
+  w.dragging = false;
+  try { hapticSelEnd(); } catch(err) {}
+  /* Schwung aus den letzten Punkten. Der Deckel ist bewusst klein: bei einer
+     Rastung von 0,1 ist ein Nachlauf von mehr als einer halben Einheit kein
+     Schwung mehr, sondern ein Sprung an eine Stelle, die niemand gewaehlt hat. */
+  let vpx = 0;
+  const s = w.samples;
+  if (s.length > 1) {
+    const dt = (s[s.length-1].t - s[0].t) / 1000;
+    if (dt > 0) vpx = -(s[s.length-1].x - s[0].x) / dt;
+  }
+  const glide = Math.max(-.5, Math.min(.5, vpx / WD_PPU * .05));
+  w.target = +_wdClamp(_wdSnap(w.val + glide)).toFixed(1);
+  _wdSpring();
+  clearTimeout(w.commitT);
+  w.commitT = setTimeout(_wdCommit, WD_COMMIT_MS);
+}
+
+/* Schreibt den eingestellten Wert auf den heutigen Tag. Laeuft NUR nach einer
+   echten Geste (w.touched) — der blosse Anfangswert darf nie in den Log. */
+function _wdCommit() {
+  const w = _wd; if (!w) return;
+  w.commitT = 0;
+  if (!w.touched) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (!upsertWeightEntry(today, _wdClamp(_wdSnap(w.val)))) return;
+  _wdRefreshRest();
+}
+
+function _wdInit() {
+  const wheel = document.getElementById('wdial-wheel');
+  const track = document.getElementById('wdial-track');
+  if (!wheel || !track) return;
+  const r = _wdRange();
+  _wd = {
+    wheel, track, valEl: document.getElementById('wdial-val'),
+    nodes: [], min: r.min, max: r.max,
+    val: 0, x: 0, origin: 0, velPx: 0, target: 0,
+    raf: 0, commitT: 0, dragging: false, touched: false,
+    samples: [], shown: null, lastTick: 0
+  };
+  _wd.val    = _wdClamp(+_wdSnap(_wdStartValue()).toFixed(1));
+  _wd.origin = Math.round(_wd.val);
+  _wdBuild(); _wdPaint(); _wdReadout();
+  wheel.addEventListener('pointerdown',   _wdDown);
+  wheel.addEventListener('pointermove',   _wdMove);
+  wheel.addEventListener('pointerup',     _wdUp);
+  wheel.addEventListener('pointercancel', _wdUp);
+}
+
+/* Abbau vor jedem Neuaufbau der Karte. Eine noch offene Schreibsperre wird
+   dabei sofort eingeloest — sonst ginge ein gerade eingestellter Wert
+   verloren, wenn das Raster innerhalb der 600 ms neu zeichnet. */
+function _wdDestroy() {
+  const w = _wd; if (!w) return;
+  cancelAnimationFrame(w.raf);
+  if (w.commitT) { clearTimeout(w.commitT); _wdCommit(); }
+  _wd = null;
+}
+
+/* Alles unterhalb des Dials: Verlaufs-Delta, Mini-Diagramm, Ziel-Balken.
+   Bewusst getrennt vom Dial, damit nach dem Schreiben nur dieser Teil neu
+   gezeichnet wird — ein voller renderWeightCard() risse den Streifen unter
+   dem Finger weg. */
+function _weightRestHtml(log, unit, start, goal, cur) {
+  const last = log.length ? log[log.length - 1] : null;
+  const prev = log.length > 1 ? log[log.length - 2] : null;
+  let deltaHtml = '';
+  if (last && prev) {
+    const diff = +(last.weight - prev.weight).toFixed(1);
+    const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
+    deltaHtml  = `<span class="weight-delta ${cls}">${diff > 0 ? '+' : ''}${_wdFmt(diff)} ${unit}</span>`;
+  }
+  const miniContent = log.length >= 2
+    ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
+    : `<div class="weight-mini-empty">${log.length === 1 ? '1 Eintrag' : 'Noch kein Verlauf'}</div>`;
+  return `<div class="weight-rest-row">
+      <div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">${miniContent}</div>
+      <div class="weight-rest-side">
+        ${deltaHtml || '<span class="weight-rest-hint">Ziehen zum Einstellen</span>'}
+        <button class="weight-add-btn" onclick="openWeightEntry()" aria-label="Gewicht eintragen">+</button>
+      </div>
+    </div>
+    ${_buildGoalHtml(start, goal, cur, unit)}`;
+}
+
+function _wdRefreshRest() {
+  const rest = document.getElementById('weight-rest');
+  if (!rest) return;
+  const log   = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const unit  = S.unitMode === 'lbs' ? 'lbs' : 'kg';
+  const start = S.weightStart != null ? +S.weightStart : null;
+  const goal  = S.weightGoal  != null ? +S.weightGoal  : null;
+  const cur   = log.length ? log[log.length - 1].weight : start;
+  const acc   = getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#007AFF';
+  rest.innerHTML = _weightRestHtml(log, unit, start, goal, cur);
+  requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
+}
+
 function renderWeightCard(el) {
   el = el || document.getElementById('weight-card');
   if (!el) return;
+  /* Muss vor dem Lesen des Logs stehen: ein offener Schreibauftrag des Dials
+     wird hier eingeloest und veraendert S.weightLog. */
+  _wdDestroy();
 
   const log   = (S.weightLog || []).slice().sort((a,b) => a.date.localeCompare(b.date));
   const unit  = S.unitMode === 'lbs' ? 'lbs' : 'kg';
@@ -186,36 +443,39 @@ function renderWeightCard(el) {
   const isMd = size === 'md';
   const compact = isSm || isMd; // sm & md: ohne Diagramm & Ziel-Block
 
-  const miniContent = log.length >= 2
-    ? `<canvas id="weight-mini-canvas"></canvas><div class="weight-mini-tap-hint">▶ Details</div>`
-    : `<div class="weight-mini-empty">${log.length===1 ? '1 Eintrag' : 'Noch kein Verlauf'}</div>`;
-
-  const miniWrap = compact ? '' :
-    `<div class="weight-mini-wrap" onclick="openWeightChartFull()" aria-label="Vollbild-Diagramm">${miniContent}</div>`;
+  /* lg: Zahlenrad als Eingabe, darunter Delta, Mini-Diagramm und Ziel-Balken.
+     Auf einer md-Kachel (eine Rastereinheit hoch) waere ein Dial nicht
+     bedienbar — dort bleibt die bisherige Kompaktkarte. */
+  if (!compact) {
+    el.innerHTML = `<div class="weight-card-inner weight-card-dial">
+      <div class="wdial-read"><span class="wdial-val" id="wdial-val">–</span><span class="wdial-unit">${unit}</span></div>
+      <div class="wdial-wheel" id="wdial-wheel">
+        <div class="wdial-track" id="wdial-track"></div>
+        <div class="wdial-needle"><i></i><svg viewBox="0 0 10 36" fill="none" preserveAspectRatio="none"><path d="M 5 2 L 9 36 L 1 36 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div id="weight-rest">${_weightRestHtml(log, unit, start, goal, cur)}</div>
+    </div>`;
+    _wdInit();
+    requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
+    return;
+  }
 
   // sm/md haben kein eingebettetes Diagramm — dort öffnet ein Tipp auf die ganze
   // Karte das Vollbild-Diagramm (gleiche Funktion wie das Mini-Chart in lg).
-  const cardTap = compact ? ` onclick="openWeightChartFull()" style="cursor:pointer" aria-label="Gewichtsverlauf"` : '';
-  const valTap  = compact ? '' : ` onclick="openWeightHistory()" style="cursor:pointer"`;
-
-  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ''}${isMd ? ' weight-card-md' : ''}"${cardTap}>
+  el.innerHTML = `<div class="weight-card-inner${isSm ? ' weight-card-sm' : ' weight-card-md'}" onclick="openWeightChartFull()" style="cursor:pointer" aria-label="Gewichtsverlauf">
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
-          ? `<div class="weight-current-val"${valTap}>${last.weight}</div>
+          ? `<div class="weight-current-val">${last.weight}</div>
              <div class="weight-current-unit">${unit}</div>
              ${deltaHtml}`
           : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
              <div class="weight-current-unit">${unit}</div>`
         }
       </div>
-      ${miniWrap}
       <button class="weight-add-btn" onclick="event.stopPropagation();openWeightEntry()" aria-label="Gewicht eintragen">+</button>
     </div>
-    ${compact ? '' : _buildGoalHtml(start, goal, cur, unit)}
   </div>`;
-
-  if (!compact) requestAnimationFrame(() => _buildMiniChart(log, goal, acc));
 }
 
 function openWeightChartFull() {
@@ -275,25 +535,34 @@ function openWeightEntry() {
   setTimeout(() => wInp && wInp.focus(), 300);
 }
 
-function saveWeightEntry() {
-  const wInp = document.getElementById('weight-input');
-  const dInp = document.getElementById('weight-date-input');
-  const w = parseFloat((wInp?.value || '').replace(',', '.'));
-  const d = dInp?.value || new Date().toISOString().slice(0, 10);
-  if (!w || w < 20 || w > 500) {
-    wInp?.classList.add('shake');
-    setTimeout(() => wInp?.classList.remove('shake'), 400);
-    return;
-  }
+/* Einzige Schreibstelle fuer den Gewichts-Log — benutzt vom Eingabe-Sheet UND
+   vom Dial. Ein vorhandener Eintrag desselben Tages wird ueberschrieben, es
+   kommt kein zweiter dazu. Liefert false, wenn der Wert unplausibel ist. */
+function upsertWeightEntry(date, weight) {
+  const w = Math.round(weight * 10) / 10;
+  if (!w || w < 20 || w > 500) return false;
   S.weightLog = S.weightLog || [];
-  const idx = S.weightLog.findIndex(e => e.date === d);
+  const idx = S.weightLog.findIndex(e => e.date === date);
   if (idx >= 0) S.weightLog[idx].weight = w;
-  else S.weightLog.push({ date: d, weight: w });
+  else S.weightLog.push({ date, weight: w });
   persist();
   // Gewicht auch in Apple Health speichern
   if (S.healthKitEnabled) {
     const HK = _cap('HealthKitPlugin');
     if (HK) HK.saveWeight({ weightKg: w }).catch(() => {});
+  }
+  return true;
+}
+
+function saveWeightEntry() {
+  const wInp = document.getElementById('weight-input');
+  const dInp = document.getElementById('weight-date-input');
+  const w = parseFloat((wInp?.value || '').replace(',', '.'));
+  const d = dInp?.value || new Date().toISOString().slice(0, 10);
+  if (!upsertWeightEntry(d, w)) {
+    wInp?.classList.add('shake');
+    setTimeout(() => wInp?.classList.remove('shake'), 400);
+    return;
   }
   closeOv('ov-weight-entry');
   renderWeightCard();

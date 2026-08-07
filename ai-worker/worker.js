@@ -407,6 +407,151 @@ function ccVerifiedKey(body, path, lang, env) {
   return "c:" + l + ":" + ccModelId(env) + ":" + parts[3];
 }
 
+// ═══════════════ REFERRAL — Gratis-Premium durch Einladung ═══════════════
+// Wer seinen Code weitergibt und eine Einloesung ausloest, bekommt 7 Tage Premium
+// geschenkt, der Geworbene ebenfalls. Deckel: REF_MAX_REDEEMS (2) Einloesungen JE
+// CODE — danach ist der Code tot, auch fuer Fremde. Ohne diesen Deckel verschafft
+// ein einziger oeffentlich geposteter Code beliebig vielen Fremden Gratis-Premium
+// samt KI.
+// Der Anspruch liegt AUSSCHLIESSLICH hier im KV: der Client kann trialExp nicht
+// setzen, die Premium-Pruefung im Handler liest immer diesen Namespace.
+// Fehlt das REF-Binding, gibt es keinen Trial (fail-closed) — ein
+// Konfigurationsfehler darf die KI nicht fuer alle freischalten. Das ist die
+// Gegenrichtung zu AI_QUOTA (fail-open): ein fehlender Quota-Namespace darf
+// Zahlern nichts wegnehmen, ein fehlender REF-Namespace darf niemandem etwas
+// schenken.
+//
+// KV-Schema (Namespace gymtrack-ref, Binding REF):
+//   code:<CODE>      -> "<uid>"
+//   u:<uid>          -> { code, trialExp, invited, usedCode, aiUsed }
+//   tstats:<YYYY-MM> -> { calls, inTok, outTok }   (eigener Kostentopf)
+
+const REF_WEEK_MS = 7 * 864e5;
+const REF_TTL     = 400 * 86400;  // Sekunden — nichts bleibt unbegrenzt liegen (DSGVO/Apple 5.1.1(v))
+const REF_ALPHA   = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";  // ohne I/O/0/1 — sonst tippt niemand den Code richtig ab
+
+function refMaxRedeems(env)    { return parseInt(env.REF_MAX_REDEEMS) || 2; }
+function refTrialLimit(env)    { return parseInt(env.TRIAL_LIMIT) || 15; }
+function refTrialBudgetUsd(env){ const v = parseFloat(env.TRIAL_MONTHLY_USD); return v > 0 ? v : 20; }
+
+// Anonyme Konten bekommen NIE einen Trial. Die App meldet beim Start automatisch
+// anonym an — ohne diese Pruefung waere "App-Daten loeschen" ein Ein-Klick-Weg zu
+// einer neuen uid und damit zu einer neuen Gratiswoche, beliebig oft.
+function refRealAccount(providers) {
+  return Array.isArray(providers) && providers.some(p => p === "google.com" || p === "apple.com");
+}
+function refEmptyRec() { return { code: null, trialExp: 0, invited: 0, usedCode: null, aiUsed: 0 }; }
+async function refRead(env, uid) {
+  if (!env.REF) return null;
+  try { const raw = await env.REF.get("u:" + uid); return raw ? { ...refEmptyRec(), ...JSON.parse(raw) } : refEmptyRec(); }
+  catch (_) { return null; }   // KV-Stoerung: kein Trial (fail-closed), aber nie ein Wurf aus fetch()
+}
+async function refWrite(env, uid, rec) {
+  await env.REF.put("u:" + uid, JSON.stringify(rec), { expirationTtl: REF_TTL });
+}
+function refNewCode() {
+  const b = crypto.getRandomValues(new Uint8Array(7));
+  let s = "";
+  for (let i = 0; i < 7; i++) s += REF_ALPHA[b[i] % REF_ALPHA.length];
+  return s;
+}
+// Code anlegen, idempotent. Bewusst ZUFAELLIG statt Wiederverwendung des
+// 6-stelligen friendCode aus dem Nutzerdokument: naehme der Worker einen vom
+// Client geschickten Code entgegen, koennte ein Angreifer den Code eines anderen
+// Nutzers reservieren, bevor der sein Einladen-Sheet zum ersten Mal oeffnet —
+// alle Einloesungen liefen dann auf das Angreifer-Konto. 7 Zeichen halten den
+// Coderaum ausserdem vom Freundescode getrennt.
+async function refEnsureCode(env, uid, rec) {
+  if (rec.code) return rec;
+  for (let i = 0; i < 6; i++) {
+    const c = refNewCode();
+    if (await env.REF.get("code:" + c)) continue;      // Kollision — neu wuerfeln
+    await env.REF.put("code:" + c, uid, { expirationTtl: REF_TTL });
+    rec.code = c;
+    await refWrite(env, uid, rec);
+    return rec;
+  }
+  throw new Error("Codevergabe fehlgeschlagen");
+}
+function refTrialOn(rec) { return !!(rec && rec.trialExp && rec.trialExp > Date.now()); }
+
+async function refRedeem(env, uid, providers, code) {
+  if (!env.REF)                   return { ok: false, reason: "unavailable" };
+  if (!refRealAccount(providers)) return { ok: false, reason: "anonymous" };
+  const c = String(code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (c.length !== 7)             return { ok: false, reason: "unknown" };
+  const owner = await env.REF.get("code:" + c);
+  if (!owner)                     return { ok: false, reason: "unknown" };
+  if (owner === uid)              return { ok: false, reason: "self" };
+  const me = await refRead(env, uid);
+  if (!me)                        return { ok: false, reason: "unavailable" };
+  if (me.usedCode)                return { ok: false, reason: "already_redeemed" };
+  const ref = await refRead(env, owner);
+  if (!ref)                       return { ok: false, reason: "unavailable" };
+  if ((ref.invited || 0) >= refMaxRedeems(env)) return { ok: false, reason: "code_exhausted" };
+  // Sperre VOR der Gutschrift: sonst schreibt ein Doppelklick (oder ein zweites
+  // Geraet) zweimal gut. KV kann kein Compare-and-Swap — ein gleichzeitiger
+  // Zugriff aus zwei Regionen bleibt theoretisch moeglich, der Schaden ist durch
+  // den Code-Deckel auf wenige Wochen begrenzt (gleiche Abwaegung wie bei pcount:*).
+  me.usedCode = c;
+  await refWrite(env, uid, me);
+  const grant = (rec) => { rec.trialExp = Math.max(Date.now(), rec.trialExp || 0) + REF_WEEK_MS; };
+  grant(me);
+  await refWrite(env, uid, me);
+  ref.invited = (ref.invited || 0) + 1;
+  grant(ref);
+  await refWrite(env, owner, ref);
+  return { ok: true, trialExp: me.trialExp };
+}
+
+// ── Trial-Kontingent: 15 Anfragen fuer die GESAMTE Gratiszeit (nicht pro Monat) ──
+async function refTrialUse(env, uid, weight) {
+  const limit = refTrialLimit(env);
+  const rec = await refRead(env, uid);
+  if (!rec) return { ok: false, used: limit, limit, trial: true };   // KV weg → fail-closed
+  const used = rec.aiUsed || 0;
+  if (used >= limit) return { ok: false, used, limit, trial: true };
+  rec.aiUsed = used + weight;
+  await refWrite(env, uid, rec);
+  return { ok: true, used: rec.aiUsed, limit, trial: true };
+}
+async function refTrialRefund(env, uid, weight) {
+  const rec = await refRead(env, uid);
+  if (!rec) return;
+  rec.aiUsed = Math.max(0, (rec.aiUsed || 0) - weight);
+  await refWrite(env, uid, rec);
+}
+async function refTrialPeek(env, uid) {
+  const limit = refTrialLimit(env);
+  const rec = await refRead(env, uid);
+  return { used: Math.ceil((rec && rec.aiUsed) || 0), limit, month: new Date().toISOString().slice(0, 7), trial: true };
+}
+// Eigener Kostentopf. Trial-Verbrauch darf NICHT in stats:<Monat> landen — der
+// Deckel der Zahler (budgetCapUsd) rechnet gegen genau diese Summe, Gratis-Nutzer
+// wuerden ihn sonst aufessen. Aus demselben Grund ruft der Trial-Pfad
+// premiumSeen() nie auf: dort haengt der Deckel an der Kopfzahl ZAHLENDER Nutzer,
+// jeder Gratis-Kopf wuerde das Ausgabenlimit anheben, ohne einen Cent zu bringen.
+async function refTrialStats(env) {
+  const month = new Date().toISOString().slice(0, 7);
+  const empty = { month, calls: 0, inTok: 0, outTok: 0 };
+  if (!env.REF) return empty;
+  try { const raw = await env.REF.get("tstats:" + month); return raw ? { month, ...JSON.parse(raw) } : empty; }
+  catch (_) { return empty; }
+}
+async function refTrialRecord(env, usage) {
+  if (!env.REF || !usage) return;
+  const month = new Date().toISOString().slice(0, 7);
+  const key = "tstats:" + month;
+  try {
+    const raw = await env.REF.get(key);
+    const s = raw ? JSON.parse(raw) : { calls: 0, inTok: 0, outTok: 0 };
+    s.calls++;
+    s.inTok  += usage.inTok  || 0;
+    s.outTok += usage.outTok || 0;
+    await env.REF.put(key, JSON.stringify(s), { expirationTtl: REF_TTL });
+  } catch (_) { /* Statistik darf nie eine Antwort verhindern */ }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const cors = {
@@ -518,6 +663,66 @@ export default {
       return json({ auth: adminAuth, appstore: adminAppstore }, 200, cors);
     }
 
+    // ── /ref/* — Einladungscodes und geschenkte Wochen ──
+    // Antworten bewusst mit HTTP 200 und einem 'reason' im Body: die App zeigt
+    // jeden Ablehnungsgrund im Klartext an, eine stille Fehlermeldung ("etwas ist
+    // schiefgelaufen") waere hier die schlechteste Antwort.
+    if (path.startsWith("/ref/")) {
+      const isGet = request.method === "GET";
+      let payload = {};
+      if (!isGet) {
+        try { payload = await request.json(); } catch (_) { return json({ error: "bad json" }, 400, cors); }
+      }
+      const idToken = isGet ? url.searchParams.get("idToken") : (payload && payload.idToken);
+      if (!idToken) return json({ error: "idToken fehlt" }, 401, cors);
+      let who;
+      try { who = await lookupFirebaseUser(idToken, env); }
+      catch (e) { console.log("[REF] Auth fehlgeschlagen:", e.message); return json({ error: "Anmeldung ungültig" }, 401, cors); }
+      if (!env.REF) return json({ error: "Einladungen sind gerade nicht verfügbar" }, 503, cors);
+      const ruid = who.uid;
+      const echt = refRealAccount(who.providers);
+
+      if (path === "/ref/me" || path === "/ref/status") {
+        let rec = await refRead(env, ruid);
+        if (!rec) return json({ error: "Einladungen sind gerade nicht verfügbar" }, 503, cors);
+        // Code nur fuer echte Konten anlegen: ein anonymes Konto ist beim
+        // naechsten "App-Daten loeschen" weg, sein Code waere eine Karteileiche.
+        if (echt && path === "/ref/me") {
+          try { rec = await refEnsureCode(env, ruid, rec); }
+          catch (e) { console.log("[REF] Codevergabe:", e.message); }
+        }
+        return json({
+          code: rec.code || null,
+          trialExp: rec.trialExp || 0,
+          invited: rec.invited || 0,
+          maxRedeems: refMaxRedeems(env),
+          usedCode: rec.usedCode || null,
+          aiUsed: Math.ceil(rec.aiUsed || 0),
+          aiLimit: refTrialLimit(env),
+          anon: !echt,
+        }, 200, cors);
+      }
+
+      if (path === "/ref/redeem") {
+        if (isGet) return json({ error: "POST only" }, 405, cors);
+        const r = await refRedeem(env, ruid, who.providers, payload.code);
+        return json(r, 200, cors);
+      }
+
+      // Konto-Loeschung: die App ruft das VOR dem Loeschen des Auth-Nutzers auf,
+      // danach gaebe es kein gueltiges idToken mehr. Die TTL auf allen Werten ist
+      // nur die zweite Sicherung, nicht der Hauptweg.
+      if (path === "/ref/forget") {
+        if (isGet) return json({ error: "POST only" }, 405, cors);
+        const rec = await refRead(env, ruid);
+        if (rec && rec.code) { try { await env.REF.delete("code:" + rec.code); } catch (_) {} }
+        try { await env.REF.delete("u:" + ruid); } catch (_) {}
+        return json({ ok: true }, 200, cors);
+      }
+
+      return json({ error: "unknown endpoint" }, 404, cors);
+    }
+
     if (request.method !== "POST")    return json({ error: "POST only" }, 405, cors);
     if (path !== "/chat" && path !== "/coach" && path !== "/analyze" && path !== "/vision" && path !== "/quota") return json({ error: "unknown endpoint" }, 404, cors);
 
@@ -527,13 +732,21 @@ export default {
     if (!idToken) return json({ error: "idToken fehlt — bitte anmelden" }, 401, cors);
 
     // 1) Wer bist du? — Firebase-Token prüfen
-    let uid;
-    try { uid = await verifyFirebaseToken(idToken, env); }
+    let uid, providers;
+    try { const who = await lookupFirebaseUser(idToken, env); uid = who.uid; providers = who.providers; }
     catch (e) { console.log("[AI] Auth fehlgeschlagen:", e.message); return json({ error: "Anmeldung ungültig — bitte neu einloggen" }, 401, cors); }
 
     // 2) Bist du Premium? — StoreKit-JWS prüfen (Founder darf ohne)
+    // Ohne Apple-Beleg bleibt der Referral-Trial: eine geschenkte Woche hat keinen
+    // JWS, also entscheidet hier ausschliesslich der REF-Namespace. Anonyme Konten
+    // sind ausgeschlossen (refRealAccount), fehlt REF, gibt es keinen Trial.
+    let isTrial = false;
     if (!TEST_UIDS.has(uid)) {
-      if (!jws) return json({ error: "Kein Abo-Nachweis" }, 402, cors);
+      if (!jws) {
+        const trialRec = await refRead(env, uid);
+        if (!refRealAccount(providers) || !refTrialOn(trialRec)) return json({ error: "Kein Abo-Nachweis" }, 402, cors);
+        isTrial = true;
+      } else {
       let skPayload;
       try { skPayload = await verifyStoreKitJws(jws); }
       catch (e) { console.log("[AI] JWS abgelehnt:", e.message); return json({ error: "Abo-Nachweis ungültig: " + e.message }, 402, cors); }
@@ -557,7 +770,14 @@ export default {
                         : "[AI] appAccountToken fehlt (Altabo/Promo-Code/Re-Abo im Store/Family Sharing), Beleg-Deckel zaehlt mit:",
                     uid, skPayload && skPayload.productId);
       }
+      }
     }
+
+    // Trial-Nutzer haben eigene Zaehler und einen eigenen Kostentopf: sie duerfen
+    // weder das Monatskontingent der Zahler noch deren Ausgabendeckel beruehren.
+    const useQuota    = (w) => isTrial ? refTrialUse(env, uid, w)    : monthlyUse(uid, env, w);
+    const refundQuota = (w) => isTrial ? refTrialRefund(env, uid, w) : monthlyRefund(uid, env, w);
+    const peekQuota   = ()  => isTrial ? refTrialPeek(env, uid)      : quotaPeek(uid, env);
 
     // 2b) Reiner Kontostand — verbraucht kein Tages-/Monatslimit, ändert die Antwort
     // nicht. Zählt aber als Premium-Kopf für den Kostendeckel: Premium ist an dieser
@@ -565,10 +785,14 @@ export default {
     // also ist ein /quota-Aufruf ein echter zahlender Nutzer, auch wenn er die KI nie
     // nutzt (I3-Review). premiumSeen() darf /quota nicht zum Werfen bringen (C2) —
     // Fehler werden verschluckt, /quota bleibt unverändert erfolgreich.
+    // Trial-Nutzer zaehlen hier NICHT mit: budgetCapUsd() bildet Koepfe ×
+    // USD_PER_USER, ein Gratis-Kopf wuerde das Ausgabenlimit anheben, ohne zu zahlen.
     if (path === "/quota") {
-      try { await premiumSeen(uid, env); }
-      catch (e) { console.log("[AI] Kopfzahl-Fehler (quota):", e.message); }
-      return json({ quota: await quotaPeek(uid, env) }, 200, cors);
+      if (!isTrial) {
+        try { await premiumSeen(uid, env); }
+        catch (e) { console.log("[AI] Kopfzahl-Fehler (quota):", e.message); }
+      }
+      return json({ quota: await peekQuota() }, 200, cors);
     }
 
     // 3) Tageslimit (Missbrauchsbremse)
@@ -578,10 +802,12 @@ export default {
 
     // 4) Monatslimit (autoritativ, sichtbar für den Nutzer) — Coach-Trigger zählen halb
     const weight = kind === "coach" ? 0.5 : 1.0;
-    const q = await monthlyUse(uid, env, weight);
+    const q = await useQuota(weight);
     if (!q.ok) {
       await dailyRefund(uid, kind, env);   // Tages-Zähler nicht für eine abgelehnte Anfrage verbrennen
-      return json({ error: "Du hast dein monatliches KI-Limit erreicht.", quota: { used: q.used, limit: q.limit, month: q.month } }, 429, cors);
+      return json({ error: isTrial ? "Deine 15 Gratis-Anfragen sind aufgebraucht — mit Premium geht es weiter."
+                                   : "Du hast dein monatliches KI-Limit erreicht.",
+                    quota: { used: Math.ceil(q.used), limit: q.limit, month: q.month, trial: isTrial } }, 429, cors);
     }
     const quota = { used: Math.ceil(q.used), limit: q.limit, month: q.month };
 
@@ -590,13 +816,16 @@ export default {
     // MIN_MONTHLY_USD; ohne USD_PER_USER Rücksprung auf den festen GLOBAL_MONTHLY_USD
     // (Var, kein Secret; siehe Kopfkommentar). budgetCapUsd() fängt KV-Fehler intern
     // ab (fail-open) — kann selbst nicht werfen.
-    const budgetUsd = await budgetCapUsd(uid, env);
+    // Trials rechnen gegen einen EIGENEN Topf (TRIAL_MONTHLY_USD, Default 20) —
+    // sonst essen Gratis-Nutzer das Budget der Zahler auf.
+    const budgetUsd = isTrial ? refTrialBudgetUsd(env) : await budgetCapUsd(uid, env);
     if (budgetUsd > 0) {
-      const stats = await monthlyStats(env);
+      const stats = isTrial ? await refTrialStats(env) : await monthlyStats(env);
       if (estCostUsd(env, stats.inTok, stats.outTok) >= budgetUsd) {
         await dailyRefund(uid, kind, env);
-        await monthlyRefund(uid, env, weight);
-        return json({ error: "KI-Monatsbudget erreicht — bitte später erneut versuchen" }, 429, cors);
+        await refundQuota(weight);
+        return json({ error: isTrial ? "Die Gratis-KI ist diesen Monat ausgelastet — mit Premium geht es sofort weiter."
+                                     : "KI-Monatsbudget erreicht — bitte später erneut versuchen" }, 429, cors);
       }
     }
 
@@ -621,9 +850,9 @@ export default {
           try { cached = JSON.parse(hit); } catch (_) { cached = null; }
           if (cached && typeof cached.text === "string") {
             await dailyRefund(uid, kind, env);
-            await monthlyRefund(uid, env, weight);
+            await refundQuota(weight);
             cached.cached = true;
-            cached.quota = await quotaPeek(uid, env);
+            cached.quota = await peekQuota();
             return json(cached, 200, cors);
           }
           /* kaputter Eintrag → ohne Erstattung normal weiter zum Modell */
@@ -646,7 +875,10 @@ export default {
       else if (path === "/coach")   result = await runCoach(body, lang, env);
       else if (path === "/vision")  result = await runVision(body, lang, env);
       else                           result = await runAnalyze(body, lang, env);
-      try { await recordUsage(env, uid, result.usage); } catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
+      // Trial-Verbrauch in den eigenen Topf, NICHT in stats:<Monat> — sonst rechnet
+      // der Deckel der Zahler gegen fremden Verbrauch.
+      try { if (isTrial) await refTrialRecord(env, result.usage); else await recordUsage(env, uid, result.usage); }
+      catch (e) { console.log("[AI] Stats-Fehler:", e.message); }
       delete result.usage; // interne Kosten-Info, nicht an den Client
       result = stripEmojis(result); // No-Emoji-Garantie über ALLE Endpunkte
       // runChat() liefert nie ein eigenes .plan-Feld — ein Plan-Import steckt als
@@ -690,7 +922,7 @@ export default {
          Anfrage unbegrenzt wiederholen — echte Kosten, kein Zaehler, unsichtbar
          fuer den Ausgabendeckel. */
       if (!(e && e.verbraucht)) {
-        try { await dailyRefund(uid, kind, env); await monthlyRefund(uid, env, weight); } catch (_) {}
+        try { await dailyRefund(uid, kind, env); await refundQuota(weight); } catch (_) {}
       }
       // Founder-Konto bekommt den echten Grund im Klartext zurück (z. B.
       // "Gemini HTTP 400 …") — ohne den ist von außen nicht zu unterscheiden,
@@ -1209,16 +1441,23 @@ No emojis — in any field.`;
 
 // ═══════════════ Firebase-Token prüfen ═══════════════
 
-async function verifyFirebaseToken(idToken, env) {
+// Liefert uid UND Anmeldeart. Die Anmeldeart braucht der Referral-Pfad: die App
+// meldet beim Start automatisch anonym an, und accounts:lookup akzeptiert anonyme
+// Tokens genauso wie echte — ohne diese Unterscheidung waere jede geschenkte
+// Woche beliebig oft nachbestellbar (App-Daten loeschen = neue uid).
+async function lookupFirebaseUser(idToken, env) {
   const res = await fetch(
     "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=" + env.FIREBASE_API_KEY,
     { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ idToken }) }
   );
   if (!res.ok) throw new Error("lookup " + res.status);
   const data = await res.json();
-  const uid = data.users && data.users[0] && data.users[0].localId;
-  if (!uid) throw new Error("kein Nutzer");
-  return uid;
+  const u = data.users && data.users[0];
+  if (!u || !u.localId) throw new Error("kein Nutzer");
+  return { uid: u.localId, providers: (u.providerUserInfo || []).map(p => p.providerId) };
+}
+async function verifyFirebaseToken(idToken, env) {
+  return (await lookupFirebaseUser(idToken, env)).uid;
 }
 
 // ═══════════════ StoreKit-2-JWS prüfen ═══════════════

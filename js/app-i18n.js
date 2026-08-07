@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608072401';
+const APP_VERSION = 'gymtrack-v202608080002';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -152,6 +152,15 @@ const I18N_EN = {
   'hat einen neuen Post geteilt':'shared a new post','Neue Posts von deinen Freunden':'New posts from your friends','Ein Freund':'A friend',
   'Noch keine Reaktionen.':'No reactions yet.','Teile ein Training — Flammen landen hier.':'Share a workout — flames land here.',
   'Heute':'Today','Übungen':'Exercises','Statistik':'Stats','Einstellungen':'Settings','Freunde':'Friends',
+  /* Einstellungen: Kacheln, Kachel-Untertitel und die kleine Liste (Umbau 07.08.2026) */
+  'Aussehen':'Appearance','Weiteres':'More','Freund':'friend','Progression':'Progression',
+  'Pause · Einheit':'Rest · Unit','Freunde · Privatsphäre':'Friends · Privacy',
+  'Design · Sprache':'Theme · Language','Cloud · Backup':'Cloud · Backup',
+  'Automatische Pause':'Automatic rest','Ausgeschaltet':'Turned off','Noch keine Freunde':'No friends yet',
+  'Sprache automatisch':'Language automatic','Angemeldet · Cloud-Sync':'Signed in · cloud sync',
+  'Nur auf diesem Gerät':'On this device only','Design':'Theme',
+  'Progression erklärt':'How progression works','Wie dein nächstes Gewicht entsteht':'How your next weight is calculated',
+  'Wünsche, Bugs oder Ideen':'Wishes, bugs or ideas','Admin-Modus aktiv':'Admin mode active',
   'Training':'Workout','Speichern':'Save','Abbrechen':'Cancel','Bearbeiten':'Edit','Entfernen':'Remove',
   'Löschen':'Delete','Fertig':'Done','Fertig ✓':'Done ✓','Zurück':'Back','Weiter →':'Next →','Übernehmen':'Apply',
   'Aktualisieren':'Refresh','Aktualisieren…':'Refreshing…','Suchen…':'Search…','Ändern':'Change','Teilen':'Share',
@@ -749,7 +758,7 @@ const I18N_EN = {
   '📱 Homescreen-Widget und Live-Activity folgen der Systemsprache':'📱 Home screen widget and Live Activity follow the system language',
   // ── Heute-Widgets: Titel · Label · Beschreibung ──
   'Wochenziele':'Weekly goals','1RM-Bestwerte':'1RM bests','Trainingswoche · 7 Tage':'Training week · 7 days',
-  'Wochen-Tracker-Ringe':'Weekly tracker rings','Wochenübersicht Mo–So':'Week overview Mon–Sun','Gewicht & Verlauf':'Weight & history','Deine letzten Einheiten':'Your recent sessions',
+  'Wochen-Tracker-Ringe':'Weekly tracker rings','Wochenübersicht Mo–So':'Week overview Mon–Sun','Gewicht eintragen & Verlauf':'Log weight & history','Ziehen zum Einstellen':'Drag to adjust','Deine letzten Einheiten':'Your recent sessions',
   'Schnellstart-Button':'Quick-start button','Wochen in Folge':'Weeks in a row','Muskel-Erholung':'Muscle recovery',
   'Trainings-Heatmap':'Workout heatmap','Volumen-Verteilung':'Volume distribution','Schnellzugriff':'Quick access',
   'Wochen-Streak':'Week streak','Gesamt-Volumen':'Total volume','Trainings-Streak':'Workout streak',

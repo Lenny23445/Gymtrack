@@ -347,13 +347,40 @@ function aiRadialAction(kind){
   else if (kind === 'workout')  openAiAnalyze('workout');
   else if (kind === 'progress') openAiAnalyze('progress');
 }
-// ── Sichtbarkeit: aus während Onboarding/Login-Gate/offenem Sheet ──
+/* Sieht der Nutzer die Tableiste gerade? Drei Arten, sie loszuwerden, und alle
+   drei muessen die Bubble mitnehmen:
+   1. weggeblendet (der Icon-Picker setzt opacity 0 / pointer-events none),
+   2. per CSS ausgeblendet (display/visibility),
+   3. ueberdeckt von einem Vollbild-Overlay, das ueber ihr liegt — Level-Scheibe
+      (z 1004), Share-Flow, Admin-Statistiken. Genau dieser Fall war der Anlass:
+      die Leiste war weg, die Bubble schwebte als einziges Element weiter drueber.
+   Sheets (z 900) liegen UNTER der Leiste, sie bleibt sichtbar — und mit ihr die
+   Bubble, so wie bisher. */
+function _aibTabbarSichtbar(){
+  const tb = document.querySelector('.tabbar');
+  if (!tb) return false;
+  const st = getComputedStyle(tb);
+  if (st.display === 'none' || st.visibility === 'hidden') return false;
+  if (parseFloat(st.opacity || '1') < 0.05) return false;
+  const tbZ = parseInt(st.zIndex, 10) || 0;
+  for (const ov of document.querySelectorAll('.ov.on')) {
+    if (ov.id === 'ov-wk') continue;                    // Training: s.u., Bubble bleibt ohnehin
+    const z = parseInt(getComputedStyle(ov).zIndex, 10) || 0;
+    if (z > tbZ) return false;                          // liegt drueber → verdeckt die Leiste
+  }
+  return true;
+}
+// ── Sichtbarkeit: Bubble folgt der Tableiste, Training ausgenommen ──
 function _aibSyncVisibility(){
-  // Bubble verhält sich wie die Tableiste: bleibt bei offenen Sheets sichtbar
-  // (Sheets liegen mit z-index 900 unter Tabbar 1000/Bubble 1060) — versteckt
-  // wird sie nur im Onboarding und hinter dem Auth-Gate.
+  // Feste Regel: die Bubble ist genau dann da, wenn die Tableiste da ist.
+  // Einzige Ausnahme ist das laufende Training — dort bleibt der Coach
+  // durchgehend erreichbar, auch wenn das Trainings-Blatt die Leiste verdeckt.
+  const training = document.body.classList.contains('wk-active')
+                || document.getElementById('ov-wk')?.classList.contains('on')
+                || (typeof isWorkoutActive === 'function' && isWorkoutActive());
   const hide = document.getElementById('ob-screen')?.classList.contains('on')
-            || document.getElementById('auth-gate')?.classList.contains('on');
+            || document.getElementById('auth-gate')?.classList.contains('on')
+            || (!training && !_aibTabbarSichtbar());
   document.body.classList.toggle('ai-hidden', hide);
   // Modal-Sperre: offenes Sheet (außer aktives Training) → Tabbar + Bubble
   // durchgriffs-tot (CSS body.sheet-modal). Zentral hier, weil openOv/closeOv

@@ -2948,6 +2948,34 @@ function renderSettings() {
   // Globale Steigerung (in Anzeige-Einheit)
   const gps = document.getElementById('in-progstep-global');
   if (gps) gps.value = (S.progStepDefault != null && S.progStepDefault !== '') ? String(kgToDisp(S.progStepDefault)) : '';
+  _renderSettingsTiles();
+}
+
+/* Untertitel der vier Kacheln + Versionszeile. Die Kachel zeigt den STAND,
+   nicht nur den Namen — sonst muesste man jede Ebene oeffnen, um zu sehen,
+   was eingestellt ist (genau das sollte der Umbau abschaffen). */
+const _SET_THEME_NAMES = { light:'Hell', rosa:'Rosa', dark:'Dunkel', blau:'Blau', 'grün':'Grün',
+                           gold:'Gold', mitternacht:'Mitternacht', smaragd:'Smaragd' };
+function _renderSettingsTiles() {
+  const setzen = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+  const pause = S.smartRest ? tr('Automatische Pause') : (S.restTimerSecs || 90) + ' s ' + tr('Pause');
+  setzen('set-sub-training', pause + ' · ' + unitLabel());
+
+  const anzahl = (S.friends || []).length;
+  setzen('set-sub-social', !S.socialOn
+    ? tr('Ausgeschaltet')
+    : (anzahl ? anzahl + ' ' + (anzahl === 1 ? tr('Freund') : tr('Freunde')) : tr('Noch keine Freunde')));
+
+  const lang = (() => { try { return localStorage.getItem('gt_lang') || 'auto'; } catch(_) { return 'auto'; } })();
+  setzen('set-sub-look', (_SET_THEME_NAMES[S.theme] || tr('Design')) + ' · ' +
+    (lang === 'auto' ? tr('Sprache automatisch') : lang.toUpperCase()));
+
+  setzen('set-sub-account', (_fbUser && !_fbUser.isAnonymous)
+    ? tr('Angemeldet · Cloud-Sync')
+    : tr('Nur auf diesem Gerät'));
+
+  setzen('set-version', typeof APP_VERSION === 'string' ? APP_VERSION.replace('gymtrack-v', 'v') : '');
 }
 
 // Globaler Gewichts-Steigerungs-Schritt (Eingabe in Anzeige-Einheit → intern kg).

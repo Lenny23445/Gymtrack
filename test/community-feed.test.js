@@ -117,8 +117,22 @@ test('Feed wird beim Start und beim Zurueckkommen vorgewaermt', () => {
     'Vorabladen fehlt an einer der beiden Stellen (Login-Sync / App wieder sichtbar)');
 });
 
-test('Share-Flow: Community UND Freunde sind vorausgewaehlt', () => {
+/* Seit 07.08.2026 gibt es nur noch EIN Ziel: die Community. Der frueher zweite
+   Schalter „Freunde" ist weg — samt Feed-Umschalter „Alle · Nur Freunde". */
+test('Share-Flow: Community ist das einzige Ziel und vorausgewaehlt', () => {
   const src = funktion(WORKOUT, '_shfShareStep');
-  assert.ok(/id="shf-tg-friends" checked/.test(src), 'Freunde nicht vorausgewaehlt');
   assert.ok(/id="shf-tg-public" checked/.test(src), 'Community nicht vorausgewaehlt');
+  assert.ok(!/shf-tg-friends/.test(src), 'Freunde-Ziel steht noch im Share-Flow');
+});
+
+test('Es gibt keinen Feed-Umschalter mehr', () => {
+  assert.ok(!/cpg-seg/.test(STREAK), '.cpg-seg (Alle · Nur Freunde) steht noch im Feed');
+  assert.ok(!/setCpgMode/.test(STREAK + COMM), 'setCpgMode existiert noch');
+  assert.ok(!/_cpgMode/.test(STREAK + COMM), '_cpgMode existiert noch');
+});
+
+test('_shfPublish schreibt ausschliesslich public-Posts', () => {
+  const src = funktion(WORKOUT, '_shfPublish');
+  assert.ok(!/visibility: 'friends'/.test(src), "es wird noch ein 'friends'-Post geschrieben");
+  assert.ok(/visibility: 'public'/.test(src), "kein 'public'-Post im Share-Flow");
 });

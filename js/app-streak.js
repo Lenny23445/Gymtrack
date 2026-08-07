@@ -2124,7 +2124,7 @@ async function _renderDemoFeed(body){
       // photo = Kopf-Avatar (rund, oben im Post) — getrennt vom gebackenen Hintergrundfoto.
       name: nm, photo: p.ava || null, img: layoutImg,
       dayName: p.dayName, dur: Math.round(p.dur / 60), gym: p.gym, mgs: p.mgs, prCount: p.prCount || 0,
-      visibility: isPub ? 'public' : 'friends', ts, flames: _demoFlames(p.fl || 0)
+      visibility: 'public', ts, flames: _demoFlames(p.fl || 0)
     };
   });
   _cpgIdx = 0;
