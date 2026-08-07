@@ -281,6 +281,26 @@ function resumeWorkout() {
   updateWkMiniVisibility();
 }
 function goTab(id, btn) {
+  /* Nochmal auf den Tab tippen, auf dem man ohnehin steht: nichts tun. Sonst
+     lief der komplette Block unten durch — render*(), Keyframe-Neustart und
+     gtReveal — die Seite "aktualisierte" sich also sichtbar ohne Grund.
+     Zwei Ausnahmen bleiben absichtlich erhalten:
+     - offenes Sheet (.ov.on): der Tipp auf die Leiste schliesst es weiterhin
+       (Tabbar liegt z-1000 ueber dem Overlay, ist also erreichbar),
+     - Unterseite Einstellungen: Tab "Erfolge" ist dann `on`, aber #pg-erfolge
+       nicht — der Tipp muss zurueckfuehren. */
+  const pgCur = document.getElementById('pg-' + id);
+  if (btn && pgCur
+      && btn.classList.contains('on')
+      && pgCur.classList.contains('on')
+      && !document.querySelector('.ov.on')) {
+    /* Die Pille trotzdem einrasten lassen: beim Halte-Ziehen auf der Leiste
+       (initTabDrag) folgt der Indikator dem Finger. Endet der Zug wieder auf
+       dem aktiven Tab, bliebe er ohne das an der Fingerposition kleben. */
+    moveTabIndicator(btn);
+    return;
+  }
+
   // Close all open overlays before switching tabs
   _suppressWkRestore = true;   // Workout-Sheet beim Tab-Wechsel NICHT wieder aufpoppen lassen
   document.querySelectorAll('.ov.on').forEach(ov => {
