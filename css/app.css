@@ -2599,8 +2599,8 @@ html[data-glass] .tabbar::before{display:block!important}
 
 /* ── STREAK BADGE (Header oben rechts) ── */
 .streak-badge{
-  display:inline-flex;align-items:center;gap:4px;
-  height:28px;box-sizing:border-box;padding:0 10px 0 7px;border-radius:999px;
+  display:inline-flex;align-items:center;gap:6px;
+  height:40px;box-sizing:border-box;padding:0 13px 0 10px;border-radius:999px;font-size:15px;
   background:linear-gradient(135deg,rgba(255,149,0,.18),rgba(255,59,48,.12));
   border:1px solid rgba(255,149,0,.32);
   box-shadow:0 2px 10px rgba(255,149,0,.18);
@@ -4839,32 +4839,74 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .crew-sub{font-size:12.5px;font-weight:600;color:var(--text2);margin-top:2px}
 .crew-icobtn{flex:none;width:36px;height:36px;border-radius:12px;background:var(--soft);border:1px solid var(--gl-bdr);color:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit}
 .crew-icobtn:active{transform:scale(.94)}
-.crew-bar{height:14px;border-radius:9px;background:var(--soft);overflow:hidden}
-.crew-bar>span{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,rgba(var(--acc-rgb),.75),var(--acc));transition:width .5s var(--ease)}
+/* ── Crew-Diagramme im Neonlook ───────────────────────────────────────────
+   Die Balken leuchten in der Akzentfarbe auf dunkler Rinne, und sie wachsen
+   beim Öffnen von links auf. Animiert wird transform:scaleX, nicht width —
+   die Breite steht als Prozentwert im style-Attribut, und scaleX läuft auf
+   dem Compositor, ohne bei jedem Bild neu zu layouten. Weil die Karten bei
+   jedem Rendern neu in den DOM kommen, startet der Aufbau von selbst. */
+.crew-bar{height:14px;border-radius:9px;background:rgba(var(--acc-rgb),.07);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.16),inset 0 2px 7px rgba(0,0,0,.32)}
+.crew-bar>span{display:block;height:100%;border-radius:9px;position:relative;
+  background:linear-gradient(90deg,rgba(var(--acc-rgb),.5),var(--acc));
+  box-shadow:0 0 10px rgba(var(--acc-rgb),.65),0 0 22px rgba(var(--acc-rgb),.3);
+  transform-origin:left center;animation:crewGrow .85s cubic-bezier(.22,1,.36,1) both}
+/* Heller Kopf am Ende des Balkens — das Licht, das die Leuchtröhre abschließt. */
+.crew-bar>span::after{content:'';position:absolute;right:0;top:0;bottom:0;width:9px;border-radius:9px;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.75));
+  box-shadow:0 0 12px rgba(255,255,255,.5)}
+@keyframes crewGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes crewPop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
 .crew-barrow{display:flex;align-items:baseline;justify-content:space-between;margin-top:9px;gap:10px}
 .crew-total{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
 .crew-days{font-size:12.5px;font-weight:700;color:var(--text2)}
 .crew-hint{font-size:13px;font-weight:600;color:var(--text2);margin-top:3px}
 .crew-stats{display:flex;gap:10px;margin-top:14px}
-.crew-stat{flex:1;background:var(--soft);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:2px}
-.crew-stat-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.crew-stat{flex:1;background:rgba(var(--acc-rgb),.06);border-radius:14px;padding:11px 12px;
+  display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.16);
+  animation:crewPop .45s cubic-bezier(.34,1.56,.64,1) both}
+.crew-stats .crew-stat:nth-child(2){animation-delay:.06s}
+.crew-stats .crew-stat:nth-child(3){animation-delay:.12s}
+.crew-stat-v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--acc);
+  text-shadow:0 0 14px rgba(var(--acc-rgb),.5)}
 .crew-stat-l{font-size:11.5px;font-weight:700;color:var(--text2)}
 .crew-members{display:flex;flex-direction:column;gap:9px}
 .crew-mrow{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:10px 13px}
 .crew-mrow.me{border-color:rgba(var(--acc-rgb),.5)}
 .crew-mname{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crew-owner{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--acc);background:rgba(var(--acc-rgb),.14);border-radius:6px;padding:1px 5px;vertical-align:1px}
-.crew-mbar{height:6px;border-radius:4px;background:var(--soft);margin-top:6px;overflow:hidden}
-.crew-mbar>span{display:block;height:100%;border-radius:4px;background:rgba(var(--acc-rgb),.85);transition:width .45s var(--ease)}
+.crew-mbar{height:6px;border-radius:4px;margin-top:6px;overflow:hidden;background:rgba(var(--acc-rgb),.07);
+  box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.14)}
+.crew-mbar>span{display:block;height:100%;border-radius:4px;background:var(--acc);
+  box-shadow:0 0 7px rgba(var(--acc-rgb),.7);
+  transform-origin:left center;animation:crewGrow .8s cubic-bezier(.22,1,.36,1) both}
+/* Gestaffelt: die Reihen bauen sich nacheinander auf, das liest sich als
+   Bewegung von oben nach unten statt als Zucken der ganzen Liste. */
+.crew-members .crew-mrow:nth-child(1) .crew-mbar>span{animation-delay:.04s}
+.crew-members .crew-mrow:nth-child(2) .crew-mbar>span{animation-delay:.09s}
+.crew-members .crew-mrow:nth-child(3) .crew-mbar>span{animation-delay:.14s}
+.crew-members .crew-mrow:nth-child(4) .crew-mbar>span{animation-delay:.19s}
+.crew-members .crew-mrow:nth-child(n+5) .crew-mbar>span{animation-delay:.24s}
 .crew-mval{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;min-width:20px;text-align:right}
 /* Wer bei 0 steht, wird NICHT rot markiert — kooperativ heisst: kein Pranger. */
 .crew-mval.zero{color:var(--text2);font-weight:700}
 .crew-hist{margin-top:16px}
 .crew-hist-l{font-size:12.5px;font-weight:800;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px}
 .crew-hist-row{display:flex;gap:7px;flex-wrap:wrap}
-.crew-hp{width:26px;height:26px;border-radius:9px;background:var(--soft);color:var(--text2);display:flex;align-items:center;justify-content:center}
+.crew-hp{width:26px;height:26px;border-radius:9px;background:rgba(var(--acc-rgb),.06);color:var(--text2);
+  display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.12);
+  animation:crewPop .4s cubic-bezier(.34,1.56,.64,1) both}
 .crew-hp svg{width:13px;height:13px}
-.crew-hp.ok{background:rgba(var(--acc-rgb),.16);color:var(--acc)}
+.crew-hp.ok{background:rgba(var(--acc-rgb),.18);color:var(--acc);
+  box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.45),0 0 12px rgba(var(--acc-rgb),.4)}
+.crew-hist-row .crew-hp:nth-child(1){animation-delay:.02s}
+.crew-hist-row .crew-hp:nth-child(2){animation-delay:.05s}
+.crew-hist-row .crew-hp:nth-child(3){animation-delay:.08s}
+.crew-hist-row .crew-hp:nth-child(4){animation-delay:.11s}
+.crew-hist-row .crew-hp:nth-child(5){animation-delay:.14s}
+.crew-hist-row .crew-hp:nth-child(6){animation-delay:.17s}
+.crew-hist-row .crew-hp:nth-child(7){animation-delay:.2s}
+.crew-hist-row .crew-hp:nth-child(n+8){animation-delay:.23s}
 .crew-danger{color:#ff453a}
 .crew-field{margin-bottom:16px}
 .crew-field label{display:block;font-size:12.5px;font-weight:800;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
@@ -4997,12 +5039,12 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 /* Header-Level-Badge (Startseite, neben der Flamme) — Stil analog Streak-Badge */
 /* Die Pille sitzt seit dem Umbau um die Scheibe herum: links nur 3 px Luft,
    damit die Scheibe buendig in der Rundung liegt statt gequetscht zu wirken. */
-.lvl-badge{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 11px 0 3px;border-radius:999px;
+.lvl-badge{display:inline-flex;align-items:center;gap:7px;height:40px;box-sizing:border-box;padding:0 13px 0 4px;border-radius:999px;
   background:linear-gradient(135deg,rgba(var(--acc-rgb),.20),rgba(var(--acc-rgb),.09));
   border:1px solid rgba(var(--acc-rgb),.34);box-shadow:0 2px 10px rgba(var(--acc-rgb),.16);
-  font-size:13px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
+  font-size:14.5px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
 .lvl-badge-n{color:var(--acc);letter-spacing:.2px}
-.lvl-badge-pts{font-weight:700;color:var(--text2);font-size:12px}
+.lvl-badge-pts{font-weight:700;color:var(--text2);font-size:13px}
 .lvl-badge.bump{animation:lvlBump .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lvlBump{0%{transform:scale(1)}45%{transform:scale(1.16)}100%{transform:scale(1)}}
 /* Level-Zeichen neben Namen: seit 07.08.2026 die Hantelscheibe (js/app-plate.js)
@@ -5054,7 +5096,7 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 .lvlp-mat.on{background:rgba(255,255,255,.14);color:#fff}
 .lvlp-mat.locked{opacity:.4;filter:grayscale(.9)}
 .lvlp-mat:active{transform:scale(.94)}
-.lvlp-share{position:absolute;left:20px;bottom:calc(24px + var(--sab));width:44px;height:44px;border-radius:50%;
+.lvlp-share{position:absolute;right:20px;bottom:calc(96px + var(--sab));width:44px;height:44px;border-radius:50%;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;
   display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit}
 .lvlp-share:active{transform:scale(.92)}
@@ -5070,7 +5112,9 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
   pointer-events:none;opacity:1;animation:xpPop .18s ease-out;
   transition:transform .52s cubic-bezier(.4,.02,.3,1),opacity .5s ease-in}
 @keyframes xpPop{0%{transform:translate(-50%,-50%) scale(0)}62%{transform:translate(-50%,-50%) scale(1.4)}100%{transform:translate(-50%,-50%) scale(1)}}
-@media (prefers-reduced-motion:reduce){.xp-pill,.xp-dot{transition-duration:.25s}.xp-dot{animation-duration:.08s}.lvl-badge.bump{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  .crew-bar>span,.crew-mbar>span,.crew-hp,.crew-stat{animation:none}
+  .xp-pill,.xp-dot{transition-duration:.25s}.xp-dot{animation-duration:.08s}.lvl-badge.bump{animation:none}}
 .frp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .frp-stat{background:var(--card);border:1px solid var(--gl-bdr);border-radius:16px;padding:13px 14px}
 .frp-stat-v{font-size:19px;font-weight:800;letter-spacing:-.3px;color:var(--text)}

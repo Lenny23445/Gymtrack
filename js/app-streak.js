@@ -98,7 +98,7 @@ function renderStreak(){
     ? st.weeks + ' Wochen in Folge trainiert'
     : 'Trainiere diese Woche, damit die Serie nicht reißt';
   host.innerHTML = `<div class="streak-badge${cold}" title="${tip}" onclick="openStreakDetail()" style="cursor:pointer">
-    <span class="streak-fire">${st.weeksThis?_flameSVG(15):'⏳'}</span>
+    <span class="streak-fire">${st.weeksThis?_flameSVG(20):'⏳'}</span>
     <span>${st.weeks}</span>
   </div>`;
 }
@@ -3140,7 +3140,7 @@ function _renderLevelBadge(){
   // Tippen öffnet die große Scheibe (openLevelPlate) statt des Info-Blatts —
   // dort stehen dieselben Angaben, nur sichtbar statt in Textzeilen.
   host.innerHTML = `<div class="lvl-badge" id="lvl-badge-el" title="${tr('Level')} ${L.level} · ${_fmtXP(L.pts)} ${tr('Punkte')}" onclick="openLevelPlate()">
-    ${_lvlPlate(L.level, 24)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
+    ${_lvlPlate(L.level, 32)}<span class="lvl-badge-pts" id="lvl-badge-pts">${_fmtXP(L.pts)}</span>
   </div>`;
   // Premium-Abzeichen als eigenständiges Element zwischen Level und Streak (nicht mehr in der Level-Pille).
   const ph = document.getElementById('prem-badge-host');
