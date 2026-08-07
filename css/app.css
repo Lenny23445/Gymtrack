@@ -3146,7 +3146,11 @@ body.wpick-open #heute-edit-bar{display:none!important}
 .weight-rest-side{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px;flex-shrink:0}
 .weight-rest-hint{font-size:10px;color:var(--text2);opacity:.6;text-align:right;max-width:84px;line-height:1.25}
 .weight-card-dial .weight-mini-wrap{height:64px;flex:1}
-.weight-card-dial .weight-goal-section{margin-top:10px;padding-top:10px}
+/* Der Ziel-Block wird nach unten gedrueckt: die Rasterzelle ist je nach
+   Bildschirm etwas hoeher als der Inhalt, und die Luft gehoert zwischen die
+   Bloecke statt als Loch ans Kartenende. */
+.weight-card-dial>#weight-rest{display:flex;flex-direction:column;flex:1;min-height:0}
+.weight-card-dial .weight-goal-section{margin-top:auto;padding-top:10px}
 
 .weight-chart-wrap{height:90px;position:relative;margin:0 -2px}
 .weight-chart-wrap canvas{width:100%!important}
@@ -5039,9 +5043,11 @@ body.wk-active .hdr{padding-top:calc(var(--wk-clear,70px) + 6px)}
 @keyframes fr-rot{to{transform:rotate(360deg)}}
 /* Freundes-Profil-Sheet */
 .frp-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0 16px}
-.frp-level{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--soft);color:var(--acc);font-size:12.5px;font-weight:800;border-radius:10px;padding:5px 11px;letter-spacing:.4px;text-transform:uppercase}
-.frp-level .lvl-dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
-.frp-level .frp-xp{opacity:.7;font-weight:700}
+/* Level = Hantelscheibe, kein ausgeschriebenes Wort mehr (s. _lvlPlate). Die
+   Pille traegt nur noch Scheibe + Punktestand; Tippen oeffnet die Vollbild-Scheibe. */
+.frp-level{display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:var(--soft);color:var(--text2);font-size:12.5px;font-weight:800;border-radius:999px;padding:5px 12px 5px 6px;cursor:pointer}
+.frp-level .lvl-plate{filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+.frp-level .frp-xp{opacity:.75;font-weight:700}
 /* Gründer-Banner auf dem Profil-Header */
 .frp-founder{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 14px;border-radius:12px;
   font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:#fff;

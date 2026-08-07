@@ -438,7 +438,7 @@ function renderWeightCard(el) {
     const diff = +(last.weight - prev.weight).toFixed(1);
     const sign = diff > 0 ? '+' : '';
     const cls  = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'neu';
-    deltaHtml  = `<span class="weight-delta ${cls}">${sign}${diff} ${unit}</span>`;
+    deltaHtml  = `<span class="weight-delta ${cls}">${sign}${_wFmt(diff)} ${unit}</span>`;
   }
 
   // Widget-Größe aus dem Wrapper lesen — bei „sm" (verkleinert) wird das
@@ -471,7 +471,7 @@ function renderWeightCard(el) {
     <div class="weight-top-row">
       <div class="weight-left">
         ${last
-          ? `<div class="weight-current-val">${last.weight}</div>
+          ? `<div class="weight-current-val">${_wFmt(last.weight)}</div>
              <div class="weight-current-unit">${unit}</div>
              ${deltaHtml}`
           : `<div class="weight-current-val" style="font-size:22px;color:var(--text2)">—</div>
