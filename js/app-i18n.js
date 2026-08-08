@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080016';
+const APP_VERSION = 'gymtrack-v202608080017';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -1148,6 +1148,9 @@ const I18N_RX = [
  [/^(\d+) Mitglied hat sein Ziel noch nicht$/, '$1 member has not hit their goal yet'],
  [/^(\d+) Wochen in Folge$/, '$1 weeks in a row'],
  [/^(\d+) Woche in Folge$/, '$1 week in a row'],
+ // Der Fallback-Absender steht im selben Textknoten wie der Satz — erst die
+ // vollstaendige Zeile, sonst bliebe „Jemand invites you" stehen.
+ [/^Jemand lädt dich ein$/, 'Someone invites you'],
  [/ lädt dich ein/g, ' invites you'],
  [/ \(du\)/g, ' (you)'],
  [/Noch (\d+) weitere anzeigen/g, 'Show $1 more'],

@@ -8,6 +8,18 @@
 > Heute-Tab) bleiben unangetastet — die Regel gilt für **UI-Chrome**, nicht für Nutzer-Icon-Auswahl.
 > `reactions[uid]='🔥'` ist ein Firestore-**Datenwert/Sentinel** (nicht anfassen), nur die Anzeige ist SVG.
 
+> **HARD-REGEL (Sprache): JEDER neue oder geänderte Nutzer-Text wird im SELBEN Schritt
+> englisch mitgeliefert.** Kein „später übersetzen" — ein Feature gilt erst als fertig, wenn
+> es auf Englisch genauso vollständig dasteht wie auf Deutsch. Konkret: deutscher String in
+> `I18N_EN` (js/app-i18n.js) eintragen, bei Texten mit Zahlen/Namen darin eine Regel in
+> `I18N_RX`. Betrifft auch `placeholder`/`title`/`aria-label`/`alt`, `alert`/`confirm`/`prompt`,
+> Toasts, Push-Texte und alles, was per `navigator.share` nach draussen geht (letzteres geht
+> nie durchs DOM → dort `tr(...)` ausdrücklich im Code aufrufen). Vor dem Melden gegenprüfen:
+> Sprache in den Einstellungen auf „English" stellen und den neuen Bereich einmal öffnen.
+> Anlass: das Gruppen-Feature (07.08.2026) ging komplett deutsch live, weil in `I18N_EN` noch
+> die alte Crew-Wortwahl stand. Bewacht wird das jetzt von `test/crew-i18n.test.js` — neue
+> Bereiche brauchen einen ebensolchen Drift-Test.
+
 **Was:** NATIVE iOS-App (Capacitor, App Store) — **die native App steht IMMER im Vordergrund**. Die Web-/PWA-Version (gleiche single index.html, GitHub Pages) läuft nur parallel als Zweitkanal/Fallback. Features und Links immer zuerst für die native App denken (Deep-Links via gymtrack://, https-Links nur als klickbarer Träger mit Auto-Sprung in die App).
 **Live:** https://gymtrack-9q9.pages.dev (Cloudflare Pages, seit 06.08.2026 — baut `dist/` via `node build-pages.js`, ~1 Min nach Push auf `main`) · **Repo:** https://github.com/Lenny23445/Gymtrack
 Die alte Adresse https://lenny23445.github.io/Gymtrack/ läuft absichtlich weiter: bereits geteilte QR-Codes und der bei Apple hinterlegte Datenschutz-Link zeigen dorthin. Im App-Code steht die Adresse nur noch **einmal** als `GT_WEB` in `js/app-i18n.js`.
@@ -164,7 +176,7 @@ S = {
 - Data-Arrays werden bei EN einmalig gemappt: `MUSCLE_GROUPS`, `ALL_MUSCLES`, `MUSCLES`, `GROUP_MODES`, `DAYS`, `_WD_LBL`, `MONATE`, `SET_TYPE_TITLE`. Dezimaltrenner via `GT_DEC`; Datum via `GT_LOCALE`.
 - Widget-/Live-Activity-Payloads (`_pushWidgetData`, `_planLabelFor`, `_startLiveActivity`) laufen durch `tr()`. Native Swift-Strings: Helfer `GTL(de,en)` in `GymTrackWidget.swift`/`GymTrackLiveActivity.swift` (folgt `Locale.preferredLanguages`).
 
-**REGEL bei jedem neuen User-Text:** deutschen String **zusätzlich in `I18N_EN`** eintragen (oder RX-Regel bei dynamischen Teilen). Fallstricke: Icon klebt oft im selben Textknoten (`▶ Training starten` → RX statt exakt); `<b>`/`<u>` zerteilen Sätze in mehrere Knoten (jedes Fragment einzeln eintragen); `·`-getrennte Teile brauchen die **bare** Wortform (nicht nur `„Wort ·"`).
+**REGEL bei jedem neuen User-Text (HARD-REGEL, s. Kopf der Datei):** deutschen String **zusätzlich in `I18N_EN`** eintragen (oder RX-Regel bei dynamischen Teilen) — im selben Arbeitsschritt, nicht später. Fallstricke: Icon klebt oft im selben Textknoten (`▶ Training starten` → RX statt exakt); `<b>`/`<u>` zerteilen Sätze in mehrere Knoten (jedes Fragment einzeln eintragen); `·`-getrennte Teile brauchen die **bare** Wortform (nicht nur `„Wort ·"`).
 
 ## Sicherheit & wichtige Invarianten
 
