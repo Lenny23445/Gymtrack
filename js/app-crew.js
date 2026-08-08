@@ -500,7 +500,9 @@ function crewCopyCode(btn){
 async function crewShare(id){
   const c = _crews[id || _crewOpen]; if (!c) return;
   haptic(8);
-  const txt = 'Komm in meine Gruppe „' + c.name + '" bei MyGymTrack — Code: ' + c.id + '\n' + crewShareLink(c.id);
+  // tr() ausdruecklich hier: der Teilen-Text geht nie durchs DOM, der
+  // MutationObserver kann ihn also nicht uebersetzen (RX-Regel in app-i18n.js).
+  const txt = tr('Komm in meine Gruppe „' + c.name + '" bei MyGymTrack — Code: ' + c.id) + '\n' + crewShareLink(c.id);
   try {
     if (navigator.share) { await navigator.share({ text: txt }); return; }
   } catch(_) { return; }   // Nutzer hat den Teilen-Dialog abgebrochen
@@ -584,7 +586,7 @@ function crewOpenCreate(behalten){
   _crewSheet('Gruppe erstellen', `
     <div class="crew-field">
       <label for="crew-new-name">Name</label>
-      <input id="crew-new-name" maxlength="24" placeholder="z.B. Eisenpark Crew" autocomplete="off" spellcheck="false" value="${esc(merk)}">
+      <input id="crew-new-name" maxlength="24" placeholder="Gym Gruppe" autocomplete="off" spellcheck="false" value="${esc(merk)}">
     </div>
     <div class="crew-field">
       <label>Ziel der Woche</label>

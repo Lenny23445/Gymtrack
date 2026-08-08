@@ -16,7 +16,7 @@ const ICON_CATS = [
 const EMOJIS = ICON_CATS[0].icons.concat(['🦵','🔥','💥','🏊','🧗','🫀','🦴','🟢','🟣','🔵','🟡','🔴','⭐','💎','⚡','🎯','🏆','🥊']);
 
 /* ── APP VERSION (sync mit sw.js – Deploy-Script hält beide gleich) ── */
-const APP_VERSION = 'gymtrack-v202608080015';
+const APP_VERSION = 'gymtrack-v202608080016';
 
 /* Öffentliche Web-Adresse der App (Cloudflare Pages, seit 06.08.2026 — vorher
    GitHub Pages unter lenny23445.github.io/Gymtrack). Steht bewusst als EINE
@@ -86,28 +86,41 @@ const I18N_EN = {
   'Crew starten':'Start a crew','Code':'Code',
   'Gemeinsames Wochenziel mit deinen Leuten — jedes Training zählt für alle.':'A shared weekly goal with your people — every workout counts for everyone.',
   'Gemeinsames Wochenziel':'Shared weekly goal','Ziel geschafft':'Goal reached',
-  /* Crews — gemeinsames Wochenziel (js/app-crew.js) */
-  'Crew':'Crew','Noch keine Crew':'No crew yet','Crew gründen':'Start a crew','Mit Code beitreten':'Join with a code',
-  'Crew beitreten':'Join a crew','Crew verwalten':'Manage crew','Crew verlassen':'Leave crew','Crew auflösen':'Disband crew',
-  'Eine Crew ist eine feste Gruppe mit einem gemeinsamen Wochenziel. Jedes Training zählt für alle — und der Crew-Streak zählt, wie viele Wochen ihr das Ziel in Folge geschafft habt.':'A crew is a fixed group with one shared weekly goal. Every workout counts for everyone — and the crew streak counts how many weeks in a row you hit it.',
-  'Wochenziel · Trainings der ganzen Crew':'Weekly goal · workouts for the whole crew',
-  'z.B. Eisenpark Crew':'e.g. Iron Park Crew',
-  'Alle zahlen auf denselben Balken ein. Schafft ihr das Ziel, wächst der Crew-Streak um eine Woche.':'Everyone feeds the same bar. Hit the goal and the crew streak grows by one week.',
-  'Den Code bekommst du von jemandem aus der Crew. Crews sind nicht durchsuchbar.':'Ask someone in the crew for the code. Crews cannot be searched for.',
-  'Crew-Code':'Crew code','Beitreten':'Join','Mitglieder':'Members','Entfernen':'Remove','Gründer':'Founder',
+  /* Gruppen — gemeinsames Wochenziel (js/app-crew.js). Bis 07.08.2026 hiess das
+     Feature „Crew"; die alte Wortwahl steht weiter unten, weil sie in aelteren
+     Changelog-Eintraegen und im Demo-Modus noch auftaucht. */
+  'Gruppen':'Groups','Gruppe erstellen':'Create group','Gruppe beitreten':'Join group',
+  'Gruppe verwalten':'Manage group','Gruppe verlassen':'Leave group','Gruppe auflösen':'Disband group',
+  'Gruppen-Code':'Group code','Ziel der Woche':'Weekly goal','Wochenziel':'Weekly goal',
+  'Wen einladen':'Who to invite','Jeder X-mal':'Everyone X times',
+  'Alle Trainings der Gruppe zusammen.':'All workouts of the group combined.',
+  'Bewegtes Gewicht der ganzen Gruppe.':'Total weight moved by the whole group.',
+  'Trainingsminuten aller Mitglieder.':'Training minutes of all members.',
+  'Geschafft nur, wenn JEDES Mitglied so oft trainiert.':'Only counts if EVERY member trains that often.',
+  'Noch keine Freunde — du kannst die Gruppe auch später per Code teilen.':'No friends yet — you can share the group by code later on.',
+  'Den Code bekommst du von jemandem aus der Gruppe. Gruppen sind nicht durchsuchbar.':'Ask someone in the group for the code. Groups cannot be searched for.',
+  'Die Zielart lässt sich nachträglich nicht ändern — sonst stünde die Historie in zwei Einheiten da.':'The goal type cannot be changed later — otherwise the history would be stuck in two different units.',
+  'Mitglied':'Member','Nein':'No','geschafft':'done','Du':'You',
+  'Lade Gruppe…':'Loading group…','Gruppe konnte nicht geladen werden.':'Group could not be loaded.',
+  'Gib deiner Gruppe einen Namen.':'Give your group a name.',
+  'Der Gruppen-Code besteht aus 6 Zeichen.':'A group code is 6 characters long.',
+  'Keine Gruppe mit diesem Code gefunden.':'No group found for this code.',
+  'Gruppe konnte nicht angelegt werden.':'The group could not be created.',
+  'Hat nicht geklappt.':'That did not work.',
+  'Gym Gruppe':'Gym Group',
+  'Beitreten':'Join','Mitglieder':'Members','Entfernen':'Remove','Gründer':'Founder',
   'Dein Beitrag':'Your share','Woche in Folge':'week in a row','Wochen in Folge':'weeks in a row',
   'Letzter Tag der Woche':'Last day of the week','Letzte Woche':'Last week',
-  'Wochenziel geschafft — der Streak wächst am Montag.':'Weekly goal reached — the streak grows on Monday.',
-  'Lade Crew…':'Loading crew…','Crew konnte nicht geladen werden.':'Crew could not be loaded.',
   'Kopiert':'Copied','Einladung kopiert':'Invite copied',
-  'Gib deiner Crew einen Namen.':'Give your crew a name.',
-  'Der Crew-Code besteht aus 6 Zeichen.':'A crew code is 6 characters long.',
-  'Keine Crew mit diesem Code gefunden.':'No crew found for this code.',
-  'Crew konnte nicht angelegt werden.':'The crew could not be created.',
   'Beitritt fehlgeschlagen.':'Joining failed.',
-  'Du bist bereits in einer Crew. Verlasse sie zuerst, um einer anderen beizutreten.':'You are already in a crew. Leave it first to join another one.',
   'Dafür musst du angemeldet sein und die Community aktiviert haben.':'You need to be signed in with the community enabled.',
   'QR-Code nicht verfügbar':'QR code unavailable','Lade QR-Code…':'Loading QR code…',
+  /* Alte Crew-Wortwahl (vor der Umbenennung) — Changelog + Demo-Ansichten */
+  'Crew':'Crew','Noch keine Crew':'No crew yet','Crew gründen':'Start a crew','Mit Code beitreten':'Join with a code',
+  'Crew beitreten':'Join a crew','Crew verwalten':'Manage crew','Crew verlassen':'Leave crew','Crew auflösen':'Disband crew',
+  'Wochenziel · Trainings der ganzen Crew':'Weekly goal · workouts for the whole crew',
+  'Wochenziel geschafft — der Streak wächst am Montag.':'Weekly goal reached — the streak grows on Monday.',
+  'Lade Crew…':'Loading crew…','Crew konnte nicht geladen werden.':'Crew could not be loaded.',
   /* Workout-Share-Flow + Community-Pager */
   'Dein Look':'Your look','Tippen zum Festlegen':'Tap to lock in','Foto':'Photo','Foto aufnehmen':'Take photo',
   'Kein Kamera-Zugriff':'No camera access',
@@ -1118,15 +1131,44 @@ const I18N_RX = [
   // Gruppen-Belohnung: die Punktzahl steht mitten im Satz
   [/^Wochenziel geschafft — jeder mit Beitrag bekommt (\d+) Punkte, der Streak wächst am Montag\.$/,
    'Weekly goal reached — everyone who contributed gets $1 points, the streak grows on Monday.'],
- /* Crews (js/app-crew.js) — Zahlen mitten im Satz, als feste Phrase nicht greifbar. */
+ /* Gruppen (js/app-crew.js) — Zahlen mitten im Satz, als feste Phrase nicht greifbar.
+    Die Zeilen mit Einheit (kg/Min.) muessen VOR der einheitenlosen Variante stehen,
+    sonst frisst „Noch 25.000" die Zahl und das „kg" bleibt allein stehen. */
  [/Noch (\d+) Trainings? bis Sonntag/g, '$1 more workouts to go by Sunday'],
  [/^Noch (\d+) Trainings?$/g, '$1 workouts to go'],
+ [/^Noch ([\d.,]+) Min\. bis Sonntag$/, '$1 min left until Sunday'],
+ [/^Noch ([\d.,]+) kg bis Sonntag$/, '$1 kg left until Sunday'],
+ [/^Noch ([\d.,]+) bis Sonntag$/, '$1 left until Sunday'],
+ [/^Noch ([\d.,]+) Min\.$/, '$1 min to go'],
+ [/^Noch ([\d.,]+) kg$/, '$1 kg to go'],
+ [/^Noch ([\d.,]+)$/, '$1 to go'],
+ [/^(\d+) fehlt noch$/, '$1 to go'],
+ [/^(\d+) fehlen noch$/, '$1 to go'],
+ [/^(\d+) Mitglieder haben ihr Ziel noch nicht$/, '$1 members have not hit their goal yet'],
+ [/^(\d+) Mitglied hat sein Ziel noch nicht$/, '$1 member has not hit their goal yet'],
+ [/^(\d+) Wochen in Folge$/, '$1 weeks in a row'],
+ [/^(\d+) Woche in Folge$/, '$1 week in a row'],
+ [/ lädt dich ein/g, ' invites you'],
+ [/ \(du\)/g, ' (you)'],
  [/Noch (\d+) weitere anzeigen/g, 'Show $1 more'],
  [/^(\d+) Freunde trainieren in eingetragenen Gyms$/g, '$1 friends train at listed gyms'],
  [/^(\d+) Freund trainiert in eingetragenen Gyms$/g, '$1 friend trains at a listed gym'],
  [/^Noch (\d+) Tage?$/g, '$1 days left'],
  [/(\d+) Mitglieder? · Code ([A-Z0-9]{6})/g, '$1 members · code $2'],
  [/^Letzte (\d+) Wochen$/g, 'Last $1 weeks'],
+ /* Dialoge (alert/confirm laufen ueber die tr()-Wrapper). Der Fehlercode haengt
+    hinter einem Zeilenumbruch am Satz — deshalb Regex statt fester Phrase. */
+ [/Mehr als (\d+) Gruppen gehen nicht\./g, 'No more than $1 groups.'],
+ [/Gruppe wird für alle (\d+) Mitglieder aufgelöst\. Fortfahren\?/g, 'The group will be disbanded for all $1 members. Continue?'],
+ [/Gruppe wird für alle (\d+) Mitglied aufgelöst\. Fortfahren\?/g, 'The group will be disbanded for its $1 member. Continue?'],
+ [/Gruppe „(.+?)["“”] wirklich verlassen\?/g, 'Really leave the group “$1”?'],
+ [/^(.+) aus der Gruppe entfernen\?$/, 'Remove $1 from the group?'],
+ [/Diese Gruppe ist voll \((\d+) Mitglieder\)\./g, 'This group is full ($1 members).'],
+ [/Gruppe konnte nicht angelegt werden\./g, 'The group could not be created.'],
+ [/Gruppe konnte nicht geladen werden\./g, 'Group could not be loaded.'],
+ [/Beitritt fehlgeschlagen\./g, 'Joining failed.'],
+ [/Hat nicht geklappt\./g, 'That did not work.'],
+ [/Komm in meine Gruppe „(.+?)["“”] bei MyGymTrack — Code: /g, 'Join my group “$1” on MyGymTrack — code: '],
  [/Crew wird für alle (\d+) Mitglieder? aufgelöst\. Fortfahren\?/g, 'The crew will be disbanded for all $1 members. Continue?'],
  [/Diese Crew ist voll \((\d+) Mitglieder\)\./g, 'This crew is full ($1 members).'],
  /* „Nächstes Mal: 21 kg ausprobieren." — die Zahl steht in der Mitte, deshalb
