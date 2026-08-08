@@ -2035,13 +2035,17 @@
 
 <!-- Crew: Gründen · Beitreten · Verwalten (ein Blatt, Inhalt setzt _crewSheet) -->
 <div class="ov" id="ov-crew" style="z-index:1002" onclick="if(event.target===this)closeOv('ov-crew')">
-  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));display:flex;flex-direction:column">
+  <!-- padding-bottom:0 am Blatt ist Absicht: die 100px aus .sheet halten Platz für die
+       schwebende Tableiste frei — die liegt aber bei z 1000 UNTER diesem Blatt (z 1002),
+       also blieb unter dem letzten Button nur ein leerer dunkler Streifen stehen.
+       Den Abstand zum Bildschirmrand setzt allein das scrollende Body-Div. -->
+  <div class="sheet" style="max-height:90vh;max-height:min(90vh,var(--sheet-cap));display:flex;flex-direction:column;padding-bottom:0">
     <div class="sh-handle"></div>
     <div class="sh-head">
       <h2 id="crew-sh-title">Crew</h2>
       <button class="x-btn" onclick="closeOv('ov-crew')">✕</button>
     </div>
-    <div id="crew-sh-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(56px + var(--sab))"></div>
+    <div id="crew-sh-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(18px + var(--sab))"></div>
   </div>
 </div>
 
